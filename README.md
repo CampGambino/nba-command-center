@@ -4,13 +4,20 @@ A standalone program that anticipates NBA milestones and storylines before they 
 
 Design docs live in the claude.ai project "NBA Command Center": `anticipation-engine.md` (principle #1), `command-center-architecture.md`, `storyline-detector-catalog.md`.
 
-## What works today (v0.1.1)
+## What works today (v0.2.0)
 
 - **Game notes parser** (`src/notes/`): reads a team's notes PDF and returns
   - `meta`: the game date and opponent printed in the notes
   - `milestones`: every upcoming mark found, each with the exact text it came from and a status: **ok** (all checks passed) or **review** (something didn't add up; never treated as publishable)
   - `leaderboards`: every ranked list found, with its title, its scope (NBA / franchise / single-season / streak) and any ordering errors in the notes themselves
   - `notes`: forward-looking sentences ("is closing in on 30,000...") quoted word for word, read column by column
+- **Milestone tracking** (`src/registry/track.js`, `src/espn/`):
+  - adds every game played since the notes were written, from ESPN box scores;
+  - checks each total against ESPN's career numbers;
+  - marks any disagreement as review, with both numbers shown;
+  - marks franchise chases by players who have left as no longer live.
+
+  Run `npm run track -- samples/2026-11-09/hornets.pdf`.
 - **Notes watcher** (`src/notes/watcher.js`): downloads a team's notes from its fixed URL, keeps every version, and says whether the file there is *tonight's* notes or a stale one.
 
 Formats recognized so far (from the 2026-11-09 samples): Cleveland's "Needs N" lists, the Lakers' wide tracker table, San Antonio's "STAT: target current" blocks, Phoenix's inline tracker, Charlotte's "X is 93 rebounds away from 1,500 career rebounds... 36 games away from..." bullets, and ranked lists in several styles (`1. Name (total)`, `1. Name   total`, `1  Name  total`, `701  Name  1988-98`), including side-by-side and stacked lists. Atlanta has no tracker and still yields its ranked lists and forward-looking sentences.
@@ -28,6 +35,7 @@ What makes a milestone **review** instead of **ok**: a list whose scope (NBA or 
 npm test                                   # full test suite (offline, uses samples/)
 npm run parse -- samples/2026-11-09/cavaliers.pdf
 npm run parse -- samples/2026-11-09/lakers.pdf --json
+npm run track -- samples/2026-11-09/hornets.pdf          # needs internet (ESPN); add --all to list everything
 ```
 
 ## Tests and the audit rule
@@ -43,6 +51,8 @@ Every change ships with an entry in `CHANGES.md`: what changed, what was tested,
 
 ```
 src/notes/            game notes: layout, readers per format, checks, watcher
+src/espn/             ESPN readers + cached client (rosters, schedules, box scores, career stats)
+src/registry/         milestone tracking: roll forward since the notes, cross-check with ESPN
 src/teams.js          team names, codes, notes URLs
 scripts/              command-line tools (parse-notes, dump-page for debugging)
 samples/<date>/       real notes PDFs used by the tests

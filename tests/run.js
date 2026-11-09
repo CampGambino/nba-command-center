@@ -20,6 +20,9 @@ import { parseNotes } from "../src/notes/parse.js";
 import { teamFromSlug } from "../src/teams.js";
 import { normStat, statFromTitle, num, isDecimal, looksLikeThousandsTypo } from "../src/notes/stats.js";
 import { sameName, nameKey, looksLikeNameHeading } from "../src/notes/names.js";
+import { etDate, readCareer } from "../src/espn/parse.js";
+import { createEspn } from "../src/espn/client.js";
+import { trackMilestones, statFromLine } from "../src/registry/track.js";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const UPDATE = process.argv.includes("--update");
@@ -224,6 +227,81 @@ for (const [team, r] of Object.entries(results)) {
   served = respond(304, Buffer.alloc(0));
   const l = await checkNotes({ team: "CLE", date: "2026-11-09", opponent: "CHA", dataDir: tmp, fetchImpl: fake });
   ok(l.version?.hash === a.version.hash, "watcher: after a rollback, 304 refers to the file the site is actually serving");
+}
+
+// ---------- milestone tracking (saved ESPN data, no network) ----------
+{
+  // Unit checks.
+  ok(etDate("2026-11-10T00:00Z") === "2026-11-09" && etDate("2026-11-07T00:00:00.000+00:00") === "2026-11-06" && etDate("x") === null, "tracking: ESPN UTC times -> New York dates");
+  const line = (stats, extra = {}) => ({ played: true, started: false, stats, ...extra });
+  ok(statFromLine("g30pt", line({ pts: 30 })) === 1 && statFromLine("g30pt", line({ pts: 29 })) === 0, "tracking: 30-point games counted at 30, not 29");
+  ok(statFromLine("dd", line({ pts: 10, reb: 10, ast: 9 })) === 1 && statFromLine("td", line({ pts: 10, reb: 10, ast: 9 })) === 0 && statFromLine("td", line({ pts: 10, reb: 10, ast: 10 })) === 1, "tracking: double/triple-doubles");
+  ok(statFromLine("gs", line({ pts: 2 }, { started: true })) === 1 && statFromLine("gp", { played: false, stats: {} }) === 0 && statFromLine("pts", null) === 0, "tracking: starts, DNPs, absent players");
+  ok(statFromLine("min", line({ pts: 2 })) === null, "tracking: a stat missing from the box score is unknown, not zero");
+
+  const fx = path.join(root, "samples", "2026-11-09", "espn");
+  if (!fs.existsSync(fx)) {
+    ok(false, "tracking: ESPN fixtures missing", "run: node scripts/track.js samples/2026-11-09/hornets.pdf && node scripts/make-espn-fixtures.js 2026-11-09 CHA");
+  } else {
+    // Serve the frozen copies as a fresh cache; any real request fails the test.
+    const os = await import("node:os");
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ncc-espn-"));
+    fs.mkdirSync(path.join(tmp, "espn"));
+    // Every copy is stamped with one time so none is "stale" whatever order they were saved in.
+    const newest = Date.UTC(2026, 10, 9, 21, 0);
+    for (const f of fs.readdirSync(fx)) {
+      const j = JSON.parse(fs.readFileSync(path.join(fx, f), "utf8"));
+      j.fetchedAt = newest;
+      fs.writeFileSync(path.join(tmp, "espn", f), JSON.stringify(j));
+    }
+    let requests = 0;
+    const espn = createEspn({ dataDir: tmp, now: () => newest + 60e3, spacingMs: 0, fetchImpl: async () => { requests++; throw new Error("offline test"); } });
+
+    // Traded seasons: per-team rows add up to the career line, "Totals" rows excluded.
+    const sch = readCareer(JSON.parse(fs.readFileSync(path.join(fx, "career-3032979.json"), "utf8")).data);
+    ok(sch.rows.length > 0 && !sch.rows.some((r) => /totals/i.test(r.team)) && sch.warnings.length === 0 && sch.career.ast === 4482, "tracking: Schröder's traded seasons read without double counting (4,482 AST)", JSON.stringify(sch.warnings));
+
+    const cha = results.CHA.milestones;
+    // As written (notes for 11/9, no game since): cross-check only.
+    const now = await trackMilestones({ team: "CHA", notesDate: "2026-11-09", milestones: cha, espn });
+    const tr = (r, player, stat, extra = {}) => r.milestones.find((m) => sameName(m.player, player) && m.stat === stat && Object.entries(extra).every(([k, v]) => m[k] === v));
+    const allenGp = tr(now, "Grayson Allen", "gp", { target: 500 });
+    ok(allenGp?.tracking.status === "confirmed" && allenGp.tracking.espn.value === 464, "tracking: Grayson Allen 464 games confirmed by ESPN", JSON.stringify(allenGp?.tracking));
+    const allenReb = tr(now, "Grayson Allen", "reb", { target: 1500 });
+    ok(allenReb?.tracking.status === "disagrees" && allenReb.tracking.espn.value === 1398 && allenReb.status === "review", "tracking: Grayson Allen rebounds 1,407 vs ESPN 1,398 -> review", JSON.stringify(allenReb?.tracking));
+    const schroder = tr(now, "Dennis Schröder", "ast", { target: 4500 });
+    ok(schroder?.tracking.status === "confirmed", "tracking: Schröder (accent) matched to ESPN's 'Schroder' and confirmed", JSON.stringify(schroder?.tracking));
+    const ball = now.milestones.find((m) => m.player === "LaMelo Ball" && m.scope === "franchise");
+    ok(ball?.tracking.status === "off-roster", "tracking: LaMelo Ball (traded) franchise chase is not live", JSON.stringify(ball?.tracking));
+    ok(now.games.length === 0, "tracking: no games after notes dated today");
+    ok(!now.milestones.some((m) => m.tracking.status === "disagrees" && m.status === "ok"), "tracking: no disagreement is left 'ok'");
+
+    // Same notes treated as written for 11/4: the 11/4 and 11/6 games get added.
+    const back = await trackMilestones({ team: "CHA", notesDate: "2026-11-04", milestones: cha, espn });
+    ok(back.games.map((g) => g.date).join(",") === "2026-11-04,2026-11-06", "tracking: games since 11/4 are 11/4 and 11/6", back.games.map((g) => g.date).join(","));
+    const miller = tr(back, "Brandon Miller", "pts", { target: 3500 });
+    ok(miller?.tracking.delta === 18 && miller.tracking.current === 3378 && miller.tracking.need === 122, "tracking: Miller +10 +8 points -> 3,378, needs 122", JSON.stringify(miller?.tracking));
+    const mcn = tr(back, "Liam McNeeley", "gp", { target: 100 });
+    ok(mcn?.tracking.delta === 1, "tracking: McNeeley DNP on 11/4 adds 1 game, not 2", JSON.stringify(mcn?.tracking));
+    const dia = tr(back, "Moussa Diabate", "fgm", { target: 500 });
+    ok(dia?.tracking.delta === 2, "tracking: Diabate 2 FGM on 11/4, DNP 11/6", JSON.stringify(dia?.tracking));
+    const reid = tr(back, "Naz Reid", "gp", { target: 500 });
+    ok(reid?.tracking.need === 5, "tracking: Naz Reid 7 games from 500 becomes 5", JSON.stringify(reid?.tracking));
+    const ballOk = back.milestones.filter((m) => m.tracking.status === "off-roster");
+    ok(ballOk.length > 0 && ballOk.every((m) => m.status === "review"), "tracking: a chase by a player who has left is never 'ok'");
+    // A chase of a teammate: both totals move with the same games (synthetic case on real box scores).
+    const fake = [{ team: "CHA", player: "Brandon Miller", stat: "pts", kind: "pass", scope: "franchise", current: 1000, target: 1101, tieAt: 100, need: 101, passing: { player: "Coby White", total: 1100 }, status: "ok", checks: [] }];
+    const tm = await trackMilestones({ team: "CHA", notesDate: "2026-11-04", milestones: fake, espn });
+    ok(tm.milestones[0].tracking.targetMoved === 11 && tm.milestones[0].tracking.target === 1112 && tm.milestones[0].tracking.need === 1112 - 1018, "tracking: chasing a teammate moves the target (White +4 +7)", JSON.stringify(tm.milestones[0].tracking));
+    ok(requests === 0, "tracking: tests made no network requests", `${requests} attempted`);
+
+    // ESPN unreachable with no cache: nothing throws, every milestone says why.
+    const empty = fs.mkdtempSync(path.join(os.tmpdir(), "ncc-espn-empty-"));
+    const off = await trackMilestones({ team: "CHA", notesDate: "2026-11-09", milestones: cha, espn: createEspn({ dataDir: empty, spacingMs: 0, fetchImpl: async () => { throw new Error("ENOTFOUND"); } }) });
+    ok(off.milestones.length === cha.length && off.milestones.every((m) => m.tracking.status === "unavailable") && off.problems.some((p) => /network/.test(p)), "tracking: offline -> unavailable, reported, not thrown");
+    const nodate = await trackMilestones({ team: "CHA", notesDate: null, milestones: cha, espn });
+    ok(nodate.milestones.every((m) => m.tracking.status === "unavailable"), "tracking: unknown notes date -> nothing rolled forward");
+  }
 }
 
 // ---------- snapshot ----------
