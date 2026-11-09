@@ -7,6 +7,15 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
+
+// Node's fetch ignores HTTPS_PROXY unless NODE_USE_ENV_PROXY=1 (Node 22.21+/24).
+// Behind a proxy (sandboxes, some offices), rerun once with it set. Plain home
+// Windows has no proxy and never takes this path.
+if ((process.env.HTTPS_PROXY || process.env.https_proxy) && !process.env.NODE_USE_ENV_PROXY) {
+  const r = spawnSync(process.execPath, ["--no-warnings", ...process.argv.slice(1)], { stdio: "inherit", env: { ...process.env, NODE_USE_ENV_PROXY: "1" } });
+  process.exit(r.status ?? 1);
+}
 import { parseNotes } from "../src/notes/parse.js";
 import { teamFromSlug } from "../src/teams.js";
 import { createEspn } from "../src/espn/client.js";
