@@ -4,9 +4,9 @@ A standalone program that anticipates NBA milestones and storylines before they 
 
 Design docs live in the claude.ai project "NBA Command Center": `anticipation-engine.md` (principle #1), `command-center-architecture.md`, `storyline-detector-catalog.md`.
 
-## What works today (v0.4.0)
+## What works today (v0.5.0)
 
-**Website:** https://campgambino.github.io/nba-command-center/ (GitHub Pages, from `docs/`). Rebuild it with `npm run publish -- samples/<date>/*.pdf`.
+**Website:** https://campgambino.github.io/nba-command-center/ (GitHub Pages, from `docs/`). Rebuild it for tonight's whole slate with `npm run tonight` (downloads every playing team's notes), or from local PDFs with `npm run publish -- samples/<date>/*.pdf`.
 
 - **Game notes parser** (`src/notes/`): reads a team's notes PDF and returns
   - `meta`: the game date and opponent printed in the notes

@@ -133,7 +133,7 @@ export async function buildWatch({ team, notesDate, milestones, espn, today, sim
     const imp = importance(m);
     const live = t.status !== "off-roster";
     return {
-      team: m.team, player: m.player, espnId: t.espnId || null, stat: m.stat, label: m.label, kind: m.kind, scope: m.scope,
+      team: m.team, player: m.player, espnId: t.espnId || null, origin: m.origin || "notes", stat: m.stat, label: m.label, kind: m.kind, scope: m.scope,
       target: t.target ?? m.target, current: t.current ?? m.current, need: t.need ?? m.need,
       passing: m.passing ? { player: m.passing.player, total: m.passing.total, rank: m.passing.rank, forWhat: m.passing.forWhat } : null,
       importance: imp.score, why: imp.reasons,

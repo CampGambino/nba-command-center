@@ -47,5 +47,16 @@ export function teamFromText(text) {
   return null;
 }
 
+// Tricodes as printed by teams and ESPN that differ from ours.
+const CODE_ALIAS = { GS: "GSW", NO: "NOP", NY: "NYK", SA: "SAS", UTAH: "UTA", WSH: "WAS", PHO: "PHX", BRK: "BKN", CHO: "CHA", NOR: "NOP" };
+
+/** A team code at the very start of a phrase ("HOU - 11/9/26", "GS"). Only the leading token is read. */
+export function teamFromCode(text) {
+  const m = /^\s*([A-Z]{2,4})\b/.exec(String(text || ""));
+  if (!m) return null;
+  const code = m[1];
+  return TEAMS[code] ? code : CODE_ALIAS[code] || null;
+}
+
 export const teamFromSlug = (slug) =>
   Object.entries(TEAMS).find(([, i]) => i.slug === String(slug).toLowerCase())?.[0] || null;

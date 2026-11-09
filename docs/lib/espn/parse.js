@@ -236,3 +236,20 @@ export function readInjuries(json) {
   }
   return { players: out };
 }
+
+/** /scoreboard?dates=YYYYMMDD -> the day's games with both teams as our tricodes. */
+export function readScoreboard(json) {
+  const games = [];
+  for (const e of json?.events || []) {
+    const c = e?.competitions?.[0];
+    if (!c || !e.id) continue;
+    const side = (h) => c.competitors?.find((k) => k.homeAway === h)?.team?.displayName || null;
+    const home = side("home"), away = side("away");
+    games.push({
+      id: String(e.id), date: etDate(e.date || c.date), start: e.date || c.date || null,
+      home, away, homeTri: teamFromText(home || ""), awayTri: teamFromText(away || ""),
+      seasonType: e.season?.type ?? null, state: c.status?.type?.state || null,
+    });
+  }
+  return { games };
+}

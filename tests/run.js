@@ -17,7 +17,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseNotes } from "../src/notes/parse.js";
-import { teamFromSlug } from "../src/teams.js";
+import { teamFromSlug, teamFromCode } from "../src/teams.js";
 import { normStat, statFromTitle, num, isDecimal, looksLikeThousandsTypo } from "../src/notes/stats.js";
 import { sameName, nameKey, looksLikeNameHeading } from "../src/notes/names.js";
 import { etDate, readCareer } from "../src/espn/parse.js";
@@ -71,6 +71,22 @@ function fact(name, m, expect) {
 for (const [team, opp] of [["CLE", "CHA"], ["CHA", "CLE"], ["LAL", "ATL"], ["ATL", "LAL"], ["SAS", "PHX"], ["PHX", "SAS"]]) {
   ok(results[team]?.meta.gameDate === "2026-11-09", `${team} notes date`, `got ${results[team]?.meta.gameDate}`);
   ok(results[team]?.meta.opponent === opp, `${team} notes opponent`, `got ${results[team]?.meta.opponent}`);
+}
+
+// Front pages of tonight's other notes (downloaded 2026-11-09): date and opponent only,
+// their milestone layouts are not hand-checked yet.
+ok(teamFromCode("HOU - 11/9/26") === "HOU" && teamFromCode("GS") === "GSW" && teamFromCode("UTAH") === "UTA" && teamFromCode("PM") === null && teamFromCode("Houston") === null, "teams: codes at the start of a phrase");
+{
+  const slate = path.join(root, "samples", "2026-11-09-slate");
+  const expect = { nuggets: ["DEN", "HOU"], pacers: ["IND", "DAL"], rockets: ["HOU", "DEN"], mavericks: ["DAL", "IND"], pistons: ["DET", "WAS"], wizards: ["WAS", "DET"], grizzlies: ["MEM", "TOR"], raptors: ["TOR", "MEM"], pelicans: ["NOP", "GSW"], warriors: ["GSW", "NOP"] };
+  if (!fs.existsSync(slate)) ok(false, "slate samples missing (samples/2026-11-09-slate)");
+  else for (const [slug, [team, opp]] of Object.entries(expect)) {
+    const f = path.join(slate, `${slug}.pdf`);
+    if (!fs.existsSync(f)) { ok(false, `${team} slate notes missing`); continue; }
+    const m = (await parseNotes(fs.readFileSync(f), { team })).meta;
+    ok(m.gameDate === "2026-11-09", `${team} notes date (new layout)`, `got ${m.gameDate}`);
+    ok(m.opponent === opp, `${team} notes opponent`, `got ${m.opponent}`);
+  }
 }
 
 // Cleveland: "target STAT (current) Needs N" under name headings.

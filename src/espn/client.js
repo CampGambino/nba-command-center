@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { readTeams, readRoster, readSchedule, readBox, readCareer, readGameLog, readInjuries } from "./parse.js";
+import { readTeams, readRoster, readSchedule, readBox, readCareer, readGameLog, readInjuries, readScoreboard } from "./parse.js";
 
 /**
  * ESPN client with an on-disk cache under <dataDir>/espn/.
@@ -104,6 +104,7 @@ export function createEspn({ dataDir, fetchImpl = fetch, now = () => Date.now(),
       if (r.ok && !r.data.final && r.fromCache) return wrap(`box-${eventId}`, `${BASE}/summary?event=${eventId}`, 60e3, readBox, shrink);
       return r;
     },
+    scoreboard: (isoDate) => wrap(`scoreboard-${isoDate}`, `${BASE}/scoreboard?dates=${isoDate.replace(/-/g, "")}`, 10 * 60e3, readScoreboard),
     injuries: () => wrap("injuries", `${BASE}/injuries`, 1 * HOUR, readInjuries, SHRINK.injuries),
     // Past seasons don't change: cache for a week. `season` is the ending year (2026 = 2025-26).
     gameLog: (athleteId, season) => wrap(`log-${athleteId}-${season}`, `${WEB}/athletes/${athleteId}/gamelog?season=${season}`, 7 * 24 * HOUR, readGameLog, SHRINK.gameLog),

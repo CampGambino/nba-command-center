@@ -2,6 +2,43 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.5.0 (2026-11-09): tonight's whole slate, automatically
+
+### What changed
+
+- **New `scripts/tonight.js`.** Reads ESPN's scoreboard for the day, downloads every playing team's notes from nba.com, checks that each is tonight's (current / stale / conflict / unknown date), and builds the site. On 2026-11-09: 8 games, 16 teams, all 16 sets of notes current.
+- **New `src/site/build.js`,** shared by `publish.js` and `tonight.js`.
+  - The site data now lists the day's games (away @ home), and each team's notes status.
+  - Stale or conflicting notes are shown in a banner. They are still used, and their totals are rolled forward.
+- **New `src/registry/discover.js`.** Milestones straight from ESPN: every rostered player within about 3 games of a round career number. These are marked **from ESPN only** and held for review, because ESPN's counts can differ from NBA.com's by a few. Where the notes have the same milestone, the notes' version is used.
+- **Unchecked notes layouts.** `VERIFIED_FORMATS` lists the six teams whose layouts were hand-checked (CLE, LAL, SAS, PHX, ATL, CHA). For other teams, only round-number milestones whose total ESPN confirms are publishable. Passes stay review, because the passed player's total comes from an unchecked reading. Example: Golden State's "Curry 9 points from passing DeRozan" is shown as review.
+- **Date reader:** two new forms, Denver's "VS. HOU - 11/9/26" and Indiana's "November 9, 2026 — Arena" (the latter is used only if nothing stronger is found).
+- **Opponent reader:** team codes are read ("VS. HOU"; also GS, NO, NY, SA, UTAH, WSH and others).
+- **Notes downloader:**
+  - It re-reads a stored copy whose date was never found, including when the site answers "not modified" (it used to keep the first, dateless reading forever).
+- **Page:**
+  - the full slate of games;
+  - a notes-status banner;
+  - live polling per game, shared by both teams;
+  - a "from ESPN only" chip, and "ESPN ✓" where ESPN confirms a total.
+
+### Tested
+
+- 223 facts and checks pass, 21 new:
+  - the date and opponent for the 10 newly downloaded teams' notes, each checked against its PDF's front page;
+  - team codes at the start of a phrase ("PM" and "Houston" are not codes).
+- **Live run on 2026-11-09:**
+  - 430 milestones across 16 teams;
+  - no unchecked team has a publishable pass;
+  - Stephen Curry's DeRozan pass is review.
+- **In headless Chrome:** 8 games shown, ESPN-only and review chips render, no script errors.
+
+### Still unproven
+
+- **10 notes layouts aren't parsed:** DET, MEM, TOR, IND, DAL, DEN, HOU, NOP, GSW and WAS. They yield 0-15 milestones each. Their franchise and NBA-history chases (which ESPN can't supply) are missing until each layout is learned and hand-checked. Samples are saved in `samples/2026-11-09-slate/`.
+- **ESPN-only milestones are single-source:** review by design.
+- **`tonight.js` takes about 1.5 minutes** on a cold cache (about 250 ESPN requests, spaced 250 ms apart). It is faster when cached.
+
 ## 0.4.0 (2026-11-09): the Watch List website, with live countdowns
 
 ### What changed

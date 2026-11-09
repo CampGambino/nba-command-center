@@ -75,6 +75,7 @@
   <div id="stale"></div>
   <h2>Tonight's games</h2>
   <div class="games" id="games"></div>
+  <div id="notesIssues"></div>
 
   <h2>Likely tonight</h2>
   <div class="cards" id="tonight"></div>
@@ -134,7 +135,9 @@ function chips(i) {
   else if (i.liveVal != null) c.push(i.liveState === "in" ? `<span class="chip live">LIVE · ${fmt(i.liveVal)} tonight</span>` : `<span class="chip">final · ${fmt(i.liveVal)} tonight</span>`);
   if (i.injury?.status === "Out") c.push(`<span class="chip out">Out${i.injury.returnDate ? ` · back ~${esc(nice(i.injury.returnDate))}` : ""}</span>`);
   else if (i.injury) c.push(`<span class="chip dtd">${esc(i.injury.status)}</span>`);
-  if (!i.publishable) c.push(`<span class="chip review">${i.tracking === "off-roster" ? "not live" : "review"}</span>`);
+  if (i.origin === "espn") c.push(`<span class="chip review">from ESPN only</span>`);
+  else if (!i.publishable) c.push(`<span class="chip review">${i.tracking === "off-roster" ? "not live" : "review"}</span>`);
+  else if (i.tracking === "confirmed") c.push(`<span class="chip">ESPN ✓</span>`);
   if (i.confidence === "low") c.push(`<span class="chip">few games</span>`);
   c.push(`<span class="chip">importance ${i.importance}</span>`);
   return `<div class="chips">${c.join("")}</div>`;
@@ -170,9 +173,22 @@ function table(list, { eta = true } = {}) {
     <td class="num hide-sm">${i.importance}</td></tr>`).join("")}</tbody></table>`;
 }
 
+function gamesList() {
+  if (data.games?.length) return data.games;
+  const seen = new Set(), out = [];
+  for (const t of data.teams) {
+    const g = t.tonightGame;
+    if (!g || seen.has(g.id)) continue;
+    seen.add(g.id);
+    out.push({ id: g.id, start: g.start, home: g.home || g.teams?.[0], away: g.away || g.teams?.[1], homeTri: null, awayTri: null });
+  }
+  return out;
+}
+const teamGame = (team) => data.teams.find((t) => t.team === team)?.tonightGame?.id || gamesList().find((g) => g.homeTri === team || g.awayTri === team)?.id;
+
 function render() {
   for (const i of items) {
-    const L = live.get(i.team);
+    const L = live.get(teamGame(i.team));
     i.liveVal = null; i.liveHit = false; i.needNow = null; i.liveState = L?.state || null;
     if (L?.box && i.espnId && L.state !== "pre") {
       const line = L.box.players.find((p) => p.id === i.espnId);
@@ -192,23 +208,23 @@ function render() {
   const limit = showAll ? all.length : 40;
   $("all").innerHTML = table(all.slice(0, limit)) + (all.length > limit ? `<p><button id="more">Show all ${all.length}</button></p>` : "");
   $("more")?.addEventListener("click", () => { showAll = true; render(); });
-  $("games").innerHTML = data.teams.filter((t) => t.tonightGame).filter((t, k, arr) => arr.findIndex((x) => x.tonightGame.id === t.tonightGame.id) === k).map((t) => {
-    const L = live.get(t.team);
-    const tip = new Date(t.tonightGame.start).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const games = gamesList();
+  $("games").innerHTML = games.map((g) => {
+    const L = live.get(g.id);
+    const tip = new Date(g.start).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
     const state = L?.state === "in" ? `LIVE · ${esc(L.detail)}` : L?.state === "post" ? `Final` : `Tip ${tip}`;
-    return `<div class="game${L?.state === "in" ? " live" : ""}"><div class="teams">${t.tonightGame.away && t.tonightGame.home ? `${esc(nick(t.tonightGame.away))} @ ${esc(nick(t.tonightGame.home))}` : esc((t.tonightGame.teams || []).join(" vs "))}</div><div class="state">${state}${L?.score ? ` · ${esc(L.score)}` : ""}</div></div>`;
-  }).join("") || `<div class="empty">No games for these teams tonight.</div>`;
+    const noteFlags = [g.awayTri, g.homeTri].map((t) => data.teams.find((x) => x.team === t)).filter((t) => t && t.notesStatus && !["current", "local"].includes(t.notesStatus)).map((t) => `${esc(t.team)} notes ${esc(t.notesStatus)}`);
+    return `<div class="game${L?.state === "in" ? " live" : ""}"><div class="teams">${esc(nick(g.away))} @ ${esc(nick(g.home))}</div><div class="state">${state}${L?.score ? ` · ${esc(L.score)}` : ""}</div>${noteFlags.length ? `<div class="state" style="color:var(--warn)">${noteFlags.join(" · ")}</div>` : ""}</div>`;
+  }).join("") || `<div class="empty">No games tonight.</div>`;
+  const issues = data.teams.filter((t) => t.notesStatus && !["current", "local"].includes(t.notesStatus));
+  $("notesIssues").innerHTML = issues.length ? `<div class="warn-banner">${issues.map((t) => `<b>${esc(t.team)}</b>: ${esc(t.notesWhy || t.notesStatus)}`).join("<br>")}<br>Stale notes are still used: their totals are brought up to date from the games played since.</div>` : "";
 }
 
 async function poll() {
   const now = Date.now();
-  const seen = new Set();
   let anyLive = false;
-  for (const t of data.teams) {
-    const g = t.tonightGame;
-    if (!g || seen.has(g.id)) continue; // both teams' notes share one game: fetched once, stored for both
-    seen.add(g.id);
-    const L = live.get(t.team);
+  for (const g of gamesList()) {
+    const L = live.get(g.id);
     if (L?.state === "post") continue;
     if (now < new Date(g.start).getTime() - 10 * 60e3) continue; // not yet
     try {
@@ -217,9 +233,8 @@ async function poll() {
       const st = json?.header?.competitions?.[0]?.status?.type || {};
       const comp = json?.header?.competitions?.[0]?.competitors || [];
       const score = comp.map((c) => `${c.team?.abbreviation} ${c.score ?? ""}`).join(" – ");
-      const entry = { state: st.state || "pre", detail: st.shortDetail || st.detail || "", score, box: readBox(json) };
-      for (const x of data.teams) if (x.tonightGame?.id === g.id) live.set(x.team, entry);
-      if (entry.state === "in") anyLive = true;
+      live.set(g.id, { state: st.state || "pre", detail: st.shortDetail || st.detail || "", score, box: readBox(json) });
+      if (st.state === "in") anyLive = true;
     } catch (e) { console.warn("live fetch failed", e); }
   }
   render();
@@ -233,7 +248,7 @@ async function main() {
   } catch (e) { $("sub").textContent = "Couldn't load the Watch List data."; return; }
   items = data.teams.flatMap((t) => t.items.map((i) => ({ ...i, team: t.team }))).filter((i) => !i.stale);
   const gen = new Date(data.generatedAt);
-  $("sub").textContent = `${new Date(data.today + "T12:00:00").toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })} · ${data.teams.length} teams' notes · updated ${gen.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`;
+  $("sub").textContent = `${new Date(data.today + "T12:00:00").toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })} · ${gamesList().length} games · ${data.teams.filter((t) => t.items.length).length} teams' notes · updated ${gen.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`;
   const todayLocal = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
   if (todayLocal > data.today) $("stale").innerHTML = `<div class="warn-banner">This list was built for ${esc(data.today)}. Newer notes haven't been published yet, so "tonight" here means ${esc(data.today)}.</div>`;
   for (const t of [...new Set(data.teams.map((t) => t.team))].sort()) $("teamFilter").insertAdjacentHTML("beforeend", `<option>${esc(t)}</option>`);

@@ -1,4 +1,4 @@
-import { teamFromText, TEAMS } from "../teams.js";
+import { teamFromText, teamFromCode, TEAMS } from "../teams.js";
 
 /**
  * What game these notes are for: the date and the opponent, read from the
@@ -29,7 +29,19 @@ export function readMeta(doc, team) {
     if (mi >= 0) dates.push({ iso: null, month: mi + 1, day: +m[2], how: m[0].trim() });
   }
 
-  const gameDate = dates.find((d) => d.iso)?.iso ?? null;
+  // "GAME NOTES VS. HOU - 11/9/26" (Denver: date after the opponent)
+  for (const m of text.matchAll(/\b(?:vs\.?|@|at)\s+[A-Z]{2,3}\s*[-–—]\s*(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})\b/gi)) {
+    const y = m[3].length === 2 ? 2000 + +m[3] : +m[3];
+    dates.push({ iso: iso(y, +m[1], +m[2]), how: m[0].trim() });
+  }
+  // "November 9, 2026 — American Airlines Center" (Indiana: no weekday). Lowest
+  // priority: front pages also carry other full dates (draft days, signings).
+  for (const m of text.matchAll(/\b([A-Z][a-z]+)\.?\s+(\d{1,2}),\s+(20\d\d)\s*[—–-]/g)) {
+    const mi = monthIndex(m[1]);
+    if (mi >= 0) dates.push({ iso: iso(+m[3], mi + 1, +m[2]), how: m[0].trim(), weak: true });
+  }
+
+  const gameDate = (dates.find((d) => d.iso && !d.weak) || dates.find((d) => d.iso))?.iso ?? null;
 
   const opp = readOpponent(doc, team, gameDate);
   return {
@@ -64,7 +76,7 @@ function readOpponent(doc, team, gameDate) {
       const t = cell.text;
       if (!/(\bvs\.?\s|@|\bat\s)/i.test(t)) continue;
       const parts = t.split(/\bvs\.?\s|@|\bat\s/i);
-      let tri = teamFromText(parts.slice(1).join(" "));
+      let tri = teamFromText(parts.slice(1).join(" ")) || teamFromCode(parts[1]); // "VS. HOU - 11/9/26"
       // "CLEVELAND CAVALIERS @ CHARLOTTE HORNETS" in Charlotte's own notes.
       if (!tri || tri === team) tri = teamFromText(parts[0]);
       if (!tri || tri === team) continue;

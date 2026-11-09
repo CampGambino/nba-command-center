@@ -76,9 +76,14 @@ export async function checkNotes({ team, date, opponent = null, dataDir, fetchIm
     const headers = { ...HEADERS };
     if (latest?.lastModified) headers["if-modified-since"] = latest.lastModified;
     res = await fetchImpl(notesUrl(team), { headers, redirect: "follow" });
-    if (res.status === 304 && latest) return { ...judge(team, latest, false, date, opponent), warnings };
-    if (!res.ok) return unreachable(`HTTP ${res.status} from www.nba.com${res.status === 403 ? " (the site is refusing automated downloads)" : ""}`);
-    buf = Buffer.from(await res.arrayBuffer());
+    if (res.status === 304 && latest) {
+      // Unchanged on the site. Re-read our stored copy only if its date was never found.
+      if (latest.meta?.gameDate && !latest.meta?.error) return { ...judge(team, latest, false, date, opponent), warnings };
+      buf = fs.readFileSync(path.join(dir, latest.file));
+    } else {
+      if (!res.ok) return unreachable(`HTTP ${res.status} from www.nba.com${res.status === 403 ? " (the site is refusing automated downloads)" : ""}`);
+      buf = Buffer.from(await res.arrayBuffer());
+    }
   } catch (e) {
     return unreachable(`network: ${e.message}`);
   }
@@ -92,7 +97,8 @@ export async function checkNotes({ team, date, opponent = null, dataDir, fetchIm
   const hash = crypto.createHash("sha256").update(buf).digest("hex").slice(0, 16);
   let version = versions.find((v) => v.hash === hash);
   let isNew = false;
-  if (!version || version.meta?.error) {
+  // Re-read a stored version whose date couldn't be found: the date reader may have learned its format since.
+  if (!version || version.meta?.error || !version.meta?.gameDate) {
     let meta;
     try {
       const m = (await parseNotes(buf, { team })).meta;
