@@ -354,6 +354,23 @@ for (const [team, r] of Object.entries(results)) {
   }
 }
 
+// ---------- website (docs/) ----------
+{
+  const docs = path.join(root, "docs");
+  if (fs.existsSync(path.join(docs, "lib"))) {
+    for (const rel of ["teams.js", "notes/names.js", "espn/parse.js", "registry/track.js"]) {
+      const a = fs.readFileSync(path.join(root, "src", rel), "utf8"), b = fs.existsSync(path.join(docs, "lib", rel)) ? fs.readFileSync(path.join(docs, "lib", rel), "utf8") : null;
+      ok(a === b, `website: docs/lib/${rel} matches src (run scripts/publish.js after code changes)`);
+    }
+    const html = fs.readFileSync(path.join(docs, "index.html"), "utf8");
+    const imports = [...html.matchAll(/from "\.\/(lib\/[^"]+)"/g)].map((m) => m[1]);
+    ok(imports.length >= 2 && imports.every((f) => fs.existsSync(path.join(docs, f))), "website: every module the page imports exists", imports.join(", "));
+    const w = JSON.parse(fs.readFileSync(path.join(docs, "data", "watch.json"), "utf8"));
+    ok(Array.isArray(w.teams) && w.today && w.teams.every((t) => Array.isArray(t.items)), "website: watch.json has the expected shape");
+    ok(!JSON.stringify(w).includes('"source"'), "website: no text copied from the notes is published");
+  }
+}
+
 // ---------- snapshot ----------
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });

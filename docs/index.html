@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NBA Command Center · Watch List</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a;
+    --text: #e8eaef; --muted: #9aa3b2; --faint: #6b7383;
+    --accent: #4f9cf7; --good: #3fbf7f; --warn: #e5a93b; --bad: #e5604f; --live: #ff4d6d;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg: #f5f6f8; --panel: #fff; --panel2: #f0f2f5; --line: #e1e4ea; --text: #161a22; --muted: #5b6474; --faint: #8a93a3; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 18px 16px 8px; max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  main { max-width: 980px; margin: 0 auto; padding: 0 12px 40px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 22px 4px 10px; }
+  .games { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 6px; }
+  .game { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; min-width: 170px; }
+  .game .teams { font-weight: 650; }
+  .game .state { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .game.live { border-color: var(--live); }
+  .game.live .state { color: var(--live); font-weight: 600; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: grid; grid-template-columns: 58px 1fr; gap: 12px; }
+  .card.hit { border-color: var(--good); }
+  .pct { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 16px;
+         background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--panel2) 0); position: relative; }
+  .pct::before { content: ""; position: absolute; inset: 6px; background: var(--panel); border-radius: 50%; }
+  .pct span { position: relative; }
+  .card.hit .pct { background: var(--good); }
+  .card.hit .pct::before { background: var(--good); }
+  .card.hit .pct span { color: #fff; }
+  .who { font-weight: 650; }
+  .team { color: var(--faint); font-weight: 500; font-size: 12px; margin-left: 4px; }
+  .what { margin-top: 2px; }
+  .meta { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .chip { font-size: 11.5px; padding: 2px 7px; border-radius: 999px; background: var(--panel2); color: var(--muted); border: 1px solid var(--line); }
+  .chip.review { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+  .chip.out { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
+  .chip.dtd { color: var(--warn); }
+  .chip.live { color: var(--live); border-color: var(--live); font-weight: 600; }
+  .chip.hit { color: var(--good); border-color: var(--good); font-weight: 600; }
+  details { margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+  summary { cursor: pointer; color: var(--faint); }
+  details ul { margin: 4px 0 0 16px; padding: 0; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 13.5px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; background: var(--panel2); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 2px 10px; }
+  select, input[type=search] { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 14px; }
+  label { color: var(--muted); font-size: 13px; }
+  button { background: var(--panel); color: var(--accent); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 14px; cursor: pointer; }
+  .empty { color: var(--faint); padding: 12px 4px; }
+  footer { color: var(--faint); font-size: 12px; max-width: 980px; margin: 0 auto; padding: 0 16px 30px; }
+  .warn-banner { background: color-mix(in srgb, var(--warn) 12%, var(--panel)); border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); border-radius: var(--radius); padding: 10px 12px; font-size: 13px; margin: 10px 0; }
+  @media (max-width: 600px) { .hide-sm { display: none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>NBA Command Center · Watch List</h1>
+  <div class="sub" id="sub">Loading…</div>
+</header>
+<main>
+  <div id="stale"></div>
+  <h2>Tonight's games</h2>
+  <div class="games" id="games"></div>
+
+  <h2>Likely tonight</h2>
+  <div class="cards" id="tonight"></div>
+
+  <h2>Next 5 games</h2>
+  <div id="soon"></div>
+
+  <h2>All milestones</h2>
+  <div class="controls">
+    <select id="teamFilter"><option value="">All teams</option></select>
+    <input type="search" id="q" placeholder="Player">
+    <label><input type="checkbox" id="showReview"> include review / not live</label>
+  </div>
+  <div id="all"></div>
+</main>
+<footer>
+  Chances are model estimates from recent games and ESPN's injury list. They are not yet calibrated: treat them as a guide.
+  <b>Review</b> means something didn't check out: the sources disagree, the list's scope is unproven, or the notes look stale. Those items are not for publishing as fact.
+  Live countdowns read ESPN's box scores in your browser every 30 seconds while a game is on.
+</footer>
+
+<script type="module">
+import { readBox } from "./lib/espn/parse.js";
+import { statFromLine } from "./lib/registry/track.js";
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = (n) => (n == null ? "–" : Number(n).toLocaleString("en-US"));
+const pct = (p) => (p == null ? "–" : p >= 0.995 ? ">99%" : p > 0 && p < 0.01 ? "<1%" : `${Math.round(p * 100)}%`);
+const SCOPE = { nba: "NBA history", franchise: "franchise history", career: "career", unknown: "list (scope unproven)", season: "this season", "season-record": "single season", streak: "streak" };
+const ESPN = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba";
+
+let data, items = [], showAll = false;
+const live = new Map(); // team -> { state, detail, score, box }
+
+const nice = (iso) => (iso ? new Date(iso + "T12:00:00").toLocaleDateString([], { month: "short", day: "numeric" }) : "");
+const nick = (name) => String(name || "").split(" ").slice(-1)[0];
+function describe(i) {
+  if (i.liveHit) {
+    return i.kind === "pass"
+      ? `<b>Passed ${esc(i.passing?.player)}</b> tonight · ${esc(SCOPE[i.scope] || i.scope)} (${esc(i.label || i.stat)})`
+      : `<b>Reached ${fmt(i.target)} ${esc(i.label || i.stat)}</b> tonight · ${esc(SCOPE[i.scope] || i.scope || "career")}`;
+  }
+  const n = i.needNow ?? i.need;
+  let stat = i.label || i.stat;
+  if (n === 1) stat = stat.replace(/s\b(?=[^s]*$)/, ""); // "50-point games" -> "50-point game"
+  if (i.kind === "pass") {
+    const rk = i.passing?.rank ? ` (#${esc(i.passing.rank)})` : "";
+    return `${fmt(n)} ${esc(stat)} from passing <b>${esc(i.passing?.player)}</b>${rk} · ${esc(SCOPE[i.scope] || i.scope)}`;
+  }
+  return `${fmt(n)} ${esc(stat)} from <b>${fmt(i.target)}</b> · ${esc(SCOPE[i.scope] || i.scope || "career")}`;
+}
+
+function chips(i) {
+  const c = [];
+  if (i.liveHit) c.push(`<span class="chip hit">✓ reached tonight</span>`);
+  else if (i.liveVal != null) c.push(i.liveState === "in" ? `<span class="chip live">LIVE · ${fmt(i.liveVal)} tonight</span>` : `<span class="chip">final · ${fmt(i.liveVal)} tonight</span>`);
+  if (i.injury?.status === "Out") c.push(`<span class="chip out">Out${i.injury.returnDate ? ` · back ~${esc(nice(i.injury.returnDate))}` : ""}</span>`);
+  else if (i.injury) c.push(`<span class="chip dtd">${esc(i.injury.status)}</span>`);
+  if (!i.publishable) c.push(`<span class="chip review">${i.tracking === "off-roster" ? "not live" : "review"}</span>`);
+  if (i.confidence === "low") c.push(`<span class="chip">few games</span>`);
+  c.push(`<span class="chip">importance ${i.importance}</span>`);
+  return `<div class="chips">${c.join("")}</div>`;
+}
+
+function why(i) {
+  const lines = [...(i.why || [])];
+  const rev = (i.review || []).map((r) => `⚠ ${r}`);
+  const form = i.games != null ? [`based on ${i.games} recent games; chance he plays tonight ${pct(i.pPlayTonight)}`] : [];
+  const all = [...rev, ...lines, ...form];
+  return all.length ? `<details><summary>why</summary><ul>${all.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></details>` : "";
+}
+
+function card(i) {
+  const p = i.liveHit ? 1 : i.pTonight ?? 0;
+  return `<div class="card${i.liveHit ? " hit" : ""}">
+    <div class="pct" style="--p:${Math.round(p * 100)}"><span>${i.liveHit ? "✓" : pct(p)}</span></div>
+    <div>
+      <div class="who">${esc(i.player)}<span class="team">${esc(i.team)}</span></div>
+      <div class="what">${describe(i)}</div>
+      <div class="meta">${pct(i.pNext3)} within 3 games${i.eta ? ` · expected game ${i.eta.game} (${esc(nice(i.eta.date))})` : ""}</div>
+      ${chips(i)}${why(i)}
+    </div></div>`;
+}
+
+function table(list, { eta = true } = {}) {
+  if (!list.length) return `<div class="empty">Nothing here.</div>`;
+  return `<table><thead><tr><th>Player</th><th>Milestone</th><th class="num">Tonight</th><th class="num hide-sm">In 3</th>${eta ? `<th class="num">Expected</th>` : ""}<th class="num hide-sm">Imp.</th></tr></thead><tbody>${list.map((i) => `<tr>
+    <td><b>${esc(i.player)}</b> <span class="team">${esc(i.team)}</span>${chips(i).replace(/<span class="chip">importance \d+<\/span>/, "")}</td>
+    <td>${describe(i)}${why(i)}</td>
+    <td class="num">${pct(i.pTonight)}</td><td class="num hide-sm">${pct(i.pNext3)}</td>
+    ${eta ? `<td class="num">${i.eta ? `game ${i.eta.game}<br><span class="team">${esc(nice(i.eta.date))}</span>` : "–"}</td>` : ""}
+    <td class="num hide-sm">${i.importance}</td></tr>`).join("")}</tbody></table>`;
+}
+
+function render() {
+  for (const i of items) {
+    const L = live.get(i.team);
+    i.liveVal = null; i.liveHit = false; i.needNow = null; i.liveState = L?.state || null;
+    if (L?.box && i.espnId && L.state !== "pre") {
+      const line = L.box.players.find((p) => p.id === i.espnId);
+      const v = statFromLine(i.stat, line);
+      if (v != null && i.need != null) { i.liveVal = v; i.needNow = Math.max(0, i.need - v); i.liveHit = v >= i.need; }
+    }
+  }
+  const projected = items.filter((i) => i.publishable || $("showReview").checked);
+  const tonight = items.filter((i) => (i.pTonight ?? 0) >= 0.05 || i.liveHit)
+    .sort((a, b) => (b.liveHit - a.liveHit) || (b.pTonight * b.importance - a.pTonight * a.importance));
+  $("tonight").innerHTML = tonight.length ? tonight.map(card).join("") : `<div class="empty">No milestone has a 5%+ chance tonight.</div>`;
+  const soon = items.filter((i) => i.eta && i.eta.game <= 5 && !tonight.includes(i)).sort((a, b) => a.eta.game - b.eta.game || b.importance - a.importance);
+  $("soon").innerHTML = table(soon);
+  const team = $("teamFilter").value, q = $("q").value.trim().toLowerCase();
+  const all = projected.filter((i) => (!team || i.team === team) && (!q || i.player.toLowerCase().includes(q)))
+    .sort((a, b) => (a.eta?.game ?? 99) - (b.eta?.game ?? 99) || b.importance - a.importance);
+  const limit = showAll ? all.length : 40;
+  $("all").innerHTML = table(all.slice(0, limit)) + (all.length > limit ? `<p><button id="more">Show all ${all.length}</button></p>` : "");
+  $("more")?.addEventListener("click", () => { showAll = true; render(); });
+  $("games").innerHTML = data.teams.filter((t) => t.tonightGame).filter((t, k, arr) => arr.findIndex((x) => x.tonightGame.id === t.tonightGame.id) === k).map((t) => {
+    const L = live.get(t.team);
+    const tip = new Date(t.tonightGame.start).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    const state = L?.state === "in" ? `LIVE · ${esc(L.detail)}` : L?.state === "post" ? `Final` : `Tip ${tip}`;
+    return `<div class="game${L?.state === "in" ? " live" : ""}"><div class="teams">${t.tonightGame.away && t.tonightGame.home ? `${esc(nick(t.tonightGame.away))} @ ${esc(nick(t.tonightGame.home))}` : esc((t.tonightGame.teams || []).join(" vs "))}</div><div class="state">${state}${L?.score ? ` · ${esc(L.score)}` : ""}</div></div>`;
+  }).join("") || `<div class="empty">No games for these teams tonight.</div>`;
+}
+
+async function poll() {
+  const now = Date.now();
+  const seen = new Set();
+  let anyLive = false;
+  for (const t of data.teams) {
+    const g = t.tonightGame;
+    if (!g || seen.has(g.id)) continue; // both teams' notes share one game: fetched once, stored for both
+    seen.add(g.id);
+    const L = live.get(t.team);
+    if (L?.state === "post") continue;
+    if (now < new Date(g.start).getTime() - 10 * 60e3) continue; // not yet
+    try {
+      const res = await fetch(`${ESPN}/summary?event=${g.id}`, { cache: "no-store" });
+      const json = await res.json();
+      const st = json?.header?.competitions?.[0]?.status?.type || {};
+      const comp = json?.header?.competitions?.[0]?.competitors || [];
+      const score = comp.map((c) => `${c.team?.abbreviation} ${c.score ?? ""}`).join(" – ");
+      const entry = { state: st.state || "pre", detail: st.shortDetail || st.detail || "", score, box: readBox(json) };
+      for (const x of data.teams) if (x.tonightGame?.id === g.id) live.set(x.team, entry);
+      if (entry.state === "in") anyLive = true;
+    } catch (e) { console.warn("live fetch failed", e); }
+  }
+  render();
+  const next = anyLive ? 30e3 : 120e3;
+  if (!document.hidden) setTimeout(poll, next); else document.addEventListener("visibilitychange", () => poll(), { once: true });
+}
+
+async function main() {
+  try {
+    data = await (await fetch("data/watch.json", { cache: "no-store" })).json();
+  } catch (e) { $("sub").textContent = "Couldn't load the Watch List data."; return; }
+  items = data.teams.flatMap((t) => t.items.map((i) => ({ ...i, team: t.team }))).filter((i) => !i.stale);
+  const gen = new Date(data.generatedAt);
+  $("sub").textContent = `${new Date(data.today + "T12:00:00").toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })} · ${data.teams.length} teams' notes · updated ${gen.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`;
+  const todayLocal = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  if (todayLocal > data.today) $("stale").innerHTML = `<div class="warn-banner">This list was built for ${esc(data.today)}. Newer notes haven't been published yet, so "tonight" here means ${esc(data.today)}.</div>`;
+  for (const t of [...new Set(data.teams.map((t) => t.team))].sort()) $("teamFilter").insertAdjacentHTML("beforeend", `<option>${esc(t)}</option>`);
+  for (const id of ["teamFilter", "q", "showReview"]) $(id).addEventListener("input", render);
+  render();
+  poll();
+}
+main();
+</script>
+</body>
+</html>

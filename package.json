@@ -1,6 +1,6 @@
 {
   "name": "nba-command-center",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "description": "Standalone NBA Command Center: anticipates milestones and storylines from game notes and league data",
@@ -9,7 +9,8 @@
     "parse": "node scripts/parse-notes.js",
     "track": "node scripts/track.js",
     "watch": "node scripts/watch.js",
-    "score": "node scripts/score.js"
+    "score": "node scripts/score.js",
+    "publish": "node scripts/publish.js"
   },
   "dependencies": {
     "pdfjs-dist": "4.10.38"

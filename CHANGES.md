@@ -2,6 +2,46 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.4.0 (2026-11-09): the Watch List website, with live countdowns
+
+### What changed
+
+- **New `docs/index.html`** (GitHub Pages serves `docs/`). One page with no build step and no server:
+  - **Tonight's games:** away @ home, tip time in the viewer's time zone, live score and clock.
+  - **Likely tonight:** cards with the chance, what is needed, the 3-game chance, the expected game and date, the importance, and flags (review / not live / Out / Day-To-Day / few games). "Why" lists the importance reasons, the review reasons and the form behind the estimate.
+  - **Next 5 games**, and **All milestones** (team filter, player search, include review). The first 40 are shown, with "Show all".
+  - **Live countdowns.** From 10 minutes before tip, the page reads ESPN's box score in the browser every 30 seconds (every 2 minutes when nothing is live; paused while the tab is hidden), and stops when the game is final. ESPN allows this: `access-control-allow-origin: *`.
+    - Each milestone's need counts down.
+    - A milestone turns green ("Reached 500 points tonight") when it falls.
+  - **The live counting uses the tested code itself** (`docs/lib/` is a copy of `src/`), not a second implementation.
+  - If the data is older than today, the page says so.
+- **New `scripts/publish.js`.** Builds `docs/data/watch.json` and copies the shared code into `docs/lib/`. It also saves the full predictions to `data/predictions-<date>.json` for scoring.
+  - Only numbers are published: no text from the teams' notes.
+- **Schedule entries now carry the start time and home/away.** The Watch List records tonight's game ID for each team.
+
+### Tested
+
+- 202 facts and checks pass, 7 new:
+  - the page's copy of the code matches `src/` (the test fails if publish wasn't rerun after a code change);
+  - every module the page imports exists;
+  - `watch.json` has the expected shape;
+  - no notes text is published.
+- **In a real browser (headless Chrome), at desktop and phone widths:**
+  - the page loads with no script errors;
+  - all 379 milestones render;
+  - tonight's three games appear with tip times.
+- **Live path.** The Charlotte game was pointed at the finished 11/6 Hornets-Celtics game, with the network replaced by that game's real box score.
+  - One request was made, and the page showed "Final · CHA 80 – BOS 119".
+  - Sion James turned green: he needed 5 points and scored 11.
+  - A finished game is labelled "final", not "LIVE".
+
+### Still unproven
+
+- **A game actually in progress** (tonight is the first). The clock text and the in-progress state come from ESPN's live feed and have only been read from a finished game.
+- **The page only knows what was last published.** Until the PC's scheduled job republishes daily, it goes stale after tonight (it shows a banner saying so).
+- **No outlier detection yet.** The live layer only counts down known milestones. Finding outliers during a game is the next layer.
+- **Rebound and assist splits mid-game.** ESPN's live box score is assumed to carry the same fields as the final one.
+
 ## 0.3.0 (2026-11-09): P(tonight), ETA and importance (the Watch List engine)
 
 ### What changed

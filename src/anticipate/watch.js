@@ -29,7 +29,8 @@ const seasonEndYear = (iso) => { const [y, m] = iso.split("-").map(Number); retu
 export async function buildWatch({ team, notesDate, milestones, espn, today, sims = 4000 }) {
   const tracked = await trackMilestones({ team, notesDate, milestones, espn });
   const warnings = [...tracked.warnings], problems = [...tracked.problems];
-  const result = (items) => ({ team, today, notesDate, items, games: tracked.games, warnings, problems });
+  let tonightGame = null;
+  const result = (items) => ({ team, today, notesDate, tonightGame, items, games: tracked.games, warnings, problems });
 
   const teams = await espn.teams();
   const espnTeam = teams.ok ? teams.data.ids[team] : null;
@@ -40,6 +41,7 @@ export async function buildWatch({ team, notesDate, milestones, espn, today, sim
   const upcoming = regular.filter((g) => !g.final && g.date >= today).slice(0, HORIZON);
   const played = regular.filter((g) => g.final).slice(-RECENT);
   const tonight = upcoming[0]?.date === today ? upcoming[0] : null;
+  if (tonight) tonightGame = { id: tonight.id, start: tonight.start, teams: tonight.teams, home: tonight.home, away: tonight.away };
 
   // This season's box scores (most recent first).
   const boxes = [];

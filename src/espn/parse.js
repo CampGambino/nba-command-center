@@ -43,10 +43,13 @@ export function readSchedule(json) {
     out.push({
       id: String(e.id),
       date: etDate(e.date || c.date),
+      start: e.date || c.date || null,
       final: c.status?.type?.completed === true,
       state: c.status?.type?.name || null,
       seasonType: e.seasonType?.type ?? c.season?.type ?? null,
       teams: (c.competitors || []).map((k) => k.team?.displayName).filter(Boolean),
+      home: (c.competitors || []).find((k) => k.homeAway === "home")?.team?.displayName || null,
+      away: (c.competitors || []).find((k) => k.homeAway === "away")?.team?.displayName || null,
     });
   }
   return out;
