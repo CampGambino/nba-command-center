@@ -208,3 +208,28 @@ export function readGameLog(json) {
   }
   return { types };
 }
+
+/**
+ * /injuries -> Map-like object { [athleteId]: { name, team, status, comment, returnDate, updated } }.
+ * ESPN's statuses are "Out" and "Day-To-Day" (no Questionable/Probable grades;
+ * the NBA's official injury report has those).
+ */
+export function readInjuries(json) {
+  const out = {};
+  for (const t of json?.injuries || []) {
+    for (const i of t.injuries || []) {
+      const href = (i.athlete?.links || []).map((l) => l.href).find((h) => /\/id\/\d+/.test(h || "")) || "";
+      const id = (/\/id\/(\d+)/.exec(href) || [])[1] || (i.athlete?.id ? String(i.athlete.id) : null);
+      if (!id) continue;
+      out[id] = {
+        name: i.athlete?.displayName || null,
+        team: teamFromText(i.athlete?.team?.displayName || t.displayName || ""),
+        status: i.status || null,
+        comment: i.shortComment || null,
+        returnDate: i.details?.returnDate || null,
+        updated: i.date || null,
+      };
+    }
+  }
+  return { players: out };
+}

@@ -2,6 +2,69 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.3.0 (2026-11-09): P(tonight), ETA and importance (the Watch List engine)
+
+### What changed
+
+- **New `src/anticipate/model.js`.** A seeded Monte Carlo over the player's next 15 games estimates the milestone's chance tonight, within 3 and 5 games, and its median game and date. Same inputs give the same answer.
+  - Each game, the player plays with a probability, and his line is drawn from his recent games.
+  - 1 draw in 5 comes from a smoothed version of those games, so a big night he hasn't had lately keeps a small chance.
+  - Stats the game data doesn't carry are reported as unknown, not guessed.
+- **New `src/anticipate/importance.js`.** A transparent 0-100 score with its reasons. NBA-history passes rank above franchise passes, which rank above round numbers. Higher ranks, bigger landmarks and points weigh more. "seventh-most" in a sentence is read as rank 7.
+- **New `src/anticipate/watch.js`.** Builds a team's Watch List from:
+  - this season's box scores: form, starts, missed games;
+  - last season's game log when there are fewer than 20 games;
+  - ESPN's injury feed: Out is 0% until the return date; Day-To-Day is at most 60%;
+  - the schedule.
+
+  Nobody is ever 100% to play (cap 97%). Items are **publishable** only if:
+  - the parser said ok;
+  - ESPN agrees with the total;
+  - the player is still with the team.
+
+  A mark the notes list but the player had already passed (De'Aaron Fox, 3,600 assists with 3,766) is labelled stale, not "reached".
+- **New `scripts/watch.js`.** Prints tonight's likely milestones and the next 5 games, and saves the predictions as JSON.
+- **New `scripts/score.js`.** Scores saved predictions against that night's box scores: each call, the Brier score, hit rates by probability band, and a line appended to `data/calibration.jsonl`.
+- **The ESPN cache keeps only what is read.** Box scores drop play-by-play, and game logs and the injury feed drop logos and links (about 1 MB each, down to a few KB).
+
+### First run: 2026-11-09 (CLE@CHA, LAL@ATL, SAS@PHX)
+
+- 379 milestones: 9 possible tonight, 22 more within 5 games.
+- The top calls:
+  - Dončić passing Steve Nash in NBA 3-pointers: 93%.
+  - Dylan Harper needs 6 points for 1,000: 97%.
+  - Sion James needs 5 points for 500: 54%, held for review because ESPN disagrees on his total.
+  - Jarrett Allen needs 3 defensive rebounds for 4,000: 54%, because he is Day-To-Day.
+  - Dončić's 5th 50-point game as a Laker, passing Mikan: 20%.
+- Saved as `data/predictions-2026-11-09.json`. Score it tomorrow with `node scripts/score.js data/predictions-2026-11-09.json`.
+
+### Tested
+
+- 195 facts and checks pass, including 19 new ones, all offline. The new checks:
+  - Exact answers in controlled cases: 10 points a game needing 25 lands exactly in game 3; a 0-or-20-point scorer is 50% tonight and 75% within 2 games; 50% to play needing 1 game is 50%.
+  - Determinism: same inputs, same answer.
+  - Unknown stats are not guessed.
+  - Importance ordering.
+  - On Charlotte's real notes:
+    - Grant Williams (Out) is 0% tonight.
+    - Naz Reid (7 games away) is 0% tonight, with an ETA of game 7 or later.
+    - Sion James is likely but held for review.
+    - Traded players are never projected.
+    - Rankings follow the documented order.
+    - Nobody is 100% to play.
+- The test fixtures were rebuilt smaller: 71 files, 2.3 MB.
+
+### Still unproven
+
+- **The probabilities are uncalibrated until scored.** Tonight's games are the first test. Calibration needs many nights before the numbers can be trusted at face value.
+- **Recent form only:** 10 games this season plus last season's games. Opponent strength, minutes limits, back-to-backs and blowouts are not modelled.
+- **A player just back from injury.** His chance of playing is too low, because the recent games he missed count against him.
+- **An Out player with no return date.** Only the next game is set to 0.
+- **ESPN's injury feed has only Out and Day-To-Day.** The official NBA report's Questionable, Doubtful and Probable would come from the user's injury report checkers, not yet connected.
+- **A chased teammate.** His total moving is handled by the tracker, but not inside the simulation.
+- **Importance weights are a first guess** and are meant to be tuned.
+- **Hot streaks.** A 50-point-game chance rests on a player's last 20 games. Dončić's 20% reflects two 50-point games in his last 10, which may overstate it.
+
 ## 0.2.0 (2026-11-09): milestone tracking with ESPN
 
 ### What changed

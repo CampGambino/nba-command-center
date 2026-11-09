@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { readTeams, readRoster, readSchedule, readBox, readCareer, readGameLog } from "./parse.js";
+import { readTeams, readRoster, readSchedule, readBox, readCareer, readGameLog, readInjuries } from "./parse.js";
 
 /**
  * ESPN client with an on-disk cache under <dataDir>/espn/.
@@ -16,11 +16,30 @@ const BASE = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba";
 const WEB = "https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba";
 const HOUR = 3600e3;
 
+// What is kept of each feed (logos, links and play-by-play are dropped).
+export const SHRINK = {
+  box: (d) => ({ header: d?.header, boxscore: d?.boxscore }),
+  gameLog: (d) => ({
+    names: d?.names,
+    events: Object.fromEntries(Object.entries(d?.events || {}).map(([k, e]) => [k, { gameDate: e?.gameDate }])),
+    seasonTypes: (d?.seasonTypes || []).map((t) => ({ displayName: t.displayName, categories: (t.categories || []).map((c) => ({ events: (c.events || []).map((e) => ({ eventId: e.eventId, stats: e.stats })) })) })),
+  }),
+  injuries: (d) => ({
+    injuries: (d?.injuries || []).map((t) => ({
+      displayName: t.displayName,
+      injuries: (t.injuries || []).map((i) => ({
+        status: i.status, date: i.date, shortComment: i.shortComment, details: { returnDate: i.details?.returnDate },
+        athlete: { displayName: i.athlete?.displayName, team: { displayName: i.athlete?.team?.displayName }, links: (i.athlete?.links || []).filter((l) => /\/id\/\d+/.test(l.href || "")).slice(0, 1).map((l) => ({ href: l.href })) },
+      })),
+    })),
+  }),
+};
+
 export function createEspn({ dataDir, fetchImpl = fetch, now = () => Date.now(), spacingMs = 250, timeoutMs = 20000 } = {}) {
   let last = 0;
   const dir = path.join(dataDir, "espn");
 
-  async function getJson(key, url, maxAgeMs) {
+  async function getJson(key, url, maxAgeMs, shrink = (d) => d) {
     const file = path.join(dir, `${key}.json`);
     let cached = null;
     try { cached = JSON.parse(fs.readFileSync(file, "utf8")); } catch { /* none or damaged: refetch */ }
@@ -42,7 +61,7 @@ export function createEspn({ dataDir, fetchImpl = fetch, now = () => Date.now(),
       } finally { clearTimeout(t); }
       if (!res.ok) error = `HTTP ${res.status}`;
       else {
-        const data = JSON.parse(body);
+        const data = shrink(JSON.parse(body));
         try {
           fs.mkdirSync(path.dirname(file), { recursive: true });
           const tmp = `${file}.${process.pid}.tmp`;
@@ -61,8 +80,8 @@ export function createEspn({ dataDir, fetchImpl = fetch, now = () => Date.now(),
     return { ok: false, data: null, error: `ESPN ${key}: ${error}`, warnings: [] };
   }
 
-  const wrap = async (key, url, maxAge, reader) => {
-    const r = await getJson(key, url, maxAge);
+  const wrap = async (key, url, maxAge, reader, shrink) => {
+    const r = await getJson(key, url, maxAge, shrink);
     if (!r.ok) return r;
     try {
       const parsed = reader(r.data);
@@ -77,14 +96,17 @@ export function createEspn({ dataDir, fetchImpl = fetch, now = () => Date.now(),
     roster: (espnTeamId) => wrap(`roster-${espnTeamId}`, `${BASE}/teams/${espnTeamId}/roster`, 12 * HOUR, (j) => ({ players: readRoster(j) })),
     schedule: (espnTeamId) => wrap(`schedule-${espnTeamId}`, `${BASE}/teams/${espnTeamId}/schedule`, 1 * HOUR, (j) => ({ games: readSchedule(j) })),
     // A box score is only cached forever once it is final.
+    // Only the header and box score are kept (the full summary with play-by-play is ~400 KB a game).
     box: async (eventId) => {
-      const r = await wrap(`box-${eventId}`, `${BASE}/summary?event=${eventId}`, Infinity, readBox);
+      const shrink = SHRINK.box;
+      const r = await wrap(`box-${eventId}`, `${BASE}/summary?event=${eventId}`, Infinity, readBox, shrink);
       // A cached copy of an unfinished game is refreshed (overwritten, never deleted).
-      if (r.ok && !r.data.final && r.fromCache) return wrap(`box-${eventId}`, `${BASE}/summary?event=${eventId}`, 60e3, readBox);
+      if (r.ok && !r.data.final && r.fromCache) return wrap(`box-${eventId}`, `${BASE}/summary?event=${eventId}`, 60e3, readBox, shrink);
       return r;
     },
+    injuries: () => wrap("injuries", `${BASE}/injuries`, 1 * HOUR, readInjuries, SHRINK.injuries),
     // Past seasons don't change: cache for a week. `season` is the ending year (2026 = 2025-26).
-    gameLog: (athleteId, season) => wrap(`log-${athleteId}-${season}`, `${WEB}/athletes/${athleteId}/gamelog?season=${season}`, 7 * 24 * HOUR, readGameLog),
+    gameLog: (athleteId, season) => wrap(`log-${athleteId}-${season}`, `${WEB}/athletes/${athleteId}/gamelog?season=${season}`, 7 * 24 * HOUR, readGameLog, SHRINK.gameLog),
     career: (athleteId) => wrap(`career-${athleteId}`, `${WEB}/athletes/${athleteId}/stats`, 6 * HOUR, readCareer),
   };
 }

@@ -23,6 +23,9 @@ import { sameName, nameKey, looksLikeNameHeading } from "../src/notes/names.js";
 import { etDate, readCareer } from "../src/espn/parse.js";
 import { createEspn } from "../src/espn/client.js";
 import { trackMilestones, statFromLine } from "../src/registry/track.js";
+import { makeSampler, simulate, rng } from "../src/anticipate/model.js";
+import { importance } from "../src/anticipate/importance.js";
+import { buildWatch, rank } from "../src/anticipate/watch.js";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const UPDATE = process.argv.includes("--update");
@@ -295,6 +298,53 @@ for (const [team, r] of Object.entries(results)) {
     ok(tm.milestones[0].tracking.targetMoved === 11 && tm.milestones[0].tracking.target === 1112 && tm.milestones[0].tracking.need === 1112 - 1018, "tracking: chasing a teammate moves the target (White +4 +7)", JSON.stringify(tm.milestones[0].tracking));
     ok(requests === 0, "tracking: tests made no network requests", `${requests} attempted`);
 
+
+    // ---------- anticipation: P(tonight), ETA, importance ----------
+    {
+      const r1 = rng(5), r2 = rng(5);
+      ok([1, 2, 3].every(() => r1() === r2()), "model: seeded random numbers repeat");
+      const ten = makeSampler([{ stats: { pts: 10 }, started: true }], { smooth: 0 });
+      const g = (n, p = 1) => Array.from({ length: n }, (_, i) => ({ date: `2026-11-${10 + i}`, pPlay: p }));
+      const a = simulate({ need: 25, stat: "pts", sample: ten, games: g(5), sims: 500 });
+      ok(a.byGame.join() === "0,0,1,1,1" && a.medianGame === 2, "model: 10 a game, needs 25 -> exactly game 3", a.byGame.join());
+      ok(simulate({ need: 0, stat: "pts", sample: ten, games: g(3) }).byGame.every((x) => x === 1), "model: need 0 is already done");
+      ok(simulate({ need: 5, stat: "pts", sample: ten, games: g(3, 0) }).pNever === 1, "model: never plays -> never happens");
+      const half = simulate({ need: 1, stat: "gp", sample: ten, games: g(1, 0.5), sims: 20000 });
+      ok(Math.abs(half.byGame[0] - 0.5) < 0.02, "model: 50% to play, needs 1 game -> about 50%", String(half.byGame[0]));
+      const coin = makeSampler([{ stats: { pts: 0 } }, { stats: { pts: 20 } }], { smooth: 0 });
+      const c = simulate({ need: 20, stat: "pts", sample: coin, games: g(2), sims: 20000 });
+      ok(Math.abs(c.byGame[0] - 0.5) < 0.02 && Math.abs(c.byGame[1] - 0.75) < 0.02, "model: 0 or 20 points -> 50% tonight, 75% within 2", c.byGame.join());
+      const x1 = simulate({ need: 20, stat: "pts", sample: coin, games: g(2), seed: 9 }), x2 = simulate({ need: 20, stat: "pts", sample: coin, games: g(2), seed: 9 });
+      ok(x1.byGame.join() === x2.byGame.join(), "model: same inputs, same answer");
+      ok(simulate({ need: 3, stat: "min", sample: makeSampler([{ stats: { pts: 3 } }], { smooth: 0 }), games: g(2) }).unknown === true, "model: a stat with no game data is reported unknown, not guessed");
+      const smooth = makeSampler([{ stats: { pts: 20 } }, { stats: { pts: 22 } }]);
+      const big = simulate({ need: 30, stat: "pts", sample: smooth, games: g(1), sims: 20000 });
+      ok(big.byGame[0] > 0 && big.byGame[0] < 0.1, "model: a 30-point night for a 20-22 scorer is possible but unlikely", String(big.byGame[0]));
+
+      const nba10 = importance({ kind: "pass", scope: "nba", stat: "pts", passing: { rank: 8 } });
+      const fr7 = importance({ kind: "pass", scope: "franchise", stat: "fg3m", label: "3-pointers", passing: { forWhat: "seventh-most" } });
+      const r100 = importance({ kind: "round", stat: "reb", label: "rebounds", target: 100 });
+      const r30k = importance({ kind: "round", stat: "pts", label: "points", target: 30000 });
+      ok(nba10.score > fr7.score && fr7.score > r100.score && r30k.score > r100.score, "importance: NBA top-10 > franchise 7th > 100 rebounds; 30,000 points > 100 rebounds", [nba10.score, fr7.score, r100.score, r30k.score].join());
+      ok(fr7.reasons.some((x) => /#7/.test(x)), "importance: 'seventh-most' read as rank 7");
+
+      const w1 = await buildWatch({ team: "CHA", notesDate: "2026-11-09", milestones: cha, espn, today: "2026-11-09", sims: 2000 });
+      const w2 = await buildWatch({ team: "CHA", notesDate: "2026-11-09", milestones: cha, espn, today: "2026-11-09", sims: 2000 });
+      ok(JSON.stringify(w1.items) === JSON.stringify(w2.items), "watch: same data, same Watch List");
+      const wi = (player, stat, target) => w1.items.find((i) => sameName(i.player, player) && i.stat === stat && (target == null || i.target === target));
+      const sj = wi("Sion James", "pts", 500);
+      ok(sj && sj.pTonight > 0.3 && sj.pTonight < 0.9 && sj.publishable === false, "watch: Sion James 5 points from 500: likely, but held for review (sources disagree)", JSON.stringify(sj && { p: sj.pTonight, pub: sj.publishable }));
+      const gw = wi("Grant Williams", "fg3m", 500);
+      ok(gw && gw.injury?.status === "Out" && gw.pTonight === 0, "watch: Grant Williams is out tonight -> 0%", JSON.stringify(gw && { inj: gw.injury, p: gw.pTonight }));
+      const nr = wi("Naz Reid", "gp", 500);
+      ok(nr && nr.pTonight === 0 && nr.eta?.game >= 7, "watch: Naz Reid needs 7 games -> not tonight, game 7 at the earliest", JSON.stringify(nr && { p: nr.pTonight, eta: nr.eta }));
+      const ballW = w1.items.filter((i) => i.player === "LaMelo Ball");
+      ok(ballW.length && ballW.every((i) => !i.publishable && i.pTonight == null), "watch: traded players' franchise chases are not projected or published");
+      const ranked = rank(w1.items);
+      ok(ranked.tonight.every((i) => i.pTonight >= 0.05) && ranked.soon.every((i, k, arr) => k === 0 || arr[k - 1].eta.game <= i.eta.game), "watch: tonight list and upcoming list ordered as documented");
+      ok(w1.items.every((i) => i.pPlayTonight == null || i.pPlayTonight <= 0.97), "watch: nobody is ever 100% to play");
+      ok(requests === 0, "watch: tests made no network requests", `${requests} attempted`);
+    }
     // ESPN unreachable with no cache: nothing throws, every milestone says why.
     const empty = fs.mkdtempSync(path.join(os.tmpdir(), "ncc-espn-empty-"));
     const off = await trackMilestones({ team: "CHA", notesDate: "2026-11-09", milestones: cha, espn: createEspn({ dataDir: empty, spacingMs: 0, fetchImpl: async () => { throw new Error("ENOTFOUND"); } }) });

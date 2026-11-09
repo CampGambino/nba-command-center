@@ -4,7 +4,7 @@ A standalone program that anticipates NBA milestones and storylines before they 
 
 Design docs live in the claude.ai project "NBA Command Center": `anticipation-engine.md` (principle #1), `command-center-architecture.md`, `storyline-detector-catalog.md`.
 
-## What works today (v0.2.0)
+## What works today (v0.3.0)
 
 - **Game notes parser** (`src/notes/`): reads a team's notes PDF and returns
   - `meta`: the game date and opponent printed in the notes
@@ -18,6 +18,13 @@ Design docs live in the claude.ai project "NBA Command Center": `anticipation-en
   - marks franchise chases by players who have left as no longer live.
 
   Run `npm run track -- samples/2026-11-09/hornets.pdf`.
+- **Watch List engine** (`src/anticipate/`): for every live milestone,
+  - the chance it happens tonight and within 3 or 5 games;
+  - the expected game and date;
+  - an importance score with its reasons;
+  - whether it is publishable.
+
+  It uses recent box scores, last season's games and ESPN's injury feed. `npm run watch -- samples/2026-11-09/*.pdf --json data/predictions-<date>.json`, and the next day `npm run score -- data/predictions-<date>.json` to see how the predictions did.
 - **Notes watcher** (`src/notes/watcher.js`): downloads a team's notes from its fixed URL, keeps every version, and says whether the file there is *tonight's* notes or a stale one.
 
 Formats recognized so far (from the 2026-11-09 samples): Cleveland's "Needs N" lists, the Lakers' wide tracker table, San Antonio's "STAT: target current" blocks, Phoenix's inline tracker, Charlotte's "X is 93 rebounds away from 1,500 career rebounds... 36 games away from..." bullets, and ranked lists in several styles (`1. Name (total)`, `1. Name   total`, `1  Name  total`, `701  Name  1988-98`), including side-by-side and stacked lists. Atlanta has no tracker and still yields its ranked lists and forward-looking sentences.
@@ -53,6 +60,7 @@ Every change ships with an entry in `CHANGES.md`: what changed, what was tested,
 src/notes/            game notes: layout, readers per format, checks, watcher
 src/espn/             ESPN readers + cached client (rosters, schedules, box scores, career stats)
 src/registry/         milestone tracking: roll forward since the notes, cross-check with ESPN
+src/anticipate/       P(tonight)/ETA model, importance score, Watch List assembly
 src/teams.js          team names, codes, notes URLs
 scripts/              command-line tools (parse-notes, dump-page for debugging)
 samples/<date>/       real notes PDFs used by the tests

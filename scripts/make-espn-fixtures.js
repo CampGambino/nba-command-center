@@ -7,6 +7,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { SHRINK } from "../src/espn/client.js";
 
 const [date, team = "CHA"] = process.argv.slice(2);
 if (!date) { console.error("usage: node scripts/make-espn-fixtures.js <date> [team]"); process.exit(2); }
@@ -16,20 +17,27 @@ const read = (k) => JSON.parse(fs.readFileSync(path.join(src, `${k}.json`), "utf
 const teams = read("teams");
 const id = teams.data.sports[0].leagues[0].teams.find((t) => t.team.abbreviation === team)?.team.id;
 if (!id) { console.error(`no ESPN id for ${team}`); process.exit(1); }
-const keep = ["teams", `roster-${id}`, `schedule-${id}`];
-for (const f of fs.readdirSync(src)) {
-  const k = f.replace(/\.json$/, "");
-  if (k.startsWith("career-")) keep.push(k);
-}
+const keep = ["teams", `roster-${id}`, `schedule-${id}`, "injuries"];
 const sched = read(`schedule-${id}`);
+const players = new Set(read(`roster-${id}`).data.athletes.map((a) => String(a.id)));
 for (const e of sched.data.events || []) {
   const k = `box-${e.id}`;
-  if (fs.existsSync(path.join(src, `${k}.json`))) keep.push(k);
+  if (!fs.existsSync(path.join(src, `${k}.json`))) continue;
+  keep.push(k);
+  for (const side of read(k).data.boxscore?.players || []) for (const a of side.statistics?.[0]?.athletes || []) players.add(String(a.athlete?.id));
+}
+// Only this team's games and the players in them (plus anyone named in its notes' lists, via career files already fetched).
+for (const f of fs.readdirSync(src)) {
+  const k = f.replace(/\.json$/, "");
+  const m = /^(career|log)-(\d+)/.exec(k);
+  if (m && players.has(m[2])) keep.push(k);
 }
 let bytes = 0;
 for (const k of keep) {
   const j = read(k);
-  if (k.startsWith("box-")) j.data = { header: j.data.header, boxscore: j.data.boxscore };
+  if (k.startsWith("box-")) j.data = SHRINK.box(j.data);
+  if (k.startsWith("log-")) j.data = SHRINK.gameLog(j.data);
+  if (k === "injuries") j.data = SHRINK.injuries(j.data);
   const out = JSON.stringify(j);
   bytes += out.length;
   fs.writeFileSync(path.join(dst, `${k}.json`), out);
