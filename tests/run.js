@@ -632,6 +632,20 @@ const more = {};
   }
 }
 
+// ---------- ESPN-only discovery never repeats a notes milestone (site showed "J. Tatum" and "Jayson Tatum") ----------
+{
+  const fake = {
+    teams: async () => ({ ok: true, warnings: [], data: { ids: { BOS: "2" } } }),
+    roster: async () => ({ ok: true, warnings: [], data: { players: [{ id: "4065648", name: "Jayson Tatum" }] } }),
+    career: async () => ({ ok: true, stale: false, warnings: [], data: { rows: [{ season: "2026-27", stats: { gp: 9, fgm: 80 } }], career: { gp: 700, fgm: 4981 } } }),
+  };
+  const notesItem = { player: "J. Tatum", espnId: "4065648", stat: "fgm", target: 5000 };
+  const a = await discoverMilestones({ team: "BOS", espn: fake, skip: [notesItem] });
+  const b = await discoverMilestones({ team: "BOS", espn: fake, skip: [] });
+  ok(!a.milestones.some((m) => m.stat === "fgm" && m.target === 5000) && b.milestones.some((m) => m.stat === "fgm" && m.target === 5000),
+    "discover: a notes milestone written with an initial (J. Tatum) is matched by ESPN id, so it isn't listed twice", JSON.stringify(a.milestones.map((m) => [m.player, m.stat, m.target])));
+}
+
 // ---------- NBA Live bridge (docs/bridge/cc-bridge.js) against a stand-in NBA Live ----------
 {
   const vm = await import("node:vm");

@@ -155,6 +155,7 @@ export async function trackMilestones({ team, notesDate, milestones, espn, nba =
       continue;
     }
     t.espnId = player.id;
+    t.espnName = player.name; // full spelling for display ("J. Tatum" -> "Jayson Tatum")
 
     // 1. Roll forward from the notes.
     let delta = 0, unknown = false;

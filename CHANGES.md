@@ -2,6 +2,21 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.9.1 (2026-11-10): no duplicate rows for initial-only names
+
+### What changed
+- **ESPN-only discovery now recognises a notes milestone by the player's ESPN id**, not by name text.
+  - Boston's grid writes "J. Tatum". The name check didn't match "Jayson Tatum", so the site listed his 5,000 field goals twice: once from the notes and once "from ESPN only".
+  - Name matching is still used when the tracker found no ESPN id.
+- **Notes milestones show ESPN's full spelling** once the tracker has matched the player ("J. Tatum" becomes "Jayson Tatum"; "Lamelo Ball" becomes ESPN's spelling). The notes' own spelling is kept as `notesName`.
+
+### Tested
+- 335 checks pass. New: discovery skips a notes item written with an initial when the ESPN id matches, and still finds the milestone when the notes don't have it.
+- Tonight's site was rebuilt (12 teams, 453 milestones), with 0 notes/ESPN duplicates; the one before was Tatum.
+
+### Still unproven
+- A notes item whose player the tracker couldn't match has no ESPN id, so it still relies on the name match.
+
 ## 0.9.0 (2026-11-10): eight more teams' milestone layouts
 
 ### What changed

@@ -1,4 +1,4 @@
-import { nameKey } from "../notes/names.js";
+import { nameKey, sameName } from "../notes/names.js";
 import { statLabel } from "../notes/stats.js";
 
 /**
@@ -24,7 +24,10 @@ export async function discoverMilestones({ team, espn, skip = [] }) {
   const id = teams.data.ids[team];
   const roster = id ? await espn.roster(id) : { ok: false, error: `no ESPN team for ${team}` };
   if (!roster.ok) return { milestones: out, problems: [roster.error] };
-  const have = new Set(skip.map((m) => `${nameKey(m.player)}|${m.stat}|${m.target}`));
+  // Already in the notes: same ESPN player (by id when the tracker matched one, so
+  // "J. Tatum" in Boston's grid is "Jayson Tatum" here), same stat, same target.
+  const inNotes = (p, stat, target) => skip.some((m) => m.stat === stat && m.target === target
+    && (m.espnId ? String(m.espnId) === String(p.id) : sameName(m.player || "", p.name) || nameKey(m.player || "") === nameKey(p.name)));
   for (const p of roster.data.players) {
     const c = await espn.career(p.id);
     if (!c.ok) { problems.push(`${p.name}: ${c.error}`); continue; }
@@ -41,7 +44,7 @@ export async function discoverMilestones({ team, espn, skip = [] }) {
       const need = target - cur;
       const perGame = stat === "gp" ? 1 : base.gp ? (base[stat] ?? 0) / base.gp : 0;
       if (!(perGame > 0) || need > perGame * GAMES) continue;
-      if (have.has(`${nameKey(p.name)}|${stat}|${target}`)) continue;
+      if (inNotes(p, stat, target)) continue;
       out.push({
         team, player: p.name, stat, label: statLabel(stat), kind: "round", scope: "career",
         current: cur, target, need, origin: "espn",
