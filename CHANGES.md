@@ -2,6 +2,61 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.6.0 (2026-11-10): the NBA Live bridge
+
+NBA Live (the user's live tracker, `nba-live_14.html`) stays on the user's PC and is developed where it is now. The decision, made 2026-11-10: it is never published, because the repo is public and the file holds the user's relay address. It is kept in the git-ignored `live/` folder. The Command Center reaches it through one script.
+
+### What changed
+
+- **New `docs/bridge/cc-bridge.js`** (served at `https://campgambino.github.io/nba-command-center/bridge/cc-bridge.js`). NBA Live adds one line before `</body>`:
+  `<script src="https://campgambino.github.io/nba-command-center/bridge/cc-bridge.js"></script>`
+
+  It loads the Watch List and wraps NBA Live's `runAlertChecks()`. NBA Live's own checks run first; the bridge's checks run after and are caught, so they can't break NBA Live. Cards go out through NBA Live's own `fireStory()`. It fires only for what NBA Live doesn't already cover:
+  - **notes chases and passes:** franchise and NBA history, and stats outside NBA Live's `MILESTONE_LADDERS`;
+  - **a "COUNT CHECK" card** when the team's notes and ESPN disagree on a total NBA Live's ladder is chasing (NBA Live uses ESPN's count);
+  - **never** NBA Live's own ladder rungs, and never ESPN-only finds.
+- **Editorial gate, in NBA Live's spirit** ("a rung nobody celebrates produces a card nobody wants"):
+  - live games only, and a player who has played;
+  - 10%+ pre-game chance, unless the milestone was reached tonight (a surprise always shows);
+  - importance 20+ for round numbers, reached or not (passes are exempt);
+  - at most 6 in-play cards per game, best first;
+  - a final game shows only what fell in it.
+- **Safety:**
+  - if NBA Live lacks `fireStory` / `runAlertChecks` / `GAMES`, a small note says "not connected" and nothing else happens;
+  - a Watch List for another night than NBA Live is showing is not used;
+  - `?cc=off` disables it, and `?cc=<url>` points it elsewhere;
+  - the all-is-well note fades after 8 seconds, while problem notes stay.
+- **New `tools/check-nba-live.py`.** Re-tests any NBA Live version with the bridge in headless Chrome, optionally replaying a finished game as live. Run it on every new NBA Live version the user brings.
+- **ESPN-only discovery uses the user's NBA Live bar:** points from 10,000, threes from 1,000 by 500, rebounds from 5,000, assists from 3,000, steals and blocks from 1,000, games from 1,000. "100 career games" finds are gone.
+- **Date reader:**
+  - weekday dates without a year take it from the season printed in the notes (SAC, POR);
+  - "7,2026" with no space (OKC);
+  - "Tuesday , Nov. 10" with a space before the comma (MIL);
+  - "NOVEMBER 10, 2026 *7:30" (NYK).
+- **Month names must be real names or abbreviations** ("Marcus" no longer reads as March).
+
+### Tested
+
+- 258 facts and checks pass.
+  - **14 bridge checks run against a stand-in NBA Live:** NBA Live's own checks still run once; each gate rule; the 6-card cap; wrong night; missing hooks never throw.
+  - **3 discovery checks.**
+  - **16 date and opponent checks** on the 2026-11-10 notes.
+- **The real `nba-live_14.html` in headless Chrome,** with last night's LAL@ATL replayed as live:
+  - the bridge connected;
+  - **6 Command Center cards among NBA Live's 29.** Before the gate there were 227, which is why the gate exists. They were: Dončić passing Nash (pre-game 93%), Curry passing DeRozan (review), Harper 1,000, Sion James 500 (review, count differs), Mamukelashvili 2,000 (a 1% surprise), and Dončić 1 50-point game from Mikan;
+  - NBA Live's own cards were unchanged;
+  - no page errors from the bridge;
+  - a wrong-night run, a run without the hooks, and `?cc=off` all behave as described.
+- **The 2026-11-10 Watch List was built.** The builder correctly flags PHX (yesterday's notes, a back-to-back) and OKC (notes from 11/7) as stale.
+
+### Still unproven
+
+- **The bridge in a real live game** (tonight is the first).
+- **The bridge on NBA Live versions other than 14.** Use `tools/check-nba-live.py` on each.
+- **Boston's notes can't be read.** Their font scrambles every character by a fixed shift ("127(6" is "NOTES"). The fix is a decoding step, not yet built.
+- **Most of 2026-11-10's teams use notes layouts the parser doesn't read yet:** 27 milestones across 12 teams.
+- **The importance gate of 20 drops some notes items** that teams highlight, like Jarrett Allen's 4,000 defensive rebounds (importance 18). It is a setting, open to tuning.
+
 ## 0.5.0 (2026-11-09): tonight's whole slate, automatically
 
 ### What changed

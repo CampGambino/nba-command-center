@@ -13,10 +13,13 @@ export function readMeta(doc, team) {
   const text = front.join("\n");
   const dates = [];
 
-  // "Monday, November 9th, 2026"
-  for (const m of text.matchAll(/\b(?:mon|tues|wednes|thurs|fri|satur|sun)day[,\s•|·—-]+([A-Za-z]+)\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(20\d\d)/gi)) {
+  // "Monday, November 9th, 2026", "SATURDAY, NOVEMBER 7,2026", "Tuesday , Nov. 10– 7:30",
+  // "Tuesday, November 10 — Golden 1 Center" (no year: taken from the season, e.g. "2026-27")
+  for (const m of text.matchAll(/\b(?:mon|tues|wednes|thurs|fri|satur|sun)day\s*[,\s•|·—-]+([A-Za-z]+)\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s*,\s*(20\d\d))?/gi)) {
     const mi = monthIndex(m[1]);
-    if (mi >= 0) dates.push({ iso: iso(+m[3], mi + 1, +m[2]), how: m[0] });
+    if (mi < 0) continue;
+    const y = m[3] ? +m[3] : seasonYear(text, mi + 1);
+    dates.push({ iso: y ? iso(y, mi + 1, +m[2]) : null, month: mi + 1, day: +m[2], how: m[0].trim(), yearFromSeason: !m[3] });
   }
   // "11/09/26 @ CHARLOTTE"
   for (const m of text.matchAll(/\b(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})\s*(?:@|vs\.?|at)\s/gi)) {
@@ -34,9 +37,10 @@ export function readMeta(doc, team) {
     const y = m[3].length === 2 ? 2000 + +m[3] : +m[3];
     dates.push({ iso: iso(y, +m[1], +m[2]), how: m[0].trim() });
   }
-  // "November 9, 2026 — American Airlines Center" (Indiana: no weekday). Lowest
-  // priority: front pages also carry other full dates (draft days, signings).
-  for (const m of text.matchAll(/\b([A-Z][a-z]+)\.?\s+(\d{1,2}),\s+(20\d\d)\s*[—–-]/g)) {
+  // "November 9, 2026 — American Airlines Center" (Indiana), "NOVEMBER 10, 2026 *7:30 P.M ET"
+  // (New York), "GAME NOTES – NOVEMBER 10, 2026 at NEW YORK" (Milwaukee). Lowest priority:
+  // front pages also carry other full dates (draft days, signings).
+  for (const m of text.matchAll(/\b([A-Za-z]+)\.?\s+(\d{1,2}),\s*(20\d\d)\b/gi)) {
     const mi = monthIndex(m[1]);
     if (mi >= 0) dates.push({ iso: iso(+m[3], mi + 1, +m[2]), how: m[0].trim(), weak: true });
   }
@@ -88,10 +92,20 @@ function readOpponent(doc, team, gameDate) {
   return best;
 }
 
+/** Year for a month from the season printed in the notes ("2026-27": Aug-Dec -> 2026, Jan-Jul -> 2027). */
+function seasonYear(text, month) {
+  const m = /\b(20\d\d)-(?:20)?(\d\d)\b/.exec(text);
+  if (m && (+m[2] === (+m[1] + 1) % 100)) return month >= 8 ? +m[1] : +m[1] + 1;
+  return null;
+}
+
+// A month name or its abbreviation only ("Nov", "Sept"): not any word starting "mar"/"jun" ("Marcus").
 function monthIndex(s) {
   const t = String(s).toLowerCase();
   const i = MONTHS.indexOf(t);
-  return i >= 0 ? i : MON3.indexOf(t.slice(0, 3));
+  if (i >= 0) return i;
+  if (t === "sept") return 8;
+  return MON3.indexOf(t);
 }
 
 const iso = (y, m, d) => `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;

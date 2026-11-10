@@ -3,3 +3,4 @@ node_modules/
 *.log
 # Teams' game notes PDFs are the NBA's documents: kept on the PC, not published.
 samples/
+/live/

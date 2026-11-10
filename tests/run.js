@@ -26,6 +26,7 @@ import { trackMilestones, statFromLine } from "../src/registry/track.js";
 import { makeSampler, simulate, rng } from "../src/anticipate/model.js";
 import { importance } from "../src/anticipate/importance.js";
 import { buildWatch, rank } from "../src/anticipate/watch.js";
+import { discoverMilestones } from "../src/registry/discover.js";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const UPDATE = process.argv.includes("--update");
@@ -87,6 +88,23 @@ ok(teamFromCode("HOU - 11/9/26") === "HOU" && teamFromCode("GS") === "GSW" && te
     ok(m.gameDate === "2026-11-09", `${team} notes date (new layout)`, `got ${m.gameDate}`);
     ok(m.opponent === opp, `${team} notes opponent`, `got ${m.opponent}`);
   }
+}
+
+{
+  // 2026-11-10's notes as downloaded that morning: more date layouts (no year, no space after
+  // the comma, a space before it), and two teams whose notes were still from an earlier game.
+  const slate = path.join(root, "samples", "2026-11-10-slate");
+  const expect = { bucks: ["MIL", "2026-11-10", "NYK"], knicks: ["NYK", "2026-11-10", "MIL"], kings: ["SAC", "2026-11-10", "ORL"], "trail-blazers": ["POR", "2026-11-10", "OKC"], blazers: ["POR", "2026-11-10", "OKC"], thunder: ["OKC", "2026-11-07", null], suns: ["PHX", "2026-11-09", "SAS"], "76ers": ["PHI", "2026-11-10", "BOS"], sixers: ["PHI", "2026-11-10", "BOS"], jazz: ["UTA", "2026-11-10", "MIA"] };
+  if (!fs.existsSync(slate)) ok(false, "slate samples missing (samples/2026-11-10-slate)");
+  else for (const [slug, [team, date, opp]] of Object.entries(expect)) {
+    const f = path.join(slate, `${slug}.pdf`);
+    if (!fs.existsSync(f)) continue; // slug spellings vary; at least one of each pair exists
+    const m = (await parseNotes(fs.readFileSync(f), { team })).meta;
+    ok(m.gameDate === date, `${team} notes date (2026-11-10 slate)`, `got ${m.gameDate}`);
+    if (opp) ok(m.opponent === opp, `${team} notes opponent (2026-11-10 slate)`, `got ${m.opponent}`);
+  }
+  const n = fs.existsSync(slate) ? fs.readdirSync(slate).length : 0;
+  ok(n >= 11, "2026-11-10 slate samples present", `${n} files`);
 }
 
 // Cleveland: "target STAT (current) Needs N" under name headings.
@@ -385,6 +403,102 @@ for (const [team, r] of Object.entries(results)) {
     ok(Array.isArray(w.teams) && w.today && w.teams.every((t) => Array.isArray(t.items)), "website: watch.json has the expected shape");
     ok(!JSON.stringify(w).includes('"source"'), "website: no text copied from the notes is published");
   }
+}
+
+// ---------- ESPN-only milestone discovery ----------
+{
+  const car = (id, career, season) => ({ ok: true, stale: false, warnings: [], data: { rows: [{ season: "2026-27", teamId: "1", stats: season }], career } });
+  const fake = {
+    teams: async () => ({ ok: true, warnings: [], data: { ids: { LAL: "13" } } }),
+    roster: async () => ({ ok: true, warnings: [], data: { players: [{ id: "a", name: "Big Scorer" }, { id: "b", name: "Young Guy" }, { id: "c", name: "Far Away" }, { id: "d", name: "Rookie" }] } }),
+    career: async (id) => ({
+      a: car("a", { pts: 19985, fg3m: 1497, gp: 999, reb: 4990 }, { gp: 10, pts: 250, fg3m: 30, reb: 50 }),   // 15 pts from 20,000; 3 threes from 1,500; 1 game from 1,000
+      b: car("b", { pts: 1990, fg3m: 98, gp: 99 }, { gp: 10, pts: 200, fg3m: 20 }),                          // below every bar
+      c: car("c", { pts: 18500 }, { gp: 10, pts: 200 }),                                                     // 1,500 away: not within 3 games
+      d: { ok: true, stale: false, warnings: [], data: { rows: [], career: null } },                          // no NBA games
+    }[id]),
+  };
+  const r = await discoverMilestones({ team: "LAL", espn: fake });
+  const got = r.milestones.map((m) => `${m.player}|${m.stat}|${m.target}|${m.need}`).sort();
+  ok(got.join(",") === ["Big Scorer|fg3m|1500|3", "Big Scorer|gp|1000|1", "Big Scorer|pts|20000|15", "Big Scorer|reb|5000|10"].join(","), "discover: only rungs at NBA Live's bar, within about 3 games", got.join(", "));
+  ok(r.milestones.every((m) => m.origin === "espn" && m.status === "review"), "discover: ESPN-only finds are always held for review");
+  const skip = await discoverMilestones({ team: "LAL", espn: fake, skip: [{ player: "Big Scorer", stat: "pts", target: 20000 }] });
+  ok(!skip.milestones.some((m) => m.stat === "pts"), "discover: a milestone the notes already have isn't repeated");
+}
+
+// ---------- NBA Live bridge (docs/bridge/cc-bridge.js) against a stand-in NBA Live ----------
+{
+  const vm = await import("node:vm");
+  const code = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");
+  const item = (o) => ({ espnId: "1", player: "P One", stat: "pts", label: "points", kind: "round", scope: "career", target: 1000, need: 10, importance: 30, pTonight: 0.5, publishable: true, tracking: "confirmed", review: [], origin: "notes", ...o });
+  const watch = { today: "2026-11-09", teams: [
+    { team: "LAL", items: [
+      item({}),                                                                  // in play: card
+      item({ espnId: "2", player: "Low Chance", pTonight: 0.02, need: 50 }),     // < 10% and not reached: no card
+      item({ espnId: "9", player: "Surprise", pTonight: 0.01 }),                 // 1% but reached tonight: card
+      item({ espnId: "3", player: "Minor Mark", importance: 9 }),                // importance < 20: no card
+      item({ espnId: "4", player: "Pass Man", kind: "pass", scope: "nba", importance: 15, passing: { player: "Old Guy", rank: 40 }, need: 2, stat: "fg3m", label: "3-pointers" }), // pass: card even below 20
+      item({ espnId: "5", player: "Ladder Guy", target: 20000, need: 5 }),        // NBA Live's own ladder: skipped
+      item({ espnId: "6", player: "Count Guy", target: 15000, need: 50, tracking: "disagrees", review: ["notes say 14950, ESPN says 14946"] }), // ladder + disagreement: count note
+      item({ espnId: "7", player: "Bench Guy" }),                                // hasn't played: no card
+      item({ espnId: "8", player: "Espn Only", origin: "espn" }),                 // ESPN-only: never
+    ] },
+    { team: "SAS", items: [ item({ espnId: "20", player: "Final Reach", need: 6 }), item({ espnId: "21", player: "Final Miss", need: 30 }) ] },
+  ] };
+  const pl = (id, o) => ({ id, min: 20, pts: 12, tpm: 3, reb: 5, ast: 2, stl: 1, blk: 0, dreb: 4, oreb: 1, starter: true, ...o });
+  function run({ date = "20261109", hooks = true, games } = {}) {
+    const cards = new Map(); let original = 0;
+    const el = { style: {}, textContent: "" };
+    const ctx = {
+      URLSearchParams, console, Promise, Object, Number, String, Math, Array, Date, JSON,
+      location: { search: "?cc=test" },
+      document: { readyState: "complete", getElementById: (id) => (id === "cc-bridge-note" ? el : null), createElement: () => el, body: { appendChild() {} } },
+      fetch: async () => ({ ok: true, json: async () => watch }),
+      setInterval() {}, setTimeout() {}, clearTimeout() {}, addEventListener() {},
+    };
+    ctx.window = ctx;
+    if (hooks) {
+      Object.assign(ctx, {
+        GAMES: games, MILESTONE_LADDERS: { pts: { step: 1000, from: 10000 }, tpm: { step: 500, from: 1000 } },
+        fireStory: (k, c) => cards.set(k, c), runAlertChecks: () => { original++; }, activeDateYMD: () => date,
+        fmtAlertStatLine: (rows) => rows.map((r) => r.join(" ")).join(" · "),
+      });
+    }
+    vm.createContext(ctx);
+    vm.runInContext(code, ctx);
+    return { ctx, cards, el, orig: () => original };
+  }
+  const flush = () => new Promise((r) => setTimeout(r, 5));
+  const games = [
+    { id: "g1", status: "live", away: { tricode: "LAL", score: 50 }, home: { tricode: "ATL", score: 48 }, boxscore: { away: [pl("1"), pl("2"), pl("3"), pl("4"), pl("5"), pl("6"), pl("7", { min: 0, pts: 0 }), pl("9")], home: [] } },
+    { id: "g2", status: "final", away: { tricode: "SA", score: 100 }, home: { tricode: "PHX", score: 90 }, boxscore: { away: [pl("20"), pl("21")], home: [] } },
+  ];
+  const t = run({ games });
+  await flush(); t.ctx.runAlertChecks(); await flush();
+  const keys = [...t.cards.keys()];
+  const has = (frag) => keys.some((k) => k.includes(frag));
+  ok(t.orig() === 1, "bridge: NBA Live's own checks still run, once");
+  ok(has("cc-1-"), "bridge: an in-play milestone gets a card");
+  ok(!has("cc-2-"), "bridge: under 10% tonight and not reached: no card", keys.join(" "));
+  ok(!has("cc-3-"), "bridge: a minor round number gets no card even when reached", keys.join(" "));
+  ok(has("cc-9-"), "bridge: a long-shot milestone reached tonight gets a card (the surprise is the story)");
+  ok(has("cc-4-") && /passes Old Guy/.test(t.cards.get(keys.find((k) => k.includes("cc-4-"))).text), "bridge: a pass gets a card and is worded 'passes Old Guy' (needed 2, made 3)");
+  ok(!has("cc-5-") && !has("cc-count-5"), "bridge: NBA Live's own ladder milestone is left to NBA Live");
+  ok(has("cc-count-6"), "bridge: a ladder total the notes dispute gets a count-check card");
+  ok(!has("cc-7-") && !has("cc-8-"), "bridge: a player who hasn't played, and ESPN-only items: no card");
+  ok(has("cc-20-") && !has("cc-21-"), "bridge: a final game shows only what fell in it");
+  ok(/SA @ PHX/.test(t.cards.get(keys.find((k) => k.includes("cc-20-"))).gameTag) && /Command Center/.test(t.cards.get(keys.find((k) => k.includes("cc-1-"))).sub), "bridge: cards carry the game and say they come from the Command Center");
+  ok(/milestones for 2026-11-09/.test(t.el.textContent), "bridge: status note shows it is connected", t.el.textContent);
+  // Cap: 9 in-play milestones in one game -> 6 cards.
+  const many = { id: "g3", status: "live", away: { tricode: "LAL", score: 1 }, home: { tricode: "ATL", score: 1 }, boxscore: { away: Array.from({ length: 9 }, (_, k) => pl(String(100 + k))), home: [] } };
+  watch.teams[0].items.push(...Array.from({ length: 9 }, (_, k) => item({ espnId: String(100 + k), player: `Many ${k}`, need: 50, pTonight: 0.2 + k / 100 })));
+  const t2 = run({ games: [many] }); await flush(); t2.ctx.runAlertChecks(); await flush();
+  ok([...t2.cards.keys()].filter((k) => /cc-1\d\d-/.test(k)).length === 6, "bridge: at most 6 in-play cards per game");
+  const t3 = run({ games, date: "20261110" }); await flush(); t3.ctx.runAlertChecks(); await flush();
+  ok(t3.cards.size === 0 && /NBA Live shows 2026-11-10/.test(t3.el.textContent), "bridge: a Watch List for another night is not used");
+  let threw = null;
+  try { const t4 = run({ hooks: false }); await flush(); ok(/not connected/.test(t4.el.textContent), "bridge: an NBA Live without the hooks gets a 'not connected' note"); } catch (e) { threw = e; }
+  ok(!threw, "bridge: missing hooks never throw", String(threw));
 }
 
 // ---------- snapshot ----------

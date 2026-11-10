@@ -10,8 +10,11 @@ import { statLabel } from "../notes/stats.js";
  * the NBA's by a few for some players (9 of 39 Charlotte totals on
  * 2026-11-09), so a single-source count isn't publishable as fact.
  */
-const STEPS = { pts: 1000, reb: 500, ast: 500, fg3m: 100, stl: 100, blk: 100, gp: 100, dreb: 1000, ftm: 500, fgm: 1000 };
-const MIN_TARGET = { pts: 1000, reb: 500, ast: 500, fg3m: 100, stl: 100, blk: 100, gp: 100, dreb: 1000, ftm: 500, fgm: 1000 };
+// Rungs follow the user's own bar in NBA Live (MILESTONE_LADDERS: "a rung nobody celebrates
+// produces a card nobody wants"): points from 10,000, threes from 1,000 by 500, and so on.
+// Stats NBA Live doesn't ladder use comparable bars.
+const STEPS = { pts: 1000, fg3m: 500, reb: 1000, ast: 1000, stl: 500, blk: 500, gp: 100, dreb: 1000, ftm: 1000, fgm: 1000 };
+const MIN_TARGET = { pts: 10000, fg3m: 1000, reb: 5000, ast: 3000, stl: 1000, blk: 1000, gp: 1000, dreb: 5000, ftm: 3000, fgm: 5000 };
 const GAMES = 3;
 
 export async function discoverMilestones({ team, espn, skip = [] }) {
