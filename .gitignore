@@ -4,3 +4,4 @@ node_modules/
 # Teams' game notes PDFs are the NBA's documents: kept on the PC, not published.
 samples/
 /live/
+__pycache__/
