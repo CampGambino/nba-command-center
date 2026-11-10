@@ -2,6 +2,68 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.9.0 (2026-11-10): eight more teams' milestone layouts
+
+### What changed
+
+- **Five new readers in `src/notes/formats/`**, each learned from that team's notes and checked by hand against the PDF:
+  - `column-table.js`: tables with a header row. Milwaukee (Player | Category | Current # | Milestone # | Needs), Philadelphia (PLAYER | MILESTONE | NEEDED) and Indiana (PLAYER | MILESTONE | NEEDS/ACCOMPLISHED).
+    - Cells go to the nearest header column. Text far from every column is ignored, such as Indiana's prose column beside the table.
+    - A row without a name belongs to the player above it.
+    - "Accomplished" rows are skipped.
+    - A cell wrapped over several lines is read whole (Embiid's three-line row).
+    - "1,116 Career Offensive Rebounds (7th all-time in Franchise History)" becomes a rank chase. Who is passed isn't printed there.
+  - `needs-rows.js`: Orlando's player blocks.
+    - "Needs 22 three-pointers to reach 400" sits under NEXT CAREER MILESTONE.
+    - "Needs 346 field goals for 10th all-time (Scott: 2,421)" sits under MAGIC ALL-TIME LIST.
+    - The current total in the left column is checked against both: current + need must equal the target, or the passed total + 1.
+  - `progress-cards.js`: Brooklyn's two-column "% COMPLETE" cards under letter-spaced headings.
+    - The printed percent must agree with current / target. That catches a total paired with the wrong card.
+  - `bio-for.js`: Minnesota's player pages ("…78 FGM FOR 2000" under UPCOMING/RECENT MILESTONES). Recent ones, which carry a date, are skipped.
+  - `needs-sentence.js`: Dallas's "needs 12 assists (988) to reach 1,000 career assists" and Houston's "needs 816 points to pass Kobe Bryant for 4th on the all-time scoring list".
+- **The PDF reader drops a page's drop-shadow copy.**
+  - Dallas's player pages draw every word twice, which read as "STLSSTLS" and "6.16.1".
+  - The copy is found as the page's runs repeated in the same order, slightly shifted. It must cover at least 30% of the page with 95% matching.
+  - In all 30 teams' notes, only Dallas's 18 player pages qualify. Every other page is unchanged.
+- **Opponent fix:** a team's own name must be a whole word. Brooklyn ("nets") was being read as playing Charlotte ("Hornets"). It now reads @ Dallas.
+- **New check, two totals:** one player, stat and scope must imply one current total.
+  - Indiana lists under Zubac both 7,000 rebounds (6,671 now) and 6,000 rebounds (5,294 now). Both are flagged.
+  - ESPN has 5,297, so the 7,000 row belongs to someone else.
+- **Merging:** a rank-only chase merges with the leaderboard row that has the same target. Philadelphia's "12,092 Career Assists (3rd all-time)" is LeBron passing Jason Kidd (12,091). That match confirms the printed number is the passed total + 1.
+- **Tracker: a notes page not updated for the last game or two.**
+  - Brooklyn's 11/8 cards (a back-to-back) were short by exactly each player's 11/7 line. Minnesota's bio pages were short by exactly the 11/6 line.
+  - These are marked "corrected", but only when at least 3 differences on the same page, and at least 60% of them, are explained by the same number of missed games. A single match is treated as coincidence, and anything else on the page still disagrees.
+- **Stats:** field-goal attempts, free-throw attempts and personal fouls are read; "OFF REB" / "DEF REB" / "minutes played" are understood.
+  - They get a low importance weight (0.10 to 0.15), so they never reach the alert threshold.
+  - Boston, Chicago, New Orleans and Sacramento now keep FGA/FTA rows they used to drop.
+- **Site:** a rank-only pass shows "No. 7" when the notes name no player.
+
+### Found on 2026-11-10 (ESPN cross-check)
+
+- **ORL:** 86 milestones; 83 of 85 checked agree. One printed need is off by one: Banchero 907 attempts vs 908, flagged.
+- **BKN:** 30 cards; 28 agree, 19 of them after the stale-page correction.
+- **MIN:** 60; 46 of 54 agree, 21 after correction. Jaylen Clark's notes are 1 to 10 higher than ESPN in four stats.
+- **PHI:** 21; 17 of 17 agree.
+- **IND:** 20; 16 agree. The disagreements are Haliburton threes −6, McConnell Pacers points −10, Nesmith points −4, and the misattributed Zubac row.
+- **MIL:** 8, 7 agree. **DAL:** 3 of 3. **HOU:** one pass (Durant/Kobe). It can't be checked yet because no total is printed.
+
+### Tested
+
+- 334 facts and checks pass, 42 new:
+  - hand-read facts for all 8 layouts;
+  - the shadow layer on the real Dallas page and on synthetic pages (a page without one is untouched);
+  - the stale-page correction, plus its two guards (an unexplained row; fewer than 3 matches);
+  - the opponent fix.
+- **Snapshots:** the six hand-checked teams' snapshots are unchanged, and new ones were saved for MIL, ORL, PHI, IND, BKN, MIN, DAL and HOU.
+- **30-team audit:** re-run on the saved notes. Counts changed only for these 8 teams and for BOS/CHI/NOP/SAC (the FGA/FTA rows).
+
+### Still unproven
+
+- **None of the 8 layouts is in VERIFIED_FORMATS yet.** Until they are, only round numbers that ESPN confirms are publishable for them.
+- **The stale-page rule looks back at most 3 games**, and only for totals that are short (never ones that are ahead).
+- **Rank-only passes** (Embiid's 7th) don't name who is passed, so the tracker can't move that player's total.
+- **Bio names come from capitals** ("Donte Divincenzo", "Lamelo Ball"), not ESPN's spelling.
+
 ## 0.8.0 (2026-11-10): Boston's notes readable; notes still on last season's totals
 
 ### What changed

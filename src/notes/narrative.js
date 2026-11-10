@@ -25,7 +25,7 @@ const SEG_ROUND = /^(?:and\s+)?(\d[\d,]*)\s+([a-z0-9][a-z0-9\- ]*?)\s+(?:away\s+
 const SEG_PASS = /^(?:and\s+)?(\d[\d,]*)\s+([a-z0-9][a-z0-9\- ]*?)\s+away\s+from\s+(?:passing|tying)\s+(\p{Lu}[\p{L}.’'\- ]+?)\s+for\s+(.+?)\s+in\s+(franchise|NBA|team|club)\s+history\s*[.,;]?$/iu;
 
 /** Text blocks: every bullet / sentence of every column, in reading order. */
-function blocks(doc) {
+export function blocks(doc) {
   const out = [];
   for (const page of doc.pages) {
     for (const col of columnsOf(page)) {

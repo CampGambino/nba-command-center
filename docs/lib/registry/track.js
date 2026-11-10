@@ -238,6 +238,55 @@ export async function trackMilestones({ team, notesDate, milestones, espn, nba =
     }
   }
 
+  // Notes pages that weren't updated for the last game or two before the notes
+  // date (Brooklyn's 2026-11-08 milestone cards, a back-to-back: Randle's points
+  // were short by exactly his 11/7 total). One coincidence proves nothing, so a
+  // page is treated as stale only when most of its disagreements (at least 3)
+  // are explained by the same number of missed games; then only those are
+  // corrected, and anything else on the page still disagrees.
+  const disagreeing = out.filter((m) => m.tracking.status === "disagrees" && m.tracking.espn?.diff > 0 && m.tracking.espnId);
+  if (disagreeing.length >= 3) {
+    const before = schedule.data.games.filter((g) => g.date && g.date < notesDate && g.final && g.seasonType === 2).slice(-3).reverse();
+    const prior = [];
+    for (const g of before) { const b = await espn.box(g.id); if (!b.ok || !b.data.final) break; prior.push({ game: g, box: b.data }); }
+    const explainedBy = (m) => {
+      let add = 0;
+      for (let k = 0; k < prior.length; k++) {
+        const v = statFromLine(m.stat, prior[k].box.players.find((p) => p.id === m.tracking.espnId));
+        if (v === null) return null;
+        add += v;
+        if (add === m.tracking.espn.diff) return k + 1;
+        if (add > m.tracking.espn.diff) return null;
+      }
+      return null;
+    };
+    const pages = new Map();
+    for (const m of disagreeing) {
+      const src = m.sources?.[0] || {};
+      const key = `${src.format}|${src.page}`;
+      if (!pages.has(key)) pages.set(key, []);
+      pages.get(key).push({ m, k: explainedBy(m) });
+    }
+    for (const list of pages.values()) {
+      const counts = new Map();
+      for (const { k } of list) if (k) counts.set(k, (counts.get(k) || 0) + 1);
+      const [k, n] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0] || [null, 0];
+      if (!k || n < 3 || n < list.length * 0.6) continue;
+      const dates = prior.slice(0, k).map((p) => p.game.date).reverse();
+      for (const { m, k: mk } of list) {
+        if (mk !== k) continue;
+        const t = m.tracking;
+        t.corrected = { from: t.current, to: t.espn.value, gamesBefore: k, dates, added: t.espn.diff };
+        t.notes.push(`this notes page was not updated for ${k === 1 ? "the game" : `the ${k} games`} on ${dates.join(", ")} (${n} of ${list.length} differences on it match exactly); with ${t.espn.diff} more it is ${t.espn.value}, matching ESPN`);
+        t.current = t.espn.value;
+        t.espn.diff = 0;
+        if (t.target != null) { t.need = t.target - t.current; t.reached = t.need <= 0; }
+        else if (m.need != null && t.need != null) { t.need -= t.corrected.added; t.reached = t.need <= 0; }
+        t.status = boxesComplete ? "corrected" : "partial";
+      }
+    }
+  }
+
   // Disagreement, or a chase that can no longer happen, never stays "ok".
   for (const m of out) {
     const t = m.tracking;

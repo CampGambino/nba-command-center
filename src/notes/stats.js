@@ -8,17 +8,20 @@
 const TABLE = [
   ["pts", /^(pts|points?( scored)?|scoring)$/],
   ["reb", /^(reb|trb|treb|rebounds?|total rebounds?|boards?)$/],
-  ["oreb", /^(oreb|offensive rebounds?)$/],
-  ["dreb", /^(dreb|defensive rebounds?)$/],
+  ["oreb", /^(oreb|offensive rebounds?|off\.? ?reb(ounds?|s)?|o ?reb)$/],
+  ["dreb", /^(dreb|defensive rebounds?|def\.? ?reb(ounds?|s)?|d ?reb)$/],
   ["ast", /^(ast|assists?)$/],
   ["stl", /^(stl|steals?)$/],
   ["blk", /^(blk|blocks?|blocked shots?)$/],
-  ["fg3m", /^(3fg|3fgm|3pt|3pm|3p|3 ?pt fg made|3 ?pointers?( made)?|three ?pointers?( made)?|3 ?point field goals?( made)?)$/],
+  ["fg3m", /^(3fg|3fgm|3pt|3pm|3p|3 ?pt fg made|3 ?pointers?( made)?|three ?pointers?( made)?|3 ?point field goals?( made)?|three ?point field goals?( made)?)$/],
   ["fgm", /^(fgm|fg|field goals?( made)?|made field goals?)$/],
   ["ftm", /^(ftm|ft|free throws?( made)?|made free throws?)$/],
+  ["fga", /^(fga|field goals? attempted|field goal attempts?)$/],
+  ["fta", /^(fta|free throws? attempted|free throw attempts?)$/],
+  ["pf", /^(pf|personal fouls?|fouls?)$/],
   ["gp", /^(gp|games?( played)?)$/],
   ["gs", /^(gs|starts|games started)$/],
-  ["min", /^(min|mins|minutes)$/],
+  ["min", /^(min|mins|minutes( played)?)$/],
   ["dd", /^(dbl dbl|dd|double doubles?)$/],
   ["td", /^(trpl dbl|td|triple doubles?)$/],
 ];
@@ -26,7 +29,7 @@ const TABLE = [
 export const STAT_LABEL = {
   pts: "points", reb: "rebounds", oreb: "offensive rebounds", dreb: "defensive rebounds",
   ast: "assists", stl: "steals", blk: "blocks", fg3m: "3-pointers", fgm: "field goals",
-  ftm: "free throws", gp: "games", gs: "starts", min: "minutes", dd: "double-doubles", td: "triple-doubles",
+  ftm: "free throws", fga: "field goal attempts", fta: "free throw attempts", pf: "personal fouls", gp: "games", gs: "starts", min: "minutes", dd: "double-doubles", td: "triple-doubles",
 };
 
 /** @returns {string|null} canonical key, or null if unrecognized */

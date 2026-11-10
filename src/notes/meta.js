@@ -85,7 +85,8 @@ function readOpponent(doc, team, gameDate) {
       if (!tri || tri === team) tri = teamFromText(parts[0]);
       if (!tri || tri === team) continue;
       const lower = t.toLowerCase();
-      const score = (own.some((w) => lower.includes(w)) ? 3 : 0) + (dateRe && dateRe.test(t) ? 2 : 0) + (i < 6 ? 1 : 0);
+      // Whole words only: "nets" is inside "Hornets" (Brooklyn read as playing Charlotte).
+      const score = (own.some((w) => new RegExp(`(?:^|[^a-z])${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![a-z])`).test(lower)) ? 3 : 0) + (dateRe && dateRe.test(t) ? 2 : 0) + (i < 6 ? 1 : 0);
       if (score > best.score) best = { opponent: tri, score, evidence: t.slice(0, 80) };
     }
   });

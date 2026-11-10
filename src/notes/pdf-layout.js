@@ -56,12 +56,45 @@ export async function readPdf(buf) {
       if (!it.str.trim()) { items.push({ x: e, y: f, w: it.width || 0, h, str: " ", space: true }); continue; }
       items.push({ x: e, y: f, w: it.width || it.str.length * h * 0.5, h, str: it.str });
     }
-    pages.push({ page: p, width: viewport.width, height: viewport.height, lines: buildLines(items) });
+    const shadow = dropShadowLayer(items);
+    pages.push({ page: p, width: viewport.width, height: viewport.height, lines: buildLines(items), ...(shadow ? { shadowDropped: shadow } : {}) });
     page.cleanup?.();
   }
   const pageCount = doc.numPages;
   await doc.destroy?.();
   return { pageCount, pages, repairedFonts: fixed.repaired };
+}
+
+/**
+ * Some pages draw their text twice: the same runs in the same order, the
+ * second pass shifted a few points and slightly rescaled (a drop shadow;
+ * Dallas 2026-11-09 player pages read "STLSSTLS", "6.16.1"). Such a page's run
+ * list is [A..., A'...], where A' repeats A string for string. The repeat is
+ * found by its start s: run s matches run 0, run s+1 matches run 1, and so on,
+ * each copy within 6pt across and 3pt up or down. Only a repeat covering at
+ * least 30% of the page, with at least 95% of its runs matching, is dropped;
+ * any other page is returned unchanged.
+ * @returns {number} how many runs were dropped
+ */
+export function dropShadowLayer(items) {
+  const n = items.length;
+  if (n < 40) return 0;
+  const near = (a, b) => a.str === b.str && Math.abs(a.x - b.x) <= 6 && Math.abs(a.y - b.y) <= 3;
+  const firsts = [];
+  for (let i = 0; i < n && firsts.length < 5; i++) if (!items[i].space) firsts.push(i);
+  for (const f of firsts) {
+    for (let s = f + 1; s < n; s++) {
+      if (!near(items[s], items[f])) continue;
+      const span = Math.min(s - f, n - s); // the copy can't be longer than what precedes it
+      if (span < n * 0.3) continue;
+      let match = 0, last = -1;
+      for (let k = 0; k < span; k++) if (near(items[s + k], items[f + k])) { match++; last = k; }
+      if (match < span * 0.95) continue;
+      items.splice(s, last + 1);
+      return last + 1;
+    }
+  }
+  return 0;
 }
 
 /** Group runs into visual rows (top of page first) and build text, charX, cells. */

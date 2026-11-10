@@ -29,6 +29,7 @@ import { buildWatch, rank } from "../src/anticipate/watch.js";
 import { discoverMilestones } from "../src/registry/discover.js";
 import { readLineups, readMovement, standing, slugOf } from "../src/nba/movement.js";
 import { repairToUnicode } from "../src/notes/pdf-repair.js";
+import { dropShadowLayer } from "../src/notes/pdf-layout.js";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const UPDATE = process.argv.includes("--update");
@@ -532,6 +533,105 @@ for (const [team, r] of Object.entries(results)) {
   ok(mc.status === "disagrees" && tr.milestones[2].status === "review", "tracking: a difference that isn't this season's total stays a disagreement (Conley +1)", JSON.stringify(mc));
 }
 
+// ---------- 2026-11-10 layouts: MIL, ORL, PHI, IND, BKN, MIN, DAL, HOU ----------
+// Every fact below was read by hand off the PDF page named with it.
+const more = {};
+{
+  const dir = path.join(root, "samples", "2026-11-10-more");
+  if (!fs.existsSync(dir)) ok(false, "2026-11-10 layout samples missing (samples/2026-11-10-more)");
+  else for (const f of fs.readdirSync(dir).filter((f) => f.endsWith(".pdf"))) {
+    const team = teamFromSlug(path.basename(f, ".pdf"));
+    more[team] = await parseNotes(fs.readFileSync(path.join(dir, f)), { team });
+  }
+  const get = (team, player, stat, target, extra = {}) => more[team]?.milestones.find((m) => sameName(m.player || "", player) && m.stat === stat && (target == null || m.target === target) && Object.entries(extra).every(([k, v]) => (k === "passing" ? sameName(m.passing?.player || "", v) : m[k] === v)));
+  const has = (name, m, want) => ok(!!m && Object.entries(want).every(([k, v]) => m[k] === v), name, JSON.stringify(m && { player: m.player, cur: m.current, t: m.target, need: m.need, scope: m.scope, status: m.status, checks: m.checks }));
+  if (Object.keys(more).length === 8) {
+    // Milwaukee p.8: Player | Category | Current # | Milestone # | Needs
+    has("MIL table: Myles Turner 9,948 points, 10,000 needs 52", get("MIL", "Myles Turner", "pts", 10000), { current: 9948, need: 52, scope: "career", status: "ok" });
+    has("MIL table: Caris LeVert 7,717 points, 8,000 needs 283", get("MIL", "Caris LeVert", "pts", 8000), { current: 7717, need: 283, status: "ok" });
+    ok(more.MIL.meta.opponent === "NYK" && more.MIL.meta.gameDate === "2026-11-10", "MIL notes: at New York, 2026-11-10");
+    // Orlando p.10-11: "NEXT CAREER MILESTONE" and "MAGIC ALL-TIME LIST" blocks
+    has("ORL rows: Banchero 378 threes, needs 22 to reach 400", get("ORL", "Paolo Banchero", "fg3m", 400), { current: 378, need: 22, scope: "career", status: "ok" });
+    has("ORL rows: Bitadze 398 blocked shots, needs 2 to reach 400", get("ORL", "Goga Bitadze", "blk", 400), { current: 398, need: 2, status: "ok" });
+    has("ORL rows: a row without a total continues the one above (Suggs needs 140 threes to reach 600)", get("ORL", "Jalen Suggs", "fg3m", 600), { current: 460, need: 140, status: "ok" });
+    has("ORL rows: Vučević 17,706 points, needs 294 to reach 18,000", get("ORL", "Nikola Vucevic", "pts", 18000), { current: 17706, need: 294 });
+    has("ORL list: Banchero 1,550 free throws, needs 19 to pass Hardaway (1,568) for 5th", get("ORL", "Paolo Banchero", "ftm", 1569, { passing: "Hardaway" }), { kind: "pass", scope: "franchise", current: 1550, need: 19, tieAt: 18, status: "ok" });
+    has("ORL list: Vučević needs 206 points to pass Anderson (10,650) for 2nd", get("ORL", "Nikola Vucevic", "pts", 10651, { passing: "Anderson" }), { kind: "pass", current: 10445, need: 206 });
+    const fga = get("ORL", "Paolo Banchero", "fga", 5523);
+    ok(fga && fga.status === "review" && fga.checks.some((c) => /stated need 907/.test(c)), "ORL list: a printed need that is off by one is flagged (907 attempts vs 5,522 + 1 - 4,615 = 908)", JSON.stringify(fga?.checks));
+    ok(more.ORL.milestones.length === 86 && !more.ORL.problems.length, "ORL: 86 milestones from pp.10-11, nothing unread", `${more.ORL.milestones.length}; ${JSON.stringify(more.ORL.problems)}`);
+    // Philadelphia p.12: PLAYER | MILESTONE | NEEDED
+    has("PHI table: Dominick Barlow 100 career steals needs 6", get("PHI", "Dominick Barlow", "stl", 100), { current: 94, need: 6, scope: "career", status: "ok" });
+    has("PHI table: Jaylen Brown 2,000 career assists needs 7", get("PHI", "Jaylen Brown", "ast", 2000), { current: 1993, need: 7, status: "ok" });
+    has("PHI table: a cell wrapped over three lines is read whole (Embiid 1,116 offensive rebounds, 7th in franchise history, needs 11)", get("PHI", "Joel Embiid", "oreb", 1116), { kind: "pass", scope: "franchise", current: 1105, need: 11 });
+    const lbj = get("PHI", "LeBron James", "ast", 12092);
+    ok(lbj && lbj.kind === "pass" && lbj.scope === "nba" && lbj.need === 16 && sameName(lbj.passing?.player || "", "Jason Kidd") && lbj.passing.total === 12091 && lbj.status === "ok" && lbj.sources.length === 2,
+      "PHI: '12,092 Career Assists (3rd all-time in NBA History), needs 16' merges with the leaderboard row (Kidd 12,091): one chase, two sources", JSON.stringify(lbj && { p: lbj.passing, s: lbj.scope, st: lbj.status, c: lbj.checks, n: lbj.sources.length }));
+    ok(more.PHI.meta.opponent === "BOS", "PHI notes: vs Boston");
+    // Indiana p.2: PLAYER | MILESTONE | NEEDS/ACCOMPLISHED, beside a prose column
+    has("IND table: rows without a name belong to the player above (Haliburton 3,000 career assists needs 15)", get("IND", "Tyrese Haliburton", "ast", 3000), { current: 2985, need: 15, scope: "career" });
+    has("IND table: 'Pacers points' is a franchise total (Haliburton 5,000 needs 551)", get("IND", "Tyrese Haliburton", "pts", 5000), { scope: "franchise", need: 551 });
+    ok(!get("IND", "Tyrese Haliburton", "pts", 6000) && !get("IND", "Pascal Siakam", "pts", 13000), "IND table: 'Accomplished' rows are not upcoming");
+    const z7 = get("IND", "Ivica Zubac", "reb", 7000), z6 = get("IND", "Ivica Zubac", "reb", 6000);
+    ok(z7?.status === "review" && z6?.status === "review" && z7.checks.some((c) => /2 different current/.test(c)), "IND table: two rows implying different totals for one player and stat are both flagged (Zubac 6,671 vs 5,294 rebounds)", JSON.stringify(z7?.checks));
+    ok(!more.IND.milestones.some((m) => /Siakam passed|Carlisle/.test(m.sources[0].text)), "IND table: the prose column beside it is not read as rows");
+    // Brooklyn p.11: letter-spaced headings, progress cards in two columns
+    ok(more.BKN.meta.opponent === "DAL", "BKN notes: opponent is Dallas ('nets' inside 'Hornets' no longer counts as Brooklyn)", JSON.stringify(more.BKN.meta.opponentEvidence));
+    has("BKN cards: Julius Randle 15,352 / 16,000 points", get("BKN", "Julius Randle", "pts", 16000), { current: 15352, status: "ok" });
+    has("BKN cards: Day'Ron Sharpe 683 / 700 offensive rebounds", get("BKN", "Day'Ron Sharpe", "oreb", 700), { current: 683 });
+    has("BKN cards: 'G A M E S P L AY E D' (a kerned pair) is still a heading (Randle 797 / 800 games)", get("BKN", "Julius Randle", "gp", 800), { current: 797, status: "ok" });
+    ok(!get("BKN", "Julius Randle", "ftm", 800) && !!get("BKN", "Keon Ellis", "gp", 250), "BKN cards: games-played cards are not read as free throws");
+    ok(more.BKN.milestones.length === 30 && more.BKN.milestones.every((m) => m.status === "ok"), "BKN: 30 cards, each % COMPLETE agrees with its current / target", String(more.BKN.milestones.length));
+    // Minnesota bios: UPCOMING/RECENT MILESTONES column
+    has("MIN bios: DiVincenzo …2 GAMES FOR 500", get("MIN", "Donte DiVincenzo", "gp", 500), { current: 498, need: 2, status: "ok" });
+    has("MIN bios: DiVincenzo …1 STEAL FOR 600", get("MIN", "Donte DiVincenzo", "stl", 600), { current: 599, need: 1 });
+    has("MIN bios: '...' as well as '…' (Beringer ...16 BLOCKS FOR 50)", get("MIN", "Joan Beringer", "blk", 50), { current: 34, need: 16 });
+    has("MIN bios: 'OFF REB' is offensive rebounds (McDaniels ...4 OFF REB FOR 500)", get("MIN", "Jaden McDaniels", "oreb", 500), { current: 496, need: 4, status: "ok" });
+    ok(!more.MIN.milestones.some((m) => /100TH REBOUND|200TH POINT/i.test(m.sources[0].text)), "MIN bios: recent milestones (with a date) are not upcoming");
+    ok(more.MIN.milestones.length === 60, "MIN: 60 upcoming bio milestones", String(more.MIN.milestones.length));
+    // Dallas p.5 sentences; Houston p.5 sentence
+    has("DAL sentence: P.J. Washington Jr. needs 12 assists (988) to reach 1,000", get("DAL", "P.J. Washington", "ast", 1000), { current: 988, need: 12, scope: "career", status: "ok" });
+    has("DAL sentence: Naji Marshall needs 76 field goals (1,424) to reach 1,500", get("DAL", "Naji Marshall", "fgm", 1500), { current: 1424, need: 76 });
+    const kd = get("HOU", "Kevin Durant", "pts", null, { passing: "Kobe Bryant" });
+    ok(kd && kd.player === "Kevin Durant" && kd.need === 816 && kd.scope === "nba" && kd.passing.rank === 4, "HOU sentence: Durant needs 816 points to pass Kobe Bryant for 4th (NBA); the heading before his name is not part of it", JSON.stringify(kd && { p: kd.player, s: kd.scope, pass: kd.passing }));
+  }
+  // Drop-shadow text layer (Dallas player pages)
+  {
+    const f = path.join(root, "samples", "2026-11-10-more", "mavericks.pdf");
+    if (fs.existsSync(f)) {
+      const { readPdf } = await import("../src/notes/pdf-layout.js");
+      const d = await readPdf(fs.readFileSync(f));
+      const p14 = d.pages.find((p) => p.page === 14);
+      ok(p14.shadowDropped > 300 && p14.lines.some((l) => l.cells.some((c) => c.text === "STLS")) && !p14.lines.some((l) => /STLSSTLS|6\.16\.1/.test(l.text)), "pdf: a page drawn twice (drop shadow) is read once (DAL p.14 'STLS', not 'STLSSTLS')", String(p14.shadowDropped));
+    }
+    const run = (strs, shift) => strs.map((s, i) => ({ str: s, x: 10 + i * 20 + shift, y: 500 - Math.floor(i / 5) * 12 + (shift ? 0.8 : 0), w: 10, h: 8 }));
+    const words = Array.from({ length: 40 }, (_, i) => `w${i % 7}`);
+    const a = [...run(words, 0), ...run(words, -3)];
+    ok(dropShadowLayer(a) === 40 && a.length === 40, "pdf: a repeated, shifted copy of a page's runs is dropped");
+    const b = run(words, 0), n = b.length;
+    ok(dropShadowLayer(b) === 0 && b.length === n, "pdf: a page without a copy is left exactly as it is");
+  }
+  // A notes page not updated for the last game before the notes date (Brooklyn 2026-11-08)
+  {
+    const one = (career) => ({ ok: true, stale: false, warnings: [], data: { rows: [{ season: "2026-27", teamId: "17", stats: {} }], career } });
+    const line = (id, stats) => ({ id, team: "BKN", played: true, stats });
+    const fake = {
+      teams: async () => ({ ok: true, warnings: [], data: { ids: { BKN: "17" } } }),
+      roster: async () => ({ ok: true, warnings: [], data: { players: [{ id: "a", name: "Ann One" }, { id: "b", name: "Bob Two" }, { id: "c", name: "Cy Three" }, { id: "d", name: "Di Four" }] } }),
+      schedule: async () => ({ ok: true, warnings: [], data: { games: [{ id: "g1", date: "2026-11-07", final: true, seasonType: 2 }] } }),
+      box: async () => ({ ok: true, warnings: [], data: { final: true, players: [line("a", { pts: 19 }), line("b", { pts: 6 }), line("c", { pts: 12 }), line("d", { pts: 4 })] } }),
+      career: async (id) => one({ a: { pts: 1019 }, b: { pts: 506 }, c: { pts: 712 }, d: { pts: 409 } }[id]),
+    };
+    const m = (player, cur, page = 11) => ({ team: "BKN", player, stat: "pts", kind: "round", scope: "career", current: cur, target: cur + 100, need: 100, status: "ok", checks: [], sources: [{ format: "progress-cards", page }] });
+    const tr = await trackMilestones({ team: "BKN", notesDate: "2026-11-08", milestones: [m("Ann One", 1000), m("Bob Two", 500), m("Cy Three", 700), m("Di Four", 400)], espn: fake });
+    const st = tr.milestones.map((x) => x.tracking);
+    ok(st[0].status === "corrected" && st[0].current === 1019 && st[0].corrected.gamesBefore === 1 && st[1].status === "corrected" && st[2].status === "corrected", "tracking: a page short by exactly the last game before the notes date, for most of its rows, is corrected", JSON.stringify(st.map((t) => t.status)));
+    ok(st[3].status === "disagrees" && tr.milestones[3].status === "review", "tracking: a row on that page the missed game doesn't explain still disagrees (+5, game had 4)", JSON.stringify(st[3]));
+    const tr2 = await trackMilestones({ team: "BKN", notesDate: "2026-11-08", milestones: [m("Ann One", 1000), m("Di Four", 400), m("Bob Two", 499)], espn: fake });
+    ok(tr2.milestones[0].tracking.status === "disagrees", "tracking: one row matching a missed game is a coincidence, not a stale page (fewer than 3)", JSON.stringify(tr2.milestones.map((x) => x.tracking.status)));
+  }
+}
+
 // ---------- NBA Live bridge (docs/bridge/cc-bridge.js) against a stand-in NBA Live ----------
 {
   const vm = await import("node:vm");
@@ -612,7 +712,7 @@ const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });
 const brief = (m) => [m.player, m.kind, m.stat, m.scope, m.current, m.target, m.need, m.status, m.passing?.player || ""].join(" | ");
 const diffs = [];
-for (const [team, r] of Object.entries(results)) {
+for (const [team, r] of Object.entries({ ...results, ...more })) {
   const now = r.milestones.map(brief).sort();
   const file = path.join(snapDir, `${team}.json`);
   if (UPDATE) { fs.writeFileSync(file, JSON.stringify(now, null, 1)); continue; }

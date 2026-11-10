@@ -59,7 +59,8 @@ export async function buildSite({ entries, games = [], espn, nba = null, today, 
       return {
         player: i.player, espnId: i.espnId, nbaId: i.nbaId ?? null, origin: i.origin, stat: i.stat, label: i.label, kind: i.kind, scope: i.scope,
         target: i.target, current: i.current, need: i.need,
-        passing: i.passing ? { player: i.passing.player, rank: i.passing.rank ?? null } : null,
+        // Some notes print only the rank a pass reaches ("3rd all-time"), not who is passed.
+        passing: i.passing ? { player: i.passing.player ?? (i.passing.rank ? `No. ${i.passing.rank}` : null), rank: i.passing.rank ?? null } : null,
         importance: i.importance, why: i.why,
         publishable, status: i.status, review, tracking: i.tracking,
         pTonight: i.pTonight ?? null, pNext3: i.pNext3 ?? null, pNext5: i.pNext5 ?? null, eta: i.eta ?? null,

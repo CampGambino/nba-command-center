@@ -6,8 +6,13 @@ import { readInlineTracker } from "./formats/inline-tracker.js";
 import { readTrackerTable } from "./formats/tracker-table.js";
 import { readNeedsGrid } from "./formats/needs-grid.js";
 import { readLeaderboards } from "./formats/leaderboards.js";
+import { readColumnTable } from "./formats/column-table.js";
+import { readNeedsRows } from "./formats/needs-rows.js";
+import { readProgressCards } from "./formats/progress-cards.js";
+import { readBioFor } from "./formats/bio-for.js";
+import { readNeedsSentence } from "./formats/needs-sentence.js";
 import { readNarrative, readAwayFrom } from "./narrative.js";
-import { statLabel } from "./stats.js";
+import { statLabel, qualifierOf } from "./stats.js";
 import { nameKey, sameName, displayName } from "./names.js";
 
 /**
@@ -38,6 +43,12 @@ export function parseDoc(doc, { team } = {}) {
   const grid = readNeedsGrid(doc);
   raw.push(...grid.milestones);
   problems.push(...grid.problems);
+  // Layouts learned 2026-11-10 (MIL, PHI, IND, ORL, BKN, MIN, DAL, HOU).
+  for (const r of [readColumnTable(doc), readNeedsRows(doc), readProgressCards(doc), readBioFor(doc)]) {
+    raw.push(...r.milestones);
+    problems.push(...r.problems);
+  }
+  raw.push(...readNeedsSentence(doc, { team }));
   const away = readAwayFrom(doc);
   raw.push(...away.filter((a) => a.format === "away-from"));
 
@@ -57,7 +68,7 @@ export function parseDoc(doc, { team } = {}) {
   };
 
   const all = [
-    ...raw.map((r) => toMilestone(r, team)),
+    ...raw.map((r) => (r.kind === "pass" ? passFromRow(r, team) : toMilestone(r, team))),
     ...away.filter((a) => a.format === "away-from-pass").map((a) => passFromText(a, team)),
     ...leaderboards.flatMap((lb) => chasesFrom(lb, roster, team)),
   ].map((m) => {
@@ -67,6 +78,7 @@ export function parseDoc(doc, { team } = {}) {
     return out;
   });
   const milestones = dedupe(all);
+  flagTwoTotals(milestones);
 
   // A page with a milestones heading that yielded nothing is a parsing gap,
   // not an empty page: say so instead of staying silent.
@@ -93,7 +105,7 @@ function addCheck(m, c) {
 }
 
 function toMilestone(r, team) {
-  const checks = [];
+  const checks = [...(r.checks || [])];
   if (!r.player) checks.push("no player heading found for this line");
   if (!r.stat) checks.push(`unrecognized stat "${r.statRaw}"`);
   if (r.statMismatch) checks.push(`stat wording doesn't agree: ${r.statMismatch}`);
@@ -112,6 +124,39 @@ function toMilestone(r, team) {
     target: r.target,
     need,
     ranks: r.nbaRank || r.teamRank ? { nba: r.nbaRank, team: r.teamRank, teamLabel: r.teamRankLabel } : undefined,
+    sources: [{ format: r.format, page: r.page, text: r.text }],
+    checks,
+    status: checks.length ? "review" : "ok",
+  };
+}
+
+/**
+ * A pass read from a table row or sentence: who is passed is printed, and
+ * sometimes their total; when both totals are known, the stated need must agree.
+ */
+function passFromRow(r, team) {
+  const checks = [...(r.checks || [])];
+  if (!r.player) checks.push("no player heading found for this line");
+  if (!r.stat) checks.push(`unrecognized stat "${r.statRaw}"`);
+  if (r.statMismatch) checks.push(`stat wording doesn't agree: ${r.statMismatch}`);
+  const computed = r.target != null && r.current != null ? r.target - r.current : null;
+  if (r.needStated != null && computed != null && r.needStated !== computed) checks.push(`stated need ${r.needStated} doesn't match ${r.target} - ${r.current} = ${computed}`);
+  const need = computed ?? r.needStated ?? null;
+  if (need != null && need <= 0) checks.push(`already passed: current ${r.current} vs target ${r.target} (notes are stale or mislabeled)`);
+  if (r.scope === "unknown") checks.push("can't tell whether this is an NBA or a franchise list");
+  return {
+    team,
+    player: r.player,
+    stat: r.stat,
+    label: r.stat ? statLabel(r.stat) : r.statRaw,
+    kind: "pass",
+    scope: r.scope,
+    current: r.current ?? null,
+    target: r.target ?? null,
+    need,
+    tieAt: r.passing?.total != null && r.current != null ? r.passing.total - r.current : null,
+    passing: { ...r.passing, teammate: false },
+    list: null,
     sources: [{ format: r.format, page: r.page, text: r.text }],
     checks,
     status: checks.length ? "review" : "ok",
@@ -236,6 +281,30 @@ function chasesFrom(lb, roster, team) {
 }
 
 /**
+ * One player, one stat, one scope: every row in the notes must imply the same
+ * current total. Indiana (2026-11-09) lists under Ivica Zubac both "7,000 career
+ * rebounds, needs 329" (6,671 now) and "6,000 career rebounds, needs 706"
+ * (5,294 now), so one of those rows belongs to someone else. Both are flagged.
+ */
+function flagTwoTotals(list) {
+  const groups = new Map();
+  for (const m of list) {
+    if (m.current == null || !m.stat || m.stat === "list" || !m.player || (m.kind !== "round" && m.kind !== "pass")) continue;
+    if (m.list && qualifierOf(m.list)) continue; // a subset list ("as a starter") has its own total
+    if (m.scope !== "career" && m.scope !== "franchise" && m.scope !== "nba" && m.scope != null) continue;
+    const scope = m.scope === "nba" ? "career" : m.scope ?? "career";
+    const k = `${nameKey(m.player)}|${m.stat}|${scope}`;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(m);
+  }
+  for (const g of groups.values()) {
+    const totals = [...new Set(g.map((m) => m.current))];
+    if (totals.length < 2) continue;
+    for (const m of g) addCheck(m, `the notes imply ${totals.length} different current ${m.label || m.stat} totals for ${m.player} (${totals.join(", ")}): a row may belong to another player`);
+  }
+}
+
+/**
  * Merge the same milestone found twice. Round numbers merge on player + stat +
  * target; passes merge on player + stat + scope + who is being passed, so a
  * chase on an NBA list is never merged with one on a franchise list.
@@ -245,6 +314,9 @@ function dedupe(list) {
   const same = (o, m) => {
     if (o.kind !== m.kind || o.stat !== m.stat || !o.player || !m.player || !sameName(o.player, m.player)) return false;
     if (m.kind === "round") return o.target === m.target;
+    // A rank printed without the passed player's name ("12,092 Career Assists
+    // (3rd all-time)") is the same chase as a list row with that name and target.
+    if (o.passing && m.passing && (!o.passing.player || !m.passing.player)) return o.target != null && o.target === m.target;
     return o.scope === m.scope && !!o.passing && !!m.passing && sameName(o.passing.player, m.passing.player);
   };
   for (const m of list) {
@@ -254,7 +326,13 @@ function dedupe(list) {
     if (twin.current != null && m.current != null && twin.current !== m.current) addCheck(twin, `sources disagree on current total: ${twin.current} vs ${m.current}`);
     if (twin.need != null && m.need != null && twin.need !== m.need) addCheck(twin, `sources disagree on what's needed: ${twin.need} vs ${m.need}`);
     if (twin.current == null && m.current != null) Object.assign(twin, { current: m.current, target: m.target, list: m.list, fromRank: m.fromRank });
-    m.checks.forEach((c) => addCheck(twin, c));
+    // Fill in what one source lacks: the passed player's name and total, or the scope.
+    if (twin.passing && m.passing) {
+      if (!twin.passing.player && m.passing.player) twin.passing = { ...m.passing, forWhat: twin.passing.forWhat ?? m.passing.forWhat, rank: twin.passing.rank ?? m.passing.rank };
+      if (twin.tieAt == null && m.tieAt != null) twin.tieAt = m.tieAt;
+    }
+    const scopeKnown = twin.scope === "nba" || twin.scope === "franchise";
+    m.checks.filter((c) => !(scopeKnown && /^can't tell whether .* is an NBA or a franchise list$/.test(c))).forEach((c) => addCheck(twin, c));
     twin.status = twin.checks.length ? "review" : "ok";
   }
   return out;
