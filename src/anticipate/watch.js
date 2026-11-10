@@ -110,6 +110,7 @@ export async function buildWatch({ team, notesDate, milestones, espn, today, sim
     if (!t.espnId || t.need == null) { it.note = t.status === "off-roster" ? "not live" : "can't project (no player match or no need)"; continue; }
     if (t.reached) {
       if (t.delta > 0) { it.reached = true; it.note = `reached in the ${t.gamesSince} game(s) since the notes`; }
+      else if (t.corrected) { it.stale = true; it.note = `already passed: the notes' total was last season's (${t.corrected.from}); now ${t.current} vs ${t.target}`; }
       else { it.stale = true; it.note = `the notes list a mark he had already passed (${t.current} vs ${t.target})`; }
       continue;
     }

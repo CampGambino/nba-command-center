@@ -28,6 +28,7 @@ import { importance } from "../src/anticipate/importance.js";
 import { buildWatch, rank } from "../src/anticipate/watch.js";
 import { discoverMilestones } from "../src/registry/discover.js";
 import { readLineups, readMovement, standing, slugOf } from "../src/nba/movement.js";
+import { repairToUnicode } from "../src/notes/pdf-repair.js";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const UPDATE = process.argv.includes("--update");
@@ -95,7 +96,7 @@ ok(teamFromCode("HOU - 11/9/26") === "HOU" && teamFromCode("GS") === "GSW" && te
   // 2026-11-10's notes as downloaded that morning: more date layouts (no year, no space after
   // the comma, a space before it), and two teams whose notes were still from an earlier game.
   const slate = path.join(root, "samples", "2026-11-10-slate");
-  const expect = { bucks: ["MIL", "2026-11-10", "NYK"], knicks: ["NYK", "2026-11-10", "MIL"], kings: ["SAC", "2026-11-10", "ORL"], "trail-blazers": ["POR", "2026-11-10", "OKC"], blazers: ["POR", "2026-11-10", "OKC"], thunder: ["OKC", "2026-11-07", null], suns: ["PHX", "2026-11-09", "SAS"], "76ers": ["PHI", "2026-11-10", "BOS"], sixers: ["PHI", "2026-11-10", "BOS"], jazz: ["UTA", "2026-11-10", "MIA"] };
+  const expect = { bucks: ["MIL", "2026-11-10", "NYK"], knicks: ["NYK", "2026-11-10", "MIL"], kings: ["SAC", "2026-11-10", "ORL"], "trail-blazers": ["POR", "2026-11-10", "OKC"], blazers: ["POR", "2026-11-10", "OKC"], thunder: ["OKC", "2026-11-07", null], suns: ["PHX", "2026-11-09", "SAS"], "76ers": ["PHI", "2026-11-10", "BOS"], sixers: ["PHI", "2026-11-10", "BOS"], jazz: ["UTA", "2026-11-10", "MIA"], celtics: ["BOS", "2026-11-10", "PHI"] };
   if (!fs.existsSync(slate)) ok(false, "slate samples missing (samples/2026-11-10-slate)");
   else for (const [slug, [team, date, opp]] of Object.entries(expect)) {
     const f = path.join(slate, `${slug}.pdf`);
@@ -474,6 +475,61 @@ for (const [team, r] of Object.entries(results)) {
   const sOff = simulate({ need: 1, stat: "gs", sample: any, games: g1(0.02), sims: 20000 });
   const sHist = simulate({ need: 1, stat: "gs", sample: any, games: g1(null), sims: 2000 });
   ok(Math.abs(sOn.byGame[0] - 0.98) < 0.01 && Math.abs(sOff.byGame[0] - 0.02) < 0.01 && sHist.byGame[0] === 0, "model: tonight's lineup decides a games-started milestone (98% listed, 2% not, history otherwise)");
+}
+
+// ---------- Boston: broken font maps repaired, milestone grid, last-season totals ----------
+{
+  const f = path.join(root, "samples", "2026-11-10-slate", "celtics.pdf");
+  if (!fs.existsSync(f)) ok(false, "Boston notes sample missing (samples/2026-11-10-slate/celtics.pdf)");
+  else {
+    const raw = fs.readFileSync(f);
+    const fixed = repairToUnicode(raw);
+    ok(fixed.repaired.length === 4 && fixed.buf.length > raw.length && fixed.buf.subarray(0, raw.length).equals(raw), "pdf repair: Boston's 4 broken font maps fixed by appending; original bytes untouched", fixed.repaired.join(", "));
+    let untouched = 0, total = 0;
+    for (const dir of ["2026-11-09", "2026-11-09-slate", "2026-11-10-slate"]) {
+      const d = path.join(root, "samples", dir);
+      if (!fs.existsSync(d)) continue;
+      for (const x of fs.readdirSync(d).filter((n) => n.endsWith(".pdf") && n !== "celtics.pdf")) {
+        total++; const b = fs.readFileSync(path.join(d, x)); const r = repairToUnicode(b);
+        if (r.buf === b && !r.repaired.length) untouched++;
+      }
+    }
+    ok(total >= 20 && untouched === total, "pdf repair: every other team's notes are left exactly as they are", `${untouched}/${total}`);
+    const bos = await parseNotes(raw, { team: "BOS" });
+    const doc1 = bos.meta;
+    ok(doc1.gameDate === "2026-11-10" && doc1.opponent === "PHI", "BOS notes readable: date and opponent", JSON.stringify(doc1));
+    const g = (player, stat, target) => bos.milestones.find((m) => sameName(m.player, player) && m.stat === stat && m.target === target);
+    const facts = [["J. Tatum", "pts", 14400, 24], ["J. Tatum", "ast", 2400, 2], ["J. Tatum", "blk", 400, 8], ["J. Tatum", "fg3m", 1600, 7], ["D. White", "pts", 7800, 5], ["B. Scheierman", "pts", 600, 1], ["M. Conley", "ast", 6800, 16], ["P. Pritchard", "fg3m", 900, 27]];
+    for (const [p, st, t, need] of facts) {
+      const m = g(p, st, t);
+      ok(m && m.target - m.current === need, `BOS grid: ${p} ${t.toLocaleString()} ${st} needs ${need} (as printed)`, JSON.stringify(m && { cur: m.current, t: m.target }));
+    }
+    ok(!g("L. Garza", "reb", 500) && !g("L. Garza", "gp", 200), "BOS grid: marks with a date acquired are not upcoming (Garza 500 rebounds, 3/30/26)");
+    ok(bos.milestones.filter((m) => m.format === "needs-grid" || m.sources?.some?.((x) => x.format === "needs-grid")).length >= 75 && !bos.problems.some((p) => /milestone grid/.test(p)), "BOS grid: about 82 milestones, every row has 3 entries per stat", `${bos.milestones.length} milestones; ${bos.problems.filter((p) => /grid/.test(p)).join("; ")}`);
+  }
+  // Notes left at last season's totals: notes + this season = ESPN exactly -> "corrected".
+  const one = (rows, career) => ({ ok: true, stale: false, warnings: [], data: { rows, career } });
+  const fake = {
+    teams: async () => ({ ok: true, warnings: [], data: { ids: { BOS: "2" } } }),
+    roster: async () => ({ ok: true, warnings: [], data: { players: [{ id: "p1", name: "Payton Pritchard" }, { id: "p2", name: "Luka Garza" }, { id: "p3", name: "Mike Conley" }] } }),
+    schedule: async () => ({ ok: true, warnings: [], data: { games: [] } }),
+    box: async () => ({ ok: false, error: "none" }),
+    career: async (id) => ({
+      p1: one([{ season: "2025-26", teamId: "2", stats: { fg3m: 873 } }, { season: "2026-27", teamId: "2", stats: { fg3m: 21 } }], { fg3m: 894 }),
+      p2: one([{ season: "2025-26", teamId: "2", stats: { oreb: 297 } }, { season: "2026-27", teamId: "2", stats: { oreb: 22 } }], { oreb: 319 }),
+      p3: one([{ season: "2025-26", teamId: "2", stats: { reb: 3547 } }, { season: "2026-27", teamId: "2", stats: { reb: 3 } }], { reb: 3551 }),
+    }[id]),
+  };
+  const ms = [
+    { team: "BOS", player: "P. Pritchard", stat: "fg3m", kind: "round", scope: "career", target: 900, current: 873, need: 27, status: "ok", checks: [] },
+    { team: "BOS", player: "L. Garza", stat: "oreb", kind: "round", scope: "career", target: 300, current: 297, need: 3, status: "ok", checks: [] },
+    { team: "BOS", player: "M. Conley", stat: "reb", kind: "round", scope: "career", target: 3750, current: 3550, need: 200, status: "ok", checks: [] },
+  ];
+  const tr = await trackMilestones({ team: "BOS", notesDate: "2026-11-10", milestones: ms, espn: fake });
+  const [pp, lg, mc] = tr.milestones.map((m) => m.tracking);
+  ok(pp.status === "corrected" && pp.current === 894 && pp.need === 6 && tr.milestones[0].status === "ok", "tracking: notes at last season's total + this season = ESPN -> corrected (Pritchard needs 6, not 27)", JSON.stringify(pp));
+  ok(lg.status === "corrected" && lg.reached === true, "tracking: a mark passed earlier this season is recognised as already reached (Garza 319 offensive rebounds)", JSON.stringify(lg));
+  ok(mc.status === "disagrees" && tr.milestones[2].status === "review", "tracking: a difference that isn't this season's total stays a disagreement (Conley +1)", JSON.stringify(mc));
 }
 
 // ---------- NBA Live bridge (docs/bridge/cc-bridge.js) against a stand-in NBA Live ----------

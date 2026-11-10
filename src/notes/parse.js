@@ -4,6 +4,7 @@ import { readNeedsList } from "./formats/needs-list.js";
 import { readStatColon } from "./formats/stat-colon.js";
 import { readInlineTracker } from "./formats/inline-tracker.js";
 import { readTrackerTable } from "./formats/tracker-table.js";
+import { readNeedsGrid } from "./formats/needs-grid.js";
 import { readLeaderboards } from "./formats/leaderboards.js";
 import { readNarrative, readAwayFrom } from "./narrative.js";
 import { statLabel } from "./stats.js";
@@ -34,6 +35,9 @@ export function parseDoc(doc, { team } = {}) {
   const tracker = readTrackerTable(doc);
   raw.push(...tracker.milestones);
   problems.push(...tracker.problems);
+  const grid = readNeedsGrid(doc);
+  raw.push(...grid.milestones);
+  problems.push(...grid.problems);
   const away = readAwayFrom(doc);
   raw.push(...away.filter((a) => a.format === "away-from"));
 

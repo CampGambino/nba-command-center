@@ -53,7 +53,7 @@ export async function buildSite({ entries, games = [], espn, nba = null, today, 
         // ESPN can confirm the player's own total. For a round number that is the
         // whole milestone; for a pass, the other player's total (the target) is
         // still only what the unchecked parser read.
-        if (i.tracking !== "confirmed" || i.kind !== "round") publishable = false;
+        if (!(i.tracking === "confirmed" || i.tracking === "corrected") || i.kind !== "round") publishable = false;
         review = [...(review || []), `${e.team}'s notes layout hasn't been hand-checked yet: only round-number totals ESPN confirms are publishable`];
       }
       return {

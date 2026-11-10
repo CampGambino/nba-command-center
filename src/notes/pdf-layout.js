@@ -1,3 +1,4 @@
+import { repairToUnicode } from "./pdf-repair.js";
 /**
  * PDF -> positioned lines.
  *
@@ -26,6 +27,9 @@ const loadPdfjs = () =>
 /** @param {Buffer|Uint8Array} buf */
 export async function readPdf(buf) {
   const pdfjs = await loadPdfjs();
+  // Fonts with a broken ToUnicode map (Boston's notes) are fixed first; any other PDF is untouched.
+  const fixed = repairToUnicode(Buffer.isBuffer(buf) ? buf : Buffer.from(buf));
+  buf = fixed.buf;
   const doc = await pdfjs.getDocument({
     data: new Uint8Array(buf),
     isEvalSupported: false,
@@ -57,7 +61,7 @@ export async function readPdf(buf) {
   }
   const pageCount = doc.numPages;
   await doc.destroy?.();
-  return { pageCount, pages };
+  return { pageCount, pages, repairedFonts: fixed.repaired };
 }
 
 /** Group runs into visual rows (top of page first) and build text, charX, cells. */

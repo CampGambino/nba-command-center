@@ -211,6 +211,25 @@ export async function trackMilestones({ team, notesDate, milestones, espn, nba =
     }
     if (espnValue == null) { t.status = "partial"; t.notes.push(`ESPN career data has no ${m.stat}`); continue; }
     t.espn = { value: espnValue, diff: espnValue - t.current, stale: c.stale };
+    // Notes that were never updated this season: the notes' figure equals ESPN's total
+    // through last season exactly (Boston's second milestone grid, 2026-11-10: 28 of 29
+    // differences were exactly the player's 2026-27 total). Then both sources agree once
+    // the season is added, and ESPN's up-to-date total is the current one.
+    if (t.espn.diff !== 0) {
+      const seasons = c.data.rows.map((r) => r.season).filter(Boolean);
+      const latest = seasons.length ? seasons[seasons.length - 1] : null;
+      const rowsNow = c.data.rows.filter((r) => r.season === latest && (scope !== "franchise" || r.teamId === espnTeam));
+      const seasonNow = rowsNow.reduce((a, r) => a + (r.stats[m.stat] ?? 0), 0);
+      if (latest && seasonNow > 0 && espnValue - seasonNow === m.current) {
+        t.corrected = { from: t.current, to: espnValue, season: latest, added: seasonNow };
+        t.notes.push(`the notes' total (${m.current}) is through last season; with ${latest}'s ${seasonNow} it is ${espnValue}, matching ESPN`);
+        t.current = espnValue;
+        t.espn.diff = 0;
+        if (t.target != null) { t.need = t.target - t.current; t.reached = t.need <= 0; }
+        t.status = boxesComplete ? "corrected" : "partial";
+        continue;
+      }
+    }
     if (t.espn.diff === 0) t.status = boxesComplete ? "confirmed" : "partial";
     else {
       t.status = "disagrees";

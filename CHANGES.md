@@ -2,6 +2,48 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.8.0 (2026-11-10): Boston's notes readable; notes still on last season's totals
+
+### What changed
+
+- **New `src/notes/pdf-repair.js`. It repairs PDFs whose fonts have broken ToUnicode maps.** Boston's notes (made by macOS Quartz) map every glyph to its own number, so text read "%26721 &(/7,&6" for "BOSTON CELTICS". pdf.js also turns some of those codes into spaces, losing "(", ")" and "'".
+  - The fix is a standard PDF incremental update. Corrected maps, built from each font's own embedded TrueType cmap, are appended after the original bytes with a new xref section. No original byte changes.
+  - It acts only when both conditions are proven for a font: its map is at least 80% identity, and the font's own table disagrees on at least 80% of codes. Otherwise the very same Buffer is returned. It never throws.
+  - `readPdf` runs it first and reports `repairedFonts`.
+- **New format, `formats/needs-grid.js`:** Boston's "Upcoming player milestones" grid. Each row has, per stat, Target · N (needs) · DA (date acquired).
+  - A triple with N and no date is upcoming.
+  - A date means the mark was already reached, so it is skipped.
+  - A row must have exactly 3 entries per stat, or it is skipped and reported.
+- **Tracker: notes that were never updated this season.** When the notes' figure plus the player's current-season total equals ESPN's career total exactly, the item is marked **corrected** (not disputed) and uses the up-to-date total.
+  - Boston's second grid: **28 of 29** differences were exactly the player's 2026-27 total.
+  - Pritchard needs 6 threes for 900, not 27.
+  - Garza (300 offensive rebounds) and Queta (400) already passed their marks this season; they are shown as passed, not predicted.
+  - Corrected round numbers are publishable, like confirmed ones.
+- **The BOS front page** gives the date and opponent (11/10 vs PHI).
+
+### Found on 2026-11-10
+
+- **BOS:** 82 notes milestones; 53 confirmed, 28 corrected, 1 genuine disagreement (Conley's rebounds, +1). 81 publishable.
+- **UTA** (updated notes, layout not hand-checked): 74 of 74 totals confirmed by ESPN, so the parser reads Utah correctly.
+- **SAC** (updated notes, not hand-checked): 52 confirmed and 3 disagreements, all review. Its milestone table still lists players who have left (DeRozan, Westbrook, Schröder, Šarić…). Those 69 items can't be confirmed and stay unpublished.
+
+### Tested
+
+- 292 facts and checks pass, 18 new:
+  - the repair fixes Boston's 4 fonts by appending only;
+  - all 33 other sample notes are left exactly as they are;
+  - Boston's date and opponent;
+  - 8 grid facts checked by hand against the PDF (Tatum 14,400 points needs 24; 2,400 assists needs 2; 400 blocks needs 8; 1,600 threes needs 7; White 7,800 points needs 5; Scheierman 600 needs 1; Conley 6,800 assists needs 16; Pritchard 900 threes needs 27 as printed);
+  - reached marks are skipped;
+  - all rows are complete;
+  - "corrected" for Pritchard and Garza, while Conley stays disputed.
+- **Snapshots of the six hand-checked teams are unchanged.**
+
+### Still unproven
+
+- **The repair has only been seen on one producer's PDFs** (macOS Quartz, Identity-H TrueType). Other kinds of broken maps (Type1 fonts, CIDToGIDMap streams, xref-stream PDFs) are left alone, not repaired.
+- **The "last season's totals" rule needs an exact match.** A section updated partway through this season isn't detected, so it remains a disagreement.
+
 ## 0.7.0 (2026-11-10): NBA.com lineups and transactions
 
 Two NBA.com static files answer servers, unlike `stats.nba.com/stats/...` and `cdn.nba.com` (checked 2026-11-10; found via the user's Reddit link):
