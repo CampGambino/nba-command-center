@@ -53,4 +53,15 @@ const bands = [[0, 0.05], [0.05, 0.25], [0.25, 0.5], [0.5, 0.75], [0.75, 0.95], 
 });
 console.log(`\n${calls.length} calls scored, Brier ${brier?.toFixed(3)} (lower is better; always guessing 50% scores 0.250)`);
 for (const b of bands.filter((b) => b.n)) console.log(`  ${b.band.padEnd(8)} n=${String(b.n).padStart(3)}  predicted ${(b.predicted * 100).toFixed(0)}%  happened ${(b.actual * 100).toFixed(0)}%`);
-if (calls.length) fs.appendFileSync("data/calibration.jsonl", JSON.stringify({ date: today, scoredAt: new Date().toISOString(), n: calls.length, brier, bands }) + "\n");
+// The 0-5% band is mostly "can't happen tonight" (needs 7 more games): easy calls that flatter
+// the overall score. The calls that matter are the ones given 5% or more.
+const real = calls.filter((c) => c.p >= 0.05);
+const brierReal = real.length ? real.reduce((a, c) => a + (c.p - (c.hit ? 1 : 0)) ** 2, 0) / real.length : null;
+if (real.length) console.log(`calls given 5%+: ${real.length}, happened ${real.filter((c) => c.hit).length}, expected ${real.reduce((a, c) => a + c.p, 0).toFixed(1)}, Brier ${brierReal.toFixed(3)}`);
+// One line per night: re-scoring the same night replaces its line.
+if (calls.length) {
+  const file = "data/calibration.jsonl";
+  const keep = fs.existsSync(file) ? fs.readFileSync(file, "utf8").split("\n").filter((l) => l.trim() && JSON.parse(l).date !== today) : [];
+  keep.push(JSON.stringify({ date: today, scoredAt: new Date().toISOString(), n: calls.length, brier, nReal: real.length, hitsReal: real.filter((c) => c.hit).length, expectedReal: real.reduce((a, c) => a + c.p, 0), brierReal, bands }));
+  fs.writeFileSync(file, keep.join("\n") + "\n");
+}

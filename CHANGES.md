@@ -37,6 +37,12 @@ Each entry: what changed, how it was tested, and what is still unproven.
 
 - **10 notes layouts aren't parsed:** DET, MEM, TOR, IND, DAL, DEN, HOU, NOP, GSW and WAS. They yield 0-15 milestones each. Their franchise and NBA-history chases (which ESPN can't supply) are missing until each layout is learned and hand-checked. Samples are saved in `samples/2026-11-09-slate/`.
 - **ESPN-only milestones are single-source:** review by design.
+- **First scored night: 2026-11-09 (all 8 games, scored 01:03 ET 11/10).**
+  - 30 calls were given a 5%+ chance tonight. 17 happened, against 15.6 expected (Brier 0.13).
+  - Bands: 25-50% → 33% happened; 50-75% → 67%; 75-95% → 100%; 95%+ → 100%.
+  - Slightly underconfident, but this is one night and 6 calls per band: far too few to recalibrate on.
+  - Two of 346 calls given under 5% happened: Mamukelashvili scored 23 for 2,000, and Podziemski made 10 field goals for 1,000.
+  - Passes are scored only against the target set before the game. Whether the passed player also scored that night (Curry passing DeRozan) isn't checked.
 - **`tonight.js` takes about 1.5 minutes** on a cold cache (about 250 ESPN requests, spaced 250 ms apart). It is faster when cached.
 
 ## 0.4.0 (2026-11-09): the Watch List website, with live countdowns
