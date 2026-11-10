@@ -1,6 +1,7 @@
 import { trackMilestones } from "../registry/track.js";
 import { makeSampler, simulate } from "./model.js";
 import { importance } from "./importance.js";
+import { sameName } from "../notes/names.js";
 
 /**
  * The Watch List for one team's notes: every live milestone with
@@ -26,8 +27,11 @@ const MAX_PLAY = 0.97;       // late scratches and early exits happen: never 100
 
 const seasonEndYear = (iso) => { const [y, m] = iso.split("-").map(Number); return m >= 8 ? y + 1 : y; };
 
-export async function buildWatch({ team, notesDate, milestones, espn, today, sims = 4000 }) {
-  const tracked = await trackMilestones({ team, notesDate, milestones, espn });
+const STARTER_PLAY = 0.95;   // listed in tonight's starting five: very likely to play
+const START_IF_LISTED = { Confirmed: 0.98, Expected: 0.85 };
+
+export async function buildWatch({ team, notesDate, milestones, espn, today, sims = 4000, nba = null }) {
+  const tracked = await trackMilestones({ team, notesDate, milestones, espn, nba });
   const warnings = [...tracked.warnings], problems = [...tracked.problems];
   let tonightGame = null;
   const result = (items) => ({ team, today, notesDate, tonightGame, items, games: tracked.games, warnings, problems });
@@ -49,6 +53,13 @@ export async function buildWatch({ team, notesDate, milestones, espn, today, sim
     const b = await espn.box(g.id);
     if (b.ok && b.data.final) boxes.push({ date: g.date, box: b.data });
     else warnings.push(`box score ${g.date} unavailable`);
+  }
+  // Tonight's starting lineups from NBA.com (Expected early, Confirmed near tip).
+  let lineup = null;
+  if (nba && tonight) {
+    const lu = await nba.lineups(today);
+    if (lu.ok) lineup = lu.data.games.map((g) => g.teams[team]).find(Boolean) || null;
+    else warnings.push(`lineups unavailable: ${lu.error}`);
   }
   const inj = await espn.injuries();
   if (!inj.ok) warnings.push(`injury feed unavailable (${inj.error}); everyone assumed available`);
@@ -106,17 +117,25 @@ export async function buildWatch({ team, notesDate, milestones, espn, today, sim
     const f = await formOf(t.espnId);
     if (!f.lines.length) { it.note = "no recent games to project from"; continue; }
     const injury = injuries[t.espnId] || null;
-    const pTonight = injury?.status === "Out" ? 0 : injury?.status === "Day-To-Day" ? Math.min(f.pBase, DTD_CAP) : f.pBase;
+    const listed = lineup ? lineup.find((p) => sameName(p.name, m.player)) : null;
+    const lineupFinal = !!lineup?.length && lineup.every((p) => p.lineupStatus === "Confirmed");
+    let pTonight = injury?.status === "Out" ? 0 : injury?.status === "Day-To-Day" ? Math.min(f.pBase, DTD_CAP) : f.pBase;
+    // A listed starter plays, unless ESPN has him Out (then the conflict is shown, Out wins).
+    if (listed && injury?.status !== "Out") pTonight = Math.max(pTonight, STARTER_PLAY);
+    const pStartTonight = listed ? START_IF_LISTED[listed.lineupStatus] ?? null : lineupFinal ? 0.02 : null;
     // Out with a return date: 0 until then.
     const games = upcoming.map((g, i) => {
       let p = i === 0 ? pTonight : f.pBase;
       if (injury?.status === "Out" && injury.returnDate && g.date < injury.returnDate) p = 0;
-      return { date: g.date, pPlay: p };
+      return { date: g.date, pPlay: p, pStart: i === 0 && tonight ? pStartTonight : null };
     });
     const sim = simulate({ need: t.need, stat: m.stat, sample: f.sample, games, sims, seed: hash(`${m.player}|${m.stat}|${t.need}`) });
     if (sim.unknown) { it.note = `no game-by-game data for ${m.stat}`; continue; }
     it.injury = injury ? { status: injury.status, comment: injury.comment, returnDate: injury.returnDate } : null;
     it.pPlayTonight = tonight ? games[0].pPlay : 0;
+    if (listed) it.lineup = { status: listed.lineupStatus, position: listed.position };
+    if (listed && injury?.status === "Out") it.note = `listed in tonight's starting five but ESPN has him Out`;
+    if (listed?.nbaId) it.nbaId = listed.nbaId;
     it.pTonight = tonight ? round(sim.byGame[0]) : 0;
     it.pNext3 = round(sim.byGame[Math.min(2, sim.byGame.length - 1)]);
     it.pNext5 = round(sim.byGame[Math.min(4, sim.byGame.length - 1)]);
@@ -133,7 +152,7 @@ export async function buildWatch({ team, notesDate, milestones, espn, today, sim
     const imp = importance(m);
     const live = t.status !== "off-roster";
     return {
-      team: m.team, player: m.player, espnId: t.espnId || null, origin: m.origin || "notes", stat: m.stat, label: m.label, kind: m.kind, scope: m.scope,
+      team: m.team, player: m.player, espnId: t.espnId || null, nbaId: t.nbaId || null, origin: m.origin || "notes", stat: m.stat, label: m.label, kind: m.kind, scope: m.scope,
       target: t.target ?? m.target, current: t.current ?? m.current, need: t.need ?? m.need,
       passing: m.passing ? { player: m.passing.player, total: m.passing.total, rank: m.passing.rank, forWhat: m.passing.forWhat } : null,
       importance: imp.score, why: imp.reasons,

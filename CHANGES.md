@@ -2,6 +2,49 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.7.0 (2026-11-10): NBA.com lineups and transactions
+
+Two NBA.com static files answer servers, unlike `stats.nba.com/stats/...` and `cdn.nba.com` (checked 2026-11-10; found via the user's Reddit link):
+- `stats.nba.com/js/data/leaders/00_daily_lineups_YYYYMMDD.json`: tonight's starting fives, with each player's status and NBA ID.
+- `stats.nba.com/js/data/playermovement/NBA_Player_Movement.json`: every trade, waiver and signing since 2015 (10,139 rows).
+
+### What changed
+
+- **New `src/nba/movement.js`** (pure, browser-safe) and **`src/nba/static.js`** (cached client: never throws, saved copy if offline, transactions trimmed to the fields read).
+  - `standing(log, player, team)`: "left" (traded elsewhere or waived), "with" (signed or acquired) or no evidence.
+  - Slugs keep nba.com's suffixes ("jabari-smith-jr", "ernest-udeh,-jr").
+- **Tracker:** a player missing from ESPN's roster is checked against the log.
+  - LaMelo Ball: "traded to MIN on 2026-07-10". Miles Bridges: "traded to PHX on 2026-07-13". Both are franchise chases that are no longer live, and the review reason now names the transaction.
+  - Nae'Qwan Tomlin: the log still has him signed by CLE, so his chase stays live (two-way / G League?) instead of being called gone.
+  - Every matched player gets an NBA ID, for NBA Live's league feed.
+- **Tonight's chances:**
+  - A listed starter is at least 95% to play, unless ESPN has him Out; a conflict note says so.
+  - A games-started milestone uses tonight's lineup: 98% if confirmed, 85% if expected, 2% if the lineups are confirmed without him. Otherwise it uses his history.
+- **Page:** a "starting · expected / confirmed" chip.
+- **The website code is split so it never pulls in Node-only modules.** The tracker now imports `nba/movement.js`, not the client, and a new test follows the page's whole import graph to enforce it. Caught before publishing: the first version would have broken the page's live countdowns.
+
+### Tested
+
+- 274 facts and checks pass, 16 new. On the frozen 2026-11-10 NBA.com files:
+  - the transaction order;
+  - Ball (left CHA for MIN on 07-10);
+  - Bridges (left CHA, with PHX);
+  - Tomlin (with CLE);
+  - slug suffixes and accents;
+  - an unknown player is "no evidence", not "left";
+  - NYK's five with NBA IDs;
+  - the tracker wording "traded to MIN on 2026-07-10";
+  - every matched player has an NBA ID;
+  - the lineup decides a games-started milestone (98% / 2% / history);
+  - browser safety for every module the page imports.
+- **Live build for 2026-11-10:** 27 milestones, 25 with NBA IDs, 19 belonging to listed starters.
+
+### Still unproven
+
+- **Lineup status:** only "Expected" has been seen so far. "Confirmed" is assumed to appear near tip, as the field implies; confirm tonight.
+- **The transaction log can lag or disagree with ESPN.** It is used as evidence, and both are shown.
+- **Players without a transaction row** (some undrafted or two-way players) get no NBA ID from the log. NBA IDs for starters also come from the lineups.
+
 ## 0.6.0 (2026-11-10): the NBA Live bridge
 
 NBA Live (the user's live tracker, `nba-live_14.html`) stays on the user's PC and is developed where it is now. The decision, made 2026-11-10: it is never published, because the repo is public and the file holds the user's relay address. It is kept in the git-ignored `live/` folder. The Command Center reaches it through one script.

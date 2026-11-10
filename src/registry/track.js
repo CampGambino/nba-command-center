@@ -1,4 +1,5 @@
 import { nameKey, sameName } from "../notes/names.js";
+import { standing } from "../nba/movement.js";
 
 /**
  * Milestone tracking: bring the totals printed in a team's game notes up to
@@ -50,7 +51,7 @@ const CAREER_STATS = new Set(["gp", "gs", "pts", "reb", "oreb", "dreb", "ast", "
  * @param {object} p.espn        createEspn(...) or a test double with the same methods
  * @returns {Promise<{ milestones, games, warnings, problems }>}
  */
-export async function trackMilestones({ team, notesDate, milestones, espn }) {
+export async function trackMilestones({ team, notesDate, milestones, espn, nba = null }) {
   const warnings = [], problems = [];
   const done = (status, note) => ({
     milestones: milestones.map((m) => ({ ...m, tracking: { status, notes: [note] } })),
@@ -112,6 +113,19 @@ export async function trackMilestones({ team, notesDate, milestones, espn }) {
     return d;
   };
   const careers = new Map();
+  // NBA.com's transaction log: who left, who signed (evidence beside ESPN's roster).
+  let movement = null;
+  if (nba) {
+    const mv = await nba.movement();
+    if (mv.ok) { movement = mv.data; warnings.push(...mv.warnings); } else warnings.push(`transactions unavailable: ${mv.error}`);
+  }
+  const fmtMove = (st) => {
+    const l = st.last;
+    if (!l) return "";
+    const what = l.type === "Trade" ? (st.status === "left" ? `traded to ${l.team || "another team"}` : `acquired by ${l.team}`)
+      : l.type === "Waive" ? `waived by ${l.team}` : `signed by ${l.team}`;
+    return `${what} on ${l.date} (NBA transactions)`;
+  };
 
   const out = [];
   for (const m of milestones) {
@@ -119,14 +133,25 @@ export async function trackMilestones({ team, notesDate, milestones, espn }) {
     out.push({ ...m, tracking: t });
     if (!m.stat || m.stat === "list" || (m.kind !== "round" && m.kind !== "pass")) { t.notes.push("not a counting milestone"); continue; }
     const player = findPerson(m.player);
+    const st = movement ? standing(movement, m.player, team) : { status: null };
+    if (st.nbaId) t.nbaId = st.nbaId;
     if (!player) {
-      // Not on the current roster. Franchise totals can't grow any more, and
-      // nothing can be rolled forward from this team's box scores.
-      t.notes.push(`${m.player} is not on ESPN's ${team} roster or in its last 5 box scores (traded, waived, two-way, injured, or spelled differently)`);
-      if (m.scope === "franchise") {
-        t.status = "off-roster";
-        t.notes.push("if he has left, his franchise total can't grow: this chase is not live");
-      } else t.status = "unavailable";
+      // Not on ESPN's roster nor in the team's recent box scores. The transaction
+      // log says why when it can; ESPN's roster and the log can disagree.
+      t.notes.push(`${m.player} is not on ESPN's ${team} roster or in its last 5 box scores`);
+      if (st.status === "left") {
+        t.moved = { type: st.last.type, date: st.last.date, to: st.to || null };
+        t.notes.push(fmtMove(st));
+        if (m.scope === "franchise") { t.status = "off-roster"; t.notes.push("his franchise total can't grow now: this chase is not live"); }
+        else t.status = "unavailable";
+      } else if (st.status === "with") {
+        t.status = "unavailable";
+        t.notes.push(`${fmtMove(st)}: the log still has him with ${team} (two-way, G League or injured?), so the chase stays live but can't be projected`);
+      } else {
+        t.notes.push(movement ? "no transaction explains it (spelling, or the log lags)" : "transactions not checked");
+        if (m.scope === "franchise") { t.status = "off-roster"; t.notes.push("if he has left, his franchise total can't grow: this chase is not live"); }
+        else t.status = "unavailable";
+      }
       continue;
     }
     t.espnId = player.id;
@@ -201,7 +226,8 @@ export async function trackMilestones({ team, notesDate, milestones, espn }) {
       m.checks = [...(m.checks || []), `sources disagree: ${t.notes[t.notes.length - 1]}`];
       m.status = "review";
     } else if (t.status === "off-roster") {
-      m.checks = [...(m.checks || []), `${m.player} is not with ${team} now (per ESPN)`];
+      const why = t.moved ? `${t.moved.type === "Trade" ? `traded${t.moved.to ? ` to ${t.moved.to}` : ""}` : t.moved.type === "Waive" ? "waived" : "moved"} on ${t.moved.date}, per NBA transactions` : "per ESPN's roster";
+      m.checks = [...(m.checks || []), `${m.player} is not with ${team} now (${why})`];
       m.status = "review";
     }
   }

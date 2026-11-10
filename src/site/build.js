@@ -19,7 +19,7 @@ export const VERIFIED_FORMATS = new Set(["CLE", "LAL", "SAS", "PHX", "ATL", "CHA
  * @param {Array<{team:string, buf?:Buffer, notes?:{status:string, why?:string, error?:string}}>} p.entries
  * @param {Array} [p.games] the day's games (readScoreboard), for the games strip
  */
-export async function buildSite({ entries, games = [], espn, today, root }) {
+export async function buildSite({ entries, games = [], espn, nba = null, today, root }) {
   const reports = [], teams = [];
   for (const e of entries) {
     const base = { team: e.team, notesStatus: e.notes?.status || "local", notesWhy: e.notes?.why || e.notes?.error || null, verifiedFormat: VERIFIED_FORMATS.has(e.team) };
@@ -32,7 +32,7 @@ export async function buildSite({ entries, games = [], espn, today, root }) {
     }
     let watchItems = [], tonightGame = null;
     if (parsed) {
-      const w = await buildWatch({ team: e.team, notesDate: parsed.meta.gameDate, milestones: parsed.milestones, espn, today });
+      const w = await buildWatch({ team: e.team, notesDate: parsed.meta.gameDate, milestones: parsed.milestones, espn, nba, today });
       reports.push({ ...w, opponent: parsed.meta.opponent, notesStatus: base.notesStatus });
       watchItems = w.items; tonightGame = w.tonightGame; problems.push(...w.problems);
     }
@@ -42,7 +42,7 @@ export async function buildSite({ entries, games = [], espn, today, root }) {
     const found = await discoverMilestones({ team: e.team, espn, skip: watchItems });
     problems.push(...found.problems);
     if (found.milestones.length) {
-      const w2 = await buildWatch({ team: e.team, notesDate: today, milestones: found.milestones, espn, today });
+      const w2 = await buildWatch({ team: e.team, notesDate: today, milestones: found.milestones, espn, nba, today });
       reports.push({ ...w2, origin: "espn" });
       watchItems = [...watchItems, ...w2.items];
       tonightGame = tonightGame || w2.tonightGame;
@@ -57,7 +57,7 @@ export async function buildSite({ entries, games = [], espn, today, root }) {
         review = [...(review || []), `${e.team}'s notes layout hasn't been hand-checked yet: only round-number totals ESPN confirms are publishable`];
       }
       return {
-        player: i.player, espnId: i.espnId, origin: i.origin, stat: i.stat, label: i.label, kind: i.kind, scope: i.scope,
+        player: i.player, espnId: i.espnId, nbaId: i.nbaId ?? null, origin: i.origin, stat: i.stat, label: i.label, kind: i.kind, scope: i.scope,
         target: i.target, current: i.current, need: i.need,
         passing: i.passing ? { player: i.passing.player, rank: i.passing.rank ?? null } : null,
         importance: i.importance, why: i.why,
@@ -65,7 +65,7 @@ export async function buildSite({ entries, games = [], espn, today, root }) {
         pTonight: i.pTonight ?? null, pNext3: i.pNext3 ?? null, pNext5: i.pNext5 ?? null, eta: i.eta ?? null,
         pPlayTonight: i.pPlayTonight ?? null,
         injury: i.injury ? { status: i.injury.status, returnDate: i.injury.returnDate } : null,
-        confidence: i.confidence ?? null, games: i.form?.games ?? null,
+        confidence: i.confidence ?? null, games: i.form?.games ?? null, lineup: i.lineup ?? null,
         reached: !!i.reached, stale: !!i.stale, note: i.note ?? null,
       };
     });
@@ -77,7 +77,7 @@ export async function buildSite({ entries, games = [], espn, today, root }) {
   const site = { generatedAt: new Date().toISOString(), today, games: games.map((g) => ({ id: g.id, start: g.start, home: g.home, away: g.away, homeTri: g.homeTri, awayTri: g.awayTri })), teams };
   fs.writeFileSync(path.join(docs, "data", "watch.json"), JSON.stringify(site));
   // Same code the tests cover, for the page's live countdowns.
-  for (const rel of ["teams.js", "notes/names.js", "espn/parse.js", "registry/track.js"]) {
+  for (const rel of ["teams.js", "notes/names.js", "espn/parse.js", "registry/track.js", "nba/movement.js"]) {
     const dst = path.join(docs, "lib", rel);
     fs.mkdirSync(path.dirname(dst), { recursive: true });
     fs.copyFileSync(path.join(root, "src", rel), dst);

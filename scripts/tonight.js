@@ -20,6 +20,7 @@ if ((process.env.HTTPS_PROXY || process.env.https_proxy) && !process.env.NODE_US
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const dataDir = path.join(root, "data");
 const { createEspn } = await import("../src/espn/client.js");
+const { createNbaStatic } = await import("../src/nba/static.js");
 const { etDate } = await import("../src/espn/parse.js");
 const { checkNotes, versionPath } = await import("../src/notes/watcher.js");
 const { buildSite } = await import("../src/site/build.js");
@@ -27,6 +28,7 @@ const { buildSite } = await import("../src/site/build.js");
 const args = process.argv.slice(2);
 const today = args.includes("--today") ? args[args.indexOf("--today") + 1] : etDate(new Date().toISOString());
 const espn = createEspn({ dataDir });
+const nba = createNbaStatic({ dataDir });
 const sb = await espn.scoreboard(today);
 if (!sb.ok) { console.error(`can't read tonight's schedule: ${sb.error}`); process.exit(1); }
 const games = sb.data.games.filter((g) => g.date === today && (g.seasonType == null || g.seasonType === 2));
@@ -43,6 +45,6 @@ for (const g of games) {
     entries.push({ team, buf, notes: { status: r.status, why: r.why, error: r.error } });
   }
 }
-const { site } = await buildSite({ entries, games, espn, today, root });
+const { site } = await buildSite({ entries, games, espn, nba, today, root });
 const n = site.teams.reduce((a, t) => a + t.items.length, 0);
 console.log(`built: ${site.teams.length} teams, ${n} milestones -> docs/data/watch.json`);

@@ -66,7 +66,8 @@ export function makeSampler(lines, { smooth = 0.2 } = {}) {
  * @param {number} p.need          amount still needed (<= 0: already reached)
  * @param {string} p.stat
  * @param {Function} p.sample      from makeSampler
- * @param {Array<{date:string, pPlay:number}>} p.games  upcoming games, first = next
+ * @param {Array<{date:string, pPlay:number, pStart?:number}>} p.games  upcoming games, first = next;
+ *   pStart (optional) overrides whether he starts that game
  * @param {number} [p.sims=4000]
  * @param {number} [p.seed=7]
  * @returns {{ byGame:number[], pNever:number, medianGame:number|null, unknown?:boolean }}
@@ -81,7 +82,10 @@ export function simulate({ need, stat, sample, games, sims = 4000, seed = 7 }) {
     let cum = 0;
     for (let i = 0; i < games.length; i++) {
       if (r() >= games[i].pPlay) continue;
-      const v = statFromLine(stat, sample(r));
+      let line = sample(r);
+      // Tonight's lineup can settle whether he starts (games-started milestones).
+      if (games[i].pStart != null) line = { ...line, started: r() < games[i].pStart };
+      const v = statFromLine(stat, line);
       if (v === null) return { byGame: [], pNever: 1, medianGame: null, unknown: true };
       cum += v;
       if (cum >= need) { hits[i]++; break; }

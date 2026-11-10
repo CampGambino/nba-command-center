@@ -27,6 +27,7 @@ import { makeSampler, simulate, rng } from "../src/anticipate/model.js";
 import { importance } from "../src/anticipate/importance.js";
 import { buildWatch, rank } from "../src/anticipate/watch.js";
 import { discoverMilestones } from "../src/registry/discover.js";
+import { readLineups, readMovement, standing, slugOf } from "../src/nba/movement.js";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const UPDATE = process.argv.includes("--update");
@@ -333,6 +334,19 @@ for (const [team, r] of Object.entries(results)) {
     ok(requests === 0, "tracking: tests made no network requests", `${requests} attempted`);
 
 
+    // Transactions through the tracker (frozen NBA.com log).
+    {
+      const mvFile = path.join(root, "samples", "2026-11-10", "nba", "movement.json");
+      if (fs.existsSync(mvFile)) {
+        const mv = readMovement(JSON.parse(fs.readFileSync(mvFile, "utf8")).data);
+        const fakeNba = { movement: async () => ({ ok: true, warnings: [], data: mv }) };
+        const tr = await trackMilestones({ team: "CHA", notesDate: "2026-11-09", milestones: cha, espn, nba: fakeNba });
+        const bm = tr.milestones.find((m) => m.player === "LaMelo Ball" && m.scope === "franchise");
+        ok(bm?.tracking.status === "off-roster" && bm.checks.some((c) => /traded to MIN on 2026-07-10/.test(c)), "nba: the tracker says Ball was traded to MIN, not just 'missing'", JSON.stringify(bm?.checks));
+        ok(tr.milestones.every((m) => !m.tracking.espnId || m.tracking.nbaId), "nba: every matched player also gets an NBA id");
+      }
+    }
+
     // ---------- anticipation: P(tonight), ETA, importance ----------
     {
       const r1 = rng(5), r2 = rng(5);
@@ -392,9 +406,19 @@ for (const [team, r] of Object.entries(results)) {
 {
   const docs = path.join(root, "docs");
   if (fs.existsSync(path.join(docs, "lib"))) {
-    for (const rel of ["teams.js", "notes/names.js", "espn/parse.js", "registry/track.js"]) {
+    for (const rel of ["teams.js", "notes/names.js", "espn/parse.js", "registry/track.js", "nba/movement.js"]) {
       const a = fs.readFileSync(path.join(root, "src", rel), "utf8"), b = fs.existsSync(path.join(docs, "lib", rel)) ? fs.readFileSync(path.join(docs, "lib", rel), "utf8") : null;
       ok(a === b, `website: docs/lib/${rel} matches src (run scripts/publish.js after code changes)`);
+    }
+    // Everything the page imports, followed through its own imports, must run in a browser.
+    const seen = new Set(), stack = ["espn/parse.js", "registry/track.js"];
+    while (stack.length) {
+      const rel = stack.pop();
+      if (seen.has(rel)) continue;
+      seen.add(rel);
+      const src = fs.readFileSync(path.join(docs, "lib", rel), "utf8");
+      ok(!/from "node:|require\(/.test(src), `website: docs/lib/${rel} uses no Node-only modules`);
+      for (const m of src.matchAll(/from "(\.{1,2}\/[^"]+)"/g)) stack.push(path.posix.normalize(path.posix.join(path.posix.dirname(rel), m[1])));
     }
     const html = fs.readFileSync(path.join(docs, "index.html"), "utf8");
     const imports = [...html.matchAll(/from "\.\/(lib\/[^"]+)"/g)].map((m) => m[1]);
@@ -424,6 +448,32 @@ for (const [team, r] of Object.entries(results)) {
   ok(r.milestones.every((m) => m.origin === "espn" && m.status === "review"), "discover: ESPN-only finds are always held for review");
   const skip = await discoverMilestones({ team: "LAL", espn: fake, skip: [{ player: "Big Scorer", stat: "pts", target: 20000 }] });
   ok(!skip.milestones.some((m) => m.stat === "pts"), "discover: a milestone the notes already have isn't repeated");
+}
+
+// ---------- NBA.com lineups and transactions (frozen 2026-11-10) ----------
+{
+  const dir = path.join(root, "samples", "2026-11-10", "nba");
+  if (!fs.existsSync(dir)) ok(false, "NBA.com fixtures missing (samples/2026-11-10/nba)");
+  else {
+    const mv = readMovement(JSON.parse(fs.readFileSync(path.join(dir, "movement.json"), "utf8")).data);
+    ok(mv.rows.length > 10000 && mv.rows[0].date >= mv.rows[mv.rows.length - 1].date, "nba: transactions read, newest first", `${mv.rows.length} rows`);
+    const ball = standing(mv, "LaMelo Ball", "CHA");
+    ok(ball.status === "left" && ball.to === "MIN" && ball.last.date === "2026-07-10", "nba: LaMelo Ball left CHA, traded to MIN on 2026-07-10", JSON.stringify(ball.last));
+    const br = standing(mv, "Miles Bridges", "CHA"), brPhx = standing(mv, "Miles Bridges", "PHX");
+    ok(br.status === "left" && br.to === "PHX" && brPhx.status === "with", "nba: Miles Bridges left CHA for PHX (2026-07-13) and is with PHX");
+    ok(standing(mv, "Nae’Qwan Tomlin", "CLE").status === "with", "nba: Tomlin's last move keeps him with CLE (ESPN's roster lacks him)");
+    ok(standing(mv, "Jabari Smith Jr.", "HOU").nbaId != null && slugOf("Dennis Schröder") === "dennis-schroder", "nba: suffixes and accents in slugs ('jabari-smith-jr', 'dennis-schroder')");
+    ok(standing(mv, "Nobody Atall", "CHA").status === null, "nba: an unknown player is 'no evidence', not 'left'");
+    const lu = readLineups(JSON.parse(fs.readFileSync(path.join(dir, "lineups-2026-11-10.json"), "utf8")).data);
+    const nyk = lu.games.map((g) => g.teams.NYK).find(Boolean);
+    ok(lu.games.length === 6 && nyk?.length === 5 && nyk.some((p) => p.name === "Mikal Bridges" && p.nbaId === "1628969"), "nba: 2026-11-10 lineups, NYK's five with NBA ids");
+  }
+  const any = makeSampler([{ stats: { pts: 10 }, started: false }], { smooth: 0 });
+  const g1 = (pStart) => [{ date: "2026-11-10", pPlay: 1, pStart }];
+  const sOn = simulate({ need: 1, stat: "gs", sample: any, games: g1(0.98), sims: 20000 });
+  const sOff = simulate({ need: 1, stat: "gs", sample: any, games: g1(0.02), sims: 20000 });
+  const sHist = simulate({ need: 1, stat: "gs", sample: any, games: g1(null), sims: 2000 });
+  ok(Math.abs(sOn.byGame[0] - 0.98) < 0.01 && Math.abs(sOff.byGame[0] - 0.02) < 0.01 && sHist.byGame[0] === 0, "model: tonight's lineup decides a games-started milestone (98% listed, 2% not, history otherwise)");
 }
 
 // ---------- NBA Live bridge (docs/bridge/cc-bridge.js) against a stand-in NBA Live ----------

@@ -4,7 +4,7 @@ A standalone program that anticipates NBA milestones and storylines before they 
 
 Design docs live in the claude.ai project "NBA Command Center": `anticipation-engine.md` (principle #1), `command-center-architecture.md`, `storyline-detector-catalog.md`.
 
-## What works today (v0.6.0)
+## What works today (v0.7.0)
 
 **Website:** https://campgambino.github.io/nba-command-center/ (GitHub Pages, from `docs/`). Rebuild it for tonight's whole slate with `npm run tonight` (downloads every playing team's notes), or from local PDFs with `npm run publish -- samples/<date>/*.pdf`.
 
@@ -64,6 +64,7 @@ Every change ships with an entry in `CHANGES.md`: what changed, what was tested,
 ```
 src/notes/            game notes: layout, readers per format, checks, watcher
 src/espn/             ESPN readers + cached client (rosters, schedules, box scores, career stats)
+src/nba/              NBA.com static files: starting lineups and the transaction log
 src/registry/         milestone tracking: roll forward since the notes, cross-check with ESPN
 src/anticipate/       P(tonight)/ETA model, importance score, Watch List assembly
 docs/                 the website: index.html, data/watch.json, lib/ (copy of src/ used for live countdowns)

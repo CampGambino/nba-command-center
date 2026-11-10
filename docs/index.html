@@ -138,6 +138,7 @@ function chips(i) {
   if (i.origin === "espn") c.push(`<span class="chip review">from ESPN only</span>`);
   else if (!i.publishable) c.push(`<span class="chip review">${i.tracking === "off-roster" ? "not live" : "review"}</span>`);
   else if (i.tracking === "confirmed") c.push(`<span class="chip">ESPN ✓</span>`);
+  if (i.lineup) c.push(`<span class="chip">starting · ${esc(i.lineup.status === "Confirmed" ? "confirmed" : "expected")}</span>`);
   if (i.confidence === "low") c.push(`<span class="chip">few games</span>`);
   c.push(`<span class="chip">importance ${i.importance}</span>`);
   return `<div class="chips">${c.join("")}</div>`;
