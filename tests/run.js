@@ -35,6 +35,7 @@ import { computeSituations, teamGames } from "../src/situations/records.js";
 import { rowFromGame, collectResults, allGames } from "../src/situations/results.js";
 import { readScoreboard, readGameDetail, clockSeconds, readPlayerBox } from "../src/espn/parse.js";
 import { teamGameLines, offense, ratings, vsTopDefenses, vsTop } from "../src/situations/ratings.js";
+import { tonightStorylines, discordDigest, MIN_IMPORTANCE } from "../src/anticipate/tonight.js";
 import { teamGames as leaderGames, gameLeaders, seasonLeaders, shooting, cushion, needed } from "../src/situations/leaders.js";
 import { clutchPlayers, windowPlayers, WINDOWS, CLUTCH_KEYS } from "../src/espn/pbp.js";
 import { roster, withWithout } from "../src/situations/withwithout.js";
@@ -936,6 +937,37 @@ const more = {};
   }
 }
 function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
+
+// ---------- Tonight's storylines (Discord digest) ----------
+{
+  const item = (o) => ({ player: "P", team: "AAA", stat: "pts", label: "points", kind: "round", scope: "career", target: 10000, need: 5, importance: 30, pTonight: 0.9, publishable: true, ...o });
+  const watch = { today: "2026-11-11", games: [{ id: "g1", awayTri: "AAA", homeTri: "BBB", start: "2026-11-12T00:00Z" }, { id: "g2", awayTri: "CCC", homeTri: "DDD", start: "2026-11-12T00:30Z" }], teams: [
+    { team: "AAA", items: [item({ player: "Big One" }), item({ player: "Unverified", publishable: false }), item({ player: "Long Shot", pTonight: 0.1 }), item({ player: "Minor", importance: MIN_IMPORTANCE - 1 }), item({ player: "Average", kind: "average-gap" }), item({ player: "Passer", kind: "pass", scope: "nba", passing: { player: "Old Guy", rank: 40 }, need: 2, label: "3-pointers", stat: "fg3m" })] },
+    { team: "EEE", items: [item({ player: "Not Tonight" })] },
+  ] };
+  const trends = { streaks: [
+    { id: "9", name: "Scorer", team: "BBB", key: "pts30", label: "30+ points", length: 6, ofGames: 9 },
+    { id: "9", name: "Scorer", team: "BBB", key: "pts20", label: "20+ points", length: 9, ofGames: 9 },
+    { id: "8", name: "Short", team: "BBB", key: "reb10", label: "10+ rebounds", length: 4, ofGames: 9 },
+  ], teams: { BBB: { streak: { type: "L", n: 5 } }, CCC: { streak: { type: "W", n: 3 } } } };
+  const leaders = { names: { "7": "Blocker", "6": "Shooter" }, gameKeys: ["id", "team", "stat", "led", "sole", "played", "teamGames", "run"], games: [["7", "CCC", "blk", 9, 9, 9, 10, 9], ["7", "CCC", "reb", 4, 4, 9, 10, 4]],
+    lines: [{ key: "fg", pct: 50 }, { key: "fg3", pct: 40 }, { key: "ft", pct: 90 }], shootKeys: ["id", "team", "games", "teamGames", "fg.m", "fg.a", "fg.q", "fg.min", "fg3.m", "fg3.a", "fg3.q", "fg3.min", "ft.m", "ft.a", "ft.q", "ft.min"],
+    shooting: [["6", "DDD", 10, 10, 49, 100, 1, 37, 20, 50, 1, 10, 9, 10, 0, 16]] };
+  const st = tonightStorylines({ watch, trends, leaders });
+  const g1 = st[0].lines.map((l) => l.text).join(" | "), g2 = st[1].lines.map((l) => l.text).join(" | ");
+  ok(/Big One: 5 points from 10,000 career points \(90% tonight\)/.test(g1) && /Passer: 2 3-pointers from passing Old Guy \(No\. 40\) in NBA history/.test(g1), "tonight: publishable milestones worded per kind", g1);
+  ok(!/Unverified|Long Shot|Minor|Average|Not Tonight/.test(g1 + g2), "tonight: unverified, under 25%, below importance 20, other kinds and other games' teams are left out", g1);
+  ok(/Scorer: 30\+ points in 6 straight games/.test(g1) && !/20\+ points/.test(g1) && !/Short/.test(g1), "tonight: only the biggest streak of a family per player; under 5 games left out", g1);
+  ok(/BBB: lost 5 straight/.test(g1) && !/CCC: won 3/.test(g2), "tonight: team streaks of 4+ only", g2);
+  ok(/Blocker: has led CCC in blocks 9 straight games, every game he's played/.test(g2) && !/rebounds 4 straight/.test(g2), "tonight: team-lead runs of 5+", g2);
+  ok(/Shooter: 2 straight makes from 50% from the field \(49\.0%, 49-100\)/.test(g2) && /Shooter: one miss drops him below 40% on threes/.test(g2) && !/90%/.test(g2), "tonight: qualified shooters one or two shots from a line (not the unqualified FT line)", g2);
+  ok(st.every((g) => g.lines.length <= 6) && st[0].lines.every((l, i, a) => !i || a[i - 1].score >= l.score), "tonight: at most 6 lines per game, best first");
+  const big = Array.from({ length: 23 }, (_, k) => ({ away: "A" + k, home: "B", start: "2026-11-12T00:00Z", lines: Array.from({ length: 6 }, () => ({ text: "x".repeat(150) })) }));
+  const pay = discordDigest(big, { date: "Wed, Nov 11" });
+  const sizes = pay.map((p) => p.embeds.reduce((a, e) => a + e.title.length + e.description.length, 0));
+  ok(pay.length >= 3 && pay.every((p) => p.embeds.length <= 10) && sizes.every((n) => n <= 6000) && pay.reduce((a, p) => a + p.embeds.length, 0) === 23 && pay[0].content && !pay[1].content && pay.every((p) => p.allowed_mentions.parse.length === 0),
+    "tonight: Discord digest split within limits (10 embeds, 6,000 characters per message), no @-mentions", JSON.stringify(sizes));
+}
 
 // ---------- NBA Live bridge (docs/bridge/cc-bridge.js) against a stand-in NBA Live ----------
 {

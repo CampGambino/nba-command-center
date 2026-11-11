@@ -2,6 +2,44 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.17.0 (2026-11-11): Discord: tonight's storylines once per game day
+
+### What changed
+- **New `src/anticipate/tonight.js`:** tonight's storylines per game, from data the site already publishes (`watch.json`, `trends.json`, `leaders.json`). Up to 6 lines per game, best first. The site's "tonight" cards will use the same module.
+  - **Milestones:** publishable round numbers and passes with importance 20+ and a 25%+ chance tonight. That's stricter than NBA Live's cards (15), because these go to a phone.
+  - **Player streaks:** 5+ games and notable; only the biggest of a family per player (30+ points, not also 25+ and 20+).
+  - **Team-lead runs:** 5+ straight games.
+  - **Shooters:** qualified, one or two shots from crossing 50 / 40 / 90 either way.
+  - **Team streaks:** 4+ wins or losses.
+- **New `scripts/notify.js`, run by `scripts/ci.js` after every build.** It posts to Discord through the webhook in the GitHub secret `DISCORD_WEBHOOK` (`daily.yml` passes it to the build step).
+  - **What it sends:** a one-time "connected" message, then tonight's storylines once per date, on the first build at or after 2 PM ET (normally the 3 PM ET build).
+  - **Format:** one embed per game; split across messages to stay within Discord's limits; no @-mentions.
+  - **Record:** what was sent goes in `history/discord.json` (times only), so builds don't repeat it.
+  - **The URL** is read only from the environment. It's never written to a file or printed, and anything that doesn't look like a Discord webhook is refused.
+  - **Never fails the build;** with no secret it logs "nothing sent".
+- **Pushes that change `scripts/notify.js` or `src/anticipate/tonight.js` also trigger a build.**
+
+### Tested
+- **Today's real data:** 10 games and 57 lines. Spot-checked, e.g. "Trae Young: 7 points from 12,700 career points (92% tonight)", "Luka Doncic: 30+ points in 8 straight games", "Victor Wembanyama: has led SAS in blocks 11 straight games, every game he's played".
+- **The sender, against a stand-in for Discord:**
+  - **Sends:** the test message plus the digest; a rate-limit (429) reply is waited out and retried.
+  - **Doesn't send:** the same date twice; anything without a secret; a non-Discord URL.
+  - **Webhook deleted (404):** nothing recorded, so the next build tries again.
+  - **Site data for another date:** no digest.
+  - **The URL never appears in `history/`.**
+- **New checks** (412 pass):
+  - which milestones qualify and how they're worded;
+  - streak families and minimums;
+  - team streak and lead-run minimums;
+  - qualified shooters only;
+  - 6 lines per game, best first;
+  - the digest splits within Discord's limits (10 embeds and 6,000 characters per message) with no mentions.
+
+### Still unproven
+- **No real post yet:** discord.com is blocked from the cloud workspace and the laptop's workspace. The first real post happens on GitHub once the user adds the secret.
+- **A possible double post:** if a post succeeds but that run's commit then fails, the next build could post the same digest again.
+- **Pre-game only:** in-game alerts need something running during games, i.e. NBA Live with the bridge.
+
 ## 0.16.1 (2026-11-11): league rank beside every number on "vs top teams"
 
 ### What changed

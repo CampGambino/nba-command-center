@@ -36,6 +36,7 @@ Design docs live in the claude.ai project "NBA Command Center": `anticipation-en
 - **With / without** (`docs/players.html`, `src/situations/withwithout.js`): a team's record and each teammate's averages in games a chosen player played vs missed.
 - **Streaks & outliers** (`docs/trends.html`, `src/situations/trends.js`): unusual games vs each player's own season, active player streaks, team streaks.
 - **vs top teams** (`docs/defenses.html`, `src/situations/ratings.js`): each team against the top 3-10 teams by record (W-L, margin, net rating) or by defense (offense vs the best defensive ratings), compared with everyone else.
+- **Discord digest** (`scripts/notify.js`, `src/anticipate/tonight.js`): once per game day (first build after 2 PM ET), tonight's storylines per game go to the Discord channel whose webhook is in the repo secret `DISCORD_WEBHOOK`. Preview without sending: `node scripts/notify.js --dry`.
 - **Team leaders** (`docs/leaders.html`, `src/situations/leaders.js`): who leads his team in the most categories (season totals), each team's leader per stat, who led his team game by game (every game / most games), and shooters near 50% FG / 40% 3P / 90% FT with how many shots from the line they are.
 - **Notes watcher** (`src/notes/watcher.js`): downloads a team's notes from its fixed URL, keeps every version, and says whether the file there is *tonight's* notes or a stale one.
 
