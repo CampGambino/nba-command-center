@@ -965,6 +965,24 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   const big = Array.from({ length: 23 }, (_, k) => ({ away: "A" + k, home: "B", start: "2026-11-12T00:00Z", lines: Array.from({ length: 6 }, () => ({ text: "x".repeat(150) })) }));
   const pay = discordDigest(big, { date: "Wed, Nov 11" });
   const sizes = pay.map((p) => p.embeds.reduce((a, e) => a + e.title.length + e.description.length, 0));
+  // The Discord step runs with the webhook secret in its environment: it must load no npm packages.
+  {
+    const seen = new Set(), stack = ["scripts/notify.js"], bad = [];
+    while (stack.length) {
+      const rel = stack.pop();
+      if (seen.has(rel)) continue;
+      seen.add(rel);
+      for (const m of fs.readFileSync(path.join(root, rel), "utf8").matchAll(/(?:^|\n)\s*import[^"']*["']([^"']+)["']|import\(\s*["']([^"']+)["']\s*\)/g)) {
+        const spec = m[1] || m[2];
+        if (spec.startsWith("node:")) continue;
+        if (!spec.startsWith(".")) { bad.push(`${rel} -> ${spec}`); continue; }
+        stack.push(path.posix.normalize(path.posix.join(path.posix.dirname(rel), spec)));
+      }
+    }
+    ok(!bad.length && seen.size === 3, "Discord step: scripts/notify.js loads only Node built-ins and our own files (no npm packages run with the secret)", [...seen, ...bad].join(", "));
+    const wf = fs.readFileSync(path.join(root, ".github", "workflows", "daily.yml"), "utf8");
+    ok((wf.match(/secrets\.DISCORD_WEBHOOK/g) || []).length === 1 && /DISCORD_WEBHOOK: \$\{\{ secrets\.DISCORD_WEBHOOK \}\}\n\s+run: node scripts\/notify\.js/.test(wf), "Discord step: the secret is given to the notify step only");
+  }
   ok(pay.length >= 3 && pay.every((p) => p.embeds.length <= 10) && sizes.every((n) => n <= 6000) && pay.reduce((a, p) => a + p.embeds.length, 0) === 23 && pay[0].content && !pay[1].content && pay.every((p) => p.allowed_mentions.parse.length === 0),
     "tonight: Discord digest split within limits (10 embeds, 6,000 characters per message), no @-mentions", JSON.stringify(sizes));
 }

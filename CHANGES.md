@@ -2,6 +2,26 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.17.1 (2026-11-11): the Discord secret lives in its own workflow step
+
+### What changed
+- **Discord posting is now its own workflow step** ("Post tonight's storylines to Discord"), after the build. Only that step receives `DISCORD_WEBHOOK`; `scripts/ci.js` no longer runs `notify.js`.
+  - **Why:** before, the secret sat in the build step's environment, where npm packages (pdfjs-dist and its code) also run. Now the only code that runs with the secret is `scripts/notify.js` → `src/anticipate/tonight.js` → `src/situations/leaders.js`: our own files and Node built-ins.
+  - **A failed post** can't fail the run (`continue-on-error`).
+- **What already protected it:**
+  - GitHub encrypts repository secrets and masks the value in logs.
+  - Runs started from forks or outside pull requests never receive them.
+  - This workflow only runs on schedule, manual start or a push to `main`, all of which need write access to the repo.
+- **If the URL ever leaks,** someone can post messages to that one channel. They can't read it or reach the account. Fix: delete the webhook in Discord, make a new one, and replace the secret.
+
+### Tested
+- **New checks** (414 pass):
+  - `notify.js` and everything it imports load no npm package. The check fails if one is added, confirmed by adding `import "pdfjs-dist"`.
+  - The secret appears exactly once in the workflow, on the notify step.
+
+### Still unproven
+- **The first real post** comes from the run this push triggers.
+
 ## 0.17.0 (2026-11-11): Discord: tonight's storylines once per game day
 
 ### What changed

@@ -9,9 +9,9 @@
  *     failing download must never blank out good data.
  *
  *     Then refreshes team situations (scripts/situations.js); a failure there
- *     leaves the last published situations in place. Last, posts to Discord
- *     (scripts/notify.js) when the DISCORD_WEBHOOK secret is set; that step
- *     never fails the build.
+ *     leaves the last published situations in place. (Discord posts are a
+ *     separate workflow step, scripts/notify.js, so the build itself and its
+ *     npm packages never run with the webhook secret.)
  *
  *   node scripts/ci.js score [--date YYYY-MM-DD]   (default: yesterday, Eastern)
  *     Scores that night (scripts/score.js) and keeps the result in
@@ -59,21 +59,12 @@ function build() {
     fs.writeFileSync(watchFile, beforeText);
     console.error(`kept the published data: this build read notes for ${notesRead(after)} teams, the published one ${notesRead(before)}`);
     situations(today);
-    notify(today);
     return;
   }
   const pred = path.join(data, `predictions-${today}.json`);
   if (fs.existsSync(pred)) fs.writeFileSync(path.join(hist, `predictions-${today}.json.gz`), zlib.gzipSync(fs.readFileSync(pred), { level: 9 }));
   console.log(`site data for ${today}: ${after.teams.length} teams, notes read for ${notesRead(after)}`);
   situations(today);
-  notify(today);
-}
-
-// Discord: tonight's storylines once per date. Never fails the build.
-function notify(today) {
-  const r = run(["scripts/notify.js", "--today", today]);
-  process.stdout.write(r.stdout || "");
-  process.stderr.write(r.stderr || "");
 }
 
 // Team situations (records vs winning teams, close games, trailing at half...).

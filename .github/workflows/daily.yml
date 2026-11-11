@@ -62,10 +62,17 @@ jobs:
           echo "job=$job" >> "$GITHUB_OUTPUT"
       - name: Build tonight's slate
         if: steps.pick.outputs.job == 'build'
-        env:
-          # Repo secret (Settings > Secrets and variables > Actions). Empty = no Discord posts.
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: node scripts/ci.js build ${{ github.event.inputs.date && format('--today {0}', github.event.inputs.date) || '' }}
+      # Its own step so the secret is only ever in this process: scripts/notify.js imports no
+      # npm packages (only src/anticipate/tonight.js and src/situations/leaders.js), so no
+      # third-party code runs while the webhook URL is in the environment. GitHub masks the
+      # value in logs, and runs started from forks never receive repository secrets.
+      - name: Post tonight's storylines to Discord
+        if: steps.pick.outputs.job == 'build'
+        continue-on-error: true
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: node scripts/notify.js ${{ github.event.inputs.date && format('--today {0}', github.event.inputs.date) || '' }}
       - name: Score last night
         if: steps.pick.outputs.job == 'score'
         run: node scripts/ci.js score ${{ github.event.inputs.date && format('--date {0}', github.event.inputs.date) || '' }}
