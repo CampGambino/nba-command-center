@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NBA Command Center · Clutch</title>
+<title>NBA Command Center · Clutch &amp; 4th quarter</title>
 <style>
   :root {
     --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a;
@@ -101,11 +101,12 @@
 <body>
 <header>
   <h1>NBA Command Center</h1>
-  <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a class="on" href="clutch.html">Clutch</a><a href="defenses.html">vs top defenses</a></nav>
+  <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a class="on" href="clutch.html">Clutch</a><a href="players.html">With / without</a><a href="defenses.html">vs top defenses</a></nav>
   <div class="sub" id="sub">Loading…</div>
 </header>
 <main>
-  <div class="key">Clutch time: the last 5 minutes of the 4th quarter or overtime with the score within 5 points (the NBA's definition). Totals for the season, from ESPN play-by-play.</div>
+  <div class="controls"><span class="toggle" id="mode"><button data-m="clutch" class="on">Clutch time</button><button data-m="q4">4th quarter</button></span></div>
+  <div class="key" id="modeKey"></div>
 
   <h2>Teams</h2>
   <div class="controls"><span class="toggle" data-t="team"><button data-d="best" class="on">Best first</button><button data-d="worst">Worst first</button></span><label>Click a column to sort; click again to flip.</label></div>
@@ -127,7 +128,11 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 const pct = (m, a) => (a ? m / a : null);
 const p1 = (x) => (x == null ? "–" : (x * 100).toFixed(1));
 const sg = (x) => (x > 0 ? `+${x}` : String(x));
-let P = null, S = null;
+let P = null, S = null, DATA = {}, mode = "clutch";
+const KEY = {
+  clutch: "Clutch time: the last 5 minutes of the 4th quarter or overtime with the score within 5 points (the NBA's definition). Season totals, from ESPN play-by-play.",
+  q4: "4th quarter: all of the 4th quarter, any score (overtime not included). Season totals, from ESPN play-by-play. Team W-L is quarters won and lost (ties not shown).",
+};
 const state = { team: { key: "pm", dir: "best" }, player: { key: "pts", dir: "best" } };
 // [key, header, value (higher = better), cell]
 const PCOLS = [
@@ -140,7 +145,7 @@ const PCOLS = [
   ["stl", "STL", (p) => p.stl, (p) => p.stl], ["blk", "BLK", (p) => p.blk, (p) => p.blk], ["pm", "+/-", (p) => p.pm, (p) => sg(p.pm)],
 ];
 const TCOLS = [
-  ["rec", "W-L", (t) => (t.w + t.l ? t.w / (t.w + t.l) : null), (t) => `${t.w}-${t.l}`], ["games", "Games", (t) => t.w + t.l, (t) => t.w + t.l],
+  ["rec", "W-L", (t) => (t.w + t.l ? t.w / (t.w + t.l) : null), (t) => `${t.w}-${t.l}`], ["games", "Games", (t) => t.nGames, (t) => t.nGames],
   ["pm", "+/-", (t) => t.pm, (t) => sg(t.pm)], ["pts", "PTS", (t) => t.pts, (t) => t.pts],
   ["fgp", "FG%", (t) => pct(t.fgm, t.fga), (t) => p1(pct(t.fgm, t.fga))], ["fg3p", "3P%", (t) => pct(t.fg3m, t.fg3a), (t) => p1(pct(t.fg3m, t.fg3a))],
   ["ftp", "FT%", (t) => pct(t.ftm, t.fta), (t) => p1(pct(t.ftm, t.fta))], ["fta", "FTA", (t) => t.fta, (t) => t.fta],
@@ -155,15 +160,16 @@ function header(cols, st, which, first) {
 }
 function render() {
   // Teams: sum the players' clutch lines per team; W-L and +/- from team situations.
+  // Teams: box totals summed game by game (P.teams); W-L and +/- from team situations.
   const teams = {};
-  for (const p of P.players) {
-    const t = (teams[p.team] ??= { code: p.team, pts: 0, fgm: 0, fga: 0, fg3m: 0, fg3a: 0, ftm: 0, fta: 0, tov: 0, ast: 0 });
-    for (const k of ["pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "tov", "ast"]) t[k] += p[k];
-  }
+  for (const [code, x] of Object.entries(P.teams || {})) teams[code] = { ...x, code };
   for (const [code, x] of Object.entries(S.teams)) {
     const t = (teams[code] ??= { code, pts: 0, fgm: 0, fga: 0, fg3m: 0, fg3a: 0, ftm: 0, fta: 0, tov: 0, ast: 0 });
-    t.w = x.splits.clutch?.w || 0; t.l = x.splits.clutch?.l || 0; t.pm = x.clutchNet;
+    if (mode === "clutch") { t.w = x.splits.clutch?.w || 0; t.l = x.splits.clutch?.l || 0; t.pm = x.clutchNet; t.nGames = t.w + t.l; }
+    else { t.w = x.q4?.won || 0; t.l = x.q4?.lost || 0; t.pm = (x.q4?.pf || 0) - (x.q4?.pa || 0); t.nGames = x.q4?.games || 0; }
   }
+  $("modeKey").textContent = KEY[mode];
+  $("sub").textContent = `${P.games} ${mode === "clutch" ? "clutch games" : "games"} through ${P.through} · ${P.players.length} players`;
   $("teams").innerHTML = header(TCOLS, state.team, "team", "<th>Team</th>") + sorted(Object.values(teams), TCOLS, state.team)
     .map((t) => `<tr><td><b>${t.code}</b></td>${TCOLS.map((c) => `<td class="num">${c[3](t)}</td>`).join("")}</tr>`).join("");
 
@@ -182,11 +188,18 @@ function sync() { document.querySelectorAll(".toggle[data-t]").forEach((tg) => t
 document.querySelectorAll(".toggle[data-t]").forEach((tg) => tg.querySelectorAll("button").forEach((b) => b.onclick = () => { state[tg.dataset.t].dir = b.dataset.d; sync(); render(); }));
 for (const id of ["team", "q", "mingp"]) $(id).oninput = render;
 
-Promise.all([fetch("data/clutch-players.json", { cache: "no-store" }).then((r) => r.json()), fetch("data/situations.json", { cache: "no-store" }).then((r) => r.json())])
-  .then(([p, s]) => {
-    P = p; S = s;
-    $("sub").textContent = `${p.games} clutch games through ${p.through} · ${p.players.length} players`;
-    $("team").innerHTML += [...new Set(p.players.map((x) => x.team))].sort().map((t) => `<option>${t}</option>`).join("");
+document.querySelectorAll("#mode button").forEach((b) => b.onclick = () => {
+  mode = b.dataset.m; P = DATA[mode];
+  document.querySelectorAll("#mode button").forEach((x) => x.classList.toggle("on", x === b));
+  render();
+});
+const get = (f) => fetch(f, { cache: "no-store" }).then((r) => r.json());
+Promise.all([get("data/clutch-players.json"), get("data/q4-players.json"), get("data/situations.json")])
+  .then(([p, q, s]) => {
+    DATA = { clutch: p, q4: q }; S = s;
+    mode = new URLSearchParams(location.search).get("mode") === "q4" ? "q4" : "clutch"; P = DATA[mode];
+    document.querySelectorAll("#mode button").forEach((x) => x.classList.toggle("on", x.dataset.m === mode));
+    $("team").innerHTML += [...new Set([...p.players, ...q.players].map((x) => x.team))].sort().map((t) => `<option>${t}</option>`).join("");
     $("foot").innerHTML = `Counted from ESPN play-by-play: a play is clutch when, before it, the game was in the last 5:00 of the 4th or overtime and within 5. Checked against NBA.com's clutch stats on 2026-11-11: team W-L and +/- match for all 30 teams; for players, points, made shots, free throws, assists and blocks match exactly, and a few attempts, rebounds, steals and turnovers differ by 1. Minutes, games and +/- need to know who was on the court, which is inferred from substitutions, so they are approximate (minutes average about 0.25 lower than NBA.com's); * marks a player with games where that couldn't be fully worked out. Percentages sort only with 3+ attempts. Built ${new Date(p.generatedAt).toLocaleString()}.`;
     render();
   }).catch((e) => { $("sub").textContent = "Couldn't load the data: " + e.message; });

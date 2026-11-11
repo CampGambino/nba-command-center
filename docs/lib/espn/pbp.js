@@ -1,5 +1,6 @@
 /**
- * Clutch-time player lines from an ESPN play-by-play (browser-safe, pure).
+ * Player lines for a stretch of game time (clutch time, or the 4th quarter)
+ * from an ESPN play-by-play (browser-safe, pure).
  *
  * Clutch time: the last 5:00 of the 4th quarter or any overtime, while the
  * score is within 5 (the NBA's definition). The score is rebuilt from scoring
@@ -57,7 +58,18 @@ function startersByPeriod(plays, teamOf) {
   return out;
 }
 
-export function clutchPlayers(json, { homeId, awayId }) {
+/**
+ * Clutch time: 4th quarter or overtime, last 5:00, score within 5.
+ * 4th quarter: all of period 4, any score.
+ */
+export const WINDOWS = {
+  clutch: { inPeriod: (per) => per >= 4, cap: () => 300, close: true },
+  q4: { inPeriod: (per) => per === 4, cap: () => 720, close: false },
+};
+
+export function clutchPlayers(json, ids) { return windowPlayers(json, ids, WINDOWS.clutch); }
+
+export function windowPlayers(json, { homeId, awayId }, win = WINDOWS.clutch) {
   const plays = json?.plays || [];
   // Player -> team, from the box score (ESPN team ids).
   const team = {}, names = {};
@@ -76,7 +88,7 @@ export function clutchPlayers(json, { homeId, awayId }) {
   const lines = {};
   const line = (id) => (lines[id] ??= CLUTCH_KEYS.map(() => 0));
   let h = 0, a = 0, per = 0, clock = null, onCourt = new Set(), lineupOk = true;
-  const within = () => Math.abs(h - a) <= 5;
+  const within = () => !win.close || Math.abs(h - a) <= 5;
 
   for (const p of plays) {
     const pPer = p?.period?.number ?? 0;
@@ -87,8 +99,8 @@ export function clutchPlayers(json, { homeId, awayId }) {
       clock = per >= 5 ? 300 : 720;
     }
     // Time since the previous event, counted for whoever was on court, if it was clutch time.
-    if (per >= 4 && sec != null && clock != null && within()) {
-      const from = Math.min(clock, 300), to = Math.max(0, sec);
+    if (win.inPeriod(per) && sec != null && clock != null && within()) {
+      const from = Math.min(clock, win.cap(per)), to = Math.max(0, sec);
       if (from > to) {
         const homeOn = [...onCourt].filter((id) => teamOf(id) === homeId).length;
         const awayOn = [...onCourt].filter((id) => teamOf(id) === awayId).length;
@@ -98,7 +110,7 @@ export function clutchPlayers(json, { homeId, awayId }) {
     }
     if (sec != null) clock = sec;
 
-    const clutch = per >= 4 && sec != null && sec <= 300 && within();
+    const clutch = win.inPeriod(per) && sec != null && sec <= win.cap(per) && within();
     const who = ids(p);
     const tid = String(p?.team?.id ?? "");
     const text = String(p?.text || "");

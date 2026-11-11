@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NBA Command Center · With / without</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a;
+    --text: #e8eaef; --muted: #9aa3b2; --faint: #6b7383;
+    --accent: #4f9cf7; --good: #3fbf7f; --warn: #e5a93b; --bad: #e5604f; --live: #ff4d6d;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg: #f5f6f8; --panel: #fff; --panel2: #f0f2f5; --line: #e1e4ea; --text: #161a22; --muted: #5b6474; --faint: #8a93a3; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 18px 16px 8px; max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  main { max-width: 980px; margin: 0 auto; padding: 0 12px 40px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 22px 4px 10px; }
+  .games { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 6px; }
+  .game { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; min-width: 170px; }
+  .game .teams { font-weight: 650; }
+  .game .state { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .game.live { border-color: var(--live); }
+  .game.live .state { color: var(--live); font-weight: 600; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: grid; grid-template-columns: 58px 1fr; gap: 12px; }
+  .card.hit { border-color: var(--good); }
+  .pct { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 16px;
+         background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--panel2) 0); position: relative; }
+  .pct::before { content: ""; position: absolute; inset: 6px; background: var(--panel); border-radius: 50%; }
+  .pct span { position: relative; }
+  .card.hit .pct { background: var(--good); }
+  .card.hit .pct::before { background: var(--good); }
+  .card.hit .pct span { color: #fff; }
+  .who { font-weight: 650; }
+  .team { color: var(--faint); font-weight: 500; font-size: 12px; margin-left: 4px; }
+  .what { margin-top: 2px; }
+  .meta { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .chip { font-size: 11.5px; padding: 2px 7px; border-radius: 999px; background: var(--panel2); color: var(--muted); border: 1px solid var(--line); }
+  .chip.review { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+  .chip.out { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
+  .chip.dtd { color: var(--warn); }
+  .chip.live { color: var(--live); border-color: var(--live); font-weight: 600; }
+  .chip.hit { color: var(--good); border-color: var(--good); font-weight: 600; }
+  details { margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+  summary { cursor: pointer; color: var(--faint); }
+  details ul { margin: 4px 0 0 16px; padding: 0; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 13.5px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; background: var(--panel2); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 2px 10px; }
+  select, input[type=search] { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 14px; }
+  label { color: var(--muted); font-size: 13px; }
+  button { background: var(--panel); color: var(--accent); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 14px; cursor: pointer; }
+  .empty { color: var(--faint); padding: 12px 4px; }
+  footer { color: var(--faint); font-size: 12px; max-width: 980px; margin: 0 auto; padding: 0 16px 30px; }
+  .warn-banner { background: color-mix(in srgb, var(--warn) 12%, var(--panel)); border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); border-radius: var(--radius); padding: 10px 12px; font-size: 13px; margin: 10px 0; }
+  @media (max-width: 600px) { .hide-sm { display: none; } }
+  nav { display: flex; gap: 14px; margin-top: 6px; font-size: 13.5px; }
+  nav a { color: var(--muted); text-decoration: none; padding-bottom: 2px; }
+  nav a.on { color: var(--text); border-bottom: 2px solid var(--accent); }
+  .match { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
+  .match h3 { margin: 0 0 6px; font-size: 15px; }
+  .match table { border: 0; background: transparent; table-layout: fixed; }
+  .match td, .match th { padding: 5px 6px; font-size: 13px; }
+  .match col.l { width: 42%; } .match col.t { width: 19%; } .match col.b { width: 20%; }
+  .matches { grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); }
+  @media (max-width: 600px) { .match td, .match th { padding: 5px 4px; font-size: 12.5px; } }
+  .match th.c, .match td.c { text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .match th.c.team-h { color: var(--text); font-weight: 700; font-size: 13px; }
+  .match td.base, .match th.base { color: var(--faint); }
+  th.num { text-align: right; }
+  .matches { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 10px; }
+  .scroll { overflow-x: auto; border-radius: var(--radius); }
+  .scroll table { min-width: 860px; }
+  th.sort { cursor: pointer; }
+  th.sort.on { color: var(--accent); }
+  .hi { color: var(--good); }
+  .lo { color: var(--bad); }
+  .hi.strong, .lo.strong { font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+  .flag { color: var(--warn); }
+  .key { color: var(--muted); font-size: 12.5px; margin: 0 4px 8px; }
+  .key b.hi, .key b.lo { font-weight: 650; }
+  .toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .toggle button { border: 0; border-radius: 0; padding: 5px 10px; font-size: 13px; color: var(--muted); }
+  .toggle button.on { background: var(--accent); color: #fff; }
+  .odd { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 0; margin: 0; list-style: none; }
+  .odd li { padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .odd li:last-child { border-bottom: 0; }
+  .odd .luck { color: var(--faint); font-size: 12px; white-space: nowrap; }
+</style>
+</head>
+<body>
+<header>
+  <h1>NBA Command Center</h1>
+  <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a href="clutch.html">Clutch</a><a class="on" href="players.html">With / without</a><a href="defenses.html">vs top defenses</a></nav>
+  <div class="sub" id="sub">Pick a team and a player: how the team and his teammates do in the games he missed.</div>
+</header>
+<main>
+  <div class="controls">
+    <select id="team"></select>
+    <label>Without <select id="out"></select></label>
+    <span class="toggle" id="dir"><button data-d="best" class="on">Biggest rise first</button><button data-d="worst">Biggest drop first</button></span>
+  </div>
+  <div class="key" id="summary"></div>
+  <div class="scroll"><table id="t"></table></div>
+</main>
+<footer id="foot">"Without" counts games he didn't play (not listed, or 0 minutes) since his first game listed with the team. Averages are per game played by each teammate. Small samples: a 1- or 2-game "without" sample says little. From ESPN box scores.</footer>
+<script type="module">
+import { roster, withWithout } from "./lib/situations/withwithout.js";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const TEAMS = ["ATL","BOS","BKN","CHA","CHI","CLE","DAL","DEN","DET","GSW","HOU","IND","LAC","LAL","MEM","MIA","MIL","MIN","NOP","NYK","OKC","ORL","PHI","PHX","POR","SAC","SAS","TOR","UTA","WAS"];
+let file = null, sortKey = "pts", dir = "best";
+const f1 = (x) => (x == null ? "–" : x.toFixed(1));
+const pc = (x) => (x == null ? "–" : (x * 100).toFixed(1));
+const sg = (x) => (x == null ? "–" : (x > 0 ? "+" : "") + x.toFixed(1));
+// [key, label, value, format]: shown as with / without / change
+const STATS = [["min", "MIN", f1], ["pts", "PTS", f1], ["reb", "REB", f1], ["ast", "AST", f1], ["fga", "FGA", f1], ["fgp", "FG%", pc], ["fg3m", "3PM", f1], ["fta", "FTA", f1], ["tov", "TOV", f1], ["pm", "+/-", f1]];
+const ratio = (k) => k === "fgp";
+function diff(p, k) { const a = p.with?.[k], b = p.without?.[k]; return a == null || b == null ? null : (ratio(k) ? (b - a) * 100 : b - a); }
+
+async function loadTeam() {
+  const t = $("team").value;
+  file = await fetch(`data/teams/${t}.json`, { cache: "no-store" }).then((r) => r.json());
+  const r = roster(file).filter((p) => p.gp > 0);
+  $("out").innerHTML = r.map((p) => `<option value="${p.id}">${esc(p.name)} · ${p.mpg.toFixed(1)} mpg · missed ${p.missed}</option>`).join("");
+  const firstMissed = r.find((p) => p.missed > 0 && p.mpg >= 15);
+  if (firstMissed) $("out").value = firstMissed.id;
+  render();
+}
+function render() {
+  const x = withWithout(file, $("out").value);
+  if (!x) { $("t").innerHTML = ""; $("summary").textContent = ""; return; }
+  const tw = x.team.with, two = x.team.without;
+  $("summary").innerHTML = `<b>${file.team} with ${esc(x.out.name)}</b>: ${tw.w}-${tw.l}, average margin ${sg(tw.margin)} (${x.games.with} game${x.games.with === 1 ? "" : "s"}) · <b>without</b>: ${x.games.without ? `${two.w}-${two.l}, average margin ${sg(two.margin)} (${x.games.without} game${x.games.without === 1 ? "" : "s"}: ${x.games.withoutDates.join(", ")})` : "no games missed yet"}.`;
+  const sign = dir === "best" ? 1 : -1;
+  const list = [...x.players].sort((a, b) => { const p = diff(a, sortKey), q = diff(b, sortKey); if (p == null && q == null) return (b.with?.min || 0) - (a.with?.min || 0); if (p == null) return 1; if (q == null) return -1; return sign * (q - p); });
+  const head1 = `<tr><th rowspan="2">Teammate</th><th class="num" rowspan="2">GP with / without</th>${STATS.map(([k, l]) => `<th class="num sort ${sortKey === k ? "on" : ""}" colspan="3" data-k="${k}" style="text-align:center">${l}${sortKey === k ? (dir === "best" ? " ▾" : " ▴") : ""}</th>`).join("")}</tr>`;
+  const head2 = `<tr>${STATS.map(() => `<th class="num">with</th><th class="num">w/o</th><th class="num">chg</th>`).join("")}</tr>`;
+  const body = list.map((p) => `<tr><td><b>${esc(p.name)}</b></td><td class="num">${p.with?.gp || 0} / ${p.without?.gp || 0}</td>${STATS.map(([k, , fmt]) => {
+    const d = diff(p, k); const big = d != null && (k === "pts" ? Math.abs(d) >= 4 : k === "min" ? Math.abs(d) >= 5 : false);
+    return `<td class="num">${fmt(p.with?.[k] ?? null)}</td><td class="num">${fmt(p.without?.[k] ?? null)}</td><td class="num ${big ? (d > 0 ? "hi" : "lo") : ""}">${d == null ? "–" : sg(d)}</td>`; }).join("")}</tr>`).join("");
+  $("t").innerHTML = head1 + head2 + body;
+  document.querySelectorAll("th.sort").forEach((el) => el.onclick = () => { if (sortKey === el.dataset.k) dir = dir === "best" ? "worst" : "best"; else { sortKey = el.dataset.k; dir = "best"; } sync(); render(); });
+}
+function sync() { document.querySelectorAll("#dir button").forEach((b) => b.classList.toggle("on", b.dataset.d === dir)); }
+document.querySelectorAll("#dir button").forEach((b) => b.onclick = () => { dir = b.dataset.d; sync(); render(); });
+$("team").innerHTML = TEAMS.map((t) => `<option>${t}</option>`).join("");
+$("team").value = new URLSearchParams(location.search).get("team") || "PHI";
+$("team").onchange = loadTeam;
+$("out").onchange = render;
+loadTeam().catch((e) => { $("summary").textContent = "Couldn't load the data: " + e.message; });
+</script>
+</body>
+</html>

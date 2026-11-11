@@ -2,6 +2,42 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.14.0 (2026-11-11): 4th-quarter stats, "With / without" page, player game lines
+
+### What changed
+- **Every player's box line from every game** (ESPN summary, read once per game) is now stored:
+  - starter, minutes, points, FG/3P/FT made-attempted, rebounds (offensive and defensive), assists, turnovers, steals, blocks, fouls, +/-;
+  - players listed but not used get 0 minutes.
+- **4th-quarter player and team stats.** These use the same play-by-play pass as clutch time (`windowPlayers` in `src/espn/pbp.js`), over all of period 4 at any score.
+  - The **Clutch page has a Clutch time / 4th quarter switch** (`clutch.html?mode=q4` links straight to it).
+  - Team rows show 4th quarters won and lost, 4th-quarter +/- (from quarter scores), and shooting.
+- **New page, "With / without"** (`docs/players.html`): pick a team and a player to see the team's record and average margin in games he played and games he missed. Each teammate's per-game averages, with and without him, cover minutes, points, rebounds, assists, FGA, FG%, 3PM, FTA, turnovers and +/-.
+  - Columns sort by biggest rise or biggest drop.
+  - "Without" counts games he didn't play since his first game listed with the team.
+  - The math is in `src/situations/withwithout.js`, with a browser copy in `docs/lib`.
+- **Team clutch / 4th-quarter totals are summed game by game.** Before, they were summed from players' season totals, which credited a traded player's points to his new team: OKC and SAC were off by 9.
+- **Storage:**
+  - Results now live in `history/results/` (one file per date, plus `meta.json`) instead of a single `history/results.json`. A finished date never changes, so daily commits add a file instead of rewriting the season.
+  - Player lines go to `docs/data/teams/<TEAM>.json`, one per team, rewritten only when that team has played.
+  - The old single file is migrated automatically on the first run.
+
+### Tested
+- **4th-quarter player points add up to the quarter score** in all 160 games, and team totals match quarter scores for all 30 teams.
+- **Player box points add up to the final score** (checked on PHI at CHI).
+- **10 new checks:**
+  - player box reading: minutes, made-attempted pairs, signed +/-, DNP;
+  - the 4th-quarter window: all of period 4, any score, seconds through a substitution;
+  - team totals per game;
+  - with/without: games, record, margin, teammate averages, games before a player's first listing, roster order and games missed;
+  - results store: round trip, unchanged files not rewritten.
+- Pages rendered in a browser.
+- 380 checks pass; snapshots unchanged.
+
+### Still unproven
+- **4th-quarter minutes and +/-** use the same inferred lineups as clutch: approximate.
+- **"Without" can't tell injured, rested and suspended apart**, and before his first listing a player isn't counted as missing.
+- **The PC copy was not synced in this session**, because the link to the PC was unavailable.
+
 ## 0.13.0 (2026-11-11): Clutch tab (teams and players), clutch numbers checked against NBA.com
 
 ### What changed

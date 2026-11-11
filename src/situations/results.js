@@ -9,7 +9,8 @@
  *        n = neutral site. From the game's summary (filled in once, x = 1):
  *        hb/ab = team box totals (see TEAM_BOX_KEYS in espn/parse.js),
  *        cl = [home, away] points in clutch time, or 0 if it had none,
- *        cp = clutch-time player lines (see espn/pbp.js; names in store.names).
+ *        cp = clutch-time player lines (see espn/pbp.js; names in store.names),
+ *        q4 = 4th-quarter player lines (same shape), pl = every player's box line.
  *        A summary whose box doesn't add up to the final score is not used.
  *
  * A date is complete once every regular-season game on it is final (or it is
@@ -61,6 +62,22 @@ export async function collectResults({ espn, store, through, warnings = [] }) {
           if (x.name) (out.names ??= {})[id] = x.name;
         }
       }
+      // 4th-quarter player lines (same shape as cp) and every player's box line:
+      // pl = { espnId: [0 home | 1 away, starter 0/1, minutes, ...PLAYER_BOX_KEYS] }; minutes 0 = listed, didn't play.
+      if (g.q4Players) {
+        row.q4 = { ok: g.q4Players.lineupOk ? 1 : 0, p: {} };
+        for (const [id, x] of Object.entries(g.q4Players.players)) {
+          row.q4.p[id] = [x.team === "home" ? 0 : 1, ...x.s];
+          if (x.name) (out.names ??= {})[id] = x.name;
+        }
+      }
+      if (g.players) {
+        row.pl = {};
+        for (const [id, x] of Object.entries(g.players)) {
+          row.pl[id] = [x.side === "home" ? 0 : 1, x.starter ? 1 : 0, x.min, ...x.s];
+          if (x.name) (out.names ??= {})[id] = x.name;
+        }
+      }
       row.x = 1;
     }
   }
@@ -71,3 +88,35 @@ export async function collectResults({ espn, store, through, warnings = [] }) {
 export const pointsOf = (b) => (b && b.every((v, i) => i > 5 || Number.isFinite(v)) ? 2 * b[0] + b[2] + b[4] : null);
 
 export const allGames = (store) => Object.keys(store?.dates || {}).sort().flatMap((d) => store.dates[d].games);
+
+/**
+ * The store on disk: one file per date (history/results/<date>.json) plus
+ * meta.json (season, player names). Finished dates never change, so a day's
+ * commit adds a file or two instead of rewriting the whole season.
+ * `fsImpl` is node:fs (passed in so this module stays browser-safe).
+ */
+export function loadStore(dir, fsImpl) {
+  const meta = `${dir}/meta.json`;
+  if (!fsImpl.existsSync(meta)) return null;
+  const m = JSON.parse(fsImpl.readFileSync(meta, "utf8"));
+  const dates = {};
+  for (const f of fsImpl.readdirSync(dir)) {
+    const d = f.match(/^(\d{4}-\d{2}-\d{2})\.json$/)?.[1];
+    if (d) dates[d] = JSON.parse(fsImpl.readFileSync(`${dir}/${f}`, "utf8"));
+  }
+  return { season: m.season ?? null, names: m.names || {}, dates };
+}
+
+/** Writes only files whose content changed; returns how many were written. */
+export function saveStore(dir, store, fsImpl) {
+  fsImpl.mkdirSync(dir, { recursive: true });
+  let n = 0;
+  const put = (file, text) => {
+    if (fsImpl.existsSync(file) && fsImpl.readFileSync(file, "utf8") === text) return;
+    fsImpl.writeFileSync(file, text);
+    n++;
+  };
+  put(`${dir}/meta.json`, JSON.stringify({ season: store.season, names: store.names || {} }));
+  for (const [d, v] of Object.entries(store.dates)) put(`${dir}/${d}.json`, JSON.stringify(v));
+  return n;
+}

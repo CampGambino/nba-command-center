@@ -70,6 +70,7 @@ export function teamGames(rows) {
         id: g.id, date: g.d, team: us, opp: them, home: home && !g.n, road: !home && !g.n, win: pf > pa, margin: pf - pa, ot: g.ot > 0,
         // Clutch: true / false once the play-by-play is read; null before.
         clutch: g.x ? !!g.cl : null, clutchNet: g.x && g.cl ? (home ? g.cl[0] - g.cl[1] : g.cl[1] - g.cl[0]) : 0,
+        q4: q?.length >= 4 && oq?.length >= 4 ? [q[3], oq[3]] : null,
         half: hasQ ? sum(q, 2) - sum(oq, 2) : null, after3: hasQ ? sum(q, 3) - sum(oq, 3) : null,
       });
     }
@@ -146,6 +147,8 @@ export function computeSituations(rows, { through = null } = {}) {
     t.luck = {}; // per situation: chance of a record at least this far from expected
     t.clutchGames = t.games.filter((g) => g.clutch !== null).length; // games whose play-by-play was read
     t.clutchNet = t.games.reduce((a, g) => a + g.clutchNet, 0);
+    // 4th quarter: points for and against in period 4 (overtime not included).
+    t.q4 = t.games.reduce((acc, g) => { if (g.q4 != null) { acc.games++; acc.pf += g.q4[0]; acc.pa += g.q4[1]; if (g.q4[0] > g.q4[1]) acc.won++; else if (g.q4[0] < g.q4[1]) acc.lost++; } return acc; }, { games: 0, pf: 0, pa: 0, won: 0, lost: 0 });
     t.flags = [];
     for (const [k, r] of Object.entries(t.splits)) {
       if (k === "all" || !PHRASE[k]) continue;

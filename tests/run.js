@@ -13,6 +13,7 @@
  *      change (a milestone appearing, disappearing or changing) is listed so
  *      no change to the output goes unnoticed.
  */
+import os from "node:os";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -32,10 +33,12 @@ import { repairToUnicode } from "../src/notes/pdf-repair.js";
 import { dropShadowLayer } from "../src/notes/pdf-layout.js";
 import { computeSituations, teamGames } from "../src/situations/records.js";
 import { rowFromGame, collectResults, allGames } from "../src/situations/results.js";
-import { readScoreboard, readGameDetail, clockSeconds } from "../src/espn/parse.js";
+import { readScoreboard, readGameDetail, clockSeconds, readPlayerBox } from "../src/espn/parse.js";
 import { teamGameLines, offense, ratings, vsTopDefenses } from "../src/situations/ratings.js";
-import { clutchPlayers, CLUTCH_KEYS } from "../src/espn/pbp.js";
-import { clutchPlayerTotals } from "../src/situations/clutch.js";
+import { clutchPlayers, windowPlayers, WINDOWS, CLUTCH_KEYS } from "../src/espn/pbp.js";
+import { roster, withWithout } from "../src/situations/withwithout.js";
+import { loadStore, saveStore } from "../src/situations/results.js";
+import { clutchPlayerTotals, clutchTeamTotals } from "../src/situations/clutch.js";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const UPDATE = process.argv.includes("--update");
@@ -414,12 +417,12 @@ for (const [team, r] of Object.entries(results)) {
 {
   const docs = path.join(root, "docs");
   if (fs.existsSync(path.join(docs, "lib"))) {
-    for (const rel of ["teams.js", "notes/names.js", "espn/parse.js", "registry/track.js", "nba/movement.js", "situations/ratings.js", "espn/pbp.js"]) {
+    for (const rel of ["teams.js", "notes/names.js", "espn/parse.js", "registry/track.js", "nba/movement.js", "situations/ratings.js", "espn/pbp.js", "situations/withwithout.js"]) {
       const a = fs.readFileSync(path.join(root, "src", rel), "utf8"), b = fs.existsSync(path.join(docs, "lib", rel)) ? fs.readFileSync(path.join(docs, "lib", rel), "utf8") : null;
       ok(a === b, `website: docs/lib/${rel} matches src (run scripts/publish.js after code changes)`);
     }
     // Everything the page imports, followed through its own imports, must run in a browser.
-    const seen = new Set(), stack = ["espn/parse.js", "registry/track.js", "situations/ratings.js"];
+    const seen = new Set(), stack = ["espn/parse.js", "registry/track.js", "situations/ratings.js", "situations/withwithout.js"];
     while (stack.length) {
       const rel = stack.pop();
       if (seen.has(rel)) continue;
@@ -815,8 +818,48 @@ const more = {};
     ok(L("h1").sec === 300 && L("h2").sec === 120 && L("h6").sec === 180 && r.lineupOk, "clutch players: seconds on court, through a substitution", JSON.stringify({ h1: L("h1").sec, h2: L("h2").sec, h6: L("h6").sec, ok: r.lineupOk }));
     // Plus/minus: home +3 (h1's three) then away +1 (a3's free throw).
     ok(L("h1").pm === 2 && L("h2").pm === 3 && L("h6").pm === -1 && L("a1").pm === -2, "clutch players: plus/minus for whoever was on court", JSON.stringify({ h1: L("h1").pm, h2: L("h2").pm, h6: L("h6").pm, a1: L("a1").pm }));
+    // 4th quarter: the same plays, all of period 4 at any score. h1 also gets the 11:00 three; h2 the 10:00 two.
+    const q = windowPlayers({ boxscore, plays }, { homeId: "1", awayId: "2" }, WINDOWS.q4);
+    const Q = (id) => Object.fromEntries(CLUTCH_KEYS.map((k, i) => [k, q.players[id]?.s[i] ?? 0]));
+    ok(Q("h1").pts === 6 && Q("h2").pts === 2 && Q("h3").ast === 1 && Q("h2").ast === 1 && Q("h1").sec === 720 && Q("h2").sec === 540 && Q("h6").sec === 180, "4th quarter: all of period 4 counts, at any score (h1 6 points, 720 s)", JSON.stringify({ h1: Q("h1"), h2: Q("h2").sec }));
+    ok(clutchTeamTotals([{ h: "BOS", a: "NYK", cp: { ok: 1, p: { x: [0, 60, 5, 2, 3, 1, 1, 0, 0, 1, 0, 0, 0, 0, 4], y: [1, 60, 3, 1, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, -4] } } }]).NYK.pts === 3, "clutch teams: totals summed per game and side");
     const tot = clutchPlayerTotals([{ d: "2026-11-01", h: "BOS", a: "NYK", cp: { ok: 1, p: { x: [0, 60, 5, 2, 3, 1, 1, 0, 0, 1, 0, 0, 0, 0, 4] } } }, { d: "2026-11-03", h: "MIA", a: "BOS", cp: { ok: 0, p: { x: [1, 30, 2, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, -2] } } }], { x: "Player X" });
     ok(tot[0].name === "Player X" && tot[0].gp === 2 && tot[0].pts === 7 && tot[0].min === 1.5 && tot[0].pm === 2 && tot[0].team === "BOS" && tot[0].unsureGames === 1, "clutch players: season totals, team from the latest game, games with unsure lineups counted", JSON.stringify(tot[0]));
+  }
+
+  // Player box lines from a summary.
+  {
+    const box = readPlayerBox({ boxscore: { players: [{ team: { id: "1" }, statistics: [{ keys: ["minutes", "points", "fieldGoalsMade-fieldGoalsAttempted", "threePointFieldGoalsMade-threePointFieldGoalsAttempted", "freeThrowsMade-freeThrowsAttempted", "rebounds", "assists", "turnovers", "steals", "blocks", "offensiveRebounds", "defensiveRebounds", "fouls", "plusMinus"],
+      athletes: [{ athlete: { id: "9", displayName: "Nine" }, starter: true, stats: ["33", "22", "8-16", "2-5", "4-5", "5", "5", "3", "1", "0", "0", "5", "1", "+1"] }, { athlete: { id: "8", displayName: "Eight" }, didNotPlay: true, stats: [] }] }] }] } }, "1");
+    ok(box["9"].min === 33 && box["9"].s.join() === "22,8,16,2,5,4,5,5,5,3,1,0,0,5,1,1" && box["9"].starter && box["9"].side === "home" && box["8"].dnp && box["8"].min === 0, "player box: minutes, made-attempted pairs, +/- with a sign, DNP", JSON.stringify(box));
+  }
+  // With / without: A plays games 1-3, misses 4 and 5; B plays all five.
+  {
+    const L = (min, pts) => [1, min, pts, 5, 10, 1, 3, 2, 2, 4, 3, 1, 1, 0, 1, 3, 2, 0];
+    const file = { team: "XXX", names: { A: "Player A", B: "Player B", C: "Player C" }, games: [
+      { id: "1", d: "2026-10-21", pf: 110, pa: 100, pl: { A: L(30, 20), B: L(30, 10) } },
+      { id: "2", d: "2026-10-23", pf: 100, pa: 105, pl: { A: L(30, 20), B: L(30, 10) } },
+      { id: "3", d: "2026-10-25", pf: 120, pa: 100, pl: { A: L(30, 20), B: L(30, 10) } },
+      { id: "4", d: "2026-10-27", pf: 95, pa: 110, pl: { A: L(0, 0), B: L(36, 20) } },
+      { id: "5", d: "2026-10-29", pf: 101, pa: 100, pl: { B: L(36, 24), C: L(10, 2) } },
+    ] };
+    const x = withWithout(file, "A");
+    const B = x.players.find((p) => p.id === "B");
+    ok(x.games.with === 3 && x.games.without === 2 && x.team.with.w === 2 && x.team.without.w === 1 && x.team.without.margin === -7, "with/without: games, record and average margin with and without A (0 minutes counts as without)", JSON.stringify(x.team));
+    ok(B.with.pts === 10 && B.without.pts === 22 && B.without.min === 36 && B.with.gp === 3 && B.without.gp === 2, "with/without: a teammate's per-game averages each way", JSON.stringify(B));
+    const C = withWithout(file, "C");
+    ok(C.games.with === 1 && C.games.without === 0, "with/without: games before a player's first listing don't count as missed", JSON.stringify(C.games));
+    const r = roster(file);
+    ok(r[0].id === "B" && r.find((p) => p.id === "A").missed === 2, "with/without: roster sorted by minutes, games missed since first listed", JSON.stringify(r));
+  }
+  // Results store, one file per date: round trip, and unchanged files aren't rewritten.
+  {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ncc-store-"));
+    const st = { season: 2027, names: { 1: "One" }, dates: { "2026-10-21": { complete: true, games: [{ id: "g" }] } } };
+    const w1 = saveStore(dir, st, fs), w2 = saveStore(dir, st, fs);
+    const back = loadStore(dir, fs);
+    ok(w1 === 2 && w2 === 0 && back.season === 2027 && back.names[1] === "One" && back.dates["2026-10-21"].games[0].id === "g", "results store: a file per date; saving again writes nothing", `${w1} ${w2}`);
+    fs.rmSync(dir, { recursive: true });
   }
 }
 function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }

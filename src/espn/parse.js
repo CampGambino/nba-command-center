@@ -1,5 +1,5 @@
 import { teamFromText } from "../teams.js";
-import { clutchPlayers } from "./pbp.js";
+import { clutchPlayers, windowPlayers, WINDOWS } from "./pbp.js";
 
 /**
  * Pure readers for ESPN's public JSON (site.api.espn.com / site.web.api.espn.com).
@@ -331,5 +331,50 @@ export function readGameDetail(json) {
     plays: seen, clutch: scoreOk ? clutch : null, scoreOk,
     // Player lines in clutch time (see pbp.js); only when the game had clutch time.
     clutchPlayers: scoreOk && clutch ? clutchPlayers(json, { homeId, awayId }) : null,
+    q4Players: scoreOk ? windowPlayers(json, { homeId, awayId }, WINDOWS.q4) : null,
+    players: readPlayerBox(json, homeId),
   };
+}
+
+/**
+ * Every player listed in the box score: { id: { side, name, starter, min, dnp, s } }
+ * s = [pts, fgm, fga, fg3m, fg3a, ftm, fta, reb, ast, tov, stl, blk, oreb, dreb, pf, pm]
+ * (PLAYER_BOX_KEYS). A player listed but not used (DNP) has min 0 and dnp true.
+ */
+export const PLAYER_BOX_KEYS = ["pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+const PLAYER_STAT = {
+  points: ["pts"], "fieldGoalsMade-fieldGoalsAttempted": ["fgm", "fga"], "threePointFieldGoalsMade-threePointFieldGoalsAttempted": ["fg3m", "fg3a"],
+  "freeThrowsMade-freeThrowsAttempted": ["ftm", "fta"], rebounds: ["reb"], assists: ["ast"], turnovers: ["tov"], steals: ["stl"], blocks: ["blk"],
+  offensiveRebounds: ["oreb"], defensiveRebounds: ["dreb"], fouls: ["pf"], plusMinus: ["pm"],
+};
+export function readPlayerBox(json, homeId) {
+  const out = {};
+  for (const side of json?.boxscore?.players || []) {
+    const home = String(side?.team?.id ?? "") === String(homeId);
+    for (const st of side?.statistics || []) {
+      const keys = st.keys || [];
+      for (const a of st.athletes || []) {
+        const id = String(a?.athlete?.id ?? "");
+        if (!id || out[id]) continue;
+        const v = {};
+        let min = 0;
+        (a.stats || []).forEach((raw, i) => {
+          const k = keys[i];
+          if (k === "minutes") { min = Number(raw) || 0; return; }
+          const into = PLAYER_STAT[k];
+          if (!into) return;
+          String(raw).replace(/^\+/, "").split("-").forEach((x, j) => {
+            if (into[j]) v[into[j]] = Number(x);
+          });
+          if (k === "plusMinus") v.pm = Number(String(raw).replace(/^\+/, ""));
+        });
+        const dnp = a.didNotPlay === true || !(a.stats || []).length;
+        out[id] = {
+          side: home ? "home" : "away", name: a?.athlete?.displayName || null, starter: a.starter === true,
+          min: dnp ? 0 : min, dnp, s: PLAYER_BOX_KEYS.map((k) => (dnp ? 0 : Number.isFinite(v[k]) ? v[k] : 0)),
+        };
+      }
+    }
+  }
+  return out;
 }
