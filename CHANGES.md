@@ -2,6 +2,22 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.16.1 (2026-11-11): league rank beside every number on "vs top teams"
+
+### What changed
+- **Every column now shows the team's league rank** in small grey type beside the number (e.g. `+10.3 #3`), in both the record and defense modes. The user asked for the "Own record" style (`8-3 #5`) everywhere.
+  - **Direction:** #1 is always the best, matching "Best first": lower is better for defensive rating, points allowed and TOV%; "Games vs top" ranks the most games #1.
+  - **Ties:** teams showing the same number share a rank. W-L columns rank by win % alone, so 2-2 and 1-1 are tied at .500.
+  - **No games** against the top group means no rank.
+- **Wider page:** this page is now up to 1,320 px wide (was 980) so the whole table fits on a desktop screen; phones still scroll sideways.
+
+### Tested
+- **Headless Chrome** at 1,400 px and phone width, both modes: no script errors, all 30 rows.
+- **Rank order:** for "Net rtg vs top", ranks never go up as values go down, and equal values always share a rank (e.g. UTA and ATL at -5.4 are both #10 in defense mode).
+
+### Still unproven
+- Nothing new: the ranks only reorder numbers the page already showed.
+
 ## 0.16.0 (2026-11-11): Team leaders tab; "vs top teams" ranks opponents by record too
 
 ### What changed

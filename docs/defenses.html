@@ -96,6 +96,10 @@
   .odd li { padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
   .odd li:last-child { border-bottom: 0; }
   .odd .luck { color: var(--faint); font-size: 12px; white-space: nowrap; }
+  /* This table carries a league rank beside every number, so the page is wider than the others. */
+  header, main, footer { max-width: 1320px; }
+  #all td, #all th { padding: 8px 7px; }
+  #all td.num { white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -168,6 +172,19 @@ function render() {
     : `Top ${n} defenses by defensive rating (points allowed per 100 possessions): ${v.top.map((x) => `<b>${x.team}</b> ${x.drtg.toFixed(1)}`).join(" · ")}. A team in that group is measured against the other ${v.top.length - 1}.`;
   const teams = Object.entries(v.teams).map(([code, t]) => ({ code, ...t }));
   const C = cols();
+  // League rank in every column (#1 = best, the same direction as "Best first"). Teams whose
+  // shown value is the same share a rank; W-L columns rank by win % alone. No value, no rank.
+  const tieKey = { pct: (t) => pct3(t.vsTop), restpct: (t) => pct3(t.rest), record: (t) => pct3(t.vsTop) };
+  const ranks = {};
+  for (const c of C) {
+    if (c[0] === "rrank" || c[0] === "drank") continue; // these columns are already ranks
+    const key = tieKey[c[0]] || ((t) => c[3](t));
+    const val = c[0] in tieKey ? (t) => (c[0] === "restpct" ? (t.rest ? t.rest.w / t.rest.games : null) : t.vsTop ? t.vsTop.w / t.vsTop.games : null) : c[2];
+    const list = teams.filter((t) => val(t) != null).sort((x, y) => val(y) - val(x));
+    const r = (ranks[c[0]] = {});
+    list.forEach((t, i) => { const p = list[i - 1]; r[t.code] = p && key(p) === key(t) ? r[p.code] : i + 1; });
+  }
+  const rk = (c, t) => (ranks[c[0]] && ranks[c[0]][t.code] != null ? ` <span class="team">#${ranks[c[0]][t.code]}</span>` : "");
   let col = C.find((c) => c[0] === sortKey);
   if (!col) { sortKey = by === "record" ? "pct" : "diff"; col = C.find((c) => c[0] === sortKey); }
   const sign = dir === "best" ? 1 : -1;
@@ -177,7 +194,7 @@ function render() {
   const big = by === "record" ? 10 : 5;
   $("all").innerHTML = `<tr><th>Team</th>${C.map(th).join("")}</tr>` + teams.map((t) => `<tr><td style="white-space:nowrap"><b>${t.code}</b>${t.inTop ? ` <span class="team" title="in the top group">top</span>` : ""}</td>${C.map((c) => {
     const cls = c[0] === "diff" && t.diff != null ? (t.diff >= big ? "hi" : t.diff <= -big ? "lo" : "") : "";
-    return `<td class="num ${cls}">${c[3](t)}</td>`; }).join("")}</tr>`).join("");
+    return `<td class="num ${cls}">${c[3](t)}${rk(c, t)}</td>`; }).join("")}</tr>`).join("");
   document.querySelectorAll("th.sort").forEach((el) => el.onclick = () => {
     if (sortKey === el.dataset.k) dir = dir === "best" ? "worst" : "best"; else { sortKey = el.dataset.k; dir = "best"; }
     syncDir(); render();
@@ -189,7 +206,7 @@ function foot() {
   if (!D) return;
   const big = by === "record" ? 10 : 5;
   const what = by === "record" ? "net rating (points scored minus allowed per 100 possessions)" : "offensive rating";
-  $("foot").innerHTML = `Possessions are estimated from box scores (FGA - OREB + TOV + 0.44 x FTA, averaged over both teams). "Best first" means the better number, except own rank, defensive rating, points allowed and TOV% (lower is better). Green / red Difference: ${what} ${big}+ points per 100 better / worse against the top group than against the rest. Early in the season most teams have played only a few of these games, so read small samples with care. Built ${new Date(D.generatedAt).toLocaleString()}.`;
+  $("foot").innerHTML = `Possessions are estimated from box scores (FGA - OREB + TOV + 0.44 x FTA, averaged over both teams). "Best first" means the better number, except own rank, defensive rating, points allowed and TOV% (lower is better). Green / red Difference: ${what} ${big}+ points per 100 better / worse against the top group than against the rest. The small "#" next to each number is the team's league rank in that column (1 = best; teams showing the same number share a rank). Early in the season most teams have played only a few of these games, so read small samples with care. Built ${new Date(D.generatedAt).toLocaleString()}.`;
 }
 function syncDir() { document.querySelectorAll("#dir button").forEach((b) => b.classList.toggle("on", b.dataset.d === dir)); }
 function syncBy() { document.querySelectorAll("#by button").forEach((b) => b.classList.toggle("on", b.dataset.b === by)); }
