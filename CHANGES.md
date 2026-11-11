@@ -2,6 +2,24 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.11.1 (2026-11-11): table alignment
+
+### What changed
+- **Team situations, matchup cards:**
+  - Fixed column widths.
+  - Team headers in bold and centred over their records.
+  - Records and league rates centred.
+  - Streak and last 10 on separate rows.
+  - The "League" column no longer clips on phones.
+- **Both pages:** number-column headers now right-align with their numbers. Before, headers were left-aligned over right-aligned numbers.
+
+### Tested
+- Rendered in headless Chrome at desktop width (light) and phone width (dark), for both pages.
+- 348 checks pass.
+
+### Still unproven
+- Nothing new: only page styling changed.
+
 ## 0.11.0 (2026-11-11): Team situations tab
 
 ### What changed

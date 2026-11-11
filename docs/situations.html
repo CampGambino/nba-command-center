@@ -69,8 +69,15 @@
   nav a.on { color: var(--text); border-bottom: 2px solid var(--accent); }
   .match { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
   .match h3 { margin: 0 0 6px; font-size: 15px; }
-  .match table { border: 0; background: transparent; }
-  .match td, .match th { padding: 4px 6px; font-size: 13px; }
+  .match table { border: 0; background: transparent; table-layout: fixed; }
+  .match td, .match th { padding: 5px 6px; font-size: 13px; }
+  .match col.l { width: 42%; } .match col.t { width: 19%; } .match col.b { width: 20%; }
+  .matches { grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); }
+  @media (max-width: 600px) { .match td, .match th { padding: 5px 4px; font-size: 12.5px; } }
+  .match th.c, .match td.c { text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .match th.c.team-h { color: var(--text); font-weight: 700; font-size: 13px; }
+  .match td.base, .match th.base { color: var(--faint); }
+  th.num { text-align: right; }
   .matches { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 10px; }
   .scroll { overflow-x: auto; border-radius: var(--radius); }
   .scroll table { min-width: 860px; }
@@ -121,8 +128,8 @@ function mark(t, k) {
   if (u) return r.w > e ? "hi" : "lo";
   return "";
 }
-const cell = (t, k) => { const c = mark(t, k); const r = t.splits[k]; const e = t.expected?.[k];
-  return `<td class="num ${c}" title="${e != null && r ? `a team this good would win about ${e} of ${r.w + r.l}` : ""}">${wl(r)}</td>`; };
+const cell = (t, k, align = "num") => { const c = mark(t, k); const r = t.splits[k]; const e = t.expected?.[k];
+  return `<td class="${align} ${c}" title="${e != null && r ? `a team this good would win about ${e} of ${r.w + r.l}` : ""}">${wl(r)}</td>`; };
 
 function render() {
   const teams = Object.entries(S.teams).map(([code, t]) => ({ code, ...t }));
@@ -133,11 +140,13 @@ function render() {
     const a = by[g.away], h = by[g.home];
     if (!a || !h) return "";
     const time = g.start ? new Date(g.start).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
-    const rows = MATCH.map(([k, label]) => `<tr><td>${label}</td>${cell(a, k)}${cell(h, k)}<td class="num" style="color:var(--faint)">${S.baseline[k] && k !== "all" ? Math.round(S.baseline[k].pct * 100) + "%" : ""}</td></tr>`).join("");
+    const rows = MATCH.map(([k, label]) => `<tr><td>${label}</td>${cell(a, k, "c")}${cell(h, k, "c")}<td class="c base">${S.baseline[k] && k !== "all" ? Math.round(S.baseline[k].pct * 100) + "%" : ""}</td></tr>`).join("");
     const notes = [...a.flags.map((f) => `${g.away} ${f.text}`), ...h.flags.map((f) => `${g.home} ${f.text}`)];
     return `<div class="match"><h3>${g.away} @ ${g.home} <span class="team">${time}</span></h3>
-      <table><tr><th></th><th class="num">${g.away}</th><th class="num">${g.home}</th><th class="num" title="how often any team wins in that situation">league</th></tr>${rows}
-      <tr><td>Streak · last 10</td><td class="num">${a.streak || "–"} · ${wl(a.last10)}</td><td class="num">${h.streak || "–"} · ${wl(h.last10)}</td><td></td></tr></table>
+      <table><colgroup><col class="l"><col class="t"><col class="t"><col class="b"></colgroup>
+      <tr><th></th><th class="c team-h">${g.away}</th><th class="c team-h">${g.home}</th><th class="c base" title="how often any team wins in that situation">League</th></tr>${rows}
+      <tr><td>Streak</td><td class="c">${a.streak || "–"}</td><td class="c">${h.streak || "–"}</td><td></td></tr>
+      <tr><td>Last 10</td><td class="c">${wl(a.last10)}</td><td class="c">${wl(h.last10)}</td><td></td></tr></table>
       ${notes.length ? `<div class="meta flag">${notes.map(esc).join("<br>")}</div>` : ""}</div>`;
   }).join("") : `<div class="empty">No games tonight.</div>`;
 
