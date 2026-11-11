@@ -2,6 +2,23 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.15.2 (2026-11-11): newest NBA Live picked by save time
+
+### What changed
+- **New `tools/latest-live.py <folder>`:** brings the newest NBA Live and NBA GameFlow from a folder (normally Downloads) into the private, git-ignored `live/` folder.
+  - **Picks by save time, not the number in the name:** NBA Live's numbering restarts at 0 once old versions are deleted, so `nba-live_14.html` can be older than `nba-live.html`.
+  - **Copies only new content:** a file identical to one already in `live/` is skipped. Nothing is overwritten (a name clash gets `-1`, `-2`, ...) and nothing is deleted.
+  - **Ignores** `wnba-live*`, `unrivaled-live*` and other near-names.
+- **GameFlow 5** is now in `live/`. Its only change from 4 is wording (she/her became he/his).
+- **The newest NBA Live** in Downloads (`nba-live.html`, saved Nov 10) is byte-identical to `nba-live_14.html`, which already passed the bridge test, so no re-test was needed.
+
+### Tested
+- **Fake folders:** older `_14` plus newer unnumbered (the newer one is picked); a later `_0` restart (picked); Windows `(2)` names; a `wnba-live.html` newer than all (ignored); a rerun (reported "same"); an empty folder ("none found"); a name clash (saved as `-1`).
+- **Real Downloads folder:** reported NBA Live "same as nba-live_14.html" and GameFlow "new".
+
+### Still unproven
+- **Not automatic yet:** it runs when asked (or when the laptop is connected), not on a timer.
+
 ## 0.15.1 (2026-11-11): daily job no longer fails when two runs overlap
 
 ### What changed
