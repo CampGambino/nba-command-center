@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NBA Command Center · vs top defenses</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a;
+    --text: #e8eaef; --muted: #9aa3b2; --faint: #6b7383;
+    --accent: #4f9cf7; --good: #3fbf7f; --warn: #e5a93b; --bad: #e5604f; --live: #ff4d6d;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg: #f5f6f8; --panel: #fff; --panel2: #f0f2f5; --line: #e1e4ea; --text: #161a22; --muted: #5b6474; --faint: #8a93a3; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 18px 16px 8px; max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  main { max-width: 980px; margin: 0 auto; padding: 0 12px 40px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 22px 4px 10px; }
+  .games { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 6px; }
+  .game { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; min-width: 170px; }
+  .game .teams { font-weight: 650; }
+  .game .state { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .game.live { border-color: var(--live); }
+  .game.live .state { color: var(--live); font-weight: 600; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: grid; grid-template-columns: 58px 1fr; gap: 12px; }
+  .card.hit { border-color: var(--good); }
+  .pct { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 16px;
+         background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--panel2) 0); position: relative; }
+  .pct::before { content: ""; position: absolute; inset: 6px; background: var(--panel); border-radius: 50%; }
+  .pct span { position: relative; }
+  .card.hit .pct { background: var(--good); }
+  .card.hit .pct::before { background: var(--good); }
+  .card.hit .pct span { color: #fff; }
+  .who { font-weight: 650; }
+  .team { color: var(--faint); font-weight: 500; font-size: 12px; margin-left: 4px; }
+  .what { margin-top: 2px; }
+  .meta { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .chip { font-size: 11.5px; padding: 2px 7px; border-radius: 999px; background: var(--panel2); color: var(--muted); border: 1px solid var(--line); }
+  .chip.review { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+  .chip.out { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
+  .chip.dtd { color: var(--warn); }
+  .chip.live { color: var(--live); border-color: var(--live); font-weight: 600; }
+  .chip.hit { color: var(--good); border-color: var(--good); font-weight: 600; }
+  details { margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+  summary { cursor: pointer; color: var(--faint); }
+  details ul { margin: 4px 0 0 16px; padding: 0; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 13.5px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; background: var(--panel2); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 2px 10px; }
+  select, input[type=search] { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 14px; }
+  label { color: var(--muted); font-size: 13px; }
+  button { background: var(--panel); color: var(--accent); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 14px; cursor: pointer; }
+  .empty { color: var(--faint); padding: 12px 4px; }
+  footer { color: var(--faint); font-size: 12px; max-width: 980px; margin: 0 auto; padding: 0 16px 30px; }
+  .warn-banner { background: color-mix(in srgb, var(--warn) 12%, var(--panel)); border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); border-radius: var(--radius); padding: 10px 12px; font-size: 13px; margin: 10px 0; }
+  @media (max-width: 600px) { .hide-sm { display: none; } }
+  nav { display: flex; gap: 14px; margin-top: 6px; font-size: 13.5px; }
+  nav a { color: var(--muted); text-decoration: none; padding-bottom: 2px; }
+  nav a.on { color: var(--text); border-bottom: 2px solid var(--accent); }
+  .match { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
+  .match h3 { margin: 0 0 6px; font-size: 15px; }
+  .match table { border: 0; background: transparent; table-layout: fixed; }
+  .match td, .match th { padding: 5px 6px; font-size: 13px; }
+  .match col.l { width: 42%; } .match col.t { width: 19%; } .match col.b { width: 20%; }
+  .matches { grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); }
+  @media (max-width: 600px) { .match td, .match th { padding: 5px 4px; font-size: 12.5px; } }
+  .match th.c, .match td.c { text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .match th.c.team-h { color: var(--text); font-weight: 700; font-size: 13px; }
+  .match td.base, .match th.base { color: var(--faint); }
+  th.num { text-align: right; }
+  .matches { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 10px; }
+  .scroll { overflow-x: auto; border-radius: var(--radius); }
+  .scroll table { min-width: 860px; }
+  th.sort { cursor: pointer; }
+  th.sort.on { color: var(--accent); }
+  .hi { color: var(--good); }
+  .lo { color: var(--bad); }
+  .hi.strong, .lo.strong { font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+  .flag { color: var(--warn); }
+  .key { color: var(--muted); font-size: 12.5px; margin: 0 4px 8px; }
+  .key b.hi, .key b.lo { font-weight: 650; }
+  .toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .toggle button { border: 0; border-radius: 0; padding: 5px 10px; font-size: 13px; color: var(--muted); }
+  .toggle button.on { background: var(--accent); color: #fff; }
+  .odd { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 0; margin: 0; list-style: none; }
+  .odd li { padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .odd li:last-child { border-bottom: 0; }
+  .odd .luck { color: var(--faint); font-size: 12px; white-space: nowrap; }
+</style>
+</head>
+<body>
+<header>
+  <h1>NBA Command Center</h1>
+  <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a class="on" href="defenses.html">vs top defenses</a></nav>
+  <div class="sub" id="sub">Loading…</div>
+</header>
+<main>
+  <div class="controls">
+    <label>Top <select id="n"><option>3</option><option>5</option><option>8</option><option selected>10</option></select> defenses</label>
+    <span class="toggle" id="dir"><button data-d="best" class="on">Best first</button><button data-d="worst">Worst first</button></span>
+    <label>Sorted by <b id="sortName"></b>. Click a column to sort; click again to flip.</label>
+  </div>
+  <div class="key" id="topList"></div>
+  <div class="scroll"><table id="all"></table></div>
+</main>
+<footer id="foot"></footer>
+<script type="module">
+import { teamGameLines, vsTopDefenses } from "./lib/situations/ratings.js";
+const $ = (id) => document.getElementById(id);
+let D = null, sortKey = "diff", dir = "best", lines = [];
+const f1 = (x) => (x == null ? "–" : x.toFixed(1));
+const pc = (x) => (x == null ? "–" : (x * 100).toFixed(1) + "%");
+const signed = (x) => (x == null ? "–" : (x > 0 ? "+" : "") + x.toFixed(1));
+// [key, header, value(team) for sorting (higher = better), cell html, tooltip]
+const COLS = [
+  ["drank", "Own D rank", (t) => -t.drank, (t) => `#${t.drank}`, "this team's own defensive rating rank"],
+  ["games", "Games vs top", (t) => t.vsTop?.games ?? null, (t) => t.vsTop?.games ?? "0", "games against the top defenses"],
+  ["record", "W-L vs top", (t) => (t.vsTop ? t.vsTop.w / t.vsTop.games : null), (t) => (t.vsTop ? `${t.vsTop.w}-${t.vsTop.l}` : "–"), ""],
+  ["ortg", "Off rtg vs top", (t) => t.vsTop?.ortg ?? null, (t) => f1(t.vsTop?.ortg), "points per 100 possessions against the top defenses"],
+  ["rest", "Off rtg vs rest", (t) => t.rest?.ortg ?? null, (t) => f1(t.rest?.ortg), "points per 100 possessions against everyone else"],
+  ["diff", "Difference", (t) => t.diff, (t) => signed(t.diff), "offensive rating vs top defenses minus vs the rest"],
+  ["ppg", "Pts/g vs top", (t) => t.vsTop?.ppg ?? null, (t) => f1(t.vsTop?.ppg), ""],
+  ["efg", "eFG% vs top", (t) => t.vsTop?.efg ?? null, (t) => pc(t.vsTop?.efg), "effective field-goal %: threes count 1.5"],
+  ["fg3", "3P% vs top", (t) => t.vsTop?.fg3 ?? null, (t) => pc(t.vsTop?.fg3), ""],
+  ["tov", "TOV% vs top", (t) => (t.vsTop?.tov == null ? null : -t.vsTop.tov), (t) => pc(t.vsTop?.tov), "turnovers per 100 possessions (lower is better)"],
+  ["oreb", "OREB% vs top", (t) => t.vsTop?.oreb ?? null, (t) => pc(t.vsTop?.oreb), "share of its own misses rebounded"],
+  ["ftr", "FT rate vs top", (t) => t.vsTop?.ftr ?? null, (t) => (t.vsTop?.ftr == null ? "–" : t.vsTop.ftr.toFixed(3)), "free-throw attempts per field-goal attempt"],
+];
+function render() {
+  const n = Number($("n").value);
+  const v = vsTopDefenses(lines, n);
+  $("topList").innerHTML = `Top ${n} defenses by defensive rating (points allowed per 100 possessions): ${v.top.map((x) => `<b>${x.team}</b> ${x.drtg.toFixed(1)}`).join(" · ")}. A team in that group is measured against the other ${n - 1}.`;
+  const teams = Object.entries(v.teams).map(([code, t]) => ({ code, ...t }));
+  const col = COLS.find((c) => c[0] === sortKey);
+  const sign = dir === "best" ? 1 : -1;
+  teams.sort((x, y) => { const a = col[2](x), b = col[2](y); if (a == null && b == null) return 0; if (a == null) return 1; if (b == null) return -1; return sign * (b - a); });
+  $("sortName").textContent = col[1];
+  const th = (c) => `<th class="num sort ${sortKey === c[0] ? "on" : ""}" data-k="${c[0]}" title="${c[4]}">${c[1]}${sortKey === c[0] ? (dir === "best" ? " ▾" : " ▴") : ""}</th>`;
+  $("all").innerHTML = `<tr><th>Team</th>${COLS.map(th).join("")}</tr>` + teams.map((t) => `<tr><td><b>${t.code}</b></td>${COLS.map((c) => {
+    const cls = c[0] === "diff" && t.diff != null ? (t.diff >= 5 ? "hi" : t.diff <= -5 ? "lo" : "") : "";
+    return `<td class="num ${cls}">${c[3](t)}</td>`; }).join("")}</tr>`).join("");
+  document.querySelectorAll("th.sort").forEach((el) => el.onclick = () => {
+    if (sortKey === el.dataset.k) dir = dir === "best" ? "worst" : "best"; else { sortKey = el.dataset.k; dir = "best"; }
+    syncDir(); render();
+  });
+}
+function syncDir() { document.querySelectorAll("#dir button").forEach((b) => b.classList.toggle("on", b.dataset.d === dir)); }
+document.querySelectorAll("#dir button").forEach((b) => b.onclick = () => { dir = b.dataset.d; syncDir(); render(); });
+$("n").onchange = render;
+fetch("data/games.json", { cache: "no-store" }).then((r) => r.json()).then((d) => {
+  D = d; lines = teamGameLines(d.games);
+  $("sub").textContent = `Team offense against the best defenses · ${d.games.length} games through ${d.through} · from ESPN box scores`;
+  $("foot").innerHTML = `Possessions are estimated from box scores (FGA - OREB + TOV + 0.44 x FTA, averaged over both teams). "Best first" means the better offense, except Own D rank (lower is better) and TOV% (fewer is better). Green / red Difference: 5+ points per 100 better / worse against the top defenses than against the rest. Early in the season most teams have played only a few of these games, so read small samples with care. Built ${new Date(d.generatedAt).toLocaleString()}.`;
+  render();
+}).catch((e) => { $("sub").textContent = "Couldn't load the data: " + e.message; });
+</script>
+</body>
+</html>

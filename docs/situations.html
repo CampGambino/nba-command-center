@@ -83,9 +83,15 @@
   .scroll table { min-width: 860px; }
   th.sort { cursor: pointer; }
   th.sort.on { color: var(--accent); }
-  .hi { color: var(--good); font-weight: 650; }
-  .lo { color: var(--bad); font-weight: 650; }
+  .hi { color: var(--good); }
+  .lo { color: var(--bad); }
+  .hi.strong, .lo.strong { font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
   .flag { color: var(--warn); }
+  .key { color: var(--muted); font-size: 12.5px; margin: 0 4px 8px; }
+  .key b.hi, .key b.lo { font-weight: 650; }
+  .toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .toggle button { border: 0; border-radius: 0; padding: 5px 10px; font-size: 13px; color: var(--muted); }
+  .toggle button.on { background: var(--accent); color: #fff; }
   .odd { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 0; margin: 0; list-style: none; }
   .odd li { padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
   .odd li:last-child { border-bottom: 0; }
@@ -95,10 +101,12 @@
 <body>
 <header>
   <h1>NBA Command Center</h1>
-  <nav><a href="./">Watch List</a><a class="on" href="situations.html">Team situations</a></nav>
+  <nav><a href="./">Watch List</a><a class="on" href="situations.html">Team situations</a><a href="defenses.html">vs top defenses</a></nav>
   <div class="sub" id="sub">Loading…</div>
 </header>
 <main>
+  <div class="key"><b class="hi">Green</b> / <b class="lo">red</b>: better / worse than a team with this record usually does in that spot. Luck would explain it less than 1 time in 10. <b>Bold, underlined</b>: less than 1 time in 100. Hover a record for the expected wins.</div>
+
   <h2>Tonight's matchups</h2>
   <div class="matches" id="tonight"></div>
 
@@ -106,35 +114,55 @@
   <ul class="odd" id="unusual"></ul>
 
   <h2>All teams</h2>
+  <div class="controls">
+    <span class="toggle" id="dir"><button data-d="best" class="on">Best first</button><button data-d="worst">Worst first</button></span>
+    <label>Sorted by <b id="sortName">Overall</b>. Click a column to sort by it.</label>
+  </div>
   <div class="scroll"><table id="all"></table></div>
 </main>
 <footer id="foot"></footer>
 <script>
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const COLS = [["home", "Home"], ["road", "Road"], ["vsAbove", "vs &gt;.500"], ["vsBelow", "vs ≤.500"], ["close", "≤3 pts"], ["ot", "OT"],
+const COLS = [["home", "Home"], ["road", "Road"], ["vsAbove", "vs &gt;.500"], ["vsBelow", "vs ≤.500"],
+  ["vsTop3", "vs top 3"], ["vsTop4", "vs top 4"], ["vsTop5", "vs top 5"],
+  ["clutch", "Clutch"], ["clutchNet", "Clutch +/-"], ["close", "≤3 pts"], ["ot", "OT"],
   ["trailHalf", "Trail half"], ["leadHalf", "Lead half"], ["trail3", "Trail after 3"], ["lead3", "Lead after 3"]];
-const MATCH = [["all", "Overall"], ["home", "Home"], ["road", "Road"], ["vsAbove", "vs teams over .500"], ["close", "Decided by 3 or fewer"],
-  ["trailHalf", "Trailing at half"], ["trail3", "Trailing after 3"], ["lead3", "Leading after 3"]];
-let S = null, sortKey = "all";
+const MATCH = [["all", "Overall"], ["home", "Home"], ["road", "Road"], ["vsAbove", "vs teams over .500"], ["vsTop5", "vs top-5 records"],
+  ["clutch", "Clutch games"], ["close", "Decided by 3 or fewer"], ["trailHalf", "Trailing at half"], ["trail3", "Trailing after 3"], ["lead3", "Leading after 3"]];
+const NAMES = Object.fromEntries([["all", "Overall"], ["streak", "Streak"], ["last10", "Last 10"], ...COLS.map(([k, l]) => [k, l.replace("&gt;", ">")])]);
+let S = null, sortKey = "all", dir = "best";
 
 const wl = (r) => (r && r.w + r.l ? `${r.w}-${r.l}` : "–");
-// A record well above / below what a team this good usually does there.
+const signed = (n) => (n > 0 ? `+${n}` : String(n));
+// Colour by a fixed rule, the same for every team and every day:
+// luck explains it less than 1 in 10 -> green/red; less than 1 in 100 (4+ games) -> also bold.
 function mark(t, k) {
-  const r = t.splits[k], e = t.expected?.[k];
-  if (!r || e == null || r.w + r.l < 3) return "";
-  const u = S.unusual.find((x) => x.team === t.code && x.key === k);
-  if (t.flags.some((f) => f.key === k)) return r.w > e ? "hi flag" : "lo flag";
-  if (u) return r.w > e ? "hi" : "lo";
-  return "";
+  const r = t.splits[k], L = t.luck?.[k];
+  if (!r || !L || r.w + r.l < 3 || L.p >= 0.1) return "";
+  const c = L.direction === "better" ? "hi" : "lo";
+  return L.p <= 0.01 && r.w + r.l >= 4 ? `${c} strong` : c;
 }
-const cell = (t, k, align = "num") => { const c = mark(t, k); const r = t.splits[k]; const e = t.expected?.[k];
-  return `<td class="${align} ${c}" title="${e != null && r ? `a team this good would win about ${e} of ${r.w + r.l}` : ""}">${wl(r)}</td>`; };
+const cell = (t, k, align = "num") => {
+  if (k === "clutchNet") return `<td class="${align}" title="points scored minus allowed in clutch time, ${t.clutchGames} games read">${t.clutchGames ? signed(t.clutchNet) : "–"}</td>`;
+  const c = mark(t, k), r = t.splits[k], e = t.expected?.[k], L = t.luck?.[k];
+  const tip = e != null && r ? `a team with this record would win about ${e} of ${r.w + r.l}${L ? ` · luck explains it about 1 time in ${Math.max(1, Math.round(1 / L.p))}` : ""}` : "";
+  return `<td class="${align} ${c}" title="${tip}">${wl(r)}</td>`;
+};
+
+// Sort value for "best": higher is better. Teams with no games in that spot always go last.
+function value(t, k) {
+  if (k === "streak") return t.streak ? (t.streak[0] === "W" ? 1 : -1) * Number(t.streak.slice(1)) : null;
+  if (k === "last10") return t.last10.w + t.last10.l ? t.last10.w / (t.last10.w + t.last10.l) : null;
+  if (k === "clutchNet") return t.clutchGames ? t.clutchNet : null;
+  const r = t.splits[k];
+  return r && r.w + r.l ? r.w / (r.w + r.l) + (r.w + r.l) * 1e-6 * (r.w > r.l ? 1 : -1) : null;
+}
 
 function render() {
   const teams = Object.entries(S.teams).map(([code, t]) => ({ code, ...t }));
   const by = Object.fromEntries(teams.map((t) => [t.code, t]));
-  $("sub").textContent = `${S.season ? `${S.season - 1}-${String(S.season).slice(2)} regular season` : "This season"} · ${S.games} games through ${S.through} · from ESPN results`;
+  $("sub").textContent = `${S.season ? `${S.season - 1}-${String(S.season).slice(2)} regular season` : "This season"} · ${S.games} games through ${S.through} · from ESPN results and play-by-play`;
 
   $("tonight").innerHTML = S.tonight.length ? S.tonight.map((g) => {
     const a = by[g.away], h = by[g.home];
@@ -145,6 +173,7 @@ function render() {
     return `<div class="match"><h3>${g.away} @ ${g.home} <span class="team">${time}</span></h3>
       <table><colgroup><col class="l"><col class="t"><col class="t"><col class="b"></colgroup>
       <tr><th></th><th class="c team-h">${g.away}</th><th class="c team-h">${g.home}</th><th class="c base" title="how often any team wins in that situation">League</th></tr>${rows}
+      <tr><td>Clutch +/-</td>${cell(a, "clutchNet", "c")}${cell(h, "clutchNet", "c")}<td></td></tr>
       <tr><td>Streak</td><td class="c">${a.streak || "–"}</td><td class="c">${h.streak || "–"}</td><td></td></tr>
       <tr><td>Last 10</td><td class="c">${wl(a.last10)}</td><td class="c">${wl(h.last10)}</td><td></td></tr></table>
       ${notes.length ? `<div class="meta flag">${notes.map(esc).join("<br>")}</div>` : ""}</div>`;
@@ -153,16 +182,31 @@ function render() {
   $("unusual").innerHTML = S.unusual.length ? S.unusual.map((u) => `<li><b>${u.team}</b> ${esc(u.text)} <span class="luck">· by luck about 1 in ${Math.max(2, Math.round(1 / u.p))}${u.p <= 0.01 ? " · flagged" : ""}</span></li>`).join("")
     : `<li class="empty">Nothing unusual yet.</li>`;
 
-  const pct = (r) => (r && r.w + r.l ? r.w / (r.w + r.l) : -1);
-  teams.sort((x, y) => pct(y.splits[sortKey]) - pct(x.splits[sortKey]) || pct(y.splits.all) - pct(x.splits.all));
-  const head = `<tr><th class="sort ${sortKey === "all" ? "on" : ""}" data-k="all">Team</th><th class="num">W-L</th><th class="num">Streak</th><th class="num">L10</th>${COLS.map(([k, l]) => `<th class="num sort ${sortKey === k ? "on" : ""}" data-k="${k}">${l}</th>`).join("")}</tr>`;
+  const sign = dir === "best" ? 1 : -1;
+  teams.sort((x, y) => {
+    const a = value(x, sortKey), b = value(y, sortKey);
+    if (a == null && b == null) return value(y, "all") - value(x, "all");
+    if (a == null) return 1;
+    if (b == null) return -1;
+    return sign * (b - a) || value(y, "all") - value(x, "all");
+  });
+  $("sortName").textContent = NAMES[sortKey] || sortKey;
+  const th = (k, label, cls = "num") => `<th class="${cls} sort ${sortKey === k ? "on" : ""}" data-k="${k}">${label}${sortKey === k ? (dir === "best" ? " ▾" : " ▴") : ""}</th>`;
+  const head = `<tr><th>Team</th>${th("all", "W-L")}${th("streak", "Streak")}${th("last10", "L10")}${COLS.map(([k, l]) => th(k, l)).join("")}</tr>`;
   const body = teams.map((t) => `<tr><td><b>${t.code}</b></td><td class="num">${wl(t.splits.all)}</td><td class="num">${t.streak || "–"}</td><td class="num">${wl(t.last10)}</td>${COLS.map(([k]) => cell(t, k)).join("")}</tr>`).join("");
   const base = `<tr><td style="color:var(--faint)">League</td><td></td><td></td><td></td>${COLS.map(([k]) => `<td class="num" style="color:var(--faint)">${S.baseline[k] ? Math.round(S.baseline[k].pct * 100) + "%" : ""}</td>`).join("")}</tr>`;
   $("all").innerHTML = head + body + base;
-  document.querySelectorAll("th.sort").forEach((th) => th.onclick = () => { sortKey = th.dataset.k; render(); });
+  // Click a column: sort by it (best first); click it again: flip to worst first.
+  document.querySelectorAll("th.sort").forEach((el) => el.onclick = () => {
+    if (sortKey === el.dataset.k) dir = dir === "best" ? "worst" : "best"; else { sortKey = el.dataset.k; dir = "best"; }
+    syncDir(); render();
+  });
 
-  $("foot").innerHTML = `Records count regular-season games only. "vs teams over .500" uses each opponent's record today. Green / red: well above / below what a team this good usually does in that spot (league rate adjusted for the team's record); orange text: strong enough that luck explains it less than 1 time in 100. Hover a record for the expected wins. Built ${new Date(S.generatedAt).toLocaleString()}.`;
+  const tops = S.topTeams ? [3, 4, 5].map((n) => `top ${n}: ${S.topTeams[n].join(", ")}${S.topTeams[n].length > n ? " (tied at the cutoff)" : ""}`).join(" · ") : "";
+  $("foot").innerHTML = `Regular-season games only. "vs teams over .500" and "vs top N" use records today; teams tied at a cutoff are all included (${esc(tops)}). Clutch: games within 5 points at some point in the last 5 minutes of the 4th quarter or overtime (the NBA's definition); Clutch +/- is points scored minus allowed in those minutes. Built ${new Date(S.generatedAt).toLocaleString()}.`;
 }
+function syncDir() { document.querySelectorAll("#dir button").forEach((b) => b.classList.toggle("on", b.dataset.d === dir)); }
+document.querySelectorAll("#dir button").forEach((b) => b.onclick = () => { dir = b.dataset.d; syncDir(); render(); });
 
 fetch("data/situations.json", { cache: "no-store" }).then((r) => r.json()).then((d) => { S = d; render(); })
   .catch((e) => { $("sub").textContent = "Couldn't load the data: " + e.message; });

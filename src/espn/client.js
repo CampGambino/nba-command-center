@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { readTeams, readRoster, readSchedule, readBox, readCareer, readGameLog, readInjuries, readScoreboard } from "./parse.js";
+import { readTeams, readRoster, readSchedule, readBox, readCareer, readGameLog, readInjuries, readScoreboard, readGameDetail } from "./parse.js";
 
 /**
  * ESPN client with an on-disk cache under <dataDir>/espn/.
@@ -102,6 +102,13 @@ export function createEspn({ dataDir, fetchImpl = fetch, now = () => Date.now(),
       const r = await wrap(`box-${eventId}`, `${BASE}/summary?event=${eventId}`, Infinity, readBox, shrink);
       // A cached copy of an unfinished game is refreshed (overwritten, never deleted).
       if (r.ok && !r.data.final && r.fromCache) return wrap(`box-${eventId}`, `${BASE}/summary?event=${eventId}`, 60e3, readBox, shrink);
+      return r;
+    },
+    // A finished game reduced to team box totals and clutch-time scoring (a few
+    // hundred bytes kept, not the ~450 KB summary). Ask only for final games.
+    detail: async (eventId) => {
+      const r = await wrap(`detail-${eventId}`, `${BASE}/summary?event=${eventId}`, Infinity, (d) => d, readGameDetail);
+      if (r.ok && !r.data.final && r.fromCache) return wrap(`detail-${eventId}`, `${BASE}/summary?event=${eventId}`, 60e3, (d) => d, readGameDetail);
       return r;
     },
     scoreboard: (isoDate) => wrap(`scoreboard-${isoDate}`, `${BASE}/scoreboard?dates=${isoDate.replace(/-/g, "")}`, 10 * 60e3, readScoreboard),

@@ -4,7 +4,7 @@ A standalone program that anticipates NBA milestones and storylines before they 
 
 Design docs live in the claude.ai project "NBA Command Center": `anticipation-engine.md` (principle #1), `command-center-architecture.md`, `storyline-detector-catalog.md`.
 
-## What works today (v0.11.0)
+## What works today (v0.12.0)
 
 **Website:** https://campgambino.github.io/nba-command-center/ (GitHub Pages, from `docs/`). Rebuild it for tonight's whole slate with `npm run tonight` (downloads every playing team's notes), or from local PDFs with `npm run publish -- samples/<date>/*.pdf`.
 
@@ -30,7 +30,8 @@ Design docs live in the claude.ai project "NBA Command Center": `anticipation-en
 - **NBA Live bridge** (`docs/bridge/cc-bridge.js`). NBA Live stays on the PC (in the git-ignored `live/` folder) and is never published. Add this line just before its `</body>`:
   `<script src="https://campgambino.github.io/nba-command-center/bridge/cc-bridge.js"></script>`
   NBA Live then shows the Command Center's notes chases and passes as its own League Alerts cards: gated, at most 6 per game, never duplicating its own ladders. Test a new NBA Live version with `python3 tools/check-nba-live.py live/<file>.html docs/data/watch.json <YYYYMMDD> [<game id to replay live>]`.
-- **Team situations** (`docs/situations.html`, `src/situations/`): every team's record overall, home and road, vs teams over .500, in games decided by 3 or fewer, in overtime, and by score at half and after three quarters. Each comes with the league rate and what a team that good would usually do there. Tonight's matchups are shown side by side, and the most unusual records are ranked. `npm run situations`; the daily build runs it.
+- **Team situations** (`docs/situations.html`, `src/situations/`): every team's record overall, home and road, vs teams over .500, vs the teams with the top 3, 4 and 5 records, in clutch games (with clutch +/-), in games decided by 3 or fewer, in overtime, and by score at half and after three quarters. Each comes with the league rate and what a team that good would usually do there. Tonight's matchups are shown side by side, and the most unusual records are ranked. `npm run situations`; the daily build runs it.
+- **vs top defenses** (`docs/defenses.html`, `src/situations/ratings.js`): each team's offense against the top 3, 5, 8 or 10 defenses (by defensive rating from box scores) compared with everyone else.
 - **Notes watcher** (`src/notes/watcher.js`): downloads a team's notes from its fixed URL, keeps every version, and says whether the file there is *tonight's* notes or a stale one.
 
 Formats recognized so far (from the 2026-11-09 samples): Cleveland's "Needs N" lists, Boston's milestone grid (Target · Needs · Date acquired; its PDFs' broken font maps are repaired first), the Lakers' wide tracker table, San Antonio's "STAT: target current" blocks, Phoenix's inline tracker, Charlotte's "X is 93 rebounds away from 1,500 career rebounds... 36 games away from..." bullets, and ranked lists in several styles (`1. Name (total)`, `1. Name   total`, `1  Name  total`, `701  Name  1988-98`), including side-by-side and stacked lists. Atlanta has no tracker and still yields its ranked lists and forward-looking sentences.

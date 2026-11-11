@@ -2,6 +2,55 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.12.0 (2026-11-11): clutch and top-team records, "vs top defenses" page, best/worst sorting
+
+### What changed
+- **Team situations, new records:**
+  - **Clutch games:** within 5 points at some point in the last 5 minutes of the 4th quarter or overtime, the NBA's definition.
+  - **Clutch +/-:** points scored minus allowed in those minutes.
+  - **vs top-3, top-4 and top-5 records:** by win % today. Teams tied at a cutoff are all included (today the top 5 is 8 teams, four of them tied at 8-3), and the page footer lists who is in each group.
+  - Matchup cards gain "vs top-5 records", "Clutch games" and "Clutch +/-".
+- **Colour rule is now fixed**, the same for every team on every day:
+  - **Green / red:** luck would explain the record less than 1 time in 10 for a team with that record.
+  - **Bold and underlined:** less than 1 in 100, over at least 4 games.
+  - Before, colour meant "in today's top-12 list", so two equally odd records could differ (Memphis' 5-0 road record was green, the Spurs' wasn't).
+  - A key above the tables explains the colours. Hovering a record shows the expected wins and the luck odds.
+- **Sorting:** any column sorts. Click it again (or use Best first / Worst first) to flip; teams with no games in that spot always go last.
+- **New page: "vs top defenses"** (`docs/defenses.html`). It shows each team's offense against the best defenses (pick the top 3, 5, 8 or 10), and against everyone else:
+  - W-L;
+  - offensive rating and the difference;
+  - points per game, eFG%, 3P%, TOV%, OREB%, FT rate.
+
+  It is computed in the browser from `docs/data/games.json`, using `docs/lib/situations/ratings.js` (identical to `src`; a test checks).
+- **Data:** each finished game's ESPN summary is read once and reduced to team box totals and clutch-time points (about 300 bytes kept of about 450 KB).
+  - The reduced data is stored in `history/results.json`.
+  - A summary whose box doesn't add up to the final score is rejected and retried on the next run.
+
+### Tested
+- All 160 games so far:
+  - Every box total adds up to the final score.
+  - 70 games had clutch time.
+  - No game that went to overtime is non-clutch, and no non-clutch game ended within 5.
+- Philadelphia 127-121 at Chicago (11/8), checked play by play: clutch time starts at 4:47, and the score was 14-6 Philadelphia in those minutes. It is a test now.
+- **14 new checks:**
+  - game clock;
+  - no clutch time when the game was never within 5, or was close only before the last 5 minutes;
+  - box totals and points;
+  - a mismatched box is rejected;
+  - top-3 with a tie at the cutoff;
+  - record vs top 3;
+  - possessions (worked by hand: 86.6 and 91.6 average to 89.1);
+  - ratings and defense ranks;
+  - eFG% and OREB%;
+  - a top defense has no "vs top" games against itself.
+- Both pages rendered in a browser. 362 checks pass; snapshots unchanged.
+
+### Still unproven
+- **Possessions are an estimate** from box scores. NBA.com's own ratings, which count possessions from play-by-play, will differ slightly.
+- **Small samples:** early in the season most teams have played only 1 to 6 games against the top defenses.
+- **The NBA Cup final** is still not excluded (December).
+- **Player clutch and 4th-quarter stats** are not built yet. They need player-level play-by-play.
+
 ## 0.11.1 (2026-11-11): table alignment
 
 ### What changed

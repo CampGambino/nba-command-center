@@ -5,6 +5,12 @@
  * Situations (each a W-L record):
  *   all, home, road
  *   vsAbove   vs teams over .500 now      vsBelow   vs teams at .500 or below now
+ *   vsTop3 / vsTop4 / vsTop5   vs the teams with the 3 / 4 / 5 best records now
+ *             (by win %; teams tied at the cutoff are all included, so "top 5"
+ *             can be 6 teams; a team never counts as its own opponent)
+ *   clutch    games with clutch time: the last 5 minutes of the 4th or OT
+ *             with the score within 5 (the NBA's definition); only games
+ *             whose play-by-play has been read
  *   close     decided by 3 or fewer       ot        went to overtime
  *   ten       decided by 10 or more
  *   trailHalf / leadHalf / tiedHalf       score after two quarters
@@ -28,6 +34,7 @@
 export const SITUATIONS = [
   ["all", "Overall"], ["home", "Home"], ["road", "Road"],
   ["vsAbove", "vs teams over .500"], ["vsBelow", "vs .500 or below"],
+  ["vsTop3", "vs top-3 records"], ["vsTop4", "vs top-4 records"], ["vsTop5", "vs top-5 records"], ["clutch", "Clutch games"],
   ["close", "Decided by 3 or fewer"], ["ot", "Overtime"], ["ten", "Decided by 10+"],
   ["leadHalf", "Leading at half"], ["tiedHalf", "Tied at half"], ["trailHalf", "Trailing at half"],
   ["lead3", "Leading after 3"], ["tied3", "Tied after 3"], ["trail3", "Trailing after 3"],
@@ -36,6 +43,8 @@ const LABEL = Object.fromEntries(SITUATIONS);
 // Phrases for flags ("... when trailing at half").
 const PHRASE = {
   home: "at home", road: "on the road", vsAbove: "against teams over .500", vsBelow: "against teams at .500 or below",
+  vsTop3: "against the 3 best records", vsTop4: "against the 4 best records", vsTop5: "against the 5 best records",
+  clutch: "in clutch games (within 5 in the last 5 minutes)",
   close: "in games decided by 3 or fewer", ot: "in overtime games", ten: "in games decided by 10 or more",
   leadHalf: "when leading at half", tiedHalf: "when tied at half", trailHalf: "when trailing at half",
   lead3: "when leading after 3 quarters", tied3: "when tied after 3 quarters", trail3: "when trailing after 3 quarters",
@@ -59,6 +68,8 @@ export function teamGames(rows) {
       const hasQ = q?.length >= 3 && oq?.length >= 3;
       out.push({
         id: g.id, date: g.d, team: us, opp: them, home: home && !g.n, road: !home && !g.n, win: pf > pa, margin: pf - pa, ot: g.ot > 0,
+        // Clutch: true / false once the play-by-play is read; null before.
+        clutch: g.x ? !!g.cl : null, clutchNet: g.x && g.cl ? (home ? g.cl[0] - g.cl[1] : g.cl[1] - g.cl[0]) : 0,
         half: hasQ ? sum(q, 2) - sum(oq, 2) : null, after3: hasQ ? sum(q, 3) - sum(oq, 3) : null,
       });
     }
@@ -86,12 +97,22 @@ export function computeSituations(rows, { through = null } = {}) {
   const overall = {};
   for (const g of tg) add((overall[g.team] ??= rec()), g.win);
   const above = (t) => (pct(overall[t]) ?? 0) > 0.5;
+  // Best records now: rank by win %, then wins; ties at the cutoff are all in.
+  const ranked = Object.keys(overall).sort((x, y) => pct(overall[y]) - pct(overall[x]) || overall[y].w - overall[x].w);
+  const topSet = (n) => {
+    if (ranked.length < n) return new Set(ranked);
+    const cut = pct(overall[ranked[n - 1]]);
+    return new Set(ranked.filter((t) => pct(overall[t]) >= cut));
+  };
+  const tops = { 3: topSet(3), 4: topSet(4), 5: topSet(5) };
 
   const keysOf = (g) => {
     const k = ["all"];
     if (g.home) k.push("home");
     if (g.road) k.push("road");
     k.push(above(g.opp) ? "vsAbove" : "vsBelow");
+    for (const n of [3, 4, 5]) if (tops[n].has(g.opp)) k.push(`vsTop${n}`);
+    if (g.clutch) k.push("clutch");
     if (Math.abs(g.margin) <= 3) k.push("close");
     if (g.ot) k.push("ot");
     if (Math.abs(g.margin) >= 10) k.push("ten");
@@ -122,6 +143,9 @@ export function computeSituations(rows, { through = null } = {}) {
     const all = t.splits.all;
     t.strength = (all.w + PRIOR) / (all.w + all.l + 2 * PRIOR);
     t.expected = {};
+    t.luck = {}; // per situation: chance of a record at least this far from expected
+    t.clutchGames = t.games.filter((g) => g.clutch !== null).length; // games whose play-by-play was read
+    t.clutchNet = t.games.reduce((a, g) => a + g.clutchNet, 0);
     t.flags = [];
     for (const [k, r] of Object.entries(t.splits)) {
       if (k === "all" || !PHRASE[k]) continue;
@@ -132,6 +156,7 @@ export function computeSituations(rows, { through = null } = {}) {
       if (n < 3) continue;
       const hi = r.w / n > pe;
       const tail = binomTail(r.w, n, pe, hi);
+      t.luck[k] = { p: tail, direction: hi ? "better" : "worse" };
       const item = {
         team, key: k, w: r.w, l: r.l, baseline: p0, expectedPct: pe, expectedWins: t.expected[k], p: tail, direction: hi ? "better" : "worse",
         text: `${r.w}-${r.l} ${PHRASE[k]}: a team this good would win about ${t.expected[k]} of ${n} (league-wide, teams win ${Math.round(p0 * 100)}% of those)`,
@@ -150,5 +175,6 @@ export function computeSituations(rows, { through = null } = {}) {
   // few reach the 1% bar, and these are the ones closest to it. Each carries
   // its chance of happening by luck, so the page can say how strong it is.
   const unusual = tests.filter((x) => x.p < 0.1).sort((a, b) => a.p - b.p).slice(0, 12);
-  return { through, games: rows.length, baseline, teams, unusual, labels: LABEL };
+  const topTeams = Object.fromEntries([3, 4, 5].map((n) => [n, [...tops[n]]]));
+  return { through, games: rows.length, baseline, teams, unusual, topTeams, labels: LABEL };
 }

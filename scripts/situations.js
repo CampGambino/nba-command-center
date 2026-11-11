@@ -50,6 +50,12 @@ fs.mkdirSync(path.dirname(storeFile), { recursive: true });
 fs.writeFileSync(storeFile, JSON.stringify(store));
 const out = { generatedAt: new Date().toISOString(), season: store.season, today, ...sit, tonight, warnings };
 fs.writeFileSync(path.join(root, "docs", "data", "situations.json"), JSON.stringify(out));
+// Per-game box totals for the "vs top defenses" page, which computes in the browser.
+const slim = rows.filter((g) => g.hb && g.ab).map(({ id, d, h, a, hs, as, hb, ab }) => ({ id, d, h, a, hs, as, hb, ab }));
+fs.writeFileSync(path.join(root, "docs", "data", "games.json"), JSON.stringify({ generatedAt: out.generatedAt, through, games: slim }));
+// The page's copy of the ratings code (kept identical to src; a test checks).
+fs.mkdirSync(path.join(root, "docs", "lib", "situations"), { recursive: true });
+fs.copyFileSync(path.join(root, "src", "situations", "ratings.js"), path.join(root, "docs", "lib", "situations", "ratings.js"));
 const after = Object.values(store.dates).filter((d) => d.complete).length;
 const flags = Object.values(sit.teams).reduce((a, t) => a + t.flags.length, 0);
 console.log(`situations through ${through}: ${rows.length} games (${after - before} new dates), ${Object.keys(sit.teams).length} teams, ${flags} flags, ${tonight.length} games tonight${warnings.length ? `; ${warnings.length} warnings` : ""}`);

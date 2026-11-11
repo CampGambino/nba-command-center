@@ -32,7 +32,8 @@ import { repairToUnicode } from "../src/notes/pdf-repair.js";
 import { dropShadowLayer } from "../src/notes/pdf-layout.js";
 import { computeSituations, teamGames } from "../src/situations/records.js";
 import { rowFromGame, collectResults, allGames } from "../src/situations/results.js";
-import { readScoreboard } from "../src/espn/parse.js";
+import { readScoreboard, readGameDetail, clockSeconds } from "../src/espn/parse.js";
+import { teamGameLines, offense, ratings, vsTopDefenses } from "../src/situations/ratings.js";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const UPDATE = process.argv.includes("--update");
@@ -411,12 +412,12 @@ for (const [team, r] of Object.entries(results)) {
 {
   const docs = path.join(root, "docs");
   if (fs.existsSync(path.join(docs, "lib"))) {
-    for (const rel of ["teams.js", "notes/names.js", "espn/parse.js", "registry/track.js", "nba/movement.js"]) {
+    for (const rel of ["teams.js", "notes/names.js", "espn/parse.js", "registry/track.js", "nba/movement.js", "situations/ratings.js"]) {
       const a = fs.readFileSync(path.join(root, "src", rel), "utf8"), b = fs.existsSync(path.join(docs, "lib", rel)) ? fs.readFileSync(path.join(docs, "lib", rel), "utf8") : null;
       ok(a === b, `website: docs/lib/${rel} matches src (run scripts/publish.js after code changes)`);
     }
     // Everything the page imports, followed through its own imports, must run in a browser.
-    const seen = new Set(), stack = ["espn/parse.js", "registry/track.js"];
+    const seen = new Set(), stack = ["espn/parse.js", "registry/track.js", "situations/ratings.js"];
     while (stack.length) {
       const rel = stack.pop();
       if (seen.has(rel)) continue;
@@ -671,7 +672,7 @@ const more = {};
   // unfinished game is asked again, unless it is 3+ days old (postponed).
   const asked = [];
   const day = (d, done) => ({ ok: true, warnings: [], data: { season: 2027, calendar: ["2026-10-20", "2026-10-21", "2026-10-25"], games: [{ id: d, date: d, seasonType: 2, final: done, homeTri: "BOS", awayTri: "NYK", homeScore: 100, awayScore: 99, homeQ: [25, 25, 25, 25], awayQ: [25, 25, 25, 24], periods: 4 }] } });
-  const fakeSb = { scoreboard: async (d) => { asked.push(d); return day(d, d !== "2026-10-21" && d !== "2026-10-25"); } };
+  const fakeSb = { scoreboard: async (d) => { asked.push(d); return day(d, d !== "2026-10-21" && d !== "2026-10-25"); }, detail: async () => ({ ok: false, error: "no summary (test)" }) };
   let store = await collectResults({ espn: fakeSb, store: null, through: "2026-10-25" });
   ok(store.dates["2026-10-20"].complete && store.dates["2026-10-21"].complete && !store.dates["2026-10-25"].complete && allGames(store).length === 1,
     "results: a finished date is complete; an unfinished game 4 days back counts as postponed; tonight's unfinished one is not", JSON.stringify(store.dates));
@@ -712,6 +713,57 @@ const more = {};
   const H = computeSituations(hot);
   const f = H.teams.HHH.flags.find((x) => x.key === "trail3");
   ok(f && f.p <= 0.01 && /6-0 when trailing after 3 quarters/.test(f.text) && H.unusual[0].team === "HHH", "situations: 6-0 when trailing after 3, where trailing teams win 13%, is flagged and ranked first", JSON.stringify(H.teams.HHH.flags));
+
+  // Clutch time and team box totals from a game summary.
+  ok(clockSeconds("4:47") === 287 && clockSeconds("5:00") === 300 && clockSeconds("51.2") === 51.2 && clockSeconds("") === null, "detail: game clock read as seconds left");
+  const play = (period, clock, away, home) => ({ period: { number: period }, clock: { displayValue: clock }, awayScore: away, homeScore: home });
+  const stat = (name, v) => ({ name, displayValue: v });
+  const teamBox = (ha, fg, fg3, ft) => ({ homeAway: ha, statistics: [stat("fieldGoalsMade-fieldGoalsAttempted", fg), stat("threePointFieldGoalsMade-threePointFieldGoalsAttempted", fg3), stat("freeThrowsMade-freeThrowsAttempted", ft),
+    stat("offensiveRebounds", "10"), stat("defensiveRebounds", "30"), stat("assists", "25"), stat("steals", "7"), stat("blocks", "5"), stat("totalTurnovers", "12"), stat("fouls", "18")] });
+  const detailJson = (plays) => ({ header: { id: "9", competitions: [{ status: { type: { completed: true } }, competitors: [{ homeAway: "home" }, { homeAway: "away" }] }] },
+    boxscore: { teams: [teamBox("home", "40-85", "12-35", "16-20"), teamBox("away", "38-90", "10-30", "14-18")] }, plays });
+  // Philadelphia at Chicago, 2026-11-08, by hand from the play-by-play: clutch time starts at 4:47 (113-110);
+  // the plays at 3:31 (116-110) and 1:31 (123-116) came with the gap above 5, so they don't count.
+  const pbp = [play(4, "5:35", 113, 108), play(4, "5:05", 113, 110), play(4, "4:47", 116, 110), play(4, "3:31", 116, 113), play(4, "3:05", 118, 113),
+    play(4, "3:00", 118, 115), play(4, "3:00", 118, 116), play(4, "2:40", 119, 116), play(4, "2:40", 120, 116), play(4, "2:13", 123, 116), play(4, "1:31", 123, 117),
+    play(4, "1:31", 123, 118), play(4, "1:09", 123, 120), play(4, "51.2", 124, 120), play(4, "51.2", 125, 120), play(4, "16.5", 125, 121), play(4, "13.4", 126, 121), play(4, "13.4", 127, 121)];
+  const det = readGameDetail(detailJson(pbp));
+  ok(det.clutch && det.clutch.away === 14 && det.clutch.home === 6, "detail: clutch-time points (PHI 14, CHI 6 in PHI 127-121 at CHI, checked by hand)", JSON.stringify(det.clutch));
+  ok(readGameDetail(detailJson([play(4, "4:00", 100, 80), play(4, "1:00", 102, 84)])).clutch === null, "detail: a game never within 5 in the last 5 minutes has no clutch time");
+  ok(readGameDetail(detailJson([play(3, "1:00", 50, 50), play(4, "6:00", 90, 90)])).clutch === null, "detail: a close game before the last 5 minutes isn't clutch time");
+  ok(det.home.join() === "40,85,12,35,16,20,10,30,25,7,5,12,18" && 2 * det.home[0] + det.home[2] + det.home[4] === 108, "detail: team box totals; points from them = 2 per field goal + 1 per three + free throws");
+  // A summary whose box doesn't add up to the final score is not used.
+  const fakeDet = { scoreboard: async () => day("2026-10-20", true), detail: async () => ({ ok: true, data: { final: true, home: det.home, away: det.away, plays: 5, clutch: null } }) };
+  const warn = [];
+  const st2 = await collectResults({ espn: fakeDet, store: null, through: "2026-10-20", warnings: warn });
+  ok(!st2.dates["2026-10-20"].games[0].x && warn.some((w) => /don't match the final/.test(w)), "results: box totals that don't add up to the final score are rejected", warn.join("; "));
+
+  // vs top N records, ties at the cutoff included.
+  const T = [];
+  let id = 0;
+  const play2 = (h, a, homeWins) => T.push(g(`t${id++}`, "2026-11-01", h, a, homeWins ? [30, 30, 30, 30] : [20, 20, 20, 20], homeWins ? [20, 20, 20, 20] : [30, 30, 30, 30]));
+  // Records: A 3-0, B 2-1, C 2-1, D 1-2, E 0-3 -> top 2 = A, B, C (B and C tied at the cutoff)
+  play2("A", "E", true); play2("A", "D", true); play2("C", "A", false); play2("B", "E", true); play2("B", "C", false); play2("D", "E", true); play2("C", "D", true); play2("D", "B", false); play2("E", "C", true);
+  const R = computeSituations(T.map((x) => ({ ...x, x: 1, cl: 0 })));
+  ok(R.topTeams[3].sort().join() === "A,B,C" && R.topTeams[5].length === 5, "situations: top-3 by record (A 3-0, B and C 2-2)", JSON.stringify({ rec: Object.fromEntries(Object.entries(R.teams).map(([k, v]) => [k, wl(v.splits.all)])), top: R.topTeams }));
+  ok(wl(R.teams.A.splits.vsTop3) === "1-0" && wl(R.teams.D.splits.vsTop3) === "0-3", "situations: record vs the top 3 (a team never counts as its own opponent)", JSON.stringify([R.teams.A.splits.vsTop3, R.teams.D.splits.vsTop3]));
+
+  // Ratings: possessions, offensive and defensive rating, top defenses.
+  const box = (fgm, fga, fg3m, fg3a, ftm, fta, oreb, dreb, tov) => [fgm, fga, fg3m, fg3a, ftm, fta, oreb, dreb, 20, 5, 5, tov, 18];
+  const rr = [
+    { id: "r1", d: "2026-11-01", h: "X", a: "Y", hs: 100, as: 90, hb: box(40, 80, 10, 30, 10, 15, 10, 30, 10), ab: box(35, 85, 8, 25, 12, 15, 12, 30, 12) },
+    { id: "r2", d: "2026-11-02", h: "Y", a: "Z", hs: 95, as: 110, hb: box(38, 85, 9, 30, 10, 12, 8, 32, 14), ab: box(42, 84, 12, 30, 14, 18, 10, 34, 10) },
+    { id: "r3", d: "2026-11-03", h: "Z", a: "X", hs: 105, as: 99, hb: box(40, 82, 10, 28, 15, 20, 9, 33, 11), ab: box(39, 88, 9, 33, 12, 14, 11, 30, 13) },
+  ];
+  const L = teamGameLines(rr);
+  const p1 = (80 - 10 + 10 + 0.44 * 15 + (85 - 12 + 12 + 0.44 * 15)) / 2;
+  ok(Math.abs(L[0].poss - p1) < 1e-9 && Math.abs(L[0].poss - 89.1) < 1e-9, "ratings: possessions = FGA - OREB + TOV + 0.44 FTA, averaged over both teams (86.6 and 91.6 -> 89.1)", String(L[0].poss));
+  const RT = ratings(L);
+  ok(Math.abs(RT.X.ortg - (100 * (100 + 99)) / (L[0].poss + L.find((l) => l.team === "X" && l.opp === "Z").poss)) < 1e-9 && RT.Z.drank === 1, "ratings: offensive rating over a season; best defense ranked 1", JSON.stringify(RT));
+  const off = offense([L[0]]);
+  ok(Math.abs(off.efg - (40 + 5) / 80) < 1e-9 && Math.abs(off.oreb - 10 / (10 + 30)) < 1e-9 && off.w === 1, "ratings: eFG% (threes count 1.5) and offensive rebound share", JSON.stringify(off));
+  const v1 = vsTopDefenses(L, 1);
+  ok(v1.top[0].team === "Z" && v1.teams.X.vsTop.games === 1 && v1.teams.X.rest.games === 1 && v1.teams.Z.vsTop === null, "ratings: offense vs the top defense; the top defense itself has none to face", JSON.stringify(v1.teams.Z));
 }
 function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
 

@@ -261,3 +261,62 @@ export function readScoreboard(json) {
   const calendar = (json?.leagues?.[0]?.calendar || []).map((d) => (typeof d === "string" ? d : d?.startDate || "").slice(0, 10)).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d));
   return { games, calendar, season: json?.leagues?.[0]?.season?.year ?? null };
 }
+
+/**
+ * One finished game, reduced to what team situations and ratings need:
+ * each side's team box totals, and the clutch-time scoring.
+ *
+ * Box: [fgm, fga, fg3m, fg3a, ftm, fta, oreb, dreb, ast, stl, blk, tov, pf].
+ * Clutch time (the NBA's definition): the last 5 minutes of the 4th quarter or
+ * overtime with the score within 5 points. A play counts when the score before
+ * it was within 5. `clutch` is null when the game never had clutch time, else
+ * the points each side scored in it.
+ */
+export const TEAM_BOX_KEYS = ["fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "oreb", "dreb", "ast", "stl", "blk", "tov", "pf"];
+const TEAM_STAT = {
+  "fieldGoalsMade-fieldGoalsAttempted": ["fgm", "fga"], "threePointFieldGoalsMade-threePointFieldGoalsAttempted": ["fg3m", "fg3a"],
+  "freeThrowsMade-freeThrowsAttempted": ["ftm", "fta"], offensiveRebounds: ["oreb"], defensiveRebounds: ["dreb"],
+  assists: ["ast"], steals: ["stl"], blocks: ["blk"], totalTurnovers: ["tov"], fouls: ["pf"],
+};
+export function clockSeconds(s) {
+  const t = String(s ?? "").trim();
+  if (!t) return null;
+  const m = t.match(/^(\d+):(\d{1,2})(?:\.\d+)?$/);
+  if (m) return Number(m[1]) * 60 + Number(m[2]);
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
+export function readGameDetail(json) {
+  const header = json?.header?.competitions?.[0];
+  const sideOf = (homeAway) => header?.competitors?.find((c) => c.homeAway === homeAway);
+  const box = {};
+  for (const t of json?.boxscore?.teams || []) {
+    const v = {};
+    for (const s of t.statistics || []) {
+      const keys = TEAM_STAT[s.name];
+      if (!keys) continue;
+      String(s.displayValue ?? "").split("-").forEach((x, i) => { if (keys[i]) v[keys[i]] = Number(x); });
+    }
+    const ha = t.homeAway || (String(t.team?.id) === String(sideOf("home")?.team?.id) ? "home" : "away");
+    box[ha] = TEAM_BOX_KEYS.map((k) => (Number.isFinite(v[k]) ? v[k] : null));
+  }
+  let clutch = null, ph = 0, pa = 0, seen = 0;
+  for (const p of json?.plays || []) {
+    const per = p?.period?.number ?? 0;
+    const h = Number(p.homeScore), a = Number(p.awayScore);
+    const sec = clockSeconds(p?.clock?.displayValue);
+    // Needs a play before it: the score "before" the first play read isn't known.
+    if (seen > 0 && per >= 4 && sec != null && sec <= 300 && Math.abs(ph - pa) <= 5) {
+      clutch ??= { home: 0, away: 0 };
+      if (Number.isFinite(h) && Number.isFinite(a)) { clutch.home += Math.max(0, h - ph); clutch.away += Math.max(0, a - pa); }
+    }
+    if (Number.isFinite(h) && Number.isFinite(a)) { ph = h; pa = a; }
+    seen++;
+  }
+  return {
+    id: json?.header?.id ? String(json.header.id) : null,
+    final: header?.status?.type?.completed === true,
+    home: box.home || null, away: box.away || null,
+    plays: seen, clutch,
+  };
+}
