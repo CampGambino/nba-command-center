@@ -1,0 +1,76 @@
+# Keeps the site current with no PC and no chat session running.
+# Times are UTC (GitHub runs cron in UTC); Eastern equivalents in winter / summer:
+#   15:30  build      10:30 AM / 11:30 AM ET  morning slate
+#   20:00  build       3:00 PM /  4:00 PM ET  notes posted after shootaround
+#   22:30  build       5:30 PM /  6:30 PM ET  pre-game, before 7 PM tips
+#   08:30  score       3:30 AM /  4:30 AM ET  last night (west-coast games done)
+#   12:00  score       7:00 AM /  8:00 AM ET  again, in case a game ran late
+# GitHub may start a scheduled run some minutes late under load.
+name: daily
+
+on:
+  schedule:
+    - cron: "30 15 * * *"
+    - cron: "0 20 * * *"
+    - cron: "30 22 * * *"
+    - cron: "30 8 * * *"
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "build or score"
+        default: build
+      date:
+        description: "YYYY-MM-DD (blank = today for build, yesterday for score)"
+        default: ""
+  push:
+    branches: [main]
+    paths: [".github/workflows/daily.yml", "scripts/ci.js"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Pick the job
+        id: pick
+        run: |
+          job="${{ github.event.inputs.job }}"
+          if [ -z "$job" ]; then
+            case "${{ github.event.schedule }}" in
+              "30 8 * * *"|"0 12 * * *") job=score ;;
+              *) job=build ;;
+            esac
+          fi
+          echo "job=$job" >> "$GITHUB_OUTPUT"
+      - name: Build tonight's slate
+        if: steps.pick.outputs.job == 'build'
+        run: node scripts/ci.js build ${{ github.event.inputs.date && format('--today {0}', github.event.inputs.date) || '' }}
+      - name: Score last night
+        if: steps.pick.outputs.job == 'score'
+        run: node scripts/ci.js score ${{ github.event.inputs.date && format('--date {0}', github.event.inputs.date) || '' }}
+      - name: Commit and push
+        run: |
+          git config user.name "ncc-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/data docs/lib history
+          if git diff --cached --quiet; then echo "nothing changed"; exit 0; fi
+          git commit -m "${{ steps.pick.outputs.job }}: $(TZ=America/New_York date +'%Y-%m-%d %H:%M') ET (automatic)"
+          for i in 1 2 3; do
+            git pull --rebase --quiet origin main && git push --quiet origin HEAD:main && exit 0
+            sleep 10
+          done
+          echo "push failed"; exit 1

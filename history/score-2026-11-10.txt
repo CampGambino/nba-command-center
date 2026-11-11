@@ -1,0 +1,35 @@
+HIT   97%  POR Jrue Holiday: 1100 games (needed 1, got 1)
+HIT   96%  BOS Derrick White: 7800 points (needed 5, got 5)
+HIT   95%  BOS Baylor Scheierman: 600 points (needed 1, got 5)
+HIT   92%  BOS Jayson Tatum: 2400 assists (needed 2, got 4)
+HIT   92%  NYK Jalen Brunson: 11000 points (needed 16, got 23)
+HIT   87%  BOS Payton Pritchard: 1700 field goals (needed 2, got 7)
+miss  85%  BOS Derrick White: 2700 field goals (needed 3, got 2)
+miss  64%  BOS Neemias Queta: 1400 points (needed 8, got 4)
+miss  63%  NYK Jalen Brunson: 1000 3-pointers (needed 2, got 1)
+miss  63%  SAC Malik Monk: 7300 points (needed 7, got 1)
+miss  50%  BOS Jayson Tatum: 14400 points (needed 24, got 21)
+HIT   48%  BOS Hugo Gonzalez: 200 defensive rebounds (needed 2, got 2)
+miss  45%  SAC Keegan Murray: 1300 field goals (needed 5, got 4)
+HIT   42%  BOS Sam Hauser: 2700 points (needed 10, got 12)
+miss  40%  SAC Domantas Sabonis: 3300 assists (needed 6, got 5)
+miss  32%  SAC Malik Monk: 200 blocks (needed 1, got 0)
+miss  28%  UTA Kyle Filipowski: 1600 points (needed 13, got 7)
+miss  25%  BOS Baylor Scheierman: 500 field goal attempts (needed 8, got 3)
+miss  21%  PHI Justin Edwards: 100 steals (needed 1, got 0)
+HIT   20%  SAC Dylan Cardwell: 200 defensive rebounds (needed 6, got 9)
+miss  16%  PHI Jaylen Brown: 2000 assists (needed 7, got 2)
+miss  15%  ORL Goga Bitadze: 400 blocks (needed 2, got 1)
+miss  11%  BOS Mitchell Robinson: 700 blocks (needed 3, got 1)
+miss  10%  BOS Payton Pritchard: 900 3-pointers (needed 6, got 4)
+miss  10%  BOS Devin Carter: 500 points (needed 23, got 0)
+miss   5%  BOS Payton Pritchard: 3750 field goal attempts (needed 21, got 15)
+
+342 calls scored, Brier 0.012 (lower is better; always guessing 50% scores 0.250)
+  0-5%     n=316  predicted 0%  happened 0%
+  5-25%    n=  8  predicted 13%  happened 13%
+  25-50%   n=  7  predicted 37%  happened 29%
+  50-75%   n=  4  predicted 60%  happened 0%
+  75-95%   n=  5  predicted 90%  happened 80%
+  95-100%  n=  2  predicted 96%  happened 100%
+calls given 5%+: 26, happened 9, expected 12.5, Brier 0.161

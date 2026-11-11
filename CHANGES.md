@@ -2,6 +2,33 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.10.0 (2026-11-11): daily updates on GitHub, no PC or chat needed
+
+### What changed
+- **`.github/workflows/daily.yml`** runs on GitHub's servers, free for a public repository. All times are UTC; Eastern is 5 hours earlier in winter and 4 in summer.
+  - Builds the slate at 15:30, 20:00 and 22:30 (10:30 AM, 3 PM and 5:30 PM ET in winter).
+  - Scores the previous night at 08:30, then again at 12:00 in case a late game hadn't finished.
+  - Commits only `docs/data`, `docs/lib` and `history/`.
+  - It can also be run by hand from the repository's Actions tab, as build or score, with a date.
+- **`scripts/ci.js`** holds the job's logic, so it runs the same anywhere.
+  - **`build`**: runs `tonight.js` and keeps the predictions as `history/predictions-<date>.json.gz` (about 27 KB a night).
+    - **Protects good data:** if a build read fewer teams' notes than the one already published for that date, the published data is kept. A blocked or failing download can't blank the site.
+    - If the build itself fails, nothing is written.
+  - **`score`**: restores that night's predictions and runs `score.js`. It keeps `history/calibration.jsonl` (one line per night) and `history/score-<date>.txt` (the full hit/miss list).
+- **`history/`** is seeded with 11/9 and 11/10, so the record runs from the start.
+
+### Tested (locally, the same commands the job runs)
+- `ci.js score --date 2026-11-10` reproduces the night: 26 calls, 9 hits, 12.5 expected. Only the 11/10 line's timestamp changed.
+- A date with no saved predictions exits cleanly with nothing to do.
+- `ci.js build` for 2026-11-11: 20 teams, notes read for all 20, 919 milestones; predictions saved.
+- **Guard:** all notes downloads blocked, with no cached copies. The build read 0 teams, so the published data (20 teams) was kept byte for byte, and the predictions were not overwritten.
+
+### Still unproven
+- **Whether NBA.com and ESPN answer GitHub's servers.** If they don't, the guard keeps the last good data and the job log says so. The workflow's first run (triggered by this push) is the test.
+- **Whether the bot's pushes trigger a GitHub Pages refresh.**
+- **Scheduled runs can start late** when GitHub is busy.
+- **Repository tests are not run in the job**, because test fixtures (`samples/`) aren't in the repository.
+
 ## 0.9.1 (2026-11-10): no duplicate rows for initial-only names
 
 ### What changed
