@@ -30,6 +30,9 @@ import { discoverMilestones } from "../src/registry/discover.js";
 import { readLineups, readMovement, standing, slugOf } from "../src/nba/movement.js";
 import { repairToUnicode } from "../src/notes/pdf-repair.js";
 import { dropShadowLayer } from "../src/notes/pdf-layout.js";
+import { computeSituations, teamGames } from "../src/situations/records.js";
+import { rowFromGame, collectResults, allGames } from "../src/situations/results.js";
+import { readScoreboard } from "../src/espn/parse.js";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const UPDATE = process.argv.includes("--update");
@@ -645,6 +648,72 @@ const more = {};
   ok(!a.milestones.some((m) => m.stat === "fgm" && m.target === 5000) && b.milestones.some((m) => m.stat === "fgm" && m.target === 5000),
     "discover: a notes milestone written with an initial (J. Tatum) is matched by ESPN id, so it isn't listed twice", JSON.stringify(a.milestones.map((m) => [m.player, m.stat, m.target])));
 }
+
+// ---------- Team situations (records by game situation, from ESPN results) ----------
+{
+  // Scoreboard reading: final score, points by period (OT included), the season calendar.
+  const comp = (homeAway, abbr, name, score, q) => ({ homeAway, score: String(score), team: { abbreviation: abbr, displayName: name }, linescores: q.map((value) => ({ value })) });
+  const ev = (id, date, done, period, home, away, type = 2) => ({ id, date, season: { type }, competitions: [{ status: { period, type: { completed: done, state: done ? "post" : "pre" } }, competitors: [home, away] }] });
+  const sbJson = { leagues: [{ season: { year: 2027 }, calendar: ["2026-10-20T07:00Z", "2026-10-21T07:00Z"] }], events: [
+    ev("1", "2026-10-21T23:30Z", true, 5, comp("home", "BOS", "Boston Celtics", 110, [25, 25, 25, 25, 10]), comp("away", "NY", "New York Knicks", 108, [30, 20, 30, 20, 8])),
+    ev("2", "2026-10-21T23:30Z", false, 0, comp("home", "MIA", "Miami Heat", 0, []), comp("away", "ORL", "Orlando Magic", 0, [])),
+    ev("3", "2026-10-21T23:30Z", true, 4, comp("home", "LAL", "Los Angeles Lakers", 100, [25, 25, 25, 25]), comp("away", "GS", "Golden State Warriors", 90, [20, 20, 25, 25]), 1),
+  ] };
+  const sb = readScoreboard(sbJson);
+  const r1 = sb.games.find((g) => g.id === "1");
+  ok(r1.final && r1.periods === 5 && r1.homeScore === 110 && r1.awayTri === "NYK" && r1.homeQ.length === 5 && sb.calendar.join() === "2026-10-20,2026-10-21" && sb.season === 2027,
+    "scoreboard: final score, five periods (one OT), team codes and the season calendar are read", JSON.stringify({ r1, cal: sb.calendar }));
+  const row = rowFromGame(r1);
+  ok(row && row.ot === 1 && row.h === "BOS" && row.a === "NYK" && row.hs === 110, "results: a finished regular-season game becomes a row, overtime counted", JSON.stringify(row));
+  ok(rowFromGame(sb.games.find((g) => g.id === "2")) === null && rowFromGame(sb.games.find((g) => g.id === "3")) === null, "results: unfinished games and preseason games are left out");
+
+  // Collecting: finished dates are kept and not asked for again; a date with an
+  // unfinished game is asked again, unless it is 3+ days old (postponed).
+  const asked = [];
+  const day = (d, done) => ({ ok: true, warnings: [], data: { season: 2027, calendar: ["2026-10-20", "2026-10-21", "2026-10-25"], games: [{ id: d, date: d, seasonType: 2, final: done, homeTri: "BOS", awayTri: "NYK", homeScore: 100, awayScore: 99, homeQ: [25, 25, 25, 25], awayQ: [25, 25, 25, 24], periods: 4 }] } });
+  const fakeSb = { scoreboard: async (d) => { asked.push(d); return day(d, d !== "2026-10-21" && d !== "2026-10-25"); } };
+  let store = await collectResults({ espn: fakeSb, store: null, through: "2026-10-25" });
+  ok(store.dates["2026-10-20"].complete && store.dates["2026-10-21"].complete && !store.dates["2026-10-25"].complete && allGames(store).length === 1,
+    "results: a finished date is complete; an unfinished game 4 days back counts as postponed; tonight's unfinished one is not", JSON.stringify(store.dates));
+  asked.length = 0;
+  store = await collectResults({ espn: fakeSb, store, through: "2026-10-25" });
+  ok(asked.join() === "2026-10-25", "results: a second run asks ESPN only for dates not yet complete", asked.join());
+
+  // Records. Four teams; A beats everyone; quarters set so each situation is exercised.
+  const g = (id, d, h, a, hq, aq, extra = {}) => ({ id, d, h, a, hs: hq.reduce((x, y) => x + y), as: aq.reduce((x, y) => x + y), hq, aq, ot: hq.length - 4, ...extra });
+  const rows = [
+    g("1", "2026-10-21", "AAA", "BBB", [20, 20, 30, 30], [30, 30, 20, 10]), // AAA trails at half (40-60) and after 3 (70-80), wins 100-90
+    g("2", "2026-10-22", "CCC", "AAA", [25, 25, 25, 26], [25, 25, 25, 28]), // tied at half and after 3; AAA wins by 2 on the road
+    g("3", "2026-10-23", "AAA", "DDD", [30, 30, 30, 20, 10], [20, 20, 30, 40, 5]), // AAA leads at half, after 3; overtime, wins by 5
+    g("4", "2026-10-24", "BBB", "CCC", [30, 30, 30, 30], [20, 20, 20, 20], { n: true }), // neutral site
+    g("5", "2026-10-25", "DDD", "BBB", [10, 10, 10, 10], [30, 30, 30, 30]),
+  ];
+  const tgs = teamGames(rows);
+  const a1 = tgs.find((x) => x.id === "1" && x.team === "AAA");
+  ok(a1.half === -20 && a1.after3 === -10 && a1.win && a1.home, "situations: half and after-3 margins come from the quarter scores", JSON.stringify(a1));
+  const S = computeSituations(rows, { through: "2026-10-25" });
+  const A = S.teams.AAA.splits, B = S.teams.BBB.splits;
+  ok(wl(A.all) === "3-0" && wl(A.trailHalf) === "1-0" && wl(A.trail3) === "1-0" && wl(A.tiedHalf) === "1-0" && wl(A.tied3) === "1-0" && wl(A.leadHalf) === "1-0" && wl(A.ot) === "1-0" && wl(A.close) === "1-0" && wl(A.ten) === "1-0",
+    "situations: AAA 3-0, 1-0 trailing at half, tied at half, leading at half, overtime, decided by 3 or fewer, by 10+", JSON.stringify(A));
+  ok(wl(A.home) === "2-0" && wl(A.road) === "1-0" && !B.home?.w && wl(B.road) === "1-1" && (B.all.w + B.all.l) === 3, "situations: a neutral-site game is neither home nor road", JSON.stringify(B));
+  // Records now: AAA 3-0, BBB 2-1, CCC 0-2, DDD 0-2. Over .500: AAA, BBB.
+  ok(wl(A.vsAbove) === "1-0" && wl(A.vsBelow) === "2-0" && wl(S.teams.CCC.splits.vsAbove) === "0-2", "situations: 'vs teams over .500' uses each opponent's record now", JSON.stringify({ A: [A.vsAbove, A.vsBelow], C: S.teams.CCC.splits }));
+  ok(S.teams.AAA.streak === "W3" && wl(S.teams.AAA.last10) === "3-0" && S.teams.DDD.streak === "L2", "situations: streak and last 10");
+  // Trailing at half: AAA won once (game 1); DDD, CCC, DDD lost (games 3-5). Leading is the mirror.
+  ok(wl(S.baseline.trailHalf) === "1-3" && wl(S.baseline.leadHalf) === "3-1" && S.baseline.close.pct === 0.5 && S.baseline.all.pct === 0.5, "situations: league baselines are counted from both sides of every game", JSON.stringify(S.baseline));
+  // Flags: 1% bar with team strength. A 1-10 team going 0-8 in 10-point games is not flagged.
+  const many = [];
+  for (let i = 0; i < 11; i++) many.push(g(`m${i}`, `2026-11-${String(i + 1).padStart(2, "0")}`, "MIL", i % 2 ? "XXX" : "YYY", i === 0 ? [30, 30, 30, 30] : [20, 20, 20, 20], i === 0 ? [20, 20, 20, 20] : (i < 9 ? [25, 25, 25, 25] : [21, 21, 20, 20])));
+  const M = computeSituations(many);
+  ok(wl(M.teams.MIL.splits.all) === "1-10" && M.teams.MIL.flags.length === 0, "situations: a bad team losing big games isn't flagged; strength is part of the expectation", JSON.stringify(M.teams.MIL.flags));
+  const hot = [];
+  for (let i = 0; i < 6; i++) hot.push(g(`h${i}`, `2026-12-${String(i + 1).padStart(2, "0")}`, "HHH", `O${i}`, [20, 20, 20, 50], [30, 30, 30, 10])); // HHH trails after 3, wins all 6
+  for (let i = 0; i < 40; i++) hot.push(g(`z${i}`, `2026-12-${String((i % 28) + 1).padStart(2, "0")}`, `P${i % 8}`, `Q${i % 8}`, [30, 30, 30, 30], [20, 20, 20, 20])); // leaders win: trailing teams 0-40
+  const H = computeSituations(hot);
+  const f = H.teams.HHH.flags.find((x) => x.key === "trail3");
+  ok(f && f.p <= 0.01 && /6-0 when trailing after 3 quarters/.test(f.text) && H.unusual[0].team === "HHH", "situations: 6-0 when trailing after 3, where trailing teams win 13%, is flagged and ranked first", JSON.stringify(H.teams.HHH.flags));
+}
+function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
 
 // ---------- NBA Live bridge (docs/bridge/cc-bridge.js) against a stand-in NBA Live ----------
 {

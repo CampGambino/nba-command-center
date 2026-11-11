@@ -2,6 +2,58 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.11.0 (2026-11-11): Team situations tab
+
+### What changed
+- **New page, `docs/situations.html`** ("Team situations"), linked from the Watch List header. It shows:
+  - **Tonight's matchups:** both teams side by side, plus the league rate for each situation:
+    - overall, home, road;
+    - vs teams over .500;
+    - games decided by 3 or fewer;
+    - trailing at half, trailing after 3, leading after 3;
+    - streak and last 10.
+  - **Most unusual records:** the 12 records furthest from what a team that good usually does, each with its chance of happening by luck.
+  - **All teams:** every team, sortable by any situation, with the league rate underneath. It adds vs .500 or below, overtime, and leading at half.
+- **`src/situations/results.js`:** one compact row per finished regular-season game (final score, points by quarter, overtime, neutral site).
+  - Rows come from ESPN's daily scoreboard: one request per date, not one per game.
+  - They are kept in `history/results.json` (20 KB so far), so each run only asks for new dates.
+  - A date with an unfinished game is asked again, unless it is 3 or more days old (postponed).
+- **`src/situations/records.js`:** the records, league baselines, and what's unusual.
+  - **Expected** is the league rate in that situation, adjusted for the team's record on the log-odds scale (record padded with 5-5).
+  - Without that adjustment, a 1-10 team losing every 10-point game would look unusual; it's just a bad team.
+  - **Flagged** means luck would produce a record that far off 1 time in 100 or less, over at least 4 games. That's 1%, not 5%: with 30 teams and 13 situations, a 5% bar would flag about 20 records by chance alone.
+- **`scripts/situations.js`** builds `docs/data/situations.json`. The daily build runs it after the Watch List. If it fails, the Watch List still publishes and the last situations stay up.
+- **ESPN scoreboard reader:** now also keeps final scores, points by quarter, number of periods, neutral site and the season calendar. Existing fields are unchanged.
+
+### Tested
+- **Against ESPN:** all 30 teams' records match ESPN's standings exactly (160 games through 11/10).
+- **Arithmetic:** every game's quarter scores add up to its final score, and each game has 4 periods plus overtimes.
+- **Totals add up for every team:**
+  - leading + tied + trailing at half = games played, and the same after 3;
+  - vs over .500 + vs .500 or below = games played;
+  - home + road ≤ games played (neutral sites excluded).
+- **13 new checks**, built from synthetic games:
+  - halftime and after-3 margins;
+  - ties at half;
+  - overtime;
+  - neutral sites;
+  - the opponent's record now;
+  - streak and last 10;
+  - baselines from both sides of each game;
+  - only unfinished dates are asked for again;
+  - postponed dates;
+  - a bad team's big losses aren't flagged;
+  - a 6-0 record when trailing after 3 is flagged and ranked first.
+- **In a browser:** the page was rendered headless and looked at.
+- **Daily build:** `ci.js build` runs it, including the protective path that kept the published data.
+- 348 checks pass; snapshots unchanged.
+
+### Still unproven
+- **The NBA Cup final is a regular-season game on ESPN but doesn't count in the standings.** It isn't excluded yet, so check before December.
+- **"Over .500" uses records today, not at the time of the game.** That's the common convention.
+- **The flag bar is still a judgment call.** Early in the season, nothing reaches 1%; the "most unusual" list shows the closest.
+- **Not built yet:** clutch and 4th-quarter player stats (need play-by-play); stats without a teammate; anomaly search.
+
 ## 0.10.0 (2026-11-11): daily updates on GitHub, no PC or chat needed
 
 ### What changed

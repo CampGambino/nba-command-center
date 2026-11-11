@@ -243,13 +243,21 @@ export function readScoreboard(json) {
   for (const e of json?.events || []) {
     const c = e?.competitions?.[0];
     if (!c || !e.id) continue;
-    const side = (h) => c.competitors?.find((k) => k.homeAway === h)?.team?.displayName || null;
+    const comp = (h) => c.competitors?.find((k) => k.homeAway === h);
+    const side = (h) => comp(h)?.team?.displayName || null;
     const home = side("home"), away = side("away");
+    const score = (h) => { const v = Number(comp(h)?.score); return Number.isFinite(v) ? v : null; };
+    const quarters = (h) => (comp(h)?.linescores || []).map((l) => Number(l.value)).filter(Number.isFinite);
     games.push({
       id: String(e.id), date: etDate(e.date || c.date), start: e.date || c.date || null,
       home, away, homeTri: teamFromText(home || ""), awayTri: teamFromText(away || ""),
       seasonType: e.season?.type ?? null, state: c.status?.type?.state || null,
+      // Results (for team situations): final score and points by period, OT periods included.
+      final: c.status?.type?.completed === true, periods: c.status?.period ?? null, neutral: c.neutralSite === true,
+      homeScore: score("home"), awayScore: score("away"), homeQ: quarters("home"), awayQ: quarters("away"),
     });
   }
-  return { games };
+  // Every date with games this season (preseason included), as Eastern dates.
+  const calendar = (json?.leagues?.[0]?.calendar || []).map((d) => (typeof d === "string" ? d : d?.startDate || "").slice(0, 10)).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d));
+  return { games, calendar, season: json?.leagues?.[0]?.season?.year ?? null };
 }
