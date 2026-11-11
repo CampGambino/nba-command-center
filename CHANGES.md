@@ -2,6 +2,26 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.17.2 (2026-11-11): page sweep; Streaks & outliers fits a phone
+
+### What changed
+- **Fix:** on a phone, the Streaks & outliers page was wider than the screen, so the whole page scrolled sideways. The detail line under each outlier game ("17 pts, 5 reb, 5 ast, 5-10 FG in 24 min...") was set never to wrap; it now wraps.
+- **New `tools/check-pages.py`:** renders all 9 page views (7 tabs, plus the 4th-quarter and defense modes) at 1,400 px and 390 px in headless Chrome. It reports:
+  - script errors;
+  - failed loads;
+  - a "Couldn't load" message;
+  - a nav without all 7 tabs;
+  - anything wider than the screen that isn't inside an area built to scroll sideways.
+  - Exit code 1 on any problem. Part of the audit for every change from now on.
+
+### Tested
+- **Why this came up:** the user asked whether every change is audited. Today's nav change (0.16.0) touched all 7 pages, but only 3 had been rendered; the full sweep found this bug.
+- **The sweep catches the bug:** with the fix removed it reports "trends.html 390 px: wider than the screen: SPAN.luck"; with the fix, all 18 views are OK.
+- **The sweep ignores intended scrolling:** a first version also flagged the Watch List's sideways-scrolling strip of tonight's games, which is by design. Areas built to scroll are now skipped, and the Watch List passes.
+
+### Still unproven
+- **Only what a browser can see:** the sweep checks layout and errors, not whether the numbers are right. The numbers are covered by `tests/run.js` and the ESPN audits.
+
 ## 0.17.1 (2026-11-11): the Discord secret lives in its own workflow step
 
 ### What changed

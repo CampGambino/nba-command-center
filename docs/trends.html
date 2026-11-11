@@ -96,6 +96,8 @@
   .odd li { padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
   .odd li:last-child { border-bottom: 0; }
   .odd .luck { color: var(--faint); font-size: 12px; white-space: nowrap; }
+  /* the outlier detail line is long: let it wrap on phones instead of widening the page */
+  #outliers .luck { white-space: normal; }
 </style>
 </head>
 <body>

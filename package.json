@@ -1,6 +1,6 @@
 {
   "name": "nba-command-center",
-  "version": "0.17.1",
+  "version": "0.17.2",
   "private": true,
   "type": "module",
   "description": "Standalone NBA Command Center: anticipates milestones and storylines from game notes and league data",
