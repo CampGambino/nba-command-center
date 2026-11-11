@@ -2,6 +2,65 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.18.0 (2026-11-11): articles watcher (Cloudflare Worker → Discord #articles)
+
+### What changed
+- **New `cloudflare/articles-worker.js`,** a Cloudflare Worker (free plan). Every 2 minutes it reads ESPN's NBA news API and The Athletic's NBA RSS (plus NYT Pro Basketball, deduped by URL). It posts each new article worth reading to its own Discord channel.
+  - **Why not GitHub Actions:** today its schedule ran 87 minutes late once and skipped a run entirely, which is useless for 6-9 AM articles.
+- **ESPN: the news API, not the RSS feed** the user linked. The RSS hadn't been rebuilt since 5:13 AM and stamped 7 of 12 items with the same time. The API gives each article's real publish time and type.
+- **Kept:** reporting and analysis by named writers.
+- **Skipped:**
+  - recaps;
+  - the automated previews;
+  - videos;
+  - fantasy and betting sections and titles;
+  - how-to-watch pieces;
+  - live blogs;
+  - unsigned ESPN stories (wire and game stories);
+  - non-NBA sections;
+  - anything published over 6 hours ago.
+- **Each post shows:**
+  - a tag (🚨 Reporting for "Sources:" items, 🗞️ News, 📰 Feature, ESPN+ marked);
+  - source and writer;
+  - the publish time in ET, and how long until the watcher saw it.
+- **Training:**
+  - under each post: 👎 Noise, 🔇 Mute writer, Review;
+  - the review page lists every decision (posted or skipped, and why), with ✅ Post it, ⭐ Always allow writer and phrase muting.
+  - Rules change on the next check; labels are kept for tuning the built-in rules.
+- **Private review page:** its key is derived from the webhook. `/setup` sends the link to the Discord channel and never shows it in the browser.
+- **First run:** posts only what came out in the last 20 minutes; everything older is marked seen.
+- **Free-plan budgets:**
+  - a quiet run reads only the small "seen" record and writes nothing;
+  - KV writes happen only for new items, plus a 30-minute heartbeat;
+  - at most 10 posts a run.
+
+### Tested
+- **Today's real ESPN news (50 items), as if each had just come out:** posts 12 and skips 38.
+  - **Posted** (e.g.): Shams on Markkanen, Golliver on Curry/KD, Rhim's Brown-Celtics piece, Goodwill's coaches group chat.
+  - **Skipped:** every recap, preview and video, fantasy and betting pieces, a how-to-watch, and unsigned game stories.
+  - **Judgment call:** "NBA awards watch" is filed under betting, so it's skipped until the writer is allowed.
+- **Stand-in feeds, storage and Discord** (14 new checks, 428 pass):
+  - first run posts only fresh, wanted items;
+  - the same story in two feeds posts once;
+  - posts say who, when and the lag;
+  - RSS decoding. A real bug turned up here: escaped HTML (`&lt;p&gt;`) leaked into posts. Fixed by unescaping before stripping tags.
+  - skipped items logged with reasons;
+  - quiet runs write nothing; a day of quiet runs writes at most ~48 times;
+  - a post Discord rejects is retried next run, once;
+  - a failing feed is logged once and doesn't stop the others;
+  - the review page needs the key;
+  - muting a writer works;
+  - "post it" sends and labels a miss;
+  - `/setup` never shows the key in the browser;
+  - the rules on their own.
+- **CPU:** a quiet run with a full log and 400 seen articles measured ~9.7 ms in the first draft (the free plan allows 10). Splitting storage and reading 25 ESPN items brought it to ~5 ms.
+
+### Still unproven
+- **Not deployed yet:** the user sets it up in the Cloudflare dashboard.
+- **The Athletic feeds** can't be read from the cloud workspace, the PC's workspace or the built-in browser (nytimes.com is blocked for all three). Whether Cloudflare can read them shows on the review page after the first run.
+- **The real Workers runtime** hasn't run this code. It was tested in Node 22 with the same web APIs (fetch, Request, Response, crypto.subtle, Intl).
+- **CPU on Cloudflare** may differ from Node's measurement. If a run exceeds 10 ms, Cloudflare stops it, and the review page's "last read" time goes stale.
+
 ## 0.17.2 (2026-11-11): page sweep; Streaks & outliers fits a phone
 
 ### What changed
