@@ -2,6 +2,52 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.16.0 (2026-11-11): Team leaders tab; "vs top teams" ranks opponents by record too
+
+### What changed
+- **"vs top defenses" is now "vs top teams"** (same address, `docs/defenses.html`).
+  - **New switch:** rank opponents by **Best records** (the default) or **Best defenses**. The address remembers it (`?by=record&n=5`).
+  - **Record mode:** top 3 / 4 / 5 / 8 / 10 by win %, then wins. Teams tied at the cutoff are all in, the same rule as "vs top 3/4/5" on Team situations.
+    - **Columns:** own record and rank; games, W-L and win % vs the top group; W-L vs the rest; margin per game; net rating vs top and vs the rest; their difference; offensive and defensive rating; points for and against.
+    - **Colour:** green / red when the net rating difference is 10+ per 100.
+  - **Defense mode** is unchanged.
+  - `src/situations/ratings.js`: `vsTop(lines, n, "record" | "defense")`; `ratings()` adds W-L and record rank; `offense()` adds points allowed, margin, defensive and net rating. `vsTopDefenses` still works.
+- **New "Team leaders" tab** (`docs/leaders.html`, `src/situations/leaders.js`, built daily into `docs/data/leaders.json`, about 100 KB or 24 KB zipped). Stats: points, rebounds, assists, steals, blocks, 3-pointers.
+  - **Most categories led:** who has his team's highest season total in the most stats, with his lead over the next player (ties marked).
+  - **Team leaders, season totals:** each team's leader in each stat, sortable.
+  - **Led his team, game by game:** games he had the team's most of a stat.
+    - **Counting:** ties count (sole leads shown separately); only games he played count. A game where nobody on the team had any of a stat has no leader.
+    - **Shown:** an "every game" badge and his current run. Sort by share, games led or run.
+  - **Shooting lines (50 / 40 / 90):** who is within 1-5 points of 50% FG, 40% 3P or 90% FT.
+    - **Shots away:** "can miss N in a row and stay at the line", or "needs N straight makes".
+    - **Qualifying:** NBA minimums (300 FGM, 82 3PM, 125 FTM over 82 games), prorated to the team's games. "All" shows anyone with 20+ FGA / 10+ 3PA / 10+ FTA.
+  - **50-40-90 watch:** players at all three lines, or within 5 points of them combined.
+  - **Traded players** count with the team they played for that night. Shooting is over the whole season.
+- **Navigation:** every page links Team leaders. The links wrap on narrow screens.
+
+### Tested
+- **vs top teams by record:**
+  - top 3 / 4 / 5 are the same teams as Team situations;
+  - every team's W-L vs those groups equals Team situations' "vs top N" for all 30 teams.
+- **Against ESPN's own season totals** (athlete stats, a source independent of the box scores we add up):
+  - all 131 team leaders: points, rebounds, assists, steals, blocks, threes and games played all match;
+  - all 148 shooters within 3 points of a line: FG, 3P and FT makes and attempts all match.
+  - Script: `data/audit/leaders-espn.py`.
+- **New checks** (404 pass):
+  - record rank, tie at the cutoff, W-L and net-rating difference vs the top group;
+  - ties count as leading, but not as sole;
+  - a missed game neither counts nor breaks the run;
+  - no leader when nobody had the stat;
+  - a traded player is split by team;
+  - season totals, lead margin and categories;
+  - the shooting math (6-10 can miss 2 and stay at 50%; 8-10 needs 10 straight makes for 90%);
+  - prorated qualifiers.
+- **Pages rendered in headless Chrome** at desktop and phone widths, with no script errors. The page showed the game-by-game table was too long, so it now shows 40 rows plus "Show 40 more". The 50-40-90 list dropped players 15+ points short.
+
+### Still unproven
+- **Game-by-game leads** come from the same ESPN box scores as the season totals that matched ESPN. Individual games weren't checked one by one.
+- **Small samples:** early in the season many teams have played the top group only 1-3 times.
+
 ## 0.15.2 (2026-11-11): newest NBA Live picked by save time; alert cutoff 15
 
 ### What changed

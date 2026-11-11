@@ -34,7 +34,8 @@ import { dropShadowLayer } from "../src/notes/pdf-layout.js";
 import { computeSituations, teamGames } from "../src/situations/records.js";
 import { rowFromGame, collectResults, allGames } from "../src/situations/results.js";
 import { readScoreboard, readGameDetail, clockSeconds, readPlayerBox } from "../src/espn/parse.js";
-import { teamGameLines, offense, ratings, vsTopDefenses } from "../src/situations/ratings.js";
+import { teamGameLines, offense, ratings, vsTopDefenses, vsTop } from "../src/situations/ratings.js";
+import { teamGames as leaderGames, gameLeaders, seasonLeaders, shooting, cushion, needed } from "../src/situations/leaders.js";
 import { clutchPlayers, windowPlayers, WINDOWS, CLUTCH_KEYS } from "../src/espn/pbp.js";
 import { roster, withWithout } from "../src/situations/withwithout.js";
 import { playerGames, activeStreaks, teamStreaks, anomalies } from "../src/situations/trends.js";
@@ -418,12 +419,12 @@ for (const [team, r] of Object.entries(results)) {
 {
   const docs = path.join(root, "docs");
   if (fs.existsSync(path.join(docs, "lib"))) {
-    for (const rel of ["teams.js", "notes/names.js", "espn/parse.js", "registry/track.js", "nba/movement.js", "situations/ratings.js", "espn/pbp.js", "situations/withwithout.js"]) {
+    for (const rel of ["teams.js", "notes/names.js", "espn/parse.js", "registry/track.js", "nba/movement.js", "situations/ratings.js", "espn/pbp.js", "situations/withwithout.js", "situations/leaders.js"]) {
       const a = fs.readFileSync(path.join(root, "src", rel), "utf8"), b = fs.existsSync(path.join(docs, "lib", rel)) ? fs.readFileSync(path.join(docs, "lib", rel), "utf8") : null;
       ok(a === b, `website: docs/lib/${rel} matches src (run scripts/publish.js after code changes)`);
     }
     // Everything the page imports, followed through its own imports, must run in a browser.
-    const seen = new Set(), stack = ["espn/parse.js", "registry/track.js", "situations/ratings.js", "situations/withwithout.js"];
+    const seen = new Set(), stack = ["espn/parse.js", "registry/track.js", "situations/ratings.js", "situations/withwithout.js", "situations/leaders.js"];
     while (stack.length) {
       const rel = stack.pop();
       if (seen.has(rel)) continue;
@@ -785,6 +786,58 @@ const more = {};
   ok(Math.abs(off.efg - (40 + 5) / 80) < 1e-9 && Math.abs(off.oreb - 10 / (10 + 30)) < 1e-9 && off.w === 1, "ratings: eFG% (threes count 1.5) and offensive rebound share", JSON.stringify(off));
   const v1 = vsTopDefenses(L, 1);
   ok(v1.top[0].team === "Z" && v1.teams.X.vsTop.games === 1 && v1.teams.X.rest.games === 1 && v1.teams.Z.vsTop === null, "ratings: offense vs the top defense; the top defense itself has none to face", JSON.stringify(v1.teams.Z));
+
+  // vs top teams by record: rank by win %, then wins; ties at the cutoff are all in; net-rating difference.
+  {
+    const g = (id, d, h, a, hs, as) => ({ id, d, h, a, hs, as, hb: box(40, 85, 10, 30, 15, 20, 10, 30, 12), ab: box(40, 85, 10, 30, 15, 20, 10, 30, 12) });
+    // After t1-t5: P 2-0, Q 2-1, R 1-2, S 0-2.
+    const G = [g("t1", "2026-11-01", "P", "Q", 110, 100), g("t2", "2026-11-02", "R", "P", 90, 100), g("t3", "2026-11-03", "Q", "R", 105, 100), g("t4", "2026-11-04", "S", "R", 95, 101), g("t5", "2026-11-05", "S", "Q", 99, 102)];
+    const LL = teamGameLines(G);
+    const R2 = ratings(LL);
+    ok(R2.P.rrank === 1 && R2.Q.rrank === 2 && R2.R.rrank === 3 && R2.S.rrank === 4, "vs top teams: record rank by win %, then wins", JSON.stringify(Object.fromEntries(Object.entries(R2).map(([t, r]) => [t, [r.w, r.l, r.rrank]]))));
+    const v2 = vsTop(LL, 2, "record");
+    ok(v2.top.map((x) => x.team).join() === "P,Q" && v2.teams.R.vsTop.w === 0 && v2.teams.R.vsTop.l === 2 && v2.teams.P.vsTop.games === 1, "vs top teams: W-L against the top 2 (a top team faces only the others in the group)", JSON.stringify(v2.teams.R.vsTop));
+    ok(Math.abs(v2.teams.R.diff - (v2.teams.R.vsTop.net - v2.teams.R.rest.net)) < 1e-9 && v2.teams.S.vsTop.margin === -3, "vs top teams: difference is net rating vs top minus vs rest; margin per game", JSON.stringify([v2.teams.R.diff, v2.teams.S.vsTop]));
+    // S beats P: P and Q are both 2-1, tied for the top spot.
+    const G2 = [...G, g("t6", "2026-11-06", "S", "P", 120, 100)];
+    const v3 = vsTop(teamGameLines(G2), 1, "record");
+    ok(v3.top.map((x) => x.team).sort().join() === "P,Q" && v3.top.length === 2, "vs top teams: a tie at the cutoff puts both teams in (top 1 has 2 teams at 2-1)", JSON.stringify(v3.top));
+    ok(vsTop(LL, 2, "defense").by === "defense" && vsTopDefenses(LL, 2).top.length === 2, "vs top teams: the defense ranking still works");
+  }
+
+  // Team leaders: game-by-game leads, season totals, shooting lines.
+  {
+    // pl = [side, starter, min, pts, fgm, fga, fg3m, fg3a, ftm, fta, reb, ast, tov, stl, blk, oreb, dreb, pf, pm]
+    const line = (side, o) => { const v = [side, 1, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; const ix = { min: 2, pts: 3, fgm: 4, fga: 5, fg3m: 6, fg3a: 7, ftm: 8, fta: 9, reb: 10, ast: 11, stl: 13, blk: 14 }; for (const [k, x] of Object.entries(o)) v[ix[k]] = x; return v; };
+    const G = [
+      // A (home) vs B. a1 20 pts, a2 20 pts (tie), a1 1 blk; nobody on A has a steal.
+      { id: "L1", d: "2026-11-01", h: "A", a: "B", hs: 100, as: 90, pl: { a1: line(0, { pts: 20, reb: 5, blk: 1, fgm: 8, fga: 16, fg3m: 2, fg3a: 5, ftm: 2, fta: 2 }), a2: line(0, { pts: 20, reb: 7 }), b1: line(1, { pts: 30, stl: 2 }) } },
+      // a1 misses the game (0 minutes, no stats); a2 leads alone.
+      { id: "L2", d: "2026-11-03", h: "B", a: "A", hs: 95, as: 99, pl: { a1: line(1, { min: 0 }), a2: line(1, { pts: 25, reb: 9 }), b1: line(0, { pts: 10, stl: 1 }), b2: line(0, { pts: 12, stl: 1 }) } },
+      // a1 back, leads points; b1 traded to A: his A line counts with A only.
+      { id: "L3", d: "2026-11-05", h: "A", a: "C", hs: 110, as: 100, pl: { a1: line(0, { pts: 31, reb: 2, fgm: 12, fga: 20, fg3m: 3, fg3a: 6, ftm: 4, fta: 4 }), a2: line(0, { pts: 14, reb: 3 }), b1: line(0, { pts: 5, reb: 11 }), c1: line(1, { pts: 22 }) } },
+    ];
+    const tg = leaderGames(G);
+    const gl = gameLeaders(tg);
+    const find = (id, team, stat) => gl.find((r) => r.id === id && r.team === team && r.stat === stat);
+    const a1p = find("a1", "A", "pts"), a2p = find("a2", "A", "pts");
+    ok(a1p.led === 2 && a1p.sole === 1 && a1p.played === 2 && a1p.teamGames === 3 && a1p.run === 2, "leaders: a tie counts as leading (not sole); a missed game neither counts nor breaks the run", JSON.stringify(a1p));
+    ok(a2p.led === 2 && a2p.sole === 1 && a2p.played === 3 && a2p.run === 0, "leaders: run ends when he plays and doesn't lead", JSON.stringify(a2p));
+    ok(!gl.some((r) => r.team === "A" && r.stat === "stl"), "leaders: a game with no steals on the team has no steals leader");
+    const b2s = find("b2", "B", "stl"), b1s = find("b1", "B", "stl");
+    ok(b2s.led === 1 && b2s.sole === 0 && b1s.led === 2 && b1s.played === 2 && b1s.teamGames === 2, "leaders: tied steals leaders both credited", JSON.stringify([b1s, b2s]));
+    ok(find("b1", "A", "reb").led === 1 && find("b1", "A", "reb").played === 1 && find("b1", "A", "reb").teamGames === 3, "leaders: a traded player's games count with the team he played for that night", JSON.stringify(find("b1", "A", "reb")));
+    const sl = seasonLeaders(tg);
+    ok(sl.A.leaders.pts.ids.join() === "a2" && sl.A.leaders.pts.total === 59 && sl.A.leaders.pts.margin === 8 && sl.A.totals.a1.games === 2, "leaders: season totals with each team; leader, total, lead over the next player", JSON.stringify(sl.A.leaders.pts));
+    ok(sl.B.leaders.pts.total === 40 && sl.B.totals.b1.pts === 40 && sl.A.totals.b1.pts === 5, "leaders: a traded player's totals are split by team", JSON.stringify([sl.B.totals.b1, sl.A.totals.b1]));
+    ok(sl.A.categories.a2.map((c) => c.stat).join() === "pts,reb" && sl.A.categories.a1.map((c) => c.stat).join() === "blk,fg3m", "leaders: categories led", JSON.stringify(sl.A.categories));
+    ok(cushion(6, 10, 50) === 2 && cushion(5, 10, 50) === 0 && cushion(4, 10, 50) === -1 && needed(4, 10, 50) === 2 && needed(8, 10, 90) === 10 && needed(9, 10, 90) === 0 && cushion(9, 10, 90) === 0 && needed(39, 100, 40) === 2,
+      "leaders: shooting math (6-10 can miss 2 and stay at 50%; 4-10 needs 2 makes; 8-10 needs 10 makes for 90%)");
+    const sh = shooting(G);
+    ok(sh.a1.fg.m === 20 && sh.a1.fg.a === 36 && sh.a1.fg3.m === 5 && sh.a1.ft.m === 6 && sh.a1.games === 2 && sh.b1.team === "A" && sh.b1.games === 3, "leaders: season shooting over all a player's games; latest team", JSON.stringify([sh.a1.fg, sh.b1]));
+    ok(sh.a1.fg.minMakes === Math.ceil((300 * 3) / 82) && sh.a1.fg.qualified === true && sh.a1.ft.minMakes === 5 && sh.a1.ft.qualified === true && sh.a1.fg3.minMakes === 3,
+      "leaders: qualifiers prorated by team games (300 FGM / 82 x 3 games = 11; 125 FTM -> 5; 82 3PM -> 3)", JSON.stringify(sh.a1));
+  }
 
   // Clutch player lines. Home (team 1): h1-h5 start, h6 on the bench; away (team 2): a1-a5.
   {

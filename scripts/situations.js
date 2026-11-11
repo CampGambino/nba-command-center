@@ -23,6 +23,7 @@ const { collectResults, allGames, loadStore, saveStore } = await import("../src/
 const { computeSituations } = await import("../src/situations/records.js");
 const { clutchPlayerTotals, clutchTeamTotals } = await import("../src/situations/clutch.js");
 const { playerGames, activeStreaks, teamStreaks, anomalies } = await import("../src/situations/trends.js");
+const { teamGames, gameLeaders, seasonLeaders, shooting, LEAD_STATS, LINES } = await import("../src/situations/leaders.js");
 
 const args = process.argv.slice(2);
 const opt = (n) => (args.includes(n) ? args[args.indexOf(n) + 1] : null);
@@ -85,12 +86,35 @@ for (const [tri, games] of Object.entries(perTeam)) {
   const byDate = Object.fromEntries(dates.map((d) => [d, anomalies(pg, store.names || {}, { dates: [d] })]));
   fs.writeFileSync(path.join(root, "docs", "data", "trends.json"), JSON.stringify({ generatedAt: out.generatedAt, through, streaks: activeStreaks(pg, store.names || {}), teams: teamStreaks(rows), anomalies: byDate }));
 }
-// Per-game box totals for the "vs top defenses" page, which computes in the browser.
+// Team leaders: game-by-game leads, season-total leaders, and shooting lines (50 / 40 / 90).
+{
+  const names = store.names || {};
+  const tg = teamGames(rows);
+  const used = new Set();
+  const nm = (id) => { used.add(id); return id; };
+  // Compact rows: [id, team, stat, led, sole, played, teamGames, run]
+  const gameKeys = ["id", "team", "stat", "led", "sole", "played", "teamGames", "run"];
+  const games = gameLeaders(tg).map((r) => { nm(r.id); return gameKeys.map((k) => r[k]); });
+  const season = Object.fromEntries(Object.entries(seasonLeaders(tg)).map(([team, t]) => {
+    const keep = new Set(Object.values(t.leaders).flatMap((l) => l.ids));
+    const totals = Object.fromEntries([...keep].map((id) => [nm(id), t.totals[id]]));
+    return [team, { teamGames: t.teamGames, leaders: t.leaders, totals, categories: t.categories }];
+  }));
+  // Compact rows: [id, team, games, teamGames, then per line: made, attempts, qualified 0/1, minMakes]
+  const shootKeys = ["id", "team", "games", "teamGames", ...LINES.flatMap((L) => [`${L.key}.m`, `${L.key}.a`, `${L.key}.q`, `${L.key}.min`])];
+  const shoot = Object.values(shooting(rows)).filter((p) => p.fga >= 20 || p.fg3a >= 10 || p.fta >= 10)
+    .map((p) => { nm(p.id); return [p.id, p.team, p.games, p.teamGames, ...LINES.flatMap((L) => [p[L.key].m, p[L.key].a, p[L.key].qualified ? 1 : 0, p[L.key].minMakes])]; });
+  fs.writeFileSync(path.join(root, "docs", "data", "leaders.json"), JSON.stringify({
+    generatedAt: out.generatedAt, through, stats: LEAD_STATS, lines: LINES.map(({ key, label, pct, qualMakes }) => ({ key, label, pct, qualMakes })),
+    names: Object.fromEntries([...used].map((id) => [id, names[id] || id])), gameKeys, games, season, shootKeys, shooting: shoot,
+  }));
+}
+// Per-game box totals for the "vs top teams" page, which computes in the browser.
 const slim = rows.filter((g) => g.hb && g.ab).map(({ id, d, h, a, hs, as, hb, ab }) => ({ id, d, h, a, hs, as, hb, ab }));
 fs.writeFileSync(path.join(root, "docs", "data", "games.json"), JSON.stringify({ generatedAt: out.generatedAt, through, games: slim }));
 // The page's copy of the ratings code (kept identical to src; a test checks).
 fs.mkdirSync(path.join(root, "docs", "lib", "situations"), { recursive: true });
-for (const f of ["ratings.js", "withwithout.js"]) fs.copyFileSync(path.join(root, "src", "situations", f), path.join(root, "docs", "lib", "situations", f));
+for (const f of ["ratings.js", "withwithout.js", "leaders.js"]) fs.copyFileSync(path.join(root, "src", "situations", f), path.join(root, "docs", "lib", "situations", f));
 fs.mkdirSync(path.join(root, "docs", "lib", "espn"), { recursive: true });
 for (const f of ["parse.js", "pbp.js"]) fs.copyFileSync(path.join(root, "src", "espn", f), path.join(root, "docs", "lib", "espn", f));
 const after = Object.values(store.dates).filter((d) => d.complete).length;

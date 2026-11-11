@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NBA Command Center · Team leaders</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a;
+    --text: #e8eaef; --muted: #9aa3b2; --faint: #6b7383;
+    --accent: #4f9cf7; --good: #3fbf7f; --warn: #e5a93b; --bad: #e5604f; --live: #ff4d6d;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg: #f5f6f8; --panel: #fff; --panel2: #f0f2f5; --line: #e1e4ea; --text: #161a22; --muted: #5b6474; --faint: #8a93a3; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 18px 16px 8px; max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  main { max-width: 980px; margin: 0 auto; padding: 0 12px 40px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 22px 4px 10px; }
+  .games { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 6px; }
+  .game { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; min-width: 170px; }
+  .game .teams { font-weight: 650; }
+  .game .state { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .game.live { border-color: var(--live); }
+  .game.live .state { color: var(--live); font-weight: 600; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: grid; grid-template-columns: 58px 1fr; gap: 12px; }
+  .card.hit { border-color: var(--good); }
+  .pct { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 16px;
+         background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--panel2) 0); position: relative; }
+  .pct::before { content: ""; position: absolute; inset: 6px; background: var(--panel); border-radius: 50%; }
+  .pct span { position: relative; }
+  .card.hit .pct { background: var(--good); }
+  .card.hit .pct::before { background: var(--good); }
+  .card.hit .pct span { color: #fff; }
+  .who { font-weight: 650; }
+  .team { color: var(--faint); font-weight: 500; font-size: 12px; margin-left: 4px; }
+  .what { margin-top: 2px; }
+  .meta { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .chip { font-size: 11.5px; padding: 2px 7px; border-radius: 999px; background: var(--panel2); color: var(--muted); border: 1px solid var(--line); }
+  .chip.review { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+  .chip.out { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
+  .chip.dtd { color: var(--warn); }
+  .chip.live { color: var(--live); border-color: var(--live); font-weight: 600; }
+  .chip.hit { color: var(--good); border-color: var(--good); font-weight: 600; }
+  details { margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+  summary { cursor: pointer; color: var(--faint); }
+  details ul { margin: 4px 0 0 16px; padding: 0; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 13.5px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; background: var(--panel2); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 2px 10px; }
+  select, input[type=search] { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 14px; }
+  label { color: var(--muted); font-size: 13px; }
+  button { background: var(--panel); color: var(--accent); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 14px; cursor: pointer; }
+  .empty { color: var(--faint); padding: 12px 4px; }
+  footer { color: var(--faint); font-size: 12px; max-width: 980px; margin: 0 auto; padding: 0 16px 30px; }
+  .warn-banner { background: color-mix(in srgb, var(--warn) 12%, var(--panel)); border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); border-radius: var(--radius); padding: 10px 12px; font-size: 13px; margin: 10px 0; }
+  @media (max-width: 600px) { .hide-sm { display: none; } }
+  nav { display: flex; flex-wrap: wrap; row-gap: 4px; gap: 14px; margin-top: 6px; font-size: 13.5px; }
+  nav a { color: var(--muted); text-decoration: none; padding-bottom: 2px; }
+  nav a.on { color: var(--text); border-bottom: 2px solid var(--accent); }
+  .match { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
+  .match h3 { margin: 0 0 6px; font-size: 15px; }
+  .match table { border: 0; background: transparent; table-layout: fixed; }
+  .match td, .match th { padding: 5px 6px; font-size: 13px; }
+  .match col.l { width: 42%; } .match col.t { width: 19%; } .match col.b { width: 20%; }
+  .matches { grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); }
+  @media (max-width: 600px) { .match td, .match th { padding: 5px 4px; font-size: 12.5px; } }
+  .match th.c, .match td.c { text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .match th.c.team-h { color: var(--text); font-weight: 700; font-size: 13px; }
+  .match td.base, .match th.base { color: var(--faint); }
+  th.num { text-align: right; }
+  .matches { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 10px; }
+  .scroll { overflow-x: auto; border-radius: var(--radius); }
+  .scroll table { min-width: 860px; }
+  th.sort { cursor: pointer; }
+  th.sort.on { color: var(--accent); }
+  .hi { color: var(--good); }
+  .lo { color: var(--bad); }
+  .hi.strong, .lo.strong { font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+  .flag { color: var(--warn); }
+  .key { color: var(--muted); font-size: 12.5px; margin: 0 4px 8px; }
+  .key b.hi, .key b.lo { font-weight: 650; }
+  .toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .toggle button { border: 0; border-radius: 0; padding: 5px 10px; font-size: 13px; color: var(--muted); }
+  .toggle button.on { background: var(--accent); color: #fff; }
+  .odd { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 0; margin: 0; list-style: none; }
+  .odd li { padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .odd li:last-child { border-bottom: 0; }
+  .odd .luck { color: var(--faint); font-size: 12px; white-space: nowrap; }
+  .cats { display: flex; flex-wrap: wrap; gap: 5px; }
+  .cat { font-size: 12px; padding: 2px 7px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); white-space: nowrap; }
+  .cat b { font-weight: 650; }
+  .cat.tied { border-style: dashed; }
+  .count { font-weight: 800; font-size: 15px; }
+  .grid td { white-space: nowrap; }
+  .grid .tot { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .grid .mg { color: var(--faint); font-size: 12px; }
+  .badge { font-size: 11px; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--good); color: var(--good); margin-left: 4px; white-space: nowrap; }
+  .intro { color: var(--muted); font-size: 13px; margin: -4px 4px 10px; }
+  .pcts span { margin-right: 10px; white-space: nowrap; }
+</style>
+</head>
+<body>
+<header>
+  <h1>NBA Command Center</h1>
+  <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a href="clutch.html">Clutch</a><a href="players.html">With / without</a><a href="trends.html">Streaks &amp; outliers</a><a class="on" href="leaders.html">Team leaders</a><a href="defenses.html">vs top teams</a></nav>
+  <div class="sub" id="sub">Loading…</div>
+</header>
+<main>
+  <h2>Most categories led</h2>
+  <div class="intro">Who has his team's highest season total in points, rebounds, assists, steals, blocks and 3-pointers (with that team).</div>
+  <div class="controls">
+    <select id="cteam"><option value="">All teams</option></select>
+    <select id="cmin"><option value="1">Leads 1+ categories</option><option value="2" selected>Leads 2+</option><option value="3">Leads 3+</option><option value="4">Leads 4+</option></select>
+    <span class="toggle" id="cdir"><button data-d="best" class="on">Most first</button><button data-d="worst">Fewest first</button></span>
+  </div>
+  <div class="scroll"><table id="cats"></table></div>
+
+  <h2>Team leaders, season totals</h2>
+  <div class="controls"><label>Each team's leader in each stat, with his lead over the next player. Click a column to sort teams by that total.</label></div>
+  <div class="scroll"><table id="grid" class="grid"></table></div>
+
+  <h2>Led his team, game by game</h2>
+  <div class="intro">How often a player had his team's most of a stat in a game. Ties count as leading. Only games he played count.</div>
+  <div class="controls">
+    <select id="gstat"><option value="">All stats</option></select>
+    <select id="gteam"><option value="">All teams</option></select>
+    <span class="toggle" id="gsort"><button data-s="share" class="on">Share of his games</button><button data-s="led">Games led</button><button data-s="run">Current run</button></span>
+    <span class="toggle" id="gdir"><button data-d="best" class="on">Top first</button><button data-d="worst">Bottom first</button></span>
+  </div>
+  <div class="scroll"><table id="games"></table></div>
+
+  <h2>Shooting lines: 50 / 40 / 90</h2>
+  <div class="intro">Who is right around 50% from the field, 40% on threes or 90% from the line, and how many shots from crossing it.</div>
+  <div class="controls">
+    <select id="sline"></select>
+    <select id="swin"><option value="1">Within 1 point</option><option value="2" selected>Within 2 points</option><option value="3">Within 3 points</option><option value="5">Within 5 points</option></select>
+    <span class="toggle" id="sside"><button data-s="both" class="on">Both sides</button><button data-s="above">Just above</button><button data-s="below">Just below</button></span>
+    <span class="toggle" id="squal"><button data-q="q" class="on">Qualified</button><button data-q="all">All</button></span>
+    <span class="toggle" id="ssort"><button data-s="gap" class="on">Closest to the line</button><button data-s="shots">Fewest shots away</button></span>
+    <select id="steam"><option value="">All teams</option></select>
+  </div>
+  <div class="scroll"><table id="shoot"></table></div>
+
+  <h2>50-40-90 watch</h2>
+  <div class="intro">Players at all three lines or within 5 points of them (added up), closest first. Uses the Qualified / All choice above.</div>
+  <div class="scroll"><table id="club"></table></div>
+</main>
+<footer id="foot"></footer>
+<script type="module">
+import { cushion, needed } from "./lib/situations/leaders.js";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+let gShow = 40, D = null, cdir = "best", gsort = "share", gdir = "best", sside = "both", squal = "q", ssort = "gap", gridKey = "team", gridDir = 1;
+const SHORT = { pts: "PTS", reb: "REB", ast: "AST", stl: "STL", blk: "BLK", fg3m: "3PM" };
+const name = (id) => esc(D.names[id] || id);
+// "Nickeil Alexander-Walker" -> "N. Alexander-Walker"; suffixes stay ("J. Jackson Jr.").
+const short = (id) => { const n = D.names[id] || id, parts = n.split(" "); return parts.length < 2 ? esc(n) : `<span title="${esc(n)}">${esc(parts[0][0])}. ${esc(parts.slice(1).join(" "))}</span>`; };
+const toggle = (id, attr, get, set) => document.querySelectorAll(`#${id} button`).forEach((b) => b.onclick = () => { set(b.dataset[attr]); syncAll(); renderAll(); });
+function syncAll() {
+  const s = (id, attr, v) => document.querySelectorAll(`#${id} button`).forEach((b) => b.classList.toggle("on", b.dataset[attr] === v));
+  s("cdir", "d", cdir); s("gsort", "s", gsort); s("gdir", "d", gdir); s("sside", "s", sside); s("squal", "q", squal); s("ssort", "s", ssort);
+}
+
+function renderCats() {
+  const team = $("cteam").value, min = team ? 1 : Number($("cmin").value), sign = cdir === "best" ? 1 : -1;
+  const rows = [];
+  for (const [t, x] of Object.entries(D.season)) {
+    if (team && t !== team) continue;
+    for (const [id, cats] of Object.entries(x.categories)) if (cats.length >= min) rows.push({ id, team: t, cats, games: x.totals[id].games, teamGames: x.teamGames, x });
+  }
+  rows.sort((a, b) => sign * (b.cats.length - a.cats.length) || a.cats.filter((c) => c.tied).length - b.cats.filter((c) => c.tied).length || a.team.localeCompare(b.team));
+  $("cats").innerHTML = `<tr><th>Player</th><th>Team</th><th class="num">Categories</th><th>Leads the team in</th><th class="num">Games</th></tr>` +
+    (rows.map((r) => `<tr><td><b>${name(r.id)}</b></td><td>${r.team}</td><td class="num"><span class="count">${r.cats.length}</span> of 6</td><td><div class="cats">${r.cats.map((c) => {
+      const L = r.x.leaders[c.stat];
+      return `<span class="cat ${c.tied ? "tied" : ""}" title="${c.tied ? "tied for the team lead" : `${L.margin} ahead of the next player`}"><b>${SHORT[c.stat]}</b> ${L.total}${c.tied ? " (tied)" : ` <span class="team">+${L.margin}</span>`}</span>`;
+    }).join("")}</div></td><td class="num">${r.games} of ${r.teamGames}</td></tr>`).join("") || `<tr><td class="empty" colspan="5">Nobody matches.</td></tr>`);
+}
+
+function renderGrid() {
+  const stats = D.stats.map((s) => s[0]);
+  const list = Object.entries(D.season).map(([team, x]) => ({ team, x })).sort((a, b) => gridKey === "team" ? gridDir * a.team.localeCompare(b.team) : gridDir * (b.x.leaders[gridKey].total - a.x.leaders[gridKey].total) || a.team.localeCompare(b.team));
+  const th = (k, label) => `<th class="sort ${gridKey === k ? "on" : ""}" data-k="${k}">${label}${gridKey === k ? (gridDir === 1 ? " ▾" : " ▴") : ""}</th>`;
+  $("grid").innerHTML = `<tr>${th("team", "Team")}${stats.map((k) => th(k, SHORT[k])).join("")}</tr>` + list.map(({ team, x }) => `<tr><td><b>${team}</b></td>${stats.map((k) => {
+    const L = x.leaders[k];
+    if (!L.ids.length) return `<td>–</td>`;
+    return `<td>${L.ids.map(short).join(" / ")} <span class="tot">${L.total}</span> ${L.ids.length > 1 ? `<span class="mg">tied</span>` : `<span class="mg" title="ahead of the next player">+${L.margin}</span>`}</td>`;
+  }).join("")}</tr>`).join("");
+  document.querySelectorAll("#grid th.sort").forEach((el) => el.onclick = () => { if (gridKey === el.dataset.k) gridDir = -gridDir; else { gridKey = el.dataset.k; gridDir = 1; } renderGrid(); });
+}
+
+function renderGames() {
+  const stat = $("gstat").value, team = $("gteam").value, sign = gdir === "best" ? 1 : -1;
+  const K = Object.fromEntries(D.gameKeys.map((k, i) => [k, i]));
+  const rows = D.games.map((r) => Object.fromEntries(D.gameKeys.map((k) => [k, r[K[k]]])))
+    .filter((r) => r.played >= 3 && (!stat || r.stat === stat) && (!team || r.team === team));
+  const val = gsort === "share" ? (r) => r.led / r.played + r.led / 1000 : gsort === "led" ? (r) => r.led + r.led / r.played / 100 : (r) => r.run + r.led / 1000;
+  rows.sort((a, b) => sign * (val(b) - val(a)) || a.team.localeCompare(b.team));
+  const label = Object.fromEntries(D.stats);
+  $("games").innerHTML = `<tr><th>Player</th><th>Team</th><th>Stat</th><th class="num">Led</th><th class="num">His games</th><th class="num">Share</th><th class="num" title="games he led outright, no tie">Sole leads</th><th class="num">Team games</th><th class="num" title="consecutive games he played, latest backwards, in which he led">Current run</th></tr>` +
+    (rows.slice(0, gShow).map((r) => `<tr><td><b>${name(r.id)}</b>${r.led === r.played ? `<span class="badge">every game</span>` : ""}</td><td>${r.team}</td><td>${esc(label[r.stat])}</td><td class="num"><b>${r.led}</b></td><td class="num">${r.played}</td><td class="num">${Math.round((100 * r.led) / r.played)}%</td><td class="num">${r.sole}</td><td class="num">${r.teamGames}</td><td class="num">${r.run || "–"}</td></tr>`).join("") || `<tr><td class="empty" colspan="9">Nobody matches.</td></tr>`) +
+    (rows.length > gShow ? `<tr><td class="empty" colspan="9">Showing ${gShow} of ${rows.length}. <button id="gmore">Show 40 more</button></td></tr>` : "");
+  if ($("gmore")) $("gmore").onclick = () => { gShow += 40; renderGames(); };
+}
+
+function shooters() {
+  const K = Object.fromEntries(D.shootKeys.map((k, i) => [k, i]));
+  return D.shooting.map((r) => {
+    const p = { id: r[K.id], team: r[K.team], games: r[K.games], teamGames: r[K.teamGames] };
+    for (const L of D.lines) {
+      const m = r[K[`${L.key}.m`]], a = r[K[`${L.key}.a`]];
+      p[L.key] = { m, a, q: r[K[`${L.key}.q`]] === 1, min: r[K[`${L.key}.min`]], pct: a ? (100 * m) / a : null, cushion: a ? cushion(m, a, L.pct) : -1, need: a ? needed(m, a, L.pct) : null };
+    }
+    return p;
+  });
+}
+const FLOOR = { fg: 20, fg3: 10, ft: 10 }; // attempts needed to show under "All"
+const counts = (p, key) => squal === "q" ? p[key].q : p[key].a >= FLOOR[key];
+function status(s, L) {
+  if (s.need > 0) return `<span class="lo">needs ${s.need} straight make${s.need === 1 ? "" : "s"}</span>`;
+  return `<span class="hi">can miss ${s.cushion} in a row</span> <span class="team">and stay at ${L.pct}%</span>`;
+}
+function renderShoot() {
+  const L = D.lines.find((l) => l.key === $("sline").value), win = Number($("swin").value), team = $("steam").value;
+  const shots = (s) => (s.need > 0 ? s.need : s.cushion + 1);
+  const rows = shooters().filter((p) => counts(p, L.key) && (!team || p.team === team)).map((p) => ({ p, s: p[L.key], gap: p[L.key].pct - L.pct }))
+    .filter((r) => Math.abs(r.gap) <= win && (sside === "both" || (sside === "above" ? r.gap >= 0 : r.gap < 0)))
+    .sort((a, b) => (ssort === "gap" ? Math.abs(a.gap) - Math.abs(b.gap) : shots(a.s) - shots(b.s) || Math.abs(a.gap) - Math.abs(b.gap)));
+  $("shoot").innerHTML = `<tr><th>Player</th><th>Team</th><th class="num">Made-att</th><th class="num">Pct</th><th class="num">vs ${L.pct}%</th><th>Where he stands</th><th class="num" title="makes needed to qualify for the NBA leaderboard so far (prorated)">Qualifier</th></tr>` +
+    (rows.map(({ p, s, gap }) => `<tr><td><b>${name(p.id)}</b></td><td>${p.team}</td><td class="num">${s.m}-${s.a}</td><td class="num"><b>${s.pct.toFixed(1)}%</b></td><td class="num ${gap >= 0 ? "hi" : "lo"}">${gap >= 0 ? "+" : ""}${gap.toFixed(1)}</td><td>${status(s, L)}</td><td class="num">${s.q ? "yes" : `${s.m} of ${s.min}`}</td></tr>`).join("") || `<tr><td class="empty" colspan="7">Nobody within ${win} point${win === 1 ? "" : "s"} of ${L.pct}%.</td></tr>`);
+}
+function renderClub() {
+  const rows = shooters().filter((p) => D.lines.every((L) => counts(p, L.key))).map((p) => {
+    const short = D.lines.map((L) => Math.max(0, L.pct - p[L.key].pct));
+    return { p, met: short.filter((x) => x === 0).length, short: short.reduce((a, b) => a + b, 0) };
+  }).filter((r) => r.short <= 5).sort((a, b) => b.met - a.met || a.short - b.short).slice(0, 25);
+  $("club").innerHTML = `<tr><th>Player</th><th>Team</th><th class="num">Lines met</th>${D.lines.map((L) => `<th class="num">${L.key === "fg" ? "FG%" : L.key === "fg3" ? "3P%" : "FT%"}</th>`).join("")}<th class="num" title="points short, added over the lines he's under">Points short</th></tr>` +
+    (rows.map(({ p, met, short }) => `<tr><td><b>${name(p.id)}</b>${met === 3 ? `<span class="badge">50-40-90</span>` : ""}</td><td>${p.team}</td><td class="num"><b>${met}</b> of 3</td>${D.lines.map((L) => {
+      const s = p[L.key], ok = s.pct >= L.pct;
+      return `<td class="num ${ok ? "hi" : ""}" title="${s.m}-${s.a}; ${ok ? `can miss ${s.cushion} in a row` : `needs ${s.need} straight makes`}">${s.pct.toFixed(1)}%</td>`;
+    }).join("")}<td class="num">${short ? short.toFixed(1) : "–"}</td></tr>`).join("") || `<tr><td class="empty" colspan="7">Nobody close to all three yet.</td></tr>`);
+}
+function renderAll() { renderCats(); renderGrid(); renderGames(); renderShoot(); renderClub(); }
+
+toggle("cdir", "d", null, (v) => (cdir = v));
+toggle("gsort", "s", null, (v) => { gsort = v; gShow = 40; });
+toggle("gdir", "d", null, (v) => { gdir = v; gShow = 40; });
+toggle("sside", "s", null, (v) => (sside = v));
+toggle("squal", "q", null, (v) => (squal = v));
+toggle("ssort", "s", null, (v) => (ssort = v));
+
+fetch("data/leaders.json", { cache: "no-store" }).then((r) => r.json()).then((d) => {
+  D = d;
+  const teams = Object.keys(d.season).sort();
+  for (const id of ["cteam", "gteam", "steam"]) $(id).innerHTML += teams.map((t) => `<option>${t}</option>`).join("");
+  $("gstat").innerHTML += d.stats.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join("");
+  $("sline").innerHTML = d.lines.map((L) => `<option value="${L.key}">${esc(L.label)}</option>`).join("");
+  for (const id of ["cteam", "cmin"]) $(id).onchange = renderCats;
+  for (const id of ["gstat", "gteam"]) $(id).onchange = () => { gShow = 40; renderGames(); };
+  for (const id of ["sline", "swin", "steam"]) $(id).onchange = renderShoot;
+  $("sub").textContent = `Through ${d.through} · from ESPN box scores`;
+  $("foot").innerHTML = `Season totals and game leads are counted with the team a player played for that night, so a traded player has a line with each team. A game in which nobody on the team had any of a stat (no blocks, say) has no leader. Shooting is over all a player's games this season. "Qualified" follows the NBA's leaderboard minimums (300 field goals, 82 threes, 125 free throws made over 82 games), scaled to his team's games so far; "All" shows anyone with 20+ field-goal, 10+ three-point or 10+ free-throw attempts. "Can miss N in a row" is how many straight misses he can take and still be at or above the line; "needs N straight makes" is the shortest way back to it. Built ${new Date(d.generatedAt).toLocaleString()}.`;
+  renderAll();
+}).catch((e) => { $("sub").textContent = "Couldn't load the data: " + e.message; });
+</script>
+</body>
+</html>
