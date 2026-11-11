@@ -34,6 +34,8 @@ import { computeSituations, teamGames } from "../src/situations/records.js";
 import { rowFromGame, collectResults, allGames } from "../src/situations/results.js";
 import { readScoreboard, readGameDetail, clockSeconds } from "../src/espn/parse.js";
 import { teamGameLines, offense, ratings, vsTopDefenses } from "../src/situations/ratings.js";
+import { clutchPlayers, CLUTCH_KEYS } from "../src/espn/pbp.js";
+import { clutchPlayerTotals } from "../src/situations/clutch.js";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const UPDATE = process.argv.includes("--update");
@@ -412,7 +414,7 @@ for (const [team, r] of Object.entries(results)) {
 {
   const docs = path.join(root, "docs");
   if (fs.existsSync(path.join(docs, "lib"))) {
-    for (const rel of ["teams.js", "notes/names.js", "espn/parse.js", "registry/track.js", "nba/movement.js", "situations/ratings.js"]) {
+    for (const rel of ["teams.js", "notes/names.js", "espn/parse.js", "registry/track.js", "nba/movement.js", "situations/ratings.js", "espn/pbp.js"]) {
       const a = fs.readFileSync(path.join(root, "src", rel), "utf8"), b = fs.existsSync(path.join(docs, "lib", rel)) ? fs.readFileSync(path.join(docs, "lib", rel), "utf8") : null;
       ok(a === b, `website: docs/lib/${rel} matches src (run scripts/publish.js after code changes)`);
     }
@@ -720,20 +722,35 @@ const more = {};
   const stat = (name, v) => ({ name, displayValue: v });
   const teamBox = (ha, fg, fg3, ft) => ({ homeAway: ha, statistics: [stat("fieldGoalsMade-fieldGoalsAttempted", fg), stat("threePointFieldGoalsMade-threePointFieldGoalsAttempted", fg3), stat("freeThrowsMade-freeThrowsAttempted", ft),
     stat("offensiveRebounds", "10"), stat("defensiveRebounds", "30"), stat("assists", "25"), stat("steals", "7"), stat("blocks", "5"), stat("totalTurnovers", "12"), stat("fouls", "18")] });
-  const detailJson = (plays) => ({ header: { id: "9", competitions: [{ status: { type: { completed: true } }, competitors: [{ homeAway: "home" }, { homeAway: "away" }] }] },
-    boxscore: { teams: [teamBox("home", "40-85", "12-35", "16-20"), teamBox("away", "38-90", "10-30", "14-18")] }, plays });
+  // Plays are given as running scores (away-home); they become scoring plays with team and points,
+  // which is what the reader counts. Home team id "4" (CHI), away "20" (PHI).
+  const detailJson = (rawPlays, final = null) => {
+    let ph = 0, pa = 0;
+    const plays = [];
+    for (const r of rawPlays) {
+      const dA = r.awayScore - pa, dH = r.homeScore - ph;
+      if (dA > 0) plays.push({ ...r, scoringPlay: true, scoreValue: dA, team: { id: "20" } });
+      else if (dH > 0) plays.push({ ...r, scoringPlay: true, scoreValue: dH, team: { id: "4" } });
+      else plays.push({ ...r, scoringPlay: false, scoreValue: 0 });
+      ph = r.homeScore; pa = r.awayScore;
+    }
+    return { header: { id: "9", competitions: [{ status: { type: { completed: true } }, competitors: [{ homeAway: "home", team: { id: "4" }, score: String(final ? final[1] : ph) }, { homeAway: "away", team: { id: "20" }, score: String(final ? final[0] : pa) }] }] },
+      boxscore: { teams: [teamBox("home", "40-85", "12-35", "16-20"), teamBox("away", "38-90", "10-30", "14-18")] }, plays };
+  };
   // Philadelphia at Chicago, 2026-11-08, by hand from the play-by-play: clutch time starts at 4:47 (113-110);
   // the plays at 3:31 (116-110) and 1:31 (123-116) came with the gap above 5, so they don't count.
-  const pbp = [play(4, "5:35", 113, 108), play(4, "5:05", 113, 110), play(4, "4:47", 116, 110), play(4, "3:31", 116, 113), play(4, "3:05", 118, 113),
+  const pbp = [play(4, "6:00", 113, 0), play(4, "6:00", 113, 106), play(4, "5:35", 113, 108), play(4, "5:05", 113, 110), play(4, "4:47", 116, 110), play(4, "3:31", 116, 113), play(4, "3:05", 118, 113),
     play(4, "3:00", 118, 115), play(4, "3:00", 118, 116), play(4, "2:40", 119, 116), play(4, "2:40", 120, 116), play(4, "2:13", 123, 116), play(4, "1:31", 123, 117),
     play(4, "1:31", 123, 118), play(4, "1:09", 123, 120), play(4, "51.2", 124, 120), play(4, "51.2", 125, 120), play(4, "16.5", 125, 121), play(4, "13.4", 126, 121), play(4, "13.4", 127, 121)];
   const det = readGameDetail(detailJson(pbp));
   ok(det.clutch && det.clutch.away === 14 && det.clutch.home === 6, "detail: clutch-time points (PHI 14, CHI 6 in PHI 127-121 at CHI, checked by hand)", JSON.stringify(det.clutch));
-  ok(readGameDetail(detailJson([play(4, "4:00", 100, 80), play(4, "1:00", 102, 84)])).clutch === null, "detail: a game never within 5 in the last 5 minutes has no clutch time");
-  ok(readGameDetail(detailJson([play(3, "1:00", 50, 50), play(4, "6:00", 90, 90)])).clutch === null, "detail: a close game before the last 5 minutes isn't clutch time");
+  ok(readGameDetail(detailJson([play(3, "1:00", 100, 0), play(3, "1:00", 100, 80), play(4, "4:00", 100, 82), play(4, "1:00", 102, 82)])).clutch === null && readGameDetail(detailJson([play(3, "1:00", 100, 0), play(3, "1:00", 100, 80), play(4, "4:00", 100, 82), play(4, "1:00", 102, 82)])).scoreOk, "detail: a game never within 5 in the last 5 minutes has no clutch time");
+  ok(readGameDetail(detailJson([play(3, "1:00", 50, 50), play(4, "6:00", 90, 90), play(4, "6:00", 110, 90)])).clutch === null, "detail: a close game before the last 5 minutes isn't clutch time");
+  const bad = readGameDetail(detailJson(pbp, [125, 121]));
+  ok(bad.scoreOk === false && bad.clutch === null, "detail: play-by-play that doesn't add up to the final score gives no clutch numbers");
   ok(det.home.join() === "40,85,12,35,16,20,10,30,25,7,5,12,18" && 2 * det.home[0] + det.home[2] + det.home[4] === 108, "detail: team box totals; points from them = 2 per field goal + 1 per three + free throws");
   // A summary whose box doesn't add up to the final score is not used.
-  const fakeDet = { scoreboard: async () => day("2026-10-20", true), detail: async () => ({ ok: true, data: { final: true, home: det.home, away: det.away, plays: 5, clutch: null } }) };
+  const fakeDet = { scoreboard: async () => day("2026-10-20", true), detail: async () => ({ ok: true, data: { final: true, home: det.home, away: det.away, plays: 5, clutch: null, scoreOk: true } }) };
   const warn = [];
   const st2 = await collectResults({ espn: fakeDet, store: null, through: "2026-10-20", warnings: warn });
   ok(!st2.dates["2026-10-20"].games[0].x && warn.some((w) => /don't match the final/.test(w)), "results: box totals that don't add up to the final score are rejected", warn.join("; "));
@@ -764,6 +781,43 @@ const more = {};
   ok(Math.abs(off.efg - (40 + 5) / 80) < 1e-9 && Math.abs(off.oreb - 10 / (10 + 30)) < 1e-9 && off.w === 1, "ratings: eFG% (threes count 1.5) and offensive rebound share", JSON.stringify(off));
   const v1 = vsTopDefenses(L, 1);
   ok(v1.top[0].team === "Z" && v1.teams.X.vsTop.games === 1 && v1.teams.X.rest.games === 1 && v1.teams.Z.vsTop === null, "ratings: offense vs the top defense; the top defense itself has none to face", JSON.stringify(v1.teams.Z));
+
+  // Clutch player lines. Home (team 1): h1-h5 start, h6 on the bench; away (team 2): a1-a5.
+  {
+    const ath = (t, n) => Array.from({ length: n }, (_, i) => ({ athlete: { id: `${t}${i + 1}`, displayName: `${t.toUpperCase()} ${i + 1}` } }));
+    const boxscore = { players: [{ team: { id: "1" }, statistics: [{ athletes: ath("h", 6) }] }, { team: { id: "2" }, statistics: [{ athletes: ath("a", 5) }] }] };
+    const P = (per, clock, team, extra) => ({ period: { number: per }, clock: { displayValue: clock }, team: { id: team }, ...extra });
+    const who = (...x) => x.map((id) => ({ athlete: { id } }));
+    const plays = [
+      // 1st quarter: everyone appears once so they're known to be on court; away builds a 10-point lead.
+      ...["h1", "h2", "h3", "h4", "h5"].map((id) => P(1, "11:00", "1", { type: { text: "Personal Foul" }, text: `${id} personal foul`, participants: who(id) })),
+      ...["a1", "a2", "a3", "a4", "a5"].map((id) => P(1, "10:00", "2", { type: { text: "Jump Shot" }, text: `${id} makes jumper`, shootingPlay: true, scoringPlay: true, scoreValue: 2, pointsAttempted: 2, participants: who(id) })),
+      // 4th quarter: home cuts it to 5 before 5:00, so clutch time starts at 5:00.
+      P(4, "11:00", "1", { type: { text: "Jump Shot" }, text: "h1 makes three", shootingPlay: true, scoringPlay: true, scoreValue: 3, pointsAttempted: 3, participants: who("h1", "h2") }),
+      P(4, "10:00", "1", { type: { text: "Jump Shot" }, text: "h2 makes jumper", shootingPlay: true, scoringPlay: true, scoreValue: 2, pointsAttempted: 2, participants: who("h2") }),
+      P(4, "9:00", "2", { type: { text: "Personal Foul" }, text: "a1 foul", participants: who("a1", "a2", "a3", "a4", "a5") }),
+      // 4:00 left (60 s of clutch time so far): h1 three, assisted by h3 -> 8-10... score 15-20 -> 18-20
+      P(4, "4:00", "1", { type: { text: "Jump Shot" }, text: "h1 makes 25-foot three point jumper (h3 assists)", shootingPlay: true, scoringPlay: true, scoreValue: 3, pointsAttempted: 3, participants: who("h1", "h3") }),
+      P(4, "3:30", "2", { type: { text: "Layup Shot" }, text: "h4 blocks a1's layup", shootingPlay: true, scoringPlay: false, scoreValue: 0, pointsAttempted: 2, participants: who("a1", "h4") }),
+      P(4, "3:29", "1", { type: { text: "Defensive Rebound" }, text: "h5 defensive rebound", participants: who("h5") }),
+      P(4, "3:00", "1", { type: { text: "Substitution" }, text: "h6 enters the game for h2", participants: who("h6", "h2") }),
+      P(4, "2:00", "1", { type: { text: "Lost Ball Turnover" }, text: "h6 lost ball turnover (a2 steals)", participants: who("h6", "a2") }),
+      P(4, "1:00", "2", { type: { text: "Free Throw - 1 of 2" }, text: "a3 makes free throw 1 of 2", shootingPlay: true, scoringPlay: true, scoreValue: 1, pointsAttempted: 1, participants: who("a3") }),
+      P(4, "1:00", "2", { type: { text: "Free Throw - 2 of 2" }, text: "a3 misses free throw 2 of 2", shootingPlay: true, scoringPlay: false, scoreValue: 0, pointsAttempted: 1, participants: who("a3") }),
+      P(4, "0.0", "", { type: { text: "End Game" }, text: "End of Game", participants: [] }),
+    ];
+    const r = clutchPlayers({ boxscore, plays }, { homeId: "1", awayId: "2" });
+    const L = (id) => Object.fromEntries(CLUTCH_KEYS.map((k, i) => [k, r.players[id]?.s[i] ?? 0]));
+    ok(L("h1").pts === 3 && L("h1").fgm === 1 && L("h1").fg3a === 1 && L("h3").ast === 1 && L("h4").blk === 1 && L("a1").fga === 1 && L("h5").reb === 1 && L("h6").tov === 1 && L("a2").stl === 1 && L("a3").ftm === 1 && L("a3").fta === 2,
+      "clutch players: points, threes, assist, block, rebound, turnover, steal, free throws, counted only in clutch time", JSON.stringify(r.players));
+    ok(L("h1").fga === 1 && L("h2").fgm === 0, "clutch players: shots before the last 5 minutes don't count");
+    // Minutes: h2 on from 5:00 to 3:00 = 120 s; h6 from 3:00 to 0:00 = 180 s; h1 all 300 s.
+    ok(L("h1").sec === 300 && L("h2").sec === 120 && L("h6").sec === 180 && r.lineupOk, "clutch players: seconds on court, through a substitution", JSON.stringify({ h1: L("h1").sec, h2: L("h2").sec, h6: L("h6").sec, ok: r.lineupOk }));
+    // Plus/minus: home +3 (h1's three) then away +1 (a3's free throw).
+    ok(L("h1").pm === 2 && L("h2").pm === 3 && L("h6").pm === -1 && L("a1").pm === -2, "clutch players: plus/minus for whoever was on court", JSON.stringify({ h1: L("h1").pm, h2: L("h2").pm, h6: L("h6").pm, a1: L("a1").pm }));
+    const tot = clutchPlayerTotals([{ d: "2026-11-01", h: "BOS", a: "NYK", cp: { ok: 1, p: { x: [0, 60, 5, 2, 3, 1, 1, 0, 0, 1, 0, 0, 0, 0, 4] } } }, { d: "2026-11-03", h: "MIA", a: "BOS", cp: { ok: 0, p: { x: [1, 30, 2, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, -2] } } }], { x: "Player X" });
+    ok(tot[0].name === "Player X" && tot[0].gp === 2 && tot[0].pts === 7 && tot[0].min === 1.5 && tot[0].pm === 2 && tot[0].team === "BOS" && tot[0].unsureGames === 1, "clutch players: season totals, team from the latest game, games with unsure lineups counted", JSON.stringify(tot[0]));
+  }
 }
 function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
 

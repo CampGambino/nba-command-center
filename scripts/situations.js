@@ -21,6 +21,7 @@ const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { createEspn } = await import("../src/espn/client.js");
 const { collectResults, allGames } = await import("../src/situations/results.js");
 const { computeSituations } = await import("../src/situations/records.js");
+const { clutchPlayerTotals } = await import("../src/situations/clutch.js");
 
 const args = process.argv.slice(2);
 const opt = (n) => (args.includes(n) ? args[args.indexOf(n) + 1] : null);
@@ -50,6 +51,9 @@ fs.mkdirSync(path.dirname(storeFile), { recursive: true });
 fs.writeFileSync(storeFile, JSON.stringify(store));
 const out = { generatedAt: new Date().toISOString(), season: store.season, today, ...sit, tonight, warnings };
 fs.writeFileSync(path.join(root, "docs", "data", "situations.json"), JSON.stringify(out));
+// Clutch-time player totals for the Clutch page.
+const players = clutchPlayerTotals(rows, store.names || {});
+fs.writeFileSync(path.join(root, "docs", "data", "clutch-players.json"), JSON.stringify({ generatedAt: out.generatedAt, through, games: rows.filter((g) => g.cl).length, players }));
 // Per-game box totals for the "vs top defenses" page, which computes in the browser.
 const slim = rows.filter((g) => g.hb && g.ab).map(({ id, d, h, a, hs, as, hb, ab }) => ({ id, d, h, a, hs, as, hb, ab }));
 fs.writeFileSync(path.join(root, "docs", "data", "games.json"), JSON.stringify({ generatedAt: out.generatedAt, through, games: slim }));

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NBA Command Center · Clutch</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a;
+    --text: #e8eaef; --muted: #9aa3b2; --faint: #6b7383;
+    --accent: #4f9cf7; --good: #3fbf7f; --warn: #e5a93b; --bad: #e5604f; --live: #ff4d6d;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg: #f5f6f8; --panel: #fff; --panel2: #f0f2f5; --line: #e1e4ea; --text: #161a22; --muted: #5b6474; --faint: #8a93a3; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 18px 16px 8px; max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  main { max-width: 980px; margin: 0 auto; padding: 0 12px 40px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 22px 4px 10px; }
+  .games { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 6px; }
+  .game { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; min-width: 170px; }
+  .game .teams { font-weight: 650; }
+  .game .state { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .game.live { border-color: var(--live); }
+  .game.live .state { color: var(--live); font-weight: 600; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: grid; grid-template-columns: 58px 1fr; gap: 12px; }
+  .card.hit { border-color: var(--good); }
+  .pct { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 16px;
+         background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--panel2) 0); position: relative; }
+  .pct::before { content: ""; position: absolute; inset: 6px; background: var(--panel); border-radius: 50%; }
+  .pct span { position: relative; }
+  .card.hit .pct { background: var(--good); }
+  .card.hit .pct::before { background: var(--good); }
+  .card.hit .pct span { color: #fff; }
+  .who { font-weight: 650; }
+  .team { color: var(--faint); font-weight: 500; font-size: 12px; margin-left: 4px; }
+  .what { margin-top: 2px; }
+  .meta { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .chip { font-size: 11.5px; padding: 2px 7px; border-radius: 999px; background: var(--panel2); color: var(--muted); border: 1px solid var(--line); }
+  .chip.review { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+  .chip.out { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
+  .chip.dtd { color: var(--warn); }
+  .chip.live { color: var(--live); border-color: var(--live); font-weight: 600; }
+  .chip.hit { color: var(--good); border-color: var(--good); font-weight: 600; }
+  details { margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+  summary { cursor: pointer; color: var(--faint); }
+  details ul { margin: 4px 0 0 16px; padding: 0; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 13.5px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; background: var(--panel2); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 2px 10px; }
+  select, input[type=search] { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 14px; }
+  label { color: var(--muted); font-size: 13px; }
+  button { background: var(--panel); color: var(--accent); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 14px; cursor: pointer; }
+  .empty { color: var(--faint); padding: 12px 4px; }
+  footer { color: var(--faint); font-size: 12px; max-width: 980px; margin: 0 auto; padding: 0 16px 30px; }
+  .warn-banner { background: color-mix(in srgb, var(--warn) 12%, var(--panel)); border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); border-radius: var(--radius); padding: 10px 12px; font-size: 13px; margin: 10px 0; }
+  @media (max-width: 600px) { .hide-sm { display: none; } }
+  nav { display: flex; gap: 14px; margin-top: 6px; font-size: 13.5px; }
+  nav a { color: var(--muted); text-decoration: none; padding-bottom: 2px; }
+  nav a.on { color: var(--text); border-bottom: 2px solid var(--accent); }
+  .match { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
+  .match h3 { margin: 0 0 6px; font-size: 15px; }
+  .match table { border: 0; background: transparent; table-layout: fixed; }
+  .match td, .match th { padding: 5px 6px; font-size: 13px; }
+  .match col.l { width: 42%; } .match col.t { width: 19%; } .match col.b { width: 20%; }
+  .matches { grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); }
+  @media (max-width: 600px) { .match td, .match th { padding: 5px 4px; font-size: 12.5px; } }
+  .match th.c, .match td.c { text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .match th.c.team-h { color: var(--text); font-weight: 700; font-size: 13px; }
+  .match td.base, .match th.base { color: var(--faint); }
+  th.num { text-align: right; }
+  .matches { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 10px; }
+  .scroll { overflow-x: auto; border-radius: var(--radius); }
+  .scroll table { min-width: 860px; }
+  th.sort { cursor: pointer; }
+  th.sort.on { color: var(--accent); }
+  .hi { color: var(--good); }
+  .lo { color: var(--bad); }
+  .hi.strong, .lo.strong { font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+  .flag { color: var(--warn); }
+  .key { color: var(--muted); font-size: 12.5px; margin: 0 4px 8px; }
+  .key b.hi, .key b.lo { font-weight: 650; }
+  .toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .toggle button { border: 0; border-radius: 0; padding: 5px 10px; font-size: 13px; color: var(--muted); }
+  .toggle button.on { background: var(--accent); color: #fff; }
+  .odd { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 0; margin: 0; list-style: none; }
+  .odd li { padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .odd li:last-child { border-bottom: 0; }
+  .odd .luck { color: var(--faint); font-size: 12px; white-space: nowrap; }
+</style>
+</head>
+<body>
+<header>
+  <h1>NBA Command Center</h1>
+  <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a class="on" href="clutch.html">Clutch</a><a href="defenses.html">vs top defenses</a></nav>
+  <div class="sub" id="sub">Loading…</div>
+</header>
+<main>
+  <div class="key">Clutch time: the last 5 minutes of the 4th quarter or overtime with the score within 5 points (the NBA's definition). Totals for the season, from ESPN play-by-play.</div>
+
+  <h2>Teams</h2>
+  <div class="controls"><span class="toggle" data-t="team"><button data-d="best" class="on">Best first</button><button data-d="worst">Worst first</button></span><label>Click a column to sort; click again to flip.</label></div>
+  <div class="scroll"><table id="teams"></table></div>
+
+  <h2>Players</h2>
+  <div class="controls">
+    <select id="team"><option value="">All teams</option></select>
+    <input type="search" id="q" placeholder="Player">
+    <label>Min games <select id="mingp"><option>1</option><option selected>2</option><option>3</option><option>5</option></select></label>
+    <span class="toggle" data-t="player"><button data-d="best" class="on">Best first</button><button data-d="worst">Worst first</button></span>
+  </div>
+  <div class="scroll"><table id="players"></table></div>
+</main>
+<footer id="foot"></footer>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const pct = (m, a) => (a ? m / a : null);
+const p1 = (x) => (x == null ? "–" : (x * 100).toFixed(1));
+const sg = (x) => (x > 0 ? `+${x}` : String(x));
+let P = null, S = null;
+const state = { team: { key: "pm", dir: "best" }, player: { key: "pts", dir: "best" } };
+// [key, header, value (higher = better), cell]
+const PCOLS = [
+  ["gp", "GP", (p) => p.gp, (p) => p.gp], ["min", "MIN", (p) => p.min, (p) => p.min.toFixed(1)],
+  ["pts", "PTS", (p) => p.pts, (p) => p.pts],
+  ["fg", "FGM-A", (p) => p.fgm, (p) => `${p.fgm}-${p.fga}`], ["fgp", "FG%", (p) => (p.fga >= 3 ? pct(p.fgm, p.fga) : null), (p) => p1(pct(p.fgm, p.fga))],
+  ["fg3", "3PM-A", (p) => p.fg3m, (p) => `${p.fg3m}-${p.fg3a}`], ["fg3p", "3P%", (p) => (p.fg3a >= 3 ? pct(p.fg3m, p.fg3a) : null), (p) => p1(pct(p.fg3m, p.fg3a))],
+  ["ft", "FTM-A", (p) => p.ftm, (p) => `${p.ftm}-${p.fta}`], ["ftp", "FT%", (p) => (p.fta >= 3 ? pct(p.ftm, p.fta) : null), (p) => p1(pct(p.ftm, p.fta))],
+  ["reb", "REB", (p) => p.reb, (p) => p.reb], ["ast", "AST", (p) => p.ast, (p) => p.ast], ["tov", "TOV", (p) => -p.tov, (p) => p.tov],
+  ["stl", "STL", (p) => p.stl, (p) => p.stl], ["blk", "BLK", (p) => p.blk, (p) => p.blk], ["pm", "+/-", (p) => p.pm, (p) => sg(p.pm)],
+];
+const TCOLS = [
+  ["rec", "W-L", (t) => (t.w + t.l ? t.w / (t.w + t.l) : null), (t) => `${t.w}-${t.l}`], ["games", "Games", (t) => t.w + t.l, (t) => t.w + t.l],
+  ["pm", "+/-", (t) => t.pm, (t) => sg(t.pm)], ["pts", "PTS", (t) => t.pts, (t) => t.pts],
+  ["fgp", "FG%", (t) => pct(t.fgm, t.fga), (t) => p1(pct(t.fgm, t.fga))], ["fg3p", "3P%", (t) => pct(t.fg3m, t.fg3a), (t) => p1(pct(t.fg3m, t.fg3a))],
+  ["ftp", "FT%", (t) => pct(t.ftm, t.fta), (t) => p1(pct(t.ftm, t.fta))], ["fta", "FTA", (t) => t.fta, (t) => t.fta],
+  ["tov", "TOV", (t) => -t.tov, (t) => t.tov], ["ast", "AST", (t) => t.ast, (t) => t.ast],
+];
+function sorted(list, cols, st) {
+  const col = cols.find((c) => c[0] === st.key), sign = st.dir === "best" ? 1 : -1;
+  return [...list].sort((x, y) => { const a = col[2](x), b = col[2](y); if (a == null && b == null) return 0; if (a == null) return 1; if (b == null) return -1; return sign * (b - a); });
+}
+function header(cols, st, which, first) {
+  return `<tr>${first}${cols.map((c) => `<th class="num sort ${st.key === c[0] ? "on" : ""}" data-w="${which}" data-k="${c[0]}">${c[1]}${st.key === c[0] ? (st.dir === "best" ? " ▾" : " ▴") : ""}</th>`).join("")}</tr>`;
+}
+function render() {
+  // Teams: sum the players' clutch lines per team; W-L and +/- from team situations.
+  const teams = {};
+  for (const p of P.players) {
+    const t = (teams[p.team] ??= { code: p.team, pts: 0, fgm: 0, fga: 0, fg3m: 0, fg3a: 0, ftm: 0, fta: 0, tov: 0, ast: 0 });
+    for (const k of ["pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "tov", "ast"]) t[k] += p[k];
+  }
+  for (const [code, x] of Object.entries(S.teams)) {
+    const t = (teams[code] ??= { code, pts: 0, fgm: 0, fga: 0, fg3m: 0, fg3a: 0, ftm: 0, fta: 0, tov: 0, ast: 0 });
+    t.w = x.splits.clutch?.w || 0; t.l = x.splits.clutch?.l || 0; t.pm = x.clutchNet;
+  }
+  $("teams").innerHTML = header(TCOLS, state.team, "team", "<th>Team</th>") + sorted(Object.values(teams), TCOLS, state.team)
+    .map((t) => `<tr><td><b>${t.code}</b></td>${TCOLS.map((c) => `<td class="num">${c[3](t)}</td>`).join("")}</tr>`).join("");
+
+  const team = $("team").value, q = $("q").value.trim().toLowerCase(), min = Number($("mingp").value);
+  const list = P.players.filter((p) => (!team || p.team === team) && (!q || p.name.toLowerCase().includes(q)) && p.gp >= min);
+  $("players").innerHTML = header(PCOLS, state.player, "player", "<th>Player</th><th>Team</th>") + sorted(list, PCOLS, state.player).slice(0, 300)
+    .map((p) => `<tr><td><b>${esc(p.name)}</b>${p.unsureGames ? ` <span class="team" title="on-court players couldn't be fully worked out in ${p.unsureGames} of these games: minutes and +/- there may be off">*</span>` : ""}</td><td>${p.team}</td>${PCOLS.map((c) => `<td class="num">${c[3](p)}</td>`).join("")}</tr>`).join("")
+    || `<tr><td class="empty">No players match.</td></tr>`;
+  document.querySelectorAll("th.sort").forEach((el) => el.onclick = () => {
+    const st = state[el.dataset.w];
+    if (st.key === el.dataset.k) st.dir = st.dir === "best" ? "worst" : "best"; else { st.key = el.dataset.k; st.dir = "best"; }
+    sync(); render();
+  });
+}
+function sync() { document.querySelectorAll(".toggle[data-t]").forEach((tg) => tg.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.d === state[tg.dataset.t].dir))); }
+document.querySelectorAll(".toggle[data-t]").forEach((tg) => tg.querySelectorAll("button").forEach((b) => b.onclick = () => { state[tg.dataset.t].dir = b.dataset.d; sync(); render(); }));
+for (const id of ["team", "q", "mingp"]) $(id).oninput = render;
+
+Promise.all([fetch("data/clutch-players.json", { cache: "no-store" }).then((r) => r.json()), fetch("data/situations.json", { cache: "no-store" }).then((r) => r.json())])
+  .then(([p, s]) => {
+    P = p; S = s;
+    $("sub").textContent = `${p.games} clutch games through ${p.through} · ${p.players.length} players`;
+    $("team").innerHTML += [...new Set(p.players.map((x) => x.team))].sort().map((t) => `<option>${t}</option>`).join("");
+    $("foot").innerHTML = `Counted from ESPN play-by-play: a play is clutch when, before it, the game was in the last 5:00 of the 4th or overtime and within 5. Checked against NBA.com's clutch stats on 2026-11-11 (team W-L and +/-: all 30 teams match). Minutes and +/- need to know who was on the court, which is inferred from substitutions; * marks a player with games where that couldn't be fully worked out. Percentages sort only with 3+ attempts. Built ${new Date(p.generatedAt).toLocaleString()}.`;
+    render();
+  }).catch((e) => { $("sub").textContent = "Couldn't load the data: " + e.message; });
+</script>
+</body>
+</html>

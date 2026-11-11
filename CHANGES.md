@@ -2,6 +2,43 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.13.0 (2026-11-11): Clutch tab (teams and players), clutch numbers checked against NBA.com
+
+### What changed
+- **New page, "Clutch" (`docs/clutch.html`):**
+  - **Teams:** clutch W-L, games, +/-, points, FG%, 3P%, FT%, FTA, turnovers and assists.
+  - **Players:** GP, minutes, points, FG / 3P / FT made-attempted and %, rebounds, assists, turnovers, steals, blocks, +/-.
+    - Filter by team, name and minimum games.
+    - Every column sorts, best or worst first.
+- **Clutch scoring fix.** The running score is now rebuilt from scoring plays (team and points), instead of each play's score fields.
+  - ESPN's play scores in Minnesota at Cleveland (10/26, overtime) jumped back and forth (113-116, 113-113, 113-116...). That had produced 55 "clutch points" for Cleveland.
+  - A game whose rebuilt score doesn't end at the final score is not counted until it does. None so far.
+- **`src/espn/pbp.js`:** clutch-time player lines from the play-by-play.
+  - **Shots:** made or missed, 2 or 3 points, with the assist and the block.
+  - **Free throws, rebounds, turnovers with the steal.**
+  - **Seconds on court and +/-:** who is on court is inferred, because ESPN lists starters only for the opening tip. A player is on court at the start of a period if his first event in it isn't checking in; substitutions then move players on and off.
+  - **Lineup check:** when a team doesn't have exactly 5 on court in clutch time, the game is marked, and the page puts * next to players with such games (2 of 70 games so far).
+- **`src/situations/clutch.js`:** season totals per player. Lines are kept per game in `history/results.json` (`cp`), with names in `names`. The file grew to 87 KB.
+
+### Tested
+- **Against NBA.com's team clutch stats** (2026-11-11, read in the built-in browser): W-L matches for all 30 teams, and +/- matches for all 30 after the fix (11 differed before it).
+- **Team clutch points** (LAL 71, PHI 79, BOS 52, NOP 86, SAC 8, UTA 55) match NBA.com.
+- **Player spot checks vs NBA.com:** Ty Jerome, Tyrese Maxey, Zion Williamson, Cooper Flagg, Nickeil Alexander-Walker, Stephen Curry and Luka Doncic match in points, FG, 3P, FT, rebounds, assists, turnovers, steals, blocks and +/-. Tatum's +/- is 6 here vs 7 there.
+- **Minutes run 0.1 to 0.7 a player under NBA.com's.** For example, Maxey has 22.1 here and 22.9 there.
+- **5 new checks, from a synthetic game:**
+  - each kind of event, counted only in clutch time;
+  - seconds through a substitution;
+  - +/- for whoever is on court;
+  - season totals.
+- **Updated:** the PHI at CHI 14-6 test, which now uses scoring plays.
+- **New:** play-by-play that doesn't add up to the final is rejected.
+- 370 checks pass.
+
+### Still unproven
+- **Clutch minutes** are slightly low; the cause isn't found yet.
+- **A full player-by-player comparison with NBA.com** (all ~300 players) is next.
+- **The on-court guess** misses a player who goes a whole period without any event.
+
 ## 0.12.0 (2026-11-11): clutch and top-team records, "vs top defenses" page, best/worst sorting
 
 ### What changed

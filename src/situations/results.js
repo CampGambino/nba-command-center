@@ -8,7 +8,8 @@
  *        h/a = home/away tricode, hs/as = final score, ot = overtime periods,
  *        n = neutral site. From the game's summary (filled in once, x = 1):
  *        hb/ab = team box totals (see TEAM_BOX_KEYS in espn/parse.js),
- *        cl = [home, away] points in clutch time, or 0 if it had none.
+ *        cl = [home, away] points in clutch time, or 0 if it had none,
+ *        cp = clutch-time player lines (see espn/pbp.js; names in store.names).
  *        A summary whose box doesn't add up to the final score is not used.
  *
  * A date is complete once every regular-season game on it is final (or it is
@@ -48,9 +49,18 @@ export async function collectResults({ espn, store, through, warnings = [] }) {
       if (!r.ok) { warnings.push(r.error); continue; }
       const g = r.data;
       if (!g.final || !g.home || !g.away || !g.plays) { warnings.push(`game ${row.id}: summary incomplete`); continue; }
+      if (!g.scoreOk) { warnings.push(`game ${row.id}: play-by-play doesn't add up to the final score; clutch not counted yet`); continue; }
       if (pointsOf(g.home) !== row.hs || pointsOf(g.away) !== row.as) { warnings.push(`game ${row.id}: box totals ${pointsOf(g.home)}-${pointsOf(g.away)} don't match the final ${row.hs}-${row.as}`); continue; }
       row.hb = g.home; row.ab = g.away;
       row.cl = g.clutch ? [g.clutch.home, g.clutch.away] : 0;
+      // Clutch-time player lines: { ok: lineups were complete, p: { espnId: [0 home | 1 away, ...CLUTCH_KEYS] } }
+      if (g.clutchPlayers) {
+        row.cp = { ok: g.clutchPlayers.lineupOk ? 1 : 0, p: {} };
+        for (const [id, x] of Object.entries(g.clutchPlayers.players)) {
+          row.cp.p[id] = [x.team === "home" ? 0 : 1, ...x.s];
+          if (x.name) (out.names ??= {})[id] = x.name;
+        }
+      }
       row.x = 1;
     }
   }

@@ -1,4 +1,5 @@
 import { teamFromText } from "../teams.js";
+import { clutchPlayers } from "./pbp.js";
 
 /**
  * Pure readers for ESPN's public JSON (site.api.espn.com / site.web.api.espn.com).
@@ -269,8 +270,9 @@ export function readScoreboard(json) {
  * Box: [fgm, fga, fg3m, fg3a, ftm, fta, oreb, dreb, ast, stl, blk, tov, pf].
  * Clutch time (the NBA's definition): the last 5 minutes of the 4th quarter or
  * overtime with the score within 5 points. A play counts when the score before
- * it was within 5. `clutch` is null when the game never had clutch time, else
- * the points each side scored in it.
+ * it was within 5. `clutch` is null when the game never had clutch time (or
+ * when scoreOk is false: the play-by-play doesn't add up to the final score),
+ * else the points each side scored in it.
  */
 export const TEAM_BOX_KEYS = ["fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "oreb", "dreb", "ast", "stl", "blk", "tov", "pf"];
 const TEAM_STAT = {
@@ -300,23 +302,34 @@ export function readGameDetail(json) {
     const ha = t.homeAway || (String(t.team?.id) === String(sideOf("home")?.team?.id) ? "home" : "away");
     box[ha] = TEAM_BOX_KEYS.map((k) => (Number.isFinite(v[k]) ? v[k] : null));
   }
-  let clutch = null, ph = 0, pa = 0, seen = 0;
+  // The running score is rebuilt from scoring plays (points and team), not read
+  // from each play's score fields: ESPN's play scores can jump back and forth
+  // (Minnesota at Cleveland, 10/26, overtime: 113-116, 113-113, 113-116...),
+  // which made 55 "clutch points" out of nothing. The rebuilt score must end at
+  // the final score, or the game's clutch numbers are not used (scoreOk false).
+  const homeId = String(sideOf("home")?.team?.id ?? ""), awayId = String(sideOf("away")?.team?.id ?? "");
+  let clutch = null, h = 0, a = 0, seen = 0;
   for (const p of json?.plays || []) {
     const per = p?.period?.number ?? 0;
-    const h = Number(p.homeScore), a = Number(p.awayScore);
     const sec = clockSeconds(p?.clock?.displayValue);
-    // Needs a play before it: the score "before" the first play read isn't known.
-    if (seen > 0 && per >= 4 && sec != null && sec <= 300 && Math.abs(ph - pa) <= 5) {
-      clutch ??= { home: 0, away: 0 };
-      if (Number.isFinite(h) && Number.isFinite(a)) { clutch.home += Math.max(0, h - ph); clutch.away += Math.max(0, a - pa); }
+    const pts = p?.scoringPlay ? Number(p.scoreValue) || 0 : 0;
+    const team = String(p?.team?.id ?? "");
+    const inClutch = per >= 4 && sec != null && sec <= 300 && Math.abs(h - a) <= 5;
+    if (inClutch) clutch ??= { home: 0, away: 0 };
+    if (pts > 0 && (team === homeId || team === awayId)) {
+      if (inClutch) clutch[team === homeId ? "home" : "away"] += pts;
+      if (team === homeId) h += pts; else a += pts;
     }
-    if (Number.isFinite(h) && Number.isFinite(a)) { ph = h; pa = a; }
     seen++;
   }
+  const finalH = Number(sideOf("home")?.score), finalA = Number(sideOf("away")?.score);
+  const scoreOk = seen > 0 && h === finalH && a === finalA;
   return {
     id: json?.header?.id ? String(json.header.id) : null,
     final: header?.status?.type?.completed === true,
     home: box.home || null, away: box.away || null,
-    plays: seen, clutch,
+    plays: seen, clutch: scoreOk ? clutch : null, scoreOk,
+    // Player lines in clutch time (see pbp.js); only when the game had clutch time.
+    clutchPlayers: scoreOk && clutch ? clutchPlayers(json, { homeId, awayId }) : null,
   };
 }
