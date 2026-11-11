@@ -27,7 +27,7 @@
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
   var MIN_CHANCE = 0.10;      // pre-game chance tonight needed to take a card while live
-  var MIN_IMPORTANCE = 20;    // round numbers below this never get a card (passes always can)
+  var MIN_IMPORTANCE = 15;    // round numbers below this never get a card (passes always can). Was 20 until 0.15.2; tune from use
   var MAX_PER_GAME = 6;       // in-play cards per game, best first (reached ones always show)
 
   // ESPN abbreviations NBA Live shows -> Command Center tricodes.

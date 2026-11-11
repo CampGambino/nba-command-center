@@ -2,7 +2,7 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
-## 0.15.2 (2026-11-11): newest NBA Live picked by save time
+## 0.15.2 (2026-11-11): newest NBA Live picked by save time; alert cutoff 15
 
 ### What changed
 - **New `tools/latest-live.py <folder>`:** brings the newest NBA Live and NBA GameFlow from a folder (normally Downloads) into the private, git-ignored `live/` folder.
@@ -10,14 +10,18 @@ Each entry: what changed, how it was tested, and what is still unproven.
   - **Copies only new content:** a file identical to one already in `live/` is skipped. Nothing is overwritten (a name clash gets `-1`, `-2`, ...) and nothing is deleted.
   - **Ignores** `wnba-live*`, `unrivaled-live*` and other near-names.
 - **GameFlow 5** is now in `live/`. Its only change from 4 is wording (she/her became he/his).
-- **The newest NBA Live** in Downloads (`nba-live.html`, saved Nov 10) is byte-identical to `nba-live_14.html`, which already passed the bridge test, so no re-test was needed.
+- **The newest NBA Live** in Downloads (`nba-live.html`, saved Nov 10) is byte-identical to `nba-live_14.html`, which already passed the bridge test.
+- **NBA Live alert cutoff 20 → 15** (`MIN_IMPORTANCE` in `docs/bridge/cc-bridge.js`). Milestones like Jarrett Allen's 4,000 defensive rebounds (18) now get cards. The user didn't pick a cutoff, so this is the "let it learn" start: 15, tuned from which cards prove worth it. On 11/11's slate it adds 5 possible cards (e.g. Collin Sexton 400 steals, 63% tonight); the 6-per-game cap is unchanged.
 
 ### Tested
 - **Fake folders:** older `_14` plus newer unnumbered (the newer one is picked); a later `_0` restart (picked); Windows `(2)` names; a `wnba-live.html` newer than all (ignored); a rerun (reported "same"); an empty folder ("none found"); a name clash (saved as `-1`).
-- **Real Downloads folder:** reported NBA Live "same as nba-live_14.html" and GameFlow "new".
+- **Real Downloads folder:** reported NBA Live "same as nba-live_14.html" and GameFlow "new". Also run on the laptop itself: same result.
+- **Cutoff:** a new test (importance 18 gets a card, 14 doesn't) fails with the old 20 and passes with 15. 386 checks pass.
+- **Real NBA Live + bridge, headless:** connected, 870 milestones for 11/11, no page errors beyond the 8 requests the test blocks on purpose. All games were pre-game, so no cards fired.
 
 ### Still unproven
 - **Not automatic yet:** it runs when asked (or when the laptop is connected), not on a timer.
+- **Whether 15 is right:** no card at 15-19 has been seen in a live game yet.
 
 ## 0.15.1 (2026-11-11): daily job no longer fails when two runs overlap
 

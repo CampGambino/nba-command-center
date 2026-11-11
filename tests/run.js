@@ -894,7 +894,9 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
       item({}),                                                                  // in play: card
       item({ espnId: "2", player: "Low Chance", pTonight: 0.02, need: 50 }),     // < 10% and not reached: no card
       item({ espnId: "9", player: "Surprise", pTonight: 0.01 }),                 // 1% but reached tonight: card
-      item({ espnId: "3", player: "Minor Mark", importance: 9 }),                // importance < 20: no card
+      item({ espnId: "3", player: "Minor Mark", importance: 9 }),                // importance < 15: no card
+      item({ espnId: "10", player: "Allen Like", importance: 18 }),              // 15-19 (like Allen's 4,000 defensive rebounds): card since 0.15.2
+      item({ espnId: "11", player: "Just Under", importance: 14 }),              // just under the cutoff: no card
       item({ espnId: "4", player: "Pass Man", kind: "pass", scope: "nba", importance: 15, passing: { player: "Old Guy", rank: 40 }, need: 2, stat: "fg3m", label: "3-pointers" }), // pass: card even below 20
       item({ espnId: "5", player: "Ladder Guy", target: 20000, need: 5 }),        // NBA Live's own ladder: skipped
       item({ espnId: "6", player: "Count Guy", target: 15000, need: 50, tracking: "disagrees", review: ["notes say 14950, ESPN says 14946"] }), // ladder + disagreement: count note
@@ -928,7 +930,7 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   }
   const flush = () => new Promise((r) => setTimeout(r, 5));
   const games = [
-    { id: "g1", status: "live", away: { tricode: "LAL", score: 50 }, home: { tricode: "ATL", score: 48 }, boxscore: { away: [pl("1"), pl("2"), pl("3"), pl("4"), pl("5"), pl("6"), pl("7", { min: 0, pts: 0 }), pl("9")], home: [] } },
+    { id: "g1", status: "live", away: { tricode: "LAL", score: 50 }, home: { tricode: "ATL", score: 48 }, boxscore: { away: [pl("1"), pl("2"), pl("3"), pl("4"), pl("5"), pl("6"), pl("7", { min: 0, pts: 0 }), pl("9"), pl("10"), pl("11")], home: [] } },
     { id: "g2", status: "final", away: { tricode: "SA", score: 100 }, home: { tricode: "PHX", score: 90 }, boxscore: { away: [pl("20"), pl("21")], home: [] } },
   ];
   const t = run({ games });
@@ -939,6 +941,7 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   ok(has("cc-1-"), "bridge: an in-play milestone gets a card");
   ok(!has("cc-2-"), "bridge: under 10% tonight and not reached: no card", keys.join(" "));
   ok(!has("cc-3-"), "bridge: a minor round number gets no card even when reached", keys.join(" "));
+  ok(has("cc-10-") && !has("cc-11-"), "bridge: importance cutoff is 15 (18 gets a card, 14 doesn't)", keys.join(" "));
   ok(has("cc-9-"), "bridge: a long-shot milestone reached tonight gets a card (the surprise is the story)");
   ok(has("cc-4-") && /passes Old Guy/.test(t.cards.get(keys.find((k) => k.includes("cc-4-"))).text), "bridge: a pass gets a card and is worded 'passes Old Guy' (needed 2, made 3)");
   ok(!has("cc-5-") && !has("cc-count-5"), "bridge: NBA Live's own ladder milestone is left to NBA Live");
