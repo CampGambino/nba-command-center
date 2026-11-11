@@ -22,6 +22,7 @@ const { createEspn } = await import("../src/espn/client.js");
 const { collectResults, allGames, loadStore, saveStore } = await import("../src/situations/results.js");
 const { computeSituations } = await import("../src/situations/records.js");
 const { clutchPlayerTotals, clutchTeamTotals } = await import("../src/situations/clutch.js");
+const { playerGames, activeStreaks, teamStreaks, anomalies } = await import("../src/situations/trends.js");
 
 const args = process.argv.slice(2);
 const opt = (n) => (args.includes(n) ? args[args.indexOf(n) + 1] : null);
@@ -76,6 +77,13 @@ for (const [tri, games] of Object.entries(perTeam)) {
   const text = JSON.stringify({ team: tri, through: games[games.length - 1].d, keys: ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"], names, games });
   const file = path.join(teamDir, `${tri}.json`);
   if (!fs.existsSync(file) || fs.readFileSync(file, "utf8") !== text) fs.writeFileSync(file, text);
+}
+// Streaks and anomalies: active streaks, team streaks, unusual games on each of the last 7 game dates.
+{
+  const pg = playerGames(rows);
+  const dates = [...new Set(rows.filter((g) => g.pl).map((g) => g.d))].sort().slice(-7);
+  const byDate = Object.fromEntries(dates.map((d) => [d, anomalies(pg, store.names || {}, { dates: [d] })]));
+  fs.writeFileSync(path.join(root, "docs", "data", "trends.json"), JSON.stringify({ generatedAt: out.generatedAt, through, streaks: activeStreaks(pg, store.names || {}), teams: teamStreaks(rows), anomalies: byDate }));
 }
 // Per-game box totals for the "vs top defenses" page, which computes in the browser.
 const slim = rows.filter((g) => g.hb && g.ab).map(({ id, d, h, a, hs, as, hb, ab }) => ({ id, d, h, a, hs, as, hb, ab }));

@@ -4,7 +4,7 @@ A standalone program that anticipates NBA milestones and storylines before they 
 
 Design docs live in the claude.ai project "NBA Command Center": `anticipation-engine.md` (principle #1), `command-center-architecture.md`, `storyline-detector-catalog.md`.
 
-## What works today (v0.14.0)
+## What works today (v0.15.0)
 
 **Website:** https://campgambino.github.io/nba-command-center/ (GitHub Pages, from `docs/`). Rebuild it for tonight's whole slate with `npm run tonight` (downloads every playing team's notes), or from local PDFs with `npm run publish -- samples/<date>/*.pdf`.
 
@@ -34,6 +34,7 @@ Design docs live in the claude.ai project "NBA Command Center": `anticipation-en
 - **Clutch** (`docs/clutch.html`, `src/espn/pbp.js`, `src/situations/clutch.js`): team and player clutch stats (the last 5 minutes of the 4th or OT, within 5), from ESPN play-by-play; team W-L and +/- match NBA.com.
 - **4th quarter** (Clutch page switch): team and player 4th-quarter stats from the same play-by-play pass.
 - **With / without** (`docs/players.html`, `src/situations/withwithout.js`): a team's record and each teammate's averages in games a chosen player played vs missed.
+- **Streaks & outliers** (`docs/trends.html`, `src/situations/trends.js`): unusual games vs each player's own season, active player streaks, team streaks.
 - **vs top defenses** (`docs/defenses.html`, `src/situations/ratings.js`): each team's offense against the top 3, 5, 8 or 10 defenses (by defensive rating from box scores) compared with everyone else.
 - **Notes watcher** (`src/notes/watcher.js`): downloads a team's notes from its fixed URL, keeps every version, and says whether the file there is *tonight's* notes or a stale one.
 

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NBA Command Center · Streaks &amp; outliers</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a;
+    --text: #e8eaef; --muted: #9aa3b2; --faint: #6b7383;
+    --accent: #4f9cf7; --good: #3fbf7f; --warn: #e5a93b; --bad: #e5604f; --live: #ff4d6d;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg: #f5f6f8; --panel: #fff; --panel2: #f0f2f5; --line: #e1e4ea; --text: #161a22; --muted: #5b6474; --faint: #8a93a3; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 18px 16px 8px; max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  main { max-width: 980px; margin: 0 auto; padding: 0 12px 40px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 22px 4px 10px; }
+  .games { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 6px; }
+  .game { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; min-width: 170px; }
+  .game .teams { font-weight: 650; }
+  .game .state { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .game.live { border-color: var(--live); }
+  .game.live .state { color: var(--live); font-weight: 600; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: grid; grid-template-columns: 58px 1fr; gap: 12px; }
+  .card.hit { border-color: var(--good); }
+  .pct { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 16px;
+         background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--panel2) 0); position: relative; }
+  .pct::before { content: ""; position: absolute; inset: 6px; background: var(--panel); border-radius: 50%; }
+  .pct span { position: relative; }
+  .card.hit .pct { background: var(--good); }
+  .card.hit .pct::before { background: var(--good); }
+  .card.hit .pct span { color: #fff; }
+  .who { font-weight: 650; }
+  .team { color: var(--faint); font-weight: 500; font-size: 12px; margin-left: 4px; }
+  .what { margin-top: 2px; }
+  .meta { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .chip { font-size: 11.5px; padding: 2px 7px; border-radius: 999px; background: var(--panel2); color: var(--muted); border: 1px solid var(--line); }
+  .chip.review { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+  .chip.out { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
+  .chip.dtd { color: var(--warn); }
+  .chip.live { color: var(--live); border-color: var(--live); font-weight: 600; }
+  .chip.hit { color: var(--good); border-color: var(--good); font-weight: 600; }
+  details { margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+  summary { cursor: pointer; color: var(--faint); }
+  details ul { margin: 4px 0 0 16px; padding: 0; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 13.5px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; background: var(--panel2); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 2px 10px; }
+  select, input[type=search] { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 14px; }
+  label { color: var(--muted); font-size: 13px; }
+  button { background: var(--panel); color: var(--accent); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 14px; cursor: pointer; }
+  .empty { color: var(--faint); padding: 12px 4px; }
+  footer { color: var(--faint); font-size: 12px; max-width: 980px; margin: 0 auto; padding: 0 16px 30px; }
+  .warn-banner { background: color-mix(in srgb, var(--warn) 12%, var(--panel)); border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); border-radius: var(--radius); padding: 10px 12px; font-size: 13px; margin: 10px 0; }
+  @media (max-width: 600px) { .hide-sm { display: none; } }
+  nav { display: flex; gap: 14px; margin-top: 6px; font-size: 13.5px; }
+  nav a { color: var(--muted); text-decoration: none; padding-bottom: 2px; }
+  nav a.on { color: var(--text); border-bottom: 2px solid var(--accent); }
+  .match { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
+  .match h3 { margin: 0 0 6px; font-size: 15px; }
+  .match table { border: 0; background: transparent; table-layout: fixed; }
+  .match td, .match th { padding: 5px 6px; font-size: 13px; }
+  .match col.l { width: 42%; } .match col.t { width: 19%; } .match col.b { width: 20%; }
+  .matches { grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); }
+  @media (max-width: 600px) { .match td, .match th { padding: 5px 4px; font-size: 12.5px; } }
+  .match th.c, .match td.c { text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .match th.c.team-h { color: var(--text); font-weight: 700; font-size: 13px; }
+  .match td.base, .match th.base { color: var(--faint); }
+  th.num { text-align: right; }
+  .matches { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 10px; }
+  .scroll { overflow-x: auto; border-radius: var(--radius); }
+  .scroll table { min-width: 860px; }
+  th.sort { cursor: pointer; }
+  th.sort.on { color: var(--accent); }
+  .hi { color: var(--good); }
+  .lo { color: var(--bad); }
+  .hi.strong, .lo.strong { font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+  .flag { color: var(--warn); }
+  .key { color: var(--muted); font-size: 12.5px; margin: 0 4px 8px; }
+  .key b.hi, .key b.lo { font-weight: 650; }
+  .toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .toggle button { border: 0; border-radius: 0; padding: 5px 10px; font-size: 13px; color: var(--muted); }
+  .toggle button.on { background: var(--accent); color: #fff; }
+  .odd { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 0; margin: 0; list-style: none; }
+  .odd li { padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .odd li:last-child { border-bottom: 0; }
+  .odd .luck { color: var(--faint); font-size: 12px; white-space: nowrap; }
+</style>
+</head>
+<body>
+<header>
+  <h1>NBA Command Center</h1>
+  <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a href="clutch.html">Clutch</a><a href="players.html">With / without</a><a class="on" href="trends.html">Streaks &amp; outliers</a><a href="defenses.html">vs top defenses</a></nav>
+  <div class="sub" id="sub">Loading…</div>
+</header>
+<main>
+  <h2>Outlier games</h2>
+  <div class="controls">
+    <select id="date"></select>
+    <span class="toggle" id="kind"><button data-k="all" class="on">All</button><button data-k="high">Above normal</button><button data-k="low">Below normal</button></span>
+    <select id="oteam"><option value="">All teams</option></select>
+  </div>
+  <ul class="odd" id="outliers"></ul>
+
+  <h2>Active player streaks</h2>
+  <div class="controls">
+    <select id="cat"><option value="">All kinds</option></select>
+    <select id="steam"><option value="">All teams</option></select>
+    <span class="toggle" id="sorder"><button data-o="notable" class="on">Most notable</button><button data-o="long">Longest</button></span>
+    <span class="toggle" id="sdir"><button data-d="best" class="on">Top first</button><button data-d="worst">Bottom first</button></span>
+  </div>
+  <div class="scroll"><table id="streaks"></table></div>
+
+  <h2>Team streaks</h2>
+  <div class="controls"><span class="toggle" id="tdir"><button data-d="best" class="on">Best first</button><button data-d="worst">Worst first</button></span><label>Click a column to sort; click again to flip.</label></div>
+  <div class="scroll"><table id="teams"></table></div>
+</main>
+<footer id="foot"></footer>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+let T = null, kind = "all", sdir = "best", sorder = "notable", tkey = "streak", tdir = "best";
+// "Most notable": length weighted by how hard the bar is, so 6 straight 30-point games
+// rank above 12 straight 10-point games.
+const WEIGHT = { pts10: 0.4, three: 0.4, pts20: 1.2, threes3: 1.5, reb10: 1.5, ast8: 1.8, dd: 1.8, pts25: 2, pts30: 3 };
+const notable = (s) => s.length * (WEIGHT[s.key] ?? 1);
+const day = (d) => new Date(d + "T12:00:00").toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+
+function renderOutliers() {
+  const team = $("oteam").value;
+  const list = (T.anomalies[$("date").value] || []).filter((a) => (!team || a.team === team) && (kind === "all" || (kind === "low" ? a.notes.some((n) => n.low) : a.notes.some((n) => !n.low))));
+  $("outliers").innerHTML = list.length ? list.map((a) => {
+    const l = a.line;
+    const tag = a.notes.every((n) => n.low) ? "lo" : a.notes.every((n) => !n.low) ? "hi" : "";
+    return `<li><b>${esc(a.name)}</b> <span class="team">${a.team} ${a.home ? "vs" : "@"} ${a.opp} · ${a.win ? "W" : "L"}</span><br>
+      <span class="${tag}">${esc(a.text)}</span>
+      <span class="luck"> · ${l.pts} pts, ${l.reb} reb, ${l.ast} ast, ${l.fgm}-${l.fga} FG in ${a.min} min · strength ${a.score.toFixed(1)} · ${a.games} games played</span></li>`;
+  }).join("") : `<li class="empty">Nothing unusual for this filter.</li>`;
+}
+function renderStreaks() {
+  const cat = $("cat").value, team = $("steam").value, sign = sdir === "best" ? 1 : -1;
+  const val = sorder === "notable" ? notable : (s) => s.length;
+  const list = T.streaks.filter((s) => (!cat || s.key === cat) && (!team || s.team === team)).sort((a, b) => sign * (val(b) - val(a)) || b.length - a.length || a.name.localeCompare(b.name));
+  $("streaks").innerHTML = `<tr><th>Player</th><th>Team</th><th>Streak</th><th class="num">Games</th><th class="num">His games this season</th><th class="num">Since</th><th class="num">Season best</th></tr>` +
+    (list.map((s) => `<tr><td><b>${esc(s.name)}</b></td><td>${s.team}</td><td>${esc(s.label)}</td><td class="num"><b>${s.length}</b></td><td class="num">${s.ofGames}${s.length === s.ofGames ? " (every game)" : ""}</td><td class="num">${day(s.since)}</td><td class="num">${s.seasonBest}${s.seasonBest > s.length ? "" : " (this one)"}</td></tr>`).join("") || `<tr><td class="empty" colspan="7">No streaks match.</td></tr>`);
+}
+const TCOLS = [
+  ["streak", "Streak", (t) => (t.streak.type === "W" ? 1 : -1) * t.streak.n, (t) => `${t.streak.type}${t.streak.n}`],
+  ["home", "Home", (t) => (t.home ? (t.home.type === "W" ? 1 : -1) * t.home.n : null), (t) => (t.home ? `${t.home.type}${t.home.n}` : "–")],
+  ["road", "Road", (t) => (t.road ? (t.road.type === "W" ? 1 : -1) * t.road.n : null), (t) => (t.road ? `${t.road.type}${t.road.n}` : "–")],
+  ["scored120", "Scored 120+ in a row", (t) => t.scored120, (t) => t.scored120 || "–"],
+  ["held110", "Held under 110 in a row", (t) => t.held110, (t) => t.held110 || "–"],
+];
+function renderTeams() {
+  const col = TCOLS.find((c) => c[0] === tkey), sign = tdir === "best" ? 1 : -1;
+  const list = Object.entries(T.teams).map(([code, t]) => ({ code, ...t })).sort((x, y) => { const a = col[2](x), b = col[2](y); if (a == null) return 1; if (b == null) return -1; return sign * (b - a) || x.code.localeCompare(y.code); });
+  $("teams").innerHTML = `<tr><th>Team</th>${TCOLS.map((c) => `<th class="num sort ${tkey === c[0] ? "on" : ""}" data-k="${c[0]}">${c[1]}${tkey === c[0] ? (tdir === "best" ? " ▾" : " ▴") : ""}</th>`).join("")}</tr>` +
+    list.map((t) => `<tr><td><b>${t.code}</b></td>${TCOLS.map((c) => `<td class="num">${c[3](t)}</td>`).join("")}</tr>`).join("");
+  document.querySelectorAll("#teams th.sort").forEach((el) => el.onclick = () => { if (tkey === el.dataset.k) tdir = tdir === "best" ? "worst" : "best"; else { tkey = el.dataset.k; tdir = "best"; } sync(); renderTeams(); });
+}
+function sync() {
+  document.querySelectorAll("#kind button").forEach((b) => b.classList.toggle("on", b.dataset.k === kind));
+  document.querySelectorAll("#sdir button").forEach((b) => b.classList.toggle("on", b.dataset.d === sdir));
+  document.querySelectorAll("#sorder button").forEach((b) => b.classList.toggle("on", b.dataset.o === sorder));
+  document.querySelectorAll("#tdir button").forEach((b) => b.classList.toggle("on", b.dataset.d === tdir));
+}
+document.querySelectorAll("#kind button").forEach((b) => b.onclick = () => { kind = b.dataset.k; sync(); renderOutliers(); });
+document.querySelectorAll("#sdir button").forEach((b) => b.onclick = () => { sdir = b.dataset.d; sync(); renderStreaks(); });
+document.querySelectorAll("#sorder button").forEach((b) => b.onclick = () => { sorder = b.dataset.o; sync(); renderStreaks(); });
+document.querySelectorAll("#tdir button").forEach((b) => b.onclick = () => { tdir = b.dataset.d; sync(); renderTeams(); });
+
+fetch("data/trends.json", { cache: "no-store" }).then((r) => r.json()).then((d) => {
+  T = d;
+  const dates = Object.keys(d.anomalies).sort().reverse();
+  $("date").innerHTML = dates.map((x) => `<option value="${x}">${day(x)} · ${d.anomalies[x].length} outliers</option>`).join("");
+  const teams = [...new Set(d.streaks.map((s) => s.team).concat(Object.keys(d.teams)))].sort();
+  for (const id of ["oteam", "steam"]) $(id).innerHTML += teams.map((t) => `<option>${t}</option>`).join("");
+  const cats = [...new Map(d.streaks.map((s) => [s.key, s.label])).entries()];
+  $("cat").innerHTML += cats.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join("");
+  for (const id of ["date", "oteam"]) $(id).onchange = renderOutliers;
+  for (const id of ["cat", "steam"]) $(id).onchange = renderStreaks;
+  $("sub").textContent = `Through ${d.through} · from ESPN box scores`;
+  $("foot").innerHTML = `Outlier games compare a player's game with his other games this season (5+ needed): how far it is from his average, in units of how much his games usually vary (with a minimum, so a steady player's small change doesn't look huge). Listed when that "strength" is 2.5+; when a regular (15+ points or 20+ minutes a game) is 2.5 below; for a clear season high; for shooting 25 points off his usual FG% on 10+ shots; or 0-for-6+ from three. A low-minutes game often means injury, fouls or a blowout, so check the minutes. "Most notable" weights a streak's length by how hard it is (30+ points counts 3x a game, 10+ points 0.4x); "Longest" is plain length. Streaks count games played, this season only (a run from last season shows only its this-season part). Built ${new Date(d.generatedAt).toLocaleString()}.`;
+  renderOutliers(); renderStreaks(); renderTeams();
+}).catch((e) => { $("sub").textContent = "Couldn't load the data: " + e.message; });
+</script>
+</body>
+</html>

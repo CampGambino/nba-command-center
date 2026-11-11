@@ -2,6 +2,43 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.15.0 (2026-11-11): Streaks & outliers page
+
+### What changed
+- **New page, "Streaks & outliers"** (`docs/trends.html`), built daily into `docs/data/trends.json`:
+  - **Outlier games:** each player's game against his other games this season, for each of the last 7 game dates. The rules are in `src/situations/trends.js`; a page filter shows above-normal only, below-normal only, or one team.
+    - **Strength** = distance from his average, in units of how much his games usually vary. Each stat has a minimum spread, so a steady player's 1-point change doesn't look huge.
+    - **Listed when:**
+      - strength is 2.5+;
+      - a regular (15+ points or 20+ minutes a game) is 2.5 below normal;
+      - a game is a clear season high;
+      - he shot 25 points off his usual FG% on 10+ shots;
+      - or he went 0-for-6+ from three.
+    - Each game shows minutes, since a short night is often injury, fouls or a blowout. Last night: Miles Bridges played 18 minutes against his 31.7 average; Domantas Sabonis scored 0 against his 15.3 average.
+  - **Active player streaks:**
+    - 10+, 20+, 25+ and 30+ points;
+    - 10+ rebounds; 8+ assists; double-doubles;
+    - made a three; 3+ threes.
+    - Streaks count games played (missed games don't break them), this season only.
+    - "Most notable" weights length by difficulty (30+ points 3x, 10+ points 0.4x); "Longest" is plain length.
+  - **Team streaks:** overall, home and road W/L; scored 120+ in a row; held under 110 in a row.
+- **Link** added to every page's navigation.
+
+### Tested
+- **Spot checks against the game lines:** Luka Doncic has 8 straight 30-point games (10/25 to 11/9; he missed 2 Lakers games in that span), and Karl-Anthony Towns has 10 straight double-doubles (every game).
+- **5 new checks:**
+  - a DNP isn't a game played and doesn't break a streak;
+  - each streak kind's minimum length;
+  - a single 10-rebound game isn't a streak;
+  - a 50-point season high is listed and an ordinary game isn't;
+  - team W/L, home and road streaks.
+- Page rendered in a browser. 385 checks pass.
+
+### Still unproven
+- **Outliers for past dates** compare against all his other games, including later ones; for the latest date, every other game is earlier.
+- **Streaks that started last season** show only their this-season part.
+- **The weights and thresholds are judgment calls,** to tune with use.
+
 ## 0.14.0 (2026-11-11): 4th-quarter stats, "With / without" page, player game lines
 
 ### What changed

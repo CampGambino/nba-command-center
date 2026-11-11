@@ -37,6 +37,7 @@ import { readScoreboard, readGameDetail, clockSeconds, readPlayerBox } from "../
 import { teamGameLines, offense, ratings, vsTopDefenses } from "../src/situations/ratings.js";
 import { clutchPlayers, windowPlayers, WINDOWS, CLUTCH_KEYS } from "../src/espn/pbp.js";
 import { roster, withWithout } from "../src/situations/withwithout.js";
+import { playerGames, activeStreaks, teamStreaks, anomalies } from "../src/situations/trends.js";
 import { loadStore, saveStore } from "../src/situations/results.js";
 import { clutchPlayerTotals, clutchTeamTotals } from "../src/situations/clutch.js";
 
@@ -860,6 +861,25 @@ const more = {};
     const back = loadStore(dir, fs);
     ok(w1 === 2 && w2 === 0 && back.season === 2027 && back.names[1] === "One" && back.dates["2026-10-21"].games[0].id === "g", "results store: a file per date; saving again writes nothing", `${w1} ${w2}`);
     fs.rmSync(dir, { recursive: true });
+  }
+
+  // Streaks and outliers. Player P: 7 games, 30+ in the last 4, 10 rebounds in game 2 only,
+  // a DNP between games 5 and 6 (doesn't break streaks), 50 points in the last game.
+  {
+    const ln = (min, pts, reb, ast = 2, fg3m = 1, fgm = 8, fga = 16) => [0, 1, min, pts, fgm, fga, fg3m, 3, 4, 5, reb, ast, 2, 1, 0, 1, reb - 1, 2, 0];
+    const pts = [12, 14, 16, 31, 33, 0, 35, 50];
+    const rows = pts.map((p, i) => ({ id: `g${i}`, d: `2026-11-0${i + 1}`, h: "AAA", a: i % 2 ? "BBB" : "CCC", hs: 110 + i, as: 100, pl: { P: i === 5 ? ln(0, 0, 0) : ln(34, p, i === 1 ? 10 : 4) } }));
+    const pg = playerGames(rows);
+    ok(pg.P.length === 7, "streaks: a DNP (0 minutes) isn't a game played", String(pg.P.length));
+    const st = activeStreaks(pg, { P: "Player P" });
+    const s30 = st.find((x) => x.key === "pts30"), s10 = st.find((x) => x.key === "pts10");
+    ok(s30?.length === 4 && s30.since === "2026-11-04" && !s10 && !st.some((x) => x.key === "reb10"), "streaks: 30+ points in 4 straight games played (the DNP doesn't break it); 10+ in 7 is below that kind's minimum of 8; one 10-rebound game isn't a streak", JSON.stringify(st.map((x) => [x.key, x.length])));
+    const an = anomalies(pg, { P: "Player P" });
+    ok(an.length === 1 && an[0].d === "2026-11-08" && an[0].notes.some((n) => n.stat === "pts" && n.seasonHigh && n.prevHigh === 35), "outliers: 50 points against his other games (season high, previous 35) is listed for the latest date", JSON.stringify(an.map((x) => x.text)));
+    const quiet = anomalies(pg, {}, { dates: ["2026-11-03"] });
+    ok(!quiet.some((x) => x.notes.some((n) => n.stat === "pts" && !n.low)), "outliers: an ordinary 16-point game isn't listed as a scoring outlier", JSON.stringify(quiet.map((x) => x.text)));
+    const ts = teamStreaks(rows);
+    ok(ts.AAA.streak.type === "W" && ts.AAA.streak.n === 8 && ts.AAA.home.n === 8 && ts.AAA.road === null && ts.BBB.streak.type === "L", "team streaks: wins, home wins, no road games yet, losses", JSON.stringify(ts.AAA));
   }
 }
 function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
