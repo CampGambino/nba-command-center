@@ -55,6 +55,8 @@ Each entry: what changed, how it was tested, and what is still unproven.
   - the rules on their own.
 - **CPU:** a quiet run with a full log and 400 seen articles measured ~9.7 ms in the first draft (the free plan allows 10). Splitting storage and reading 25 ESPN items brought it to ~5 ms.
 
+- **Laptop copy:** the checks crashed there, because 0.17.1's workflow check reads `.github/workflows/daily.yml`, which the laptop copy doesn't have. It was missed because the laptop checks weren't run after 0.17.1 and 0.17.2. That check now runs only where the file exists, and the laptop is back to passing.
+
 ### Still unproven
 - **Not deployed yet:** the user sets it up in the Cloudflare dashboard.
 - **The Athletic feeds** can't be read from the cloud workspace, the PC's workspace or the built-in browser (nytimes.com is blocked for all three). Whether Cloudflare can read them shows on the review page after the first run.
