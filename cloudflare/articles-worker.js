@@ -111,7 +111,9 @@ export function parseRss(xml, src) {
     const tags = (name) => [...body.matchAll(new RegExp(`<${name}\\b[^>]*>([\\s\\S]*?)<\\/${name}>`, "gi"))].map((r) => decode(r[1]));
     let url = tag("link");
     if (!url) { const r = body.match(/<link\b[^>]*href="([^"]+)"/i); url = r ? r[1] : tag("guid"); }
-    const creators = tags("dc:creator").concat(tags("author")).filter(Boolean);
+    // Writers: dc:creator, <author> (may be "email (Name)"), Atom-style <author><name>, or media:credit.
+    const creators = [...tags("dc:creator"), ...tags("atom:name"), ...tags("name"), ...tags("author").map((a) => (a.match(/\(([^)]+)\)/) || [, a])[1]), ...tags("media:credit")]
+      .map((x) => x.trim()).filter((x, i, a) => x && !/@/.test(x) && a.indexOf(x) === i);
     out.push({ src, key: normUrl(url), id: tag("guid") || url, type: "Article", title: tag("title"), url, byline: creators.join(", "),
       description: tag("description"), published: Date.parse(tag("pubDate") || tag("dc:date")) || null, categories: tags("category") });
   }
@@ -170,7 +172,9 @@ export async function adminKey(env) {
 export async function check(env, now = Date.now()) {
   if (!env.DISCORD_WEBHOOK || !env.STATE) return { error: "missing DISCORD_WEBHOOK secret or STATE KV binding" };
   const state = await load(env, "state", null);
-  const first = !state;
+  // First run = no check has completed yet. (/setup can create the state before any check,
+  // so "no state" alone isn't enough: on 11/11 that let 5 older articles through.)
+  const first = !state || !state.started;
   const st = state || { seen: {}, errors: {}, base: null, lastWrite: 0 };
   if (st.log) { await save(env, "log", st.log); delete st.log; } // older layout kept the log here
   let log = null; // loaded only if something new needs logging
@@ -209,6 +213,7 @@ export async function check(env, now = Date.now()) {
     changed = true;
   }
   if (log) await save(env, "log", log.slice(0, LOG_KEEP));
+  if (first) st.started = now;
   if (changed || first || now - (st.lastWrite || 0) > HEARTBEAT_MIN * 60e3) {
     const cut = now - SEEN_DAYS * 864e5;
     for (const [k, t] of Object.entries(st.seen)) if (t < cut) delete st.seen[k];
@@ -223,7 +228,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 function page(st, log, rules, key, labels) {
   const a = (doIt, v, label, extra = "") => `<a class="b" href="/act?k=${key}&do=${doIt}&${extra}v=${encodeURIComponent(v)}">${label}</a>`;
   const ago = (t) => (t ? mins(Date.now() - t) + " ago" : "never");
-  const src = FEEDS.map((f) => `<li><b>${SOURCE[f.src]}</b>: ${st.errors?.[f.src] ? `<span class="bad">error: ${esc(st.errors[f.src].msg)}</span> (${ago(st.errors[f.src].at)})` : `OK, ${st.ok?.[f.src]?.items ?? "?"} items, last read ${ago(st.ok?.[f.src]?.at)}`}</li>`).join("");
+  const src = FEEDS.map((f) => `<li><b>${SOURCE[f.src]}</b>: ${st.errors?.[f.src] ? `<span class="bad">error: ${esc(st.errors[f.src].msg)}</span> (${ago(st.errors[f.src].at)})` : st.ok?.[f.src] ? `OK, ${st.ok[f.src].items} items when last saved` : "not read yet"}</li>`).join("");
   const list = (name, arr, undo) => `<p><b>${name}:</b> ${arr.length ? arr.map((x) => `${esc(x)} ${a(undo, x, "✕")}`).join(" · ") : "<span class=m>none</span>"}</p>`;
   const lab = Object.fromEntries((labels || []).map((l) => [l.key, l.v]));
   const rows = (log || []).map((r) => `<tr class="${r.posted ? "" : "skip"}"><td>${r.published ? etTime(r.published) + "<br><span class=m>" + etDate(r.published) + "</span>" : "–"}</td>
@@ -236,7 +241,7 @@ function page(st, log, rules, key, labels) {
 tr.skip td{color:#777}.m{color:#888;font-size:12px}.b{display:inline-block;margin:2px 4px 2px 0;padding:2px 7px;border:1px solid #ccc;border-radius:6px;text-decoration:none;font-size:12px;white-space:nowrap}.bad{color:#c00}
 input{padding:5px;font-size:14px}</style>
 <h2>NBA Command Center · Articles watcher</h2>
-<ul>${src}</ul><p class=m>Checks every 2 minutes. Last saved ${ago(st.lastWrite)}.</p>
+<ul>${src}</ul><p class=m>Checks every 2 minutes; saves only when something new arrives, or every 30 minutes to show it's alive. Last saved ${ago(st.lastWrite)}${st.lastWrite && Date.now() - st.lastWrite > 40 * 60e3 ? ` <span class=bad>(over 40 minutes: the 2-minute schedule may not be running)</span>` : ""}.</p>
 ${list("Muted writers", rules.muteBylines, "unmute-writer")}${list("Always-allowed writers", rules.allowBylines, "unallow-writer")}${list("Muted phrases", rules.muteWords, "unmute-word")}
 <form action="/act"><input type=hidden name=k value="${key}"><input type=hidden name=do value="mute-word"><input name=v placeholder="mute a phrase in titles"> <button>Mute</button></form>
 <h3>Recent decisions</h3><table>${rows || "<tr><td>Nothing yet.</td></tr>"}</table>`;
@@ -291,6 +296,12 @@ export default {
     if (url.pathname === "/review") return html(page(await load(env, "state", {}), await load(env, "log", []), await load(env, "rules", { muteBylines: [], muteWords: [], allowBylines: [] }), key, await load(env, "labels", [])));
     if (url.pathname === "/act") return act(env, url, key);
     if (url.pathname === "/check") return Response.json(await check(env));
+    if (url.pathname === "/peek") { // first item of a feed, raw, to see its layout (private)
+      const f = FEEDS.find((x) => x.src === url.searchParams.get("src")) || FEEDS[1];
+      const text = await (await fetch(f.url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; NBA-Command-Center articles watcher)" } })).text();
+      const m = text.match(/<item\b[\s\S]*?<\/item>/i);
+      return new Response(`${f.url}\n\nfeed head:\n${text.slice(0, 700)}\n\nfirst item:\n${m ? m[0].slice(0, 3000) : "(no <item>)"}`, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+    }
     if (url.pathname === "/labels") return Response.json({ labels: await load(env, "labels", []), rules: await load(env, "rules", {}) });
     return new Response("Not found", { status: 404 });
   },

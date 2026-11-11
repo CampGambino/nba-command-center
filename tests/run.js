@@ -1074,6 +1074,21 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     posts.length = 0;
     const setup = await (await articlesWorker.fetch(new Request("https://w.example/setup"), env)).text();
     ok(!setup.includes(key) && posts[0].content.includes(`https://w.example/review?k=${key}`), "articles: /setup sends the private review link to Discord only");
+    // 8b. The 11/11 bug: /setup opened before the first check made the first check post older articles.
+    {
+      const kv2 = new Map(); let puts2 = 0;
+      const env2 = { DISCORD_WEBHOOK: "https://discord.com/api/webhooks/2/test-y", STATE: { get: async (k, t) => (kv2.has(k) ? JSON.parse(kv2.get(k)) : null), put: async (k, v) => { puts2++; kv2.set(k, v); } } };
+      espn = [espnArt(21, "Story", "Two-hour-old feature", "Writer B", "/nba/story", -120), espnArt(22, "Story", "Brand new feature", "Writer C", "/nba/story", -1)];
+      posts.length = 0;
+      await articlesWorker.fetch(new Request("https://w2.example/setup"), env2);
+      posts.length = 0;
+      await articlesCheck(env2, T0);
+      ok(titles().join("|").includes("Brand new feature") && !titles().join("|").includes("Two-hour-old"), "articles: opening /setup before the first check doesn't let older articles through (11/11 bug)", titles().join("|"));
+    }
+    // 8c. Writers in other RSS layouts.
+    const by = (x) => parseRss(`<item><title>T</title><link>https://x.com/a</link>${x}</item>`, "athletic")[0].byline;
+    ok(by("<author>news@x.com (Sam Amick)</author>") === "Sam Amick" && by("<author><name>Law Murray</name></author>") === "Law Murray" && by("<dc:creator>Jay King</dc:creator>") === "Jay King" && by("<author>news@x.com</author>") === "",
+      "articles: writer read from dc:creator, author \"email (Name)\", author/name; a bare email is dropped", [by("<author>news@x.com (Sam Amick)</author>"), by("<author><name>Law Murray</name></author>")].join(","));
     // 9. Rules on their own.
     const now = T0;
     const mk = (o) => ({ src: "espn", type: "Story", title: "A story", byline: "W", url: "https://www.espn.com/nba/story/_/id/9/x", published: now, ...o });

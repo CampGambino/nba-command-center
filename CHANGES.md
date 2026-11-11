@@ -2,6 +2,29 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.18.1 (2026-11-11): articles watcher, fixes from the first live run
+
+### What happened on the first live run
+- **Live setup:** the user set up the Worker; `/setup` posted the connected message and private link to #articles. A manual check (`/check`, run through the review page) then read all three feeds from Cloudflare: ESPN 25 items, The Athletic 100, NYT Pro Basketball 20. So The Athletic is readable from Cloudflare (it isn't from any of our own tools).
+- **Bug: 5 older articles were posted (1:40-6 PM)** where the first run should post only the last 20 minutes. `/setup` had created the stored state, and "first run" was defined as "no state yet".
+- **No writer names** on Athletic items: the feed doesn't use `dc:creator` the way the parser expected.
+- **Misleading status:** "last read" only changes when the state is saved (new items, or every 30 minutes), so it could look stale while working.
+
+### What changed
+- **"First run" now means no check has finished yet** (`state.started`), whatever `/setup` stored.
+- **More writer fields read:** `dc:creator`, `<author>` as "email (Name)", `<author><name>`, `atom:name`, `media:credit`. A bare email is dropped.
+- **Honest status line:** it says when the state was last saved, and warns if that was over 40 minutes ago (the schedule may not be running).
+- **New private `/peek?src=athletic|nyt|espn`:** shows a feed's first item raw, to see its layout.
+
+### Tested
+- **The 11/11 bug as a check:** `/setup` then the first check, with a 2-hour-old and a 1-minute-old article; only the new one posts. It fails with the old rule (confirmed) and passes now.
+- **Writer layouts:** "email (Name)", `<author><name>`, `dc:creator`, and a bare email dropped.
+- **430 checks pass.**
+
+### Still unproven
+- **The Athletic's real writer field:** the user needs to redeploy, then `/peek` shows it.
+- **The cron trigger:** not yet confirmed. The review page will warn if no save happens for 40 minutes.
+
 ## 0.18.0 (2026-11-11): articles watcher (Cloudflare Worker → Discord #articles)
 
 ### What changed
