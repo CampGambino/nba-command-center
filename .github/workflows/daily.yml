@@ -5,7 +5,8 @@
 #   22:30  build       5:30 PM /  6:30 PM ET  pre-game, before 7 PM tips
 #   08:30  score       3:30 AM /  4:30 AM ET  last night (west-coast games done)
 #   12:00  score       7:00 AM /  8:00 AM ET  again, in case a game ran late
-# GitHub may start a scheduled run some minutes late under load.
+# GitHub may start a scheduled run late under load (on 11/11 the 20:00 run
+# started at 21:27).
 name: daily
 
 on:
@@ -39,8 +40,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      # Build on the latest main, not the commit that was current when the run was queued.
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -69,8 +73,12 @@ jobs:
           git add docs/data docs/lib history
           if git diff --cached --quiet; then echo "nothing changed"; exit 0; fi
           git commit -m "${{ steps.pick.outputs.job }}: $(TZ=America/New_York date +'%Y-%m-%d %H:%M') ET (automatic)"
+          # Another run may have pushed meanwhile. Everything committed here is
+          # generated data, so on a clash keep this run's (newer) files: in a
+          # rebase, -X theirs means the commit being replayed, i.e. this run's.
           for i in 1 2 3; do
-            git pull --rebase --quiet origin main && git push --quiet origin HEAD:main && exit 0
+            git pull --rebase -X theirs --quiet origin main && git push --quiet origin HEAD:main && exit 0
+            git rebase --abort 2>/dev/null || true
             sleep 10
           done
           echo "push failed"; exit 1

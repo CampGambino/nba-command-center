@@ -2,6 +2,21 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.15.1 (2026-11-11): daily job no longer fails when two runs overlap
+
+### What changed
+- **The failure:** the first scheduled run (20:00 UTC, which GitHub started 87 minutes late, at 21:27) was queued behind a push-triggered run. It built fine, but its push failed: the other run had already committed the same generated files, and the rebase stopped on the clash. The site wasn't affected, because the other run had published the same data minutes earlier.
+- **Fix 1:** on a clash, the job now keeps its own files (`git pull --rebase -X theirs`). Everything it commits is generated data, and its data is the newer of the two. If a rebase still fails, it is aborted before retrying.
+- **Fix 2:** the job checks out the latest `main` when it starts, not the commit that was current when it was queued.
+- **Fix 3:** `actions/checkout` and `actions/setup-node` move to v5 (Node 24); GitHub warned that v4's Node 20 is deprecated.
+
+### Tested
+- **The clash, reproduced in two local clones:** both changed the same file, and both added the same new file under `history/results/`. The second push now goes through with its own versions of both.
+- **The workflow change itself** triggers a run on push; it is checked below.
+
+### Still unproven
+- **Scheduled runs can start late,** as seen today.
+
 ## 0.15.0 (2026-11-11): Streaks & outliers page
 
 ### What changed
