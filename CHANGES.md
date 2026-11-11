@@ -34,10 +34,23 @@ Each entry: what changed, how it was tested, and what is still unproven.
 - **New:** play-by-play that doesn't add up to the final is rejected.
 - 370 checks pass.
 
+- **Full player-by-player comparison with NBA.com** (run in the built-in browser right after this release). 302 of NBA.com's 304 players are found here; the other 2 have 0 minutes and no stats.
+
+  | Stat | Players that differ |
+  |---|---|
+  | Points, FG made, 3P made, FT made, FT attempts, assists, blocks | 0 |
+  | FG attempts | 8, by 1 |
+  | 3P attempts | 6, by 1 |
+  | Rebounds | 6, by 1 |
+  | Turnovers | 2 |
+  | Steals | 3 |
+  | Games played | 6, all lower here: players on court in clutch time who never show up in a play |
+  | +/- | 34, nearly all by 1: free throws around substitutions |
+  | Minutes | 0.25 lower on average; 181 players within 0.25, the worst 5.6 |
+
 ### Still unproven
-- **Clutch minutes** are slightly low; the cause isn't found yet.
-- **A full player-by-player comparison with NBA.com** (all ~300 players) is next.
-- **The on-court guess** misses a player who goes a whole period without any event.
+- **Minutes, games played and +/-** depend on the on-court guess: a player who goes a whole period without an event is missed. The page footer says these are approximate.
+- **The handful of 1-shot / 1-rebound differences** aren't traced yet. They could be ESPN play typing, or shots NBA.com files differently.
 
 ## 0.12.0 (2026-11-11): clutch and top-team records, "vs top defenses" page, best/worst sorting
 

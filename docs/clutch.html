@@ -187,7 +187,7 @@ Promise.all([fetch("data/clutch-players.json", { cache: "no-store" }).then((r) =
     P = p; S = s;
     $("sub").textContent = `${p.games} clutch games through ${p.through} · ${p.players.length} players`;
     $("team").innerHTML += [...new Set(p.players.map((x) => x.team))].sort().map((t) => `<option>${t}</option>`).join("");
-    $("foot").innerHTML = `Counted from ESPN play-by-play: a play is clutch when, before it, the game was in the last 5:00 of the 4th or overtime and within 5. Checked against NBA.com's clutch stats on 2026-11-11 (team W-L and +/-: all 30 teams match). Minutes and +/- need to know who was on the court, which is inferred from substitutions; * marks a player with games where that couldn't be fully worked out. Percentages sort only with 3+ attempts. Built ${new Date(p.generatedAt).toLocaleString()}.`;
+    $("foot").innerHTML = `Counted from ESPN play-by-play: a play is clutch when, before it, the game was in the last 5:00 of the 4th or overtime and within 5. Checked against NBA.com's clutch stats on 2026-11-11: team W-L and +/- match for all 30 teams; for players, points, made shots, free throws, assists and blocks match exactly, and a few attempts, rebounds, steals and turnovers differ by 1. Minutes, games and +/- need to know who was on the court, which is inferred from substitutions, so they are approximate (minutes average about 0.25 lower than NBA.com's); * marks a player with games where that couldn't be fully worked out. Percentages sort only with 3+ attempts. Built ${new Date(p.generatedAt).toLocaleString()}.`;
     render();
   }).catch((e) => { $("sub").textContent = "Couldn't load the data: " + e.message; });
 </script>
