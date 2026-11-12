@@ -1,0 +1,2448 @@
+{
+ "season": "2026-27",
+ "source": "NBA 2026-27 Tip-Off Guide (10/8/26), National Game Schedule pages 16-20; checked against ESPN's national broadcasts for 10/20-11/12 (all 26 games match; ESPN lists the Monday Peacock games as NBCSN)",
+ "networks": [
+  "ABC",
+  "ESPN",
+  "NBC",
+  "Peacock",
+  "Prime Video"
+ ],
+ "note": "ABC games marked * are simulcast on ESPN. NBA TV and ESPN Radio games are not national TV here (the user's list, 11/12). Dates are Eastern.",
+ "games": [
+  {
+   "d": "2026-10-20",
+   "away": "BOS",
+   "home": "DET",
+   "time": "3:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-10-20",
+   "away": "PHI",
+   "home": "NYK",
+   "time": "7:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-10-20",
+   "away": "OKC",
+   "home": "SAS",
+   "time": "9:30 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-10-21",
+   "away": "GSW",
+   "home": "LAL",
+   "time": "10:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-10-21",
+   "away": "MIN",
+   "home": "MIA",
+   "time": "7:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-10-22",
+   "away": "CLE",
+   "home": "PHI",
+   "time": "7:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-10-22",
+   "away": "DEN",
+   "home": "OKC",
+   "time": "9:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-10-23",
+   "away": "NYK",
+   "home": "BOS",
+   "time": "7:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-10-23",
+   "away": "HOU",
+   "home": "SAS",
+   "time": "9:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-10-26",
+   "away": "GSW",
+   "home": "DEN",
+   "time": "10:00 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-10-27",
+   "away": "POR",
+   "home": "LAL",
+   "time": "11:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-10-27",
+   "away": "DET",
+   "home": "NYK",
+   "time": "8:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-10-28",
+   "away": "PHI",
+   "home": "IND",
+   "time": "7:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-10-28",
+   "away": "OKC",
+   "home": "DAL",
+   "time": "9:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-10-30",
+   "away": "LAL",
+   "home": "GSW",
+   "time": "10:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-10-30",
+   "away": "NYK",
+   "home": "PHI",
+   "time": "7:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-02",
+   "away": "OKC",
+   "home": "CLE",
+   "time": "7:00 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-04",
+   "away": "PHI",
+   "home": "DET",
+   "time": "7:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-04",
+   "away": "DAL",
+   "home": "SAS",
+   "time": "9:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-06",
+   "away": "POR",
+   "home": "LAL",
+   "time": "10:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-06",
+   "away": "PHI",
+   "home": "CLE",
+   "time": "7:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-09",
+   "away": "WAS",
+   "home": "DET",
+   "time": "7:00 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-10",
+   "away": "OKC",
+   "home": "POR",
+   "time": "11:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-10",
+   "away": "BOS",
+   "home": "PHI",
+   "time": "8:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-11",
+   "away": "CLE",
+   "home": "NYK",
+   "time": "7:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-11",
+   "away": "GSW",
+   "home": "HOU",
+   "time": "9:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-13",
+   "away": "NYK",
+   "home": "IND",
+   "time": "7:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-13",
+   "away": "GSW",
+   "home": "SAS",
+   "time": "9:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-16",
+   "away": "ORL",
+   "home": "BOS",
+   "time": "7:00 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-17",
+   "away": "UTA",
+   "home": "LAC",
+   "time": "11:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-17",
+   "away": "DET",
+   "home": "SAS",
+   "time": "8:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-18",
+   "away": "MIL",
+   "home": "MIA",
+   "time": "7:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-18",
+   "away": "GSW",
+   "home": "DAL",
+   "time": "9:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-20",
+   "away": "HOU",
+   "home": "DEN",
+   "time": "10:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-20",
+   "away": "TOR",
+   "home": "DET",
+   "time": "7:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-23",
+   "away": "BKN",
+   "home": "MIN",
+   "time": "7:30 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-24",
+   "away": "DAL",
+   "home": "DEN",
+   "time": "10:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-24",
+   "away": "BOS",
+   "home": "WAS",
+   "time": "8:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-25",
+   "away": "SAS",
+   "home": "POR",
+   "time": "10:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-25",
+   "away": "MIA",
+   "home": "PHI",
+   "time": "5:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-25",
+   "away": "MIN",
+   "home": "OKC",
+   "time": "7:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-27",
+   "away": "MIA",
+   "home": "NYK",
+   "time": "7:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-27",
+   "away": "LAL",
+   "home": "SAS",
+   "time": "9:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-11-30",
+   "away": "LAL",
+   "home": "HOU",
+   "time": "7:30 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-01",
+   "away": "UTA",
+   "home": "GSW",
+   "time": "11:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-01",
+   "away": "NYK",
+   "home": "CHI",
+   "time": "8:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-12",
+   "away": "NYK",
+   "home": "MIA",
+   "time": "8:30 PM",
+   "networks": [
+    "ABC"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-14",
+   "away": "PHI",
+   "home": "ORL",
+   "time": "7:00 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-15",
+   "away": "DEN",
+   "home": "POR",
+   "time": "11:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-15",
+   "away": "SAS",
+   "home": "CLE",
+   "time": "8:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-16",
+   "away": "WAS",
+   "home": "BOS",
+   "time": "7:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-16",
+   "away": "LAL",
+   "home": "MIN",
+   "time": "9:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-18",
+   "away": "LAC",
+   "home": "MIA",
+   "time": "7:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-21",
+   "away": "NYK",
+   "home": "CLE",
+   "time": "7:00 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-22",
+   "away": "DAL",
+   "home": "GSW",
+   "time": "10:30 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-22",
+   "away": "DET",
+   "home": "OKC",
+   "time": "8:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-23",
+   "away": "DEN",
+   "home": "LAL",
+   "time": "10:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-23",
+   "away": "HOU",
+   "home": "PHI",
+   "time": "7:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-25",
+   "away": "DEN",
+   "home": "GSW",
+   "time": "10:30 PM",
+   "networks": [
+    "ABC",
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-25",
+   "away": "SAS",
+   "home": "NYK",
+   "time": "12:00 PM",
+   "networks": [
+    "ABC",
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-25",
+   "away": "MIA",
+   "home": "BOS",
+   "time": "2:30 PM",
+   "networks": [
+    "ABC",
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-25",
+   "away": "PHI",
+   "home": "LAL",
+   "time": "5:00 PM",
+   "networks": [
+    "ABC",
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-25",
+   "away": "OKC",
+   "home": "MIN",
+   "time": "8:00 PM",
+   "networks": [
+    "ABC",
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-28",
+   "away": "MIN",
+   "home": "DEN",
+   "time": "10:30 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-28",
+   "away": "CLE",
+   "home": "BOS",
+   "time": "8:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-29",
+   "away": "HOU",
+   "home": "LAL",
+   "time": "10:30 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-29",
+   "away": "MIA",
+   "home": "DAL",
+   "time": "8:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2026-12-31",
+   "away": "DEN",
+   "home": "MIN",
+   "time": "4:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-04",
+   "away": "CHI",
+   "home": "IND",
+   "time": "7:00 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-05",
+   "away": "PHX",
+   "home": "DEN",
+   "time": "10:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-05",
+   "away": "MIN",
+   "home": "HOU",
+   "time": "8:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-06",
+   "away": "NYK",
+   "home": "GSW",
+   "time": "10:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-06",
+   "away": "OKC",
+   "home": "PHI",
+   "time": "7:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-07",
+   "away": "BOS",
+   "home": "LAL",
+   "time": "10:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-07",
+   "away": "MIN",
+   "home": "TOR",
+   "time": "7:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-08",
+   "away": "MIA",
+   "home": "PHI",
+   "time": "7:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-08",
+   "away": "PHX",
+   "home": "DAL",
+   "time": "9:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-11",
+   "away": "LAL",
+   "home": "LAC",
+   "time": "10:00 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-11",
+   "away": "DEN",
+   "home": "NYK",
+   "time": "7:30 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-12",
+   "away": "SAC",
+   "home": "GSW",
+   "time": "11:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-12",
+   "away": "WAS",
+   "home": "PHI",
+   "time": "8:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-13",
+   "away": "NYK",
+   "home": "BOS",
+   "time": "7:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-13",
+   "away": "HOU",
+   "home": "OKC",
+   "time": "9:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-14",
+   "away": "NOP",
+   "home": "SAS",
+   "time": "2:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": true
+  },
+  {
+   "d": "2027-01-18",
+   "away": "DET",
+   "home": "CLE",
+   "time": "12:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-18",
+   "away": "PHI",
+   "home": "ATL",
+   "time": "2:30 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-18",
+   "away": "MIN",
+   "home": "NYK",
+   "time": "5:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-18",
+   "away": "HOU",
+   "home": "MEM",
+   "time": "7:30 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-19",
+   "away": "UTA",
+   "home": "DEN",
+   "time": "10:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-19",
+   "away": "CHA",
+   "home": "DAL",
+   "time": "8:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-20",
+   "away": "CHI",
+   "home": "BKN",
+   "time": "7:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-20",
+   "away": "MIA",
+   "home": "SAS",
+   "time": "9:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-21",
+   "away": "LAL",
+   "home": "GSW",
+   "time": "10:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-21",
+   "away": "PHI",
+   "home": "BOS",
+   "time": "7:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-22",
+   "away": "NYK",
+   "home": "ATL",
+   "time": "7:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-22",
+   "away": "MIN",
+   "home": "SAS",
+   "time": "9:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-24",
+   "away": "OKC",
+   "home": "GSW",
+   "time": "8:30 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-25",
+   "away": "TOR",
+   "home": "BOS",
+   "time": "7:00 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-25",
+   "away": "SAC",
+   "home": "DEN",
+   "time": "9:30 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-26",
+   "away": "OKC",
+   "home": "LAL",
+   "time": "11:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-26",
+   "away": "HOU",
+   "home": "SAS",
+   "time": "8:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-27",
+   "away": "DET",
+   "home": "CLE",
+   "time": "7:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-27",
+   "away": "DEN",
+   "home": "MIN",
+   "time": "9:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-28",
+   "away": "ATL",
+   "home": "NYK",
+   "time": "7:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-28",
+   "away": "MIA",
+   "home": "MIL",
+   "time": "9:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-29",
+   "away": "CLE",
+   "home": "TOR",
+   "time": "7:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-29",
+   "away": "CHA",
+   "home": "MIN",
+   "time": "9:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-30",
+   "away": "PHI",
+   "home": "MIA",
+   "time": "12:30 PM",
+   "networks": [
+    "ABC"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-30",
+   "away": "DEN",
+   "home": "OKC",
+   "time": "3:00 PM",
+   "networks": [
+    "ABC"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-30",
+   "away": "SAS",
+   "home": "GSW",
+   "time": "5:30 PM",
+   "networks": [
+    "ABC"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-30",
+   "away": "LAL",
+   "home": "NYK",
+   "time": "8:30 PM",
+   "networks": [
+    "ABC"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-01-31",
+   "away": "HOU",
+   "home": "DAL",
+   "time": "8:30 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-01",
+   "away": "SAS",
+   "home": "GSW",
+   "time": "10:00 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-01",
+   "away": "MIA",
+   "home": "IND",
+   "time": "7:30 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-02",
+   "away": "MIN",
+   "home": "POR",
+   "time": "11:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-02",
+   "away": "LAL",
+   "home": "BOS",
+   "time": "8:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-03",
+   "away": "NYK",
+   "home": "DET",
+   "time": "7:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-03",
+   "away": "UTA",
+   "home": "HOU",
+   "time": "9:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-04",
+   "away": "DAL",
+   "home": "DEN",
+   "time": "10:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-04",
+   "away": "BOS",
+   "home": "CHA",
+   "time": "7:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-05",
+   "away": "DET",
+   "home": "PHI",
+   "time": "7:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-05",
+   "away": "IND",
+   "home": "OKC",
+   "time": "9:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-06",
+   "away": "MIA",
+   "home": "MIN",
+   "time": "3:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-06",
+   "away": "POR",
+   "home": "MEM",
+   "time": "5:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-06",
+   "away": "LAL",
+   "home": "SAS",
+   "time": "8:30 PM",
+   "networks": [
+    "ABC"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-07",
+   "away": "BOS",
+   "home": "PHI",
+   "time": "7:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-07",
+   "away": "NYK",
+   "home": "OKC",
+   "time": "9:30 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-08",
+   "away": "MIA",
+   "home": "ATL",
+   "time": "7:00 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-08",
+   "away": "LAL",
+   "home": "PHX",
+   "time": "9:30 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-09",
+   "away": "HOU",
+   "home": "UTA",
+   "time": "10:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-09",
+   "away": "SAS",
+   "home": "DAL",
+   "time": "8:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-10",
+   "away": "LAC",
+   "home": "LAL",
+   "time": "10:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-10",
+   "away": "GSW",
+   "home": "BOS",
+   "time": "7:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-11",
+   "away": "NYK",
+   "home": "PHI",
+   "time": "7:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-11",
+   "away": "SAS",
+   "home": "OKC",
+   "time": "9:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-12",
+   "away": "DEN",
+   "home": "LAL",
+   "time": "10:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-12",
+   "away": "MIN",
+   "home": "BOS",
+   "time": "8:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-13",
+   "away": "DAL",
+   "home": "CHA",
+   "time": "3:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-13",
+   "away": "PHI",
+   "home": "OKC",
+   "time": "5:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-13",
+   "away": "GSW",
+   "home": "NYK",
+   "time": "8:30 PM",
+   "networks": [
+    "ABC"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-15",
+   "away": "MIN",
+   "home": "CHA",
+   "time": "12:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-15",
+   "away": "PHI",
+   "home": "DAL",
+   "time": "2:30 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-15",
+   "away": "SAS",
+   "home": "MIA",
+   "time": "5:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-15",
+   "away": "IND",
+   "home": "GSW",
+   "time": "7:30 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-16",
+   "away": "HOU",
+   "home": "LAC",
+   "time": "11:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-16",
+   "away": "TOR",
+   "home": "ATL",
+   "time": "8:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-17",
+   "away": "NYK",
+   "home": "DET",
+   "time": "7:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-17",
+   "away": "BOS",
+   "home": "OKC",
+   "time": "9:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-18",
+   "away": "HOU",
+   "home": "LAL",
+   "time": "10:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-18",
+   "away": "SAS",
+   "home": "MIN",
+   "time": "7:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-25",
+   "away": "DAL",
+   "home": "GSW",
+   "time": "10:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-25",
+   "away": "OKC",
+   "home": "NYK",
+   "time": "7:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-26",
+   "away": "LAL",
+   "home": "DEN",
+   "time": "10:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-26",
+   "away": "CLE",
+   "home": "BOS",
+   "time": "7:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-27",
+   "away": "WAS",
+   "home": "UTA",
+   "time": "3:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-27",
+   "away": "OKC",
+   "home": "DET",
+   "time": "5:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-27",
+   "away": "PHI",
+   "home": "NYK",
+   "time": "8:30 PM",
+   "networks": [
+    "ABC"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-28",
+   "away": "DEN",
+   "home": "SAS",
+   "time": "1:00 PM",
+   "networks": [
+    "ABC"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-28",
+   "away": "LAL",
+   "home": "DAL",
+   "time": "3:30 PM",
+   "networks": [
+    "ABC"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-28",
+   "away": "BOS",
+   "home": "MIN",
+   "time": "7:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-02-28",
+   "away": "MIA",
+   "home": "HOU",
+   "time": "9:30 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-01",
+   "away": "PHI",
+   "home": "CLE",
+   "time": "7:00 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-01",
+   "away": "WAS",
+   "home": "PHX",
+   "time": "9:30 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-02",
+   "away": "LAC",
+   "home": "POR",
+   "time": "11:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-02",
+   "away": "MIN",
+   "home": "OKC",
+   "time": "8:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-03",
+   "away": "SAS",
+   "home": "DEN",
+   "time": "10:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-03",
+   "away": "TOR",
+   "home": "MIA",
+   "time": "7:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-04",
+   "away": "LAL",
+   "home": "PHI",
+   "time": "7:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-04",
+   "away": "NYK",
+   "home": "DAL",
+   "time": "9:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-05",
+   "away": "BOS",
+   "home": "DET",
+   "time": "7:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-05",
+   "away": "SAS",
+   "home": "HOU",
+   "time": "9:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-06",
+   "away": "IND",
+   "home": "MIA",
+   "time": "3:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-06",
+   "away": "ATL",
+   "home": "CLE",
+   "time": "5:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-06",
+   "away": "OKC",
+   "home": "LAL",
+   "time": "8:30 PM",
+   "networks": [
+    "ABC"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-07",
+   "away": "HOU",
+   "home": "GSW",
+   "time": "10:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-07",
+   "away": "PHI",
+   "home": "BOS",
+   "time": "1:00 PM",
+   "networks": [
+    "ABC"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-07",
+   "away": "MIN",
+   "home": "DEN",
+   "time": "3:30 PM",
+   "networks": [
+    "ABC"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-07",
+   "away": "NYK",
+   "home": "SAS",
+   "time": "7:30 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-08",
+   "away": "CHA",
+   "home": "IND",
+   "time": "7:00 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-08",
+   "away": "DAL",
+   "home": "OKC",
+   "time": "9:30 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-09",
+   "away": "POR",
+   "home": "GSW",
+   "time": "11:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-09",
+   "away": "CLE",
+   "home": "DET",
+   "time": "8:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-10",
+   "away": "ORL",
+   "home": "MIA",
+   "time": "7:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-10",
+   "away": "ATL",
+   "home": "MIN",
+   "time": "9:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-11",
+   "away": "NYK",
+   "home": "LAL",
+   "time": "10:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-11",
+   "away": "PHI",
+   "home": "SAS",
+   "time": "7:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-12",
+   "away": "GSW",
+   "home": "DEN",
+   "time": "10:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-12",
+   "away": "OKC",
+   "home": "BOS",
+   "time": "7:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-13",
+   "away": "LAC",
+   "home": "POR",
+   "time": "10:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-13",
+   "away": "ORL",
+   "home": "ATL",
+   "time": "3:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-13",
+   "away": "IND",
+   "home": "HOU",
+   "time": "5:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-13",
+   "away": "PHI",
+   "home": "MIN",
+   "time": "8:30 PM",
+   "networks": [
+    "ABC"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-14",
+   "away": "GSW",
+   "home": "LAL",
+   "time": "10:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-14",
+   "away": "BOS",
+   "home": "NYK",
+   "time": "12:00 PM",
+   "networks": [
+    "ABC"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-14",
+   "away": "SAS",
+   "home": "OKC",
+   "time": "2:30 PM",
+   "networks": [
+    "ABC"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-14",
+   "away": "MIA",
+   "home": "DEN",
+   "time": "7:30 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-15",
+   "away": "TOR",
+   "home": "PHI",
+   "time": "7:00 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-15",
+   "away": "ATL",
+   "home": "DAL",
+   "time": "9:30 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-16",
+   "away": "DEN",
+   "home": "LAC",
+   "time": "11:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-16",
+   "away": "DET",
+   "home": "IND",
+   "time": "8:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-17",
+   "away": "PHX",
+   "home": "LAL",
+   "time": "10:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-17",
+   "away": "DAL",
+   "home": "OKC",
+   "time": "7:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-21",
+   "away": "DAL",
+   "home": "LAL",
+   "time": "10:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-21",
+   "away": "SAS",
+   "home": "PHI",
+   "time": "7:30 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-22",
+   "away": "IND",
+   "home": "ORL",
+   "time": "7:00 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-22",
+   "away": "DET",
+   "home": "MIN",
+   "time": "9:30 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-23",
+   "away": "OKC",
+   "home": "PHX",
+   "time": "11:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-23",
+   "away": "LAL",
+   "home": "MIA",
+   "time": "8:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-24",
+   "away": "PHI",
+   "home": "GSW",
+   "time": "10:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-24",
+   "away": "SAS",
+   "home": "BOS",
+   "time": "7:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-27",
+   "away": "SAS",
+   "home": "DET",
+   "time": "3:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-28",
+   "away": "PHI",
+   "home": "DEN",
+   "time": "10:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-28",
+   "away": "NYK",
+   "home": "ORL",
+   "time": "12:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-28",
+   "away": "LAL",
+   "home": "HOU",
+   "time": "3:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-28",
+   "away": "OKC",
+   "home": "MIN",
+   "time": "7:30 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-29",
+   "away": "MIA",
+   "home": "CLE",
+   "time": "7:00 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-29",
+   "away": "PHX",
+   "home": "SAS",
+   "time": "9:30 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-30",
+   "away": "HOU",
+   "home": "POR",
+   "time": "11:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-30",
+   "away": "NYK",
+   "home": "ORL",
+   "time": "8:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-31",
+   "away": "GSW",
+   "home": "PHI",
+   "time": "7:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-03-31",
+   "away": "DEN",
+   "home": "DAL",
+   "time": "9:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-04-01",
+   "away": "BOS",
+   "home": "CLE",
+   "time": "7:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-04-01",
+   "away": "LAL",
+   "home": "OKC",
+   "time": "9:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-04-02",
+   "away": "DEN",
+   "home": "PHX",
+   "time": "10:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-04-02",
+   "away": "GSW",
+   "home": "MIN",
+   "time": "7:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-04-04",
+   "away": "SAS",
+   "home": "LAL",
+   "time": "10:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-04-04",
+   "away": "BOS",
+   "home": "NYK",
+   "time": "7:30 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-04-05",
+   "away": "MIA",
+   "home": "ORL",
+   "time": "7:00 PM",
+   "networks": [
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-04-06",
+   "away": "PHX",
+   "home": "GSW",
+   "time": "11:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-04-06",
+   "away": "NYK",
+   "home": "ATL",
+   "time": "8:00 PM",
+   "networks": [
+    "NBC",
+    "Peacock"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-04-07",
+   "away": "MIN",
+   "home": "LAL",
+   "time": "10:00 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-04-07",
+   "away": "CLE",
+   "home": "SAS",
+   "time": "7:30 PM",
+   "networks": [
+    "ESPN"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-04-08",
+   "away": "PHI",
+   "home": "MIA",
+   "time": "7:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-04-08",
+   "away": "GSW",
+   "home": "OKC",
+   "time": "9:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-04-09",
+   "away": "DET",
+   "home": "NYK",
+   "time": "7:00 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  },
+  {
+   "d": "2027-04-09",
+   "away": "DEN",
+   "home": "SAS",
+   "time": "9:30 PM",
+   "networks": [
+    "Prime Video"
+   ],
+   "neutral": false
+  }
+ ]
+}

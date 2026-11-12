@@ -146,12 +146,30 @@ for (const g of rows) {
     g.inj = Object.fromEntries(L.map((x) => [x.id, x.status])); // {} = report read, nobody listed
   }
 }
+const teamFiles = {};
 for (const [tri, games] of Object.entries(perTeam)) {
   const ids = new Set(games.flatMap((x) => Object.keys(x.pl)));
   const names = Object.fromEntries([...ids].map((id) => [id, store.names?.[id] || id]));
   const text = JSON.stringify({ team: tri, through: games[games.length - 1].d, keys: ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"], names, games });
   const file = path.join(teamDir, `${tri}.json`);
   if (!fs.existsSync(file) || fs.readFileSync(file, "utf8") !== text) fs.writeFileSync(file, text);
+  teamFiles[tri] = JSON.parse(text);
+}
+// National TV vs other games (src/situations/national.js; the season's national schedule from the Tip-Off Guide).
+{
+  const { nationalIndex, nationalSplits, perGame } = await import("../src/situations/national.js");
+  const season = store.season || Number(today.slice(0, 4)) + (Number(today.slice(5, 7)) >= 8 ? 1 : 0); // the year the season ends
+  const schedFile = path.join(root, "src", "data", `national-tv-${season - 1}-${String(season).slice(2)}.json`);
+  if (fs.existsSync(schedFile)) {
+    const sched = JSON.parse(fs.readFileSync(schedFile, "utf8"));
+    const split = nationalSplits(teamFiles, nationalIndex(sched), { currentTeam: (id) => (rosterChanges[id] ? rosterChanges[id].team || "FA" : null) });
+    const players = split.players.filter((p) => p.nat.gp >= 1 && p.nat.gp + p.other.gp >= 3)
+      .map((p) => ({ id: p.id, name: p.name, team: p.team, nat: perGame(p.nat), other: perGame(p.other) }));
+    const upcoming = sched.games.filter((g) => g.d >= today).slice(0, 14);
+    const played = sched.games.filter((g) => g.d <= through).length;
+    fs.writeFileSync(path.join(root, "docs", "data", "national.json"), JSON.stringify({ generatedAt: out.generatedAt, through, networks: sched.networks, source: sched.source, played, total: sched.games.length, upcoming, teams: split.teams, players }));
+    console.log(`national TV: ${played} of ${sched.games.length} national games played; ${players.length} players with a national game`);
+  } else console.log(`national TV: no schedule file for ${season - 1}-${String(season).slice(2)} (src/data/)`);
 }
 // Streaks and anomalies: active streaks, team streaks, unusual games on each of the last 7 game dates.
 {

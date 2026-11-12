@@ -2,6 +2,45 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.30.0 (2026-11-12): National TV tab: players and teams on national TV vs other games
+
+### Why
+- **The user:** separate performances in national broadcast games (ESPN, ABC, NBC, Peacock, Amazon Prime) to see who performs well with the bigger spotlight. They sent the NBA's 2026-27 Tip-Off Guide (111 pages), which has the national schedule: "not really forecasting but it gives us a baseline".
+
+### What changed
+- **`src/data/national-tv-2026-27.json`:** the guide's national schedule, 236 games.
+  - **Pages:** 16 ABC (Christmas games simulcast on ESPN), 17 ESPN, 18 NBC/Peacock, 19 Peacock (Mondays), 20 Prime Video.
+  - **Left out:** NBA TV (p. 21) and ESPN Radio (p. 22) are not national TV here.
+  - **The parser** is `tools/parse-national-tv.py` (networks are logos, so the page-to-network map is in the script).
+- **New `src/situations/national.js`:**
+  - each player's per-game numbers in national games vs all other games: MIN, PTS, REB, AST, 3PM, STL, BLK, TOV, +/-, FG%, TS%;
+  - only games he played count; a traded player's games are combined, shown under his current team;
+  - each team's record in national vs other games.
+- **The build** (`scripts/situations.js`) writes `docs/data/national.json`: the splits, the next 14 national games, and how many are played.
+- **New page `docs/national.html` ("National TV" tab, added to every page's nav):**
+  - next national games with network and time;
+  - a player table (national / other / change for each stat), sortable by any stat's change, "bigger" or "smaller" on national TV;
+  - filters: team, national games played (default 2+), minutes a game (default 15+), name;
+  - team records.
+  - **Green / red** marks a clear change: 2+ PTS/REB/AST/3PM, 5+ TS%, 3+ +/-.
+- **Page sweep:** expects 8 nav links and includes the new page.
+
+### Tested
+- **Against ESPN:** the national schedule matches ESPN's national broadcasts for every date 10/20-11/12. All 26 games played so far match, and ESPN shows no national game the guide lacks. ESPN lists the 3 Monday Peacock games as NBCSN (the Peacock/NBCSN simulcast).
+- **New checks** (530 pass):
+  - the schedule's 236 games: valid teams and dates, only the 5 networks, 5 on Christmas, GSW at HOU on ESPN 11/11;
+  - national vs other per player across a trade (latest team shown); a 0-minute game not counted;
+  - team records;
+  - per-game averages, FG% and TS%.
+- **Built with this season's data:** 26 of 236 national games played; 225 players with a national game.
+  - e.g. Paul George 29.7 PTS on national TV (3 games) vs 18.7 otherwise;
+  - Curry's national average includes the 11/11 game he left early, so read the games and minutes columns first.
+- **Rendered:** no page errors; page sweep OK at both widths.
+
+### Still unproven
+- **Early samples:** 2-5 national games a player so far. The split means more by January.
+- **Schedule changes:** flexed games, or ones added after the guide was printed, won't count until the schedule file is updated. A periodic check against ESPN's national listings would catch that.
+
 ## 0.29.1 (2026-11-12): articles: The Athletic's NBA news live blog
 
 ### Why

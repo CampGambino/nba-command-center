@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NBA Command Center · National TV</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a;
+    --text: #e8eaef; --muted: #9aa3b2; --faint: #6b7383;
+    --accent: #4f9cf7; --good: #3fbf7f; --warn: #e5a93b; --bad: #e5604f; --live: #ff4d6d;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg: #f5f6f8; --panel: #fff; --panel2: #f0f2f5; --line: #e1e4ea; --text: #161a22; --muted: #5b6474; --faint: #8a93a3; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 18px 16px 8px; max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  main { max-width: 980px; margin: 0 auto; padding: 0 12px 40px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 22px 4px 10px; }
+  .games { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 6px; }
+  .game { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; min-width: 170px; }
+  .game .teams { font-weight: 650; }
+  .game .state { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .game.live { border-color: var(--live); }
+  .game.live .state { color: var(--live); font-weight: 600; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: grid; grid-template-columns: 58px 1fr; gap: 12px; }
+  .card.hit { border-color: var(--good); }
+  .pct { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 16px;
+         background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--panel2) 0); position: relative; }
+  .pct::before { content: ""; position: absolute; inset: 6px; background: var(--panel); border-radius: 50%; }
+  .pct span { position: relative; }
+  .card.hit .pct { background: var(--good); }
+  .card.hit .pct::before { background: var(--good); }
+  .card.hit .pct span { color: #fff; }
+  .who { font-weight: 650; }
+  .team { color: var(--faint); font-weight: 500; font-size: 12px; margin-left: 4px; }
+  .what { margin-top: 2px; }
+  .meta { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .chip { font-size: 11.5px; padding: 2px 7px; border-radius: 999px; background: var(--panel2); color: var(--muted); border: 1px solid var(--line); }
+  .chip.review { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+  .chip.out { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
+  .chip.dtd { color: var(--warn); }
+  .chip.live { color: var(--live); border-color: var(--live); font-weight: 600; }
+  .chip.hit { color: var(--good); border-color: var(--good); font-weight: 600; }
+  details { margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+  summary { cursor: pointer; color: var(--faint); }
+  details ul { margin: 4px 0 0 16px; padding: 0; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 13.5px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; background: var(--panel2); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 2px 10px; }
+  select, input[type=search] { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 14px; }
+  label { color: var(--muted); font-size: 13px; }
+  button { background: var(--panel); color: var(--accent); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 14px; cursor: pointer; }
+  .empty { color: var(--faint); padding: 12px 4px; }
+  footer { color: var(--faint); font-size: 12px; max-width: 980px; margin: 0 auto; padding: 0 16px 30px; }
+  .warn-banner { background: color-mix(in srgb, var(--warn) 12%, var(--panel)); border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); border-radius: var(--radius); padding: 10px 12px; font-size: 13px; margin: 10px 0; }
+  @media (max-width: 600px) { .hide-sm { display: none; } }
+  nav { display: flex; flex-wrap: wrap; row-gap: 4px; gap: 14px; margin-top: 6px; font-size: 13.5px; }
+  nav a { color: var(--muted); text-decoration: none; padding-bottom: 2px; }
+  nav a.on { color: var(--text); border-bottom: 2px solid var(--accent); }
+  .match { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
+  .match h3 { margin: 0 0 6px; font-size: 15px; }
+  .match table { border: 0; background: transparent; table-layout: fixed; }
+  .match td, .match th { padding: 5px 6px; font-size: 13px; }
+  .match col.l { width: 42%; } .match col.t { width: 19%; } .match col.b { width: 20%; }
+  .matches { grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); }
+  @media (max-width: 600px) { .match td, .match th { padding: 5px 4px; font-size: 12.5px; } }
+  .match th.c, .match td.c { text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .match th.c.team-h { color: var(--text); font-weight: 700; font-size: 13px; }
+  .match td.base, .match th.base { color: var(--faint); }
+  th.num { text-align: right; }
+  .matches { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 10px; }
+  .scroll { overflow-x: auto; border-radius: var(--radius); }
+  .scroll table { min-width: 860px; }
+  th.sort { cursor: pointer; }
+  th.sort.on { color: var(--accent); }
+  .hi { color: var(--good); }
+  .lo { color: var(--bad); }
+  .hi.strong, .lo.strong { font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+  .flag { color: var(--warn); }
+  .key { color: var(--muted); font-size: 12.5px; margin: 0 4px 8px; }
+  .key b.hi, .key b.lo { font-weight: 650; }
+  .toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .toggle button { border: 0; border-radius: 0; padding: 5px 10px; font-size: 13px; color: var(--muted); }
+  .toggle button.on { background: var(--accent); color: #fff; }
+  .odd { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 0; margin: 0; list-style: none; }
+  .odd li { padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .odd li:last-child { border-bottom: 0; }
+  .odd .luck { color: var(--faint); font-size: 12px; white-space: nowrap; }
+  header, main, footer { max-width: 1180px; }
+  .nets { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 6px; }
+  .net { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 9px 12px; min-width: 175px; }
+  .net .teams { font-weight: 650; }
+  .net .state { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .net.today { border-color: var(--accent); }
+  td.chg { font-weight: 650; }
+  .small { color: var(--faint); font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>NBA Command Center</h1>
+  <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a href="clutch.html">Clutch</a><a href="players.html">With / without</a><a href="trends.html">Streaks &amp; outliers</a><a href="leaders.html">Team leaders</a><a href="defenses.html">vs top teams</a><a class="on" href="national.html">National TV</a></nav>
+  <div class="sub" id="sub">Loading…</div>
+</header>
+<main>
+  <h2>Next national games</h2>
+  <div class="nets" id="next"></div>
+  <h2>Players: national TV vs other games</h2>
+  <div class="controls">
+    <select id="team"><option value="">All teams</option></select>
+    <label>National games played <select id="min"><option value="1">1+</option><option value="2" selected>2+</option><option value="3">3+</option><option value="5">5+</option></select></label>
+    <label>Minutes a game (both) <select id="mpg"><option value="0">any</option><option value="15" selected>15+</option><option value="25">25+</option></select></label>
+    <span class="toggle" id="dir"><button data-d="up" class="on">Bigger on national TV</button><button data-d="down">Smaller on national TV</button></span>
+    <input type="search" id="q" placeholder="Player">
+  </div>
+  <div class="key" id="key"></div>
+  <div class="scroll"><table id="players"></table></div>
+  <h2>Teams: record on national TV vs other games</h2>
+  <div class="scroll"><table id="teams"></table></div>
+</main>
+<footer id="foot"></footer>
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const STATS = [["pts", "PTS"], ["reb", "REB"], ["ast", "AST"], ["fg3m", "3PM"], ["tsPct", "TS%"], ["pm", "+/-"], ["min", "MIN"]];
+let D = null, sortKey = "pts", dir = "up";
+const f1 = (x) => (x == null ? "–" : (Math.round(x * 10) / 10).toFixed(1));
+const sgn = (x) => (x == null ? "–" : `${x > 0 ? "+" : ""}${f1(x)}`);
+const chg = (p, k) => (p.nat[k] == null || p.other[k] == null ? null : Math.round((p.nat[k] - p.other[k]) * 10) / 10);
+const md = (d) => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
+const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+
+function render() {
+  const team = $("team").value, min = +$("min").value, mpg = +$("mpg").value, q = $("q").value.trim().toLowerCase();
+  const rows = D.players.filter((p) => (!team || p.team === team) && p.nat.gp >= min && p.other.gp >= 1 && p.nat.min >= mpg && p.other.min >= mpg && (!q || p.name.toLowerCase().includes(q)))
+    .sort((a, b) => ((chg(b, sortKey) ?? -1e9) - (chg(a, sortKey) ?? -1e9)) * (dir === "up" ? 1 : -1) || a.name.localeCompare(b.name));
+  const cell = (p, k) => { const c = chg(p, k), lo = k === "pm" ? 3 : k === "tsPct" ? 5 : k === "min" ? 4 : 2;
+    return `<td class="num">${f1(p.nat[k])}</td><td class="num">${f1(p.other[k])}</td><td class="num chg ${c == null ? "" : c >= lo ? "hi" : c <= -lo ? "lo" : ""}">${sgn(c)}</td>`; };
+  $("players").innerHTML = `<tr><th rowspan=2>Player</th><th rowspan=2 class="num">GP<br><span class=small>nat / other</span></th>${STATS.map(([k, l]) => `<th colspan=3 class="num sort${k === sortKey ? " on" : ""}" data-k="${k}">${l}${k === sortKey ? " ▾" : ""}</th>`).join("")}</tr>
+    <tr>${STATS.map(() => `<th class="num">nat</th><th class="num">other</th><th class="num">chg</th>`).join("")}</tr>` +
+    (rows.length ? rows.slice(0, 150).map((p) => `<tr><td><b>${esc(p.name)}</b> <span class="team">${esc(p.team)}</span></td><td class="num">${p.nat.gp} / ${p.other.gp}</td>${STATS.map(([k]) => cell(p, k)).join("")}</tr>`).join("")
+      : `<tr><td colspan=${2 + STATS.length * 3} class="empty">No players match.</td></tr>`);
+  document.querySelectorAll("#players th.sort").forEach((th) => th.onclick = () => { sortKey = th.dataset.k; render(); });
+  $("key").innerHTML = `${rows.length} players · per-game averages in national games (ABC, ESPN, NBC, Peacock, Prime Video) and in all other games · <b class="hi">green</b> / <b class="lo">red</b>: a clear change (2+ PTS/REB/AST/3PM, 5+ TS%, 3+ +/-). Early in the season most players have only a few national games: read the GP column first.`;
+  const T = Object.entries(D.teams).map(([t, r]) => ({ t, ...r, np: r.nat.w + r.nat.l ? r.nat.w / (r.nat.w + r.nat.l) : null, op: r.other.w + r.other.l ? r.other.w / (r.other.w + r.other.l) : null }))
+    .sort((a, b) => (b.nat.w + b.nat.l) - (a.nat.w + a.nat.l) || (b.np ?? -1) - (a.np ?? -1));
+  const left = (t) => D.upcoming.filter((g) => g.away === t || g.home === t).length;
+  $("teams").innerHTML = `<tr><th>Team</th><th class="num">National TV</th><th class="num">Other games</th><th class="num">National games left (next ${D.upcoming.length} listed)</th></tr>` +
+    T.map((r) => `<tr><td><b>${r.t}</b></td><td class="num">${r.nat.w}-${r.nat.l}${r.np != null ? ` <span class=small>(${(r.np * 100).toFixed(0)}%)</span>` : ""}</td><td class="num">${r.other.w}-${r.other.l}${r.op != null ? ` <span class=small>(${(r.op * 100).toFixed(0)}%)</span>` : ""}</td><td class="num">${left(r.t) || "–"}</td></tr>`).join("");
+}
+
+fetch("data/national.json", { cache: "no-store" }).then((r) => r.json()).then((d) => {
+  D = d;
+  $("sub").textContent = `How players do on national TV (ABC, ESPN, NBC, Peacock, Prime Video) vs their other games · ${d.played} of ${d.total} national games played · through ${md(d.through)}`;
+  $("next").innerHTML = d.upcoming.length ? d.upcoming.map((g) => `<div class="net${g.d === today ? " today" : ""}"><div class="teams">${g.away} ${g.neutral ? "vs" : "@"} ${g.home}</div><div class="state">${g.d === today ? "Today" : new Date(g.d + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "short", month: "numeric", day: "numeric", timeZone: "UTC" })} · ${g.time} ET · ${esc(g.networks.join(" / "))}</div></div>`).join("") : `<div class="empty">No national games left on the schedule.</div>`;
+  const teams = [...new Set(d.players.map((p) => p.team))].sort();
+  $("team").innerHTML += teams.map((t) => `<option>${t}</option>`).join("");
+  ["team", "min", "mpg", "q"].forEach((id) => $(id).addEventListener("input", render));
+  document.querySelectorAll("#dir button").forEach((b) => b.onclick = () => { dir = b.dataset.d; document.querySelectorAll("#dir button").forEach((x) => x.classList.toggle("on", x === b)); render(); });
+  $("foot").innerHTML = `National games: the NBA's 2026-27 Tip-Off Guide national schedule (ABC, ESPN, NBC, Peacock incl. the Monday Peacock/NBCSN games, Prime Video; not NBA TV or ESPN Radio), checked against ESPN's broadcast listings for every game played. Regular season; only games a player played count; a traded player's games are combined. Not a forecast: a baseline for who rises (or fades) with the bigger spotlight.`;
+  render();
+}).catch((e) => { $("sub").textContent = `Couldn't load the data: ${e.message}`; });
+</script>
+</body>
+</html>

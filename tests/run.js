@@ -1164,6 +1164,35 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   ok(readEspnRoster({ athletes: [{ id: 4702384, displayName: "Nique Clifford" }] })[0].id === "4702384", "rosters: ESPN roster ids as strings (they match our box-score ids)");
 }
 
+// ---------- National TV vs other games (the user, 11/12) ----------
+{
+  const { nationalIndex, nationalSplits, perGame, nationalKey } = await import("../src/situations/national.js");
+  const sched = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "national-tv-2026-27.json"), "utf8"));
+  const TRI = new Set(["ATL","BOS","BKN","CHA","CHI","CLE","DAL","DEN","DET","GSW","HOU","IND","LAC","LAL","MEM","MIA","MIL","MIN","NOP","NYK","OKC","ORL","PHI","PHX","POR","SAC","SAS","TOR","UTA","WAS"]);
+  const nets = new Set(sched.games.flatMap((g) => g.networks));
+  ok(sched.games.length === 236 && sched.games.every((g) => TRI.has(g.away) && TRI.has(g.home) && g.away !== g.home && /^\d{4}-\d\d-\d\d$/.test(g.d) && g.networks.length)
+    && [...nets].every((n) => ["ABC", "ESPN", "NBC", "Peacock", "Prime Video"].includes(n)) && sched.games.filter((g) => g.d === "2026-12-25").length === 5
+    && nationalIndex(sched).get(nationalKey("2026-11-11", "GSW", "HOU"))?.[0] === "ESPN",
+    "national TV: 236 games from the Tip-Off Guide, valid teams and dates, only ABC/ESPN/NBC/Peacock/Prime (5 on Christmas; GSW at HOU on ESPN 11/11)", [...nets].join());
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const L = (min, pts) => keys.map((k) => ({ min, pts, fgm: 8, fga: 16, fta: 4, ftm: 3 }[k] ?? 0));
+  const files = {
+    AAA: { team: "AAA", keys, names: { 1: "Star One", 2: "Bench Two" }, games: [
+      { d: "2026-11-01", opp: "BBB", home: true, pf: 110, pa: 100, pl: { 1: L(36, 40), 2: L(10, 2) } },  // national (BBB at AAA)
+      { d: "2026-11-03", opp: "BBB", home: false, pf: 90, pa: 100, pl: { 1: L(36, 20), 2: L(0, 0) } },   // not national; Bench Two DNP
+      { d: "2026-11-05", opp: "CCC", home: true, pf: 101, pa: 99, pl: { 1: L(36, 24) } } ] },
+    DDD: { team: "DDD", keys, names: { 1: "Star One" }, games: [{ d: "2026-11-08", opp: "EEE", home: false, pf: 95, pa: 105, pl: { 1: L(30, 30) } }] }, // traded; national (DDD at EEE)
+  };
+  const ix = nationalIndex({ games: [{ d: "2026-11-01", away: "BBB", home: "AAA", networks: ["ESPN"] }, { d: "2026-11-08", away: "DDD", home: "EEE", networks: ["Prime Video"] }] });
+  const sp = nationalSplits(files, ix);
+  const star = sp.players.find((p) => p.id === "1"), bench = sp.players.find((p) => p.id === "2");
+  ok(star.nat.gp === 2 && star.nat.pts === 70 && star.other.gp === 2 && star.other.pts === 44 && star.team === "DDD" && bench.nat.gp === 1 && bench.other.gp === 0,
+    "national TV: a player's national and other games, summed across his teams (latest team shown); a 0-minute game doesn't count", JSON.stringify(sp.players));
+  ok(sp.teams.AAA.nat.w === 1 && sp.teams.AAA.nat.l === 0 && sp.teams.AAA.other.w === 1 && sp.teams.AAA.other.l === 1 && sp.teams.DDD.nat.l === 1, "national TV: team records split the same way", JSON.stringify(sp.teams));
+  const pg = perGame(star.nat);
+  ok(pg.pts === 35 && pg.fgPct === 50 && Math.abs(pg.tsPct - Math.round((70 / (2 * (32 + 0.44 * 8))) * 1000) / 10) < 1e-9, "national TV: per-game averages and shooting", JSON.stringify(pg));
+}
+
 // ---------- NBA Cup final: counts in neither standings nor stats ----------
 {
   // Shapes as ESPN gave them for the 12/13/25 semifinals and 12/16/25 final (scoreboard and team schedule).
