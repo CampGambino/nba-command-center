@@ -44,8 +44,11 @@ export const TEAM_FEED_SLUGS = { ATL: "hawks", BOS: "celtics", BKN: "nets", CHA:
 export const TEAM_FEEDS = Object.entries(TEAM_FEED_SLUGS).map(([team, slug]) => ({ src: "athletic", kind: "rss", id: `athletic:${team}`, team, url: `https://www.nytimes.com/athletic/rss/nba/${slug}/`, maxBytes: 60000 }));
 /** The team feeds read in the 1-minute run at this minute: 4 groups, on minutes 1-4 of every 5 (articles run on 0). */
 export const teamFeedGroup = (minute) => (minute % 5 === 0 ? [] : TEAM_FEEDS.filter((_, i) => i % 4 === (minute % 5) - 1));
-const SOURCE = { espn: "ESPN", athletic: "The Athletic", nyt: "NYT / The Athletic" };
-const COLOR = { espn: 0xd00000, athletic: 0x1f1f1f, nyt: 0x1f1f1f };
+// The Athletic's NBA news live blog (11/12): a new one each week (11/9 6 AM – 11/16 3 PM ET), linked near the top of
+// their NBA page, so it's found there each time. Its posts carry a writer, a time, a title and text.
+export const LIVE_FEED = { src: "athletic-live", kind: "liveblog", id: "athletic:live", url: "https://www.nytimes.com/athletic/nba/" };
+const SOURCE = { espn: "ESPN", athletic: "The Athletic", nyt: "NYT / The Athletic", "athletic-live": "The Athletic live blog" };
+const COLOR = { espn: 0xd00000, athletic: 0x1f1f1f, nyt: 0x1f1f1f, "athletic-live": 0x1f1f1f };
 const FRESH_MIN = 20;        // first run: post only what was published in the last 20 minutes
 const MAX_AGE_H = 6;         // never post anything published more than 6 hours ago
 const MAX_POSTS_PER_RUN = 10;
@@ -96,6 +99,7 @@ export function decide(item, rules = {}, now = Date.now()) {
   }
   // The Athletic: every NBA story is wanted, except what the user ruled out (11/12): The Bounce (their daily
   // show), the weekly sports trivia, and fantasy. (The sports watch guide stays: it covers the NBA too.)
+  if (item.src === "athletic-live") return { post: true, reason: "Athletic live blog post" };
   if (item.src === "athletic") {
     for (const [re, why] of ATHLETIC_SKIP) if (re.test(t)) return { post: false, reason: why };
     return { post: true, reason: item.team ? `Athletic (${item.team} feed)` : "Athletic NBA story" };
@@ -105,6 +109,7 @@ export function decide(item, rules = {}, now = Date.now()) {
 }
 
 export function tagOf(item) {
+  if (item.src === "athletic-live") return "📝 Live blog";
   if (/^sources?\b|\bsources (say|tell|said)\b|\bsources:/i.test(item.title || "") || /\bsources (told|said|say)\b/i.test(item.description || "")) return "🚨 Reporting";
   if (INJURY.test(item.title || "")) return "🩹 Injury";
   if (item.type === "HeadlineNews") return "🗞️ News";
@@ -151,17 +156,64 @@ export function parseRss(xml, src) {
   return out;
 }
 
+const UA = { "User-Agent": "Mozilla/5.0 (compatible; NBA-Command-Center articles watcher)" };
+/** The first maxBytes of a response body (then the download is stopped). */
+async function readHead(res, maxBytes) {
+  if (!res.body) return (await res.text()).slice(0, maxBytes);
+  const reader = res.body.getReader(), dec = new TextDecoder();
+  let text = "";
+  while (text.length < maxBytes) { const { done, value } = await reader.read(); if (done) break; text += dec.decode(value, { stream: true }); }
+  try { await reader.cancel(); } catch { /* already done */ }
+  return text.slice(0, maxBytes);
+}
+
+/** The current NBA news live blog's address, from the top of The Athletic's NBA page. */
+export function findLiveBlog(html) {
+  const all = [...String(html).matchAll(/\/athletic\/live-blogs\/(nba-[a-z0-9-]+)\/([A-Za-z0-9]+)\//g)];
+  const m = all.find((x) => /nba-news/.test(x[1])) || all[0];
+  return m ? `https://www.nytimes.com/athletic/live-blogs/${m[1]}/${m[2]}/` : null;
+}
+
+/** A live blog page -> items (one per post), newest first. Posts are in the page's __NEXT_DATA__ JSON. */
+export function parseLiveBlog(html, blogUrl) {
+  const i = html.indexOf('<script id="__NEXT_DATA__"');
+  if (i < 0) return [];
+  const j = html.indexOf(">", i) + 1, k = html.indexOf("</script>", j);
+  let data;
+  try { data = JSON.parse(html.slice(j, k)); } catch { return []; }
+  let conn = null;
+  const walk = (o, depth = 0) => {
+    if (conn || !o || typeof o !== "object" || depth > 40) return;
+    if (o.__typename === "LiveBlogPostsConnection" && Array.isArray(o.items)) { conn = o; return; }
+    for (const v of Array.isArray(o) ? o : Object.values(o)) walk(v, depth + 1);
+  };
+  walk(data);
+  return (conn?.items || []).filter((p) => p && p.__typename === "LiveBlogPost" && p.id).map((p) => {
+    const text = decode(p.body || "");
+    const title = decode(p.title || "") || (text.match(/^.{20,140}?[.!?](?=\s|$)/) || [text.slice(0, 120)])[0];
+    return { src: "athletic-live", key: `lb:${p.id}`, id: p.id, type: "LiveBlog", title, url: p.permalink || blogUrl, byline: p.user?.name && !/staff$/i.test(p.user.name) ? p.user.name : "",
+      description: text, published: p.publishedAt || p.createdAt || null, pinned: !!p.is_pinned,
+      // Articles the post links to: marked as already posted, so the same news doesn't post twice.
+      articleKeys: (p.attachments || []).filter((a) => a && a.type === "article" && a.url).map((a) => normUrl(a.url)) };
+  });
+}
+
 async function readFeed(feed) {
+  if (feed.kind === "liveblog") {
+    const hub = await fetch(feed.url, { headers: UA });
+    if (!hub.ok) throw new Error(`NBA page HTTP ${hub.status}`);
+    const blog = findLiveBlog(await readHead(hub, 120000));
+    if (!blog) return []; // no live blog this week
+    const res = await fetch(blog, { headers: UA });
+    if (!res.ok) throw new Error(`live blog HTTP ${res.status}`);
+    return parseLiveBlog(await res.text(), blog);
+  }
   const res = await fetch(feed.url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; NBA-Command-Center articles watcher)", Accept: feed.kind === "espn" ? "application/json" : "application/rss+xml, application/xml, text/xml" } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   if (feed.kind === "espn") return parseEspn(await res.json());
-  if (!feed.maxBytes || !res.body) return parseRss(await res.text(), feed.src).map((it) => ({ ...it, team: feed.team }));
+  if (!feed.maxBytes) return parseRss(await res.text(), feed.src).map((it) => ({ ...it, team: feed.team }));
   // Only the top of a long feed (newest first): read up to maxBytes, then stop downloading.
-  const reader = res.body.getReader(), dec = new TextDecoder();
-  let text = "";
-  while (text.length < feed.maxBytes) { const { done, value } = await reader.read(); if (done) break; text += dec.decode(value, { stream: true }); }
-  try { await reader.cancel(); } catch { /* already done */ }
-  text = text.slice(0, feed.maxBytes);
+  const text = await readHead(res, feed.maxBytes);
   return parseRss(text.slice(0, text.lastIndexOf("</item>") + 7), feed.src).map((it) => ({ ...it, team: feed.team }));
 }
 
@@ -176,7 +228,7 @@ export function embedFor(item, { now = Date.now(), base = null, key = null } = {
   const buttons = base && key ? `\n\n[👎 Noise](${base}/act?k=${key}&do=noise&key=${encodeURIComponent(item.key)})` +
     (item.byline ? ` · [🔇 Mute ${item.byline.split(/,| and /)[0].trim().slice(0, 40)}](${base}/act?k=${key}&do=mute-writer&v=${encodeURIComponent(item.byline.split(/,| and /)[0].trim())})` : "") +
     ` · [Review](${base}/review?k=${key})` : "";
-  const desc = (item.description || "").slice(0, 300);
+  const desc = (item.description || "").slice(0, item.src === "athletic-live" ? 900 : 300); // a live blog post's text is the news itself
   return {
     author: { name: `${tagOf(item)} · ${who}`.slice(0, 256) },
     title: (item.title || "(untitled)").slice(0, 256),
@@ -257,6 +309,7 @@ export async function check(env, now = Date.now(), { feeds = FEEDS } = {}) {
       await new Promise((r) => setTimeout(r, 350));
     }
     st.seen[it.key] = now;
+    if (sent) for (const k of it.articleKeys || []) st.seen[k] ??= now; // the article it links to won't post again
     log = log || (await load(env, "log", []));
     log.unshift({ at: now, key: it.key, src: it.src, type: it.type, title: it.title, url: it.url, byline: it.byline, published: it.published, description: (it.description || "").slice(0, 200), premium: it.premium || false, posted: sent, reason: d.reason });
     changed = true;
@@ -278,7 +331,8 @@ function page(st, log, rules, key, labels) {
   const a = (doIt, v, label, extra = "") => `<a class="b" href="/act?k=${key}&do=${doIt}&${extra}v=${encodeURIComponent(v)}">${label}</a>`;
   const ago = (t) => (t ? mins(Date.now() - t) + " ago" : "never");
   const teamOk = TEAM_FEEDS.filter((f) => st.ok?.[f.id] && !st.errors?.[f.id]).length, teamBad = TEAM_FEEDS.filter((f) => st.errors?.[f.id]).map((f) => `${f.team}: ${st.errors[f.id].msg}`);
-  const src = `<li><b>The Athletic team feeds</b>: ${teamOk} of 30 OK${teamBad.length ? ` · <span class="bad">${esc(teamBad.join("; "))}</span>` : ""}</li>` + FEEDS.map((f) => `<li><b>${SOURCE[f.src]}</b>: ${st.errors?.[f.src] ? `<span class="bad">error: ${esc(st.errors[f.src].msg)}</span> (${ago(st.errors[f.src].at)})` : st.ok?.[f.src] ? `OK, ${st.ok[f.src].items} items when last saved` : "not read yet"}</li>`).join("");
+  const live = st.errors?.[LIVE_FEED.id] ? `<span class="bad">error: ${esc(st.errors[LIVE_FEED.id].msg)}</span>` : st.ok?.[LIVE_FEED.id] ? `OK, ${st.ok[LIVE_FEED.id].items} posts when last read` : "not read yet";
+  const src = `<li><b>The Athletic live blog</b>: ${live}</li><li><b>The Athletic team feeds</b>: ${teamOk} of 30 OK${teamBad.length ? ` · <span class="bad">${esc(teamBad.join("; "))}</span>` : ""}</li>` + FEEDS.map((f) => `<li><b>${SOURCE[f.src]}</b>: ${st.errors?.[f.src] ? `<span class="bad">error: ${esc(st.errors[f.src].msg)}</span> (${ago(st.errors[f.src].at)})` : st.ok?.[f.src] ? `OK, ${st.ok[f.src].items} items when last saved` : "not read yet"}</li>`).join("");
   const list = (name, arr, undo) => `<p><b>${name}:</b> ${arr.length ? arr.map((x) => `${esc(x)} ${a(undo, x, "✕")}`).join(" · ") : "<span class=m>none</span>"}</p>`;
   const lab = Object.fromEntries((labels || []).map((l) => [l.key, l.v]));
   // When the watcher first saw it, and how long after publishing (the first column is the publish time).
@@ -337,7 +391,12 @@ export default {
   async scheduled(event, env, ctx) {
     const at = event.scheduledTime || Date.now();
     const minute = new Date(at).getUTCMinutes();
-    ctx.waitUntil(event.cron === ARTICLES_CRON ? check(env) : Promise.allSettled([lineupCheck(env, at), digestCheck(env, at), teamFeedGroup(minute).length ? check(env, at, { feeds: teamFeedGroup(minute) }) : null]));
+    // Team feeds, then (on minute 3 of every 5) the live blog: one after the other, as both update the articles state.
+    const articles = async () => {
+      if (teamFeedGroup(minute).length) await check(env, at, { feeds: teamFeedGroup(minute) });
+      if (minute % 5 === 3) await check(env, at, { feeds: [LIVE_FEED] });
+    };
+    ctx.waitUntil(event.cron === ARTICLES_CRON ? check(env) : Promise.allSettled([lineupCheck(env, at), digestCheck(env, at), articles()]));
   },
   async fetch(req, env) {
     const url = new URL(req.url);

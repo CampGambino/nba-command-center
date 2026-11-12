@@ -6,7 +6,7 @@
 import fs from "node:fs";
 import { parseLineups, diff as lineupDiff, lastStarters, lineupEmbed, lineupCheck, feedTime, espnStarters, feedDue } from "../cloudflare/lineups.js";
 import { dueAt, dueNow, digestCheck } from "../cloudflare/digest.js";
-import { TEAM_FEEDS, teamFeedGroup } from "../cloudflare/articles-worker.js";
+import { TEAM_FEEDS, teamFeedGroup, findLiveBlog, parseLiveBlog, LIVE_FEED } from "../cloudflare/articles-worker.js";
 import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey, tagOf as articleTag } from "../cloudflare/articles-worker.js";
 
 export async function articlesChecks(ok) {
@@ -319,6 +319,44 @@ export async function articlesChecks(ok) {
         "articles: a new story in a team feed posts once, labeled with its team feed; the 2,000 older items past the first 60 KB aren't read", JSON.stringify(log));
       const st2 = JSON.parse(kv.get("state"));
       ok(st2.ok["athletic:NYK"].items < 500, "articles: only the top of a long team feed is downloaded", String(st2.ok["athletic:NYK"].items));
+    } finally { globalThis.fetch = realFetch; }
+  }
+  // The Athletic's weekly NBA news live blog (11/12).
+  {
+    ok(findLiveBlog('<a href="/athletic/live-blogs/nba-cup-2026-live/AbC123/">x</a><a href="https://www.nytimes.com/athletic/live-blogs/nba-news-scores-games-schedule-stats-live-updates/3O8C8RgzvHTs/">y</a>') === "https://www.nytimes.com/athletic/live-blogs/nba-news-scores-games-schedule-stats-live-updates/3O8C8RgzvHTs/" && findLiveBlog("<p>none</p>") === null,
+      "articles: the current NBA news live blog is found on The Athletic's NBA page (the news blog over others)");
+    const T = Date.parse("2026-11-12T18:00:00Z");
+    const post = (id, title, body, at, user, attach) => ({ __typename: "LiveBlogPost", id, permalink: `https://www.nytimes.com/athletic/live-blogs/nba-news/3O8/${id}/`, title, body, publishedAt: at, createdAt: at, is_pinned: false, user: { name: user }, attachments: attach || [] });
+    let posts = [post("P1", "BREAKING: Steph Curry to miss at least 2 weeks", "<p>The Warriors announced that <strong>Steph Curry</strong> suffered an oblique abdominal tear.</p>", T - 60e3, "The Athletic NBA Staff", [{ type: "article", url: "https://www.nytimes.com/athletic/7776141/2026/11/12/stephen-curry-abdominal-injury-golden-state-warriors/" }])];
+    const page = () => `<html><script id="__NEXT_DATA__" type="application/json">${JSON.stringify({ props: { pageProps: { blog: { posts: { __typename: "LiveBlogPostsConnection", items: [...posts, { __typename: "LiveBlogDropzone", id: "d" }] } } } } })}</script></html>`;
+    const items = parseLiveBlog(page(), "https://x/");
+    ok(items.length === 1 && items[0].key === "lb:P1" && items[0].title.startsWith("BREAKING") && items[0].byline === "" && /Steph Curry suffered an oblique/.test(items[0].description) && items[0].articleKeys[0].includes("7776141"),
+      "articles: live blog posts read from the page's data (title, text without HTML, staff byline dropped, linked articles)", JSON.stringify(items));
+    const untitled = parseLiveBlog(page().replace("BREAKING: Steph Curry to miss at least 2 weeks", ""), "x")[0];
+    ok(untitled.title === "The Warriors announced that Steph Curry suffered an oblique abdominal tear.", "articles: an untitled post is titled by its first sentence", untitled.title);
+    const kv = new Map([["state", JSON.stringify({ started: 1, seen: {}, errors: {}, base: null, lastWrite: 0, feedStarted: { "athletic:live": 1 } })]]), sent = [];
+    const env = { DISCORD_WEBHOOK: "https://discord.com/api/webhooks/6/test-l", STATE: { get: async (k, t) => (kv.has(k) ? (t === "json" ? JSON.parse(kv.get(k)) : kv.get(k)) : null), put: async (k, v) => kv.set(k, v) } };
+    const realFetch = globalThis.fetch;
+    let warriors = "";
+    globalThis.fetch = async (u, o = {}) => {
+      u = String(u);
+      if (u === LIVE_FEED.url) return new Response('<a href="/athletic/live-blogs/nba-news-scores-games-schedule-stats-live-updates/3O8C8RgzvHTs/">live</a>', { status: 200 });
+      if (u.includes("/live-blogs/nba-news-scores")) return new Response(page(), { status: 200 });
+      if (u.includes("/rss/nba/warriors/")) return new Response(warriors, { status: 200 });
+      if (u.startsWith("https://discord.com/")) { sent.push(JSON.parse(o.body)); return new Response("{}", { status: 200 }); }
+      return new Response("", { status: 404 });
+    };
+    try {
+      const { check: articlesCheckL } = await import("../cloudflare/articles-worker.js");
+      await articlesCheckL(env, T, { feeds: [LIVE_FEED] });
+      ok(sent.length === 1 && sent[0].embeds[0].author.name.startsWith("📝 Live blog") && sent[0].embeds[0].title.startsWith("BREAKING: Steph Curry") && JSON.parse(kv.get("log"))[0].reason === "Athletic live blog post",
+        "articles: a new live blog post goes to #articles as '📝 Live blog'", JSON.stringify(sent[0]?.embeds?.[0]?.author));
+      // The article it links to shows up later in the Warriors feed: not posted again.
+      warriors = `<rss><channel><item><title>Warriors' Stephen Curry to be re-evaluated in 2 weeks</title><link>https://www.nytimes.com/athletic/7776141/2026/11/12/stephen-curry-abdominal-injury-golden-state-warriors/</link><pubDate>${new Date(T).toUTCString()}</pubDate></item></channel></rss>`;
+      const st = JSON.parse(kv.get("state")); st.feedStarted["athletic:GSW"] = 1; kv.set("state", JSON.stringify(st));
+      await articlesCheckL(env, T + 120e3, { feeds: TEAM_FEEDS.filter((f) => f.team === "GSW") });
+      await articlesCheckL(env, T + 300e3, { feeds: [LIVE_FEED] });
+      ok(sent.length === 1, "articles: the article a live blog post links to isn't posted again; the same post isn't either", String(sent.length));
     } finally { globalThis.fetch = realFetch; }
   }
 }

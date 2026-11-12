@@ -2,6 +2,34 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.29.1 (2026-11-12): articles: The Athletic's NBA news live blog
+
+### Why
+- **The user** pointed to The Athletic's NBA live blog ("posting stuff that could be useful, but I don't know how long it'll last").
+- **Checked through the Worker:**
+  - It's a weekly blog (this one runs 11/9 6 AM to 11/16 3 PM ET), linked near the top of The Athletic's NBA page.
+  - Its posts sit in the page's `__NEXT_DATA__` JSON, each with a writer, a publish time, a title (sometimes blank), the text, and any article it links to.
+
+### What changed
+- **`LIVE_FEED` in `cloudflare/articles-worker.js`:** on minute 3 of every 5 (after that minute's team feeds, one after the other, as both update the articles state):
+  - **Finding the blog:** the top of The Athletic's NBA page (120 KB) gives the current NBA news blog, so next week's is picked up on its own (`findLiveBlog`).
+  - **Reading it:** the blog page's posts are read (`parseLiveBlog`).
+  - **Posting:** each new post goes to #articles as "📝 Live blog" with its writer (staff bylines left off), title (or first sentence), and up to 900 characters of text.
+  - **The usual rules apply:** muted writers and phrases, the 6-hour limit, the first read is silent.
+  - **No double posts:** an article a post links to is marked posted, so it won't post again from a feed (e.g. Curry's MRI result: the blog post and the Warriors-feed article).
+- **Review page:** shows the live blog's status.
+
+### Tested
+- **New checks** (55 watcher checks pass):
+  - the news blog is found among other live blogs;
+  - posts are read with text minus HTML, a staff byline dropped, and the linked article;
+  - an untitled post is titled by its first sentence;
+  - a new post goes to #articles once;
+  - the linked article in the Warriors feed isn't posted again.
+
+### Still unproven
+- **Live:** whether reading the full blog page (~540 KB) every 5 minutes fits the free plan's CPU time. The first live read follows this deploy.
+
 ## 0.29.0 (2026-11-12): articles: The Athletic's 30 team feeds
 
 ### Why
