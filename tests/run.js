@@ -725,6 +725,17 @@ const more = {};
   ok(wl(A.home) === "2-0" && wl(A.road) === "1-0" && !B.home?.w && wl(B.road) === "1-1" && (B.all.w + B.all.l) === 3, "situations: a neutral-site game is neither home nor road", JSON.stringify(B));
   // Records now: AAA 3-0, BBB 2-1, CCC 0-2, DDD 0-2. Over .500: AAA, BBB.
   ok(wl(A.vsAbove) === "1-0" && wl(A.vsBelow) === "2-0" && wl(S.teams.CCC.splits.vsAbove) === "0-2", "situations: 'vs teams over .500' uses each opponent's record now", JSON.stringify({ A: [A.vsAbove, A.vsBelow], C: S.teams.CCC.splits }));
+  // Going into each game (the user, 11/12): game 1 both 0-0 (no bucket); CCC met AAA at 1-0 (over); BBB met CCC at 0-1 (under);
+  // DDD met BBB at 1-1 (exactly .500); BBB met DDD at 0-1 (under).
+  const C = S.teams.CCC.splits, D = S.teams.DDD.splits;
+  ok(!A.vsAboveThen && !A.vsBelowThen && !A.vs500Then && wl(C.vsAboveThen) === "0-1" && wl(C.vsBelowThen) === "0-1" && wl(B.vsBelowThen) === "2-0" && wl(D.vs500Then) === "0-1" && wl(D.vsAboveThen) === "0-1",
+    "situations: 'at the time' uses each opponent's record going into the game; games against a 0-0 team fall in no bucket", JSON.stringify({ A, B, C, D }));
+  ok(!Object.values(S.teams).some((t) => t.splits.vs500) && S.labels.vs500 === "vs teams at .500" && Object.values(S.teams).every((t) => !t.flags.some((f) => f.key.endsWith("Then"))) && !S.unusual.some((u) => u.key.endsWith("Then")),
+    "situations: a .500 split only where an opponent is exactly .500; 'at the time' splits are never flagged or listed as unusual");
+  // Exactly .500 now counts as .500, not 'under' (it used to be '.500 or below').
+  // CCC beats DDD, DDD beats BBB: BBB is 2-2 today.
+  const even2 = computeSituations([...rows, g("6", "2026-10-26", "CCC", "DDD", [30, 30, 30, 30], [20, 20, 20, 20]), g("9", "2026-10-29", "DDD", "BBB", [30, 30, 30, 30], [20, 20, 20, 20])]);
+  ok(wl(even2.teams.AAA.splits.vs500) === "1-0" && !even2.teams.AAA.splits.vsBelow?.l && wl(even2.teams.AAA.splits.vsBelow) === "2-0", "situations: games against a team at .500 today go in 'vs .500'", JSON.stringify(even2.teams.AAA.splits));
   ok(S.teams.AAA.streak === "W3" && wl(S.teams.AAA.last10) === "3-0" && S.teams.DDD.streak === "L2", "situations: streak and last 10");
   // Trailing at half: AAA won once (game 1); DDD, CCC, DDD lost (games 3-5). Leading is the mirror.
   ok(wl(S.baseline.trailHalf) === "1-3" && wl(S.baseline.leadHalf) === "3-1" && S.baseline.close.pct === 0.5 && S.baseline.all.pct === 0.5, "situations: league baselines are counted from both sides of every game", JSON.stringify(S.baseline));

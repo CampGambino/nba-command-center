@@ -116,6 +116,7 @@
   <h2>All teams</h2>
   <div class="controls">
     <span class="toggle" id="dir"><button data-d="best" class="on">Best first</button><button data-d="worst">Worst first</button></span>
+    <span class="toggle" id="oppMode" title="Which opponent record decides the vs >.500 / .500 / <.500 columns"><button data-m="now" class="on">Opp. record today</button><button data-m="then">At the time</button></span>
     <label>Sorted by <b id="sortName">Overall</b>. Click a column to sort by it.</label>
   </div>
   <div class="scroll"><table id="all"></table></div>
@@ -124,14 +125,23 @@
 <script>
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const COLS = [["home", "Home"], ["road", "Road"], ["vsAbove", "vs &gt;.500"], ["vsBelow", "vs ≤.500"],
+// "vs .500" appears only when some team's opponent was exactly .500 (today, or at the time, per the toggle).
+const BASE_COLS = [["home", "Home"], ["road", "Road"], ["vsAbove", "vs &gt;.500"], ["vs500", "vs .500"], ["vsBelow", "vs &lt;.500"],
   ["vsTop3", "vs top 3"], ["vsTop4", "vs top 4"], ["vsTop5", "vs top 5"],
   ["clutch", "Clutch"], ["clutchNet", "Clutch +/-"], ["close", "≤3 pts"], ["ot", "OT"],
   ["trailHalf", "Trail half"], ["leadHalf", "Lead half"], ["trail3", "Trail after 3"], ["lead3", "Lead after 3"]];
 const MATCH = [["all", "Overall"], ["home", "Home"], ["road", "Road"], ["vsAbove", "vs teams over .500"], ["vsTop5", "vs top-5 records"],
   ["clutch", "Clutch games"], ["close", "Decided by 3 or fewer"], ["trailHalf", "Trailing at half"], ["trail3", "Trailing after 3"], ["lead3", "Leading after 3"]];
-const NAMES = Object.fromEntries([["all", "Overall"], ["streak", "Streak"], ["last10", "Last 10"], ...COLS.map(([k, l]) => [k, l.replace("&gt;", ">")])]);
-let S = null, sortKey = "all", dir = "best";
+const VS = ["vsAbove", "vs500", "vsBelow"];
+let S = null, sortKey = "all", dir = "best", oppMode = "now";
+// The vs-.500 keys follow the toggle: "vsAbove" (today) or "vsAboveThen" (going into the game).
+const vsKey = (k) => (VS.includes(k) && oppMode === "then" ? `${k}Then` : k);
+const has500 = () => Object.values(S.teams).some((t) => { const r = t.splits[vsKey("vs500")]; return r && r.w + r.l > 0; });
+function colsNow() {
+  return BASE_COLS.filter(([k]) => k !== "vs500" || has500()).map(([k, l]) => [vsKey(k), oppMode === "then" && VS.includes(k) ? `${l}<br><small>at the time</small>` : l]);
+}
+let COLS = BASE_COLS;
+const names = () => Object.fromEntries([["all", "Overall"], ["streak", "Streak"], ["last10", "Last 10"], ...colsNow().map(([k, l]) => [k, l.replace("&gt;", ">").replace("&lt;", "<").replace(/<br>.*$/, "")])]);
 
 const wl = (r) => (r && r.w + r.l ? `${r.w}-${r.l}` : "–");
 const signed = (n) => (n > 0 ? `+${n}` : String(n));
@@ -160,6 +170,8 @@ function value(t, k) {
 }
 
 function render() {
+  COLS = colsNow();
+  if (sortKey && !COLS.some(([k]) => k === sortKey) && !["all", "streak", "last10"].includes(sortKey)) sortKey = "all"; // a column that's gone
   const teams = Object.entries(S.teams).map(([code, t]) => ({ code, ...t }));
   const by = Object.fromEntries(teams.map((t) => [t.code, t]));
   $("sub").textContent = `${S.season ? `${S.season - 1}-${String(S.season).slice(2)} regular season` : "This season"} · ${S.games} games through ${S.through} · from ESPN results and play-by-play`;
@@ -168,7 +180,7 @@ function render() {
     const a = by[g.away], h = by[g.home];
     if (!a || !h) return "";
     const time = g.start ? new Date(g.start).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
-    const rows = MATCH.map(([k, label]) => `<tr><td>${label}</td>${cell(a, k, "c")}${cell(h, k, "c")}<td class="c base">${S.baseline[k] && k !== "all" ? Math.round(S.baseline[k].pct * 100) + "%" : ""}</td></tr>`).join("");
+    const rows = MATCH.map(([k0, label0]) => [vsKey(k0), oppMode === "then" && VS.includes(k0) ? `${label0} (at the time)` : label0]).map(([k, label]) => `<tr><td>${label}</td>${cell(a, k, "c")}${cell(h, k, "c")}<td class="c base">${S.baseline[k] && k !== "all" ? Math.round(S.baseline[k].pct * 100) + "%" : ""}</td></tr>`).join("");
     const notes = [...a.flags.map((f) => `${g.away} ${f.text}`), ...h.flags.map((f) => `${g.home} ${f.text}`)];
     return `<div class="match"><h3>${g.away} @ ${g.home} <span class="team">${time}</span></h3>
       <table><colgroup><col class="l"><col class="t"><col class="t"><col class="b"></colgroup>
@@ -190,7 +202,7 @@ function render() {
     if (b == null) return -1;
     return sign * (b - a) || value(y, "all") - value(x, "all");
   });
-  $("sortName").textContent = NAMES[sortKey] || sortKey;
+  $("sortName").textContent = names()[sortKey] || sortKey;
   const th = (k, label, cls = "num") => `<th class="${cls} sort ${sortKey === k ? "on" : ""}" data-k="${k}">${label}${sortKey === k ? (dir === "best" ? " ▾" : " ▴") : ""}</th>`;
   const head = `<tr><th>Team</th>${th("all", "W-L")}${th("streak", "Streak")}${th("last10", "L10")}${COLS.map(([k, l]) => th(k, l)).join("")}</tr>`;
   const body = teams.map((t) => `<tr><td><b>${t.code}</b></td><td class="num">${wl(t.splits.all)}</td><td class="num">${t.streak || "–"}</td><td class="num">${wl(t.last10)}</td>${COLS.map(([k]) => cell(t, k)).join("")}</tr>`).join("");
@@ -203,10 +215,17 @@ function render() {
   });
 
   const tops = S.topTeams ? [3, 4, 5].map((n) => `top ${n}: ${S.topTeams[n].join(", ")}${S.topTeams[n].length > n ? " (tied at the cutoff)" : ""}`).join(" · ") : "";
-  $("foot").innerHTML = `Regular-season games only. "vs teams over .500" and "vs top N" use records today; teams tied at a cutoff are all included (${esc(tops)}). Clutch: games within 5 points at some point in the last 5 minutes of the 4th quarter or overtime (the NBA's definition); Clutch +/- is points scored minus allowed in those minutes. Built ${new Date(S.generatedAt).toLocaleString()}.`;
+  $("foot").innerHTML = `Regular-season games only. "vs top N" uses records today; teams tied at a cutoff are all included (${esc(tops)}). vs &gt;.500 / .500 / &lt;.500: by each opponent's record ${oppMode === "then" ? "going into that game (games against a 0-0 team, on opening night, count in none)" : "today, so a game can change columns as the opponent's record moves"}; "vs .500" appears only when an opponent was exactly .500. Clutch: games within 5 points at some point in the last 5 minutes of the 4th quarter or overtime (the NBA's definition); Clutch +/- is points scored minus allowed in those minutes. Built ${new Date(S.generatedAt).toLocaleString()}.`;
 }
 function syncDir() { document.querySelectorAll("#dir button").forEach((b) => b.classList.toggle("on", b.dataset.d === dir)); }
 document.querySelectorAll("#dir button").forEach((b) => b.onclick = () => { dir = b.dataset.d; syncDir(); render(); });
+document.querySelectorAll("#oppMode button").forEach((b) => b.onclick = () => {
+  const was = oppMode; oppMode = b.dataset.m;
+  document.querySelectorAll("#oppMode button").forEach((x) => x.classList.toggle("on", x.dataset.m === oppMode));
+  // Keep sorting by the same split in the other mode.
+  if (was !== oppMode && /^vs(Above|500|Below)(Then)?$/.test(sortKey)) sortKey = oppMode === "then" ? sortKey.replace(/(Then)?$/, "Then") : sortKey.replace(/Then$/, "");
+  render();
+});
 
 fetch("data/situations.json", { cache: "no-store" }).then((r) => r.json()).then((d) => { S = d; render(); })
   .catch((e) => { $("sub").textContent = "Couldn't load the data: " + e.message; });

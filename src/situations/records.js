@@ -4,7 +4,10 @@
  *
  * Situations (each a W-L record):
  *   all, home, road
- *   vsAbove   vs teams over .500 now      vsBelow   vs teams at .500 or below now
+ *   vsAbove   vs teams over .500 now      vs500  vs teams at exactly .500 now      vsBelow   vs teams under .500 now
+ *   vsAboveThen / vs500Then / vsBelowThen   the same by the opponent's record GOING INTO that game
+ *             (the user's request, 11/12; games against a 0-0 team fall in none of these). Shown with
+ *             colors, but not flagged or listed as unusual: they're the same games as the "now" splits.
  *   vsTop3 / vsTop4 / vsTop5   vs the teams with the 3 / 4 / 5 best records now
  *             (by win %; teams tied at the cutoff are all included, so "top 5"
  *             can be 6 teams; a team never counts as its own opponent)
@@ -33,7 +36,8 @@
  */
 export const SITUATIONS = [
   ["all", "Overall"], ["home", "Home"], ["road", "Road"],
-  ["vsAbove", "vs teams over .500"], ["vsBelow", "vs .500 or below"],
+  ["vsAbove", "vs teams over .500"], ["vs500", "vs teams at .500"], ["vsBelow", "vs teams under .500"],
+  ["vsAboveThen", "vs teams over .500 at the time"], ["vs500Then", "vs teams at .500 at the time"], ["vsBelowThen", "vs teams under .500 at the time"],
   ["vsTop3", "vs top-3 records"], ["vsTop4", "vs top-4 records"], ["vsTop5", "vs top-5 records"], ["clutch", "Clutch games"],
   ["close", "Decided by 3 or fewer"], ["ot", "Overtime"], ["ten", "Decided by 10+"],
   ["leadHalf", "Leading at half"], ["tiedHalf", "Tied at half"], ["trailHalf", "Trailing at half"],
@@ -42,7 +46,8 @@ export const SITUATIONS = [
 const LABEL = Object.fromEntries(SITUATIONS);
 // Phrases for flags ("... when trailing at half").
 const PHRASE = {
-  home: "at home", road: "on the road", vsAbove: "against teams over .500", vsBelow: "against teams at .500 or below",
+  home: "at home", road: "on the road", vsAbove: "against teams over .500", vs500: "against teams at .500", vsBelow: "against teams under .500",
+  vsAboveThen: "against teams over .500 at the time", vs500Then: "against teams at .500 at the time", vsBelowThen: "against teams under .500 at the time",
   vsTop3: "against the 3 best records", vsTop4: "against the 4 best records", vsTop5: "against the 5 best records",
   clutch: "in clutch games (within 5 in the last 5 minutes)",
   close: "in games decided by 3 or fewer", ot: "in overtime games", ten: "in games decided by 10 or more",
@@ -97,7 +102,17 @@ export function computeSituations(rows, { through = null } = {}) {
   const tg = teamGames(rows).sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
   const overall = {};
   for (const g of tg) add((overall[g.team] ??= rec()), g.win);
-  const above = (t) => (pct(overall[t]) ?? 0) > 0.5;
+  // Over, at or under .500: "above" / "even" / "below" (null for 0-0).
+  const side = (r) => (!r || r.w + r.l === 0 ? null : r.w > r.l ? "above" : r.w === r.l ? "even" : "below");
+  const KEY = { above: "vsAbove", even: "vs500", below: "vsBelow" };
+  // Each opponent's record going into the game (games before that date; no team plays twice in a day).
+  const thenRec = new Map(), run = {};
+  const dates = [...new Set(tg.map((g) => g.date))].sort();
+  for (const d of dates) {
+    const day = tg.filter((g) => g.date === d);
+    for (const g of day) thenRec.set(g, { ...(run[g.opp] || rec()) });
+    for (const g of day) add((run[g.team] ??= rec()), g.win);
+  }
   // Best records now: rank by win %, then wins; ties at the cutoff are all in.
   const ranked = Object.keys(overall).sort((x, y) => pct(overall[y]) - pct(overall[x]) || overall[y].w - overall[x].w);
   const topSet = (n) => {
@@ -111,7 +126,9 @@ export function computeSituations(rows, { through = null } = {}) {
     const k = ["all"];
     if (g.home) k.push("home");
     if (g.road) k.push("road");
-    k.push(above(g.opp) ? "vsAbove" : "vsBelow");
+    k.push(KEY[side(overall[g.opp])]);
+    const then = side(thenRec.get(g));
+    if (then) k.push(`${KEY[then]}Then`);
     for (const n of [3, 4, 5]) if (tops[n].has(g.opp)) k.push(`vsTop${n}`);
     if (g.clutch) k.push("clutch");
     if (Math.abs(g.margin) <= 3) k.push("close");
@@ -160,6 +177,7 @@ export function computeSituations(rows, { through = null } = {}) {
       const hi = r.w / n > pe;
       const tail = binomTail(r.w, n, pe, hi);
       t.luck[k] = { p: tail, direction: hi ? "better" : "worse" };
+      if (k.endsWith("Then")) continue; // shown, not flagged: the same games as the "now" splits
       const item = {
         team, key: k, w: r.w, l: r.l, baseline: p0, expectedPct: pe, expectedWins: t.expected[k], p: tail, direction: hi ? "better" : "worse",
         text: `${r.w}-${r.l} ${PHRASE[k]}: a team this good would win about ${t.expected[k]} of ${n} (league-wide, teams win ${Math.round(p0 * 100)}% of those)`,

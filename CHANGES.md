@@ -2,6 +2,41 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.26.0 (2026-11-12): Team situations: opponent records "today" or "at the time", and a .500 column
+
+### Why
+- **The user asked** whether "vs teams over .500" uses the opponent's record before the game or now (now, recomputed each build). They also asked where exactly-.500 teams go (they counted as ".500 or below").
+- **This season:** 73 of 340 team-games (21%) would change column under the record-at-the-time rule. 30 of those were against 0-0 teams on opening night, and 32 against teams exactly .500 at the time. One team (CLE, 6-6) is exactly .500 today.
+- **The user picked:**
+  - a toggle between today's record and the record at the time;
+  - a separate .500 column, shown only when some opponent is exactly .500.
+
+### What changed
+- **`src/situations/records.js`:**
+  - **Today's records:** `vsAbove` (over .500), new `vs500` (exactly .500) and `vsBelow`, which is now strictly under .500 (it was ".500 or below").
+  - **New at-the-time splits** `vsAboveThen` / `vs500Then` / `vsBelowThen`, by the opponent's record going into that game (games before that date). Games against a 0-0 team fall in none of them.
+  - **Flags:** the at-the-time splits get expected wins and colors, but aren't flagged or listed as unusual (they're the same games as today's splits; flagging both would double the false alarms).
+- **`docs/situations.html`:**
+  - an "Opp. record today / At the time" toggle;
+  - columns vs >.500 · vs .500 · vs <.500, with ".500" shown only when some team has a game against an exactly-.500 opponent in that mode;
+  - sorting by one of these columns carries over when switching mode;
+  - tonight's matchup cards follow the toggle;
+  - the footer explains the rule in use.
+
+### Tested
+- **New checks** (502 pass):
+  - records going into each game (AAA–BBB both 0-0: no bucket; CCC met AAA at 1-0: over; DDD met BBB at 1-1: .500; BBB met DDD at 0-1: under);
+  - a .500 split only where an opponent is exactly .500;
+  - at-the-time splits never flagged or listed;
+  - a team at .500 today goes in "vs .500".
+- **Rebuilt with this season's data and rendered:**
+  - today: vs >.500 / vs .500 / vs <.500 (CLE 6-6 makes the .500 column appear);
+  - at the time: LAL 5-1 / 1-0 / 4-1 (the rest of their 11-2 came against 0-0 teams).
+  - No page errors; page sweep OK.
+
+### Still unproven
+- **Labels:** "vs <.500" is now strictly under .500, so a few unusual-record lines read "against teams under .500" where they said ".500 or below".
+
 ## 0.25.4 (2026-11-12): nightly lineup timing summary
 
 ### Why
