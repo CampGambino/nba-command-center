@@ -64,7 +64,9 @@ async function main() {
   else if (!due) console.log(`discord: storylines for ${today} wait for the first build after 2 PM ET`);
   else if (watch.today !== today || !(watch.games || []).length) console.log(`discord: no games in the site data for ${today}; nothing sent`);
   else {
-    const stories = tonightStorylines({ watch, trends: read("trends.json"), leaders: read("leaders.json") });
+    let injuries = null;
+    try { injuries = read("injuries.json"); } catch { /* no injury data yet */ }
+    const stories = tonightStorylines({ watch, trends: read("trends.json"), leaders: read("leaders.json"), injuries });
     const date = new Date(`${today}T12:00:00Z`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
     const payloads = discordDigest(stories, { date });
     const lines = stories.reduce((a, g) => a + g.lines.length, 0);

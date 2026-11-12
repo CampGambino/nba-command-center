@@ -14,6 +14,10 @@
  *   lead       a run of 5+ straight games leading his team in a stat
  *   shooting   a qualified shooter one or two shots from crossing 50 / 40 / 90 either way
  *   team       a team win or loss streak of 4+
+ *   injury     a regular listed out / doubtful / questionable on the official injury report, with the
+ *              team's record and teammates' numbers without him (src/injuries/impact.js); at most 2 a game.
+ *              The report also removes every other line about a player listed Out or Doubtful, and
+ *              marks a Questionable player's lines.
  * Lines are ranked by `score` (rough newsworthiness) and capped per game.
  */
 import { cushion, needed } from "../situations/leaders.js";
@@ -42,7 +46,7 @@ function milestoneLines(watch, teams) {
         : i.scope === "career" || i.scope === "season"
           ? `${Number(i.target).toLocaleString("en-US")} ${i.scope} ${label}`
           : `${Number(i.target).toLocaleString("en-US")} ${label} ${SCOPE[i.scope] || ""}`.trim();
-      out.push({ team: t.team, kind: "milestone", text: `${i.player}: ${i.need} ${plural(i.need, label)} from ${what} (${pct(p)} tonight)`, score: (i.importance || 0) / 10 + p });
+      out.push({ team: t.team, player: i.player, kind: "milestone", text: `${i.player}: ${i.need} ${plural(i.need, label)} from ${what} (${pct(p)} tonight)`, score: (i.importance || 0) / 10 + p });
     }
   }
   return out;
@@ -63,7 +67,7 @@ function streakLines(trends, teams) {
     const w = STREAK_WEIGHT[s.key] ?? 1;
     if (s.length * w < 6) continue; // notable enough: e.g. 10+ points needs 15 straight, 20+ points 5
     const every = s.length === s.ofGames ? ", every game this season" : "";
-    out.push({ team: s.team, kind: "streak", text: `${s.name}: ${s.label.toLowerCase()} in ${s.length} straight games${every}`, score: (s.length * w) / 5 });
+    out.push({ team: s.team, player: s.name, kind: "streak", text: `${s.name}: ${s.label.toLowerCase()} in ${s.length} straight games${every}`, score: (s.length * w) / 5 });
   }
   return out;
 }
@@ -76,7 +80,7 @@ function leadLines(leaders, teams) {
     if (!teams.has(team) || run < 5) continue;
     const id = r[K.id], stat = r[K.stat], played = r[K.played];
     const every = run === played ? ", every game he's played" : "";
-    out.push({ team, kind: "lead", text: `${leaders.names?.[id] || id}: has led ${team} in ${STAT_WORD[stat] || stat} ${run} straight games${every}`, score: run / 4 });
+    out.push({ team, player: leaders.names?.[id] || id, kind: "lead", text: `${leaders.names?.[id] || id}: has led ${team} in ${STAT_WORD[stat] || stat} ${run} straight games${every}`, score: run / 4 });
   }
   return out;
 }
@@ -94,8 +98,8 @@ function shootingLines(leaders, teams) {
       const c = cushion(m, a, L.pct), n = needed(m, a, L.pct);
       const p = ((100 * m) / a).toFixed(1);
       const what = L.key === "fg" ? "from the field" : L.key === "fg3" ? "on threes" : "from the line";
-      if (n > 0 && n <= 2) out.push({ team, kind: "shooting", text: `${name}: ${n === 1 ? "1 make" : `${n} straight makes`} from ${L.pct}% ${what} (${p}%, ${m}-${a})`, score: 1.2 });
-      else if (c === 0) out.push({ team, kind: "shooting", text: `${name}: one miss drops him below ${L.pct}% ${what} (${p}%, ${m}-${a})`, score: 1.2 });
+      if (n > 0 && n <= 2) out.push({ team, player: name, kind: "shooting", text: `${name}: ${n === 1 ? "1 make" : `${n} straight makes`} from ${L.pct}% ${what} (${p}%, ${m}-${a})`, score: 1.2 });
+      else if (c === 0) out.push({ team, player: name, kind: "shooting", text: `${name}: one miss drops him below ${L.pct}% ${what} (${p}%, ${m}-${a})`, score: 1.2 });
     }
   }
   return out;
@@ -110,12 +114,32 @@ function teamLines(trends, teams) {
   return out;
 }
 
-export function tonightStorylines({ watch, trends = {}, leaders = {}, maxLines = MAX_LINES }) {
+// Names compared across sources (accents, punctuation, suffixes, hyphens ignored).
+const nameKey = (n) => String(n || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[.'’]/g, "").replace(/-/g, " ").replace(/\b(jr|sr|ii|iii|iv|v)\b/g, " ").replace(/\s+/g, " ").trim();
+
+function injuryLines(injuries, teams, today) {
+  if (!injuries || (injuries.date && today && injuries.date !== today)) return [];
+  return (injuries.impact || []).filter((x) => teams.has(x.team)).map((x) => ({ team: x.team, kind: "injury", text: x.text, score: x.score }));
+}
+
+export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries = null, maxLines = MAX_LINES }) {
   const games = (watch.games || []).map((g) => ({ id: g.id, away: g.awayTri, home: g.homeTri, start: g.start }));
   const teams = new Set(games.flatMap((g) => [g.away, g.home]));
-  const all = [...milestoneLines(watch, teams), ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams), ...teamLines(trends, teams)];
+  // The injury report overrules the rest: a player listed Out or Doubtful loses his other lines
+  // (no "54% tonight" for a man who isn't playing); a Questionable one is marked.
+  const listed = new Map();
+  if (injuries && (!injuries.date || !watch.today || injuries.date === watch.today)) for (const p of injuries.players || []) listed.set(`${p.team}|${nameKey(p.name)}`, p.status);
+  const others = [...milestoneLines(watch, teams), ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams), ...teamLines(trends, teams)]
+    .flatMap((l) => {
+      const st = l.player ? listed.get(`${l.team}|${nameKey(l.player)}`) : null;
+      if (st === "Out" || st === "Doubtful") return [];
+      return [st === "Questionable" ? { ...l, text: `${l.text} · questionable tonight`, score: l.score * 0.8 } : l];
+    });
+  const all = [...injuryLines(injuries, teams, watch.today), ...others];
   return games.map((g) => {
-    const lines = all.filter((l) => l.team === g.away || l.team === g.home).sort((a, b) => b.score - a.score).slice(0, maxLines);
+    let inj = 0;
+    const lines = all.filter((l) => l.team === g.away || l.team === g.home).sort((a, b) => b.score - a.score)
+      .filter((l) => l.kind !== "injury" || ++inj <= 2).slice(0, maxLines);
     return { ...g, lines };
   });
 }

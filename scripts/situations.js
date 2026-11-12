@@ -109,6 +109,46 @@ for (const [tri, games] of Object.entries(perTeam)) {
     names: Object.fromEntries([...used].map((id) => [id, names[id] || id])), gameKeys, games, season, shootKeys, shooting: shoot,
   }));
 }
+// Injuries: the NBA's latest official injury report for tonight, and what each regular's absence
+// means (team record and teammates with / without him). Read from the league's PDF, newest
+// 15-minute slot first. If no report can be read, the last one written for tonight stays.
+{
+  const { slotsBackFrom, parseReport } = await import("../src/injuries/report.js");
+  const { injuryImpacts } = await import("../src/injuries/impact.js");
+  const file = path.join(root, "docs", "data", "injuries.json");
+  const etNow = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
+  const etToday = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  const [h, m] = today === etToday ? [etNow.getHours(), etNow.getMinutes()] : [23, 45];
+  let report = null;
+  try {
+    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    for (const url of slotsBackFrom(today, h, m).slice(0, 64)) {
+      const res = await fetch(url, { signal: AbortSignal.timeout(20000) }).catch(() => null);
+      if (!res || !res.ok) continue;
+      const doc = await pdfjs.getDocument({ data: new Uint8Array(await res.arrayBuffer()), verbosity: 0 }).promise;
+      const pages = [];
+      for (let p = 1; p <= doc.numPages; p++) pages.push((await (await doc.getPage(p)).getTextContent()).items.map((it) => ({ x: it.transform[4], y: it.transform[5], str: it.str })));
+      report = { url, ...parseReport(pages) };
+      break;
+    }
+  } catch (e) { warnings.push(`injury report: ${e.message}`); }
+  if (report && report.rows.length) {
+    const files = Object.fromEntries(Object.entries(perTeam).map(([tri, games]) => {
+      const ids = new Set(games.flatMap((x) => Object.keys(x.pl)));
+      return [tri, { team: tri, names: Object.fromEntries([...ids].map((id) => [id, store.names?.[id] || id])), games }];
+    }));
+    const mdY = `${Number(today.slice(5, 7))}/${Number(today.slice(8, 10))}/${today.slice(0, 4)}`;
+    const tonightRows = report.rows.filter((r) => r.date === mdY);
+    const impact = injuryImpacts(report.rows, files, { date: today });
+    fs.writeFileSync(file, JSON.stringify({ generatedAt: out.generatedAt, date: today, report: { url: report.url, asOf: report.asOf },
+      players: tonightRows.map(({ team, name, status, reason, matchup, time }) => ({ team, name, status, reason, matchup, time })), impact }));
+    console.log(`injury report ${report.asOf}: ${tonightRows.length} entries tonight, ${impact.length} regulars listed out/doubtful/questionable`);
+  } else {
+    const old = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : null;
+    if (!old || old.date !== today) fs.writeFileSync(file, JSON.stringify({ generatedAt: out.generatedAt, date: today, report: null, players: [], impact: [] }));
+    console.log(`injury report: none found for ${today}${old?.date === today ? " (kept the last one)" : ""}`);
+  }
+}
 // Tonight's storylines per game (the Watch List cards and NBA Live's pre-game cards read this),
 // from the published Watch List plus the trends and leaders data written above.
 {
@@ -116,7 +156,8 @@ for (const [tri, games] of Object.entries(perTeam)) {
   const rd = (f) => JSON.parse(fs.readFileSync(path.join(root, "docs", "data", f), "utf8"));
   try {
     const watch = rd("watch.json");
-    const games = tonightStorylines({ watch, trends: rd("trends.json"), leaders: rd("leaders.json"), maxLines: 8 })
+    const injuries = fs.existsSync(path.join(root, "docs", "data", "injuries.json")) ? rd("injuries.json") : null;
+    const games = tonightStorylines({ watch, trends: rd("trends.json"), leaders: rd("leaders.json"), injuries, maxLines: 8 })
       .map((g) => ({ ...g, lines: g.lines.map(({ kind, team, text, score }) => ({ kind, team, text, score: Math.round(score * 100) / 100 })) }));
     fs.writeFileSync(path.join(root, "docs", "data", "tonight.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, games }));
   } catch (e) { console.error(`tonight's storylines not written: ${e.message}`); }

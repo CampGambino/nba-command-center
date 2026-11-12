@@ -36,6 +36,8 @@ import { rowFromGame, collectResults, allGames } from "../src/situations/results
 import { readScoreboard, readGameDetail, clockSeconds, readPlayerBox } from "../src/espn/parse.js";
 import { teamGameLines, offense, ratings, vsTopDefenses, vsTop } from "../src/situations/ratings.js";
 import { tonightStorylines, discordDigest, MIN_IMPORTANCE } from "../src/anticipate/tonight.js";
+import { parseReport, slotUrl, slotsBackFrom, displayName, shortReason } from "../src/injuries/report.js";
+import { injuryImpacts, matchId } from "../src/injuries/impact.js";
 import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey } from "../cloudflare/articles-worker.js";
 import { teamGames as leaderGames, gameLeaders, seasonLeaders, shooting, cushion, needed } from "../src/situations/leaders.js";
 import { clutchPlayers, windowPlayers, WINDOWS, CLUTCH_KEYS } from "../src/espn/pbp.js";
@@ -988,6 +990,60 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   }
   ok(pay.length >= 3 && pay.every((p) => p.embeds.length <= 10) && sizes.every((n) => n <= 6000) && pay.reduce((a, p) => a + p.embeds.length, 0) === 23 && pay[0].content && !pay[1].content && pay.every((p) => p.allowed_mentions.parse.length === 0),
     "tonight: Discord digest split within limits (10 embeds, 6,000 characters per message), no @-mentions", JSON.stringify(sizes));
+}
+
+// ---------- Official injury report: reading the PDF's table, and what an absence means ----------
+{
+  ok(slotUrl("2026-11-11", 20, 37) === "https://ak-static.cms.nba.com/referee/injury/Injury-Report_2026-11-11_08_30PM.pdf" && slotUrl("2026-11-12", 0, 5).endsWith("_12_00AM.pdf") && slotUrl("2026-11-12", 12, 0).endsWith("_12_00PM.pdf")
+    && slotsBackFrom("2026-11-11", 0, 20).length === 2, "injuries: report URLs per 15-minute Eastern slot (12 AM / 12 PM handled)");
+  ok(displayName("Haliburton, Tyrese") === "Tyrese Haliburton" && displayName("Udeh, Jr., Ernest") === "Ernest Udeh Jr." && displayName("McCullar Jr., Kevin") === "Kevin McCullar Jr." && displayName("Jackson- Davis, Trayce") === "Trayce Jackson-Davis",
+    "injuries: names \"Last, First\", suffix as its own part, and a hyphen split by a line break");
+  ok(shortReason("Injury/Illness - Left Hamstring Strain") === "left hamstring strain" && shortReason("G League - Two-Way") === "g league: two-way", "injuries: short reasons");
+  // A made-up report with the real layout's quirks (x positions as on the 11/11/26 report).
+  const I = (x, y, str) => ({ x, y, str });
+  const header = [I(289, 533, "Injury"), I(356, 533, "Report:"), I(438, 533, "11/11/26"), I(540, 533, "08:30"), I(602, 533, "PM"),
+    I(23, 480, "Game"), I(53, 480, "Date"), I(120, 480, "Game"), I(149, 480, "Time"), I(200, 480, "Matchup"), I(264, 480, "Team"), I(425, 480, "Player"), I(457, 480, "Name"), I(586, 480, "Current"), I(624, 480, "Status"), I(666, 480, "Reason")];
+  const page1 = [...header,
+    I(24, 459, "11/11/2026"), I(121, 459, "07:00"), I(146, 459, "(ET)"), I(201, 459, "WAS@IND"), I(265, 459, "Indiana"), I(298, 459, "Pacers"), I(426, 459, "Haliburton,"), I(474, 459, "Tyrese"), I(587, 459, "Out"), I(667, 459, "Injury/Illness"), I(722, 459, "-"), I(727, 459, "Left"), I(745, 459, "Hamstring"), I(789, 459, "Strain"),
+    I(667, 444, "Injury/Illness"), I(722, 444, "-"), I(727, 444, "Right"), I(750, 444, "Avulsion"), // reason wraps above and below its row
+    I(426, 437, "Bittle,"), I(452, 437, "Nate"), I(587, 437, "Out"),
+    I(667, 430, "Fracture"),
+    I(426, 415, "Udeh,"), I(453, 415, "Jr.,"), I(467, 415, "Ernest"), I(587, 415, "Questionable"), I(667, 415, "G"), I(676, 415, "League"), I(707, 415, "-"), I(712, 415, "Two-"), I(732, 415, "Way"),
+    I(399, 50, "Page"), I(420, 50, "1"), I(428, 50, "of"), I(438, 50, "2")];
+  const page2 = [I(289, 533, "Injury"), I(356, 533, "Report:"), I(438, 533, "11/11/26"),
+    I(426, 505, "Jackson-"), I(460, 505, "Davis,"), I(487, 505, "Trayce"), I(587, 505, "Doubtful"), I(667, 505, "Injury/Illness"), I(722, 505, "-"), I(727, 505, "Illness"), // team carried from page 1
+    I(24, 483, "11/12/2026"), I(121, 483, "07:00"), I(146, 483, "(ET)"), I(201, 483, "DET@WAS"), I(265, 483, "Washington"), I(316, 483, "Wizards"), I(426, 483, "NOT"), I(446, 483, "YET"), I(466, 483, "SUBMITTED")];
+  const rep = parseReport([page1, page2]);
+  const R = rep.rows;
+  ok(rep.asOf === "11/11/26 08:30 PM" && R.length === 5, "injuries: report time and row count", JSON.stringify(R.map((r) => r.name)));
+  ok(R[0].team === "IND" && R[0].matchup === "WAS@IND" && R[0].name === "Tyrese Haliburton" && R[0].status === "Out" && R[0].reason === "Injury/Illness - Left Hamstring Strain", "injuries: first row read", JSON.stringify(R[0]));
+  ok(R[1].name === "Nate Bittle" && R[1].team === "IND" && R[1].reason === "Injury/Illness - Right Avulsion Fracture", "injuries: a reason split above and below its row is rejoined; team carried down", JSON.stringify(R[1]));
+  ok(R[2].name === "Ernest Udeh Jr." && R[2].status === "Questionable" && R[2].reason === "G League - Two-Way", "injuries: suffix name; G League reason", JSON.stringify(R[2]));
+  ok(R[3].name === "Trayce Jackson-Davis" && R[3].team === "IND" && R[3].date === "11/11/2026" && R[3].status === "Doubtful", "injuries: page 2 has no header; columns and team carry over", JSON.stringify(R[3]));
+  ok(R[4].team === "WAS" && R[4].date === "11/12/2026" && R[4].status === "Not yet submitted" && R[4].name === null, "injuries: a team that hasn't submitted yet", JSON.stringify(R[4]));
+  // Impact on a made-up team: H (the injured regular) misses games 4-5; T picks up his shots.
+  const line = (min, pts, ast = 2, reb = 4) => [1, min, pts, 0, 0, 0, 0, 0, 0, reb, ast, 0, 0, 0, 0, 0, 0, 0];
+  const g = (d, pf, pa, hMin, tPts, tMin = 25) => ({ d, pf, pa, pl: { h1: line(hMin, hMin ? 20 : 0), t1: line(tMin, tPts), z1: line(10, 2) } });
+  const files = { IND: { team: "IND", names: { h1: "Tyrese Haliburton", t1: "Andrew Nembhard", z1: "Bench Guy" }, games: [
+    g("2026-11-01", 110, 100, 34, 10), g("2026-11-03", 105, 100, 33, 11), g("2026-11-05", 100, 104, 35, 9), g("2026-11-07", 95, 110, 0, 18, 32), g("2026-11-09", 99, 101, 0, 20, 33)] } };
+  ok(matchId({ team: "IND", name: "Tyrese Haliburton" }, files.IND) === "h1" && matchId({ team: "IND", name: "Nobody Here" }, files.IND) === null, "injuries: report names matched to ESPN ids within the team");
+  const imp = injuryImpacts([{ ...R[0] }, { ...R[2] }, { team: "IND", name: "Bench Guy", status: "Out", reason: "Rest", date: "11/11/2026" }], files, { date: "2026-11-11" });
+  const h = imp[0];
+  ok(imp.length === 1 && h.id === "h1" && h.without.w === 0 && h.without.l === 2 && h.with.w === 2 && h.missedInARow === 2,
+    "injuries: a regular's record without him; bench players and G League entries left out", JSON.stringify(imp.map((x) => x.text)));
+  ok(/^Tyrese Haliburton OUT \(left hamstring strain\): IND 0-2 without him \(-8\.5 a game\), 2-1 with; A\. Nembhard 10\.0 → 19\.0 pts/.test(h.text), "injuries: line wording, with the teammate whose numbers jump", h.text);
+  ok(injuryImpacts([{ ...R[0], date: "11/12/2026" }], files, { date: "2026-11-11" }).length === 0, "injuries: another night's entries are ignored");
+  // The report overrules the storylines: Out removes a player's other lines; Questionable marks them.
+  const watch = { today: "2026-11-11", games: [{ id: "g", awayTri: "WAS", homeTri: "IND", start: "2026-11-12T00:00Z" }], teams: [{ team: "IND", items: [
+    { player: "Tyrese Haliburton", stat: "ast", label: "assists", kind: "round", scope: "career", target: 3000, need: 5, importance: 40, pTonight: 0.8, publishable: true },
+    { player: "Pascal Siakam", stat: "pts", label: "points", kind: "round", scope: "career", target: 15000, need: 9, importance: 45, pTonight: 0.9, publishable: true }] }] };
+  const injuries = { date: "2026-11-11", players: [{ team: "IND", name: "Tyrese Haliburton", status: "Out" }, { team: "IND", name: "Pascal Siakam", status: "Questionable" }],
+    impact: [h, { ...h, text: "two", score: 1 }, { ...h, text: "three", score: 0.5 }] };
+  const st = tonightStorylines({ watch, injuries });
+  const txt = st[0].lines.map((l) => l.text).join(" | ");
+  ok(!/Haliburton: 5 assists/.test(txt) && /Siakam: 9 points .* · questionable tonight/.test(txt) && st[0].lines.filter((l) => l.kind === "injury").length === 2,
+    "storylines: an Out player loses his other lines, a Questionable one is marked, at most 2 injury lines a game", txt);
+  ok(tonightStorylines({ watch, injuries: { ...injuries, date: "2026-11-10" } })[0].lines.some((l) => /Haliburton: 5 assists/.test(l.text)), "storylines: an injury report for another night is ignored");
 }
 
 // ---------- Articles watcher (cloudflare/articles-worker.js) with stand-in feeds, KV and Discord ----------

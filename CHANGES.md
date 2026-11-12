@@ -2,6 +2,51 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.20.0 (2026-11-11): the official injury report in tonight's storylines
+
+### What changed
+- **New `src/injuries/report.js`:** reads the NBA's official injury report PDF (`ak-static.cms.nba.com/referee/injury/Injury-Report_<date>_<hh>_<mm><AM|PM>.pdf`, every 15 minutes, Eastern). It's the same source as the user's IR Checker extension, which is left as it is.
+  - **Slot addresses:** builds each 15-minute slot's URL.
+  - **The table:** reads it by column position.
+  - **Blank cells:** carries date, time, matchup and team down to the rows that leave them blank, across pages.
+  - **Wrapped reasons:** rejoins reasons split above and below their row.
+  - **Names:** handles "Last, First", "Udeh, Jr., Ernest" and hyphens split by a line break.
+  - **Teams not in yet:** keeps "NOT YET SUBMITTED" teams.
+- **New `src/injuries/impact.js`:** for each regular (18+ minutes a game over 3+ games) listed Out, Doubtful or Questionable tonight, it works out:
+  - the team's record and margin without him and with him;
+  - up to two teammates whose points, assists, rebounds or minutes jump in the games he missed (2+ such games);
+  - or "hasn't played without him this season".
+  - **Ranking:** a new absence ranks above a long one, and the game count is always shown.
+  - **Matching:** players are matched to ESPN ids by name within their own team.
+- **Every build now reads the newest report** (`scripts/situations.js`) and writes `docs/data/injuries.json`. If none can be read, the last one for that date stays.
+- **Tonight's storylines** (Watch List, Discord digest, NBA Live pre-game cards) gain 🩹 injury lines, at most 2 a game.
+  - **The report overrules other lines:** a player listed Out or Doubtful loses his milestone, streak, lead and shooting lines; a Questionable player's lines say "questionable tonight".
+  - **Links:** injury lines go to the With / without page for that team.
+  - **Source note:** the Watch List says which report it used.
+
+### Tested
+- **Tonight's real 8:30 PM report** (8 pages, 125 rows, 26 teams including tomorrow's games):
+  - every row has a team;
+  - wrapped reasons rejoined (e.g. "Right Avulsion Fracture", "Left Knee Injury Management");
+  - suffix and hyphenated names right;
+  - the two not-yet-submitted teams kept.
+- **Matching against our data:** 74 non-G-League entries tonight; 57 matched. The 17 unmatched have no box-score line at all this season (e.g. Porzingis, Isaac, Sharpe), so there's no with/without to show for them.
+- **A real conflict, fixed:** before the override, Devin Vassell (OUT) also had "2 3-pointers from 800 (54% tonight)". That line is now removed.
+- **New checks** (448 pass):
+  - slot URLs (12 AM / 12 PM);
+  - names and short reasons;
+  - a made-up two-page report with the real layout's quirks (wrapped reason, carried team, no header on page 2, suffix name, G League, not yet submitted);
+  - id matching;
+  - the impact line on a made-up team (record without, margin, teammate jump; bench and G League left out);
+  - another night ignored;
+  - the storyline override (Out removes, Questionable marks, 2 injury lines a game, other night ignored).
+- **Watch List** rendered with the injury lines; full page sweep passes.
+
+### Still unproven
+- **Reading the PDF from GitHub Actions:** the first push-triggered build after this change will show it.
+- **Freshness:** reports change every 15 minutes, but the site updates only with builds (3 a day, sometimes late). The Watch List says which report it used.
+- **Small samples:** "without him" often rests on 1-3 games this early.
+
 ## 0.19.0 (2026-11-11): tonight's storylines on the Watch List and in NBA Live before tip-off
 
 ### What changed

@@ -91,7 +91,7 @@
   <div id="notesIssues"></div>
 
   <h2>Tonight's storylines</h2>
-  <div class="key">What could happen or end tonight, per game: milestones in reach, streaks on the line, runs leading the team, shooters a make or two from 50 / 40 / 90, and team streaks. The same lines go to Discord at 3 PM. Tap a line for the details.</div>
+  <div class="key">What could happen or end tonight, per game: 🩹 regulars on the injury report and what changes without them, milestones in reach, streaks on the line, runs leading the team, shooters a make or two from 50 / 40 / 90, and team streaks. The same lines go to Discord at 3 PM. Tap a line for the details.<span id="injAsOf"></span></div>
   <div class="stories" id="stories"><div class="empty">Loading…</div></div>
 
   <h2>Likely tonight</h2>
@@ -263,14 +263,15 @@ async function poll() {
 
 // Tonight's storylines: the shared builder (also used for the Discord digest), with the
 // season data it needs. A failure here never stops the rest of the page.
-const KIND = { milestone: ["🎯", "#all"], streak: ["🔥", "trends.html"], lead: ["👑", "leaders.html"], shooting: ["🏹", "leaders.html"], team: ["📈", "trends.html"] };
+const KIND = { injury: ["🩹", "players.html"], milestone: ["🎯", "#all"], streak: ["🔥", "trends.html"], lead: ["👑", "leaders.html"], shooting: ["🏹", "leaders.html"], team: ["📈", "trends.html"] };
 async function renderStories() {
   try {
-    const [trends, leaders] = await Promise.all(["data/trends.json", "data/leaders.json"].map((f) => fetch(f, { cache: "no-store" }).then((r) => (r.ok ? r.json() : {}))));
-    const stories = tonightStorylines({ watch: data, trends, leaders, maxLines: 8 });
+    const [trends, leaders, injuries] = await Promise.all(["data/trends.json", "data/leaders.json", "data/injuries.json"].map((f) => fetch(f, { cache: "no-store" }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))));
+    const stories = tonightStorylines({ watch: data, trends, leaders, injuries, maxLines: 8 });
+    $("injAsOf").textContent = injuries?.report?.asOf ? ` Injuries from the official NBA injury report of ${injuries.report.asOf} ET.` : "";
     const tip = (iso) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
     $("stories").innerHTML = stories.map((g) => `<div class="story"><h3><span>${esc(g.away)} @ ${esc(g.home)}</span><span class="when">${tip(g.start)}</span></h3>
-      ${g.lines.length ? `<ul>${g.lines.map((l) => { const [icon, href] = KIND[l.kind] || ["•", "#"]; return `<li><span class="k">${icon}</span><a href="${href}">${esc(l.text)}</a></li>`; }).join("")}</ul>` : `<div class="empty">Nothing notable on the line.</div>`}</div>`).join("")
+      ${g.lines.length ? `<ul>${g.lines.map((l) => { const [icon, href0] = KIND[l.kind] || ["•", "#"]; const href = l.kind === "injury" ? `${href0}?team=${encodeURIComponent(l.team)}` : href0; return `<li><span class="k">${icon}</span><a href="${href}">${esc(l.text)}</a></li>`; }).join("")}</ul>` : `<div class="empty">Nothing notable on the line.</div>`}</div>`).join("")
       || `<div class="empty">No games tonight.</div>`;
   } catch (e) {
     console.warn("storylines failed", e);
