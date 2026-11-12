@@ -179,7 +179,8 @@ function renderItems() {
       <td class="what">${esc(i.text.replace(/^[^:]+: /, ""))}${i.note ? `<div class="small">${esc(i.note)}</div>` : ""}</td><td class="num">${fmt(i.now)}</td><td class="num">${fmt(i.need)}</td><td class="num">${i.gamesAway ?? "–"}</td><td class="num">${bar(i.pNext5)}${i.kind === "cup" ? `<div class=small>in his ${i.cupGamesLeft} Cup game${i.cupGamesLeft === 1 ? "" : "s"} left</div>` : ""}</td></tr>`).join("")
       : `<tr><td colspan=6 class="empty">Nothing matches.</td></tr>`);
 }
-let RB = [], SG = null;
+let RB = [], SG = null, PS = null;
+const PS_BOOK = { playoffs: "Playoffs", finals: "Finals", playIn: "Play-In", allStar: "All-Star Game" };
 function renderBook() {
   const book = $("book").value, scope = $("scope").value, side = $("side").value, q = $("rq").value.trim().toLowerCase();
   const rows = RB.filter((r) => r.book === book && (book === "All-Star" || !scope || r.scope === scope) && r.side === side && (!q || `${r.title} ${r.entries.map((e) => e.holder).join(" ")}`.toLowerCase().includes(q)));
@@ -187,11 +188,15 @@ function renderBook() {
     const top = r.entries[0].value, held = r.entries.filter((e) => e.value === top), next = r.entries.filter((e) => e.value !== top).slice(0, 3);
     return `<tr><td>${esc(r.title)}</td><td class="num"><b>${esc(top)}</b></td><td>${held.slice(0, 4).map((e) => esc(e.holder)).join("<br>")}${held.length > 4 ? `<br><span class=small>+ ${held.length - 4} more</span>` : ""}</td><td class="small">${next.map((e) => `${esc(e.value)} ${esc(e.holder.split(",")[0])}`).join("<br>")}</td></tr>`;
   }).join("") : `<tr><td colspan=4 class="empty">Nothing matches.</td></tr>`);
-  const sg = SG?.[book === "NBA Cup" ? "NBA Cup" : "Regular season"];
-  $("lists").innerHTML = sg && (book === "Regular season" || book === "NBA Cup") ? `${book} single-game lists (every game at or above the floor; a game that reaches the floor makes the list): ${Object.entries(sg).map(([k, v]) => `${LABEL[k] || k} ${v.floor}+ (${v.games.length} games, best ${Math.max(...v.games.map((g) => g.value))})`).join(" · ")}` : "";
+  const sg = SG?.[book];
+  $("lists").innerHTML = sg ? `${book} single-game lists (every game at or above the floor; a game that reaches the floor makes the list): ${Object.entries(sg).map(([k, v]) => `${LABEL[k] || k} ${v.floor}+ (${v.games.length} games, best ${Math.max(...v.games.map((g) => g.value))})`).join(" · ")}` : "";
 }
 function renderBoard() {
-  const stat = $("stat").value, rows = (stat.startsWith("cup:") ? D.cup?.boards?.[stat.slice(4)] : D.boards[stat]) || [];
+  const stat = $("stat").value;
+  // Postseason and All-Star career lists (the NBA Guide, through 2025-26; not updated during the season).
+  const ps = /^(allStar|playIn|playoffs|finals):/.exec(stat);
+  const rows = (ps ? (PS?.careers?.[ps[1]]?.[stat.slice(ps[0].length)] || []).map((r, i, a) => ({ name: r.name, now: r.value, rank: 1 + a.filter((q) => q.value > r.value).length, live: false }))
+    : stat.startsWith("cup:") ? D.cup?.boards?.[stat.slice(4)] : D.boards[stat]) || [];
   $("board").innerHTML = `<tr><th class="num">Rank</th><th>Player</th><th class="num">Now</th><th class="num">Start of season</th><th class="num">This season</th></tr>` +
     rows.map((r) => `<tr class="${r.live ? "live" : ""}"><td class="num">${r.rank ?? "<span class=small>–</span>"}${r.rank && r.preRank && r.rank !== r.preRank ? ` <span class="small ${r.rank < r.preRank ? "hi" : "lo"}">${r.rank < r.preRank ? "▲" : "▼"}${Math.abs(r.preRank - r.rank)}</span>` : ""}</td>
       <td>${r.live ? `<b>${esc(r.name)}</b> <span class="team">${esc(r.team || "")}</span>` : esc(r.name)}${aw(r.name)}</td><td class="num">${fmt(r.now)}</td><td class="num">${r.live ? fmt(r.now - (r.season ?? 0)) : ""}</td><td class="num">${r.live && r.season ? `+${fmt(r.season)}` : ""}</td></tr>`).join("");
@@ -222,6 +227,10 @@ Promise.all([fetch("data/records.json", { cache: "no-store" }).then((r) => r.jso
     : `<tr><td class="empty">No Cup standings.</td></tr>`;
   $("cupkey").textContent = "All-time: the Cup media guide's 2023-2025 records (knockout rounds and Championship games included) plus this season's Cup games. Neutral-site games count in all-time only.";
   ["book", "scope", "side", "rq"].forEach((id) => $(id).addEventListener("input", renderBook));
+  fetch("ref/nba-postseason-careers.json").then((r) => r.json()).then((ps) => {
+    PS = ps;
+    $("stat").innerHTML += Object.entries(ps.careers).flatMap(([b, lists]) => Object.keys(lists).filter((k) => LABEL[k]).map((k) => `<option value="${b}:${k}">${PS_BOOK[b]}: ${LABEL[k]}</option>`)).join("");
+  }).catch(() => {});
   Promise.all([fetch("ref/nba-record-book.json").then((r) => r.json()), fetch("ref/nba-single-game-bests.json").then((r) => r.json())]).then(([rb, sg]) => { RB = rb; SG = sg; renderBook(); }).catch(() => { $("book-t").innerHTML = `<tr><td class="empty">Record book not loaded.</td></tr>`; });
   $("stat").addEventListener("input", renderBoard);
   const c = d.checks || { same: 0, differ: [] };

@@ -8268,5 +8268,6681 @@
 ],
 "floor": 5
 }
+},
+"Play-In": {
+"pts": {
+"games": [
+{
+"player": "Jayson Tatum",
+"team": "Boston",
+"home": true,
+"opp": "Washington",
+"date": "May 18, 2021",
+"ot": 0,
+"value": 50,
+"detail": [
+14,
+17,
+50
+]
+},
+{
+"player": "Coby White",
+"team": "Chicago",
+"home": true,
+"opp": "Atlanta",
+"date": "April 17, 2024",
+"ot": 0,
+"value": 42,
+"detail": [
+15,
+9,
+42
+]
+},
+{
+"player": "Deni Avdija",
+"team": "Portland",
+"home": false,
+"opp": "Phoenix",
+"date": "April 14, 2026",
+"ot": 0,
+"value": 41,
+"detail": [
+15,
+8,
+41
+]
+},
+{
+"player": "Anthony Davis",
+"team": "Dallas",
+"home": false,
+"opp": "Memphis",
+"date": "April 18, 2025",
+"ot": 0,
+"value": 40,
+"detail": [
+16,
+6,
+40
+]
+},
+{
+"player": "Zion Williamson",
+"team": "New Orleans",
+"home": true,
+"opp": "LA Lakers",
+"date": "April 16, 2024",
+"ot": 0,
+"value": 40,
+"detail": [
+17,
+6,
+40
+]
+},
+{
+"player": "Zach LaVine",
+"team": "Chicago",
+"home": false,
+"opp": "Toronto",
+"date": "April 12, 2023",
+"ot": 0,
+"value": 39,
+"detail": [
+12,
+13,
+39
+]
+},
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": true,
+"opp": "Memphis",
+"date": "May 21, 2021",
+"ot": 1,
+"value": 39,
+"detail": [
+13,
+7,
+39
+]
+},
+{
+"player": "Tyler Herro",
+"team": "Miami",
+"home": false,
+"opp": "Chicago",
+"date": "April 16, 2025",
+"ot": 0,
+"value": 38,
+"detail": [
+13,
+9,
+38
+]
+},
+{
+"player": "Jimmy Butler",
+"team": "Golden State",
+"home": true,
+"opp": "Memphis",
+"date": "April 15, 2025",
+"ot": 0,
+"value": 38,
+"detail": [
+12,
+12,
+38
+]
+},
+{
+"player": "Trae Young",
+"team": "Atlanta",
+"home": false,
+"opp": "Cleveland",
+"date": "April 15, 2022",
+"ot": 0,
+"value": 38,
+"detail": [
+13,
+8,
+38
+]
+},
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": true,
+"opp": "Memphis",
+"date": "April 15, 2025",
+"ot": 0,
+"value": 37,
+"detail": [
+9,
+13,
+37
+]
+},
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": false,
+"opp": "LA Lakers",
+"date": "May 19, 2021",
+"ot": 0,
+"value": 37,
+"detail": [
+12,
+7,
+37
+]
+},
+{
+"player": "Jalen Green",
+"team": "Phoenix",
+"home": true,
+"opp": "Golden State",
+"date": "April 17, 2026",
+"ot": 0,
+"value": 36,
+"detail": [
+14,
+0,
+36
+]
+},
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": false,
+"opp": "LA Clippers",
+"date": "April 15, 2026",
+"ot": 0,
+"value": 35,
+"detail": [
+12,
+4,
+35
+]
+},
+{
+"player": "Jalen Green",
+"team": "Phoenix",
+"home": true,
+"opp": "Portland",
+"date": "April 14, 2026",
+"ot": 0,
+"value": 35,
+"detail": [
+14,
+5,
+35
+]
+},
+{
+"player": "De’Aaron Fox",
+"team": "Sacramento",
+"home": false,
+"opp": "New Orleans",
+"date": "April 19, 2024",
+"ot": 0,
+"value": 35,
+"detail": [
+12,
+7,
+35
+]
+},
+{
+"player": "Ja Morant",
+"team": "Memphis",
+"home": false,
+"opp": "Golden State",
+"date": "May 21, 2021",
+"ot": 1,
+"value": 35,
+"detail": [
+14,
+2,
+35
+]
+},
+{
+"player": "Ja Morant",
+"team": "Memphis",
+"home": false,
+"opp": "Portland",
+"date": "Aug. 15, 2020",
+"ot": 0,
+"value": 35,
+"detail": [
+13,
+6,
+35
+],
+"final": true
+},
+{
+"player": "Desmond Bane",
+"team": "Orlando",
+"home": false,
+"opp": "Philadelphia",
+"date": "April 15, 2026",
+"ot": 0,
+"value": 34,
+"detail": [
+10,
+10,
+34
+]
+},
+{
+"player": "Paul George",
+"team": "LA Clippers",
+"home": false,
+"opp": "Minnesota",
+"date": "April 12, 2022",
+"ot": 0,
+"value": 34,
+"detail": [
+10,
+8,
+34
+]
+},
+{
+"player": "Kyrie Irving",
+"team": "Brooklyn",
+"home": true,
+"opp": "Cleveland",
+"date": "April 12, 2022",
+"ot": 0,
+"value": 34,
+"detail": [
+12,
+7,
+34
+]
+},
+{
+"player": "Darius Garland",
+"team": "Cleveland",
+"home": false,
+"opp": "Brooklyn",
+"date": "April 12, 2022",
+"ot": 0,
+"value": 34,
+"detail": [
+13,
+5,
+34
+]
+},
+{
+"player": "DeMar DeRozan",
+"team": "Sacramento",
+"home": true,
+"opp": "Dallas",
+"date": "April 16, 2025",
+"ot": 0,
+"value": 33,
+"detail": [
+13,
+5,
+33
+]
+},
+{
+"player": "Kyle Lowry",
+"team": "Miami",
+"home": true,
+"opp": "Atlanta",
+"date": "April 11, 2023",
+"ot": 0,
+"value": 33,
+"detail": [
+11,
+5,
+33
+]
+}
+],
+"floor": 33
+},
+"fgm": {
+"games": [
+{
+"player": "Zion Williamson",
+"team": "New Orleans",
+"home": true,
+"opp": "LA Lakers",
+"date": "April 16, 2024",
+"ot": 0,
+"value": 17,
+"detail": [
+17,
+27
+]
+},
+{
+"player": "Anthony Davis",
+"team": "Dallas",
+"home": false,
+"opp": "Memphis",
+"date": "April 18, 2025",
+"ot": 0,
+"value": 16,
+"detail": [
+16,
+29
+]
+},
+{
+"player": "Deni Avdija",
+"team": "Portland",
+"home": false,
+"opp": "Phoenix",
+"date": "April 14, 2026",
+"ot": 0,
+"value": 15,
+"detail": [
+15,
+22
+]
+},
+{
+"player": "Coby White",
+"team": "Chicago",
+"home": true,
+"opp": "Atlanta",
+"date": "April 17, 2024",
+"ot": 0,
+"value": 15,
+"detail": [
+15,
+21
+]
+},
+{
+"player": "Jalen Green",
+"team": "Phoenix",
+"home": true,
+"opp": "Golden State",
+"date": "April 17, 2026",
+"ot": 0,
+"value": 14,
+"detail": [
+14,
+20
+]
+},
+{
+"player": "Jalen Green",
+"team": "Phoenix",
+"home": true,
+"opp": "Portland",
+"date": "April 14, 2026",
+"ot": 0,
+"value": 14,
+"detail": [
+14,
+29
+]
+},
+{
+"player": "Brandon Ingram",
+"team": "New Orleans",
+"home": false,
+"opp": "LA Clippers",
+"date": "April 15, 2022",
+"ot": 0,
+"value": 14,
+"detail": [
+14,
+21
+]
+},
+{
+"player": "Ja Morant",
+"team": "Memphis",
+"home": false,
+"opp": "Golden State",
+"date": "May 21, 2021",
+"ot": 1,
+"value": 14,
+"detail": [
+14,
+29
+]
+},
+{
+"player": "Jayson Tatum",
+"team": "Boston",
+"home": true,
+"opp": "Washington",
+"date": "May 18, 2021",
+"ot": 0,
+"value": 14,
+"detail": [
+14,
+32
+]
+},
+{
+"player": "DeMar DeRozan",
+"team": "Sacramento",
+"home": true,
+"opp": "Dallas",
+"date": "April 16, 2025",
+"ot": 0,
+"value": 13,
+"detail": [
+13,
+28
+]
+},
+{
+"player": "Tyler Herro",
+"team": "Miami",
+"home": false,
+"opp": "Chicago",
+"date": "April 16, 2025",
+"ot": 0,
+"value": 13,
+"detail": [
+13,
+19
+]
+},
+{
+"player": "Pascal Siakam",
+"team": "Toronto",
+"home": true,
+"opp": "Chicago",
+"date": "April 12, 2023",
+"ot": 0,
+"value": 13,
+"detail": [
+13,
+22
+]
+},
+{
+"player": "Trae Young",
+"team": "Atlanta",
+"home": false,
+"opp": "Cleveland",
+"date": "April 15, 2022",
+"ot": 0,
+"value": 13,
+"detail": [
+13,
+25
+]
+},
+{
+"player": "Darius Garland",
+"team": "Cleveland",
+"home": false,
+"opp": "Brooklyn",
+"date": "April 12, 2022",
+"ot": 0,
+"value": 13,
+"detail": [
+13,
+24
+]
+},
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": true,
+"opp": "Memphis",
+"date": "May 21, 2021",
+"ot": 1,
+"value": 13,
+"detail": [
+13,
+28
+]
+},
+{
+"player": "Ja Morant",
+"team": "Memphis",
+"home": false,
+"opp": "Portland",
+"date": "Aug. 15, 2020",
+"ot": 0,
+"value": 13,
+"detail": [
+13,
+28
+],
+"final": true
+}
+],
+"floor": 13
+},
+"ftm": {
+"games": [
+{
+"player": "Jayson Tatum",
+"team": "Boston",
+"home": true,
+"opp": "Washington",
+"date": "May 18, 2021",
+"ot": 0,
+"value": 17,
+"detail": [
+17,
+17
+]
+},
+{
+"player": "Damian Lillard",
+"team": "Portland",
+"home": true,
+"opp": "Memphis",
+"date": "Aug. 15, 2020",
+"ot": 0,
+"value": 14,
+"detail": [
+14,
+14
+],
+"final": true
+},
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": true,
+"opp": "Memphis",
+"date": "April 15, 2025",
+"ot": 0,
+"value": 13,
+"detail": [
+13,
+13
+]
+},
+{
+"player": "Zach LaVine",
+"team": "Chicago",
+"home": false,
+"opp": "Toronto",
+"date": "April 12, 2023",
+"ot": 0,
+"value": 13,
+"detail": [
+13,
+15
+]
+},
+{
+"player": "Jimmy Butler",
+"team": "Golden State",
+"home": true,
+"opp": "Memphis",
+"date": "April 15, 2025",
+"ot": 0,
+"value": 12,
+"detail": [
+12,
+18
+]
+},
+{
+"player": "Shai Gilgeous-Alexander",
+"team": "Oklahoma City",
+"home": false,
+"opp": "Minnesota",
+"date": "April 14, 2023",
+"ot": 0,
+"value": 12,
+"detail": [
+12,
+12
+]
+},
+{
+"player": "Trae Young",
+"team": "Atlanta",
+"home": false,
+"opp": "Orlando",
+"date": "April 15, 2025",
+"ot": 0,
+"value": 11,
+"detail": [
+11,
+12
+]
+},
+{
+"player": "Trae Young",
+"team": "Atlanta",
+"home": false,
+"opp": "Chicago",
+"date": "April 17, 2024",
+"ot": 0,
+"value": 11,
+"detail": [
+11,
+13
+]
+}
+],
+"floor": 11
+},
+"fg3m": {
+"games": [
+{
+"player": "Jalen Green",
+"team": "Phoenix",
+"home": true,
+"opp": "Golden State",
+"date": "April 17, 2026",
+"ot": 0,
+"value": 8,
+"detail": [
+8,
+14
+]
+},
+{
+"player": "Keegan Murray",
+"team": "Sacramento",
+"home": true,
+"opp": "Golden State",
+"date": "April 16, 2024",
+"ot": 0,
+"value": 8,
+"detail": [
+8,
+13
+]
+},
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": false,
+"opp": "LA Clippers",
+"date": "April 15, 2026",
+"ot": 0,
+"value": 7,
+"detail": [
+7,
+12
+]
+},
+{
+"player": "Max Strus",
+"team": "Miami",
+"home": true,
+"opp": "Chicago",
+"date": "April 14, 2023",
+"ot": 0,
+"value": 7,
+"detail": [
+7,
+12
+]
+},
+{
+"player": "Fred VanVleet",
+"team": "Toronto",
+"home": true,
+"opp": "Chicago",
+"date": "April 12, 2023",
+"ot": 0,
+"value": 7,
+"detail": [
+7,
+13
+]
+},
+{
+"player": "Devin Vassell",
+"team": "San Antonio",
+"home": false,
+"opp": "New Orleans",
+"date": "April 13, 2022",
+"ot": 0,
+"value": 7,
+"detail": [
+7,
+13
+]
+},
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": true,
+"opp": "Memphis",
+"date": "April 15, 2025",
+"ot": 0,
+"value": 6,
+"detail": [
+6,
+13
+]
+},
+{
+"player": "Nicolas Batum",
+"team": "Philadelphia",
+"home": true,
+"opp": "Miami",
+"date": "April 17, 2024",
+"ot": 0,
+"value": 6,
+"detail": [
+6,
+10
+]
+},
+{
+"player": "Mike Conley",
+"team": "Minnesota",
+"home": false,
+"opp": "LA Lakers",
+"date": "April 11, 2023",
+"ot": 1,
+"value": 6,
+"detail": [
+6,
+8
+]
+},
+{
+"player": "Kyle Lowry",
+"team": "Miami",
+"home": true,
+"opp": "Atlanta",
+"date": "April 11, 2023",
+"ot": 0,
+"value": 6,
+"detail": [
+6,
+9
+]
+},
+{
+"player": "Lauri Markkanen",
+"team": "Cleveland",
+"home": true,
+"opp": "Atlanta",
+"date": "April 15, 2022",
+"ot": 0,
+"value": 6,
+"detail": [
+6,
+12
+]
+},
+{
+"player": "Paul George",
+"team": "LA Clippers",
+"home": false,
+"opp": "Minnesota",
+"date": "April 12, 2022",
+"ot": 0,
+"value": 6,
+"detail": [
+6,
+12
+]
+},
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": true,
+"opp": "Memphis",
+"date": "May 21, 2021",
+"ot": 1,
+"value": 6,
+"detail": [
+6,
+15
+]
+},
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": false,
+"opp": "LA Lakers",
+"date": "May 19, 2021",
+"ot": 0,
+"value": 6,
+"detail": [
+6,
+9
+]
+},
+{
+"player": "Kemba Walker",
+"team": "Boston",
+"home": true,
+"opp": "Washington",
+"date": "May 18, 2021",
+"ot": 0,
+"value": 6,
+"detail": [
+6,
+14
+]
+}
+],
+"floor": 6
+},
+"reb": {
+"games": [
+{
+"player": "Jonas Valanciunas",
+"team": "Memphis",
+"home": true,
+"opp": "San Antonio",
+"date": "May 19, 2021",
+"ot": 0,
+"value": 23,
+"detail": [
+23
+]
+},
+{
+"player": "Clint Capela",
+"team": "Atlanta",
+"home": false,
+"opp": "Miami",
+"date": "April 11, 2023",
+"ot": 0,
+"value": 21,
+"detail": [
+21
+]
+},
+{
+"player": "Domantas Sabonis",
+"team": "Indiana",
+"home": true,
+"opp": "Charlotte",
+"date": "May 18, 2021",
+"ot": 0,
+"value": 21,
+"detail": [
+21
+]
+},
+{
+"player": "Jusuf Nurkic",
+"team": "Portland",
+"home": true,
+"opp": "Memphis",
+"date": "Aug. 15, 2020",
+"ot": 0,
+"value": 21,
+"detail": [
+21
+],
+"final": true
+},
+{
+"player": "Kel’el Ware",
+"team": "Miami",
+"home": false,
+"opp": "Charlotte",
+"date": "April 14, 2026",
+"ot": 1,
+"value": 19,
+"detail": [
+19
+]
+},
+{
+"player": "Jonas Valanciunas",
+"team": "New Orleans",
+"home": true,
+"opp": "Oklahoma City",
+"date": "April 12, 2023",
+"ot": 0,
+"value": 18,
+"detail": [
+18
+]
+},
+{
+"player": "Zach Edey",
+"team": "Memphis",
+"home": false,
+"opp": "Golden State",
+"date": "April 15, 2025",
+"ot": 0,
+"value": 17,
+"detail": [
+17
+]
+},
+{
+"player": "Clint Capela",
+"team": "Atlanta",
+"home": false,
+"opp": "Chicago",
+"date": "April 17, 2024",
+"ot": 0,
+"value": 17,
+"detail": [
+17
+]
+},
+{
+"player": "Bam Adebayo",
+"team": "Miami",
+"home": true,
+"opp": "Chicago",
+"date": "April 14, 2023",
+"ot": 0,
+"value": 17,
+"detail": [
+17
+]
+},
+{
+"player": "Clint Capela",
+"team": "Atlanta",
+"home": true,
+"opp": "Charlotte",
+"date": "April 13, 2022",
+"ot": 0,
+"value": 17,
+"detail": [
+17
+]
+},
+{
+"player": "Jonas Valanciunas",
+"team": "Memphis",
+"home": false,
+"opp": "Portland",
+"date": "Aug. 15, 2020",
+"ot": 0,
+"value": 17,
+"detail": [
+17
+],
+"final": true
+},
+{
+"player": "Larry Nance Jr.",
+"team": "New Orleans",
+"home": false,
+"opp": "LA Clippers",
+"date": "April 15, 2022",
+"ot": 0,
+"value": 16,
+"detail": [
+16
+]
+},
+{
+"player": "Draymond Green",
+"team": "Golden State",
+"home": true,
+"opp": "Memphis",
+"date": "May 21, 2021",
+"ot": 1,
+"value": 16,
+"detail": [
+16
+]
+}
+],
+"floor": 16
+},
+"ast": {
+"games": [
+{
+"player": "Russell Westbrook",
+"team": "Washington",
+"home": true,
+"opp": "Indiana",
+"date": "May 20, 2021",
+"ot": 0,
+"value": 15,
+"detail": [
+15
+]
+},
+{
+"player": "Kyle Anderson",
+"team": "Minnesota",
+"home": false,
+"opp": "LA Lakers",
+"date": "April 11, 2023",
+"ot": 1,
+"value": 13,
+"detail": [
+13
+]
+},
+{
+"player": "Deni Avdija",
+"team": "Portland",
+"home": false,
+"opp": "Phoenix",
+"date": "April 14, 2026",
+"ot": 0,
+"value": 12,
+"detail": [
+12
+]
+},
+{
+"player": "Kyrie Irving",
+"team": "Brooklyn",
+"home": true,
+"opp": "Cleveland",
+"date": "April 12, 2022",
+"ot": 0,
+"value": 12,
+"detail": [
+12
+]
+},
+{
+"player": "Trae Young",
+"team": "Atlanta",
+"home": true,
+"opp": "Miami",
+"date": "April 18, 2025",
+"ot": 1,
+"value": 11,
+"detail": [
+11
+]
+},
+{
+"player": "Trae Young",
+"team": "Atlanta",
+"home": true,
+"opp": "Charlotte",
+"date": "April 13, 2022",
+"ot": 0,
+"value": 11,
+"detail": [
+11
+]
+},
+{
+"player": "Kevin Durant",
+"team": "Brooklyn",
+"home": true,
+"opp": "Cleveland",
+"date": "April 12, 2022",
+"ot": 0,
+"value": 11,
+"detail": [
+11
+]
+},
+{
+"player": "Dejounte Murray",
+"team": "San Antonio",
+"home": false,
+"opp": "Memphis",
+"date": "May 19, 2021",
+"ot": 0,
+"value": 11,
+"detail": [
+11
+]
+},
+{
+"player": "Kris Dunn",
+"team": "LA Clippers",
+"home": true,
+"opp": "Golden State",
+"date": "April 15, 2026",
+"ot": 0,
+"value": 10,
+"detail": [
+10
+]
+},
+{
+"player": "LaMelo Ball",
+"team": "Charlotte",
+"home": true,
+"opp": "Miami",
+"date": "April 14, 2026",
+"ot": 1,
+"value": 10,
+"detail": [
+10
+]
+},
+{
+"player": "Draymond Green",
+"team": "Golden State",
+"home": true,
+"opp": "Memphis",
+"date": "April 15, 2025",
+"ot": 0,
+"value": 10,
+"detail": [
+10
+]
+},
+{
+"player": "Trae Young",
+"team": "Atlanta",
+"home": false,
+"opp": "Chicago",
+"date": "April 17, 2024",
+"ot": 0,
+"value": 10,
+"detail": [
+10
+]
+},
+{
+"player": "Josh Giddey",
+"team": "Oklahoma City",
+"home": false,
+"opp": "New Orleans",
+"date": "April 12, 2023",
+"ot": 0,
+"value": 10,
+"detail": [
+10
+]
+},
+{
+"player": "Draymond Green",
+"team": "Golden State",
+"home": true,
+"opp": "Memphis",
+"date": "May 21, 2021",
+"ot": 1,
+"value": 10,
+"detail": [
+10
+]
+},
+{
+"player": "Domantas Sabonis",
+"team": "Indiana",
+"home": false,
+"opp": "Washington",
+"date": "May 20, 2021",
+"ot": 0,
+"value": 10,
+"detail": [
+10
+]
+},
+{
+"player": "LeBron James",
+"team": "LA Lakers",
+"home": true,
+"opp": "Golden State",
+"date": "May 19, 2021",
+"ot": 0,
+"value": 10,
+"detail": [
+10
+]
+},
+{
+"player": "Damian Lillard",
+"team": "Portland",
+"home": true,
+"opp": "Memphis",
+"date": "Aug. 15, 2020",
+"ot": 0,
+"value": 10,
+"detail": [
+10
+],
+"final": true
+}
+],
+"floor": 10
+},
+"stl": {
+"games": [
+{
+"player": "Jordan Goodwin",
+"team": "Phoenix",
+"home": true,
+"opp": "Golden State",
+"date": "April 17, 2026",
+"ot": 0,
+"value": 6,
+"detail": [
+6
+]
+},
+{
+"player": "Jimmy Butler",
+"team": "Miami",
+"home": false,
+"opp": "Philadelphia",
+"date": "April 17, 2024",
+"ot": 0,
+"value": 5,
+"detail": [
+5
+]
+},
+{
+"player": "Kent Bazemore",
+"team": "Golden State",
+"home": false,
+"opp": "LA Lakers",
+"date": "May 19, 2021",
+"ot": 0,
+"value": 5,
+"detail": [
+5
+]
+},
+{
+"player": "Gary Trent Jr.",
+"team": "Portland",
+"home": true,
+"opp": "Memphis",
+"date": "Aug. 15, 2020",
+"ot": 0,
+"value": 5,
+"detail": [
+5
+],
+"final": true
+},
+{
+"player": "Draymond Green",
+"team": "Golden State",
+"home": false,
+"opp": "LA Clippers",
+"date": "April 15, 2026",
+"ot": 0,
+"value": 4,
+"detail": [
+4
+]
+},
+{
+"player": "Dillon Brooks",
+"team": "Phoenix",
+"home": true,
+"opp": "Portland",
+"date": "April 14, 2026",
+"ot": 0,
+"value": 4,
+"detail": [
+4
+]
+},
+{
+"player": "Royce O’Neale",
+"team": "Phoenix",
+"home": true,
+"opp": "Portland",
+"date": "April 14, 2026",
+"ot": 0,
+"value": 4,
+"detail": [
+4
+]
+},
+{
+"player": "Toumani Camara",
+"team": "Portland",
+"home": false,
+"opp": "Phoenix",
+"date": "April 14, 2026",
+"ot": 0,
+"value": 4,
+"detail": [
+4
+]
+},
+{
+"player": "Kyle Anderson",
+"team": "Minnesota",
+"home": false,
+"opp": "LA Lakers",
+"date": "April 11, 2023",
+"ot": 1,
+"value": 4,
+"detail": [
+4
+]
+},
+{
+"player": "Grayson Allen",
+"team": "Memphis",
+"home": false,
+"opp": "Golden State",
+"date": "May 21, 2021",
+"ot": 1,
+"value": 4,
+"detail": [
+4
+]
+},
+{
+"player": "Ja Morant",
+"team": "Memphis",
+"home": false,
+"opp": "Golden State",
+"date": "May 21, 2021",
+"ot": 1,
+"value": 4,
+"detail": [
+4
+]
+},
+{
+"player": "T.J. McConnell",
+"team": "Indiana",
+"home": true,
+"opp": "Charlotte",
+"date": "May 18, 2021",
+"ot": 0,
+"value": 4,
+"detail": [
+4
+]
+}
+],
+"floor": 4
+},
+"blk": {
+"games": [
+{
+"player": "Kel’el Ware",
+"team": "Miami",
+"home": false,
+"opp": "Charlotte",
+"date": "April 14, 2026",
+"ot": 1,
+"value": 5,
+"detail": [
+5
+]
+},
+{
+"player": "Bam Adebayo",
+"team": "Miami",
+"home": false,
+"opp": "Atlanta",
+"date": "April 18, 2025",
+"ot": 1,
+"value": 5,
+"detail": [
+5
+]
+},
+{
+"player": "Nicolas Claxton",
+"team": "Brooklyn",
+"home": true,
+"opp": "Cleveland",
+"date": "April 12, 2022",
+"ot": 0,
+"value": 5,
+"detail": [
+5
+]
+},
+{
+"player": "Daniel Gafford",
+"team": "Washington",
+"home": true,
+"opp": "Indiana",
+"date": "May 20, 2021",
+"ot": 0,
+"value": 5,
+"detail": [
+5
+]
+},
+{
+"player": "Jakob Poeltl",
+"team": "San Antonio",
+"home": false,
+"opp": "Memphis",
+"date": "May 19, 2021",
+"ot": 0,
+"value": 5,
+"detail": [
+5
+]
+},
+{
+"player": "Goga Bitadze",
+"team": "Orlando",
+"home": true,
+"opp": "Charlotte",
+"date": "April 17, 2026",
+"ot": 0,
+"value": 4,
+"detail": [
+4
+]
+},
+{
+"player": "Kyle Anderson",
+"team": "Minnesota",
+"home": false,
+"opp": "LA Lakers",
+"date": "April 11, 2023",
+"ot": 1,
+"value": 4,
+"detail": [
+4
+]
+},
+{
+"player": "Onyeka Okongwu",
+"team": "Atlanta",
+"home": false,
+"opp": "Miami",
+"date": "April 11, 2023",
+"ot": 0,
+"value": 4,
+"detail": [
+4
+]
+},
+{
+"player": "Kyle Anderson",
+"team": "Memphis",
+"home": true,
+"opp": "San Antonio",
+"date": "May 19, 2021",
+"ot": 0,
+"value": 4,
+"detail": [
+4
+]
+}
+],
+"floor": 4
+}
+},
+"Playoffs": {
+"pts": {
+"games": [
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": false,
+"opp": "Boston",
+"date": "April 20, 1986",
+"ot": 2,
+"value": 63,
+"detail": [
+22,
+19,
+63
+]
+},
+{
+"player": "Elgin Baylor",
+"team": "LA Lakers",
+"home": false,
+"opp": "Boston",
+"date": "April 14, 1962",
+"ot": 0,
+"value": 61,
+"detail": [
+22,
+17,
+61
+]
+},
+{
+"player": "Donovan Mitchell",
+"team": "Utah",
+"home": false,
+"opp": "Denver",
+"date": "Aug. 17, 2020",
+"ot": 1,
+"value": 57,
+"detail": [
+19,
+13,
+57
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "Philadelphia",
+"home": true,
+"opp": "Syracuse",
+"date": "March 22, 1962",
+"ot": 0,
+"value": 56,
+"detail": [
+22,
+12,
+56
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": false,
+"opp": "Miami",
+"date": "April 29, 1992",
+"ot": 0,
+"value": 56,
+"detail": [
+20,
+16,
+56
+]
+},
+{
+"player": "Charles Barkley",
+"team": "Phoenix",
+"home": false,
+"opp": "Golden State",
+"date": "May 4, 1994",
+"ot": 0,
+"value": 56,
+"detail": [
+23,
+7,
+56
+]
+},
+{
+"player": "Jimmy Butler",
+"team": "Miami",
+"home": true,
+"opp": "Milwaukee",
+"date": "April 24, 2023",
+"ot": 0,
+"value": 56,
+"detail": [
+19,
+15,
+56
+]
+},
+{
+"player": "Rick Barry",
+"team": "San Francisco",
+"home": true,
+"opp": "Philadelphia",
+"date": "April 18, 1967",
+"ot": 0,
+"value": 55,
+"detail": [
+22,
+11,
+55
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": true,
+"opp": "Cleveland",
+"date": "May 1, 1988",
+"ot": 0,
+"value": 55,
+"detail": [
+24,
+7,
+55
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": true,
+"opp": "Phoenix",
+"date": "June 16, 1993",
+"ot": 0,
+"value": 55,
+"detail": [
+21,
+13,
+55
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": true,
+"opp": "Washington",
+"date": "April 27, 1997",
+"ot": 0,
+"value": 55,
+"detail": [
+22,
+10,
+55
+]
+},
+{
+"player": "Allen Iverson",
+"team": "Philadelphia",
+"home": true,
+"opp": "New Orleans",
+"date": "April 20, 2003",
+"ot": 0,
+"value": 55,
+"detail": [
+21,
+10,
+55
+]
+},
+{
+"player": "Damian Lillard",
+"team": "Portland",
+"home": false,
+"opp": "Denver",
+"date": "June 1, 2021",
+"ot": 2,
+"value": 55,
+"detail": [
+17,
+9,
+55
+]
+},
+{
+"player": "John Havlicek",
+"team": "Boston",
+"home": true,
+"opp": "Atlanta",
+"date": "April 1, 1973",
+"ot": 0,
+"value": 54,
+"detail": [
+24,
+6,
+54
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": true,
+"opp": "New York",
+"date": "May 31, 1993",
+"ot": 0,
+"value": 54,
+"detail": [
+18,
+12,
+54
+]
+},
+{
+"player": "Allen Iverson",
+"team": "Philadelphia",
+"home": true,
+"opp": "Toronto",
+"date": "May 9, 2001",
+"ot": 0,
+"value": 54,
+"detail": [
+21,
+9,
+54
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "Philadelphia",
+"home": true,
+"opp": "Syracuse",
+"date": "March 14, 1960",
+"ot": 0,
+"value": 53,
+"detail": [
+24,
+5,
+53
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "April 23, 1969",
+"ot": 0,
+"value": 53,
+"detail": [
+21,
+11,
+53
+]
+},
+{
+"player": "Isaiah Thomas",
+"team": "Boston",
+"home": true,
+"opp": "Washington",
+"date": "May 2, 2017",
+"ot": 1,
+"value": 53,
+"detail": [
+18,
+12,
+53
+]
+},
+{
+"player": "Nikola Jokic",
+"team": "Denver",
+"home": false,
+"opp": "Phoenix",
+"date": "May 7, 2023",
+"ot": 0,
+"value": 53,
+"detail": [
+20,
+11,
+53
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": true,
+"opp": "Baltimore",
+"date": "April 5, 1965",
+"ot": 0,
+"value": 52,
+"detail": [
+16,
+20,
+52
+]
+},
+{
+"player": "Allen Iverson",
+"team": "Philadelphia",
+"home": true,
+"opp": "Toronto",
+"date": "May 16, 2001",
+"ot": 0,
+"value": 52,
+"detail": [
+21,
+2,
+52
+]
+},
+{
+"player": "Sam Jones",
+"team": "Boston",
+"home": false,
+"opp": "New York",
+"date": "March 28, 1967",
+"ot": 0,
+"value": 51,
+"detail": [
+19,
+13,
+51
+]
+},
+{
+"player": "Sleepy Floyd",
+"team": "Golden State",
+"home": true,
+"opp": "LA Lakers",
+"date": "May 10, 1987",
+"ot": 0,
+"value": 51,
+"detail": [
+18,
+13,
+51
+]
+},
+{
+"player": "Ray Allen",
+"team": "Boston",
+"home": false,
+"opp": "Chicago",
+"date": "April 30, 2009",
+"ot": 3,
+"value": 51,
+"detail": [
+18,
+6,
+51
+]
+},
+{
+"player": "Russell Westbrook",
+"team": "Oklahoma City",
+"home": false,
+"opp": "Houston",
+"date": "April 19, 2017",
+"ot": 0,
+"value": 51,
+"detail": [
+17,
+15,
+51
+]
+},
+{
+"player": "LeBron James",
+"team": "Cleveland",
+"home": false,
+"opp": "Golden State",
+"date": "May 31, 2018",
+"ot": 1,
+"value": 51,
+"detail": [
+19,
+10,
+51
+]
+},
+{
+"player": "Donovan Mitchell",
+"team": "Utah",
+"home": true,
+"opp": "Denver",
+"date": "Aug. 23, 2020",
+"ot": 0,
+"value": 51,
+"detail": [
+15,
+17,
+51
+]
+},
+{
+"player": "Jayson Tatum",
+"team": "Boston",
+"home": true,
+"opp": "Philadelphia",
+"date": "May 14, 2023",
+"ot": 0,
+"value": 51,
+"detail": [
+17,
+11,
+51
+]
+},
+{
+"player": "Bob Cousy",
+"team": "Boston",
+"home": true,
+"opp": "Syracuse",
+"date": "March 21, 1953",
+"ot": 4,
+"value": 50,
+"detail": [
+10,
+30,
+50
+]
+},
+{
+"player": "Bob Pettit",
+"team": "St. Louis",
+"home": true,
+"opp": "Boston",
+"date": "April 12, 1958",
+"ot": 0,
+"value": 50,
+"detail": [
+19,
+12,
+50
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "Philadelphia",
+"home": false,
+"opp": "Boston",
+"date": "March 22, 1960",
+"ot": 0,
+"value": 50,
+"detail": [
+22,
+6,
+50
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "San Francisco",
+"home": true,
+"opp": "St. Louis",
+"date": "April 10, 1964",
+"ot": 0,
+"value": 50,
+"detail": [
+22,
+6,
+50
+]
+},
+{
+"player": "Billy Cunningham",
+"team": "Philadelphia",
+"home": true,
+"opp": "Milwaukee",
+"date": "April 1, 1970",
+"ot": 0,
+"value": 50,
+"detail": [
+22,
+6,
+50
+]
+},
+{
+"player": "Bob McAdoo",
+"team": "Buffalo",
+"home": true,
+"opp": "Washington",
+"date": "April 18, 1975",
+"ot": 0,
+"value": 50,
+"detail": [
+20,
+10,
+50
+]
+},
+{
+"player": "Dominique Wilkins",
+"team": "Atlanta",
+"home": true,
+"opp": "Detroit",
+"date": "April 19, 1986",
+"ot": 0,
+"value": 50,
+"detail": [
+19,
+12,
+50
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": true,
+"opp": "Cleveland",
+"date": "April 28, 1988",
+"ot": 0,
+"value": 50,
+"detail": [
+19,
+12,
+50
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": true,
+"opp": "Cleveland",
+"date": "May 5, 1989",
+"ot": 1,
+"value": 50,
+"detail": [
+14,
+22,
+50
+]
+},
+{
+"player": "Karl Malone",
+"team": "Utah",
+"home": true,
+"opp": "Seattle",
+"date": "April 22, 2000",
+"ot": 0,
+"value": 50,
+"detail": [
+18,
+13,
+50
+]
+},
+{
+"player": "Vince Carter",
+"team": "Toronto",
+"home": true,
+"opp": "Philadelphia",
+"date": "May 11, 2001",
+"ot": 0,
+"value": 50,
+"detail": [
+19,
+3,
+50
+]
+},
+{
+"player": "Kobe Bryant",
+"team": "LA Lakers",
+"home": true,
+"opp": "Phoenix",
+"date": "May 4, 2006",
+"ot": 1,
+"value": 50,
+"detail": [
+20,
+5,
+50
+]
+},
+{
+"player": "Dirk Nowitzki",
+"team": "Dallas",
+"home": true,
+"opp": "Phoenix",
+"date": "June 1, 2006",
+"ot": 0,
+"value": 50,
+"detail": [
+14,
+17,
+50
+]
+},
+{
+"player": "Damian Lillard",
+"team": "Portland",
+"home": true,
+"opp": "Oklahoma City",
+"date": "April 23, 2019",
+"ot": 0,
+"value": 50,
+"detail": [
+17,
+6,
+50
+]
+},
+{
+"player": "Kevin Durant",
+"team": "Golden State",
+"home": false,
+"opp": "LA Clippers",
+"date": "April 26, 2019",
+"ot": 0,
+"value": 50,
+"detail": [
+15,
+14,
+50
+]
+},
+{
+"player": "Jamal Murray",
+"team": "Denver",
+"home": false,
+"opp": "Utah",
+"date": "Aug. 23, 2020",
+"ot": 0,
+"value": 50,
+"detail": [
+18,
+5,
+50
+]
+},
+{
+"player": "Jamal Murray",
+"team": "Denver",
+"home": false,
+"opp": "Utah",
+"date": "Aug. 30, 2020",
+"ot": 0,
+"value": 50,
+"detail": [
+17,
+7,
+50
+]
+},
+{
+"player": "Jayson Tatum",
+"team": "Boston",
+"home": true,
+"opp": "Brooklyn",
+"date": "May 28, 2021",
+"ot": 0,
+"value": 50,
+"detail": [
+16,
+13,
+50
+]
+},
+{
+"player": "Giannis Antetokounmpo",
+"team": "Milwaukee",
+"home": true,
+"opp": "Phoenix",
+"date": "July 20, 2021",
+"ot": 0,
+"value": 50,
+"detail": [
+16,
+17,
+50
+]
+},
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": false,
+"opp": "Sacramento",
+"date": "April 30, 2023",
+"ot": 0,
+"value": 50,
+"detail": [
+20,
+3,
+50
+]
+},
+{
+"player": "Joel Embiid",
+"team": "Philadelphia",
+"home": true,
+"opp": "New York",
+"date": "April 25, 2024",
+"ot": 0,
+"value": 50,
+"detail": [
+13,
+19,
+50
+]
+},
+{
+"player": "Donovan Mitchell",
+"team": "Cleveland",
+"home": false,
+"opp": "Orlando",
+"date": "May 3, 2024",
+"ot": 0,
+"value": 50,
+"detail": [
+22,
+3,
+50
+]
+},
+{
+"player": "Elgin Baylor",
+"team": "LA Lakers",
+"home": true,
+"opp": "Detroit",
+"date": "March 15, 1961",
+"ot": 0,
+"value": 49,
+"detail": [
+17,
+15,
+49
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": true,
+"opp": "Baltimore",
+"date": "April 3, 1965",
+"ot": 0,
+"value": 49,
+"detail": [
+15,
+19,
+49
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": false,
+"opp": "Boston",
+"date": "April 17, 1986",
+"ot": 0,
+"value": 49,
+"detail": [
+18,
+13,
+49
+]
+},
+{
+"player": "Hakeem Olajuwon",
+"team": "Houston",
+"home": false,
+"opp": "Seattle",
+"date": "May 14, 1987",
+"ot": 2,
+"value": 49,
+"detail": [
+19,
+11,
+49
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": false,
+"opp": "Philadelphia",
+"date": "May 11, 1990",
+"ot": 0,
+"value": 49,
+"detail": [
+19,
+7,
+49
+]
+},
+{
+"player": "Kobe Bryant",
+"team": "LA Lakers",
+"home": true,
+"opp": "Denver",
+"date": "April 23, 2008",
+"ot": 0,
+"value": 49,
+"detail": [
+18,
+8,
+49
+]
+},
+{
+"player": "LeBron James",
+"team": "Cleveland",
+"home": true,
+"opp": "Orlando",
+"date": "May 20, 2009",
+"ot": 0,
+"value": 49,
+"detail": [
+20,
+6,
+49
+]
+},
+{
+"player": "LeBron James",
+"team": "Miami",
+"home": false,
+"opp": "Brooklyn",
+"date": "May 12, 2014",
+"ot": 0,
+"value": 49,
+"detail": [
+16,
+14,
+49
+]
+},
+{
+"player": "Kevin Durant",
+"team": "Brooklyn",
+"home": true,
+"opp": "Milwaukee",
+"date": "June 15, 2021",
+"ot": 0,
+"value": 49,
+"detail": [
+16,
+13,
+49
+]
+},
+{
+"player": "Devin Booker",
+"team": "Phoenix",
+"home": true,
+"opp": "Minnesota",
+"date": "April 28, 2024",
+"ot": 0,
+"value": 49,
+"detail": [
+13,
+20,
+49
+]
+}
+],
+"floor": 49
+},
+"fgm": {
+"games": [
+{
+"player": "Wilt Chamberlain",
+"team": "Philadelphia",
+"home": true,
+"opp": "Syracuse",
+"date": "March 14, 1960",
+"ot": 0,
+"value": 24,
+"detail": [
+24,
+42
+]
+},
+{
+"player": "John Havlicek",
+"team": "Boston",
+"home": true,
+"opp": "Atlanta",
+"date": "April 1, 1973",
+"ot": 0,
+"value": 24,
+"detail": [
+24,
+36
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": true,
+"opp": "Cleveland",
+"date": "May 1, 1988",
+"ot": 0,
+"value": 24,
+"detail": [
+24,
+45
+]
+},
+{
+"player": "Charles Barkley",
+"team": "Phoenix",
+"home": false,
+"opp": "Golden State",
+"date": "May 4, 1994",
+"ot": 0,
+"value": 23,
+"detail": [
+23,
+31
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "Philadelphia",
+"home": false,
+"opp": "Boston",
+"date": "March 22, 1960",
+"ot": 0,
+"value": 22,
+"detail": [
+22,
+42
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "Philadelphia",
+"home": true,
+"opp": "Syracuse",
+"date": "March 22, 1962",
+"ot": 0,
+"value": 22,
+"detail": [
+22,
+48
+]
+},
+{
+"player": "Elgin Baylor",
+"team": "LA Lakers",
+"home": false,
+"opp": "Boston",
+"date": "April 14, 1962",
+"ot": 0,
+"value": 22,
+"detail": [
+22,
+46
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "San Francisco",
+"home": true,
+"opp": "St. Louis",
+"date": "April 10, 1964",
+"ot": 0,
+"value": 22,
+"detail": [
+22,
+32
+]
+},
+{
+"player": "Rick Barry",
+"team": "San Francisco",
+"home": true,
+"opp": "Philadelphia",
+"date": "April 18, 1967",
+"ot": 0,
+"value": 22,
+"detail": [
+22,
+48
+]
+},
+{
+"player": "Billy Cunningham",
+"team": "Philadelphia",
+"home": true,
+"opp": "Milwaukee",
+"date": "April 1, 1970",
+"ot": 0,
+"value": 22,
+"detail": [
+22,
+39
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": false,
+"opp": "Boston",
+"date": "April 20, 1986",
+"ot": 2,
+"value": 22,
+"detail": [
+22,
+41
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": true,
+"opp": "Washington",
+"date": "April 27, 1997",
+"ot": 0,
+"value": 22,
+"detail": [
+22,
+35
+]
+},
+{
+"player": "Donovan Mitchell",
+"team": "Cleveland",
+"home": false,
+"opp": "Orlando",
+"date": "May 3, 2024",
+"ot": 0,
+"value": 22,
+"detail": [
+22,
+36
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "April 23, 1969",
+"ot": 0,
+"value": 21,
+"detail": [
+21,
+41
+]
+},
+{
+"player": "Bob McAdoo",
+"team": "Buffalo",
+"home": true,
+"opp": "Boston",
+"date": "April 6, 1974",
+"ot": 0,
+"value": 21,
+"detail": [
+21,
+40
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": true,
+"opp": "Miami",
+"date": "April 24, 1992",
+"ot": 0,
+"value": 21,
+"detail": [
+21,
+34
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": true,
+"opp": "Phoenix",
+"date": "June 16, 1993",
+"ot": 0,
+"value": 21,
+"detail": [
+21,
+37
+]
+},
+{
+"player": "Shaquille O’Neal",
+"team": "LA Lakers",
+"home": true,
+"opp": "Sacramento",
+"date": "April 23, 2000",
+"ot": 0,
+"value": 21,
+"detail": [
+21,
+33
+]
+},
+{
+"player": "Shaquille O’Neal",
+"team": "LA Lakers",
+"home": true,
+"opp": "Indiana",
+"date": "June 7, 2000",
+"ot": 0,
+"value": 21,
+"detail": [
+21,
+31
+]
+},
+{
+"player": "Allen Iverson",
+"team": "Philadelphia",
+"home": true,
+"opp": "Toronto",
+"date": "May 9, 2001",
+"ot": 0,
+"value": 21,
+"detail": [
+21,
+39
+]
+},
+{
+"player": "Allen Iverson",
+"team": "Philadelphia",
+"home": true,
+"opp": "Toronto",
+"date": "May 16, 2001",
+"ot": 0,
+"value": 21,
+"detail": [
+21,
+32
+]
+},
+{
+"player": "Allen Iverson",
+"team": "Philadelphia",
+"home": true,
+"opp": "New Orleans",
+"date": "April 20, 2003",
+"ot": 0,
+"value": 21,
+"detail": [
+21,
+32
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": false,
+"opp": "Baltimore",
+"date": "April 9, 1965",
+"ot": 0,
+"value": 20,
+"detail": [
+20,
+43
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "LA Lakers",
+"home": true,
+"opp": "New York",
+"date": "May 6, 1970",
+"ot": 0,
+"value": 20,
+"detail": [
+20,
+27
+]
+},
+{
+"player": "Kareem Abdul-Jabbar",
+"team": "Milwaukee",
+"home": false,
+"opp": "Chicago",
+"date": "April 18, 1974",
+"ot": 0,
+"value": 20,
+"detail": [
+20,
+29
+]
+},
+{
+"player": "Bob McAdoo",
+"team": "Buffalo",
+"home": true,
+"opp": "Washington",
+"date": "April 18, 1975",
+"ot": 0,
+"value": 20,
+"detail": [
+20,
+32
+]
+},
+{
+"player": "Xavier McDaniel",
+"team": "Seattle",
+"home": true,
+"opp": "LA Lakers",
+"date": "May 23, 1987",
+"ot": 0,
+"value": 20,
+"detail": [
+20,
+29
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": false,
+"opp": "Milwaukee",
+"date": "May 1, 1990",
+"ot": 0,
+"value": 20,
+"detail": [
+20,
+35
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": false,
+"opp": "Philadelphia",
+"date": "May 10, 1991",
+"ot": 0,
+"value": 20,
+"detail": [
+20,
+34
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": false,
+"opp": "Miami",
+"date": "April 29, 1992",
+"ot": 0,
+"value": 20,
+"detail": [
+20,
+30
+]
+},
+{
+"player": "Hakeem Olajuwon",
+"team": "Houston",
+"home": false,
+"opp": "Utah",
+"date": "April 27, 1995",
+"ot": 0,
+"value": 20,
+"detail": [
+20,
+30
+]
+},
+{
+"player": "Steve Nash",
+"team": "Phoenix",
+"home": false,
+"opp": "Dallas",
+"date": "May 15, 2005",
+"ot": 0,
+"value": 20,
+"detail": [
+20,
+28
+]
+},
+{
+"player": "Kobe Bryant",
+"team": "LA Lakers",
+"home": true,
+"opp": "Phoenix",
+"date": "May 4, 2006",
+"ot": 1,
+"value": 20,
+"detail": [
+20,
+35
+]
+},
+{
+"player": "LeBron James",
+"team": "Cleveland",
+"home": true,
+"opp": "Orlando",
+"date": "May 20, 2009",
+"ot": 0,
+"value": 20,
+"detail": [
+20,
+30
+]
+},
+{
+"player": "Russell Westbrook",
+"team": "Oklahoma City",
+"home": false,
+"opp": "Miami",
+"date": "June 19, 2012",
+"ot": 0,
+"value": 20,
+"detail": [
+20,
+32
+]
+},
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": false,
+"opp": "Sacramento",
+"date": "April 30, 2023",
+"ot": 0,
+"value": 20,
+"detail": [
+20,
+38
+]
+},
+{
+"player": "Devin Booker",
+"team": "Phoenix",
+"home": true,
+"opp": "Denver",
+"date": "May 5, 2023",
+"ot": 0,
+"value": 20,
+"detail": [
+20,
+25
+]
+},
+{
+"player": "Nikola Jokic",
+"team": "Denver",
+"home": false,
+"opp": "Phoenix",
+"date": "May 7, 2023",
+"ot": 0,
+"value": 20,
+"detail": [
+20,
+30
+]
+}
+],
+"floor": 20
+},
+"ftm": {
+"games": [
+{
+"player": "Bob Cousy",
+"team": "Boston",
+"home": true,
+"opp": "Syracuse",
+"date": "March 21, 1953",
+"ot": 4,
+"value": 30,
+"detail": [
+30,
+32
+]
+},
+{
+"player": "Dirk Nowitzki",
+"team": "Dallas",
+"home": true,
+"opp": "Oklahoma City",
+"date": "May 17, 2011",
+"ot": 0,
+"value": 24,
+"detail": [
+24,
+24
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": true,
+"opp": "New York",
+"date": "May 14, 1989",
+"ot": 0,
+"value": 23,
+"detail": [
+23,
+28
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": true,
+"opp": "Cleveland",
+"date": "May 5, 1989",
+"ot": 1,
+"value": 22,
+"detail": [
+22,
+27
+]
+},
+{
+"player": "Karl Malone",
+"team": "Utah",
+"home": false,
+"opp": "LA Clippers",
+"date": "May 3, 1992",
+"ot": 0,
+"value": 22,
+"detail": [
+22,
+24
+]
+},
+{
+"player": "Oscar Robertson",
+"team": "Cincinnati",
+"home": false,
+"opp": "Boston",
+"date": "April 10, 1963",
+"ot": 0,
+"value": 21,
+"detail": [
+21,
+22
+]
+},
+{
+"player": "Derrick Coleman",
+"team": "New Jersey",
+"home": true,
+"opp": "New York",
+"date": "May 6, 1994",
+"ot": 0,
+"value": 21,
+"detail": [
+21,
+25
+]
+},
+{
+"player": "Kevin Johnson",
+"team": "Phoenix",
+"home": true,
+"opp": "Houston",
+"date": "May 20, 1995",
+"ot": 0,
+"value": 21,
+"detail": [
+21,
+22
+]
+},
+{
+"player": "Paul Pierce",
+"team": "Boston",
+"home": false,
+"opp": "Indiana",
+"date": "April 19, 2003",
+"ot": 0,
+"value": 21,
+"detail": [
+21,
+21
+]
+},
+{
+"player": "Dirk Nowitzki",
+"team": "Dallas",
+"home": true,
+"opp": "San Antonio",
+"date": "May 13, 2006",
+"ot": 0,
+"value": 21,
+"detail": [
+21,
+24
+]
+},
+{
+"player": "Dwyane Wade",
+"team": "Miami",
+"home": true,
+"opp": "Dallas",
+"date": "June 18, 2006",
+"ot": 1,
+"value": 21,
+"detail": [
+21,
+25
+]
+},
+{
+"player": "Kobe Bryant",
+"team": "LA Lakers",
+"home": true,
+"opp": "Utah",
+"date": "May 4, 2008",
+"ot": 0,
+"value": 21,
+"detail": [
+21,
+23
+]
+},
+{
+"player": "Bob Cousy",
+"team": "Boston",
+"home": true,
+"opp": "Syracuse",
+"date": "March 17, 1954",
+"ot": 1,
+"value": 20,
+"detail": [
+20,
+26
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": false,
+"opp": "Detroit",
+"date": "April 3, 1962",
+"ot": 0,
+"value": 20,
+"detail": [
+20,
+23
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": true,
+"opp": "Baltimore",
+"date": "April 5, 1965",
+"ot": 0,
+"value": 20,
+"detail": [
+20,
+21
+]
+},
+{
+"player": "Magic Johnson",
+"team": "LA Lakers",
+"home": true,
+"opp": "Golden State",
+"date": "May 8, 1991",
+"ot": 0,
+"value": 20,
+"detail": [
+20,
+22
+]
+},
+{
+"player": "Karl Malone",
+"team": "Utah",
+"home": false,
+"opp": "Portland",
+"date": "May 9, 1991",
+"ot": 0,
+"value": 20,
+"detail": [
+20,
+22
+]
+},
+{
+"player": "Devin Booker",
+"team": "Phoenix",
+"home": true,
+"opp": "Minnesota",
+"date": "April 28, 2024",
+"ot": 0,
+"value": 20,
+"detail": [
+20,
+21
+]
+}
+],
+"floor": 20
+},
+"fg3m": {
+"games": [
+{
+"player": "Damian Lillard",
+"team": "Portland",
+"home": false,
+"opp": "Denver",
+"date": "June 1, 2021",
+"ot": 2,
+"value": 12,
+"detail": [
+12,
+17
+]
+},
+{
+"player": "Klay Thompson",
+"team": "Golden State",
+"home": false,
+"opp": "Oklahoma City",
+"date": "May 28, 2016",
+"ot": 0,
+"value": 11,
+"detail": [
+11,
+18
+]
+},
+{
+"player": "Damian Lillard",
+"team": "Portland",
+"home": true,
+"opp": "Oklahoma City",
+"date": "April 23, 2019",
+"ot": 0,
+"value": 10,
+"detail": [
+10,
+18
+]
+},
+{
+"player": "Rex Chapman",
+"team": "Phoenix",
+"home": false,
+"opp": "Seattle",
+"date": "April 25, 1997",
+"ot": 0,
+"value": 9,
+"detail": [
+9,
+17
+]
+},
+{
+"player": "Vince Carter",
+"team": "Toronto",
+"home": true,
+"opp": "Philadelphia",
+"date": "May 11, 2001",
+"ot": 0,
+"value": 9,
+"detail": [
+9,
+13
+]
+},
+{
+"player": "Ray Allen",
+"team": "Milwaukee",
+"home": true,
+"opp": "Philadelphia",
+"date": "June 1, 2001",
+"ot": 0,
+"value": 9,
+"detail": [
+9,
+13
+]
+},
+{
+"player": "Ray Allen",
+"team": "Boston",
+"home": false,
+"opp": "Chicago",
+"date": "April 30, 2009",
+"ot": 3,
+"value": 9,
+"detail": [
+9,
+18
+]
+},
+{
+"player": "Jason Terry",
+"team": "Dallas",
+"home": true,
+"opp": "LA Lakers",
+"date": "May 8, 2011",
+"ot": 0,
+"value": 9,
+"detail": [
+9,
+10
+]
+},
+{
+"player": "Klay Thompson",
+"team": "Golden State",
+"home": true,
+"opp": "Houston",
+"date": "May 26, 2018",
+"ot": 0,
+"value": 9,
+"detail": [
+9,
+14
+]
+},
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": true,
+"opp": "Cleveland",
+"date": "June 3, 2018",
+"ot": 0,
+"value": 9,
+"detail": [
+9,
+17
+]
+},
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": true,
+"opp": "Portland",
+"date": "May 14, 2019",
+"ot": 0,
+"value": 9,
+"detail": [
+9,
+15
+]
+},
+{
+"player": "Jamal Murray",
+"team": "Denver",
+"home": false,
+"opp": "Utah",
+"date": "Aug. 23, 2020",
+"ot": 0,
+"value": 9,
+"detail": [
+9,
+15
+]
+},
+{
+"player": "Donovan Mitchell",
+"team": "Utah",
+"home": true,
+"opp": "Denver",
+"date": "Aug. 30, 2020",
+"ot": 0,
+"value": 9,
+"detail": [
+9,
+13
+]
+},
+{
+"player": "Jamal Murray",
+"team": "Denver",
+"home": false,
+"opp": "Utah",
+"date": "Aug. 30, 2020",
+"ot": 0,
+"value": 9,
+"detail": [
+9,
+12
+]
+},
+{
+"player": "Damian Lillard",
+"team": "Portland",
+"home": false,
+"opp": "Denver",
+"date": "May 24, 2021",
+"ot": 0,
+"value": 9,
+"detail": [
+9,
+16
+]
+},
+{
+"player": "Bojan Bogdanovic",
+"team": "Utah",
+"home": true,
+"opp": "LA Clippers",
+"date": "June 16, 2021",
+"ot": 0,
+"value": 9,
+"detail": [
+9,
+17
+]
+},
+{
+"player": "Donovan Mitchell",
+"team": "Utah",
+"home": false,
+"opp": "LA Clippers",
+"date": "June 18, 2021",
+"ot": 0,
+"value": 9,
+"detail": [
+9,
+15
+]
+},
+{
+"player": "Donte DiVincenzo",
+"team": "New York",
+"home": true,
+"opp": "Indiana",
+"date": "May 19, 2024",
+"ot": 0,
+"value": 9,
+"detail": [
+9,
+15
+]
+},
+{
+"player": "Gary Trent Jr.",
+"team": "Milwaukee",
+"home": true,
+"opp": "Indiana",
+"date": "April 25, 2025",
+"ot": 0,
+"value": 9,
+"detail": [
+9,
+12
+]
+},
+{
+"player": "Buddy Hield",
+"team": "Golden State",
+"home": false,
+"opp": "Houston",
+"date": "May 4, 2025",
+"ot": 0,
+"value": 9,
+"detail": [
+9,
+11
+]
+}
+],
+"floor": 9
+},
+"reb": {
+"games": [
+{
+"player": "Wilt Chamberlain",
+"team": "Philadelphia",
+"home": true,
+"opp": "Boston",
+"date": "April 5, 1967",
+"ot": 0,
+"value": 41,
+"detail": [
+41
+]
+},
+{
+"player": "Bill Russell",
+"team": "Boston",
+"home": true,
+"opp": "Philadelphia",
+"date": "March 23, 1958",
+"ot": 0,
+"value": 40,
+"detail": [
+40
+]
+},
+{
+"player": "Bill Russell",
+"team": "Boston",
+"home": true,
+"opp": "St. Louis",
+"date": "March 29, 1960",
+"ot": 0,
+"value": 40,
+"detail": [
+40
+]
+},
+{
+"player": "Bill Russell",
+"team": "Boston",
+"home": true,
+"opp": "LA Lakers",
+"date": "April 18, 1962",
+"ot": 1,
+"value": 40,
+"detail": [
+40
+]
+},
+{
+"player": "Bill Russell",
+"team": "Boston",
+"home": true,
+"opp": "Philadelphia",
+"date": "March 19, 1960",
+"ot": 0,
+"value": 39,
+"detail": [
+39
+]
+},
+{
+"player": "Bill Russell",
+"team": "Boston",
+"home": true,
+"opp": "Syracuse",
+"date": "March 23, 1961",
+"ot": 0,
+"value": 39,
+"detail": [
+39
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "Philadelphia",
+"home": true,
+"opp": "Boston",
+"date": "April 6, 1965",
+"ot": 0,
+"value": 39,
+"detail": [
+39
+]
+},
+{
+"player": "Bill Russell",
+"team": "Boston",
+"home": true,
+"opp": "St. Louis",
+"date": "April 11, 1961",
+"ot": 0,
+"value": 38,
+"detail": [
+38
+]
+},
+{
+"player": "Bill Russell",
+"team": "Boston",
+"home": true,
+"opp": "LA Lakers",
+"date": "April 16, 1963",
+"ot": 0,
+"value": 38,
+"detail": [
+38
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "San Francisco",
+"home": true,
+"opp": "Boston",
+"date": "April 24, 1964",
+"ot": 0,
+"value": 38,
+"detail": [
+38
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "Philadelphia",
+"home": true,
+"opp": "San Francisco",
+"date": "April 16, 1967",
+"ot": 0,
+"value": 38,
+"detail": [
+38
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "Philadelphia",
+"home": true,
+"opp": "Boston",
+"date": "March 27, 1962",
+"ot": 0,
+"value": 37,
+"detail": [
+37
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "Philadelphia",
+"home": false,
+"opp": "Boston",
+"date": "April 8, 1965",
+"ot": 0,
+"value": 37,
+"detail": [
+37
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "Philadelphia",
+"home": true,
+"opp": "Boston",
+"date": "April 11, 1967",
+"ot": 0,
+"value": 36,
+"detail": [
+36
+]
+},
+{
+"player": "Willis Reed",
+"team": "New York",
+"home": true,
+"opp": "Baltimore",
+"date": "April 2, 1970",
+"ot": 0,
+"value": 36,
+"detail": [
+36
+]
+},
+{
+"player": "Bill Bridges",
+"team": "Atlanta",
+"home": false,
+"opp": "New York",
+"date": "March 27, 1971",
+"ot": 0,
+"value": 36,
+"detail": [
+36
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "Philadelphia",
+"home": false,
+"opp": "Boston",
+"date": "March 22, 1960",
+"ot": 0,
+"value": 35,
+"detail": [
+35
+]
+},
+{
+"player": "Bill Russell",
+"team": "Boston",
+"home": true,
+"opp": "St. Louis",
+"date": "April 9, 1960",
+"ot": 0,
+"value": 35,
+"detail": [
+35
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "Philadelphia",
+"home": true,
+"opp": "Syracuse",
+"date": "March 22, 1962",
+"ot": 0,
+"value": 35,
+"detail": [
+35
+]
+},
+{
+"player": "Bill Russell",
+"team": "Boston",
+"home": true,
+"opp": "Cincinnati",
+"date": "April 9, 1964",
+"ot": 0,
+"value": 35,
+"detail": [
+35
+]
+}
+],
+"floor": 35
+},
+"ast": {
+"games": [
+{
+"player": "Magic Johnson",
+"team": "LA Lakers",
+"home": true,
+"opp": "Phoenix",
+"date": "May 15, 1984",
+"ot": 0,
+"value": 24,
+"detail": [
+24
+]
+},
+{
+"player": "John Stockton",
+"team": "Utah",
+"home": false,
+"opp": "LA Lakers",
+"date": "May 17, 1988",
+"ot": 0,
+"value": 24,
+"detail": [
+24
+]
+},
+{
+"player": "Magic Johnson",
+"team": "LA Lakers",
+"home": false,
+"opp": "Portland",
+"date": "May 3, 1985",
+"ot": 0,
+"value": 23,
+"detail": [
+23
+]
+},
+{
+"player": "John Stockton",
+"team": "Utah",
+"home": true,
+"opp": "Portland",
+"date": "April 25, 1996",
+"ot": 0,
+"value": 23,
+"detail": [
+23
+]
+},
+{
+"player": "Steve Nash",
+"team": "Phoenix",
+"home": false,
+"opp": "LA Lakers",
+"date": "April 29, 2007",
+"ot": 0,
+"value": 23,
+"detail": [
+23
+]
+},
+{
+"player": "Doc Rivers",
+"team": "Atlanta",
+"home": true,
+"opp": "Boston",
+"date": "May 16, 1988",
+"ot": 0,
+"value": 22,
+"detail": [
+22
+]
+},
+{
+"player": "Magic Johnson",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "June 3, 1984",
+"ot": 0,
+"value": 21,
+"detail": [
+21
+]
+},
+{
+"player": "Magic Johnson",
+"team": "LA Lakers",
+"home": true,
+"opp": "Houston",
+"date": "April 27, 1991",
+"ot": 0,
+"value": 21,
+"detail": [
+21
+]
+},
+{
+"player": "Magic Johnson",
+"team": "LA Lakers",
+"home": false,
+"opp": "Portland",
+"date": "May 18, 1991",
+"ot": 0,
+"value": 21,
+"detail": [
+21
+]
+},
+{
+"player": "John Stockton",
+"team": "Utah",
+"home": true,
+"opp": "LA Clippers",
+"date": "April 24, 1992",
+"ot": 0,
+"value": 21,
+"detail": [
+21
+]
+},
+{
+"player": "Rajon Rondo",
+"team": "New Orleans",
+"home": true,
+"opp": "Golden State",
+"date": "May 4, 2018",
+"ot": 0,
+"value": 21,
+"detail": [
+21
+]
+},
+{
+"player": "Johnny Moore",
+"team": "San Antonio",
+"home": true,
+"opp": "Denver",
+"date": "April 27, 1983",
+"ot": 0,
+"value": 20,
+"detail": [
+20
+]
+},
+{
+"player": "Magic Johnson",
+"team": "LA Lakers",
+"home": false,
+"opp": "Houston",
+"date": "May 16, 1986",
+"ot": 0,
+"value": 20,
+"detail": [
+20
+]
+},
+{
+"player": "Magic Johnson",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "June 4, 1987",
+"ot": 0,
+"value": 20,
+"detail": [
+20
+]
+},
+{
+"player": "John Stockton",
+"team": "Utah",
+"home": false,
+"opp": "LA Lakers",
+"date": "May 21, 1988",
+"ot": 0,
+"value": 20,
+"detail": [
+20
+]
+},
+{
+"player": "Magic Johnson",
+"team": "LA Lakers",
+"home": true,
+"opp": "Dallas",
+"date": "May 31, 1988",
+"ot": 0,
+"value": 20,
+"detail": [
+20
+]
+},
+{
+"player": "Magic Johnson",
+"team": "LA Lakers",
+"home": false,
+"opp": "Phoenix",
+"date": "May 28, 1989",
+"ot": 0,
+"value": 20,
+"detail": [
+20
+]
+},
+{
+"player": "Tim Hardaway",
+"team": "Golden State",
+"home": false,
+"opp": "LA Lakers",
+"date": "May 14, 1991",
+"ot": 1,
+"value": 20,
+"detail": [
+20
+]
+},
+{
+"player": "Magic Johnson",
+"team": "LA Lakers",
+"home": true,
+"opp": "Chicago",
+"date": "June 12, 1991",
+"ot": 0,
+"value": 20,
+"detail": [
+20
+]
+},
+{
+"player": "Rajon Rondo",
+"team": "Boston",
+"home": false,
+"opp": "New York",
+"date": "April 22, 2011",
+"ot": 0,
+"value": 20,
+"detail": [
+20
+]
+}
+],
+"floor": 20
+},
+"stl": {
+"games": [
+{
+"player": "Allen Iverson",
+"team": "Philadelphia",
+"home": true,
+"opp": "Orlando",
+"date": "May 13, 1999",
+"ot": 0,
+"value": 10,
+"detail": [
+10
+]
+},
+{
+"player": "Rick Barry",
+"team": "Golden State",
+"home": true,
+"opp": "Seattle",
+"date": "April 14, 1975",
+"ot": 0,
+"value": 8,
+"detail": [
+8
+]
+},
+{
+"player": "Lionel Hollins",
+"team": "Portland",
+"home": false,
+"opp": "LA Lakers",
+"date": "May 8, 1977",
+"ot": 0,
+"value": 8,
+"detail": [
+8
+]
+},
+{
+"player": "Maurice Cheeks",
+"team": "Philadelphia",
+"home": true,
+"opp": "New Jersey",
+"date": "April 11, 1979",
+"ot": 0,
+"value": 8,
+"detail": [
+8
+]
+},
+{
+"player": "Craig Hodges",
+"team": "Milwaukee",
+"home": false,
+"opp": "Philadelphia",
+"date": "May 9, 1986",
+"ot": 0,
+"value": 8,
+"detail": [
+8
+]
+},
+{
+"player": "Tim Hardaway",
+"team": "Golden State",
+"home": false,
+"opp": "LA Lakers",
+"date": "May 8, 1991",
+"ot": 0,
+"value": 8,
+"detail": [
+8
+]
+},
+{
+"player": "Tim Hardaway",
+"team": "Golden State",
+"home": false,
+"opp": "Seattle",
+"date": "April 30, 1992",
+"ot": 0,
+"value": 8,
+"detail": [
+8
+]
+},
+{
+"player": "Mookie Blaylock",
+"team": "Atlanta",
+"home": true,
+"opp": "Indiana",
+"date": "April 29, 1996",
+"ot": 0,
+"value": 8,
+"detail": [
+8
+]
+}
+],
+"floor": 8
+},
+"blk": {
+"games": [
+{
+"player": "Victor Wembanyama",
+"team": "San Antonio",
+"home": true,
+"opp": "Minnesota",
+"date": "May 4, 2026",
+"ot": 0,
+"value": 12,
+"detail": [
+12
+]
+},
+{
+"player": "Mark Eaton",
+"team": "Utah",
+"home": true,
+"opp": "Houston",
+"date": "April 26, 1985",
+"ot": 0,
+"value": 10,
+"detail": [
+10
+]
+},
+{
+"player": "Hakeem Olajuwon",
+"team": "Houston",
+"home": false,
+"opp": "LA Lakers",
+"date": "April 29, 1990",
+"ot": 0,
+"value": 10,
+"detail": [
+10
+]
+},
+{
+"player": "Andrew Bynum",
+"team": "LA Lakers",
+"home": true,
+"opp": "Denver",
+"date": "April 29, 2012",
+"ot": 0,
+"value": 10,
+"detail": [
+10
+]
+},
+{
+"player": "Kareem Abdul-Jabbar",
+"team": "LA Lakers",
+"home": true,
+"opp": "Golden State",
+"date": "April 22, 1977",
+"ot": 0,
+"value": 9,
+"detail": [
+9
+]
+},
+{
+"player": "Manute Bol",
+"team": "Washington",
+"home": false,
+"opp": "Philadelphia",
+"date": "April 18, 1986",
+"ot": 0,
+"value": 9,
+"detail": [
+9
+]
+},
+{
+"player": "Hakeem Olajuwon",
+"team": "Houston",
+"home": true,
+"opp": "LA Clippers",
+"date": "April 29, 1993",
+"ot": 0,
+"value": 9,
+"detail": [
+9
+]
+},
+{
+"player": "Derrick Coleman",
+"team": "New Jersey",
+"home": true,
+"opp": "Cleveland",
+"date": "May 7, 1993",
+"ot": 0,
+"value": 9,
+"detail": [
+9
+]
+},
+{
+"player": "Greg Ostertag",
+"team": "Utah",
+"home": true,
+"opp": "LA Lakers",
+"date": "May 12, 1997",
+"ot": 1,
+"value": 9,
+"detail": [
+9
+]
+},
+{
+"player": "Alonzo Mourning",
+"team": "Miami",
+"home": true,
+"opp": "Detroit",
+"date": "April 22, 2000",
+"ot": 0,
+"value": 9,
+"detail": [
+9
+]
+},
+{
+"player": "Tim Duncan",
+"team": "San Antonio",
+"home": true,
+"opp": "Phoenix",
+"date": "May 18, 2007",
+"ot": 0,
+"value": 9,
+"detail": [
+9
+]
+},
+{
+"player": "Dwight Howard",
+"team": "Orlando",
+"home": true,
+"opp": "LA Lakers",
+"date": "June 11, 2009",
+"ot": 1,
+"value": 9,
+"detail": [
+9
+]
+},
+{
+"player": "Dwight Howard",
+"team": "Orlando",
+"home": true,
+"opp": "Charlotte",
+"date": "April 18, 2010",
+"ot": 0,
+"value": 9,
+"detail": [
+9
+]
+},
+{
+"player": "Serge Ibaka",
+"team": "Oklahoma City",
+"home": true,
+"opp": "Denver",
+"date": "April 27, 2011",
+"ot": 0,
+"value": 9,
+"detail": [
+9
+]
+},
+{
+"player": "Roy Hibbert",
+"team": "Indiana",
+"home": true,
+"opp": "Orlando",
+"date": "April 28, 2012",
+"ot": 0,
+"value": 9,
+"detail": [
+9
+]
+},
+{
+"player": "Robert Williams III",
+"team": "Boston",
+"home": false,
+"opp": "Brooklyn",
+"date": "May 22, 2021",
+"ot": 0,
+"value": 9,
+"detail": [
+9
+]
+}
+],
+"floor": 9
+}
+},
+"Finals": {
+"pts": {
+"games": [
+{
+"player": "Elgin Baylor",
+"team": "LA Lakers",
+"home": false,
+"opp": "Boston",
+"date": "April 14, 1962",
+"ot": 0,
+"value": 61,
+"detail": [
+22,
+17,
+61
+]
+},
+{
+"player": "Rick Barry",
+"team": "San Francisco",
+"home": true,
+"opp": "Philadelphia",
+"date": "April 18, 1967",
+"ot": 0,
+"value": 55,
+"detail": [
+22,
+11,
+55
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": true,
+"opp": "Phoenix",
+"date": "June 16, 1993",
+"ot": 0,
+"value": 55,
+"detail": [
+21,
+13,
+55
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "April 23, 1969",
+"ot": 0,
+"value": 53,
+"detail": [
+21,
+11,
+53
+]
+},
+{
+"player": "LeBron James",
+"team": "Cleveland",
+"home": false,
+"opp": "Golden State",
+"date": "May 31, 2018",
+"ot": 1,
+"value": 51,
+"detail": [
+19,
+10,
+51
+]
+},
+{
+"player": "Bob Pettit",
+"team": "St. Louis",
+"home": true,
+"opp": "Boston",
+"date": "April 12, 1958",
+"ot": 0,
+"value": 50,
+"detail": [
+19,
+12,
+50
+]
+},
+{
+"player": "Giannis Antetokounmpo",
+"team": "Milwaukee",
+"home": true,
+"opp": "Phoenix",
+"date": "July 20, 2021",
+"ot": 0,
+"value": 50,
+"detail": [
+16,
+17,
+50
+]
+},
+{
+"player": "Allen Iverson",
+"team": "Philadelphia",
+"home": false,
+"opp": "LA Lakers",
+"date": "June 6, 2001",
+"ot": 1,
+"value": 48,
+"detail": [
+18,
+9,
+48
+]
+},
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": true,
+"opp": "Toronto",
+"date": "June 5, 2019",
+"ot": 0,
+"value": 47,
+"detail": [
+14,
+13,
+47
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": false,
+"opp": "Portland",
+"date": "June 12, 1992",
+"ot": 0,
+"value": 46,
+"detail": [
+14,
+16,
+46
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": false,
+"opp": "Boston",
+"date": "April 19, 1965",
+"ot": 0,
+"value": 45,
+"detail": [
+17,
+11,
+45
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "April 22, 1966",
+"ot": 0,
+"value": 45,
+"detail": [
+19,
+7,
+45
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "LA Lakers",
+"home": true,
+"opp": "New York",
+"date": "May 6, 1970",
+"ot": 0,
+"value": 45,
+"detail": [
+20,
+5,
+45
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": false,
+"opp": "Utah",
+"date": "June 14, 1998",
+"ot": 0,
+"value": 45,
+"detail": [
+15,
+12,
+45
+]
+},
+{
+"player": "Jalen Brunson",
+"team": "New York",
+"home": false,
+"opp": "San Antonio",
+"date": "June 13, 2026",
+"ot": 0,
+"value": 45,
+"detail": [
+14,
+13,
+45
+]
+},
+{
+"player": "Rick Barry",
+"team": "San Francisco",
+"home": true,
+"opp": "Philadelphia",
+"date": "April 24, 1967",
+"ot": 0,
+"value": 44,
+"detail": [
+16,
+12,
+44
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": true,
+"opp": "Phoenix",
+"date": "June 13, 1993",
+"ot": 3,
+"value": 44,
+"detail": [
+19,
+3,
+44
+]
+},
+{
+"player": "Shaquille O’Neal",
+"team": "LA Lakers",
+"home": true,
+"opp": "Philadelphia",
+"date": "June 6, 2001",
+"ot": 1,
+"value": 44,
+"detail": [
+17,
+10,
+44
+]
+},
+{
+"player": "LeBron James",
+"team": "Cleveland",
+"home": false,
+"opp": "Golden State",
+"date": "June 4, 2015",
+"ot": 1,
+"value": 44,
+"detail": [
+18,
+6,
+44
+]
+},
+{
+"player": "Elgin Baylor",
+"team": "LA Lakers",
+"home": false,
+"opp": "Boston",
+"date": "April 21, 1963",
+"ot": 0,
+"value": 43,
+"detail": [
+15,
+13,
+43
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "April 21, 1965",
+"ot": 0,
+"value": 43,
+"detail": [
+13,
+17,
+43
+]
+},
+{
+"player": "Rick Barry",
+"team": "San Francisco",
+"home": true,
+"opp": "Philadelphia",
+"date": "April 20, 1967",
+"ot": 0,
+"value": 43,
+"detail": [
+17,
+9,
+43
+]
+},
+{
+"player": "John Havlicek",
+"team": "Boston",
+"home": false,
+"opp": "LA Lakers",
+"date": "April 25, 1969",
+"ot": 0,
+"value": 43,
+"detail": [
+15,
+13,
+43
+]
+},
+{
+"player": "Isiah Thomas",
+"team": "Detroit",
+"home": false,
+"opp": "LA Lakers",
+"date": "June 19, 1988",
+"ot": 0,
+"value": 43,
+"detail": [
+18,
+5,
+43
+]
+},
+{
+"player": "Shaquille O’Neal",
+"team": "LA Lakers",
+"home": true,
+"opp": "Indiana",
+"date": "June 7, 2000",
+"ot": 0,
+"value": 43,
+"detail": [
+21,
+1,
+43
+]
+},
+{
+"player": "Dwyane Wade",
+"team": "Miami",
+"home": true,
+"opp": "Dallas",
+"date": "June 18, 2006",
+"ot": 1,
+"value": 43,
+"detail": [
+11,
+21,
+43
+]
+},
+{
+"player": "Russell Westbrook",
+"team": "Oklahoma City",
+"home": false,
+"opp": "Miami",
+"date": "June 19, 2012",
+"ot": 0,
+"value": 43,
+"detail": [
+20,
+3,
+43
+]
+},
+{
+"player": "Kevin Durant",
+"team": "Golden State",
+"home": false,
+"opp": "Cleveland",
+"date": "June 6, 2018",
+"ot": 0,
+"value": 43,
+"detail": [
+15,
+7,
+43
+]
+},
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": false,
+"opp": "Boston",
+"date": "June 10, 2022",
+"ot": 0,
+"value": 43,
+"detail": [
+14,
+8,
+43
+]
+},
+{
+"player": "George Mikan",
+"team": "Minneapolis",
+"home": true,
+"opp": "Washington",
+"date": "April 4, 1949",
+"ot": 0,
+"value": 42,
+"detail": [
+14,
+14,
+42
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "April 17, 1963",
+"ot": 0,
+"value": 42,
+"detail": [
+17,
+8,
+42
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "May 5, 1969",
+"ot": 0,
+"value": 42,
+"detail": [
+14,
+14,
+42
+]
+},
+{
+"player": "Magic Johnson",
+"team": "LA Lakers",
+"home": false,
+"opp": "Philadelphia",
+"date": "May 16, 1980",
+"ot": 0,
+"value": 42,
+"detail": [
+14,
+14,
+42
+]
+},
+{
+"player": "Charles Barkley",
+"team": "Phoenix",
+"home": true,
+"opp": "Chicago",
+"date": "June 11, 1993",
+"ot": 0,
+"value": 42,
+"detail": [
+16,
+10,
+42
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": false,
+"opp": "Phoenix",
+"date": "June 11, 1993",
+"ot": 0,
+"value": 42,
+"detail": [
+18,
+4,
+42
+]
+},
+{
+"player": "Dwyane Wade",
+"team": "Miami",
+"home": true,
+"opp": "Dallas",
+"date": "June 13, 2006",
+"ot": 0,
+"value": 42,
+"detail": [
+14,
+13,
+42
+]
+},
+{
+"player": "Giannis Antetokounmpo",
+"team": "Milwaukee",
+"home": false,
+"opp": "Phoenix",
+"date": "July 8, 2021",
+"ot": 0,
+"value": 42,
+"detail": [
+15,
+11,
+42
+]
+},
+{
+"player": "Devin Booker",
+"team": "Phoenix",
+"home": false,
+"opp": "Milwaukee",
+"date": "July 14, 2021",
+"ot": 0,
+"value": 42,
+"detail": [
+17,
+8,
+42
+]
+},
+{
+"player": "Elgin Baylor",
+"team": "LA Lakers",
+"home": false,
+"opp": "Boston",
+"date": "April 18, 1962",
+"ot": 1,
+"value": 41,
+"detail": [
+13,
+15,
+41
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": false,
+"opp": "Boston",
+"date": "April 17, 1966",
+"ot": 1,
+"value": 41,
+"detail": [
+15,
+11,
+41
+]
+},
+{
+"player": "Elgin Baylor",
+"team": "LA Lakers",
+"home": false,
+"opp": "Boston",
+"date": "April 24, 1966",
+"ot": 0,
+"value": 41,
+"detail": [
+13,
+15,
+41
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "April 25, 1969",
+"ot": 0,
+"value": 41,
+"detail": [
+12,
+17,
+41
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": true,
+"opp": "Phoenix",
+"date": "June 18, 1993",
+"ot": 0,
+"value": 41,
+"detail": [
+16,
+7,
+41
+]
+},
+{
+"player": "Shaquille O’Neal",
+"team": "LA Lakers",
+"home": true,
+"opp": "Indiana",
+"date": "June 19, 2000",
+"ot": 0,
+"value": 41,
+"detail": [
+19,
+3,
+41
+]
+},
+{
+"player": "Kyrie Irving",
+"team": "Cleveland",
+"home": false,
+"opp": "Golden State",
+"date": "June 13, 2016",
+"ot": 0,
+"value": 41,
+"detail": [
+17,
+2,
+41
+]
+},
+{
+"player": "LeBron James",
+"team": "Cleveland",
+"home": false,
+"opp": "Golden State",
+"date": "June 13, 2016",
+"ot": 0,
+"value": 41,
+"detail": [
+16,
+5,
+41
+]
+},
+{
+"player": "LeBron James",
+"team": "Cleveland",
+"home": true,
+"opp": "Golden State",
+"date": "June 16, 2016",
+"ot": 0,
+"value": 41,
+"detail": [
+16,
+6,
+41
+]
+},
+{
+"player": "LeBron James",
+"team": "Cleveland",
+"home": false,
+"opp": "Golden State",
+"date": "June 12, 2017",
+"ot": 0,
+"value": 41,
+"detail": [
+19,
+1,
+41
+]
+},
+{
+"player": "Giannis Antetokounmpo",
+"team": "Milwaukee",
+"home": true,
+"opp": "Phoenix",
+"date": "July 11, 2021",
+"ot": 0,
+"value": 41,
+"detail": [
+14,
+13,
+41
+]
+},
+{
+"player": "Nikola Jokic",
+"team": "Denver",
+"home": true,
+"opp": "Miami",
+"date": "June 4, 2023",
+"ot": 0,
+"value": 41,
+"detail": [
+16,
+7,
+41
+]
+},
+{
+"player": "George Mikan",
+"team": "Minneapolis",
+"home": true,
+"opp": "Syracuse",
+"date": "April 23, 1950",
+"ot": 0,
+"value": 40,
+"detail": [
+13,
+14,
+40
+]
+},
+{
+"player": "Cliff Hagan",
+"team": "St. Louis",
+"home": false,
+"opp": "Boston",
+"date": "April 5, 1961",
+"ot": 0,
+"value": 40,
+"detail": [
+16,
+8,
+40
+]
+},
+{
+"player": "Bob Pettit",
+"team": "St. Louis",
+"home": true,
+"opp": "Boston",
+"date": "April 9, 1961",
+"ot": 0,
+"value": 40,
+"detail": [
+14,
+12,
+40
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": false,
+"opp": "Boston",
+"date": "April 8, 1962",
+"ot": 0,
+"value": 40,
+"detail": [
+13,
+14,
+40
+]
+},
+{
+"player": "John Havlicek",
+"team": "Boston",
+"home": false,
+"opp": "LA Lakers",
+"date": "May 2, 1968",
+"ot": 0,
+"value": 40,
+"detail": [
+14,
+12,
+40
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": false,
+"opp": "Boston",
+"date": "April 29, 1969",
+"ot": 0,
+"value": 40,
+"detail": [
+15,
+10,
+40
+]
+},
+{
+"player": "Julius Erving",
+"team": "Philadelphia",
+"home": false,
+"opp": "Portland",
+"date": "June 5, 1977",
+"ot": 0,
+"value": 40,
+"detail": [
+17,
+6,
+40
+]
+},
+{
+"player": "Kareem Abdul-Jabbar",
+"team": "LA Lakers",
+"home": true,
+"opp": "Philadelphia",
+"date": "May 14, 1980",
+"ot": 0,
+"value": 40,
+"detail": [
+16,
+8,
+40
+]
+},
+{
+"player": "James Worthy",
+"team": "LA Lakers",
+"home": true,
+"opp": "Detroit",
+"date": "June 13, 1989",
+"ot": 0,
+"value": 40,
+"detail": [
+17,
+4,
+40
+]
+},
+{
+"player": "Shaquille O’Neal",
+"team": "LA Lakers",
+"home": true,
+"opp": "Indiana",
+"date": "June 9, 2000",
+"ot": 0,
+"value": 40,
+"detail": [
+11,
+18,
+40
+]
+},
+{
+"player": "Shaquille O’Neal",
+"team": "LA Lakers",
+"home": true,
+"opp": "New Jersey",
+"date": "June 7, 2002",
+"ot": 0,
+"value": 40,
+"detail": [
+14,
+12,
+40
+]
+},
+{
+"player": "Kobe Bryant",
+"team": "LA Lakers",
+"home": true,
+"opp": "Orlando",
+"date": "June 4, 2009",
+"ot": 0,
+"value": 40,
+"detail": [
+16,
+8,
+40
+]
+},
+{
+"player": "LeBron James",
+"team": "Cleveland",
+"home": true,
+"opp": "Golden State",
+"date": "June 9, 2015",
+"ot": 0,
+"value": 40,
+"detail": [
+14,
+10,
+40
+]
+},
+{
+"player": "LeBron James",
+"team": "Cleveland",
+"home": false,
+"opp": "Golden State",
+"date": "June 14, 2015",
+"ot": 0,
+"value": 40,
+"detail": [
+15,
+7,
+40
+]
+},
+{
+"player": "Kyrie Irving",
+"team": "Cleveland",
+"home": true,
+"opp": "Golden State",
+"date": "June 9, 2017",
+"ot": 0,
+"value": 40,
+"detail": [
+15,
+3,
+40
+]
+},
+{
+"player": "Jimmy Butler",
+"team": "Miami",
+"home": true,
+"opp": "LA Lakers",
+"date": "Oct. 4, 2020",
+"ot": 0,
+"value": 40,
+"detail": [
+14,
+12,
+40
+]
+},
+{
+"player": "LeBron James",
+"team": "LA Lakers",
+"home": true,
+"opp": "Miami",
+"date": "Oct. 9, 2020",
+"ot": 0,
+"value": 40,
+"detail": [
+15,
+4,
+40
+]
+},
+{
+"player": "Khris Middleton",
+"team": "Milwaukee",
+"home": true,
+"opp": "Phoenix",
+"date": "July 14, 2021",
+"ot": 0,
+"value": 40,
+"detail": [
+15,
+7,
+40
+]
+},
+{
+"player": "Devin Booker",
+"team": "Phoenix",
+"home": true,
+"opp": "Milwaukee",
+"date": "July 17, 2021",
+"ot": 0,
+"value": 40,
+"detail": [
+17,
+4,
+40
+]
+},
+{
+"player": "Jalen Williams",
+"team": "Oklahoma City",
+"home": true,
+"opp": "Indiana",
+"date": "June 16, 2025",
+"ot": 0,
+"value": 40,
+"detail": [
+14,
+9,
+40
+]
+}
+],
+"floor": 40
+},
+"fgm": {
+"games": [
+{
+"player": "Elgin Baylor",
+"team": "LA Lakers",
+"home": false,
+"opp": "Boston",
+"date": "April 14, 1962",
+"ot": 0,
+"value": 22,
+"detail": [
+22,
+46
+]
+},
+{
+"player": "Rick Barry",
+"team": "San Francisco",
+"home": true,
+"opp": "Philadelphia",
+"date": "April 18, 1967",
+"ot": 0,
+"value": 22,
+"detail": [
+22,
+48
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "April 23, 1969",
+"ot": 0,
+"value": 21,
+"detail": [
+21,
+41
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": true,
+"opp": "Phoenix",
+"date": "June 16, 1993",
+"ot": 0,
+"value": 21,
+"detail": [
+21,
+37
+]
+},
+{
+"player": "Shaquille O’Neal",
+"team": "LA Lakers",
+"home": true,
+"opp": "Indiana",
+"date": "June 7, 2000",
+"ot": 0,
+"value": 21,
+"detail": [
+21,
+31
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "LA Lakers",
+"home": true,
+"opp": "New York",
+"date": "May 6, 1970",
+"ot": 0,
+"value": 20,
+"detail": [
+20,
+27
+]
+},
+{
+"player": "Russell Westbrook",
+"team": "Oklahoma City",
+"home": false,
+"opp": "Miami",
+"date": "June 19, 2012",
+"ot": 0,
+"value": 20,
+"detail": [
+20,
+32
+]
+},
+{
+"player": "Bob Pettit",
+"team": "St. Louis",
+"home": true,
+"opp": "Boston",
+"date": "April 12, 1958",
+"ot": 0,
+"value": 19,
+"detail": [
+19,
+34
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "April 22, 1966",
+"ot": 0,
+"value": 19,
+"detail": [
+19,
+31
+]
+},
+{
+"player": "Kareem Abdul-Jabbar",
+"team": "LA Lakers",
+"home": true,
+"opp": "Philadelphia",
+"date": "May 7, 1980",
+"ot": 0,
+"value": 19,
+"detail": [
+19,
+31
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": true,
+"opp": "Phoenix",
+"date": "June 13, 1993",
+"ot": 3,
+"value": 19,
+"detail": [
+19,
+43
+]
+},
+{
+"player": "Shaquille O’Neal",
+"team": "LA Lakers",
+"home": true,
+"opp": "Indiana",
+"date": "June 19, 2000",
+"ot": 0,
+"value": 19,
+"detail": [
+19,
+32
+]
+},
+{
+"player": "LeBron James",
+"team": "Cleveland",
+"home": false,
+"opp": "Golden State",
+"date": "June 12, 2017",
+"ot": 0,
+"value": 19,
+"detail": [
+19,
+30
+]
+},
+{
+"player": "LeBron James",
+"team": "Cleveland",
+"home": false,
+"opp": "Golden State",
+"date": "May 31, 2018",
+"ot": 1,
+"value": 19,
+"detail": [
+19,
+32
+]
+},
+{
+"player": "Isiah Thomas",
+"team": "Detroit",
+"home": false,
+"opp": "LA Lakers",
+"date": "June 19, 1988",
+"ot": 0,
+"value": 18,
+"detail": [
+18,
+32
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": false,
+"opp": "Phoenix",
+"date": "June 11, 1993",
+"ot": 0,
+"value": 18,
+"detail": [
+18,
+36
+]
+},
+{
+"player": "Allen Iverson",
+"team": "Philadelphia",
+"home": false,
+"opp": "LA Lakers",
+"date": "June 6, 2001",
+"ot": 1,
+"value": 18,
+"detail": [
+18,
+41
+]
+},
+{
+"player": "LeBron James",
+"team": "Cleveland",
+"home": false,
+"opp": "Golden State",
+"date": "June 4, 2015",
+"ot": 1,
+"value": 18,
+"detail": [
+18,
+38
+]
+}
+],
+"floor": 18
+},
+"ftm": {
+"games": [
+{
+"player": "Dwyane Wade",
+"team": "Miami",
+"home": true,
+"opp": "Dallas",
+"date": "June 18, 2006",
+"ot": 1,
+"value": 21,
+"detail": [
+21,
+25
+]
+},
+{
+"player": "Bob Pettit",
+"team": "St. Louis",
+"home": false,
+"opp": "Boston",
+"date": "April 9, 1958",
+"ot": 0,
+"value": 19,
+"detail": [
+19,
+24
+]
+},
+{
+"player": "Shaquille O’Neal",
+"team": "LA Lakers",
+"home": true,
+"opp": "Indiana",
+"date": "June 9, 2000",
+"ot": 0,
+"value": 18,
+"detail": [
+18,
+39
+]
+},
+{
+"player": "Cliff Hagan",
+"team": "St. Louis",
+"home": false,
+"opp": "Boston",
+"date": "March 30, 1958",
+"ot": 0,
+"value": 17,
+"detail": [
+17,
+18
+]
+},
+{
+"player": "Elgin Baylor",
+"team": "LA Lakers",
+"home": false,
+"opp": "Boston",
+"date": "April 14, 1962",
+"ot": 0,
+"value": 17,
+"detail": [
+17,
+19
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "April 21, 1965",
+"ot": 0,
+"value": 17,
+"detail": [
+17,
+20
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "April 25, 1969",
+"ot": 0,
+"value": 17,
+"detail": [
+17,
+20
+]
+},
+{
+"player": "Giannis Antetokounmpo",
+"team": "Milwaukee",
+"home": true,
+"opp": "Phoenix",
+"date": "July 20, 2021",
+"ot": 0,
+"value": 17,
+"detail": [
+17,
+19
+]
+},
+{
+"player": "Bob Pettit",
+"team": "St. Louis",
+"home": true,
+"opp": "Boston",
+"date": "April 11, 1957",
+"ot": 0,
+"value": 16,
+"detail": [
+16,
+22
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": false,
+"opp": "Portland",
+"date": "June 12, 1992",
+"ot": 0,
+"value": 16,
+"detail": [
+16,
+19
+]
+},
+{
+"player": "Dwyane Wade",
+"team": "Miami",
+"home": false,
+"opp": "Dallas",
+"date": "June 20, 2006",
+"ot": 0,
+"value": 16,
+"detail": [
+16,
+21
+]
+},
+{
+"player": "Paul Pierce",
+"team": "Boston",
+"home": false,
+"opp": "LA Lakers",
+"date": "June 15, 2008",
+"ot": 0,
+"value": 16,
+"detail": [
+16,
+19
+]
+},
+{
+"player": "Kawhi Leonard",
+"team": "Toronto",
+"home": true,
+"opp": "Golden State",
+"date": "June 2, 2019",
+"ot": 0,
+"value": 16,
+"detail": [
+16,
+16
+]
+},
+{
+"player": "Bob Pettit",
+"team": "St. Louis",
+"home": false,
+"opp": "Boston",
+"date": "March 30, 1957",
+"ot": 2,
+"value": 15,
+"detail": [
+15,
+20
+]
+},
+{
+"player": "Elgin Baylor",
+"team": "LA Lakers",
+"home": false,
+"opp": "Boston",
+"date": "April 18, 1962",
+"ot": 1,
+"value": 15,
+"detail": [
+15,
+21
+]
+},
+{
+"player": "Frank Ramsey",
+"team": "Boston",
+"home": true,
+"opp": "LA Lakers",
+"date": "April 18, 1962",
+"ot": 1,
+"value": 15,
+"detail": [
+15,
+16
+]
+},
+{
+"player": "Elgin Baylor",
+"team": "LA Lakers",
+"home": false,
+"opp": "Boston",
+"date": "April 24, 1966",
+"ot": 0,
+"value": 15,
+"detail": [
+15,
+17
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": false,
+"opp": "New York",
+"date": "April 24, 1970",
+"ot": 0,
+"value": 15,
+"detail": [
+15,
+17
+]
+},
+{
+"player": "Terry Porter",
+"team": "Portland",
+"home": false,
+"opp": "Detroit",
+"date": "June 7, 1990",
+"ot": 1,
+"value": 15,
+"detail": [
+15,
+15
+]
+},
+{
+"player": "Michael Jordan",
+"team": "Chicago",
+"home": true,
+"opp": "Utah",
+"date": "June 4, 1997",
+"ot": 0,
+"value": 15,
+"detail": [
+15,
+21
+]
+},
+{
+"player": "Kevin Durant",
+"team": "Golden State",
+"home": false,
+"opp": "Cleveland",
+"date": "June 9, 2017",
+"ot": 0,
+"value": 15,
+"detail": [
+15,
+16
+]
+}
+],
+"floor": 15
+},
+"fg3m": {
+"games": [
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": true,
+"opp": "Cleveland",
+"date": "June 3, 2018",
+"ot": 0,
+"value": 9,
+"detail": [
+9,
+17
+]
+},
+{
+"player": "Ray Allen",
+"team": "Boston",
+"home": false,
+"opp": "LA Lakers",
+"date": "June 6, 2010",
+"ot": 0,
+"value": 8,
+"detail": [
+8,
+11
+]
+},
+{
+"player": "Kenny Smith",
+"team": "Houston",
+"home": false,
+"opp": "Orlando",
+"date": "June 7, 1995",
+"ot": 1,
+"value": 7,
+"detail": [
+7,
+11
+]
+},
+{
+"player": "Scottie Pippen",
+"team": "Chicago",
+"home": false,
+"opp": "Utah",
+"date": "June 6, 1997",
+"ot": 0,
+"value": 7,
+"detail": [
+7,
+11
+]
+},
+{
+"player": "Ray Allen",
+"team": "Boston",
+"home": true,
+"opp": "LA Lakers",
+"date": "June 17, 2008",
+"ot": 0,
+"value": 7,
+"detail": [
+7,
+9
+]
+},
+{
+"player": "Mike Miller",
+"team": "Miami",
+"home": true,
+"opp": "Oklahoma City",
+"date": "June 21, 2012",
+"ot": 0,
+"value": 7,
+"detail": [
+7,
+8
+]
+},
+{
+"player": "Danny Green",
+"team": "San Antonio",
+"home": true,
+"opp": "Miami",
+"date": "June 11, 2013",
+"ot": 0,
+"value": 7,
+"detail": [
+7,
+9
+]
+},
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": false,
+"opp": "Cleveland",
+"date": "June 9, 2015",
+"ot": 0,
+"value": 7,
+"detail": [
+7,
+13
+]
+},
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": true,
+"opp": "Cleveland",
+"date": "June 14, 2015",
+"ot": 0,
+"value": 7,
+"detail": [
+7,
+13
+]
+},
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": false,
+"opp": "Cleveland",
+"date": "June 10, 2016",
+"ot": 0,
+"value": 7,
+"detail": [
+7,
+13
+]
+},
+{
+"player": "Kyrie Irving",
+"team": "Cleveland",
+"home": true,
+"opp": "Golden State",
+"date": "June 9, 2017",
+"ot": 0,
+"value": 7,
+"detail": [
+7,
+12
+]
+},
+{
+"player": "J.R. Smith",
+"team": "Cleveland",
+"home": false,
+"opp": "Golden State",
+"date": "June 12, 2017",
+"ot": 0,
+"value": 7,
+"detail": [
+7,
+8
+]
+},
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": false,
+"opp": "Cleveland",
+"date": "June 8, 2018",
+"ot": 0,
+"value": 7,
+"detail": [
+7,
+15
+]
+},
+{
+"player": "Klay Thompson",
+"team": "Golden State",
+"home": false,
+"opp": "Toronto",
+"date": "June 10, 2019",
+"ot": 0,
+"value": 7,
+"detail": [
+7,
+13
+]
+},
+{
+"player": "Duncan Robinson",
+"team": "Miami",
+"home": false,
+"opp": "LA Lakers",
+"date": "Oct. 9, 2020",
+"ot": 0,
+"value": 7,
+"detail": [
+7,
+13
+]
+},
+{
+"player": "Devin Booker",
+"team": "Phoenix",
+"home": true,
+"opp": "Milwaukee",
+"date": "July 8, 2021",
+"ot": 0,
+"value": 7,
+"detail": [
+7,
+12
+]
+},
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": true,
+"opp": "Boston",
+"date": "June 2, 2022",
+"ot": 0,
+"value": 7,
+"detail": [
+7,
+14
+]
+},
+{
+"player": "Stephen Curry",
+"team": "Golden State",
+"home": false,
+"opp": "Boston",
+"date": "June 10, 2022",
+"ot": 0,
+"value": 7,
+"detail": [
+7,
+14
+]
+},
+{
+"player": "OG Anunoby",
+"team": "New York",
+"home": true,
+"opp": "San Antonio",
+"date": "June 10, 2026",
+"ot": 0,
+"value": 7,
+"detail": [
+7,
+9
+]
+}
+],
+"floor": 7
+},
+"reb": {
+"games": [
+{
+"player": "Bill Russell",
+"team": "Boston",
+"home": true,
+"opp": "St. Louis",
+"date": "March 29, 1960",
+"ot": 0,
+"value": 40,
+"detail": [
+40
+]
+},
+{
+"player": "Bill Russell",
+"team": "Boston",
+"home": true,
+"opp": "LA Lakers",
+"date": "April 18, 1962",
+"ot": 1,
+"value": 40,
+"detail": [
+40
+]
+},
+{
+"player": "Bill Russell",
+"team": "Boston",
+"home": true,
+"opp": "St. Louis",
+"date": "April 11, 1961",
+"ot": 0,
+"value": 38,
+"detail": [
+38
+]
+},
+{
+"player": "Bill Russell",
+"team": "Boston",
+"home": true,
+"opp": "LA Lakers",
+"date": "April 16, 1963",
+"ot": 0,
+"value": 38,
+"detail": [
+38
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "San Francisco",
+"home": true,
+"opp": "Boston",
+"date": "April 24, 1964",
+"ot": 0,
+"value": 38,
+"detail": [
+38
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "Philadelphia",
+"home": true,
+"opp": "San Francisco",
+"date": "April 16, 1967",
+"ot": 0,
+"value": 38,
+"detail": [
+38
+]
+},
+{
+"player": "Bill Russell",
+"team": "Boston",
+"home": true,
+"opp": "St. Louis",
+"date": "April 9, 1960",
+"ot": 0,
+"value": 35,
+"detail": [
+35
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "Philadelphia",
+"home": true,
+"opp": "San Francisco",
+"date": "April 14, 1967",
+"ot": 1,
+"value": 33,
+"detail": [
+33
+]
+},
+{
+"player": "Bill Russell",
+"team": "Boston",
+"home": true,
+"opp": "St. Louis",
+"date": "April 13, 1957",
+"ot": 2,
+"value": 32,
+"detail": [
+32
+]
+},
+{
+"player": "Bill Russell",
+"team": "Boston",
+"home": false,
+"opp": "San Francisco",
+"date": "April 22, 1964",
+"ot": 0,
+"value": 32,
+"detail": [
+32
+]
+},
+{
+"player": "Bill Russell",
+"team": "Boston",
+"home": true,
+"opp": "LA Lakers",
+"date": "April 28, 1966",
+"ot": 0,
+"value": 32,
+"detail": [
+32
+]
+},
+{
+"player": "Bill Russell",
+"team": "Boston",
+"home": true,
+"opp": "St. Louis",
+"date": "April 2, 1961",
+"ot": 0,
+"value": 31,
+"detail": [
+31
+]
+},
+{
+"player": "Nate Thurmond",
+"team": "San Francisco",
+"home": false,
+"opp": "Philadelphia",
+"date": "April 14, 1967",
+"ot": 1,
+"value": 31,
+"detail": [
+31
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "LA Lakers",
+"home": false,
+"opp": "Boston",
+"date": "April 29, 1969",
+"ot": 0,
+"value": 31,
+"detail": [
+31
+]
+},
+{
+"player": "Wilt Chamberlain",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "May 1, 1969",
+"ot": 0,
+"value": 31,
+"detail": [
+31
+]
+},
+{
+"player": "Bill Russell",
+"team": "Boston",
+"home": true,
+"opp": "Minneapolis",
+"date": "April 5, 1959",
+"ot": 0,
+"value": 30,
+"detail": [
+30
+]
+},
+{
+"player": "Bill Russell",
+"team": "Boston",
+"home": false,
+"opp": "Minneapolis",
+"date": "April 7, 1959",
+"ot": 0,
+"value": 30,
+"detail": [
+30
+]
+},
+{
+"player": "Bill Russell",
+"team": "Boston",
+"home": false,
+"opp": "Minneapolis",
+"date": "April 9, 1959",
+"ot": 0,
+"value": 30,
+"detail": [
+30
+]
+},
+{
+"player": "Bill Russell",
+"team": "Boston",
+"home": true,
+"opp": "LA Lakers",
+"date": "April 25, 1965",
+"ot": 0,
+"value": 30,
+"detail": [
+30
+]
+}
+],
+"floor": 30
+},
+"ast": {
+"games": [
+{
+"player": "Magic Johnson",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "June 3, 1984",
+"ot": 0,
+"value": 21,
+"detail": [
+21
+]
+},
+{
+"player": "Magic Johnson",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "June 4, 1987",
+"ot": 0,
+"value": 20,
+"detail": [
+20
+]
+},
+{
+"player": "Magic Johnson",
+"team": "LA Lakers",
+"home": true,
+"opp": "Chicago",
+"date": "June 12, 1991",
+"ot": 0,
+"value": 20,
+"detail": [
+20
+]
+},
+{
+"player": "Bob Cousy",
+"team": "Boston",
+"home": true,
+"opp": "St. Louis",
+"date": "April 9, 1957",
+"ot": 0,
+"value": 19,
+"detail": [
+19
+]
+},
+{
+"player": "Bob Cousy",
+"team": "Boston",
+"home": false,
+"opp": "Minneapolis",
+"date": "April 7, 1959",
+"ot": 0,
+"value": 19,
+"detail": [
+19
+]
+},
+{
+"player": "Walt Frazier",
+"team": "New York",
+"home": true,
+"opp": "LA Lakers",
+"date": "May 8, 1970",
+"ot": 0,
+"value": 19,
+"detail": [
+19
+]
+},
+{
+"player": "Magic Johnson",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "June 14, 1987",
+"ot": 0,
+"value": 19,
+"detail": [
+19
+]
+},
+{
+"player": "Magic Johnson",
+"team": "LA Lakers",
+"home": true,
+"opp": "Detroit",
+"date": "June 19, 1988",
+"ot": 0,
+"value": 19,
+"detail": [
+19
+]
+},
+{
+"player": "Jerry West",
+"team": "LA Lakers",
+"home": true,
+"opp": "New York",
+"date": "May 1, 1970",
+"ot": 1,
+"value": 18,
+"detail": [
+18
+]
+},
+{
+"player": "Magic Johnson",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "June 6, 1984",
+"ot": 1,
+"value": 17,
+"detail": [
+17
+]
+},
+{
+"player": "Dennis Johnson",
+"team": "Boston",
+"home": false,
+"opp": "LA Lakers",
+"date": "June 7, 1985",
+"ot": 0,
+"value": 17,
+"detail": [
+17
+]
+},
+{
+"player": "Magic Johnson",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "June 7, 1985",
+"ot": 0,
+"value": 17,
+"detail": [
+17
+]
+},
+{
+"player": "Robert Reid",
+"team": "Houston",
+"home": true,
+"opp": "Boston",
+"date": "June 5, 1986",
+"ot": 0,
+"value": 17,
+"detail": [
+17
+]
+},
+{
+"player": "Magic Johnson",
+"team": "LA Lakers",
+"home": false,
+"opp": "Detroit",
+"date": "June 16, 1988",
+"ot": 0,
+"value": 17,
+"detail": [
+17
+]
+},
+{
+"player": "Magic Johnson",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "June 2, 1985",
+"ot": 0,
+"value": 16,
+"detail": [
+16
+]
+},
+{
+"player": "Rajon Rondo",
+"team": "Boston",
+"home": true,
+"opp": "LA Lakers",
+"date": "June 8, 2008",
+"ot": 0,
+"value": 16,
+"detail": [
+16
+]
+},
+{
+"player": "Bob Cousy",
+"team": "Boston",
+"home": true,
+"opp": "Minneapolis",
+"date": "April 5, 1959",
+"ot": 0,
+"value": 15,
+"detail": [
+15
+]
+},
+{
+"player": "Magic Johnson",
+"team": "LA Lakers",
+"home": false,
+"opp": "Boston",
+"date": "June 12, 1984",
+"ot": 0,
+"value": 15,
+"detail": [
+15
+]
+}
+],
+"floor": 15
+},
+"stl": {
+"games": [
+{
+"player": "Robert Horry",
+"team": "Houston",
+"home": false,
+"opp": "Orlando",
+"date": "June 9, 1995",
+"ot": 0,
+"value": 7,
+"detail": [
+7
+]
+},
+{
+"player": "John Havlicek",
+"team": "Boston",
+"home": true,
+"opp": "Milwaukee",
+"date": "May 3, 1974",
+"ot": 0,
+"value": 6,
+"detail": [
+6
+]
+},
+{
+"player": "Steve Mix",
+"team": "Philadelphia",
+"home": true,
+"opp": "Portland",
+"date": "May 22, 1977",
+"ot": 0,
+"value": 6,
+"detail": [
+6
+]
+},
+{
+"player": "Maurice Cheeks",
+"team": "Philadelphia",
+"home": false,
+"opp": "LA Lakers",
+"date": "May 7, 1980",
+"ot": 0,
+"value": 6,
+"detail": [
+6
+]
+},
+{
+"player": "Isiah Thomas",
+"team": "Detroit",
+"home": false,
+"opp": "LA Lakers",
+"date": "June 19, 1988",
+"ot": 0,
+"value": 6,
+"detail": [
+6
+]
+},
+{
+"player": "Rajon Rondo",
+"team": "Boston",
+"home": true,
+"opp": "LA Lakers",
+"date": "June 17, 2008",
+"ot": 0,
+"value": 6,
+"detail": [
+6
+]
+},
+{
+"player": "Dwyane Wade",
+"team": "Miami",
+"home": false,
+"opp": "San Antonio",
+"date": "June 13, 2013",
+"ot": 0,
+"value": 6,
+"detail": [
+6
+]
+},
+{
+"player": "Kevin Love",
+"team": "Cleveland",
+"home": true,
+"opp": "Golden State",
+"date": "June 7, 2017",
+"ot": 0,
+"value": 6,
+"detail": [
+6
+]
+}
+],
+"floor": 6
+},
+"blk": {
+"games": [
+{
+"player": "Dwight Howard",
+"team": "Orlando",
+"home": true,
+"opp": "LA Lakers",
+"date": "June 11, 2009",
+"ot": 1,
+"value": 9,
+"detail": [
+9
+]
+},
+{
+"player": "Bill Walton",
+"team": "Portland",
+"home": true,
+"opp": "Philadelphia",
+"date": "June 5, 1977",
+"ot": 0,
+"value": 8,
+"detail": [
+8
+]
+},
+{
+"player": "Hakeem Olajuwon",
+"team": "Houston",
+"home": true,
+"opp": "Boston",
+"date": "June 5, 1986",
+"ot": 0,
+"value": 8,
+"detail": [
+8
+]
+},
+{
+"player": "Patrick Ewing",
+"team": "New York",
+"home": true,
+"opp": "Houston",
+"date": "June 17, 1994",
+"ot": 0,
+"value": 8,
+"detail": [
+8
+]
+},
+{
+"player": "Shaquille O’Neal",
+"team": "LA Lakers",
+"home": true,
+"opp": "Philadelphia",
+"date": "June 8, 2001",
+"ot": 0,
+"value": 8,
+"detail": [
+8
+]
+},
+{
+"player": "Tim Duncan",
+"team": "San Antonio",
+"home": true,
+"opp": "New Jersey",
+"date": "June 15, 2003",
+"ot": 0,
+"value": 8,
+"detail": [
+8
+]
+},
+{
+"player": "Dennis Johnson",
+"team": "Seattle",
+"home": false,
+"opp": "Washington",
+"date": "May 28, 1978",
+"ot": 0,
+"value": 7,
+"detail": [
+7
+]
+},
+{
+"player": "Patrick Ewing",
+"team": "New York",
+"home": true,
+"opp": "Houston",
+"date": "June 12, 1994",
+"ot": 0,
+"value": 7,
+"detail": [
+7
+]
+},
+{
+"player": "Hakeem Olajuwon",
+"team": "Houston",
+"home": false,
+"opp": "New York",
+"date": "June 12, 1994",
+"ot": 0,
+"value": 7,
+"detail": [
+7
+]
+},
+{
+"player": "Tim Duncan",
+"team": "San Antonio",
+"home": true,
+"opp": "New Jersey",
+"date": "June 4, 2003",
+"ot": 0,
+"value": 7,
+"detail": [
+7
+]
+},
+{
+"player": "Tim Duncan",
+"team": "San Antonio",
+"home": false,
+"opp": "New Jersey",
+"date": "June 11, 2003",
+"ot": 0,
+"value": 7,
+"detail": [
+7
+]
+},
+{
+"player": "Andrew Bynum",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "June 6, 2010",
+"ot": 0,
+"value": 7,
+"detail": [
+7
+]
+},
+{
+"player": "Kareem Abdul-Jabbar",
+"team": "LA Lakers",
+"home": true,
+"opp": "Philadelphia",
+"date": "May 4, 1980",
+"ot": 0,
+"value": 6,
+"detail": [
+6
+]
+},
+{
+"player": "Patrick Ewing",
+"team": "New York",
+"home": false,
+"opp": "Houston",
+"date": "June 10, 1994",
+"ot": 0,
+"value": 6,
+"detail": [
+6
+]
+},
+{
+"player": "Rasheed Wallace",
+"team": "Detroit",
+"home": false,
+"opp": "San Antonio",
+"date": "June 9, 2005",
+"ot": 0,
+"value": 6,
+"detail": [
+6
+]
+},
+{
+"player": "Pau Gasol",
+"team": "LA Lakers",
+"home": true,
+"opp": "Boston",
+"date": "June 6, 2010",
+"ot": 0,
+"value": 6,
+"detail": [
+6
+]
+},
+{
+"player": "Serge Ibaka",
+"team": "Toronto",
+"home": false,
+"opp": "Golden State",
+"date": "June 5, 2019",
+"ot": 0,
+"value": 6,
+"detail": [
+6
+]
+}
+],
+"floor": 6
+}
 }
 }

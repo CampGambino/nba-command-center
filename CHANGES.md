@@ -2,6 +2,26 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.42.0 (2026-11-12): All-Star, Play-In, playoff and Finals career lists and single-game lists (NBA Guide pp. 157-186)
+
+### What changed
+- **`tools/parse-career-lists-bbox.py`** reads the career "MOST <stat>" lists from word positions. Titles sit mid-column there, so a list is the lowest title above an entry in its column. Plus `tools/parse-postseason-careers.py` → `src/data/nba-postseason-careers-2026-27.json`:
+  - career leaders (top 10, ties kept) for the All-Star Game (pp. 158-159), Play-In (166-167), playoffs (175-176) and Finals (185-186), up to 19 stats each;
+  - All-Star selections by player (pp. 160-161; 466 players).
+- **`tools/parse-single-game-bests.py`** also reads the Play-In (pp. 164-165), playoff (171-174) and Finals (181-184) single-game lists. Headings followed by their column labels are now recognized too.
+- **NBA Live bridge:** on a playoff slate (NBA Live's own `isPlayoffSlate()`), the playoff single-game lists replace the regular season's.
+- **Records tab:** the postseason and All-Star career lists in the list selector (as of 2025-26; not updated during the season). The record book's lists line shows each book's single-game floors.
+
+### Tested
+- **Checks** (572 pass):
+  - **Careers:** playoffs (LeBron 8,521 points; Magic first in assists), Finals (West), All-Star (LeBron 449), Play-In (Curry), selections (LeBron 22).
+  - **Single-game lists:** playoffs 63 top / 49 floor, Finals 61, Play-In 50.
+- **Rendered:** page sweep OK.
+
+### Still unproven
+- **Not kept current:** the postseason and All-Star careers aren't updated during the season (they'd be in the playoffs and February).
+- **Missing:** the Play-In and Finals single-game lists have no playoff-slate switch of their own in the bridge yet (Finals games use the playoff lists).
+
 ## 0.41.0 (2026-11-12): Former MVPs, Finals MVPs and DPOYs named in record storylines
 
 ### What changed

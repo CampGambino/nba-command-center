@@ -287,7 +287,10 @@
     if (!B) return;
     var R = state.records;
     var cupTonight = R && R.cup && Array.isArray(R.cup.tonight) && R.cup.tonight.some(function (g) { return g.away === sides.away && g.home === sides.home; });
-    var books = [["Regular season", "NBA's all-time"]];
+    // The postseason has its own lists (NBA Live knows which slate it shows).
+    var post = false;
+    try { post = typeof isPlayoffSlate === "function" && !!isPlayoffSlate(); } catch (e) { post = false; }
+    var books = [post ? ["Playoffs", "NBA's all-time playoff"] : ["Regular season", "NBA's all-time"]];
     if (cupTonight) books.push(["NBA Cup", "NBA Cup's"]);
     ["away", "home"].forEach(function (side) {
       (box[side] || []).forEach(function (p) {
@@ -308,7 +311,7 @@
             var text = made
               ? name + " (" + team + ") — " + v + " " + LIST_WORD[stat] + ": " + (v > top ? "the most in a game in " + bk[1].replace(/'s$/, "") + " history" : (tied ? "tied for " : "") + "the " + ord(better + 1) + "-most in a game on the " + bk[1] + " list") + " (" + L.games.length + " games of " + L.floor + "+)"
               : name + " (" + team + ") — " + v + " " + LIST_WORD[stat] + ", " + (L.floor - v) + " from the " + bk[1] + " single-game list (" + L.floor + "+, " + L.games.length + " games)";
-            fire("cc-list-" + (bk[0] === "NBA Cup" ? "cup-" : "") + p.id + "-" + stat + (made ? "-made" : "-near"), {
+            fire("cc-list-" + (bk[0] === "NBA Cup" ? "cup-" : bk[0] === "Playoffs" ? "po-" : "") + p.id + "-" + stat + (made ? "-made" : "-near"), {
               type: "milestone", icon: made ? (bk[0] === "NBA Cup" ? "🏆 CUP LIST" : "📜 ALL-TIME LIST") : "👀 " + (L.floor - v) + " FROM THE LIST",
               text: text,
               statLine: typeof fmtAlertStatLine === "function" ? fmtAlertStatLine([[v, LIST_WORD[stat].toUpperCase()]]) : "",

@@ -341,7 +341,7 @@ fs.mkdirSync(path.join(root, "docs", "lib", "situations"), { recursive: true });
 for (const f of ["ratings.js", "withwithout.js", "leaders.js"]) fs.copyFileSync(path.join(root, "src", "situations", f), path.join(root, "docs", "lib", "situations", f));
 // The record book and single-game lists (static reference data) for the Records page.
 fs.mkdirSync(path.join(root, "docs", "ref"), { recursive: true });
-for (const f of fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^nba-(record-book|single-game-bests)-/.test(f))) fs.copyFileSync(path.join(root, "src", "data", f), path.join(root, "docs", "ref", f.replace(/-\d{4}-\d\d\.json$/, ".json")));
+for (const f of fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^nba-(record-book|single-game-bests|postseason-careers)-/.test(f))) fs.copyFileSync(path.join(root, "src", "data", f), path.join(root, "docs", "ref", f.replace(/-\d{4}-\d\d\.json$/, ".json")));
 fs.mkdirSync(path.join(root, "docs", "lib", "anticipate"), { recursive: true });
 fs.copyFileSync(path.join(root, "src", "anticipate", "tonight.js"), path.join(root, "docs", "lib", "anticipate", "tonight.js"));
 fs.mkdirSync(path.join(root, "docs", "lib", "espn"), { recursive: true });

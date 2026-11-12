@@ -1397,6 +1397,18 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     "record lines: a former MVP's carries his MVPs; a Sixth Man's doesn't (headline awards only)", JSON.stringify(lines));
 }
 
+// ---------- Postseason and All-Star career lists, single-game lists (NBA Guide pp. 157-186) ----------
+{
+  const rd = (f) => JSON.parse(fs.readFileSync(path.join(root, "src", "data", f), "utf8"));
+  const pc = rd("nba-postseason-careers-2026-27.json"), sg = rd("nba-single-game-bests-2026-27.json");
+  ok(pc.careers.playoffs.pts[0].name === "LeBron James" && pc.careers.playoffs.pts[0].value === 8521 && pc.careers.playoffs.ast[0].name === "Magic Johnson"
+    && pc.careers.finals.pts[0].name === "Jerry West" && pc.careers.allStar.pts[0].value === 449 && pc.careers.playIn.pts[0].name === "Stephen Curry"
+    && pc.allStarSelections.find((s) => s.name === "LeBron James")?.selections === 22 && pc.allStarSelections.some((s) => s.name === "Tracy McGrady"),
+    "postseason careers: playoffs (LeBron 8,521; Magic's assists), Finals (West), All-Star (LeBron 449), Play-In (Curry); All-Star selections (LeBron 22)");
+  ok(sg.Playoffs.pts.floor === 49 && sg.Playoffs.pts.games[0].value === 63 && sg.Finals.pts.games[0].value === 61 && sg["Play-In"].pts.games[0].value === 50 && sg["Regular season"].pts.floor === 57,
+    "single-game lists: playoffs (63, list from 49), Finals (61), Play-In (50) beside the regular season's");
+}
+
 // ---------- NBA Cup final: counts in neither standings nor stats ----------
 {
   // Shapes as ESPN gave them for the 12/13/25 semifinals and 12/16/25 final (scoreboard and team schedule).

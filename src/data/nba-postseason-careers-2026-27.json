@@ -1,0 +1,4965 @@
+{
+"source": "NBA 2026-27 Guide: career leaders for the All-Star Game (pp. 158-159), Play-In (166-167), playoffs (175-176), Finals (185-186); All-Star selections by player (160-161); through 2025-26",
+"careers": {
+"allStar": {
+"gp": [
+{
+"name": "LeBron James",
+"value": 23
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 18
+},
+{
+"name": "Kevin Durant",
+"value": 16
+},
+{
+"name": "Kobe Bryant",
+"value": 15
+},
+{
+"name": "Tim Duncan",
+"value": 15
+},
+{
+"name": "Kevin Garnett",
+"value": 14
+},
+{
+"name": "Dirk Nowitzki",
+"value": 14
+},
+{
+"name": "Wilt Chamberlain",
+"value": 13
+},
+{
+"name": "Bob Cousy",
+"value": 13
+},
+{
+"name": "John Havlicek",
+"value": 13
+},
+{
+"name": "Michael Jordan",
+"value": 13
+}
+],
+"min": [
+{
+"name": "LeBron James",
+"value": 558
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 449
+},
+{
+"name": "Kobe Bryant",
+"value": 415
+},
+{
+"name": "Wilt Chamberlain",
+"value": 388
+},
+{
+"name": "Michael Jordan",
+"value": 382
+},
+{
+"name": "Oscar Robertson",
+"value": 380
+},
+{
+"name": "Bob Cousy",
+"value": 368
+},
+{
+"name": "Bob Pettit",
+"value": 360
+},
+{
+"name": "Bill Russell",
+"value": 343
+},
+{
+"name": "Jerry West",
+"value": 341
+}
+],
+"pts": [
+{
+"name": "LeBron James",
+"value": 449
+},
+{
+"name": "Kobe Bryant",
+"value": 290
+},
+{
+"name": "Kevin Durant",
+"value": 284
+},
+{
+"name": "Michael Jordan",
+"value": 262
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 251
+},
+{
+"name": "Oscar Robertson",
+"value": 246
+},
+{
+"name": "Bob Pettit",
+"value": 224
+},
+{
+"name": "Julius Erving",
+"value": 221
+},
+{
+"name": "Elgin Baylor",
+"value": 218
+},
+{
+"name": "Stephen Curry",
+"value": 216
+}
+],
+"fga": [
+{
+"name": "LeBron James",
+"value": 366
+},
+{
+"name": "Kobe Bryant",
+"value": 238
+},
+{
+"name": "Michael Jordan",
+"value": 233
+},
+{
+"name": "Kevin Durant",
+"value": 217
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 213
+},
+{
+"name": "Bob Pettit",
+"value": 193
+},
+{
+"name": "Stephen Curry",
+"value": 184
+},
+{
+"name": "Julius Erving",
+"value": 178
+},
+{
+"name": "Oscar Robertson",
+"value": 172
+},
+{
+"name": "Elgin Baylor",
+"value": 164
+}
+],
+"reb": [
+{
+"name": "Wilt Chamberlain",
+"value": 197
+},
+{
+"name": "Bob Pettit",
+"value": 178
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 149
+},
+{
+"name": "Bill Russell",
+"value": 139
+},
+{
+"name": "Tim Duncan",
+"value": 136
+},
+{
+"name": "LeBron James",
+"value": 121
+},
+{
+"name": "Moses Malone",
+"value": 108
+},
+{
+"name": "Dolph Schayes",
+"value": 105
+},
+{
+"name": "Elgin Baylor",
+"value": 99
+},
+{
+"name": "Shaquille O’Neal",
+"value": 97
+}
+],
+"fgm": [
+{
+"name": "LeBron James",
+"value": 187
+},
+{
+"name": "Kobe Bryant",
+"value": 119
+},
+{
+"name": "Kevin Durant",
+"value": 111
+},
+{
+"name": "Michael Jordan",
+"value": 110
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 105
+},
+{
+"name": "Giannis Antetokounmpo",
+"value": 92
+},
+{
+"name": "Oscar Robertson",
+"value": 88
+},
+{
+"name": "Shaquille O’Neal",
+"value": 87
+},
+{
+"name": "Julius Erving",
+"value": 85
+},
+{
+"name": "Dwyane Wade",
+"value": 83
+}
+],
+"oreb": [
+{
+"name": "Moses Malone",
+"value": 44
+},
+{
+"name": "Shaquille O’Neal",
+"value": 39
+},
+{
+"name": "Tim Duncan",
+"value": 38
+},
+{
+"name": "Hakeem Olajuwon",
+"value": 38
+},
+{
+"name": "Julius Erving",
+"value": 34
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 33
+},
+{
+"name": "Carmelo Anthony",
+"value": 33
+},
+{
+"name": "Kobe Bryant",
+"value": 28
+},
+{
+"name": "Giannis Antetokounmpo",
+"value": 27
+},
+{
+"name": "Dwight Howard",
+"value": 26
+}
+],
+"pf": [
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 57
+},
+{
+"name": "Oscar Robertson",
+"value": 41
+},
+{
+"name": "Elvin Hayes",
+"value": 37
+},
+{
+"name": "Bill Russell",
+"value": 37
+},
+{
+"name": "Kobe Bryant",
+"value": 35
+},
+{
+"name": "Dolph Schayes",
+"value": 32
+},
+{
+"name": "Elgin Baylor",
+"value": 31
+},
+{
+"name": "Julius Erving",
+"value": 31
+},
+{
+"name": "Michael Jordan",
+"value": 31
+},
+{
+"name": "Hakeem Olajuwon",
+"value": 31
+}
+],
+"fta": [
+{
+"name": "Elgin Baylor",
+"value": 98
+},
+{
+"name": "Oscar Robertson",
+"value": 98
+},
+{
+"name": "Wilt Chamberlain",
+"value": 94
+},
+{
+"name": "Bob Pettit",
+"value": 80
+},
+{
+"name": "Moses Malone",
+"value": 67
+},
+{
+"name": "Julius Erving",
+"value": 63
+},
+{
+"name": "Shaquille O’Neal",
+"value": 62
+},
+{
+"name": "David Robinson",
+"value": 59
+},
+{
+"name": "Michael Jordan",
+"value": 52
+},
+{
+"name": "Bob Cousy",
+"value": 51
+}
+],
+"dreb": [
+{
+"name": "LeBron James",
+"value": 103
+},
+{
+"name": "Tim Duncan",
+"value": 98
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 84
+},
+{
+"name": "Moses Malone",
+"value": 64
+},
+{
+"name": "Kevin Garnett",
+"value": 63
+},
+{
+"name": "Larry Bird",
+"value": 60
+},
+{
+"name": "Kevin Durant",
+"value": 58
+},
+{
+"name": "Shaquille O’Neal",
+"value": 58
+},
+{
+"name": "Hakeem Olajuwon",
+"value": 56
+},
+{
+"name": "Karl Malone",
+"value": 55
+}
+],
+"dq": [
+{
+"name": "Rick Barry",
+"value": 2
+},
+{
+"name": "Bob Cousy",
+"value": 2
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 1
+},
+{
+"name": "Paul Arizin",
+"value": 1
+},
+{
+"name": "Walt Bellamy",
+"value": 1
+},
+{
+"name": "Johnny Green",
+"value": 1
+},
+{
+"name": "Richie Guerin",
+"value": 1
+},
+{
+"name": "Hakeem Olajuwon",
+"value": 1
+},
+{
+"name": "Willis Reed",
+"value": 1
+},
+{
+"name": "Bill Russell",
+"value": 1
+},
+{
+"name": "Dolph Schayes",
+"value": 1
+},
+{
+"name": "Bobby Wanzer",
+"value": 1
+}
+],
+"ftm": [
+{
+"name": "Elgin Baylor",
+"value": 78
+},
+{
+"name": "Oscar Robertson",
+"value": 70
+},
+{
+"name": "Bob Pettit",
+"value": 62
+},
+{
+"name": "Julius Erving",
+"value": 50
+},
+{
+"name": "Wilt Chamberlain",
+"value": 47
+},
+{
+"name": "Bob Cousy",
+"value": 43
+},
+{
+"name": "Dolph Schayes",
+"value": 42
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 41
+},
+{
+"name": "David Robinson",
+"value": 41
+},
+{
+"name": "Moses Malone",
+"value": 40
+}
+],
+"ast": [
+{
+"name": "Chris Paul",
+"value": 128
+},
+{
+"name": "Magic Johnson",
+"value": 127
+},
+{
+"name": "LeBron James",
+"value": 118
+},
+{
+"name": "Isiah Thomas",
+"value": 97
+},
+{
+"name": "Bob Cousy",
+"value": 86
+},
+{
+"name": "Kyrie Irving",
+"value": 83
+},
+{
+"name": "Oscar Robertson",
+"value": 81
+},
+{
+"name": "Gary Payton",
+"value": 73
+},
+{
+"name": "John Stockton",
+"value": 71
+},
+{
+"name": "Kobe Bryant",
+"value": 70
+}
+],
+"fg3a": [
+{
+"name": "Stephen Curry",
+"value": 145
+},
+{
+"name": "LeBron James",
+"value": 145
+},
+{
+"name": "Kevin Durant",
+"value": 105
+},
+{
+"name": "Damian Lillard",
+"value": 104
+},
+{
+"name": "James Harden",
+"value": 98
+},
+{
+"name": "Paul George",
+"value": 79
+},
+{
+"name": "Ray Allen",
+"value": 71
+},
+{
+"name": "Kobe Bryant",
+"value": 68
+},
+{
+"name": "Russell Westbrook",
+"value": 65
+},
+{
+"name": "Kawhi Leonard",
+"value": 55
+}
+],
+"stl": [
+{
+"name": "Kobe Bryant",
+"value": 38
+},
+{
+"name": "Michael Jordan",
+"value": 37
+},
+{
+"name": "Isiah Thomas",
+"value": 31
+},
+{
+"name": "Dwyane Wade",
+"value": 27
+},
+{
+"name": "Chris Paul",
+"value": 26
+},
+{
+"name": "Jason Kidd",
+"value": 24
+},
+{
+"name": "Larry Bird",
+"value": 23
+},
+{
+"name": "LeBron James",
+"value": 23
+},
+{
+"name": "Allen Iverson",
+"value": 21
+},
+{
+"name": "Magic Johnson",
+"value": 21
+}
+],
+"fg3m": [
+{
+"name": "Stephen Curry",
+"value": 57
+},
+{
+"name": "Damian Lillard",
+"value": 45
+},
+{
+"name": "LeBron James",
+"value": 44
+},
+{
+"name": "James Harden",
+"value": 41
+},
+{
+"name": "Kevin Durant",
+"value": 36
+},
+{
+"name": "Paul George",
+"value": 30
+},
+{
+"name": "Kawhi Leonard",
+"value": 24
+},
+{
+"name": "Kyrie Irving",
+"value": 23
+},
+{
+"name": "Ray Allen",
+"value": 22
+},
+{
+"name": "Kobe Bryant",
+"value": 22
+},
+{
+"name": "Chris Paul",
+"value": 22
+}
+],
+"blk": [
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 31
+},
+{
+"name": "Hakeem Olajuwon",
+"value": 23
+},
+{
+"name": "Shaquille O’Neal",
+"value": 19
+},
+{
+"name": "Patrick Ewing",
+"value": 16
+},
+{
+"name": "David Robinson",
+"value": 13
+},
+{
+"name": "Kevin McHale",
+"value": 12
+},
+{
+"name": "Julius Erving",
+"value": 11
+},
+{
+"name": "Kevin Garnett",
+"value": 11
+},
+{
+"name": "Dikembe Mutombo",
+"value": 10
+},
+{
+"name": "George Gervin",
+"value": 9
+},
+{
+"name": "Dwight Howard",
+"value": 9
+}
+]
+},
+"playIn": {
+"gp": [
+{
+"name": "Jonas Valanciunas",
+"value": 9
+},
+{
+"name": "Bam Adebayo",
+"value": 7
+},
+{
+"name": "Kyle Anderson",
+"value": 7
+},
+{
+"name": "Andre Drummond",
+"value": 7
+},
+{
+"name": "Tyler Herro",
+"value": 7
+},
+{
+"name": "Caleb Martin",
+"value": 7
+},
+{
+"name": "Coby White",
+"value": 7
+},
+{
+"name": "Nine tied",
+"value": 6
+}
+],
+"min": [
+{
+"name": "Tyler Herro",
+"value": 264
+},
+{
+"name": "Jonas Valanciunas",
+"value": 246
+},
+{
+"name": "DeMar DeRozan",
+"value": 245
+},
+{
+"name": "Trae Young",
+"value": 237
+},
+{
+"name": "Stephen Curry",
+"value": 235
+},
+{
+"name": "Bam Adebayo",
+"value": 232
+},
+{
+"name": "CJ McCollum",
+"value": 232
+},
+{
+"name": "Andrew Wiggins",
+"value": 229
+},
+{
+"name": "Draymond Green",
+"value": 223
+},
+{
+"name": "Coby White",
+"value": 220
+}
+],
+"pts": [
+{
+"name": "Stephen Curry",
+"value": 187
+},
+{
+"name": "Tyler Herro",
+"value": 178
+},
+{
+"name": "Trae Young",
+"value": 166
+},
+{
+"name": "DeMar DeRozan",
+"value": 146
+},
+{
+"name": "Anthony Davis",
+"value": 136
+},
+{
+"name": "Ja Morant",
+"value": 134
+},
+{
+"name": "Jonas Valanciunas",
+"value": 127
+},
+{
+"name": "Brandon Ingram",
+"value": 122
+},
+{
+"name": "Andrew Wiggins",
+"value": 122
+},
+{
+"name": "Coby White",
+"value": 118
+}
+],
+"fga": [
+{
+"name": "Tyler Herro",
+"value": 137
+},
+{
+"name": "Stephen Curry",
+"value": 128
+},
+{
+"name": "DeMar DeRozan",
+"value": 122
+},
+{
+"name": "Trae Young",
+"value": 122
+},
+{
+"name": "Ja Morant",
+"value": 119
+},
+{
+"name": "Anthony Davis",
+"value": 111
+},
+{
+"name": "Andrew Wiggins",
+"value": 106
+},
+{
+"name": "CJ McCollum",
+"value": 104
+},
+{
+"name": "Jonas Valanciunas",
+"value": 95
+},
+{
+"name": "Brandon Ingram",
+"value": 91
+},
+{
+"name": "Coby White",
+"value": 91
+}
+],
+"reb": [
+{
+"name": "Jonas Valanciunas",
+"value": 116
+},
+{
+"name": "Domantas Sabonis",
+"value": 71
+},
+{
+"name": "Bam Adebayo",
+"value": 68
+},
+{
+"name": "Clint Capela",
+"value": 63
+},
+{
+"name": "Anthony Davis",
+"value": 60
+},
+{
+"name": "Nikola Vucevic",
+"value": 60
+},
+{
+"name": "Andre Drummond",
+"value": 42
+},
+{
+"name": "Draymond Green",
+"value": 42
+},
+{
+"name": "Tyler Herro",
+"value": 42
+},
+{
+"name": "Larry Nance Jr",
+"value": 40
+},
+{
+"name": "Andrew Wiggins",
+"value": 40
+}
+],
+"tov": [
+{
+"name": "Tyler Herro",
+"value": 29
+},
+{
+"name": "Stephen Curry",
+"value": 27
+},
+{
+"name": "Draymond Green",
+"value": 24
+},
+{
+"name": "Ja Morant",
+"value": 24
+},
+{
+"name": "Trae Young",
+"value": 24
+},
+{
+"name": "Domantas Sabonis",
+"value": 20
+},
+{
+"name": "Kyle Anderson",
+"value": 17
+},
+{
+"name": "Coby White",
+"value": 16
+},
+{
+"name": "Desmond Bane",
+"value": 15
+},
+{
+"name": "Brandon Ingram",
+"value": 15
+}
+],
+"pf": [
+{
+"name": "Draymond Green",
+"value": 25
+},
+{
+"name": "Jonas Valanciunas",
+"value": 25
+},
+{
+"name": "Dillon Brooks",
+"value": 23
+},
+{
+"name": "Domantas Sabonis",
+"value": 21
+},
+{
+"name": "Coby White",
+"value": 21
+},
+{
+"name": "Herbert Jones",
+"value": 20
+},
+{
+"name": "DeMar DeRozan",
+"value": 18
+},
+{
+"name": "Alex Caruso",
+"value": 17
+},
+{
+"name": "Kyle Anderson",
+"value": 16
+},
+{
+"name": "Onyeka Okongwu",
+"value": 16
+}
+],
+"fgm": [
+{
+"name": "Tyler Herro",
+"value": 64
+},
+{
+"name": "Stephen Curry",
+"value": 58
+},
+{
+"name": "DeMar DeRozan",
+"value": 55
+},
+{
+"name": "Anthony Davis",
+"value": 51
+},
+{
+"name": "Ja Morant",
+"value": 51
+},
+{
+"name": "Jonas Valanciunas",
+"value": 51
+},
+{
+"name": "Andrew Wiggins",
+"value": 50
+},
+{
+"name": "Trae Young",
+"value": 50
+},
+{
+"name": "Brandon Ingram",
+"value": 49
+},
+{
+"name": "CJ McCollum",
+"value": 44
+}
+],
+"oreb": [
+{
+"name": "Jonas Valanciunas",
+"value": 39
+},
+{
+"name": "Anthony Davis",
+"value": 23
+},
+{
+"name": "Clint Capela",
+"value": 20
+},
+{
+"name": "Bam Adebayo",
+"value": 16
+},
+{
+"name": "Domantas Sabonis",
+"value": 14
+},
+{
+"name": "Zach Edey",
+"value": 13
+},
+{
+"name": "Larry Nance Jr",
+"value": 13
+},
+{
+"name": "Goga Bitadze",
+"value": 12
+},
+{
+"name": "Wendell Carter Jr",
+"value": 12
+},
+{
+"name": "Andre Drummond",
+"value": 12
+}
+],
+"dq": [
+{
+"name": "Draymond Green",
+"value": 2
+},
+{
+"name": "Dillon Brooks",
+"value": 1
+},
+{
+"name": "Alex Caruso",
+"value": 1
+},
+{
+"name": "Darius Garland",
+"value": 1
+},
+{
+"name": "Scotty Pippen Jr",
+"value": 1
+},
+{
+"name": "Domantas Sabonis",
+"value": 1
+},
+{
+"name": "Jalen Suggs",
+"value": 1
+},
+{
+"name": "Anthony Tolliver",
+"value": 1
+},
+{
+"name": "Karl-Anthony Towns",
+"value": 1
+},
+{
+"name": "Jonas Valanciunas",
+"value": 1
+},
+{
+"name": "Ivica Zubac",
+"value": 1
+}
+],
+"fta": [
+{
+"name": "Trae Young",
+"value": 59
+},
+{
+"name": "Jimmy Butler",
+"value": 47
+},
+{
+"name": "Stephen Curry",
+"value": 42
+},
+{
+"name": "DeMar DeRozan",
+"value": 36
+},
+{
+"name": "Jonas Valanciunas",
+"value": 35
+},
+{
+"name": "Anthony Davis",
+"value": 34
+},
+{
+"name": "Tyler Herro",
+"value": 31
+},
+{
+"name": "Desmond Bane",
+"value": 27
+},
+{
+"name": "LaMelo Ball",
+"value": 26
+},
+{
+"name": "Brandon Ingram",
+"value": 26
+},
+{
+"name": "Ja Morant",
+"value": 26
+}
+],
+"dreb": [
+{
+"name": "Jonas Valanciunas",
+"value": 77
+},
+{
+"name": "Domantas Sabonis",
+"value": 57
+},
+{
+"name": "Nikola Vucevic",
+"value": 53
+},
+{
+"name": "Bam Adebayo",
+"value": 52
+},
+{
+"name": "Clint Capela",
+"value": 43
+},
+{
+"name": "Draymond Green",
+"value": 40
+},
+{
+"name": "Tyler Herro",
+"value": 38
+},
+{
+"name": "Anthony Davis",
+"value": 37
+},
+{
+"name": "Andrew Wiggins",
+"value": 31
+},
+{
+"name": "Three tied",
+"value": 30
+}
+],
+"ast": [
+{
+"name": "Trae Young",
+"value": 54
+},
+{
+"name": "Draymond Green",
+"value": 49
+},
+{
+"name": "Tyler Herro",
+"value": 42
+},
+{
+"name": "Kyle Anderson",
+"value": 41
+},
+{
+"name": "Domantas Sabonis",
+"value": 38
+},
+{
+"name": "Ja Morant",
+"value": 32
+},
+{
+"name": "DeMar DeRozan",
+"value": 30
+},
+{
+"name": "Dejounte Murray",
+"value": 29
+},
+{
+"name": "Brandon Ingram",
+"value": 28
+},
+{
+"name": "LaMelo Ball",
+"value": 27
+},
+{
+"name": "Coby White",
+"value": 27
+}
+],
+"ftm": [
+{
+"name": "Trae Young",
+"value": 52
+},
+{
+"name": "Stephen Curry",
+"value": 40
+},
+{
+"name": "Jimmy Butler",
+"value": 37
+},
+{
+"name": "DeMar DeRozan",
+"value": 30
+},
+{
+"name": "Tyler Herro",
+"value": 29
+},
+{
+"name": "Anthony Davis",
+"value": 28
+},
+{
+"name": "Desmond Bane",
+"value": 25
+},
+{
+"name": "Jonas Valanciunas",
+"value": 23
+},
+{
+"name": "LaMelo Ball",
+"value": 22
+},
+{
+"name": "Brandon Ingram",
+"value": 21
+}
+],
+"fg3a": [
+{
+"name": "Stephen Curry",
+"value": 66
+},
+{
+"name": "Tyler Herro",
+"value": 60
+},
+{
+"name": "Trae Young",
+"value": 48
+},
+{
+"name": "LaMelo Ball",
+"value": 44
+},
+{
+"name": "Coby White",
+"value": 43
+},
+{
+"name": "Andrew Wiggins",
+"value": 36
+},
+{
+"name": "CJ McCollum",
+"value": 35
+},
+{
+"name": "Trey Murphy",
+"value": 32
+},
+{
+"name": "Davion Mitchell",
+"value": 31
+},
+{
+"name": "Desmond Bane",
+"value": 30
+}
+],
+"stl": [
+{
+"name": "Draymond Green",
+"value": 14
+},
+{
+"name": "Jimmy Butler",
+"value": 12
+},
+{
+"name": "Haywood Highsmith",
+"value": 10
+},
+{
+"name": "Domantas Sabonis",
+"value": 10
+},
+{
+"name": "Bam Adebayo",
+"value": 9
+},
+{
+"name": "Dillon Brooks",
+"value": 9
+},
+{
+"name": "Stephen Curry",
+"value": 9
+},
+{
+"name": "Ja Morant",
+"value": 9
+},
+{
+"name": "Four tied",
+"value": 8
+}
+],
+"blk": [
+{
+"name": "Kyle Anderson",
+"value": 15
+},
+{
+"name": "Bam Adebayo",
+"value": 12
+},
+{
+"name": "Anthony Davis",
+"value": 11
+},
+{
+"name": "Andre Drummond",
+"value": 10
+},
+{
+"name": "Daniel Gafford",
+"value": 10
+},
+{
+"name": "Goga Bitadze",
+"value": 9
+},
+{
+"name": "Jonas Valanciunas",
+"value": 9
+},
+{
+"name": "Jakob Poeltl",
+"value": 8
+},
+{
+"name": "Six tied",
+"value": 6
+}
+],
+"fg3m": [
+{
+"name": "Stephen Curry",
+"value": 31
+},
+{
+"name": "Tyler Herro",
+"value": 21
+},
+{
+"name": "Coby White",
+"value": 18
+},
+{
+"name": "Trae Young",
+"value": 14
+},
+{
+"name": "Desmond Bane",
+"value": 13
+},
+{
+"name": "Davion Mitchell",
+"value": 13
+},
+{
+"name": "Andrew Wiggins",
+"value": 13
+},
+{
+"name": "Ja Morant",
+"value": 12
+},
+{
+"name": "Trey Murphy",
+"value": 12
+},
+{
+"name": "Keegan Murray",
+"value": 12
+}
+]
+},
+"playoffs": {
+"seasons": [
+{
+"name": "LeBron James",
+"value": 19
+},
+{
+"name": "Karl Malone",
+"value": 19
+},
+{
+"name": "John Stockton",
+"value": 19
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 18
+},
+{
+"name": "Tim Duncan",
+"value": 18
+},
+{
+"name": "James Harden",
+"value": 17
+},
+{
+"name": "Jason Kidd",
+"value": 17
+},
+{
+"name": "Shaquille O’Neal",
+"value": 17
+},
+{
+"name": "Tony Parker",
+"value": 17
+},
+{
+"name": "Clifford Robinson",
+"value": 17
+}
+],
+"gp": [
+{
+"name": "LeBron James",
+"value": 302
+},
+{
+"name": "Derek Fisher",
+"value": 259
+},
+{
+"name": "Tim Duncan",
+"value": 251
+},
+{
+"name": "Robert Horry",
+"value": 244
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 237
+},
+{
+"name": "Tony Parker",
+"value": 226
+},
+{
+"name": "Kobe Bryant",
+"value": 220
+},
+{
+"name": "Manu Ginobili",
+"value": 218
+},
+{
+"name": "Shaquille O’Neal",
+"value": 216
+},
+{
+"name": "Scottie Pippen",
+"value": 208
+}
+],
+"min": [
+{
+"name": "Tim Duncan",
+"value": 9370
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 8851
+},
+{
+"name": "Kobe Bryant",
+"value": 8641
+},
+{
+"name": "Scottie Pippen",
+"value": 8105
+},
+{
+"name": "Shaquille O’Neal",
+"value": 8099
+},
+{
+"name": "Karl Malone",
+"value": 7907
+},
+{
+"name": "Tony Parker",
+"value": 7759
+},
+{
+"name": "Wilt Chamberlain",
+"value": 7559
+},
+{
+"name": "Magic Johnson",
+"value": 7538
+}
+],
+"pts": [
+{
+"name": "LeBron James",
+"value": 8521
+},
+{
+"name": "Michael Jordan",
+"value": 5987
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 5762
+},
+{
+"name": "Kobe Bryant",
+"value": 5640
+},
+{
+"name": "Shaquille O’Neal",
+"value": 5250
+},
+{
+"name": "Tim Duncan",
+"value": 5172
+},
+{
+"name": "Kevin Durant",
+"value": 5008
+},
+{
+"name": "Karl Malone",
+"value": 4761
+},
+{
+"name": "Jerry West",
+"value": 4457
+},
+{
+"name": "James Harden",
+"value": 4240
+}
+],
+"fg3m": [
+{
+"name": "Stephen Curry",
+"value": 650
+},
+{
+"name": "Klay Thompson",
+"value": 501
+},
+{
+"name": "LeBron James",
+"value": 497
+},
+{
+"name": "James Harden",
+"value": 472
+},
+{
+"name": "Ray Allen",
+"value": 385
+},
+{
+"name": "Kevin Durant",
+"value": 367
+},
+{
+"name": "Manu Ginobili",
+"value": 324
+},
+{
+"name": "Reggie Miller",
+"value": 320
+},
+{
+"name": "Danny Green",
+"value": 315
+},
+{
+"name": "Paul George",
+"value": 311
+},
+{
+"name": "Jayson Tatum",
+"value": 311
+}
+],
+"blk": [
+{
+"name": "Tim Duncan",
+"value": 568
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 476
+},
+{
+"name": "Hakeem Olajuwon",
+"value": 472
+},
+{
+"name": "Shaquille O’Neal",
+"value": 459
+},
+{
+"name": "David Robinson",
+"value": 312
+},
+{
+"name": "Robert Parish",
+"value": 309
+},
+{
+"name": "Patrick Ewing",
+"value": 303
+},
+{
+"name": "Serge Ibaka",
+"value": 292
+},
+{
+"name": "LeBron James",
+"value": 287
+},
+{
+"name": "Kevin McHale",
+"value": 281
+}
+],
+"fga": [
+{
+"name": "LeBron James",
+"value": 6167
+},
+{
+"name": "Kobe Bryant",
+"value": 4499
+},
+{
+"name": "Michael Jordan",
+"value": 4497
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 4422
+},
+{
+"name": "Tim Duncan",
+"value": 3939
+},
+{
+"name": "Karl Malone",
+"value": 3768
+},
+{
+"name": "Shaquille O’Neal",
+"value": 3627
+},
+{
+"name": "Kevin Durant",
+"value": 3540
+},
+{
+"name": "Tony Parker",
+"value": 3501
+},
+{
+"name": "Jerry West",
+"value": 3460
+}
+],
+"tov": [
+{
+"name": "LeBron James",
+"value": 1085
+},
+{
+"name": "Magic Johnson",
+"value": 696
+},
+{
+"name": "James Harden",
+"value": 674
+},
+{
+"name": "Shaquille O’Neal",
+"value": 649
+},
+{
+"name": "Kobe Bryant",
+"value": 647
+},
+{
+"name": "Tim Duncan",
+"value": 633
+},
+{
+"name": "Scottie Pippen",
+"value": 602
+},
+{
+"name": "Tony Parker",
+"value": 594
+},
+{
+"name": "Dwyane Wade",
+"value": 583
+},
+{
+"name": "Kevin Durant",
+"value": 559
+}
+],
+"reb": [
+{
+"name": "Bill Russell",
+"value": 4104
+},
+{
+"name": "Wilt Chamberlain",
+"value": 3913
+},
+{
+"name": "Tim Duncan",
+"value": 2859
+},
+{
+"name": "LeBron James",
+"value": 2695
+},
+{
+"name": "Shaquille O’Neal",
+"value": 2508
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 2481
+},
+{
+"name": "Karl Malone",
+"value": 2062
+},
+{
+"name": "Wes Unseld",
+"value": 1777
+},
+{
+"name": "Robert Parish",
+"value": 1765
+},
+{
+"name": "Elgin Baylor",
+"value": 1724
+}
+],
+"fgm": [
+{
+"name": "LeBron James",
+"value": 3055
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 2356
+},
+{
+"name": "Michael Jordan",
+"value": 2188
+},
+{
+"name": "Shaquille O’Neal",
+"value": 2041
+},
+{
+"name": "Kobe Bryant",
+"value": 2014
+},
+{
+"name": "Tim Duncan",
+"value": 1975
+},
+{
+"name": "Karl Malone",
+"value": 1743
+},
+{
+"name": "Kevin Durant",
+"value": 1691
+},
+{
+"name": "Jerry West",
+"value": 1622
+},
+{
+"name": "Tony Parker",
+"value": 1613
+}
+],
+"pf": [
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 797
+},
+{
+"name": "Shaquille O’Neal",
+"value": 769
+},
+{
+"name": "Robert Horry",
+"value": 717
+},
+{
+"name": "Tim Duncan",
+"value": 701
+},
+{
+"name": "Scottie Pippen",
+"value": 686
+},
+{
+"name": "LeBron James",
+"value": 679
+},
+{
+"name": "Karl Malone",
+"value": 662
+},
+{
+"name": "Kobe Bryant",
+"value": 660
+},
+{
+"name": "Derek Fisher",
+"value": 645
+},
+{
+"name": "Rasheed Wallace",
+"value": 645
+}
+],
+"oreb": [
+{
+"name": "Shaquille O’Neal",
+"value": 866
+},
+{
+"name": "Tim Duncan",
+"value": 778
+},
+{
+"name": "Dennis Rodman",
+"value": 626
+},
+{
+"name": "Robert Parish",
+"value": 571
+},
+{
+"name": "Horace Grant",
+"value": 549
+},
+{
+"name": "Charles Oakley",
+"value": 519
+},
+{
+"name": "Charles Barkley",
+"value": 510
+},
+{
+"name": "Moses Malone",
+"value": 510
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 505
+},
+{
+"name": "Karl Malone",
+"value": 502
+}
+],
+"fta": [
+{
+"name": "LeBron James",
+"value": 2582
+},
+{
+"name": "Shaquille O’Neal",
+"value": 2317
+},
+{
+"name": "Tim Duncan",
+"value": 1766
+},
+{
+"name": "Michael Jordan",
+"value": 1766
+},
+{
+"name": "Karl Malone",
+"value": 1725
+},
+{
+"name": "Wilt Chamberlain",
+"value": 1627
+},
+{
+"name": "Kobe Bryant",
+"value": 1617
+},
+{
+"name": "Jerry West",
+"value": 1506
+},
+{
+"name": "Kevin Durant",
+"value": 1450
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 1419
+}
+],
+"dq": [
+{
+"name": "Tom Sanders",
+"value": 26
+},
+{
+"name": "Vern Mikkelsen",
+"value": 24
+},
+{
+"name": "Bailey Howell",
+"value": 21
+},
+{
+"name": "Charlie Share",
+"value": 17
+},
+{
+"name": "Jack Sikma",
+"value": 17
+},
+{
+"name": "Darryl Dawkins",
+"value": 16
+},
+{
+"name": "Robert Parish",
+"value": 16
+},
+{
+"name": "Dave Cowens",
+"value": 15
+},
+{
+"name": "Kenyon Martin",
+"value": 15
+},
+{
+"name": "Five tied",
+"value": 14
+}
+],
+"dreb": [
+{
+"name": "LeBron James",
+"value": 2249
+},
+{
+"name": "Tim Duncan",
+"value": 2081
+},
+{
+"name": "Shaquille O’Neal",
+"value": 1642
+},
+{
+"name": "Karl Malone",
+"value": 1560
+},
+{
+"name": "Larry Bird",
+"value": 1323
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 1273
+},
+{
+"name": "Dirk Nowitzki",
+"value": 1234
+},
+{
+"name": "Kevin Garnett",
+"value": 1214
+},
+{
+"name": "Kevin Durant",
+"value": 1202
+},
+{
+"name": "Al Horford",
+"value": 1201
+}
+],
+"ftm": [
+{
+"name": "LeBron James",
+"value": 1914
+},
+{
+"name": "Michael Jordan",
+"value": 1463
+},
+{
+"name": "Kobe Bryant",
+"value": 1320
+},
+{
+"name": "Karl Malone",
+"value": 1269
+},
+{
+"name": "Kevin Durant",
+"value": 1259
+},
+{
+"name": "James Harden",
+"value": 1218
+},
+{
+"name": "Tim Duncan",
+"value": 1217
+},
+{
+"name": "Jerry West",
+"value": 1213
+},
+{
+"name": "Shaquille O’Neal",
+"value": 1168
+},
+{
+"name": "Dirk Nowitzki",
+"value": 1074
+}
+],
+"ast": [
+{
+"name": "Magic Johnson",
+"value": 2346
+},
+{
+"name": "LeBron James",
+"value": 2168
+},
+{
+"name": "John Stockton",
+"value": 1839
+},
+{
+"name": "Jason Kidd",
+"value": 1263
+},
+{
+"name": "Chris Paul",
+"value": 1233
+},
+{
+"name": "James Harden",
+"value": 1224
+},
+{
+"name": "Tony Parker",
+"value": 1143
+},
+{
+"name": "Rajon Rondo",
+"value": 1136
+},
+{
+"name": "Larry Bird",
+"value": 1062
+},
+{
+"name": "Steve Nash",
+"value": 1061
+}
+],
+"fg3a": [
+{
+"name": "Stephen Curry",
+"value": 1637
+},
+{
+"name": "LeBron James",
+"value": 1495
+},
+{
+"name": "James Harden",
+"value": 1402
+},
+{
+"name": "Klay Thompson",
+"value": 1237
+},
+{
+"name": "Kevin Durant",
+"value": 1033
+},
+{
+"name": "Ray Allen",
+"value": 959
+},
+{
+"name": "Manu Ginobili",
+"value": 905
+},
+{
+"name": "Jayson Tatum",
+"value": 892
+},
+{
+"name": "Kobe Bryant",
+"value": 882
+},
+{
+"name": "Paul George",
+"value": 854
+}
+],
+"stl": [
+{
+"name": "LeBron James",
+"value": 506
+},
+{
+"name": "Scottie Pippen",
+"value": 395
+},
+{
+"name": "Michael Jordan",
+"value": 376
+},
+{
+"name": "Magic Johnson",
+"value": 358
+},
+{
+"name": "John Stockton",
+"value": 338
+},
+{
+"name": "James Harden",
+"value": 313
+},
+{
+"name": "Kobe Bryant",
+"value": 310
+},
+{
+"name": "Jason Kidd",
+"value": 302
+},
+{
+"name": "Larry Bird",
+"value": 296
+},
+{
+"name": "Maurice Cheeks",
+"value": 295
+}
+]
+},
+"finals": {
+"seasons": [
+{
+"name": "Bill Russell",
+"value": 12
+},
+{
+"name": "Sam Jones",
+"value": 11
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 10
+},
+{
+"name": "LeBron James",
+"value": 10
+},
+{
+"name": "Tom Heinsohn",
+"value": 9
+},
+{
+"name": "Magic Johnson",
+"value": 9
+},
+{
+"name": "Jerry West",
+"value": 9
+},
+{
+"name": "Six tied",
+"value": 8
+}
+],
+"gp": [
+{
+"name": "Bill Russell",
+"value": 70
+},
+{
+"name": "Sam Jones",
+"value": 64
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 56
+},
+{
+"name": "LeBron James",
+"value": 55
+},
+{
+"name": "Jerry West",
+"value": 55
+},
+{
+"name": "Tom Heinsohn",
+"value": 52
+},
+{
+"name": "Magic Johnson",
+"value": 50
+},
+{
+"name": "John Havlicek",
+"value": 47
+},
+{
+"name": "Frank Ramsey",
+"value": 47
+},
+{
+"name": "Michael Cooper",
+"value": 46
+}
+],
+"min": [
+{
+"name": "Bill Russell",
+"value": 3185
+},
+{
+"name": "Jerry West",
+"value": 2375
+},
+{
+"name": "LeBron James",
+"value": 2337
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 2082
+},
+{
+"name": "Magic Johnson",
+"value": 2044
+},
+{
+"name": "John Havlicek",
+"value": 1872
+},
+{
+"name": "Sam Jones",
+"value": 1871
+},
+{
+"name": "Elgin Baylor",
+"value": 1850
+},
+{
+"name": "Wilt Chamberlain",
+"value": 1657
+},
+{
+"name": "Bob Cousy",
+"value": 1639
+}
+],
+"pts": [
+{
+"name": "Jerry West",
+"value": 1679
+},
+{
+"name": "LeBron James",
+"value": 1562
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 1317
+},
+{
+"name": "Michael Jordan",
+"value": 1176
+},
+{
+"name": "Elgin Baylor",
+"value": 1161
+},
+{
+"name": "Bill Russell",
+"value": 1151
+},
+{
+"name": "Sam Jones",
+"value": 1143
+},
+{
+"name": "Tom Heinsohn",
+"value": 1035
+},
+{
+"name": "John Havlicek",
+"value": 1020
+},
+{
+"name": "Magic Johnson",
+"value": 971
+}
+],
+"fg3m": [
+{
+"name": "Stephen Curry",
+"value": 152
+},
+{
+"name": "Klay Thompson",
+"value": 106
+},
+{
+"name": "LeBron James",
+"value": 101
+},
+{
+"name": "Danny Green",
+"value": 59
+},
+{
+"name": "J.R. Smith",
+"value": 59
+},
+{
+"name": "Robert Horry",
+"value": 56
+},
+{
+"name": "Ray Allen",
+"value": 55
+},
+{
+"name": "Kobe Bryant",
+"value": 48
+},
+{
+"name": "Derek Fisher",
+"value": 43
+},
+{
+"name": "Kevin Durant",
+"value": 43
+}
+],
+"blk": [
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 116
+},
+{
+"name": "Tim Duncan",
+"value": 81
+},
+{
+"name": "Shaquille O’Neal",
+"value": 62
+},
+{
+"name": "Hakeem Olajuwon",
+"value": 54
+},
+{
+"name": "Robert Parish",
+"value": 54
+},
+{
+"name": "LeBron James",
+"value": 46
+},
+{
+"name": "Kevin McHale",
+"value": 44
+},
+{
+"name": "Robert Horry",
+"value": 43
+},
+{
+"name": "Caldwell Jones",
+"value": 42
+},
+{
+"name": "Julius Erving",
+"value": 40
+}
+],
+"fga": [
+{
+"name": "Jerry West",
+"value": 1333
+},
+{
+"name": "LeBron James",
+"value": 1216
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 1040
+},
+{
+"name": "Elgin Baylor",
+"value": 1034
+},
+{
+"name": "Tom Heinsohn",
+"value": 1016
+},
+{
+"name": "Sam Jones",
+"value": 994
+},
+{
+"name": "John Havlicek",
+"value": 926
+},
+{
+"name": "Michael Jordan",
+"value": 911
+},
+{
+"name": "Bill Russell",
+"value": 910
+},
+{
+"name": "Kobe Bryant",
+"value": 808
+}
+],
+"reb": [
+{
+"name": "Bill Russell",
+"value": 1718
+},
+{
+"name": "Wilt Chamberlain",
+"value": 862
+},
+{
+"name": "Elgin Baylor",
+"value": 593
+},
+{
+"name": "LeBron James",
+"value": 561
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 507
+},
+{
+"name": "Tom Heinsohn",
+"value": 473
+},
+{
+"name": "Tim Duncan",
+"value": 452
+},
+{
+"name": "Bob Pettit",
+"value": 416
+},
+{
+"name": "Magic Johnson",
+"value": 397
+},
+{
+"name": "Shaquille O’Neal",
+"value": 393
+}
+],
+"tov": [
+{
+"name": "LeBron James",
+"value": 217
+},
+{
+"name": "Magic Johnson",
+"value": 190
+},
+{
+"name": "Kobe Bryant",
+"value": 123
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 121
+},
+{
+"name": "Stephen Curry",
+"value": 120
+},
+{
+"name": "Scottie Pippen",
+"value": 117
+},
+{
+"name": "Shaquille O’Neal",
+"value": 101
+},
+{
+"name": "Dennis Johnson",
+"value": 100
+},
+{
+"name": "Michael Jordan",
+"value": 99
+},
+{
+"name": "Tim Duncan",
+"value": 96
+}
+],
+"fgm": [
+{
+"name": "Jerry West",
+"value": 612
+},
+{
+"name": "LeBron James",
+"value": 588
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 544
+},
+{
+"name": "Sam Jones",
+"value": 458
+},
+{
+"name": "Elgin Baylor",
+"value": 442
+},
+{
+"name": "Michael Jordan",
+"value": 438
+},
+{
+"name": "Bill Russell",
+"value": 415
+},
+{
+"name": "Tom Heinsohn",
+"value": 407
+},
+{
+"name": "John Havlicek",
+"value": 390
+},
+{
+"name": "Shaquille O’Neal",
+"value": 340
+}
+],
+"oreb": [
+{
+"name": "Tim Duncan",
+"value": 125
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 124
+},
+{
+"name": "Shaquille O’Neal",
+"value": 119
+},
+{
+"name": "LeBron James",
+"value": 107
+},
+{
+"name": "Dennis Rodman",
+"value": 105
+},
+{
+"name": "Scottie Pippen",
+"value": 97
+},
+{
+"name": "Magic Johnson",
+"value": 89
+},
+{
+"name": "Robert Parish",
+"value": 87
+},
+{
+"name": "Kevin McHale",
+"value": 85
+},
+{
+"name": "Tristan Thompson",
+"value": 81
+}
+],
+"pf": [
+{
+"name": "Bill Russell",
+"value": 225
+},
+{
+"name": "Tom Heinsohn",
+"value": 209
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 196
+},
+{
+"name": "Satch Sanders",
+"value": 179
+},
+{
+"name": "Frank Ramsey",
+"value": 178
+},
+{
+"name": "Michael Cooper",
+"value": 159
+},
+{
+"name": "Jerry West",
+"value": 159
+},
+{
+"name": "John Havlicek",
+"value": 154
+},
+{
+"name": "Sam Jones",
+"value": 151
+},
+{
+"name": "Slater Martin",
+"value": 148
+}
+],
+"fta": [
+{
+"name": "Jerry West",
+"value": 551
+},
+{
+"name": "Bill Russell",
+"value": 524
+},
+{
+"name": "LeBron James",
+"value": 390
+},
+{
+"name": "Shaquille O’Neal",
+"value": 382
+},
+{
+"name": "Elgin Baylor",
+"value": 367
+},
+{
+"name": "Wilt Chamberlain",
+"value": 329
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 327
+},
+{
+"name": "George Mikan",
+"value": 326
+},
+{
+"name": "Magic Johnson",
+"value": 325
+},
+{
+"name": "Michael Jordan",
+"value": 320
+}
+],
+"dreb": [
+{
+"name": "LeBron James",
+"value": 454
+},
+{
+"name": "Tim Duncan",
+"value": 327
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 309
+},
+{
+"name": "Magic Johnson",
+"value": 308
+},
+{
+"name": "Larry Bird",
+"value": 282
+},
+{
+"name": "Shaquille O’Neal",
+"value": 274
+},
+{
+"name": "Draymond Green",
+"value": 250
+},
+{
+"name": "Scottie Pippen",
+"value": 195
+},
+{
+"name": "Dennis Rodman",
+"value": 189
+},
+{
+"name": "Robert Parish",
+"value": 173
+}
+],
+"dq": [
+{
+"name": "Satch Sanders",
+"value": 12
+},
+{
+"name": "Tom Heinsohn",
+"value": 9
+},
+{
+"name": "George Mikan",
+"value": 7
+},
+{
+"name": "Frank Ramsey",
+"value": 7
+},
+{
+"name": "Arnie Risen",
+"value": 7
+},
+{
+"name": "Vern Mikkelsen",
+"value": 6
+},
+{
+"name": "Cliff Hagan",
+"value": 5
+},
+{
+"name": "Art Hillhouse",
+"value": 5
+},
+{
+"name": "Slater Martin",
+"value": 5
+},
+{
+"name": "Charlie Scott",
+"value": 5
+}
+],
+"ftm": [
+{
+"name": "Jerry West",
+"value": 455
+},
+{
+"name": "Bill Russell",
+"value": 321
+},
+{
+"name": "LeBron James",
+"value": 285
+},
+{
+"name": "Magic Johnson",
+"value": 284
+},
+{
+"name": "Elgin Baylor",
+"value": 277
+},
+{
+"name": "George Mikan",
+"value": 259
+},
+{
+"name": "Michael Jordan",
+"value": 258
+},
+{
+"name": "John Havlicek",
+"value": 240
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"value": 229
+},
+{
+"name": "Sam Jones",
+"value": 227
+},
+{
+"name": "Bob Pettit",
+"value": 227
+}
+],
+"ast": [
+{
+"name": "Magic Johnson",
+"value": 584
+},
+{
+"name": "LeBron James",
+"value": 430
+},
+{
+"name": "Bob Cousy",
+"value": 400
+},
+{
+"name": "Bill Russell",
+"value": 315
+},
+{
+"name": "Jerry West",
+"value": 306
+},
+{
+"name": "Dennis Johnson",
+"value": 228
+},
+{
+"name": "Draymond Green",
+"value": 219
+},
+{
+"name": "Michael Jordan",
+"value": 209
+},
+{
+"name": "Scottie Pippen",
+"value": 207
+},
+{
+"name": "Stephen Curry",
+"value": 204
+}
+],
+"fg3a": [
+{
+"name": "Stephen Curry",
+"value": 385
+},
+{
+"name": "LeBron James",
+"value": 287
+},
+{
+"name": "Klay Thompson",
+"value": 266
+},
+{
+"name": "J.R. Smith",
+"value": 155
+},
+{
+"name": "Kobe Bryant",
+"value": 153
+},
+{
+"name": "Robert Horry",
+"value": 143
+},
+{
+"name": "Danny Green",
+"value": 140
+},
+{
+"name": "Ray Allen",
+"value": 127
+},
+{
+"name": "Draymond Green",
+"value": 125
+},
+{
+"name": "Manu Ginobili",
+"value": 120
+}
+],
+"stl": [
+{
+"name": "Magic Johnson",
+"value": 102
+},
+{
+"name": "LeBron James",
+"value": 93
+},
+{
+"name": "Scottie Pippen",
+"value": 67
+},
+{
+"name": "Kobe Bryant",
+"value": 65
+},
+{
+"name": "Larry Bird",
+"value": 63
+},
+{
+"name": "Michael Jordan",
+"value": 62
+},
+{
+"name": "Michael Cooper",
+"value": 59
+},
+{
+"name": "Draymond Green",
+"value": 59
+},
+{
+"name": "Stephen Curry",
+"value": 55
+},
+{
+"name": "Dwyane Wade",
+"value": 53
+}
+]
+}
+},
+"allStarSelections": [
+{
+"name": "Tracy McGrady",
+"selections": 7
+},
+{
+"name": "Billy Cunningham",
+"selections": 4
+},
+{
+"name": "LeBron James",
+"selections": 22
+},
+{
+"name": "Dick McGuire",
+"selections": 7
+},
+{
+"name": "Bob Dandridge",
+"selections": 4
+},
+{
+"name": "Kareem Abdul-Jabbar",
+"selections": 19
+},
+{
+"name": "Kevin McHale",
+"selections": 7
+},
+{
+"name": "Bob Davies",
+"selections": 4
+},
+{
+"name": "Kobe Bryant",
+"selections": 18
+},
+{
+"name": "Donovan Mitchell",
+"selections": 7
+},
+{
+"name": "Anthony Edwards",
+"selections": 4
+},
+{
+"name": "Kevin Durant",
+"selections": 16
+},
+{
+"name": "Alonzo Mourning",
+"selections": 7
+},
+{
+"name": "Dick Garmaker",
+"selections": 4
+},
+{
+"name": "Tim Duncan",
+"selections": 15
+},
+{
+"name": "Scottie Pippen",
+"selections": 7
+},
+{
+"name": "Shai Gilgeous-Alexander",
+"selections": 4
+},
+{
+"name": "Kevin Garnett",
+"selections": 15
+},
+{
+"name": "Willis Reed",
+"selections": 7
+},
+{
+"name": "Draymond Green",
+"selections": 4
+},
+{
+"name": "Shaquille O’Neal",
+"selections": 15
+},
+{
+"name": "Jack Sikma",
+"selections": 7
+},
+{
+"name": "Johnny Green",
+"selections": 4
+},
+{
+"name": "Michael Jordan",
+"selections": 14
+},
+{
+"name": "Nate Thurmond",
+"selections": 7
+},
+{
+"name": "Penny Hardaway",
+"selections": 4
+},
+{
+"name": "Karl Malone",
+"selections": 14
+},
+{
+"name": "Chet Walker",
+"selections": 7
+},
+{
+"name": "Connie Hawkins",
+"selections": 4
+},
+{
+"name": "Dirk Nowitzki",
+"selections": 14
+},
+{
+"name": "Jo Jo White",
+"selections": 7
+},
+{
+"name": "Spencer Haywood",
+"selections": 4
+},
+{
+"name": "Jerry West",
+"selections": 14
+},
+{
+"name": "James Worthy",
+"selections": 7
+},
+{
+"name": "Mel Hutchins",
+"selections": 4
+},
+{
+"name": "Wilt Chamberlain",
+"selections": 13
+},
+{
+"name": "Nate Archibald",
+"selections": 6
+},
+{
+"name": "Bobby Jones",
+"selections": 4
+},
+{
+"name": "Bob Cousy",
+"selections": 13
+},
+{
+"name": "Jimmy Butler",
+"selections": 6
+},
+{
+"name": "Bernard King",
+"selections": 4
+},
+{
+"name": "John Havlicek",
+"selections": 13
+},
+{
+"name": "Larry Costello",
+"selections": 6
+},
+{
+"name": "Bill Laimbeer",
+"selections": 4
+},
+{
+"name": "Dwyane Wade",
+"selections": 13
+},
+{
+"name": "Adrian Dantley",
+"selections": 6
+},
+{
+"name": "Clyde Lovellette",
+"selections": 4
+},
+{
+"name": "Larry Bird",
+"selections": 12
+},
+{
+"name": "Walter Davis",
+"selections": 6
+},
+{
+"name": "Maurice Lucas",
+"selections": 4
+},
+{
+"name": "Stephen Curry",
+"selections": 12
+},
+{
+"name": "DeMar DeRozan",
+"selections": 6
+},
+{
+"name": "Shawn Marion",
+"selections": 4
+},
+{
+"name": "Elvin Hayes",
+"selections": 12
+},
+{
+"name": "Luka Doncic",
+"selections": 6
+},
+{
+"name": "George Mikan",
+"selections": 4
+},
+{
+"name": "Magic Johnson",
+"selections": 12
+},
+{
+"name": "Joe Dumars",
+"selections": 6
+},
+{
+"name": "Paul Millsap",
+"selections": 4
+},
+{
+"name": "Moses Malone",
+"selections": 12
+},
+{
+"name": "Pau Gasol",
+"selections": 6
+},
+{
+"name": "Earl Monroe",
+"selections": 4
+},
+{
+"name": "Hakeem Olajuwon",
+"selections": 12
+},
+{
+"name": "Artis Gilmore",
+"selections": 6
+},
+{
+"name": "Willie Naulls",
+"selections": 4
+},
+{
+"name": "Chris Paul",
+"selections": 12
+},
+{
+"name": "Blake Griffin",
+"selections": 6
+},
+{
+"name": "Jim Pollard",
+"selections": 4
+},
+{
+"name": "Oscar Robertson",
+"selections": 12
+},
+{
+"name": "Richie Guerin",
+"selections": 6
+},
+{
+"name": "Mark Price",
+"selections": 4
+},
+{
+"name": "Bill Russell",
+"selections": 12
+},
+{
+"name": "Tom Heinsohn",
+"selections": 6
+},
+{
+"name": "Michael Ray Richardson",
+"selections": 4
+},
+{
+"name": "Dolph Schayes",
+"selections": 12
+},
+{
+"name": "Bailey Howell",
+"selections": 6
+},
+{
+"name": "Arnie Risen",
+"selections": 4
+},
+{
+"name": "Isiah Thomas",
+"selections": 12
+},
+{
+"name": "Lou Hudson",
+"selections": 6
+},
+{
+"name": "Alvin Robertson",
+"selections": 4
+},
+{
+"name": "Charles Barkley",
+"selections": 11
+},
+{
+"name": "Neil Johnston",
+"selections": 6
+},
+{
+"name": "Guy Rodgers",
+"selections": 4
+},
+{
+"name": "Elgin Baylor",
+"selections": 11
+},
+{
+"name": "Shawn Kemp",
+"selections": 6
+},
+{
+"name": "Rajon Rondo",
+"selections": 4
+},
+{
+"name": "Chris Bosh",
+"selections": 11
+},
+{
+"name": "Kyle Lowry",
+"selections": 6
+},
+{
+"name": "Ralph Sampson",
+"selections": 4
+},
+{
+"name": "Julius Erving",
+"selections": 11
+},
+{
+"name": "Vern Mikkelsen",
+"selections": 6
+},
+{
+"name": "Pascal Siakam",
+"selections": 4
+},
+{
+"name": "Patrick Ewing",
+"selections": 11
+},
+{
+"name": "Jermaine O’Neal",
+"selections": 6
+},
+{
+"name": "Latrell Sprewell",
+"selections": 4
+},
+{
+"name": "James Harden",
+"selections": 11
+},
+{
+"name": "Tony Parker",
+"selections": 6
+},
+{
+"name": "David Thompson",
+"selections": 4
+},
+{
+"name": "Allen Iverson",
+"selections": 11
+},
+{
+"name": "Mitch Richmond",
+"selections": 6
+},
+{
+"name": "Kemba Walker",
+"selections": 4
+},
+{
+"name": "Bob Pettit",
+"selections": 11
+},
+{
+"name": "Amar’e Stoudemire",
+"selections": 6
+},
+{
+"name": "Ben Wallace",
+"selections": 4
+},
+{
+"name": "Ray Allen",
+"selections": 10
+},
+{
+"name": "Jayson Tatum",
+"selections": 6
+},
+{
+"name": "Rasheed Wallace",
+"selections": 4
+},
+{
+"name": "Giannis Antetokounmpo",
+"selections": 10
+},
+{
+"name": "Karl-Anthony Towns",
+"selections": 6
+},
+{
+"name": "Sidney Wicks",
+"selections": 4
+},
+{
+"name": "Carmelo Anthony",
+"selections": 10
+},
+{
+"name": "Jack Twyman",
+"selections": 6
+},
+{
+"name": "Trae Young",
+"selections": 4
+},
+{
+"name": "Paul Arizin",
+"selections": 10
+},
+{
+"name": "George Yardley",
+"selections": 6
+},
+{
+"name": "Bam Adebayo",
+"selections": 3
+},
+{
+"name": "Anthony Davis",
+"selections": 10
+},
+{
+"name": "Chauncey Billups",
+"selections": 5
+},
+{
+"name": "Mark Aguirre",
+"selections": 3
+},
+{
+"name": "Clyde Drexler",
+"selections": 10
+},
+{
+"name": "Devin Booker",
+"selections": 5
+},
+{
+"name": "Gilbert Arenas",
+"selections": 3
+},
+{
+"name": "Hal Greer",
+"selections": 10
+},
+{
+"name": "Carl Braun",
+"selections": 5
+},
+{
+"name": "Bradley Beal",
+"selections": 3
+},
+{
+"name": "Jason Kidd",
+"selections": 10
+},
+{
+"name": "Jaylen Brown",
+"selections": 5
+},
+{
+"name": "Bill Bridges",
+"selections": 3
+},
+{
+"name": "Paul Pierce",
+"selections": 10
+},
+{
+"name": "Brad Daugherty",
+"selections": 5
+},
+{
+"name": "Jalen Brunson",
+"selections": 3
+},
+{
+"name": "David Robinson",
+"selections": 10
+},
+{
+"name": "Wayne Embry",
+"selections": 5
+},
+{
+"name": "Phil Chenier",
+"selections": 3
+},
+{
+"name": "John Stockton",
+"selections": 10
+},
+{
+"name": "Tom Gola",
+"selections": 5
+},
+{
+"name": "Terry Dischinger",
+"selections": 3
+},
+{
+"name": "Paul George",
+"selections": 9
+},
+{
+"name": "Gail Goodrich",
+"selections": 5
+},
+{
+"name": "Steve Francis",
+"selections": 3
+},
+{
+"name": "George Gervin",
+"selections": 9
+},
+{
+"name": "Cliff Hagan",
+"selections": 5
+},
+{
+"name": "Marc Gasol",
+"selections": 3
+},
+{
+"name": "Kyrie Irving",
+"selections": 9
+},
+{
+"name": "Tim Hardaway",
+"selections": 5
+},
+{
+"name": "Rudy Gobert",
+"selections": 3
+},
+{
+"name": "Damian Lillard",
+"selections": 9
+},
+{
+"name": "Al Horford",
+"selections": 5
+},
+{
+"name": "Richard Hamilton",
+"selections": 3
+},
+{
+"name": "Robert Parish",
+"selections": 9
+},
+{
+"name": "Dennis Johnson",
+"selections": 5
+},
+{
+"name": "Kevin Johnson",
+"selections": 3
+},
+{
+"name": "Gary Payton",
+"selections": 9
+},
+{
+"name": "Gus Johnson",
+"selections": 5
+},
+{
+"name": "Eddie Jones",
+"selections": 3
+},
+{
+"name": "Russell Westbrook",
+"selections": 9
+},
+{
+"name": "Marques Johnson",
+"selections": 5
+},
+{
+"name": "Bob Kauffman",
+"selections": 3
+},
+{
+"name": "Lenny Wilkens",
+"selections": 9
+},
+{
+"name": "Sam Jones",
+"selections": 5
+},
+{
+"name": "Johnny Kerr",
+"selections": 3
+},
+{
+"name": "Dominique Wilkins",
+"selections": 9
+},
+{
+"name": "Rudy LaRusso",
+"selections": 5
+},
+{
+"name": "Bob Love",
+"selections": 3
+},
+{
+"name": "Rick Barry",
+"selections": 8
+},
+{
+"name": "Kevin Love",
+"selections": 5
+},
+{
+"name": "Dan Majerle",
+"selections": 3
+},
+{
+"name": "Vince Carter",
+"selections": 8
+},
+{
+"name": "Pete Maravich",
+"selections": 5
+},
+{
+"name": "George McGinnis",
+"selections": 3
+},
+{
+"name": "Dave Cowens",
+"selections": 8
+},
+{
+"name": "Bob McAdoo",
+"selections": 5
+},
+{
+"name": "Khris Middleton",
+"selections": 3
+},
+{
+"name": "Dave DeBusschere",
+"selections": 8
+},
+{
+"name": "Reggie Miller",
+"selections": 5
+},
+{
+"name": "Jeff Mullins",
+"selections": 3
+},
+{
+"name": "Alex English",
+"selections": 8
+},
+{
+"name": "Sidney Moncrief",
+"selections": 5
+},
+{
+"name": "Larry Nance",
+"selections": 3
+},
+{
+"name": "Larry Foust",
+"selections": 8
+},
+{
+"name": "Chris Mullin",
+"selections": 5
+},
+{
+"name": "Julius Randle",
+"selections": 3
+},
+{
+"name": "Dwight Howard",
+"selections": 8
+},
+{
+"name": "Don Ohl",
+"selections": 5
+},
+{
+"name": "Glen Rice",
+"selections": 3
+},
+{
+"name": "Nikola Jokic",
+"selections": 8
+},
+{
+"name": "Andy Phillip",
+"selections": 5
+},
+{
+"name": "Derrick Rose",
+"selections": 3
+},
+{
+"name": "Bob Lanier",
+"selections": 8
+},
+{
+"name": "Gene Shue",
+"selections": 5
+},
+{
+"name": "Dan Roundfield",
+"selections": 3
+},
+{
+"name": "Dikembe Mutombo",
+"selections": 8
+},
+{
+"name": "Klay Thompson",
+"selections": 5
+},
+{
+"name": "Brandon Roy",
+"selections": 3
+},
+{
+"name": "Steve Nash",
+"selections": 8
+},
+{
+"name": "Rudy Tomjanovich",
+"selections": 5
+},
+{
+"name": "Domantas Sabonis",
+"selections": 3
+},
+{
+"name": "Bill Sharman",
+"selections": 8
+},
+{
+"name": "Wes Unseld",
+"selections": 5
+},
+{
+"name": "Detlef Schrempf",
+"selections": 3
+},
+{
+"name": "Yao Ming",
+"selections": 8
+},
+{
+"name": "John Wall",
+"selections": 5
+},
+{
+"name": "Charlie Scott",
+"selections": 3
+},
+{
+"name": "LaMarcus Aldridge",
+"selections": 7
+},
+{
+"name": "Bobby Wanzer",
+"selections": 5
+},
+{
+"name": "Paul Seymour",
+"selections": 3
+},
+{
+"name": "Dave Bing",
+"selections": 7
+},
+{
+"name": "Chris Webber",
+"selections": 5
+},
+{
+"name": "Ben Simmons",
+"selections": 3
+},
+{
+"name": "Joel Embiid",
+"selections": 7
+},
+{
+"name": "Paul Westphal",
+"selections": 5
+},
+{
+"name": "Peja Stojakovic",
+"selections": 3
+},
+{
+"name": "Walt Frazier",
+"selections": 7
+},
+{
+"name": "Vin Baker",
+"selections": 4
+},
+{
+"name": "Maurice Stokes",
+"selections": 3
+},
+{
+"name": "Harry Gallatin",
+"selections": 7
+},
+{
+"name": "Walt Bellamy",
+"selections": 4
+},
+{
+"name": "Dick Van Arsdale",
+"selections": 3
+},
+{
+"name": "Grant Hill",
+"selections": 7
+},
+{
+"name": "Otis Birdsong",
+"selections": 4
+},
+{
+"name": "Tom Van Arsdale",
+"selections": 3
+},
+{
+"name": "Joe Johnson",
+"selections": 7
+},
+{
+"name": "Rolando Blackman",
+"selections": 4
+},
+{
+"name": "Norm Van Lier",
+"selections": 3
+},
+{
+"name": "Kawhi Leonard",
+"selections": 7
+},
+{
+"name": "Tom Chambers",
+"selections": 4
+},
+{
+"name": "Antoine Walker",
+"selections": 3
+},
+{
+"name": "Jerry Lucas",
+"selections": 7
+},
+{
+"name": "Maurice Cheeks",
+"selections": 4
+},
+{
+"name": "Jamaal Wilkes",
+"selections": 3
+},
+{
+"name": "Ed Macauley",
+"selections": 7
+},
+{
+"name": "Doug Collins",
+"selections": 4
+},
+{
+"name": "Buck Williams",
+"selections": 3
+},
+{
+"name": "Slater Martin",
+"selections": 7
+},
+{
+"name": "DeMarcus Cousins",
+"selections": 4
+},
+{
+"name": "Deron Williams",
+"selections": 3
+},
+{
+"name": "Scott Wedman",
+"selections": 2
+},
+{
+"name": "Kyle Korver",
+"selections": 1
+},
+{
+"name": "Scottie Barnes",
+"selections": 2
+},
+{
+"name": "Victor Wembanyama",
+"selections": 2
+},
+{
+"name": "Sam Lacey",
+"selections": 1
+},
+{
+"name": "Leo Barnhorst",
+"selections": 2
+},
+{
+"name": "David West",
+"selections": 2
+},
+{
+"name": "Christian Laettner",
+"selections": 1
+},
+{
+"name": "Zelmo Beaty",
+"selections": 2
+},
+{
+"name": "Gus Williams",
+"selections": 2
+},
+{
+"name": "Clyde Lee",
+"selections": 1
+},
+{
+"name": "Carlos Boozer",
+"selections": 2
+},
+{
+"name": "Zion Williamson",
+"selections": 2
+},
+{
+"name": "Reggie Lewis",
+"selections": 1
+},
+{
+"name": "Elton Brand",
+"selections": 2
+},
+{
+"name": "Brian Winters",
+"selections": 2
+},
+{
+"name": "Brook Lopez",
+"selections": 1
+},
+{
+"name": "Terrell Brandon",
+"selections": 2
+},
+{
+"name": "Shareef Abdur-Rahim",
+"selections": 1
+},
+{
+"name": "Jamaal Magloire",
+"selections": 1
+},
+{
+"name": "Frank Brian",
+"selections": 2
+},
+{
+"name": "Alvan Adams",
+"selections": 1
+},
+{
+"name": "Lauri Markkanen",
+"selections": 1
+},
+{
+"name": "Caron Butler",
+"selections": 2
+},
+{
+"name": "Michael Adams",
+"selections": 1
+},
+{
+"name": "Kenyon Martin",
+"selections": 1
+},
+{
+"name": "Joe Caldwell",
+"selections": 2
+},
+{
+"name": "Danny Ainge",
+"selections": 1
+},
+{
+"name": "Jamal Mashburn",
+"selections": 1
+},
+{
+"name": "Archie Clark",
+"selections": 2
+},
+{
+"name": "Jarrett Allen",
+"selections": 1
+},
+{
+"name": "Anthony Mason",
+"selections": 1
+},
+{
+"name": "Terry Cummings",
+"selections": 2
+},
+{
+"name": "Kenny Anderson",
+"selections": 1
+},
+{
+"name": "Xavier McDaniel",
+"selections": 1
+},
+{
+"name": "Cade Cunningham",
+"selections": 2
+},
+{
+"name": "B.J. Armstrong",
+"selections": 1
+},
+{
+"name": "Antonio McDyess",
+"selections": 1
+},
+{
+"name": "Baron Davis",
+"selections": 2
+},
+{
+"name": "Deni Avdija",
+"selections": 1
+},
+{
+"name": "Jon McGlocklin",
+"selections": 1
+},
+{
+"name": "Luol Deng",
+"selections": 2
+},
+{
+"name": "LaMelo Ball",
+"selections": 1
+},
+{
+"name": "Tom Meschery",
+"selections": 1
+},
+{
+"name": "John Drew",
+"selections": 2
+},
+{
+"name": "Paolo Banchero",
+"selections": 1
+},
+{
+"name": "Eddie Miles",
+"selections": 1
+},
+{
+"name": "Andre Drummond",
+"selections": 2
+},
+{
+"name": "Don Barksdale",
+"selections": 1
+},
+{
+"name": "Mike Mitchell",
+"selections": 1
+},
+{
+"name": "Kevin Duckworth",
+"selections": 2
+},
+{
+"name": "Dick Barnett",
+"selections": 1
+},
+{
+"name": "Steve Mix",
+"selections": 1
+},
+{
+"name": "Walter Dukes",
+"selections": 2
+},
+{
+"name": "Dana Barros",
+"selections": 1
+},
+{
+"name": "Evan Mobley",
+"selections": 1
+},
+{
+"name": "Dike Eddleman",
+"selections": 2
+},
+{
+"name": "Butch Beard",
+"selections": 1
+},
+{
+"name": "Jack Molinas",
+"selections": 1
+},
+{
+"name": "Sean Elliott",
+"selections": 2
+},
+{
+"name": "Ralph Beard",
+"selections": 1
+},
+{
+"name": "Calvin Murphy",
+"selections": 1
+},
+{
+"name": "Michael Finley",
+"selections": 2
+},
+{
+"name": "Mookie Blaylock",
+"selections": 1
+},
+{
+"name": "Dejounte Murray",
+"selections": 1
+},
+{
+"name": "De’Aaron Fox",
+"selections": 2
+},
+{
+"name": "John Block",
+"selections": 1
+},
+{
+"name": "Jamal Murray",
+"selections": 1
+},
+{
+"name": "Joe Fulks",
+"selections": 2
+},
+{
+"name": "Bob Boozer",
+"selections": 1
+},
+{
+"name": "Calvin Natt",
+"selections": 1
+},
+{
+"name": "Darius Garland",
+"selections": 2
+},
+{
+"name": "Vincent Boryla",
+"selections": 1
+},
+{
+"name": "Jameer Nelson",
+"selections": 1
+},
+{
+"name": "Jack George",
+"selections": 2
+},
+{
+"name": "Bill Bradley",
+"selections": 1
+},
+{
+"name": "Chuck Noble",
+"selections": 1
+},
+{
+"name": "Manu Ginobili",
+"selections": 2
+},
+{
+"name": "Fred Brown",
+"selections": 1
+},
+{
+"name": "Charles Oakley",
+"selections": 1
+},
+{
+"name": "Tyrese Haliburton",
+"selections": 2
+},
+{
+"name": "Don Buse",
+"selections": 1
+},
+{
+"name": "Mehmet Okur",
+"selections": 1
+},
+{
+"name": "Roy Hibbert",
+"selections": 2
+},
+{
+"name": "Andrew Bynum",
+"selections": 1
+},
+{
+"name": "Ricky Pierce",
+"selections": 1
+},
+{
+"name": "Jrue Holiday",
+"selections": 2
+},
+{
+"name": "Austin Carr",
+"selections": 1
+},
+{
+"name": "Kristaps Porzingis",
+"selections": 1
+},
+{
+"name": "Allan Houston",
+"selections": 2
+},
+{
+"name": "Joe Barry Carroll",
+"selections": 1
+},
+{
+"name": "Norman Powell",
+"selections": 1
+},
+{
+"name": "Rod Hundley",
+"selections": 2
+},
+{
+"name": "Bill Cartwright",
+"selections": 1
+},
+{
+"name": "Jim Price",
+"selections": 1
+},
+{
+"name": "Zydrunas Ilgauskas",
+"selections": 2
+},
+{
+"name": "Sam Cassell",
+"selections": 1
+},
+{
+"name": "Theo Ratliff",
+"selections": 1
+},
+{
+"name": "Brandon Ingram",
+"selections": 2
+},
+{
+"name": "Cedric Ceballos",
+"selections": 1
+},
+{
+"name": "Michael Redd",
+"selections": 1
+},
+{
+"name": "Jaren Jackson Jr.",
+"selections": 2
+},
+{
+"name": "Tyson Chandler",
+"selections": 1
+},
+{
+"name": "Richie Regan",
+"selections": 1
+},
+{
+"name": "Antawn Jamison",
+"selections": 2
+},
+{
+"name": "Len Chappell",
+"selections": 1
+},
+{
+"name": "Doc Rivers",
+"selections": 1
+},
+{
+"name": "Eddie Johnson",
+"selections": 2
+},
+{
+"name": "Nat Clifton",
+"selections": 1
+},
+{
+"name": "Clifford Robinson",
+"selections": 1
+},
+{
+"name": "John Johnson",
+"selections": 2
+},
+{
+"name": "Derrick Coleman",
+"selections": 1
+},
+{
+"name": "Flynn Robinson",
+"selections": 1
+},
+{
+"name": "Larry Johnson",
+"selections": 2
+},
+{
+"name": "Jack Coleman",
+"selections": 1
+},
+{
+"name": "Curtis Rowe",
+"selections": 1
+},
+{
+"name": "Larry Kenon",
+"selections": 2
+},
+{
+"name": "Mike Conley",
+"selections": 1
+},
+{
+"name": "Bob Rule",
+"selections": 1
+},
+{
+"name": "Billy Knight",
+"selections": 2
+},
+{
+"name": "Antonio Davis",
+"selections": 1
+},
+{
+"name": "Cazzie Russell",
+"selections": 1
+},
+{
+"name": "Don Kojis",
+"selections": 2
+},
+{
+"name": "Dale Davis",
+"selections": 1
+},
+{
+"name": "D’Angelo Russell",
+"selections": 1
+},
+{
+"name": "Zach LaVine",
+"selections": 2
+},
+{
+"name": "Vlade Divac",
+"selections": 1
+},
+{
+"name": "Campy Russell",
+"selections": 1
+},
+{
+"name": "David Lee",
+"selections": 2
+},
+{
+"name": "James Donaldson",
+"selections": 1
+},
+{
+"name": "Woody Sauldsberry",
+"selections": 1
+},
+{
+"name": "Fat Lever",
+"selections": 2
+},
+{
+"name": "Goran Dragic",
+"selections": 1
+},
+{
+"name": "Fred Schaus",
+"selections": 1
+},
+{
+"name": "Rashard Lewis",
+"selections": 2
+},
+{
+"name": "Jalen Duren",
+"selections": 1
+},
+{
+"name": "Lee Shaffer",
+"selections": 1
+},
+{
+"name": "Jeff Malone",
+"selections": 2
+},
+{
+"name": "Mark Eaton",
+"selections": 1
+},
+{
+"name": "Lonnie Shelton",
+"selections": 1
+},
+{
+"name": "Danny Manning",
+"selections": 2
+},
+{
+"name": "Dale Ellis",
+"selections": 1
+},
+{
+"name": "Adrian Smith",
+"selections": 1
+},
+{
+"name": "Stephon Marbury",
+"selections": 2
+},
+{
+"name": "Ray Felix",
+"selections": 1
+},
+{
+"name": "Steve Smith",
+"selections": 1
+},
+{
+"name": "Jack Marin",
+"selections": 2
+},
+{
+"name": "Sleepy Floyd",
+"selections": 1
+},
+{
+"name": "Rik Smits",
+"selections": 1
+},
+{
+"name": "Tyrese Maxey",
+"selections": 2
+},
+{
+"name": "World B. Free",
+"selections": 1
+},
+{
+"name": "John Starks",
+"selections": 1
+},
+{
+"name": "Brad Miller",
+"selections": 2
+},
+{
+"name": "Billy Gabor",
+"selections": 1
+},
+{
+"name": "Don Sunderlage",
+"selections": 1
+},
+{
+"name": "Ja Morant",
+"selections": 2
+},
+{
+"name": "Chris Gatling",
+"selections": 1
+},
+{
+"name": "Wally Szczerbiak",
+"selections": 1
+},
+{
+"name": "Norm Nixon",
+"selections": 2
+},
+{
+"name": "Danny Granger",
+"selections": 1
+},
+{
+"name": "Jeff Teague",
+"selections": 1
+},
+{
+"name": "Joakim Noah",
+"selections": 2
+},
+{
+"name": "Horace Grant",
+"selections": 1
+},
+{
+"name": "Otis Thorpe",
+"selections": 1
+},
+{
+"name": "Victor Oladipo",
+"selections": 2
+},
+{
+"name": "A.C. Green",
+"selections": 1
+},
+{
+"name": "Nick Van Exel",
+"selections": 1
+},
+{
+"name": "Jim Paxson",
+"selections": 2
+},
+{
+"name": "Rickey Green",
+"selections": 1
+},
+{
+"name": "Fred VanVleet",
+"selections": 1
+},
+{
+"name": "Geoff Petrie",
+"selections": 2
+},
+{
+"name": "Alex Groza",
+"selections": 1
+},
+{
+"name": "Gerald Wallace",
+"selections": 1
+},
+{
+"name": "Terry Porter",
+"selections": 2
+},
+{
+"name": "Tom Gugliotta",
+"selections": 1
+},
+{
+"name": "Paul Walther",
+"selections": 1
+},
+{
+"name": "Zach Randolph",
+"selections": 2
+},
+{
+"name": "Devin Harris",
+"selections": 1
+},
+{
+"name": "Kermit Washington",
+"selections": 1
+},
+{
+"name": "Glenn Robinson",
+"selections": 2
+},
+{
+"name": "Bob Harrison",
+"selections": 1
+},
+{
+"name": "Andrew Wiggins",
+"selections": 1
+},
+{
+"name": "Truck Robinson",
+"selections": 2
+},
+{
+"name": "Hersey Hawkins",
+"selections": 1
+},
+{
+"name": "Jayson Williams",
+"selections": 1
+},
+{
+"name": "Red Rocha",
+"selections": 2
+},
+{
+"name": "Gordon Hayward",
+"selections": 1
+},
+{
+"name": "Jalen Williams",
+"selections": 1
+},
+{
+"name": "Dennis Rodman",
+"selections": 2
+},
+{
+"name": "Walt Hazzard",
+"selections": 1
+},
+{
+"name": "Mo Williams",
+"selections": 1
+},
+{
+"name": "Jeff Ruland",
+"selections": 2
+},
+{
+"name": "Tyler Herro",
+"selections": 1
+},
+{
+"name": "Kevin Willis",
+"selections": 1
+},
+{
+"name": "Freddie Scolari",
+"selections": 2
+},
+{
+"name": "Tyrone Hill",
+"selections": 1
+},
+{
+"name": "Metta World Peace",
+"selections": 1
+},
+{
+"name": "Kenny Sears",
+"selections": 2
+},
+{
+"name": "Lionel Hollins",
+"selections": 1
+},
+{
+"name": "Max Zaslofsky",
+"selections": 1
+},
+{
+"name": "Frank Selvy",
+"selections": 2
+},
+{
+"name": "Chet Holmgren",
+"selections": 1
+},
+{
+"name": "Alperen Sengun",
+"selections": 2
+},
+{
+"name": "Jeff Hornacek",
+"selections": 1
+},
+{
+"name": "Paul Silas",
+"selections": 2
+},
+{
+"name": "Josh Howard",
+"selections": 1
+},
+{
+"name": "Jerry Sloan",
+"selections": 2
+},
+{
+"name": "Juwan Howard",
+"selections": 1
+},
+{
+"name": "Phil Smith",
+"selections": 2
+},
+{
+"name": "Andre Iguodala",
+"selections": 1
+},
+{
+"name": "Randy Smith",
+"selections": 2
+},
+{
+"name": "Darrall Imhoff",
+"selections": 1
+},
+{
+"name": "Jerry Stackhouse",
+"selections": 2
+},
+{
+"name": "Dan Issel",
+"selections": 1
+},
+{
+"name": "Reggie Theus",
+"selections": 2
+},
+{
+"name": "Luke Jackson",
+"selections": 1
+},
+{
+"name": "Isaiah Thomas",
+"selections": 2
+},
+{
+"name": "Mark Jackson",
+"selections": 1
+},
+{
+"name": "Andrew Toney",
+"selections": 2
+},
+{
+"name": "Jalen Johnson",
+"selections": 1
+},
+{
+"name": "Kelly Tripucka",
+"selections": 2
+},
+{
+"name": "Steve Johnson",
+"selections": 1
+},
+{
+"name": "Kiki VanDeWeghe",
+"selections": 2
+},
+{
+"name": "DeAndre Jordan",
+"selections": 1
+},
+{
+"name": "Nikola Vucevic",
+"selections": 2
+},
+{
+"name": "Chris Kaman",
+"selections": 1
+},
+{
+"name": "Jimmy Walker",
+"selections": 2
+},
+{
+"name": "Jim King",
+"selections": 1
+},
+{
+"name": "Bill Walton",
+"selections": 2
+},
+{
+"name": "Andrei Kirilenko",
+"selections": 1
+}
+]
+}
