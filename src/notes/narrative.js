@@ -159,3 +159,96 @@ function sentences(text) {
   parts.push(text.slice(last).trim());
   return parts.filter(Boolean);
 }
+
+/**
+ * History lines from a team's notes: what the team's PR staff found worth noting, verbatim.
+ *   pass     forward-looking passes / ties ("needs 816 points to pass Kobe Bryant for 4th")
+ *   next     other forward-looking lines ("is 12 assists away from 1,000", "on pace to become")
+ *   record   history already made ("first rookie since Luka Dončić to...", "only player in NBA history",
+ *            "most ... in franchise history", "best start since 1999-00")
+ * College / high-school lines are left out; this season's facts score above older background.
+ * players: [{ id, name }] of the team, to tie a line to a player (named in it, or under his page heading).
+ * -> [{ page, text, kind, player, playerId, when: "season" | "older" | null, score }]
+ */
+const HISTORY = /\b(?:in (?:NBA|league|franchise|team|club|[A-Z][a-z]+) history|all-time|(?:first|only|second|third|fourth|fifth|\d+(?:st|nd|rd|th)) (?:player|rookie|team|teenager|guard|center|forward|duo|trio|pair|teammates?|players|teams|coach|starter|reserve|\w+ to)\b|since (?:the )?(?:19|20)\d\d|(?:most|fewest|longest|highest|lowest|best|worst)\b[^.]{0,60}\b(?:since|ever|in (?:NBA|franchise|team|league|club) history|by any|of any)|youngest|oldest|fastest|quickest|(?:NBA|franchise|team|league|club|single-game|season|career|rookie|all-time)[- ]records?\b|record for (?:the )?most)/i;
+const PASSY = /\b(?:pass|passing|tie|tying|surpass|move (?:up|into|past)|jump)\b/i;
+const NOT_NBA = /\b(?:high school|school history|program(?:'s)? (?:history|all-time)|NCAA|college|freshman|sophomore|junior|senior year|AAU|conference tournament|EuroLeague|Olympic|FIBA|national team|G League|summer league|preseason)\b/i;
+const CURRENT = /\b(?:this season|this year|2026-27|26-27|tonight|last game|last night|his last|over (?:his|the) (?:past|last) \d+|in (?:each of )?the first \d+ games|through \d+ games|to begin the season|season opener)\b|\b(?:Oct|Nov|Dec)\.? \d{1,2}\b|\b1[0-2]\/\d{1,2}\b/i;
+const OLDER = /\b(?:last season|in 20(?:0\d|1\d|2[0-5])-\d\d|20(?:0\d|1\d|2[0-5])-\d\d:|during (?:the )?20(?:0\d|1\d|2[0-5])|previous (?:season|\d+ seasons)|career-long|as a rookie in)\b/i;
+
+export function readHistory(doc, players = [], { seasonStart = null } = {}) {
+  const full = players.filter((p) => p.name).map((p) => ({ ...p, re: new RegExp(`\\b${p.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i"),
+    last: p.name.split(" ").filter((w) => !/^(jr|sr|ii|iii|iv)\.?$/i.test(w)).pop() }));
+  const lastCount = {};
+  for (const p of full) lastCount[p.last.toLowerCase()] = (lastCount[p.last.toLowerCase()] || 0) + 1;
+  const plain = (t) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const named = (t) => {
+    const x = plain(t);
+    const f = full.find((p) => p.re.test(x));
+    if (f) return f;
+    return full.find((p) => lastCount[p.last.toLowerCase()] === 1 && new RegExp(`\\b${p.last.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(x)) || null;
+  };
+  const out = [], seen = new Set();
+  let page = null, current = null, lastNamed = null;
+  for (const b of blocks(doc)) {
+    // A team / opponent / coach section ends the current player's section (it may span pages).
+    if (/\b(?:TEAM NOTES|TONIGHT'?S OPPONENT|NEXT OPPONENT|HEAD COACH|COACHES|SERIES HISTORY|TEAM STATISTICS|STARTERS)\b/.test(b.text)) { current = null; lastNamed = null; }
+    page = b.page;
+    // A player-page heading ("ALPEREN SENGUN") sets who the following bullets are about.
+    // Compared on letters only ("DARIUS ACUFF JR" matches "Darius Acuff Jr."), and only in capitals,
+    // so a name mentioned in prose doesn't count as a heading.
+    const caps = (t) => plain(t).replace(/[^A-Za-z ]+/g, " ").replace(/\s+/g, " ");
+    const headText = caps(b.text);
+    const head = full.find((p) => { const n = caps(p.name).trim().toUpperCase().replace(/ (JR|SR|II|III|IV)$/, ""); return n.length > 4 && headText.includes(n); });
+    if (head) current = head;
+    // Notes chain facts with "…" / "..."; each piece is judged on its own.
+    for (let s of sentences(b.text).flatMap((x) => x.split(/\s*(?:…|\.{3}|[\uF0A7\uF0B7\uF0D8\uF076\uF0FC\u25AA\u25CF\u2022])\s*/)).map((x) => x.trim())) {
+      if (s.length < 40 || s.length > 420) continue;
+      // A capitals heading glued to the sentence ("ANTHONY DAVIS Logged...", "DONČIĆ DELIVERS HISTORIC PERFORMANCE: Luka..."):
+      // dropped, but if it names a player it says who the sentence is about.
+      let headWho = null;
+      const hm = s.match(/^((?:[\p{Lu}0-9’'&.\-\/]{2,}\s+){1,8}?[\p{Lu}0-9’'&.\-\/]{2,}):?\s+(?=\p{Lu}\p{Ll})/u);
+      if (hm) { headWho = named(hm[1].replace(/[^\p{L} ]/gu, ' ')) || null; s = s.slice(hm[0].length); if (s.length < 40) continue; }
+      // A capitals heading starting the next item mid-sentence ("...in NBA history. 600/400 CLUB: On Oct. 28..."): cut there.
+      s = s.replace(/\s+(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s.*$/u, "").trim();
+      if (s.length < 40) continue;
+      // Fragments of stat tables or two bullets run together.
+      if (/\d+[prab]-\d+[prab]\b|\s\*\s|\b\d+K (?:PTS|AST|REB)\b|(?:\b[A-Z0-9’'&]{2,}\b\s+){3,}/.test(s)) continue;
+      // Spliced or boilerplate fragments: a mid-sentence start, bio boxes, highlight links.
+      // Splices across columns: unbalanced brackets, a sentence that stops mid-thought, stray "(10)" counts.
+      const open = (s.match(/\(/g) || []).length, close = (s.match(/\)/g) || []).length;
+      if (open !== close || !/[.!?)"”]$/.test(s) || /\b(?:to|the|a|of|and|at|in|with|as|by|for)\s*$/i.test(s) || (s.match(/\(\d{1,3}\)/g) || []).length >= 2) continue;
+      if (/^[a-z(]/.test(s) || /Notes\/Trends|Video Highlights|Season Stats|\bGP \d|PPG \d|\(cont\.?\)/i.test(s)) continue;
+      if (/(?:\b[A-Z0-9’'&\-]{2,}\b[ :,]+){4,}/.test(s)) continue; // table headings
+      const digits = s.replace(/[^0-9]/g, "").length;
+      if (digits / s.length > 0.22) continue; // stat-table rows
+      const fwd = FORWARD.test(s), hist = HISTORY.test(s);
+      if (!fwd && !hist) continue;
+      if (NOT_NBA.test(s)) continue;
+      const key = s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const explicit = named(s) || headWho;
+      if (explicit) lastNamed = { p: explicit, page: b.page };
+      // Unnamed ("Became the third teenager..."): the section heading, else the player last named just before.
+      const near = lastNamed && b.page - lastNamed.page <= 1 ? lastNamed.p : null;
+      const who = explicit || current || near;
+      const kind = fwd ? (PASSY.test(s) ? "pass" : "next") : "record";
+      // Explicit dates decide when a line is from: all before this season's start -> older ("On 3/27/25 ... first rookie this season").
+      const dates = [...s.matchAll(/\b(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})\b/g)].map((m) => { const y = m[3].length === 2 ? 2000 + +m[3] : +m[3]; return `${y}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}`; })
+        .concat([...s.matchAll(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),?\s+((?:19|20)\d\d)\b/g)].map((m) => `${m[3]}-${String("JanFebMarAprMayJunJulAugSepOctNovDec".indexOf(m[1].slice(0, 3)) / 3 + 1).padStart(2, "0")}-${m[2].padStart(2, "0")}`))
+        .concat([...s.matchAll(/(\bsince\s+(?:the\s+)?)?\b(?:19|20)(\d\d)-\d\d\b/g)].filter((m) => !m[1]).map((m) => `${+m[2] + (+m[2] > 30 ? 1900 : 2000)}-12-31`)) // "since 1973-74" is a comparison, not when
+        .concat(/(?<![\/\d])\d{1,2}\/\d{1,2}(?![\/\d])/.test(s) && seasonStart ? [seasonStart] : []); // "on 11/9": a date this season
+      const datedOld = dates.length && seasonStart && dates.every((d) => d < seasonStart);
+      const when = datedOld ? "older" : CURRENT.test(s) ? "season" : OLDER.test(s) ? "older" : null;
+      const score = (kind === "pass" ? 3 : kind === "next" ? 2.4 : 2) + (when === "season" ? 1 : when === "older" ? -1.2 : 0) + (/in NBA history|all-time|since 19\d\d|first (?:player|rookie|team)/i.test(s) ? 0.8 : 0);
+      // guessed: the player comes from the section heading, not from the sentence itself.
+      out.push({ page: b.page, text: s, kind, player: who?.name || null, playerId: who?.id || null, guessed: !!who && !explicit, when, score: Math.round(score * 100) / 100 });
+    }
+  }
+  // The same forward fact printed twice ("needs 816 points to pass Kobe Bryant"): keep the line that names the player.
+  const fwdKey = (t) => { const m = t.match(/needs?\s+([\d,]+)\s+([a-z-]+(?:\s+[a-z-]+)?)\s+to\s+(?:pass|tie|surpass)\s+([A-Z][^.,]{2,40}?)(?=\s+for|[.,]|$)/i); return m ? m.slice(1).join('|').toLowerCase() : null; };
+  const byKey = new Map();
+  for (const x of out) { const k = fwdKey(x.text); if (!k) continue; const o = byKey.get(k); if (!o || (o.guessed && !x.guessed)) byKey.set(k, x); }
+  return out.filter((x) => { const k = fwdKey(x.text); return !k || byKey.get(k) === x; });
+}

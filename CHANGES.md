@@ -2,6 +2,57 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.23.0 (2026-11-12): history from the teams' notes ("first since…", "only player in NBA history…")
+
+### Why
+- **The user's examples:** 12 @NBAPR posts (Durant 3 FGM from passing Shaq, Acuff's 259 points through 10 games since Jordan, Luka's 10 career 50-point games tying Kareem, the West's top five all on 4+ win streaks...), and the ask to get ahead of posts like these.
+- **What the notes hold:** the teams' game notes carry many such facts, written by each team's PR staff. Until now the Command Center read only the notes' numbers and rankings.
+- **What they don't:** others come from the league's own research (Durant/Shaq FGM wasn't in Houston's notes).
+- **The user's decision:** no NBA.com stats data for a history database (its terms limit use to personal, non-commercial). History comes from the notes, and later from leaderboard sources that are clearly allowed.
+
+### What changed
+- **New `readHistory` in `src/notes/narrative.js`:** verbatim history lines from a team's notes, using the existing column-aware sentence splitter.
+  - **Kinds:**
+    - `pass`: "needs 816 points to pass Kobe Bryant for 4th";
+    - `next`: other forward-looking lines;
+    - `record`: "first rookie since…", "only player in NBA history…", "most … in franchise history", "best start since 1999-00", "youngest/fastest…", named records.
+  - **Left out:** college and high-school lines; boilerplate (bio boxes, "Video Highlights"); splices across columns (unbalanced brackets, sentences that stop mid-thought, stat-table fragments like "29p-11r-9a", runs of capitals).
+  - **Headings:** a capitals heading glued to a sentence ("ANTHONY DAVIS Logged…") is dropped and names the player; a heading starting the next item mid-sentence ("600/400 CLUB: …") is cut off.
+  - **When a line is from:**
+    - its dates decide ("On 3/27/25 … first rookie this season" is older);
+    - "since 1973-74" is a comparison, not a date;
+    - "on 11/9" is this season.
+  - **Players:** a line names a player only when the sentence (or its heading) names him. A guess from the section is marked and not shown as a name: guesses were often wrong (Carlisle's coaching wins credited to Haliburton, Knicks team facts to Drummond).
+  - **Duplicates:** a pass printed twice is kept once, the copy that names the player.
+- **The daily build** (`scripts/tonight.js`) writes `docs/data/notes-facts.json` (up to 40 lines a team, best first).
+  - **What's new:** each line's first-seen date is kept in `history/notes-facts/<TEAM>.json` (60 days), so "New" means not in the team's earlier notes.
+  - **Ranking:** new lines, named players, this season's facts and "in NBA history / all-time / first player" rank higher; older background ranks lower.
+- **Tonight's storylines:** 📜 history lines, at most 2 a game, labelled "<TEAM> notes:".
+  - **Shown only when readable alone:** they name a player, the team or "franchise".
+  - **The injury report still overrules:** an Out player's lines are removed.
+  - **Where they go:** the Watch List, the 3 PM Discord digest, and NBA Live's pre-game cards ("📜 FROM THE NOTES").
+- **Watch List: new "History in tonight's notes" panel.** Each team's best lines, with filters by team and "new today only".
+
+### Tested
+- **Tonight's real notes (20 teams):** 644 lines, 195 naming a player. Spot-checked, e.g.:
+  - "Logged his 39th career 40-point double-double … tying Michael Jordan for the seventh-most since 1973-74" (Davis);
+  - "This season's Warriors are the first team to start a season 0-3 and then win their next eight games";
+  - Dončić "the first player in NBA history with six consecutive games of at least 35 points, five rebounds, five assists and five 3-pointers";
+  - Jerome "first player in Grizzlies history to record multiple 40-point performances within the first 10 games of a season".
+- **New checks** (462 pass):
+  - heading dropped and naming the player;
+  - old dates → older, "since 1973-74" ignored. That check caught a real bug: Davis's line had been marked older.
+  - duplicate pass kept once, named;
+  - college, splice and fragment lines left out;
+  - unnamed = guessed;
+  - storylines: team label, 2 a game, unnamed pronoun lines and an Out player's lines left out.
+- **Page sweep OK;** the panel was rendered and looked at.
+
+### Still unproven
+- **Noise:** some splices from multi-column pages still get through (e.g. a Carlisle quote run into a table row). Tune from real days.
+- **Everything is "New" on the first day,** since there's no earlier memory.
+- **Coverage of NBA PR-style posts:** measured weekly against the user's examples.
+
 ## 0.22.1 (2026-11-11): articles watcher posts unsigned ESPN injury news
 
 ### What changed

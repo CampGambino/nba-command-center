@@ -91,8 +91,13 @@
   <div id="notesIssues"></div>
 
   <h2>Tonight's storylines</h2>
-  <div class="key">What could happen or end tonight, per game: 🩹 regulars on the injury report and what changes without them, milestones in reach, streaks on the line, runs leading the team, shooters a make or two from 50 / 40 / 90, and team streaks. The same lines go to Discord at 3 PM. Tap a line for the details.<span id="injAsOf"></span></div>
+  <div class="key">What could happen or end tonight, per game: 📜 history from the teams' notes, 🩹 regulars on the injury report and what changes without them, milestones in reach, streaks on the line, runs leading the team, shooters a make or two from 50 / 40 / 90, and team streaks. The same lines go to Discord at 3 PM. Tap a line for the details.<span id="injAsOf"></span></div>
   <div class="stories" id="stories"><div class="empty">Loading…</div></div>
+
+  <h2 id="history">History in tonight's notes</h2>
+  <div class="key">Lines from each team's game notes about history made or in reach, word for word, as the team's PR staff wrote them. <b>New</b> = not in the team's earlier notes. A player is named only when the sentence names him.</div>
+  <div class="controls" style="margin:0 0 8px"><select id="histTeam"><option value="">All of tonight's teams</option></select> <label style="font-size:13px"><input type="checkbox" id="histNew"> New today only</label></div>
+  <div class="stories" id="historyList"><div class="empty">Loading…</div></div>
 
   <h2>Likely tonight</h2>
   <div class="cards" id="tonight"></div>
@@ -263,11 +268,28 @@ async function poll() {
 
 // Tonight's storylines: the shared builder (also used for the Discord digest), with the
 // season data it needs. A failure here never stops the rest of the page.
-const KIND = { injury: ["🩹", "players.html"], milestone: ["🎯", "#all"], streak: ["🔥", "trends.html"], lead: ["👑", "leaders.html"], shooting: ["🏹", "leaders.html"], team: ["📈", "trends.html"] };
+const KIND = { history: ["📜", "#history"], injury: ["🩹", "players.html"], milestone: ["🎯", "#all"], streak: ["🔥", "trends.html"], lead: ["👑", "leaders.html"], shooting: ["🏹", "leaders.html"], team: ["📈", "trends.html"] };
+let FACTS = null;
+function renderHistory(facts) {
+  if (facts) FACTS = facts;
+  const f = FACTS;
+  if (!f || !f.teams || (f.today && f.today !== data.today)) { $("historyList").innerHTML = `<div class="empty">No history lines for tonight yet.</div>`; return; }
+  const sel = $("histTeam");
+  if (sel.options.length === 1) { sel.innerHTML += Object.keys(f.teams).sort().map((t) => `<option>${esc(t)}</option>`).join(""); sel.onchange = () => renderHistory(); $("histNew").onchange = () => renderHistory(); }
+  const only = sel.value, newOnly = $("histNew").checked;
+  const cards = Object.entries(f.teams).filter(([t]) => !only || t === only).map(([t, list]) => {
+    const show = list.filter((x) => !newOnly || x.isNew).slice(0, only ? 40 : 6);
+    if (!show.length) return "";
+    return `<div class="story"><h3><span>${esc(t)} notes</span><span class="when">${list.filter((x) => x.isNew).length} new · ${list.length} lines</span></h3><ul>${show.map((x) => `<li><span class="k">${x.kind === "pass" || x.kind === "next" ? "🎯" : "📜"}</span><span>${x.isNew ? "<b>New:</b> " : ""}${x.player ? `<b>${esc(x.player)}</b> · ` : ""}${esc(x.text)}</span></li>`).join("")}</ul>${!only && list.length > show.length ? `<div class="empty" style="padding:6px 0 0"><a href="#history" onclick="document.getElementById('histTeam').value='${esc(t)}';document.getElementById('histTeam').onchange();return false;">All ${list.length} lines</a></div>` : ""}</div>`;
+  }).join("");
+  $("historyList").innerHTML = cards || `<div class="empty">Nothing ${newOnly ? "new " : ""}in tonight's notes.</div>`;
+}
+
 async function renderStories() {
   try {
-    const [trends, leaders, injuries] = await Promise.all(["data/trends.json", "data/leaders.json", "data/injuries.json"].map((f) => fetch(f, { cache: "no-store" }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))));
-    const stories = tonightStorylines({ watch: data, trends, leaders, injuries, maxLines: 8 });
+    const [trends, leaders, injuries, facts] = await Promise.all(["data/trends.json", "data/leaders.json", "data/injuries.json", "data/notes-facts.json"].map((f) => fetch(f, { cache: "no-store" }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))));
+    const stories = tonightStorylines({ watch: data, trends, leaders, injuries, facts, maxLines: 8 });
+    renderHistory(facts);
     $("injAsOf").textContent = injuries?.report?.asOf ? ` Injuries from the official NBA injury report of ${injuries.report.asOf} ET.` : "";
     const tip = (iso) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
     $("stories").innerHTML = stories.map((g) => `<div class="story"><h3><span>${esc(g.away)} @ ${esc(g.home)}</span><span class="when">${tip(g.start)}</span></h3>

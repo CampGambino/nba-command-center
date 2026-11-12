@@ -66,7 +66,9 @@ async function main() {
   else {
     let injuries = null;
     try { injuries = read("injuries.json"); } catch { /* no injury data yet */ }
-    const stories = tonightStorylines({ watch, trends: read("trends.json"), leaders: read("leaders.json"), injuries });
+    let facts = null;
+    try { facts = read("notes-facts.json"); } catch { /* no history lines yet */ }
+    const stories = tonightStorylines({ watch, trends: read("trends.json"), leaders: read("leaders.json"), injuries, facts });
     const date = new Date(`${today}T12:00:00Z`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
     const payloads = discordDigest(stories, { date });
     const lines = stories.reduce((a, g) => a + g.lines.length, 0);

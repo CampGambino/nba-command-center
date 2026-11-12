@@ -50,3 +50,43 @@ for (const g of games) {
 const { site } = await buildSite({ entries, games, uncounted, espn, nba, today, root });
 const n = site.teams.reduce((a, t) => a + t.items.length, 0);
 console.log(`built: ${site.teams.length} teams, ${n} milestones -> docs/data/watch.json`);
+
+// History lines from tonight's notes (src/notes/narrative.js readHistory): verbatim sentences the
+// teams' PR staff wrote ("first rookie since...", "only player in NBA history...", "needs 816 to pass...").
+// A player is attached only when the sentence names him. Each line remembers when it was first seen
+// (history/notes-facts/<TEAM>.json), so "new" means new in today's notes.
+{
+  const { readPdf } = await import("../src/notes/pdf-layout.js");
+  const { readHistory } = await import("../src/notes/narrative.js");
+  const factsDir = path.join(root, "history", "notes-facts");
+  fs.mkdirSync(factsDir, { recursive: true });
+  const keyOf = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().slice(0, 160);
+  const teams = {};
+  for (const e of entries) {
+    if (!e.buf) continue;
+    try {
+      const tf = path.join(root, "docs", "data", "teams", `${e.team}.json`);
+      const players = fs.existsSync(tf) ? Object.entries(JSON.parse(fs.readFileSync(tf, "utf8")).names || {}).map(([id, name]) => ({ id, name })) : [];
+      const seasonStart = `${Number(today.slice(0, 4)) - (Number(today.slice(5, 7)) < 8 ? 1 : 0)}-10-01`;
+      const lines = readHistory(await readPdf(e.buf), players, { seasonStart });
+      const seenFile = path.join(factsDir, `${e.team}.json`);
+      const seen = fs.existsSync(seenFile) ? JSON.parse(fs.readFileSync(seenFile, "utf8")) : {};
+      const facts = lines.map((l) => {
+        const k = keyOf(l.text);
+        seen[k] ??= today;
+        const isNew = seen[k] === today;
+        const named = l.player && !l.guessed;
+        const score = l.score + (isNew ? 1.5 : 0) + (named ? 0.6 : 0) - (/^(?:He|His|She|They|It)\b/.test(l.text) ? 0.8 : 0);
+        return { text: l.text, kind: l.kind, player: named ? l.player : null, playerId: named ? l.playerId : null, when: l.when, isNew, firstSeen: seen[k], score: Math.round(score * 100) / 100 };
+      }).sort((a, b) => b.score - a.score);
+      // Keep 60 days of first-seen dates.
+      const cut = new Date(Date.parse(`${today}T12:00:00Z`) - 60 * 864e5).toISOString().slice(0, 10);
+      for (const [k, d] of Object.entries(seen)) if (d < cut) delete seen[k];
+      fs.writeFileSync(seenFile, JSON.stringify(seen));
+      teams[e.team] = facts.slice(0, 40);
+    } catch (err) { console.log(`  ${e.team} history lines: ${err.message}`); }
+  }
+  fs.writeFileSync(path.join(root, "docs", "data", "notes-facts.json"), JSON.stringify({ generatedAt: site.generatedAt, today, teams }));
+  const all = Object.values(teams).flat();
+  console.log(`history lines: ${all.length} from ${Object.keys(teams).length} teams' notes (${all.filter((f) => f.isNew).length} new today, ${all.filter((f) => f.player).length} naming a player)`);
+}

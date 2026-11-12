@@ -14,6 +14,8 @@
  *   lead       a run of 5+ straight games leading his team in a stat
  *   shooting   a qualified shooter one or two shots from crossing 50 / 40 / 90 either way
  *   team       a team win or loss streak of 4+
+ *   history    a line from tonight's team notes (docs/data/notes-facts.json): what the team's PR staff
+ *              wrote about history made or in reach, verbatim; new-today lines first; at most 2 a game
  *   injury     a regular listed out / doubtful / questionable on the official injury report, with the
  *              team's record and teammates' numbers without him (src/injuries/impact.js); at most 2 a game.
  *              The report also removes every other line about a player listed Out or Doubtful, and
@@ -122,14 +124,28 @@ function injuryLines(injuries, teams, today) {
   return (injuries.impact || []).filter((x) => teams.has(x.team)).map((x) => ({ team: x.team, kind: "injury", text: x.text, score: x.score }));
 }
 
-export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries = null, maxLines = MAX_LINES }) {
+function historyLines(facts, teams, today) {
+  if (!facts || (facts.today && today && facts.today !== today)) return [];
+  const out = [];
+  for (const [team, list] of Object.entries(facts.teams || {})) {
+    if (!teams.has(team)) continue;
+    // Readable on its own: names a player, or names the team / says "team" / "franchise".
+    for (const f of list) {
+      if (!f.player && !/\b(?:team|franchise|club)\b/i.test(f.text) && !new RegExp(`\\b${team}\\b`).test(f.text) && /^(?:He|His|She|They|It|With|Became|Recorded|Notched|Has|Is)\b/.test(f.text)) continue;
+      out.push({ team, player: f.player, kind: "history", text: `${team} notes: ${f.text.length > 260 ? f.text.slice(0, 257).replace(/\s+\S*$/, "") + "…" : f.text}`, score: Math.min(4.5, f.score), isNew: f.isNew });
+    }
+  }
+  return out;
+}
+
+export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries = null, facts = null, maxLines = MAX_LINES }) {
   const games = (watch.games || []).map((g) => ({ id: g.id, away: g.awayTri, home: g.homeTri, start: g.start }));
   const teams = new Set(games.flatMap((g) => [g.away, g.home]));
   // The injury report overrules the rest: a player listed Out or Doubtful loses his other lines
   // (no "54% tonight" for a man who isn't playing); a Questionable one is marked.
   const listed = new Map();
   if (injuries && (!injuries.date || !watch.today || injuries.date === watch.today)) for (const p of injuries.players || []) listed.set(`${p.team}|${nameKey(p.name)}`, p.status);
-  const others = [...milestoneLines(watch, teams), ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams), ...teamLines(trends, teams)]
+  const others = [...historyLines(facts, teams, watch.today), ...milestoneLines(watch, teams), ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams), ...teamLines(trends, teams)]
     .flatMap((l) => {
       const st = l.player ? listed.get(`${l.team}|${nameKey(l.player)}`) : null;
       if (st === "Out" || st === "Doubtful") return [];
@@ -137,9 +153,9 @@ export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries =
     });
   const all = [...injuryLines(injuries, teams, watch.today), ...others];
   return games.map((g) => {
-    let inj = 0;
+    let inj = 0, hist = 0;
     const lines = all.filter((l) => l.team === g.away || l.team === g.home).sort((a, b) => b.score - a.score)
-      .filter((l) => l.kind !== "injury" || ++inj <= 2).slice(0, maxLines);
+      .filter((l) => (l.kind !== "injury" || ++inj <= 2) && (l.kind !== "history" || ++hist <= 2)).slice(0, maxLines);
     return { ...g, lines };
   });
 }

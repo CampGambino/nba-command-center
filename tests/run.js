@@ -36,6 +36,7 @@ import { rowFromGame, collectResults, allGames } from "../src/situations/results
 import { readScoreboard, readGameDetail, clockSeconds, readPlayerBox, readSchedule, isCupFinal, CUP_FINAL } from "../src/espn/parse.js";
 import { teamGameLines, offense, ratings, vsTopDefenses, vsTop } from "../src/situations/ratings.js";
 import { tonightStorylines, discordDigest, MIN_IMPORTANCE } from "../src/anticipate/tonight.js";
+import { readHistory } from "../src/notes/narrative.js";
 import { parseReport, slotUrl, slotsBackFrom, displayName, shortReason } from "../src/injuries/report.js";
 import { injuryImpacts, matchId } from "../src/injuries/impact.js";
 import { articlesChecks } from "./articles-worker.js";
@@ -1004,6 +1005,41 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   }
   ok(pay.length >= 3 && pay.every((p) => p.embeds.length <= 10) && sizes.every((n) => n <= 6000) && pay.reduce((a, p) => a + p.embeds.length, 0) === 23 && pay[0].content && !pay[1].content && pay.every((p) => p.allowed_mentions.parse.length === 0),
     "tonight: Discord digest split within limits (10 embeds, 6,000 characters per message), no @-mentions", JSON.stringify(sizes));
+}
+
+// ---------- History lines from the notes (readHistory) and in tonight's storylines ----------
+{
+  // A one-column notes page; each bullet is one line (cells as pdf-layout gives them).
+  const L = (text) => ({ text, cells: [{ x0: 40, x1: 560, cx: 300, text }], charX: [] });
+  const doc = { pages: [{ page: 1, width: 612, lines: [
+    L("• ANTHONY DAVIS Logged his 39th career 40-point double-double on 11/9 at Detroit, tying Michael Jordan for the seventh-most since 1973-74."),
+    L("• On 3/27/25 in Cleveland, Stephon Castle recorded 22 points, becoming the first rookie this season to reach 1,000 career points."),
+    L("• MAMBA MENTALITY Kevin Durant needs 816 points to pass Kobe Bryant for 4th on the all-time scoring list."),
+    L("• Moved from 8th to 5th on the all-time scoring list in 2025-26… needs 816 points to pass Kobe Bryant for 4th."),
+    L("• Became the first player in school history to earn unanimous National Player of the Year honors at Kentucky."),
+    L("• Lonzo Ball 29p-11r-9a 10/20/17 @ PHO and became the youngest player in franchise history to post that line."),
+    L("• Entered 2026-27 as one of four undrafted players in NBA history to (10) as turnovers (11)."),
+    L("• Became the second player in NBA history to tally multiple 30-point, 10-assist games within his first 10 career games."),
+  ] }] };
+  const players = [{ id: "1", name: "Anthony Davis" }, { id: "2", name: "Stephon Castle" }, { id: "3", name: "Kevin Durant" }];
+  const h = readHistory(doc, players, { seasonStart: "2026-10-01" });
+  const by = (re) => h.find((x) => re.test(x.text));
+  const davis = by(/39th career/), castle = by(/3\/27\/25/), kd = h.filter((x) => /816 points/.test(x.text)), unnamed = by(/second player in NBA history/);
+  ok(davis && davis.player === "Anthony Davis" && !davis.guessed && /^Logged his 39th/.test(davis.text), "history: a capitals heading is dropped and names the player", JSON.stringify(davis));
+  ok(castle && castle.when === "older" && davis.when !== "older", "history: a line whose dates are all before this season is older (even if it says \"this season\")", JSON.stringify(castle));
+  ok(kd.length === 1 && kd[0].player === "Kevin Durant" && kd[0].kind === "pass" && !kd[0].guessed, "history: a pass printed twice is kept once, the copy that names the player", JSON.stringify(kd));
+  ok(!by(/school history/) && !by(/29p-11r-9a/) && !by(/undrafted/), "history: college lines, stat-table splices and unbalanced fragments are left out", JSON.stringify(h.map((x) => x.text.slice(0, 30))));
+  ok(unnamed && unnamed.guessed === true, "history: an unnamed sentence's player is only a guess", JSON.stringify(unnamed));
+  // In tonight's storylines: named or team lines only, at most 2 a game, an Out player's line removed.
+  const watch = { today: "2026-11-11", games: [{ id: "g", awayTri: "WAS", homeTri: "IND", start: "2026-11-12T00:00Z" }], teams: [] };
+  const F = (text, player, score, isNew = false) => ({ text, kind: "record", player, score, isNew });
+  const facts = { today: "2026-11-11", teams: {
+    WAS: [F("Logged his 39th career 40-point double-double, tying Michael Jordan.", "Anthony Davis", 4), F("Became the second player in NBA history to do it.", null, 3.9), F("The Wizards are the first team since 1990 to win this way, a franchise first.", null, 3)],
+    IND: [F("Haliburton became the first player in franchise history to do X.", "Tyrese Haliburton", 4.4), F("Siakam is the first Pacer in team history to do Y.", "Pascal Siakam", 3.5)] } };
+  const st = tonightStorylines({ watch, facts, injuries: { date: "2026-11-11", players: [{ team: "IND", name: "Tyrese Haliburton", status: "Out" }], impact: [] } });
+  const hl = st[0].lines.filter((l) => l.kind === "history").map((l) => l.text);
+  ok(hl.length === 2 && hl[0].startsWith("WAS notes: Logged his 39th") && hl.some((t) => /Siakam/.test(t)) && !hl.some((t) => /second player in NBA history to do it|Haliburton/.test(t)),
+    "storylines: history lines labelled by team, 2 a game, unnamed pronoun lines and an Out player's lines left out", JSON.stringify(hl));
 }
 
 // ---------- NBA Cup final: counts in neither standings nor stats ----------
