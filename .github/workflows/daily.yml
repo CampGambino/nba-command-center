@@ -1,6 +1,8 @@
 # Keeps the site current with no PC and no chat session running.
 # Times are UTC (GitHub runs cron in UTC); Eastern equivalents in winter / summer:
+#   13:00  build       8:00 AM /  9:00 AM ET  storylines for days with early tips (Cloudflare sends them 2 h before tip)
 #   15:30  build      10:30 AM / 11:30 AM ET  morning slate
+#   18:00  build       1:00 PM /  2:00 PM ET  fresh storylines for the 2 PM ET digest (Cloudflare sends it)
 #   20:00  build       3:00 PM /  4:00 PM ET  notes posted after shootaround
 #   22:30  build       5:30 PM /  6:30 PM ET  pre-game, before 7 PM tips
 #   08:30  score       3:30 AM /  4:30 AM ET  last night (west-coast games done)
