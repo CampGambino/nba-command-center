@@ -59,6 +59,12 @@ const TITLE_SKIP = [
   [/\blive (updates|blog|coverage)\b|\blive:/i, "live blog"],
 ];
 
+export const ATHLETIC_SKIP = [
+  [/^the bounce\b/i, "The Bounce (show)"],
+  [/\bsports trivia\b/i, "trivia"],
+  [/\bfantasy\b/i, "fantasy"],
+];
+
 export function decide(item, rules = {}, now = Date.now()) {
   const by = (item.byline || "").toLowerCase();
   const allowWriter = by && (rules.allowBylines || []).some((b) => by.includes(b.toLowerCase()));
@@ -77,8 +83,12 @@ export function decide(item, rules = {}, now = Date.now()) {
     if (path && !path.startsWith("/nba/") && !allowWriter) return { post: false, reason: "not the NBA section" };
     if (!by) return isInjury(item) ? { post: true, reason: "injury news (no writer named)" } : { post: false, reason: "no writer named (wire or game story)" };
   }
-  // The Athletic: every NBA story is wanted (only muted phrases and the age limit apply).
-  if (item.src === "athletic") return { post: true, reason: "Athletic NBA story" };
+  // The Athletic: every NBA story is wanted, except what the user ruled out (11/12): The Bounce (their daily
+  // show), the weekly sports trivia, and fantasy. (The sports watch guide stays: it covers the NBA too.)
+  if (item.src === "athletic") {
+    for (const [re, why] of ATHLETIC_SKIP) if (re.test(t)) return { post: false, reason: why };
+    return { post: true, reason: "Athletic NBA story" };
+  }
   if (!allowWriter) for (const [re, why] of TITLE_SKIP) if (re.test(t)) return { post: false, reason: why };
   return { post: true, reason: allowWriter ? "allowed writer" : "kept" };
 }
@@ -241,7 +251,9 @@ function page(st, log, rules, key, labels) {
   const src = FEEDS.map((f) => `<li><b>${SOURCE[f.src]}</b>: ${st.errors?.[f.src] ? `<span class="bad">error: ${esc(st.errors[f.src].msg)}</span> (${ago(st.errors[f.src].at)})` : st.ok?.[f.src] ? `OK, ${st.ok[f.src].items} items when last saved` : "not read yet"}</li>`).join("");
   const list = (name, arr, undo) => `<p><b>${name}:</b> ${arr.length ? arr.map((x) => `${esc(x)} ${a(undo, x, "✕")}`).join(" · ") : "<span class=m>none</span>"}</p>`;
   const lab = Object.fromEntries((labels || []).map((l) => [l.key, l.v]));
-  const rows = (log || []).map((r) => `<tr class="${r.posted ? "" : "skip"}"><td>${r.published ? etTime(r.published) + "<br><span class=m>" + etDate(r.published) + "</span>" : "–"}</td>
+  // When the watcher first saw it, and how long after publishing (the first column is the publish time).
+  const seen = (r) => (r.at && r.published && r.at >= r.published && r.at - r.published < 6 * 3600e3 ? `<br><span class=m>seen ${etTime(r.at)} · +${Math.max(0, Math.round((r.at - r.published) / 60e3))} min</span>` : "");
+  const rows = (log || []).map((r) => `<tr class="${r.posted ? "" : "skip"}"><td>${r.published ? etTime(r.published) + "<br><span class=m>" + etDate(r.published) + "</span>" : "–"}${seen(r)}</td>
     <td><span class=m>${esc(SOURCE[r.src] || r.src)}${r.byline ? " · " + esc(r.byline) : ""}</span><br><a href="${esc(r.url)}" target=_blank>${esc(r.title)}</a></td>
     <td>${r.posted ? "posted" : `skipped: ${esc(r.reason)}`}${lab[r.key] ? `<br><b>you: ${esc(lab[r.key])}</b>` : ""}</td>
     <td>${r.posted ? a("noise", r.key, "👎 noise", "key=" + encodeURIComponent(r.key) + "&") : a("post", r.key, "✅ post it", "key=" + encodeURIComponent(r.key) + "&")}

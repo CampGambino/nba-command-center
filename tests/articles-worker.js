@@ -81,6 +81,7 @@ export async function articlesChecks(ok) {
     const resOk = await articlesWorker.fetch(new Request(`https://w.example/review?k=${key}`), env);
     const body = await resOk.text();
     ok(res404.status === 404 && resOk.status === 200 && body.includes("Why the Heat are stuck") && body.includes("game recap"), "articles: review page needs the key; lists posted and skipped with reasons");
+    ok(/seen \d{1,2}:\d\d [AP]M · \+\d+ min/.test(body), "articles: review page shows when each item was seen and how long after publishing", body.match(/seen[^<]{0,40}/)?.[0]);
     await articlesWorker.fetch(new Request(`https://w.example/act?k=${key}&do=mute-writer&v=Bobby%20Marks`), env);
     espn = [...espn, espnArt(6, "Story", "Second Marks column", "Bobby Marks", "/nba/story", 1510)];
     posts.length = 0;
@@ -115,6 +116,10 @@ export async function articlesChecks(ok) {
       !articleDecide(mk({ title: "Best bets for tonight" }), {}, now).post && articleDecide(mk({ url: "https://www.espn.com/espn/betting/story/_/id/9/x", byline: "W" }), { allowBylines: ["W"] }, now).post &&
       !articleDecide(mk({ title: "Nets live updates" }), {}, now).post && articleDecide(mk({ title: "Nets live updates", src: "athletic", byline: "" }), {}, now).post && !articleDecide(mk({ src: "athletic", title: "Celtics trade talk" }), { muteWords: ["trade talk"] }, now).post && !articleDecide(mk({ title: "Big trade talk" }), { muteWords: ["trade talk"] }, now).post,
       "articles: rules (previews, no writer, fantasy, betting words, allowed writer overrides section, ESPN live blogs; every Athletic story except muted phrases)");
+    const athD = (title) => articleDecide(mk({ src: "athletic", byline: "", title }), {}, now);
+    ok(!athD("The Bounce: Jaylen Brown goes cold in revenge game against Celtics").post && athD("The Bounce: x").reason === "The Bounce (show)" && !athD("This Week in Sports Trivia: Nov. 12, 2026").post
+      && !athD("Fantasy basketball waiver wire: who to add").post && athD("November sports watch guide: College basketball returns, NWSL Championship").post && athD("Bouncing back: the Bulls' plan").post,
+      "articles: The Athletic minus what the user ruled out (The Bounce, sports trivia, fantasy); the sports watch guide still posts");
     ok(parseRss(`<item><title>A &amp; B</title><link>https://x.com/a</link><pubDate>Thu, 12 Nov 2026 11:00:00 GMT</pubDate></item>`, "athletic")[0].title === "A & B" && parseEspn({ articles: [] }).length === 0, "articles: parsers handle plain fields and empty feeds");
   } finally {
     globalThis.fetch = realFetch;

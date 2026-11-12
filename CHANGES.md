@@ -2,6 +2,23 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.27.1 (2026-11-12): articles: skip The Bounce, sports trivia and fantasy from The Athletic; seen time on the review page
+
+### Why
+- **The first morning review (6-9 AM, 11/12):** 2 posts. ESPN's trade-deadline questions (good) and The Athletic's weekly sports trivia (noise).
+- **The user:**
+  - no trivia, no fantasy, no podcast posts from The Athletic ("The Bounce is not needed");
+  - keep the sports watch guide (it covers the NBA too);
+  - no rule for unsigned roster moves (news breakers report trades hours before they're official);
+  - they ✅'d the Caleb Wilson injury story, which was skipped about 10 minutes before the injury rule went live.
+
+### What changed
+- **`ATHLETIC_SKIP` in `cloudflare/articles-worker.js`:** Athletic titles starting "The Bounce", containing "sports trivia", or "fantasy" are skipped with that reason. Every other Athletic NBA story still posts.
+- **Review page:** each row also shows when the watcher first saw the item and how many minutes after publishing ("seen 6:55 AM · +2 min"). The Discord posts already said this in their footer ("Published … · seen N min later"); the page now shows it for skipped items too, in one place.
+
+### Tested
+- **New checks** (39 watcher checks pass): The Bounce, trivia and fantasy skipped; the watch guide and a title like "Bouncing back…" still post; the review page shows the seen time.
+
 ## 0.27.0 (2026-11-12): current teams from ESPN rosters, with NBA.com's official moves as the fallback
 
 ### Why
