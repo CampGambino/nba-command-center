@@ -2,6 +2,38 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.29.0 (2026-11-12): articles: The Athletic's 30 team feeds
+
+### Why
+- **The user** flagged two Athletic stories that never reached #articles: "Knicks' Mikal Bridges is starting, not finishing" (6:00 AM) and "Warriors' Stephen Curry to be re-evaluated in 2 weeks after MRI reveals oblique abdominal tear" (12:06 PM).
+- **Checked through the Worker** (new private `/peek?list=`):
+  - The Athletic's NBA feed (100 items) carries neither.
+  - The Bridges story is only in the Knicks feed (`/athletic/rss/nba/knicks/`).
+  - The Curry result is a new article (new URL) in the Warriors feed only. The NBA feed still lists the 10:31 PM "gets MRI" story under its old title.
+  - Team feeds carry 200 items each, and all 30 exist. Slugs are team nicknames, except `sixers` and `sac-kings`.
+
+### What changed
+- **`TEAM_FEEDS` in `cloudflare/articles-worker.js`:** the 30 team feeds, read on the 1-minute schedule in 4 groups of 7-8 (minutes 1-4 of every 5; the articles check runs on minute 0), so each is read every 5 minutes.
+  - **Only the top of each feed:** the newest 60 KB (download stopped there), to stay inside the free plan's CPU budget.
+  - **A feed read for the first time:** its current items are marked seen quietly. No flood of posts or log rows.
+  - **Items over a day old** are marked seen without logging (a long feed's back pages would otherwise come round again when "seen" expires after 5 days).
+  - **Duplicates:** a story in both the NBA feed and a team feed posts once (same URL).
+  - **Labels:** team-feed posts are labeled "Athletic (NYK feed)" on the review page.
+- **Review page:** "The Athletic team feeds: N of 30 OK", plus any errors.
+- **Private diagnostics:** `/peek?list=nba/<team>` lists a feed's items; `/peek?page=<athletic URL>&find=` shows part of a page (used for the live blog).
+
+### Tested
+- **New checks** (50 watcher checks pass):
+  - 30 feeds in 4 groups, none on minute 0, each exactly once;
+  - the `sixers` / `sac-kings` slugs;
+  - first read is silent;
+  - a new Bridges story posts once with the team label;
+  - only the top of a 2,000-item feed is read.
+
+### Still unproven
+- **Live CPU use** with 7-8 feeds a minute. If Cloudflare reports exceeded limits, read fewer feeds a minute (every team feed every 10 minutes instead of 5).
+- **Updates to an existing URL** still aren't seen: feeds keep an article's first title and time.
+
 ## 0.28.1 (2026-11-12): the GitHub digest sender is off; Cloudflare sends #alerts
 
 ### Why

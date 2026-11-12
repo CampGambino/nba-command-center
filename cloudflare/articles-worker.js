@@ -34,6 +34,16 @@ const FEEDS = [
   { src: "espn", kind: "espn", url: "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/news?limit=25" },
   { src: "athletic", kind: "rss", url: "https://www.nytimes.com/athletic/rss/nba/" }, // NBA feed only (the user's choice, 11/11)
 ];
+// The Athletic's 30 NBA team feeds (11/12): team beat stories are only there (Mikal Bridges, Knicks, 11/12), and
+// so are some follow-ups (Curry's MRI result, Warriors). Read on the 1-minute schedule, a group at a time
+// (the 4 minutes between articles checks), so each is read every 5 minutes; only the newest ~60 KB of each.
+export const TEAM_FEED_SLUGS = { ATL: "hawks", BOS: "celtics", BKN: "nets", CHA: "hornets", CHI: "bulls", CLE: "cavaliers", DAL: "mavericks",
+  DEN: "nuggets", DET: "pistons", GSW: "warriors", HOU: "rockets", IND: "pacers", LAC: "clippers", LAL: "lakers", MEM: "grizzlies",
+  MIA: "heat", MIL: "bucks", MIN: "timberwolves", NOP: "pelicans", NYK: "knicks", OKC: "thunder", ORL: "magic", PHI: "sixers",
+  PHX: "suns", POR: "blazers", SAC: "sac-kings", SAS: "spurs", TOR: "raptors", UTA: "jazz", WAS: "wizards" };
+export const TEAM_FEEDS = Object.entries(TEAM_FEED_SLUGS).map(([team, slug]) => ({ src: "athletic", kind: "rss", id: `athletic:${team}`, team, url: `https://www.nytimes.com/athletic/rss/nba/${slug}/`, maxBytes: 60000 }));
+/** The team feeds read in the 1-minute run at this minute: 4 groups, on minutes 1-4 of every 5 (articles run on 0). */
+export const teamFeedGroup = (minute) => (minute % 5 === 0 ? [] : TEAM_FEEDS.filter((_, i) => i % 4 === (minute % 5) - 1));
 const SOURCE = { espn: "ESPN", athletic: "The Athletic", nyt: "NYT / The Athletic" };
 const COLOR = { espn: 0xd00000, athletic: 0x1f1f1f, nyt: 0x1f1f1f };
 const FRESH_MIN = 20;        // first run: post only what was published in the last 20 minutes
@@ -88,7 +98,7 @@ export function decide(item, rules = {}, now = Date.now()) {
   // show), the weekly sports trivia, and fantasy. (The sports watch guide stays: it covers the NBA too.)
   if (item.src === "athletic") {
     for (const [re, why] of ATHLETIC_SKIP) if (re.test(t)) return { post: false, reason: why };
-    return { post: true, reason: "Athletic NBA story" };
+    return { post: true, reason: item.team ? `Athletic (${item.team} feed)` : "Athletic NBA story" };
   }
   if (!allowWriter) for (const [re, why] of TITLE_SKIP) if (re.test(t)) return { post: false, reason: why };
   return { post: true, reason: allowWriter ? "allowed writer" : "kept" };
@@ -144,7 +154,15 @@ export function parseRss(xml, src) {
 async function readFeed(feed) {
   const res = await fetch(feed.url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; NBA-Command-Center articles watcher)", Accept: feed.kind === "espn" ? "application/json" : "application/rss+xml, application/xml, text/xml" } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return feed.kind === "espn" ? parseEspn(await res.json()) : parseRss(await res.text(), feed.src);
+  if (feed.kind === "espn") return parseEspn(await res.json());
+  if (!feed.maxBytes || !res.body) return parseRss(await res.text(), feed.src).map((it) => ({ ...it, team: feed.team }));
+  // Only the top of a long feed (newest first): read up to maxBytes, then stop downloading.
+  const reader = res.body.getReader(), dec = new TextDecoder();
+  let text = "";
+  while (text.length < feed.maxBytes) { const { done, value } = await reader.read(); if (done) break; text += dec.decode(value, { stream: true }); }
+  try { await reader.cancel(); } catch { /* already done */ }
+  text = text.slice(0, feed.maxBytes);
+  return parseRss(text.slice(0, text.lastIndexOf("</item>") + 7), feed.src).map((it) => ({ ...it, team: feed.team }));
 }
 
 // ---------- Discord ----------
@@ -190,7 +208,7 @@ export async function adminKey(env) {
 }
 
 // ---------- one check ----------
-export async function check(env, now = Date.now()) {
+export async function check(env, now = Date.now(), { feeds = FEEDS } = {}) {
   if (!env.DISCORD_WEBHOOK || !env.STATE) return { error: "missing DISCORD_WEBHOOK secret or STATE KV binding" };
   const state = await load(env, "state", null);
   // First run = no check has completed yet. (/setup can create the state before any check,
@@ -203,21 +221,31 @@ export async function check(env, now = Date.now()) {
   const key = await adminKey(env);
   let changed = false;
   const fresh = [];
-  for (const feed of FEEDS) {
+  for (const feed of feeds) {
+    const id = feed.id || feed.src;
     try {
       const items = await readFeed(feed);
-      if (st.errors[feed.src]) { delete st.errors[feed.src]; changed = true; }
-      st.ok = st.ok || {}; st.ok[feed.src] = { at: now, items: items.length };
+      if (st.errors[id]) { delete st.errors[id]; changed = true; }
+      st.ok = st.ok || {}; st.ok[id] = { at: now, items: items.length };
+      // A feed read for the first time (added after the watcher started): what's in it now is already out,
+      // so it's marked seen quietly instead of logged as hundreds of skips.
+      if (!first && feed.id && !(st.feedStarted ||= {})[id]) {
+        for (const it of items) if (it.key && !st.seen[it.key]) st.seen[it.key] = now;
+        st.feedStarted[id] = now; changed = true;
+        continue;
+      }
       for (const it of items) if (it.key && !st.seen[it.key] && !fresh.some((f) => f.key === it.key)) fresh.push(it);
     } catch (e) {
       const msg = String(e.message || e).slice(0, 160);
-      if (st.errors[feed.src]?.msg !== msg) changed = true;
-      st.errors[feed.src] = { msg, at: now };
+      if (st.errors[id]?.msg !== msg) changed = true;
+      st.errors[id] = { msg, at: now };
     }
   }
   fresh.sort((a, b) => (a.published || now) - (b.published || now));
   let posted = 0;
   for (const it of fresh) {
+    // Older than a day (a long feed's back pages coming round again after "seen" expires): mark, don't log.
+    if (it.published && now - it.published > 24 * 3600e3) { st.seen[it.key] = now; changed = true; continue; }
     let d = decide(it, rules, now);
     if (first && d.post && it.published && now - it.published > FRESH_MIN * 60e3) d = { post: false, reason: "already out when the watcher started" };
     if (d.post && posted >= MAX_POSTS_PER_RUN) continue; // next run
@@ -249,7 +277,8 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 function page(st, log, rules, key, labels) {
   const a = (doIt, v, label, extra = "") => `<a class="b" href="/act?k=${key}&do=${doIt}&${extra}v=${encodeURIComponent(v)}">${label}</a>`;
   const ago = (t) => (t ? mins(Date.now() - t) + " ago" : "never");
-  const src = FEEDS.map((f) => `<li><b>${SOURCE[f.src]}</b>: ${st.errors?.[f.src] ? `<span class="bad">error: ${esc(st.errors[f.src].msg)}</span> (${ago(st.errors[f.src].at)})` : st.ok?.[f.src] ? `OK, ${st.ok[f.src].items} items when last saved` : "not read yet"}</li>`).join("");
+  const teamOk = TEAM_FEEDS.filter((f) => st.ok?.[f.id] && !st.errors?.[f.id]).length, teamBad = TEAM_FEEDS.filter((f) => st.errors?.[f.id]).map((f) => `${f.team}: ${st.errors[f.id].msg}`);
+  const src = `<li><b>The Athletic team feeds</b>: ${teamOk} of 30 OK${teamBad.length ? ` · <span class="bad">${esc(teamBad.join("; "))}</span>` : ""}</li>` + FEEDS.map((f) => `<li><b>${SOURCE[f.src]}</b>: ${st.errors?.[f.src] ? `<span class="bad">error: ${esc(st.errors[f.src].msg)}</span> (${ago(st.errors[f.src].at)})` : st.ok?.[f.src] ? `OK, ${st.ok[f.src].items} items when last saved` : "not read yet"}</li>`).join("");
   const list = (name, arr, undo) => `<p><b>${name}:</b> ${arr.length ? arr.map((x) => `${esc(x)} ${a(undo, x, "✕")}`).join(" · ") : "<span class=m>none</span>"}</p>`;
   const lab = Object.fromEntries((labels || []).map((l) => [l.key, l.v]));
   // When the watcher first saw it, and how long after publishing (the first column is the publish time).
@@ -307,7 +336,8 @@ export default {
   //   storylines to #alerts (cloudflare/digest.js; ALERTS_WEBHOOK secret), which reads only when one is due.
   async scheduled(event, env, ctx) {
     const at = event.scheduledTime || Date.now();
-    ctx.waitUntil(event.cron === ARTICLES_CRON ? check(env) : Promise.allSettled([lineupCheck(env, at), digestCheck(env, at)]));
+    const minute = new Date(at).getUTCMinutes();
+    ctx.waitUntil(event.cron === ARTICLES_CRON ? check(env) : Promise.allSettled([lineupCheck(env, at), digestCheck(env, at), teamFeedGroup(minute).length ? check(env, at, { feeds: teamFeedGroup(minute) }) : null]));
   },
   async fetch(req, env) {
     const url = new URL(req.url);

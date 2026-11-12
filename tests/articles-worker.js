@@ -6,6 +6,7 @@
 import fs from "node:fs";
 import { parseLineups, diff as lineupDiff, lastStarters, lineupEmbed, lineupCheck, feedTime, espnStarters, feedDue } from "../cloudflare/lineups.js";
 import { dueAt, dueNow, digestCheck } from "../cloudflare/digest.js";
+import { TEAM_FEEDS, teamFeedGroup } from "../cloudflare/articles-worker.js";
 import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey, tagOf as articleTag } from "../cloudflare/articles-worker.js";
 
 export async function articlesChecks(ok) {
@@ -282,6 +283,42 @@ export async function articlesChecks(ok) {
         "digest: waits for the day's data, then sends what hasn't tipped (the 12:30 game is left out)", JSON.stringify([w, w2]));
       const noSecret = await digestCheck({ STATE: env.STATE }, E("14:00"));
       ok(noSecret.skipped === "no ALERTS_WEBHOOK secret", "digest: does nothing without the ALERTS_WEBHOOK secret");
+    } finally { globalThis.fetch = realFetch; }
+  }
+  // The Athletic's 30 team feeds (11/12: the Bridges story was only in the Knicks feed; Curry's MRI result only in the Warriors').
+  {
+    const groups = [1, 2, 3, 4].map((m) => teamFeedGroup(m).map((f) => f.team));
+    ok(TEAM_FEEDS.length === 30 && teamFeedGroup(0).length === 0 && teamFeedGroup(5).length === 0 && groups.flat().length === 30 && new Set(groups.flat()).size === 30 && groups.every((g) => g.length >= 7 && g.length <= 8)
+      && TEAM_FEEDS.find((f) => f.team === "PHI").url.endsWith("/nba/sixers/") && TEAM_FEEDS.find((f) => f.team === "SAC").url.endsWith("/nba/sac-kings/"),
+      "articles: 30 team feeds, read in 4 groups on the minutes between articles checks (each every 5 minutes)", JSON.stringify(groups));
+    const kv = new Map([["state", JSON.stringify({ started: 1, seen: {}, errors: {}, base: null, lastWrite: 0 })]]), posts = [];
+    const env = { DISCORD_WEBHOOK: "https://discord.com/api/webhooks/5/test-t", STATE: { get: async (k, t) => (kv.has(k) ? (t === "json" ? JSON.parse(kv.get(k)) : kv.get(k)) : null), put: async (k, v) => kv.set(k, v) } };
+    const T = Date.parse("2026-11-12T16:00:00Z");
+    const item = (id, title, pub) => `<item><title><![CDATA[${title}]]></title><link>https://www.nytimes.com/athletic/${id}/2026/11/12/x/</link><pubDate>${new Date(pub).toUTCString()}</pubDate></item>`;
+    let knicks = [item(1, "Older Knicks story", T - 3 * 3600e3), item(2, "Knicks mailbag", T - 50 * 3600e3)];
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async (u, o = {}) => {
+      u = String(u);
+      if (u.includes("/rss/nba/knicks/")) {
+        const body = `<rss><channel>${knicks.join("")}${"<item><title>pad</title><link>https://www.nytimes.com/athletic/9/2026/11/01/pad/</link><pubDate>Sun, 01 Nov 2026 00:00:00 GMT</pubDate></item>".repeat(2000)}</channel></rss>`;
+        return new Response(body, { status: 200 });
+      }
+      if (u.startsWith("https://discord.com/")) { posts.push(JSON.parse(o.body)); return new Response("{}", { status: 200 }); }
+      return new Response("", { status: 404 });
+    };
+    const feeds = TEAM_FEEDS.filter((f) => f.team === "NYK");
+    try {
+      const { check: articlesCheckT } = await import("../cloudflare/articles-worker.js");
+      await articlesCheckT(env, T, { feeds });
+      const st1 = JSON.parse(kv.get("state"));
+      ok(posts.length === 0 && !kv.get("log") && st1.feedStarted["athletic:NYK"] && st1.seen[Object.keys(st1.seen).find((k) => k.includes("/1/"))], "articles: a team feed read for the first time is marked seen quietly (no posts, nothing logged)", JSON.stringify(Object.keys(st1.seen).slice(0, 3)));
+      knicks = [item(3, "Knicks' Mikal Bridges is starting, not finishing. One carries more weight", T + 60e3), ...knicks];
+      await articlesCheckT(env, T + 5 * 60e3, { feeds });
+      const log = JSON.parse(kv.get("log") || "[]");
+      ok(posts.length === 1 && posts[0].embeds[0].title.startsWith("Knicks' Mikal Bridges") && log[0].reason === "Athletic (NYK feed)" && log.length === 1,
+        "articles: a new story in a team feed posts once, labeled with its team feed; the 2,000 older items past the first 60 KB aren't read", JSON.stringify(log));
+      const st2 = JSON.parse(kv.get("state"));
+      ok(st2.ok["athletic:NYK"].items < 500, "articles: only the top of a long team feed is downloaded", String(st2.ok["athletic:NYK"].items));
     } finally { globalThis.fetch = realFetch; }
   }
 }
