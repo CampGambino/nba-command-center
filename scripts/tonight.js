@@ -69,11 +69,12 @@ console.log(`built: ${site.teams.length} teams, ${n} milestones -> docs/data/wat
     if (!e.buf) continue;
     try {
       const tf = path.join(root, "docs", "data", "teams", `${e.team}.json`);
-      const players = fs.existsSync(tf) ? Object.entries(JSON.parse(fs.readFileSync(tf, "utf8")).names || {}).map(([id, name]) => ({ id, name })) : [];
+      const box = fs.existsSync(tf) ? JSON.parse(fs.readFileSync(tf, "utf8")) : null; // this season's box scores: who did what, game by game
+      const players = box ? Object.entries(box.names || {}).map(([id, name]) => ({ id, name })) : [];
       const seasonStart = `${Number(today.slice(0, 4)) - (Number(today.slice(5, 7)) < 8 ? 1 : 0)}-10-01`;
       const T = TEAMS[e.team] || {};
       const teamWords = [T.city, T.nick, T.city && T.nick ? `${T.city} ${T.nick}` : null, ...(T.alt || []), ...(TEAM_ALIASES[e.team] || [])].filter(Boolean);
-      const lines = readHistory(await readPdf(e.buf), players, { seasonStart, today, teamWords });
+      const lines = readHistory(await readPdf(e.buf), players, { seasonStart, today, teamWords, box });
       const seenFile = path.join(factsDir, `${e.team}.json`);
       const seen = fs.existsSync(seenFile) ? JSON.parse(fs.readFileSync(seenFile, "utf8")) : {};
       const facts = lines.map((l) => {
@@ -82,7 +83,7 @@ console.log(`built: ${site.teams.length} teams, ${n} milestones -> docs/data/wat
         const isNew = seen[k] === today;
         const named = l.player && !l.guessed;
         const score = l.score + (isNew ? 1.5 : 0) + (named ? 0.6 : 0) - (/^(?:He|His|She|They|It)\b/.test(l.text) ? 0.8 : 0);
-        return { text: l.text, kind: l.kind, player: named ? l.player : null, playerId: named ? l.playerId : null, when: l.when, isNew, firstSeen: seen[k], score: Math.round(score * 100) / 100 };
+        return { text: l.text, kind: l.kind, player: named ? l.player : null, playerId: named ? l.playerId : null, how: l.how, game: l.boxGame ? { d: l.boxGame.d, opp: l.boxGame.opp } : undefined, when: l.when, isNew, firstSeen: seen[k], score: Math.round(score * 100) / 100 };
       }).sort((a, b) => b.score - a.score);
       // Keep 60 days of first-seen dates.
       const cut = new Date(Date.parse(`${today}T12:00:00Z`) - 60 * 864e5).toISOString().slice(0, 10);

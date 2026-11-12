@@ -122,7 +122,7 @@
 <script type="module">
 import { readBox } from "./lib/espn/parse.js";
 import { statFromLine } from "./lib/registry/track.js";
-import { tonightStorylines } from "./lib/anticipate/tonight.js";
+import { tonightStorylines, injuryStatus } from "./lib/anticipate/tonight.js";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -270,17 +270,23 @@ async function poll() {
 // season data it needs. A failure here never stops the rest of the page.
 const KIND = { history: ["📜", "#history"], injury: ["🩹", "players.html"], milestone: ["🎯", "#all"], streak: ["🔥", "trends.html"], lead: ["👑", "leaders.html"], shooting: ["🏹", "leaders.html"], team: ["📈", "trends.html"] };
 let FACTS = null;
-function renderHistory(facts) {
+let INJ = null;
+function renderHistory(facts, injuries) {
   if (facts) FACTS = facts;
+  if (injuries) INJ = injuries;
   const f = FACTS;
+  // The injury report overrules: lines about a player listed Out or Doubtful tonight are hidden (as in the storylines).
+  const status = injuryStatus(INJ, data.today);
   if (!f || !f.teams || (f.today && f.today !== data.today)) { $("historyList").innerHTML = `<div class="empty">No history lines for tonight yet.</div>`; return; }
   const sel = $("histTeam");
   if (sel.options.length === 1) { sel.innerHTML += Object.keys(f.teams).sort().map((t) => `<option>${esc(t)}</option>`).join(""); sel.onchange = () => renderHistory(); $("histNew").onchange = () => renderHistory(); }
   const only = sel.value, newOnly = $("histNew").checked;
-  const cards = Object.entries(f.teams).filter(([t]) => !only || t === only).map(([t, list]) => {
-    const show = list.filter((x) => !newOnly || x.isNew).slice(0, only ? 40 : 6);
-    if (!show.length) return "";
-    return `<div class="story"><h3><span>${esc(t)} notes</span><span class="when">${list.filter((x) => x.isNew).length} new · ${list.length} lines</span></h3><ul>${show.map((x) => `<li><span class="k">${x.kind === "pass" || x.kind === "next" ? "🎯" : "📜"}</span><span>${x.isNew ? "<b>New:</b> " : ""}${x.player ? `<b>${esc(x.player)}</b> · ` : ""}${esc(x.text)}</span></li>`).join("")}</ul>${!only && list.length > show.length ? `<div class="empty" style="padding:6px 0 0"><a href="#history" onclick="document.getElementById('histTeam').value='${esc(t)}';document.getElementById('histTeam').onchange();return false;">All ${list.length} lines</a></div>` : ""}</div>`;
+  const cards = Object.entries(f.teams).filter(([t]) => !only || t === only).map(([t, all]) => {
+    const out = [...new Set(all.filter((x) => /^(?:Out|Doubtful)$/.test(status(t, x.player) || "")).map((x) => `${x.player} (${status(t, x.player)})`))];
+    const list = all.filter((x) => !/^(?:Out|Doubtful)$/.test(status(t, x.player) || ""));
+    const show = list.filter((x) => !newOnly || x.isNew).slice(0, only ? 60 : 6);
+    if (!show.length && !out.length) return "";
+    return `<div class="story"><h3><span>${esc(t)} notes</span><span class="when">${list.filter((x) => x.isNew).length} new · ${list.length} lines</span></h3><ul>${show.map((x) => `<li><span class="k">${x.kind === "pass" || x.kind === "next" ? "🎯" : "📜"}</span><span>${x.isNew ? "<b>New:</b> " : ""}${x.player ? `<b>${esc(x.player)}</b>${status(t, x.player) === "Questionable" ? " <i>(Questionable)</i>" : ""} · ` : ""}${esc(x.text)}</span></li>`).join("")}</ul>${out.length ? `<div class="empty" style="padding:6px 0 0">Hidden, on tonight's injury report: ${esc(out.join(", "))}</div>` : ""}${!only && list.length > show.length ? `<div class="empty" style="padding:6px 0 0"><a href="#history" onclick="document.getElementById('histTeam').value='${esc(t)}';document.getElementById('histTeam').onchange();return false;">All ${list.length} lines</a></div>` : ""}</div>`;
   }).join("");
   $("historyList").innerHTML = cards || `<div class="empty">Nothing ${newOnly ? "new " : ""}in tonight's notes.</div>`;
 }
@@ -289,7 +295,7 @@ async function renderStories() {
   try {
     const [trends, leaders, injuries, facts] = await Promise.all(["data/trends.json", "data/leaders.json", "data/injuries.json", "data/notes-facts.json"].map((f) => fetch(f, { cache: "no-store" }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))));
     const stories = tonightStorylines({ watch: data, trends, leaders, injuries, facts, maxLines: 8 });
-    renderHistory(facts);
+    renderHistory(facts, injuries);
     $("injAsOf").textContent = injuries?.report?.asOf ? ` Injuries from the official NBA injury report of ${injuries.report.asOf} ET.` : "";
     const tip = (iso) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
     $("stories").innerHTML = stories.map((g) => `<div class="story"><h3><span>${esc(g.away)} @ ${esc(g.home)}</span><span class="when">${tip(g.start)}</span></h3>

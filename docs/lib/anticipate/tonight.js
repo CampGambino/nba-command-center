@@ -141,6 +141,16 @@ function historyLines(facts, teams, today) {
   return out;
 }
 
+/**
+ * The injury report as a lookup: (team, player name) -> "Out" / "Doubtful" / "Questionable" / … or undefined.
+ * Only a report for tonight's date counts.
+ */
+export function injuryStatus(injuries, today) {
+  const listed = new Map();
+  if (injuries && (!injuries.date || !today || injuries.date === today)) for (const p of injuries.players || []) listed.set(`${p.team}|${nameKey(p.name)}`, p.status);
+  return (team, player) => (player ? listed.get(`${team}|${nameKey(player)}`) : undefined);
+}
+
 export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries = null, facts = null, maxLines = MAX_LINES }) {
   const games = (watch.games || []).map((g) => ({ id: g.id, away: g.awayTri, home: g.homeTri, start: g.start }));
   const teams = new Set(games.flatMap((g) => [g.away, g.home]));

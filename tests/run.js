@@ -1063,6 +1063,43 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     "storylines: history lines labelled by team (and player when the line doesn't name him), 2 a game, unnamed pronoun lines and an Out player's lines left out", JSON.stringify(hl));
 }
 
+// ---------- History lines: who, by box score, bio header and paragraph; injuries hide lines ----------
+{
+  const { statClaims, thresholdClaims, checkLine } = await import("../src/notes/boxscore.js");
+  const { injuryStatus } = await import("../src/anticipate/tonight.js");
+  const L = (text) => ({ text, cells: [{ x0: 40, x1: 560, cx: 300, text }], charX: [] });
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const row = (o) => keys.map((k) => o[k] ?? 0);
+  const box = { keys, names: { 10: "Day'Ron Sharpe", 11: "Michael Porter Jr.", 12: "Giannis Antetokounmpo", 13: "Bam Adebayo", 14: "Caleb Wilson" }, games: [
+    { d: "2026-11-07", opp: "ATL", pl: { 10: row({ pts: 12, ast: 13, reb: 11 }), 11: row({ pts: 25, ast: 3, reb: 8 }) } },
+    { d: "2026-10-26", opp: "DAL", pl: { 12: row({ pts: 29, reb: 14, ast: 11 }), 13: row({ pts: 18, reb: 9, ast: 4 }), 14: row({ pts: 24, stl: 4, fg3m: 4 }) } },
+  ] };
+  const players = Object.entries(box.names).map(([id, name]) => ({ id, name }));
+  ok(JSON.stringify(statClaims("a career-high 13 assists on 11/7 at Atlanta")) === JSON.stringify([{ stat: "ast", n: 13 }]), "box: a single-game number is a claim");
+  ok(statClaims("at least 35 points, 10 rebounds and 5 assists in a game").length === 0 && statClaims("151 points, 18 3FGM and 14 steals through the first seven games").length === 0 && statClaims("averaging 10.4 points per game").length === 0,
+    "box: thresholds (and the rest of their list), totals over several games and averages are not claims");
+  ok(statClaims("Posted a 29-point, 14-rebound, 11-assist triple-double").length === 3 && statClaims("his fifth career 40-point game").length === 0, "box: a stat line in adjectives counts; one \"40-point game\" doesn't");
+  ok(thresholdClaims("four-plus steals and four-plus 3FGM in a single game").length === 2, "box: thresholds read when the sentence says in a game");
+  ok(checkLine(box, "career-high 13 assists vs. ATL (11/7)", { dates: ["2026-11-07"] }).who === "10", "box: the claim points to the one player who had that game");
+  const doc = { pages: [
+    { page: 1, width: 612, lines: [L("• Porter Jr. also leads the league with 4.9 handoff possessions per game. SHARPE Assists per game by Day'Ron Sharpe this season, the most by a center in franchise history. He has recorded 6+ assists in three straight games, the longest streak by a center in franchise history.")] },
+    { page: 2, width: 612, lines: [L("• # 13 BAM ADEBAYO CENTER Playing in 10th season with the HEAT. Became the HEAT's all-time rebound leader on October 28 at Atlanta, passing Udonis Haslem. # 7 GIANNIS ANTETOKOUNMPO FORWARD Playing in 1st season. Recorded his 1,000th career steal on October 28 to become just the sixth player in NBA history with those totals.")] },
+    { page: 3, width: 612, lines: [L("• Some team notes here about the season so far. Posted a 29-point, 14-rebound, 11-assist triple-double on October 26 vs. Dallas, the fastest triple-double in HEAT history.")] },
+    { page: 4, width: 612, lines: [L("• On Dec. 23, 2025 vs. Oklahoma City, Caleb Wilson finished with 10 assists and 5 steals. He is now the first rookie in franchise history to have 5+ steals with 8+ assists in a single game.")] },
+    { page: 5, width: 612, lines: [L("• Caleb Wilson is the first rookie in Bulls history to tally four-plus steals and four-plus 3FGM in a single game.")] },
+  ] };
+  const h = readHistory(doc, players, { seasonStart: "2026-10-01", today: "2026-11-11", box });
+  const by = (re) => h.find((x) => re.test(x.text));
+  ok(by(/three straight games/)?.player === "Day'Ron Sharpe", "history: a one-word capitals heading (\"SHARPE\") names the paragraph's player, not the one before", JSON.stringify(h.map((x) => [x.player, x.how])));
+  ok(by(/rebound leader/)?.player === "Bam Adebayo" && by(/1,000th career steal/)?.player === "Giannis Antetokounmpo", "history: a bio header (# 7 GIANNIS…) owns the lines after it, up to the next");
+  ok(by(/29-point, 14-rebound/)?.player === "Giannis Antetokounmpo" && by(/29-point/)?.how === "box", "history: an unnamed stat line is credited to the player whose box score matches");
+  ok(!by(/He is now the first rookie/), "history: a \"He…\" line after a sentence dated last season is last season's too");
+  ok(by(/four-plus steals/)?.player === "Caleb Wilson", "history: a named undated line is current when he had such a game this season");
+  const st = injuryStatus({ date: "2026-11-12", players: [{ team: "CHA", name: "Kon Knueppel", status: "Out" }] }, "2026-11-12");
+  ok(st("CHA", "Kon Knueppel") === "Out" && st("CHA", "Brandon Miller") === undefined && injuryStatus({ date: "2026-11-11", players: [{ team: "CHA", name: "Kon Knueppel", status: "Out" }] }, "2026-11-12")("CHA", "Kon Knueppel") === undefined,
+    "injuries: tonight's report gives a player's status (the panel hides Out/Doubtful lines); an old report doesn't count");
+}
+
 // ---------- NBA Cup final: counts in neither standings nor stats ----------
 {
   // Shapes as ESPN gave them for the 12/13/25 semifinals and 12/16/25 final (scoreboard and team schedule).

@@ -2,6 +2,47 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.24.0 (2026-11-12): history lines checked against the box scores; Out players hidden
+
+### Why
+- **The user, after 0.23.1:** "not enough information is populating the game notes history section", and "Kon Knueppel is included despite being out on the injury report". They asked to loosen the rules a bit, or have the program learn which player a stat belongs to.
+- **What 0.23.1 dropped** (last night's notes, 29 teams): 599 lines as "no player named" and 142 as "not this season". Many were good: unnamed lines on a player's page ("Recorded his 1,000th career steal on October 28…"), and current facts the notes don't date ("Towns has recorded a double-double in nine straight games to start the season", "Giannis is just seven points short from tying Gary Payton").
+
+### What changed
+- **New `src/notes/boxscore.js`: checking a line against this season's box scores** (`docs/data/teams/<TRI>.json`, every player's line in every game).
+  - **Reads single-game claims:** "13 assists", "18 PTS, 12 REB and 12 AST", "a 29-point, 14-rebound, 11-assist triple-double", "9-17 FG, 4-9 3FG". It skips thresholds and the rest of their list ("at least 35 points, 10 rebounds and 5 assists"), averages, multi-game totals ("151 points… through the first seven games") and numbers from a quarter or half. It narrows by date and opponent ("vs. ATL", "at Detroit").
+  - **Who:** if exactly one player on the team had that game, the line is his ("Posted a 29-point, 14-rebound, 11-assist triple-double on October 26 vs. Dallas" → Giannis Antetokounmpo; it had been read as Bam Adebayo's). If the player a line was credited to never had that game, the line is moved to the player who did, or dropped.
+  - **When:** a match makes the line this season's. A named player who never had that game this season → not current (Flagg's 51-point game is last season's).
+  - **Thresholds:** "the first rookie… with four-plus steals and four-plus 3FGM in a single game": current if he had such a game this season.
+- **Who, in `readHistory`, in order of trust:**
+  - **named** (subject, first 40 characters) or **heading** (capitals heading, now also one word such as "SHARPE", or a unique last name);
+  - **bio:** a player-bio header ("# 7 GIANNIS ANTETOKOUNMPO FORWARD", "#5 Paolo Banchero (F…") owns what follows, up to the next header (Miami's pages put two players side by side);
+  - **paragraph:** "He… / Became… / Passed…" within 700 characters of the sentence that named him. The paragraph's player is now noted even for sentences that are later filtered out, and a mid-sentence heading ("KESSLER MAKING HIS MARK:") splits instead of cutting (Kessler's 500th block had been credited to Reaves);
+  - **section** (last player named on the page): only when a box score agrees. It had credited Brandon Miller's three-straight-30s line to Kon Knueppel;
+  - **box:** the box-score match above.
+  - "Passed Kevin Durant…" and "joining Allen Iverson" are objects, not subjects, even by last name alone. Coach and front-office lines on a player's page are dropped.
+- **When:**
+  - a "He…" line with no date takes the date of the sentence before it ("On Dec. 23, 2025… He is now the first rookie…" is last season's);
+  - present-tense standing facts count as current ("Giddey has recorded six games of 15-plus assists…, tied for fourth-most", "Duren has the 4th-highest field goal percentage…");
+  - more phrasings count: "to start the season", "today", "is now", "currently", "for the fourth straight game", "has recorded… in nine straight games";
+  - more look-aheads count: "just seven points short from tying", "from passing".
+- **Clean-up:** table cells read twice ("Luka DoncicLuka Doncic 5252") are dropped; "150-plus" and "150plus" copies merge; the same game written up twice (same player, same three or more numbers) is kept once; an unnamed copy of a named line is dropped.
+- **Watch List panel:** lines about a player listed Out or Doubtful on tonight's injury report are hidden, with a note ("Hidden, on tonight's injury report: Brandon Miller (Out), Kon Knueppel (Out)"). Questionable is marked. `injuryStatus()` (in `src/anticipate/tonight.js`) is shared with the storylines, which already did this.
+- **The build** passes each team's box scores to the reader; `notes-facts.json` lines carry `how` (named, heading, bio, paragraph, section, box, team) and the matched `game`.
+
+### Tested
+- **Last night's notes, 29 teams:** 48 lines (0.23.1) → 119. Breakdown: 73 named, 12 paragraph, 10 bio, 7 box, 4 section (box-confirmed), 2 heading, 11 team. Read every line.
+  - **Gained, e.g.:** Towns's nine-straight double-doubles; Giannis 7 points from Gary Payton; Caleb Wilson's 4-steal, 4-three game; Sharpe's career-high 13 assists (box); Boozer's triple-double (box); Acuff's 32-and-10 (box); Bam's HEAT rebound record (bio); Kessler's 500th block (paragraph, fixed from Reaves).
+  - **Corrected by box score:** the Oct. 26 triple-double (Bam → Giannis) and an 11-point, 11-assist opener (Pelle Larsson → Davion Mitchell).
+  - **Still dropped:** the user's 9 lines from 11/12; last season's lines (312 dated, 63 following a dated one); 35 unconfirmed page-level guesses.
+- **Tonight's real build** (8 teams' notes so far): 31 lines (0.23.1 had 18). Rendered the panel: CHA shows only PJ Hall, with "Hidden… Brandon Miller (Out), Kon Knueppel (Out)"; MIN hides Anthony Edwards (Out); LeBron marked Questionable.
+- **New checks** (477 pass): claims vs thresholds, totals, averages and adjective stat lines; box points to the one player; one-word heading; bio headers; box attribution; "He…" after a last-season date; threshold-current; injury status lookup (old report ignored). Page sweep OK.
+
+### Still unproven
+- **Box matching needs the team file to be current;** the build reads the previous build's file (up to a day old), so last night's game can't confirm a line yet.
+- **Standing facts** ("has / ranks / holds…") are trusted as current. A stale career line copied forward from last season would pass.
+- **Paragraph attribution** can still be wrong when a block mixes two players without a heading; 700 characters is a guess.
+
 ## 0.23.1 (2026-11-12): history lines must say who and be from this season
 
 ### Why
