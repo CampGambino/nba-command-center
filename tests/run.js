@@ -1002,7 +1002,10 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   ];
   const rssItem = (title, link, by, min) => `<item><title><![CDATA[${title}]]></title><link>${link}</link><dc:creator><![CDATA[${by}]]></dc:creator><pubDate>${new Date(T0 + min * 60e3).toUTCString()}</pubDate><description>&lt;p&gt;Deep dive &amp;amp; more&lt;/p&gt;</description></item>`;
   let athletic = [rssItem("Inside the Celtics' rebuild", "https://www.nytimes.com/athletic/111/2026/11/12/celtics/", "Jay King", -3)];
-  let nyt = [rssItem("Inside the Celtics' rebuild", "https://www.nytimes.com/athletic/111/2026/11/12/celtics/?smid=rss", "Jay King", -3)]; // same story, other feed
+  // The same story listed twice in the feed (it happens when a story is updated) must post once.
+  athletic.push(rssItem("Inside the Celtics' rebuild", "https://www.nytimes.com/athletic/111/2026/11/12/celtics/?smid=rss", "Jay King", -3));
+  athletic.push(rssItem("Best bets: Celtics at Knicks", "https://www.nytimes.com/athletic/112/2026/11/12/bets/", "", -2));
+  let nyt = [];
   let failAthletic = false, discordDown = false;
   const posts = [];
   let puts = 0;
@@ -1024,7 +1027,7 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   try {
     // 1. First run: posts only what came out in the last 20 minutes; the rest is marked seen.
     let r = await articlesCheck(env, T0);
-    ok(titles().join("|") === "Sources: Star out a month|Inside the Celtics' rebuild", "articles: first run posts only fresh, wanted articles (not yesterday's, not the recap); the same story in two feeds posts once", titles().join("|"));
+    ok(titles().join("|") === "Sources: Star out a month|Inside the Celtics' rebuild|Best bets: Celtics at Knicks", "articles: first run posts only fresh, wanted articles (not yesterday's, not the recap); every Athletic story posts (even betting titles); a story listed twice posts once", titles().join("|"));
     const e = posts[0].embeds[0];
     ok(/^🚨 Reporting · ESPN · Shams Charania/.test(e.author.name) && /Published 5:55 AM ET .* seen 5 min later/.test(e.footer.text) && e.url.includes("espn.com") && posts.every((p) => p.allowed_mentions.parse.length === 0), "articles: post says who, when published (ET) and how long until it was seen", JSON.stringify(e));
     const ath = posts[1].embeds[0];
@@ -1094,8 +1097,8 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     const mk = (o) => ({ src: "espn", type: "Story", title: "A story", byline: "W", url: "https://www.espn.com/nba/story/_/id/9/x", published: now, ...o });
     ok(!articleDecide(mk({ type: "Preview" }), {}, now).post && !articleDecide(mk({ byline: "" }), {}, now).post && !articleDecide(mk({ url: "https://www.espn.com/fantasy/basketball/story/_/id/9/x" }), {}, now).post &&
       !articleDecide(mk({ title: "Best bets for tonight" }), {}, now).post && articleDecide(mk({ url: "https://www.espn.com/espn/betting/story/_/id/9/x", byline: "W" }), { allowBylines: ["W"] }, now).post &&
-      !articleDecide(mk({ title: "Nets live updates" , src: "athletic" }), {}, now).post && !articleDecide(mk({ title: "Big trade talk" }), { muteWords: ["trade talk"] }, now).post,
-      "articles: rules (previews, no writer, fantasy, betting words, allowed writer overrides section, live blogs, muted phrases)");
+      !articleDecide(mk({ title: "Nets live updates" }), {}, now).post && articleDecide(mk({ title: "Nets live updates", src: "athletic", byline: "" }), {}, now).post && !articleDecide(mk({ src: "athletic", title: "Celtics trade talk" }), { muteWords: ["trade talk"] }, now).post && !articleDecide(mk({ title: "Big trade talk" }), { muteWords: ["trade talk"] }, now).post,
+      "articles: rules (previews, no writer, fantasy, betting words, allowed writer overrides section, ESPN live blogs; every Athletic story except muted phrases)");
     ok(parseRss(`<item><title>A &amp; B</title><link>https://x.com/a</link><pubDate>Thu, 12 Nov 2026 11:00:00 GMT</pubDate></item>`, "athletic")[0].title === "A & B" && parseEspn({ articles: [] }).length === 0, "articles: parsers handle plain fields and empty feeds");
   } finally {
     globalThis.fetch = realFetch;

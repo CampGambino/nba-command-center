@@ -2,6 +2,25 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.18.2 (2026-11-11): articles watcher: The Athletic's NBA feed only, every story posted
+
+### What changed
+- **NBA feed only:** dropped the NYT Pro Basketball feed. The user wants The Athletic's NBA feed only.
+- **Every Athletic NBA story is posted,** with its publish time. Only the user's muted phrases and the 6-hour age limit apply; ESPN's skip rules (betting words, live blogs...) no longer apply to The Athletic.
+- **No writer on Athletic posts:** `/peek` showed the feed carries none (title, description, link, guid, pubDate, image only), so Athletic posts can't show a writer or offer "mute writer". Muting a phrase still works.
+
+### Found while checking the live Worker
+- **The redeployed 0.18.1 code is live** (new status line, `/peek` works).
+- **The 2-minute schedule isn't running:** nothing was saved between the 6:49 manual check and a 7:27 manual check, though The Athletic posted at 6:53 and ESPN at 6:54 and 7:20. The manual check found all three.
+  - **Expected side effect of the 0.18.1 fix:** that 7:27 check counted as the first run, so the 6:53 Athletic story was marked "already out" instead of posted. It can be posted from the review page.
+  - **To confirm (user):** the cron trigger is saved under Trigger Events.
+
+### Tested
+- **430 checks pass.** Changed: every Athletic story posts, even a "Best bets" title; a story listed twice in the feed posts once; a muted phrase still skips an Athletic story; ESPN live blogs are still skipped.
+
+### Still unproven
+- **The schedule running on its own.**
+
 ## 0.18.1 (2026-11-11): articles watcher, fixes from the first live run
 
 ### What happened on the first live run

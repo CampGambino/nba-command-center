@@ -1,9 +1,10 @@
 /**
  * NBA Command Center: articles watcher (a Cloudflare Worker).
  *
- * Every 2 minutes it reads ESPN's NBA news API and The Athletic's NBA RSS feeds and posts each
- * NEW article worth reading to a Discord channel, with when it was published. Game recaps, the
- * automated previews, videos, fantasy, betting and wire stories are skipped; everything it
+ * Every 2 minutes it reads ESPN's NBA news API and The Athletic's NBA RSS feed and posts each
+ * NEW article worth reading to a Discord channel, with when it was published. Every Athletic NBA
+ * story is posted. From ESPN, game recaps, the automated previews, videos, fantasy, betting and
+ * wire stories are skipped; everything it
  * decided (posted or skipped, and why) is listed on its review page, where the reader trains it:
  * mute a writer or a phrase, always allow a writer, flag a post as noise, or post a skipped one.
  *
@@ -28,8 +29,7 @@
 
 const FEEDS = [
   { src: "espn", kind: "espn", url: "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/news?limit=25" },
-  { src: "athletic", kind: "rss", url: "https://www.nytimes.com/athletic/rss/nba/" },
-  { src: "nyt", kind: "rss", url: "https://rss.nytimes.com/services/xml/rss/nyt/ProBasketball.xml" },
+  { src: "athletic", kind: "rss", url: "https://www.nytimes.com/athletic/rss/nba/" }, // NBA feed only (the user's choice, 11/11)
 ];
 const SOURCE = { espn: "ESPN", athletic: "The Athletic", nyt: "NYT / The Athletic" };
 const COLOR = { espn: 0xd00000, athletic: 0x1f1f1f, nyt: 0x1f1f1f };
@@ -70,6 +70,8 @@ export function decide(item, rules = {}, now = Date.now()) {
     if (path && !path.startsWith("/nba/") && !allowWriter) return { post: false, reason: "not the NBA section" };
     if (!by) return { post: false, reason: "no writer named (wire or game story)" };
   }
+  // The Athletic: every NBA story is wanted (only muted phrases and the age limit apply).
+  if (item.src === "athletic") return { post: true, reason: "Athletic NBA story" };
   if (!allowWriter) for (const [re, why] of TITLE_SKIP) if (re.test(t)) return { post: false, reason: why };
   return { post: true, reason: allowWriter ? "allowed writer" : "kept" };
 }
