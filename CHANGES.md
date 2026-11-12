@@ -2,6 +2,40 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.27.0 (2026-11-12): current teams from ESPN rosters, with NBA.com's official moves as the fallback
+
+### Why
+- **The user** asked how rosters are confirmed (Nique Clifford, traded SAC → OKC, showed as a King in NBA Live).
+- **The Command Center already had him on OKC**, because he has played for OKC since 11/10. But between a trade and a player's first game for the new team, the league-wide lists showed the old team: they used the team in his last box score.
+- **The user pointed to nba.com/players/transactions** as a fallback that checks official changes. Not a Discord feed (trades are reported long before they're official).
+
+### What changed
+- **New `src/rosters/current.js`:** each player's current team, decided in this order:
+  1. **His newest official move** on NBA.com (`stats.nba.com/js/data/playermovement/NBA_Player_Movement.json`, the data behind that page), dated on or after his last game, if it moves him. A trade or signing elsewhere → that team; waived → no team. This applies even when ESPN still lists him on the old team.
+  2. **Otherwise ESPN's roster:** all 30 teams are read on every build, and they only count if all 30 were read.
+  3. **Otherwise** his last box score.
+  - Waived then re-signed by the same team = no change. Contract conversions (two-way ↔ standard) are ignored.
+- **The build** (`scripts/situations.js`) writes `docs/data/rosters.json` (only the players who moved, with source and date; no NBA.com text). The league-wide lists show the current team with "from SAC" beside it (hover: moved or waived, with the date; "these numbers are from SAC"): Clutch and 4th-quarter players, and active Streaks.
+- **Team-specific numbers keep the team they belong to:** Team leaders, With / without, the team files.
+- **Push builds:** `daily.yml` also builds on pushes to `src/rosters/**`.
+
+### Tested
+- **Live run:** 30/30 ESPN rosters and 624 NBA.com moves this season read.
+  - 4 players moved since their last game: Enaruna (CLE), Terry (OKC) and Lovering (LAL) waived, all three from NBA.com (11/7, 11/8, 11/10); Pedulla HOU → SAC from ESPN's roster.
+  - Clifford isn't listed: his last game is already with OKC.
+  - Rendered: Dalen Terry shows "no team · from OKC" (hover: "waived 2026-11-08; these numbers are from OKC").
+- **New checks** (507 pass):
+  - moves read (a trade with its from-team; waivers; conversions and last season's moves skipped);
+  - an official trade after his last game wins over a stale ESPN roster (Clifford);
+  - waived → no team; waived then re-signed → no change; ESPN otherwise;
+  - a move before his last game doesn't count;
+  - ESPN ids match ours.
+- **Page sweep:** OK.
+
+### Still unproven
+- **Name matching:** NBA.com moves are matched to players by name (NBA.com and ESPN ids differ). A player whose name is spelled differently on the two sites would be missed by the NBA.com check; ESPN's roster still catches him.
+- **Usage limits:** NBA.com's file is read in the GitHub build (three times a day and on code pushes), under the user's personal-use decision; only team codes appear on the site.
+
 ## 0.26.0 (2026-11-12): Team situations: opponent records "today" or "at the time", and a .500 column
 
 ### Why

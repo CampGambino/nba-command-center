@@ -1132,6 +1132,37 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     "injuries: tonight's report gives a player's status (the panel hides Out/Doubtful lines); an old report doesn't count");
 }
 
+// ---------- Current teams: ESPN rosters, with NBA.com's official moves as the fallback ----------
+{
+  const { currentTeams, readMoves, readEspnRoster } = await import("../src/rosters/current.js");
+  const row = (d, type, team, desc, slug, from = 0) => ({ Transaction_Type: type, TRANSACTION_DATE: `${d}T00:00:00`, TRANSACTION_DESCRIPTION: desc, TEAM_ID: team, PLAYER_ID: 1, PLAYER_SLUG: slug, Additional_Sort: from });
+  const moves = readMoves({ NBA_Player_Movement: { rows: [
+    row("2026-11-08", "Trade", 1610612760, "Oklahoma City Thunder received guard Nique Clifford from Sacramento Kings.", "nique-clifford", 1610612758),
+    row("2026-11-08", "Waive", 1610612760, "Oklahoma City Thunder waived forward Dalen Terry.", "dalen-terry"),
+    row("2026-11-05", "Waive", 1610612747, "Los Angeles Lakers waived guard Some One.", "some-one"),
+    row("2026-11-06", "Signing", 1610612747, "Los Angeles Lakers re-signed guard Some One.", "some-one"),
+    row("2026-11-03", "ContractConverted", 1610612756, "Phoenix Suns converted the contract of center Duop Reath to a Two-Way Contract.", "duop-reath"),
+    row("2025-07-03", "Signing", 1610612758, "Sacramento Kings re-signed guard Nique Clifford.", "nique-clifford"),
+  ] } }, { since: "2026-07-01" });
+  ok(moves.length === 4 && moves[0].type === "to" && moves[0].team === "OKC" && moves[0].from === "SAC" && moves[0].key === "nique clifford" && moves.some((m) => m.type === "out" && m.team === "OKC"),
+    "rosters: NBA.com moves read (trade to OKC from SAC, waiver out; contract conversions and last season's moves skipped)", JSON.stringify(moves));
+  const players = {
+    1: { name: "Nique Clifford", team: "SAC", d: "2026-11-06" }, // traded 11/8, hasn't played for OKC yet
+    2: { name: "Dalen Terry", team: "OKC", d: "2026-11-04" },     // waived 11/8
+    3: { name: "Some One", team: "LAL", d: "2026-11-02" },        // waived then re-signed: still LAL
+    4: { name: "Sean Pedulla", team: "HOU", d: "2026-11-01" },    // no official move here; ESPN has him on SAC
+    5: { name: "Shai Gilgeous-Alexander", team: "OKC", d: "2026-11-11" },
+  };
+  const espn = { SAC: [{ id: "1", name: "Nique Clifford" }, { id: "4", name: "Sean Pedulla" }], OKC: [{ id: "5", name: "Shai Gilgeous-Alexander" }], LAL: [{ id: "3", name: "Some One" }] };
+  const c = currentTeams(players, espn, moves);
+  ok(c[1]?.team === "OKC" && c[1].was === "SAC" && c[1].source === "trade" && c[1].since === "2026-11-08",
+    "rosters: an official trade after his last game moves him even though ESPN still lists him on his old team (Clifford)", JSON.stringify(c[1]));
+  ok(c[2]?.team === null && c[2].source === "waived" && !c[3] && c[4]?.team === "SAC" && c[4].source === "espn" && !c[5],
+    "rosters: waived → no team; waived then re-signed → no change; otherwise ESPN's roster; unchanged players aren't listed", JSON.stringify(c));
+  ok(Object.keys(currentTeams({ 1: { name: "Nique Clifford", team: "SAC", d: "2026-11-09" } }, {}, moves)).length === 0, "rosters: a move dated before his last game doesn't count");
+  ok(readEspnRoster({ athletes: [{ id: 4702384, displayName: "Nique Clifford" }] })[0].id === "4702384", "rosters: ESPN roster ids as strings (they match our box-score ids)");
+}
+
 // ---------- NBA Cup final: counts in neither standings nor stats ----------
 {
   // Shapes as ESPN gave them for the 12/13/25 semifinals and 12/16/25 final (scoreboard and team schedule).

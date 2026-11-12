@@ -54,11 +54,42 @@ saveStore(storeDir, store, fs);
 if (fs.existsSync(oldFile)) fs.rmSync(oldFile);
 const out = { generatedAt: new Date().toISOString(), season: store.season, today, ...sit, tonight, warnings };
 fs.writeFileSync(path.join(root, "docs", "data", "situations.json"), JSON.stringify(out));
+// Current teams (src/rosters/current.js): a traded player shows his new team in the league-wide lists
+// (Clutch, 4th quarter, Streaks) from the day it's official, before he plays for it. ESPN's 30 rosters,
+// with NBA.com's official transactions as the fallback for changes ESPN hasn't caught up to.
+const rosterChanges = await (async () => {
+  const { currentTeams, readMoves, readEspnRoster, ESPN_ROSTER, MOVES_URL, NBA_TEAM_ID } = await import("../src/rosters/current.js");
+  const TEAMS = Object.fromEntries(Object.values(NBA_TEAM_ID).map((t) => [t, true]));
+  const season = store.season || Number(today.slice(0, 4)) + (Number(today.slice(5, 7)) >= 8 ? 1 : 0);
+  const ESPN_CODE = { GSW: "GS", NYK: "NY", SAS: "SA", NOP: "NO", UTA: "UTAH", WAS: "WSH" };
+  const last = {};
+  for (const g of [...rows].filter((x) => x.pl).sort((x, y) => x.d.localeCompare(y.d))) {
+    for (const [id, v] of Object.entries(g.pl)) last[id] = { name: (store.names || {})[id] || id, team: v[0] === 0 ? g.h : g.a, d: g.d };
+  }
+  const espn = {}, problems = [];
+  await Promise.all(Object.keys(TEAMS).map(async (tri) => {
+    try { const r = await fetch(ESPN_ROSTER(ESPN_CODE[tri] || tri), { signal: AbortSignal.timeout(15000) }); if (r.ok) espn[tri] = readEspnRoster(await r.json()); else problems.push(`${tri} ${r.status}`); }
+    catch (e) { problems.push(`${tri} ${e.name}`); }
+  }));
+  let moves = [], movesNote = "";
+  try {
+    const r = await fetch(MOVES_URL, { headers: { Referer: "https://www.nba.com/", Accept: "application/json" }, signal: AbortSignal.timeout(30000) });
+    if (r.ok) moves = readMoves(await r.json(), { since: `${season - 1}-07-01` }); else movesNote = `NBA.com moves ${r.status}`;
+  } catch (e) { movesNote = `NBA.com moves: ${e.message}`; }
+  // ESPN counts only if every roster was read (otherwise "not listed" could just mean "not read").
+  const changes = currentTeams(last, Object.keys(espn).length === 30 ? espn : {}, moves);
+  const named = Object.fromEntries(Object.entries(changes).map(([id, c]) => [id, { name: last[id].name, ...c }]));
+  fs.writeFileSync(path.join(root, "docs", "data", "rosters.json"), JSON.stringify({ generatedAt: out.generatedAt, espnTeams: Object.keys(espn).length, moves: moves.length, problems: [...problems, movesNote].filter(Boolean), changes: named }));
+  console.log(`current teams: ${Object.keys(espn).length}/30 ESPN rosters, ${moves.length} NBA.com moves this season; ${Object.keys(changes).length} players moved since their last game${problems.length || movesNote ? ` (${[...problems, movesNote].filter(Boolean).join("; ")})` : ""}`);
+  return changes;
+})();
+/** A league-wide player line with his current team (and where he was, if moved). */
+const nowTeam = (p) => { const c = rosterChanges[p.id]; return c ? { ...p, team: c.team || "FA", was: c.was, moved: c.since || null } : p; };
 // Clutch-time player totals for the Clutch page.
-const players = clutchPlayerTotals(rows, store.names || {});
+const players = clutchPlayerTotals(rows, store.names || {}).map(nowTeam);
 fs.writeFileSync(path.join(root, "docs", "data", "clutch-players.json"), JSON.stringify({ generatedAt: out.generatedAt, through, games: rows.filter((g) => g.cl).length, players, teams: clutchTeamTotals(rows, "cp") }));
 // 4th-quarter player totals (same shape as clutch).
-const q4 = clutchPlayerTotals(rows, store.names || {}, "q4");
+const q4 = clutchPlayerTotals(rows, store.names || {}, "q4").map(nowTeam);
 fs.writeFileSync(path.join(root, "docs", "data", "q4-players.json"), JSON.stringify({ generatedAt: out.generatedAt, through, games: rows.filter((g) => g.q4).length, players: q4, teams: clutchTeamTotals(rows, "q4") }));
 // Every player's game lines, one file per team, for "with / without a teammate"
 // (computed in the browser). A file is rewritten only when that team has played.
@@ -127,7 +158,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
   const pg = playerGames(rows);
   const dates = [...new Set(rows.filter((g) => g.pl).map((g) => g.d))].sort().slice(-7);
   const byDate = Object.fromEntries(dates.map((d) => [d, anomalies(pg, store.names || {}, { dates: [d] })]));
-  fs.writeFileSync(path.join(root, "docs", "data", "trends.json"), JSON.stringify({ generatedAt: out.generatedAt, through, streaks: activeStreaks(pg, store.names || {}), teams: teamStreaks(rows), anomalies: byDate }));
+  fs.writeFileSync(path.join(root, "docs", "data", "trends.json"), JSON.stringify({ generatedAt: out.generatedAt, through, streaks: activeStreaks(pg, store.names || {}).map(nowTeam), teams: teamStreaks(rows), anomalies: byDate }));
 }
 // Team leaders: game-by-game leads, season-total leaders, and shooting lines (50 / 40 / 90).
 {

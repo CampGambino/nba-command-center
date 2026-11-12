@@ -130,6 +130,8 @@
 </main>
 <footer id="foot"></footer>
 <script>
+// A player's current team; if he has moved since his last game (traded, signed, waived), where he was.
+const teamCell = (x) => x.was ? `${x.team === "FA" ? "<i>no team</i>" : x.team} <span class="team" title="${x.team === "FA" ? "waived" : "moved"}${x.moved ? ` ${x.moved}` : ""}; these numbers are from ${x.was}">from ${x.was}</span>` : x.team;
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 let T = null, kind = "all", sdir = "best", sorder = "notable", tkey = "streak", tdir = "best";
@@ -155,7 +157,7 @@ function renderStreaks() {
   const val = sorder === "notable" ? notable : (s) => s.length;
   const list = T.streaks.filter((s) => (!cat || s.key === cat) && (!team || s.team === team)).sort((a, b) => sign * (val(b) - val(a)) || b.length - a.length || a.name.localeCompare(b.name));
   $("streaks").innerHTML = `<tr><th>Player</th><th>Team</th><th>Streak</th><th class="num">Games</th><th class="num">His games this season</th><th class="num">Since</th><th class="num">Season best</th></tr>` +
-    (list.map((s) => `<tr><td><b>${esc(s.name)}</b></td><td>${s.team}</td><td>${esc(s.label)}</td><td class="num"><b>${s.length}</b></td><td class="num">${s.ofGames}${s.length === s.ofGames ? " (every game)" : ""}</td><td class="num">${day(s.since)}</td><td class="num">${s.seasonBest}${s.seasonBest > s.length ? "" : " (this one)"}</td></tr>`).join("") || `<tr><td class="empty" colspan="7">No streaks match.</td></tr>`);
+    (list.map((s) => `<tr><td><b>${esc(s.name)}</b></td><td>${teamCell(s)}</td><td>${esc(s.label)}</td><td class="num"><b>${s.length}</b></td><td class="num">${s.ofGames}${s.length === s.ofGames ? " (every game)" : ""}</td><td class="num">${day(s.since)}</td><td class="num">${s.seasonBest}${s.seasonBest > s.length ? "" : " (this one)"}</td></tr>`).join("") || `<tr><td class="empty" colspan="7">No streaks match.</td></tr>`);
 }
 const TCOLS = [
   ["streak", "Streak", (t) => (t.streak.type === "W" ? 1 : -1) * t.streak.n, (t) => `${t.streak.type}${t.streak.n}`],

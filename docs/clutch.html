@@ -123,6 +123,8 @@
 </main>
 <footer id="foot"></footer>
 <script>
+// A player's current team; if he has moved since his last game (traded, signed, waived), where he was.
+const teamCell = (x) => x.was ? `${x.team === "FA" ? "<i>no team</i>" : x.team} <span class="team" title="${x.team === "FA" ? "waived" : "moved"}${x.moved ? ` ${x.moved}` : ""}; these numbers are from ${x.was}">from ${x.was}</span>` : x.team;
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const pct = (m, a) => (a ? m / a : null);
@@ -176,7 +178,7 @@ function render() {
   const team = $("team").value, q = $("q").value.trim().toLowerCase(), min = Number($("mingp").value);
   const list = P.players.filter((p) => (!team || p.team === team) && (!q || p.name.toLowerCase().includes(q)) && p.gp >= min);
   $("players").innerHTML = header(PCOLS, state.player, "player", "<th>Player</th><th>Team</th>") + sorted(list, PCOLS, state.player).slice(0, 300)
-    .map((p) => `<tr><td><b>${esc(p.name)}</b>${p.unsureGames ? ` <span class="team" title="on-court players couldn't be fully worked out in ${p.unsureGames} of these games: minutes and +/- there may be off">*</span>` : ""}</td><td>${p.team}</td>${PCOLS.map((c) => `<td class="num">${c[3](p)}</td>`).join("")}</tr>`).join("")
+    .map((p) => `<tr><td><b>${esc(p.name)}</b>${p.unsureGames ? ` <span class="team" title="on-court players couldn't be fully worked out in ${p.unsureGames} of these games: minutes and +/- there may be off">*</span>` : ""}</td><td>${teamCell(p)}</td>${PCOLS.map((c) => `<td class="num">${c[3](p)}</td>`).join("")}</tr>`).join("")
     || `<tr><td class="empty">No players match.</td></tr>`;
   document.querySelectorAll("th.sort").forEach((el) => el.onclick = () => {
     const st = state[el.dataset.w];
