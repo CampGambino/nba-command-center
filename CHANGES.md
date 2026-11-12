@@ -2,6 +2,31 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.25.1 (2026-11-12): lineups without position labels; who actually started, checked after tip
+
+### Why
+- **The user, on the test post:** drop the position labels, keep the PG, SG, SF, PF, C order. Also: lineups are sometimes confirmed and then changed; will the program catch that?
+- **Before tip, it already did:** a confirmed five that changes in NBA.com's file posts a red "LINEUP CHANGE". After tip it stopped reading, so a late scratch in warmups that never reaches NBA.com's file was missed.
+
+### What changed
+- **Posts list the five by name only,** still ordered PG to C.
+- **After tip-off, who actually started** (ESPN's box score, `starter` flag; ESPN's NY/SA/GS/NO/UTAH/WSH mapped to NBA codes) is checked against the confirmed five. Tried each run until ESPN's box has the five, at most 12 tries a team.
+  - **Different:** a red "STARTED DIFFERENTLY · ESPN box score" post with who's in and out, ordered with NBA.com's positions where known. NBA.com's pre-game inactive list is left off.
+  - **A team with no confirmed five before tip:** "Starters at tip (none confirmed before)" with the five and the change from its last game.
+  - **Same:** nothing posted.
+- **The day ends** once every game has tipped and every team's starters were checked (or 12 tries ran out).
+
+### Tested
+- **New checks** (31 watcher checks pass):
+  - ESPN starters read and mapped (NY → NYK);
+  - a late swap after confirmation posts "started differently" with the right in/out, PG-to-C order and no inactive list;
+  - a never-confirmed team gets its starters at tip;
+  - the day ends only after the tip checks.
+- **The 11/11 ESPN box** (IND–WAS) gives both fives, matching NBA.com's confirmed fives.
+
+### Still unproven
+- **The tip-off check live:** first real night is 11/12.
+
 ## 0.25.0 (2026-11-12): confirmed starting lineups to a private #lineups channel
 
 ### Why

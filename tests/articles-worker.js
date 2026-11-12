@@ -4,7 +4,7 @@
  * deploy (tests/articles-only.js); tests/run.js runs them as part of the full suite.
  */
 import fs from "node:fs";
-import { parseLineups, diff as lineupDiff, lastStarters, lineupEmbed, lineupCheck, feedTime } from "../cloudflare/lineups.js";
+import { parseLineups, diff as lineupDiff, lastStarters, lineupEmbed, lineupCheck, feedTime, espnStarters } from "../cloudflare/lineups.js";
 import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey, tagOf as articleTag } from "../cloudflare/articles-worker.js";
 
 export async function articlesChecks(ok) {
@@ -153,18 +153,26 @@ export async function articlesChecks(ok) {
     const last = lastStarters(file, "2026-11-12");
     ok(last && last.d === "2026-11-10" && last.names.length === 5, "lineups: the last game's starters come from our box-score file (before today)", JSON.stringify(last));
     const e = lineupEmbed(g, g.teams[0], { last, expected: ["Jalen Brunson", "Mikal Bridges", "OG Anunoby", "Mitchell Robinson", "Karl-Anthony Towns"] });
-    ok(/in \*\*Josh Hart\*\* · out Mitchell Robinson/.test(e.description) && /vs expected earlier today/.test(e.description) && /Inactive: Miles McBride/.test(e.description) && e.title === "NYK vs IND · 7:30 pm ET",
-      "lineups: the post says what changed from the last game and from the expected five", e.description);
+    ok(/in \*\*Josh Hart\*\* · out Mitchell Robinson/.test(e.description) && /vs expected earlier today/.test(e.description) && /Inactive: Miles McBride/.test(e.description)  && e.title === "NYK vs IND · 7:30 pm ET" && e.description.startsWith("Jalen Brunson\nMikal Bridges\nOG Anunoby\nJosh Hart\nKarl-Anthony Towns\n"),
+      "lineups: the post lists the five PG to C with no position labels (user, 11/12), and says what changed from the last game and the expected five", e.description);
     // A run: posts once per confirmed five; a later change posts again; dry runs post nothing.
     const kv = new Map(), posts = [];
     const env = { LINEUPS_WEBHOOK: "https://discord.com/api/webhooks/3/test-z", STATE: { get: async (k) => (kv.has(k) ? JSON.parse(kv.get(k)) : null), put: async (k, v) => kv.set(k, v) } };
     const realFetch = globalThis.fetch;
     let current = feed("Confirmed");
+    const A = (name, pos, starter = true) => ({ athlete: { displayName: name, position: { abbreviation: pos } }, starter });
+    // At tip: NYK started Miles McBride (a late swap the NBA file never showed); IND started its expected five.
+    const espn = { boxscore: { players: [
+      { team: { abbreviation: "NY" }, statistics: [{ athletes: [A("Karl-Anthony Towns", "C"), A("Miles McBride", "G"), A("OG Anunoby", "F"), A("Josh Hart", "F"), A("Jalen Brunson", "G"), A("Mikal Bridges", "G", false)] }] },
+      { team: { abbreviation: "IND" }, statistics: [{ athletes: [A("Aaron Nesmith", "G"), A("Kelly Oubre Jr.", "F"), A("Andrew Nembhard", "G"), A("Pascal Siakam", "F"), A("Ivica Zubac", "C")] }] } ] } };
+    ok(espnStarters(espn).NYK.length === 5 && espnStarters(espn).NYK[4].name === "Karl-Anthony Towns" && espnStarters(espn).IND, "lineups: who started, from ESPN's box (NY → NYK), guards to center", JSON.stringify(espnStarters(espn)));
     globalThis.fetch = async (u, o = {}) => {
       u = String(u);
       if (u.includes("daily_lineups_20261112")) return new Response(JSON.stringify(current), { status: 200 });
       if (u.includes("raw.githubusercontent.com")) return new Response(JSON.stringify(file), { status: 200 });
       if (u.startsWith("https://discord.com/")) { posts.push(JSON.parse(o.body)); return new Response("{}", { status: 200 }); }
+      if (u.includes("/scoreboard?dates=20261112")) return new Response(JSON.stringify({ events: [{ id: "401", competitions: [{ competitors: [{ team: { abbreviation: "NY" } }, { team: { abbreviation: "IND" } }] }] }] }), { status: 200 });
+      if (u.includes("/summary?event=401")) return new Response(JSON.stringify(espn), { status: 200 });
       return new Response("", { status: 404 });
     };
     const at = Date.parse("2026-11-12T23:40:00Z");
@@ -177,9 +185,14 @@ export async function articlesChecks(ok) {
       const r3 = await lineupCheck(env, at + 600e3);
       ok(r3.posted === 1 && /LINEUP CHANGE/.test(posts[1].embeds[0].author.name) && /Changed after it was confirmed:\*\* in Mitchell Robinson · out Josh Hart/.test(posts[1].embeds[0].description), "lineups: a change after it was confirmed posts again", JSON.stringify(posts[1]?.embeds?.[0]));
       current.games[0].gameStatus = 2;
-      await lineupCheck(env, at + 900e3);
+      const r4 = await lineupCheck(env, at + 900e3);
+      const tipPosts = posts.slice(2).map((p) => p.embeds[0]);
+      ok(r4.posted === 2 && /STARTED DIFFERENTLY · ESPN box score/.test(tipPosts[0].author.name) && /Started differently than confirmed:\*\* in Miles McBride, Josh Hart · out Mikal Bridges, Mitchell Robinson/.test(tipPosts[0].description)
+        && !/Inactive/.test(tipPosts[0].description) && tipPosts[0].description.startsWith("Jalen Brunson\nMiles McBride\nOG Anunoby\nJosh Hart\nKarl-Anthony Towns")
+        && /Starters at tip \(none confirmed before\)/.test(tipPosts[1].author.name) && tipPosts[1].title.startsWith("IND @ NYK"),
+        "lineups: after tip, a late swap vs the confirmed five posts 'started differently'; a team never confirmed gets its starters at tip", JSON.stringify(tipPosts.map((e) => [e.author.name, e.description])));
       const r5 = await lineupCheck(env, at + 1200e3);
-      ok(r5.skipped === "all of today's games have tipped", "lineups: stops reading for the day once every game has tipped", JSON.stringify(r5));
+      ok(r5.skipped === "all of today's games have tipped" && posts.length === 4, "lineups: stops reading for the day once every game has tipped and its starters were checked", JSON.stringify(r5));
       const early = await lineupCheck(env, Date.parse("2026-11-12T13:00:00Z"));
       ok(early.skipped === "before 10 AM ET", "lineups: nothing before 10 AM ET");
     } finally { globalThis.fetch = realFetch; }

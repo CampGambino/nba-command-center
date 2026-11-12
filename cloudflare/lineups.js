@@ -6,14 +6,21 @@
  * before tip-off. Each post says what changed:
  *   - from the five NBA.com first listed as "Expected" that day, and
  *   - from the team's starters in its last game (our own box-score file on GitHub).
- * If a confirmed five changes again before tip, a "lineup change" post follows.
+ * If a confirmed five changes again before tip, a "lineup change" post follows. After tip-off, who actually
+ * started (ESPN's box score) is checked against the confirmed five: a late scratch posts "started differently";
+ * a team that never had a confirmed five before tip gets its starters posted from the box score.
  *
  * For the user's personal use only (their decision, 11/12; NBA.com terms: personal, non-commercial).
  * So: the channel is private; nothing is published on the public site; no lineup history is kept
  * (KV holds only today's state, for spotting changes); the file is read every 5 minutes only from
- * 10 AM ET until the day's last game has tipped.
+ * 10 AM ET until every game has tipped and its starters were checked.
  */
 export const FEED = (yyyymmdd) => `https://stats.nba.com/js/data/leaders/00_daily_lineups_${yyyymmdd}.json`;
+export const ESPN_SCOREBOARD = (yyyymmdd) => `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=${yyyymmdd}`;
+export const ESPN_SUMMARY = (id) => `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event=${id}`;
+/** ESPN's team abbreviations that differ from the NBA's. */
+export const ESPN_TRI = { GS: "GSW", NY: "NYK", SA: "SAS", NO: "NOP", UTAH: "UTA", WSH: "WAS" };
+const triOf = (a) => ESPN_TRI[a] || a;
 export const TEAM_FILE = (tri) => `https://raw.githubusercontent.com/CampGambino/nba-command-center/main/docs/data/teams/${tri}.json`;
 const POS_ORDER = { PG: 0, SG: 1, G: 1.5, SF: 2, F: 2.5, PF: 3, C: 4 };
 
@@ -67,10 +74,10 @@ const md = (ymd) => `${Number(ymd.slice(5, 7))}/${Number(ymd.slice(8, 10))}`;
 const list = (xs) => xs.join(", ");
 
 /** The Discord embed for a team's confirmed five (or a change to it). */
-export function lineupEmbed(game, team, { expected = null, last = null, previous = null, test = false } = {}) {
-  const lines = team.starters.map((p) => `\`${(p.pos || "").padEnd(2)}\` ${p.name}`);
+export function lineupEmbed(game, team, { expected = null, last = null, previous = null, test = false, kind = null } = {}) {
+  const lines = team.starters.map((p) => p.name); // in position order, PG to C (the user: no labels)
   const notes = [];
-  if (previous) { const d = diff(previous, team.starters.map((p) => p.name)); if (d.in.length) notes.push(`🔄 **Changed after it was confirmed:** in ${list(d.in)} · out ${list(d.out)}`); }
+  if (previous) { const d = diff(previous, team.starters.map((p) => p.name)); if (d.in.length) notes.push(`🔄 **${kind === "tip" ? "Started differently than confirmed" : "Changed after it was confirmed"}:** in ${list(d.in)} · out ${list(d.out)}`); }
   if (last) {
     const d = diff(last.names, team.starters.map((p) => p.name));
     notes.push(d.in.length ? `**vs last game** (${md(last.d)} vs ${last.opp}): in **${list(d.in)}** · out ${list(d.out)}` : `Same five as last game (${md(last.d)} vs ${last.opp}).`);
@@ -79,12 +86,23 @@ export function lineupEmbed(game, team, { expected = null, last = null, previous
   if (team.inactive.length) notes.push(`Inactive: ${list(team.inactive)}`);
   const changed = notes.some((n) => /^\*\*vs|^🔄/.test(n) && /in \*\*|in [A-Z]/.test(n));
   return {
-    author: { name: `${test ? "TEST (last night's data) · " : ""}${previous ? "LINEUP CHANGE" : "Confirmed starters"} · NBA.com` },
+    author: { name: `${test ? "TEST (last night's data) · " : ""}${kind === "tip" ? (previous ? "STARTED DIFFERENTLY" : "Starters at tip (none confirmed before)") : previous ? "LINEUP CHANGE" : "Confirmed starters"} · ${kind === "tip" ? "ESPN box score" : "NBA.com"}` },
     title: `${team.tri} ${team.home ? "vs" : "@"} ${team.opp}${game.statusText && !/final/i.test(game.statusText) ? ` · ${game.statusText}` : ""}`.slice(0, 256),
     description: [lines.join("\n"), notes.join("\n")].filter(Boolean).join("\n\n").slice(0, 4000),
     color: previous ? 0xef4444 : changed ? 0xf59e0b : 0x22c55e,
-    footer: { text: `Confirmed ${team.at ? `${etClock(team.at)} ET` : "(time not given)"}` },
+    footer: { text: kind === "tip" ? "Checked after tip-off" : `Confirmed ${team.at ? `${etClock(team.at)} ET` : "(time not given)"}` },
   };
+}
+
+/** Who started, by team, from an ESPN game summary -> { TRI: [{ name, pos }] } (only teams with five starters). */
+export function espnStarters(summary) {
+  const out = {};
+  for (const t of summary?.boxscore?.players || []) {
+    const a = (t.statistics?.[0]?.athletes || []).filter((x) => x.starter);
+    if (a.length === 5) out[triOf(t.team?.abbreviation)] = a.map((x) => ({ name: x.athlete?.displayName, pos: x.athlete?.position?.abbreviation || "" }))
+      .sort((p, q) => (POS_ORDER[p.pos] ?? 9) - (POS_ORDER[q.pos] ?? 9));
+  }
+  return out;
 }
 
 async function postDiscord(url, payload) {
@@ -142,8 +160,41 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
       await new Promise((r) => setTimeout(r, 300));
     }
   }
-  // Done for the day once every game has tipped (status 2 live / 3 final).
-  if (games.length && games.every((g) => g.gameStatus >= 2)) { st.done = true; changed = true; }
+  // After tip-off: who actually started (ESPN box score) vs the confirmed five. A late scratch in
+  // warmups may never reach NBA.com's file. Tried each run until ESPN's box has the five (at most 12 tries).
+  let board = null;
+  for (const g of games) {
+    if (g.gameStatus < 2 || test || date) continue;
+    for (const t of g.teams) {
+      const s = st.teams[`${g.gameId}|${t.tri}`];
+      if (s.tip || (s.tipTries || 0) >= 12) continue;
+      s.tipTries = (s.tipTries || 0) + 1; changed = true;
+      try {
+        board ??= await (await fetch(ESPN_SCOREBOARD(ymd.replace(/-/g, "")))).json();
+        const ev = (board.events || []).find((e) => { const ts = (e.competitions?.[0]?.competitors || []).map((c) => triOf(c.team?.abbreviation)); return ts.includes(t.tri) && ts.includes(t.opp); });
+        if (!ev) continue;
+        g.espn ??= espnStarters(await (await fetch(ESPN_SUMMARY(ev.id))).json());
+        let five = g.espn[t.tri];
+        if (!five) continue;
+        // Keep NBA.com's positions where it has them (PG/SG/SF/PF/C), so the order matches the confirmed post.
+        const nbaPos = Object.fromEntries(t.starters.map((p) => [nameKey(p.name), p.pos]));
+        five = five.map((p) => ({ ...p, pos: nbaPos[nameKey(p.name)] || p.pos })).sort((p, q) => (POS_ORDER[p.pos] ?? 9) - (POS_ORDER[q.pos] ?? 9));
+        const names = five.map((p) => p.name);
+        const same = s.posted && diff(s.posted, names).in.length === 0;
+        if (!same && !dry) {
+          let last = null;
+          if (!s.posted) { try { const r = await fetch(TEAM_FILE(t.tri)); if (r.ok) last = lastStarters(await r.json(), ymd); } catch {} }
+          const embed = lineupEmbed(g, { ...t, starters: five, inactive: [] }, { previous: s.posted, last, kind: "tip" }); // NBA.com's inactive list is pre-game
+          if (!(await postDiscord(env.LINEUPS_WEBHOOK, { embeds: [embed] }))) continue;
+          report.posted++;
+        }
+        s.tip = same ? "same" : "posted";
+        report.teams.find((x) => x.team === t.tri).tip = s.tip;
+      } catch {}
+    }
+  }
+  // Done for the day once every game has tipped and every team's starters were checked (or given up on).
+  if (games.length && games.every((g) => g.gameStatus >= 2 && g.teams.every((t) => { const s = st.teams[`${g.gameId}|${t.tri}`]; return s.tip || (s.tipTries || 0) >= 12; }))) { st.done = true; changed = true; }
   if (changed && !dry && !date) await env.STATE.put("lineups", JSON.stringify(st));
   return report;
 }
