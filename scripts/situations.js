@@ -225,6 +225,14 @@ for (const [tri, games] of Object.entries(perTeam)) {
       franchiseOut = f.boards;
       console.log(`franchise history: ${f.items.length} franchise marks within reach (${f.items.filter((i) => i.tonight).length} playing tonight)`);
     }
+    // Franchise single-season records on pace (src/records/franchiseSeason.js).
+    let seasonPaceOut = null;
+    const fsFile = path.join(root, "src", "data", `nba-franchise-seasons-${season - 1}-${String(season).slice(2)}.json`);
+    if (fs.existsSync(fsFile)) {
+      const { seasonPace } = await import("../src/records/franchiseSeason.js");
+      seasonPaceOut = seasonPace({ seasons: JSON.parse(fs.readFileSync(fsFile, "utf8")), teamFiles });
+      console.log(`franchise season records: ${seasonPaceOut.length} on pace for a top-3 season (${seasonPaceOut.filter((x) => x.place === 1).length} for the record)`);
+    }
     // Cross-check: the same totals in the teams' notes and ESPN's career stats (docs/data/watch.json).
     const checks = { same: 0, differ: [] };
     try {
@@ -282,7 +290,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     }
     fs.writeFileSync(path.join(root, "docs", "data", "records.json"), JSON.stringify({ titles, awards, context,
       generatedAt: out.generatedAt, through: rec.through, today, source: guide.source, items: rec.items, boards, checks, problems: rec.problems, errata: guide.errata || [],
-      coaches: coachTeams, teamRecords: guide.teamRecords, cup: cupOut, franchise: franchiseOut,
+      coaches: coachTeams, teamRecords: guide.teamRecords, cup: cupOut, franchise: franchiseOut, seasonPace: seasonPaceOut,
     }));
     console.log(`records: ${rec.players.filter((p) => p.id).length} guide players playing this season, ${rec.items.length} within reach (${rec.items.filter((i) => i.tonight).length} playing tonight); vs notes/ESPN: ${checks.same} agree, ${checks.differ.length} differ${rec.problems.length ? `; ${rec.problems.length} problems` : ""}`);
   } else console.log(`records: no Tip-Off Guide file for ${season - 1}-${String(season).slice(2)} (src/data/)`);

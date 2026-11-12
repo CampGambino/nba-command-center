@@ -1456,6 +1456,29 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     "franchise history: a new player with a retired player's name is a different player (his own row from zero)", JSON.stringify(f.boards.AAA.pts));
 }
 
+// ---------- Franchise single-season records, on pace ----------
+{
+  const { seasonPace } = await import("../src/records/franchiseSeason.js");
+  const fs2 = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-franchise-seasons-2026-27.json"), "utf8")).franchises;
+  const top = (t, k, s) => fs2[t][k][s][0];
+  ok(top("GSW", "totals", "pts").join() === "Wilt Chamberlain,4029,1961-62,80" && top("CHI", "totals", "pts").join() === "Michael Jordan,3041,1986-87,82" && top("LAL", "totals", "pts")[1] === 2832
+    && top("HOU", "perGame", "pts")[0] === "James Harden" && top("HOU", "perGame", "pts")[1] === 36.128 && top("UTA", "totals", "ast")[1] === 1164 && top("GSW", "totals", "fg3m")[1] === 402
+    && top("SAS", "totals", "blk")[1] === 320 && fs2.LAL.teamGames["1998-99"] === 50 && fs2.LAL.teamGames["2019-20"] === 71,
+    "franchise seasons: best seasons per franchise (Wilt 4,029; Jordan 3,041; Kobe 2,832; Harden 36.1 a game; Stockton 1,164 assists; Curry 402 threes; Robinson 320 blocks); team games from the totals row (50 in 1998-99)");
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const L = (o) => keys.map((k) => o[k] ?? 0);
+  // 10 team games: Star plays all 10 (30 points), Sixth plays 6 (25 points).
+  const games = Array.from({ length: 10 }, (_, i) => ({ d: `2026-11-${String(i + 1).padStart(2, "0")}`, opp: "BOS", home: true, pf: 1, pa: 0,
+    pl: { 1: L({ min: 34, pts: 30 }), ...(i < 6 ? { 2: L({ min: 20, pts: 25 }) } : { 2: L({}) }) } }));
+  const seasons = { franchises: { AAA: { name: "Testers", totals: { pts: [["Old Star", 2400, "1990-91", 82], ["Next", 2300, "1991-92", 80], ["Third", 2200, "1992-93", 80]] },
+    perGame: { pts: [["Old Star", 29.3, "1990-91", 82]] } } } };
+  const r = seasonPace({ seasons, teamFiles: { AAA: { team: "AAA", keys, names: { 1: "Big Star", 2: "Sixth Man" }, games } } });
+  const tot = r.find((x) => x.who === "Big Star" && x.kind === "total"), pg = r.find((x) => x.who === "Big Star" && x.kind === "perGame");
+  ok(tot?.pace === 2460 && tot.place === 1 && /on pace for 2,460 points, which would be the most in a season in Testers history \(record: Old Star, 2,400 in 1990-91\)/.test(tot.text)
+    && pg?.place === 1 && !r.some((x) => x.who === "Sixth Man"),
+    "franchise seasons: pace = total + rate per team game over the games left; per game only at 70% of team games (6 of 10 doesn't qualify; 150 + 15/game pace stays below 3rd)", JSON.stringify(r));
+}
+
 // ---------- NBA Cup final: counts in neither standings nor stats ----------
 {
   // Shapes as ESPN gave them for the 12/13/25 semifinals and 12/16/25 final (scoreboard and team schedule).

@@ -2,6 +2,36 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.45.0 (2026-11-12): Franchise single-season records, on pace
+
+### Why
+- **The user** asked what can be done without PC access (the team PDFs and the All-Star pages are on the PC). The NBA Guide's team rows (already in the cloud since 0.44) hold every player's season with every team. So each franchise's best seasons can be built from them, and players flagged while they're on pace.
+
+### What changed
+- **`tools/franchise_names.py`:** the franchise names and the row cleanup (team totals, slips, short names) moved out of `build-franchise-careers.py`, to be shared. Its output is byte-for-byte the same.
+- **New `tools/build-franchise-seasons.py` → `src/data/nba-franchise-seasons-2026-27.json`:** each franchise's top 10 single seasons in points, rebounds, assists, steals, blocks, 3-pointers, FGM, FTM, offensive and defensive rebounds.
+  - **Per game:** the top 10 in points, rebounds, assists, steals, blocks and 3-pointers, among seasons of 70% of the team's games.
+  - **Counting:** only his games with that team. The team's games come from its totals row.
+- **New `src/records/franchiseSeason.js`:** for each player's current team, from 10 team games on:
+  - **Pace:** his total plus his rate per team game over the games left, so missed games count against him. Listed when it would be a top-3 season.
+  - **Per game:** once he has played 70% of the team's games since his first game for them. Listed when it would be a top-3 season.
+  - **Example:** "Wembanyama: on pace for 362 blocks, which would be the most in a season in Spurs history (record: David Robinson, 320 in 1990-91)".
+- **Records tab:** a "Franchise season records, on pace" table (totals or per game, stat, team). `records.json` gains `seasonPace`.
+- **Storylines:** a record pace (1st only) can be the game's one context line (low priority). Tonight: Robinson's 4.2 threes a game (Pistons record pace) and Grayson Allen's 283-three pace (Hornets).
+
+### Tested
+- **Checks** (581 pass):
+  - the best seasons against known records: Wilt 4,029; Jordan 3,041; Kobe 2,832; Harden 36.1 a game; Stockton 1,164 assists; Curry 402 threes; Robinson 320 blocks;
+  - team games of 50 (1998-99) and 71 (2019-20);
+  - the pace formula; the per-game qualifier.
+- **Built:** 56 top-3 paces, 26 for the record. Page sweep OK.
+
+### Still unproven
+- **Early-season noise:** with 10-13 games played, paces swing. 3-pointer records are the most common hits, since modern volume beats every franchise's history.
+- **Old per-game seasons:** the 70% qualifier is ours. The NBA's own qualifiers changed by era, so an old per-game list can differ slightly from a team guide's.
+- **A player hurt before his first game for a team:** his pace counts from his first game, so the team games he missed before it don't count against him.
+- **Single-game franchise records** ("most points in a game in Grizzlies history") are not built. The guide's season-high column starts in 1973-74, so it would miss older records (Wilt's 100). These need the team PDFs (PC).
+
 ## 0.44.0 (2026-11-12): Franchise history for every player on all 30 teams (NBA Guide year-by-year team pages)
 
 ### Why

@@ -187,7 +187,10 @@ function contextLines(records, teams, today) {
   // Regulars only (24+ minutes a game last season), points / rebounds / assists; a swing from last season first.
   return records.context.filter((c) => teams.has(c.team) && c.games >= 8 && (c.lastMin ?? 0) >= 24 && ["pts", "reb", "ast"].includes(c.stat)
     && (c.kind === "change" || (c.since === null && c.last >= ({ pts: 15, reb: 7, ast: 5 })[c.stat])))
-    .map((c) => ({ team: c.team, player: c.name, kind: "context", text: c.text, score: Math.min(1.7, 0.8 + c.score / 5 + (c.kind === "change" ? 0.2 : 0) + (c.stat === "pts" ? 0.1 : 0)) }));
+    .map((c) => ({ team: c.team, player: c.name, kind: "context", text: c.text, score: Math.min(1.7, 0.8 + c.score / 5 + (c.kind === "change" ? 0.2 : 0) + (c.stat === "pts" ? 0.1 : 0)) }))
+    // A franchise single-season record on pace (src/records/franchiseSeason.js): only the record itself.
+    .concat((records.seasonPace || []).filter((x) => x.place === 1 && teams.has(x.team))
+      .map((x) => ({ team: x.team, player: x.who, kind: "context", text: x.text, score: Math.min(1.9, x.score - 0.2 + (["pts", "reb", "ast"].includes(x.stat) ? 0.1 : 0)) })));
 }
 
 /**
