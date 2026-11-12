@@ -12,6 +12,7 @@ workers_dev = true            # keep https://ncc-articles.dukie0813.workers.dev
 binding = "STATE"
 id = "308ac0ac87b94e36ae7786085b15bd55"
 
-# Check the feeds every 5 minutes (the user's choice, 11/11).
+# Articles every 5 minutes (the user's choice, 11/11). Lineups every minute (11/12): the lineups run does
+# nothing unless a game is within 90 minutes of its scheduled tip or has just tipped.
 [triggers]
-crons = ["*/5 * * * *"]
+crons = ["*/5 * * * *", "* * * * *"]

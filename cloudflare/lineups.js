@@ -12,8 +12,8 @@
  *
  * For the user's personal use only (their decision, 11/12; NBA.com terms: personal, non-commercial).
  * So: the channel is private; nothing is published on the public site; no lineup history is kept
- * (KV holds only today's state, for spotting changes); the file is read every 5 minutes only from
- * 10 AM ET until every game has tipped and its starters were checked.
+ * (KV holds only today's state, for spotting changes); NBA.com's file is read only from 90 minutes before
+ * each scheduled tip (every 5 minutes, every 3 once confirmed), then ESPN's box every minute after tip.
  */
 export const FEED = (yyyymmdd) => `https://stats.nba.com/js/data/leaders/00_daily_lineups_${yyyymmdd}.json`;
 export const ESPN_SCOREBOARD = (yyyymmdd) => `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=${yyyymmdd}`;
@@ -123,78 +123,137 @@ export async function readFeed(yyyymmdd) {
   try { return { ok: true, status: res.status, json: JSON.parse(text) }; } catch { return { ok: false, status: res.status, note: "not JSON" }; }
 }
 
+/** Today's games from ESPN's scoreboard: [{ id, tip (ms, scheduled), teams: [TRI, TRI] }]. */
+export function readSchedule(board) {
+  return (board?.events || []).map((e) => ({ id: e.id, tip: Date.parse(e.date), teams: (e.competitions?.[0]?.competitors || []).map((c) => triOf(c.team?.abbreviation)) }))
+    .filter((g) => g.teams.length === 2 && !Number.isNaN(g.tip));
+}
+
+// The timing the user set (11/12): nothing until 90 minutes before the scheduled tip; then NBA.com's
+// file every 5 minutes until the team's five is confirmed; every 3 minutes once it is, until tip; from
+// the scheduled tip, ESPN's box every minute until it shows who started (giving up 45 minutes after).
+export const WINDOW_MIN = 90, EXPECT_EVERY = 5, CONFIRMED_EVERY = 3, TIP_GIVE_UP_MIN = 45;
+
+/** What a team needs this minute: null (nothing), "watch" (not confirmed yet), "confirmed", or "tip". */
+export function phaseOf(s, tip, now) {
+  if (s.tip) return null; // starters checked after tip: done
+  if (now >= tip) return now < tip + TIP_GIVE_UP_MIN * 60e3 ? "tip" : null;
+  if (now < tip - WINDOW_MIN * 60e3) return null;
+  return s.posted ? "confirmed" : "watch";
+}
+
 /**
- * One check. env: { STATE (KV), LINEUPS_WEBHOOK }. opts: { dry: don't post or save, date: "YYYYMMDD" (test), test: post a sample }.
- * KV "lineups": { date, teams: { "<gameId>|<TRI>": { expected: [names] | null, posted: [names] | null } } }; replaced each day.
+ * One run (every minute, from the Worker's 1-minute cron). env: { STATE (KV), LINEUPS_WEBHOOK }.
+ * KV "lineups": { date, sched: [{ id, tip, teams }], teams: { TRI: { expected, posted, tip } }, done }; replaced each day,
+ * written only when something changes (schedule, first expected five, a post, a tip check).
+ * opts (the private /lineups endpoint): { dry: report without posting or saving; date: "YYYYMMDD" reads that day's
+ * NBA.com file regardless of timing; test: with date, posts one sample }.
  */
 export async function lineupCheck(env, now = Date.now(), { dry = false, date = null, test = false } = {}) {
   if (!env.LINEUPS_WEBHOOK && !dry) return { skipped: "no LINEUPS_WEBHOOK secret" };
+  if (date) return lineupTest(env, date, { dry, test });
   const et = etParts(now);
-  if (!date && (et.hour < 10)) return { skipped: "before 10 AM ET" };
-  const ymd = date ? `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}` : et.ymd;
+  if (et.hour < 10) return { skipped: "before 10 AM ET" };
+  const ymd = et.ymd, compact = ymd.replace(/-/g, "");
   const st0 = (await env.STATE.get("lineups", "json")) || {};
-  const st = !date && st0.date === ymd ? st0 : { date: ymd, teams: {} };
-  if (!date && st.done) return { skipped: "all of today's games have tipped" };
-  const feed = await readFeed(ymd.replace(/-/g, ""));
+  const st = st0.date === ymd ? st0 : { date: ymd, sched: null, teams: {} };
+  if (st.done) return { skipped: "all of today's games have tipped" };
+  let changed = false;
+  if (!st.sched) {
+    const res = await fetch(ESPN_SCOREBOARD(compact));
+    if (!res.ok) return { error: `ESPN scoreboard ${res.status}` };
+    st.sched = readSchedule(await res.json()); changed = true;
+  }
+  const report = { phases: {}, read: [], posted: 0 };
+  const due = { watch: false, confirmed: false, tip: [] };
+  for (const g of st.sched) for (const tri of g.teams) {
+    const s = (st.teams[tri] ??= { expected: null, posted: null, tip: null });
+    const ph = phaseOf(s, g.tip, now);
+    report.phases[tri] = ph;
+    if (ph === "watch") due.watch = true;
+    if (ph === "confirmed") due.confirmed = true;
+    if (ph === "tip" && !due.tip.includes(g)) due.tip.push(g);
+  }
+  // NBA.com's file: one read covers every game, so read when any team is due.
+  if ((due.watch && et.minute % EXPECT_EVERY === 0) || (due.confirmed && et.minute % CONFIRMED_EVERY === 0) || dry) {
+    const feed = await readFeed(compact);
+    report.read.push(`nba.com ${feed.status}${feed.note ? ` (${feed.note})` : ""}`);
+    if (feed.ok) {
+      for (const g of parseLineups(feed.json)) {
+        const sg = st.sched.find((x) => x.teams.includes(g.teams[0].tri) && x.teams.includes(g.teams[1].tri));
+        for (const t of g.teams) {
+          const s = st.teams[t.tri];
+          if (!sg || !s || now >= sg.tip || phaseOf(s, sg.tip, now) === null) continue;
+          const names = t.starters.map((p) => p.name);
+          if (t.status === "Expected" && !s.expected) { s.expected = names; changed = true; }
+          if (t.status !== "Confirmed") continue;
+          const again = s.posted && diff(s.posted, names).in.length > 0;
+          if (s.posted && !again) continue;
+          if (dry) { (report.wouldPost ??= []).push(`${t.tri} ${again ? "change" : "confirmed"}`); continue; }
+          let last = null;
+          if (!again) { try { const r = await fetch(TEAM_FILE(t.tri)); if (r.ok) last = lastStarters(await r.json(), ymd); } catch {} }
+          const embed = lineupEmbed({ ...g, statusText: g.statusText || etClock(sg.tip) + " ET" }, t, { expected: again ? null : s.expected, last, previous: again ? s.posted : null });
+          if (await postDiscord(env.LINEUPS_WEBHOOK, { embeds: [embed] })) { s.posted = names; s.postedTeam = { starters: t.starters }; changed = true; report.posted++; }
+        }
+      }
+    }
+  }
+  // From the scheduled tip: who actually started (ESPN's box), every minute until it's there.
+  for (const g of due.tip) {
+    let five = null;
+    try {
+      const res = await fetch(ESPN_SUMMARY(g.id));
+      report.read.push(`espn ${g.id} ${res.status}`);
+      if (res.ok) five = espnStarters(await res.json());
+    } catch {}
+    for (const tri of g.teams) {
+      const s = st.teams[tri];
+      if (phaseOf(s, g.tip, now) !== "tip") continue;
+      let starters = five?.[tri];
+      if (!starters) continue; // not in the box yet: next minute
+      const opp = g.teams.find((x) => x !== tri);
+      // Keep NBA.com's positions where it had them, so the order matches the confirmed post (PG to C).
+      const nbaPos = Object.fromEntries((s.postedTeam?.starters || []).map((p) => [nameKey(p.name), p.pos]));
+      starters = starters.map((p) => ({ ...p, pos: nbaPos[nameKey(p.name)] || p.pos })).sort((p, q) => (POS_ORDER[p.pos] ?? 9) - (POS_ORDER[q.pos] ?? 9));
+      const names = starters.map((p) => p.name);
+      const same = s.posted && diff(s.posted, names).in.length === 0;
+      if (!same) {
+        if (dry) { (report.wouldPost ??= []).push(`${tri} tip`); continue; }
+        let last = null;
+        if (!s.posted) { try { const r = await fetch(TEAM_FILE(tri)); if (r.ok) last = lastStarters(await r.json(), ymd); } catch {} }
+        const home = g.teams[0] === tri; // ESPN lists home first
+        const embed = lineupEmbed({ statusText: "" }, { tri, opp, home, starters, inactive: [] }, { previous: s.posted, last, kind: "tip" });
+        if (!(await postDiscord(env.LINEUPS_WEBHOOK, { embeds: [embed] }))) continue;
+        report.posted++;
+      }
+      s.tip = same ? "same" : "posted"; changed = true;
+    }
+  }
+  // Teams whose box never showed up within the window: give up quietly.
+  for (const g of st.sched) for (const tri of g.teams) {
+    const s = st.teams[tri];
+    if (!s.tip && now >= g.tip + TIP_GIVE_UP_MIN * 60e3) { s.tip = "gave up"; changed = true; }
+  }
+  if (st.sched.every((g) => g.teams.every((tri) => st.teams[tri]?.tip))) { st.done = true; changed = true; }
+  if (changed && !dry) await env.STATE.put("lineups", JSON.stringify(st));
+  return report;
+}
+
+/** The /lineups?date= path: read another day's NBA.com file; report, or post one sample (test). */
+async function lineupTest(env, date, { dry, test }) {
+  const feed = await readFeed(date);
   if (!feed.ok) return { feed: { status: feed.status, note: feed.note || null } };
   const games = parseLineups(feed.json);
-  const report = { feed: { status: feed.status, games: games.length }, teams: [], posted: 0 };
-  let changed = false;
-  for (const g of games) {
-    for (const t of g.teams) {
-      const k = `${g.gameId}|${t.tri}`;
-      const s = (st.teams[k] ??= { expected: null, posted: null });
-      const names = t.starters.map((p) => p.name);
-      report.teams.push({ team: t.tri, opp: t.opp, game: g.statusText, status: t.status, starters: names, posted: !!s.posted });
-      if (t.status === "Expected" && !s.expected) { s.expected = names; changed = true; }
-      const pregame = g.gameStatus === 1 || test;
-      if (t.status !== "Confirmed" || !pregame) continue;
-      const again = s.posted && diff(s.posted, names).in.length > 0;
-      if (s.posted && !again && !test) continue;
-      if (dry && !test) { report.teams[report.teams.length - 1].wouldPost = again ? "change" : "confirmed"; continue; }
+  const report = { feed: { status: feed.status, games: games.length }, teams: games.flatMap((g) => g.teams.map((t) => ({ team: t.tri, opp: t.opp, status: t.status, starters: t.starters.map((p) => p.name) }))), posted: 0 };
+  if (test && !dry) {
+    const g = games.find((x) => x.teams.some((t) => t.status === "Confirmed"));
+    const t = g?.teams.find((x) => x.status === "Confirmed");
+    if (t) {
+      const ymd = `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`;
       let last = null;
       try { const r = await fetch(TEAM_FILE(t.tri)); if (r.ok) last = lastStarters(await r.json(), ymd); } catch {}
-      const embed = lineupEmbed(g, t, { expected: s.expected, last, previous: again ? s.posted : null, test });
-      if (await postDiscord(env.LINEUPS_WEBHOOK, { embeds: [embed] })) { s.posted = names; changed = true; report.posted++; }
-      if (test) return report; // one sample is enough
-      await new Promise((r) => setTimeout(r, 300));
+      if (await postDiscord(env.LINEUPS_WEBHOOK, { embeds: [lineupEmbed(g, t, { last, test: true })] })) report.posted = 1;
     }
   }
-  // After tip-off: who actually started (ESPN box score) vs the confirmed five. A late scratch in
-  // warmups may never reach NBA.com's file. Tried each run until ESPN's box has the five (at most 12 tries).
-  let board = null;
-  for (const g of games) {
-    if (g.gameStatus < 2 || test || date) continue;
-    for (const t of g.teams) {
-      const s = st.teams[`${g.gameId}|${t.tri}`];
-      if (s.tip || (s.tipTries || 0) >= 12) continue;
-      s.tipTries = (s.tipTries || 0) + 1; changed = true;
-      try {
-        board ??= await (await fetch(ESPN_SCOREBOARD(ymd.replace(/-/g, "")))).json();
-        const ev = (board.events || []).find((e) => { const ts = (e.competitions?.[0]?.competitors || []).map((c) => triOf(c.team?.abbreviation)); return ts.includes(t.tri) && ts.includes(t.opp); });
-        if (!ev) continue;
-        g.espn ??= espnStarters(await (await fetch(ESPN_SUMMARY(ev.id))).json());
-        let five = g.espn[t.tri];
-        if (!five) continue;
-        // Keep NBA.com's positions where it has them (PG/SG/SF/PF/C), so the order matches the confirmed post.
-        const nbaPos = Object.fromEntries(t.starters.map((p) => [nameKey(p.name), p.pos]));
-        five = five.map((p) => ({ ...p, pos: nbaPos[nameKey(p.name)] || p.pos })).sort((p, q) => (POS_ORDER[p.pos] ?? 9) - (POS_ORDER[q.pos] ?? 9));
-        const names = five.map((p) => p.name);
-        const same = s.posted && diff(s.posted, names).in.length === 0;
-        if (!same && !dry) {
-          let last = null;
-          if (!s.posted) { try { const r = await fetch(TEAM_FILE(t.tri)); if (r.ok) last = lastStarters(await r.json(), ymd); } catch {} }
-          const embed = lineupEmbed(g, { ...t, starters: five, inactive: [] }, { previous: s.posted, last, kind: "tip" }); // NBA.com's inactive list is pre-game
-          if (!(await postDiscord(env.LINEUPS_WEBHOOK, { embeds: [embed] }))) continue;
-          report.posted++;
-        }
-        s.tip = same ? "same" : "posted";
-        report.teams.find((x) => x.team === t.tri).tip = s.tip;
-      } catch {}
-    }
-  }
-  // Done for the day once every game has tipped and every team's starters were checked (or given up on).
-  if (games.length && games.every((g) => g.gameStatus >= 2 && g.teams.every((t) => { const s = st.teams[`${g.gameId}|${t.tri}`]; return s.tip || (s.tipTries || 0) >= 12; }))) { st.done = true; changed = true; }
-  if (changed && !dry && !date) await env.STATE.put("lineups", JSON.stringify(st));
   return report;
 }

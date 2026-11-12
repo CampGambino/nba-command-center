@@ -27,6 +27,7 @@
  * only when there is something new to log.
  */
 import { lineupCheck } from "./lineups.js";
+export const ARTICLES_CRON = "*/5 * * * *";
 
 const FEEDS = [
   { src: "espn", kind: "espn", url: "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/news?limit=25" },
@@ -287,8 +288,10 @@ async function act(env, url, key) {
 }
 
 export default {
-  // Each run: articles, then lineups (cloudflare/lineups.js; private #lineups channel, LINEUPS_WEBHOOK secret).
-  async scheduled(event, env, ctx) { ctx.waitUntil(Promise.allSettled([check(env), lineupCheck(env)])); },
+  // Two schedules (wrangler.toml), each its own run with its own CPU budget:
+  //   every 5 minutes: articles;  every minute: lineups (cloudflare/lineups.js; private #lineups, LINEUPS_WEBHOOK
+  //   secret), which does nothing unless a game is within 90 minutes of tip or just tipped.
+  async scheduled(event, env, ctx) { ctx.waitUntil(event.cron === ARTICLES_CRON ? check(env) : lineupCheck(env, event.scheduledTime || Date.now())); },
   async fetch(req, env) {
     const url = new URL(req.url);
     const key = await adminKey(env);

@@ -2,6 +2,34 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.25.2 (2026-11-12): lineup timing set by the user (90-minute window; 5 / 3 / 1 minutes)
+
+### Why
+- **The user:** no need to read NBA.com every 5 minutes all day. Start 90 minutes before the scheduled tip; every 5 minutes until the five is confirmed; every 3 minutes once confirmed, until tip; at tip, every minute for the late-scratch check.
+
+### What changed
+- **The Worker has two schedules** (`wrangler.toml`): `*/5` runs the articles check only (as before); `* * * * *` runs the lineups check only. Each is its own run with its own CPU budget (free plan: ~10 ms), so the per-minute ESPN read can't push the articles check over.
+- **Lineups (`cloudflare/lineups.js`), per team, from each game's scheduled tip** (ESPN scoreboard, read once a day):
+  - **before T−90 min:** nothing is read;
+  - **T−90 until the five is confirmed:** NBA.com's file on minutes divisible by 5;
+  - **confirmed, until tip:** on minutes divisible by 3, so a change after confirmation posts within 3 minutes. One read covers every game, so it happens whenever any team is due;
+  - **from the scheduled tip:** ESPN's box for that game every minute until it shows the five, giving up 45 minutes after tip (a delayed game is still caught, up to 45 minutes late).
+  - NBA.com's file is no longer read after a game's scheduled tip.
+- **KV state:** today's schedule and per-team expected / posted / tip result. Written only when something changes (about 100 writes on a full night; the free limit is 1,000 a day). One small KV read a minute from 10 AM.
+
+### Tested
+- **New and rewritten checks** (33 watcher checks pass), on a 7:30 PM tip:
+  - nothing read at 5:30;
+  - read at 6:00, 6:03 and 6:05 but not 6:04;
+  - posted once;
+  - a change at 6:06 posts within the 3-minute cycle;
+  - at 7:30, ESPN only (no NBA.com read), with a late swap and a never-confirmed team both posted;
+  - done at 7:31;
+  - the 5-minute schedule runs articles and the 1-minute schedule runs lineups.
+
+### Still unproven
+- **Live on 11/12:** the first window opens 90 minutes before the first tip.
+
 ## 0.25.1 (2026-11-12): lineups without position labels; who actually started, checked after tip
 
 ### Why

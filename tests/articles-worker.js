@@ -123,8 +123,8 @@ export async function articlesChecks(ok) {
   // losing STATE or the schedule there would silently stop the watcher.
   {
     const t = fs.readFileSync(new URL("../cloudflare/wrangler.toml", import.meta.url), "utf8");
-    ok(/^name = "ncc-articles"$/m.test(t) && /^main = "articles-worker\.js"$/m.test(t) && /\[\[kv_namespaces\]\]\s*\nbinding = "STATE"\s*\nid = "[0-9a-f]{32}"/.test(t) && /^crons = \["\*\/5 \* \* \* \*"\]$/m.test(t) && /^workers_dev = true/m.test(t) && !/DISCORD|webhooks/i.test(t.replace(/#.*$/gm, "")),
-      "articles: deploy settings keep the name, the STATE store, the 5-minute schedule and workers.dev, and hold no secret");
+    ok(/^name = "ncc-articles"$/m.test(t) && /^main = "articles-worker\.js"$/m.test(t) && /\[\[kv_namespaces\]\]\s*\nbinding = "STATE"\s*\nid = "[0-9a-f]{32}"/.test(t) && /^crons = \["\*\/5 \* \* \* \*", "\* \* \* \* \*"\]$/m.test(t) && /^workers_dev = true/m.test(t) && !/DISCORD|webhooks/i.test(t.replace(/#.*$/gm, "")),
+      "articles: deploy settings keep the name, the STATE store, the 5-minute (articles) and 1-minute (lineups) schedules and workers.dev, and hold no secret");
   }
   // Injury news posts even without a writer's name (user, 11/11); unsigned game stories still don't.
   {
@@ -166,35 +166,53 @@ export async function articlesChecks(ok) {
       { team: { abbreviation: "NY" }, statistics: [{ athletes: [A("Karl-Anthony Towns", "C"), A("Miles McBride", "G"), A("OG Anunoby", "F"), A("Josh Hart", "F"), A("Jalen Brunson", "G"), A("Mikal Bridges", "G", false)] }] },
       { team: { abbreviation: "IND" }, statistics: [{ athletes: [A("Aaron Nesmith", "G"), A("Kelly Oubre Jr.", "F"), A("Andrew Nembhard", "G"), A("Pascal Siakam", "F"), A("Ivica Zubac", "C")] }] } ] } };
     ok(espnStarters(espn).NYK.length === 5 && espnStarters(espn).NYK[4].name === "Karl-Anthony Towns" && espnStarters(espn).IND, "lineups: who started, from ESPN's box (NY → NYK), guards to center", JSON.stringify(espnStarters(espn)));
+    let reads = 0;
     globalThis.fetch = async (u, o = {}) => {
       u = String(u);
-      if (u.includes("daily_lineups_20261112")) return new Response(JSON.stringify(current), { status: 200 });
+      if (u.includes("daily_lineups_20261112")) { reads++; return new Response(JSON.stringify(current), { status: 200 }); }
       if (u.includes("raw.githubusercontent.com")) return new Response(JSON.stringify(file), { status: 200 });
       if (u.startsWith("https://discord.com/")) { posts.push(JSON.parse(o.body)); return new Response("{}", { status: 200 }); }
-      if (u.includes("/scoreboard?dates=20261112")) return new Response(JSON.stringify({ events: [{ id: "401", competitions: [{ competitors: [{ team: { abbreviation: "NY" } }, { team: { abbreviation: "IND" } }] }] }] }), { status: 200 });
+      if (u.includes("/scoreboard?dates=20261112")) return new Response(JSON.stringify({ events: [{ id: "401", date: "2026-11-13T00:30Z", competitions: [{ competitors: [{ team: { abbreviation: "NY" } }, { team: { abbreviation: "IND" } }] }] }] }), { status: 200 });
       if (u.includes("/summary?event=401")) return new Response(JSON.stringify(espn), { status: 200 });
       return new Response("", { status: 404 });
     };
-    const at = Date.parse("2026-11-12T23:40:00Z");
+    // Tip 7:30 PM ET (00:30 UTC). The user's timing: nothing until 6:00; NBA.com every 5 min until confirmed,
+    // every 3 once confirmed; ESPN's box every minute from tip.
+    const T = (hhmm) => Date.parse(`2026-11-12T${hhmm}:00-05:00`);
     try {
-      const dry = await lineupCheck(env, at, { dry: true });
-      ok(posts.length === 0 && dry.teams.find((t) => t.team === "NYK").wouldPost === "confirmed" && !kv.has("lineups"), "lineups: a dry run reports what it would post and changes nothing", JSON.stringify(dry));
-      const r1 = await lineupCheck(env, at), r2 = await lineupCheck(env, at + 300e3);
-      ok(r1.posted === 1 && r2.posted === 0 && posts.length === 1 && posts[0].username === "NBA Command Center · Lineups", "lineups: a confirmed five is posted once (IND, still expected, isn't)", JSON.stringify([r1.posted, r2.posted]));
+      const pre = await lineupCheck(env, T("17:30"));
+      ok(reads === 0 && posts.length === 0 && pre.phases.NYK === null, "lineups: nothing read before 90 minutes to tip", JSON.stringify(pre));
+      const dry = await lineupCheck(env, T("18:00"), { dry: true });
+      ok(posts.length === 0 && (dry.wouldPost || []).includes("NYK confirmed") && JSON.parse(kv.get("lineups")).teams.NYK.posted === null, "lineups: a dry run reports what it would post and posts nothing", JSON.stringify(dry));
+      reads = 0;
+      const r1 = await lineupCheck(env, T("18:00")), r2 = await lineupCheck(env, T("18:03")), r3 = await lineupCheck(env, T("18:04")), r4 = await lineupCheck(env, T("18:05"));
+      ok(r1.posted === 1 && r2.posted === 0 && posts.length === 1 && posts[0].username === "NBA Command Center · Lineups" && reads === 3 && r3.read.length === 0,
+        "lineups: from 90 minutes out, NBA.com read on the 5s (IND not confirmed) and the 3s (NYK confirmed), not between; a confirmed five posted once", JSON.stringify({ reads, r3 }));
       current = feed("Confirmed", true);
-      const r3 = await lineupCheck(env, at + 600e3);
-      ok(r3.posted === 1 && /LINEUP CHANGE/.test(posts[1].embeds[0].author.name) && /Changed after it was confirmed:\*\* in Mitchell Robinson · out Josh Hart/.test(posts[1].embeds[0].description), "lineups: a change after it was confirmed posts again", JSON.stringify(posts[1]?.embeds?.[0]));
-      current.games[0].gameStatus = 2;
-      const r4 = await lineupCheck(env, at + 900e3);
+      const r5 = await lineupCheck(env, T("18:06"));
+      ok(r5.posted === 1 && /LINEUP CHANGE/.test(posts[1].embeds[0].author.name) && /Changed after it was confirmed:\*\* in Mitchell Robinson · out Josh Hart/.test(posts[1].embeds[0].description), "lineups: a change after it was confirmed posts again (within 3 minutes)", JSON.stringify(posts[1]?.embeds?.[0]));
+      reads = 0;
+      const r6 = await lineupCheck(env, T("19:30"));
       const tipPosts = posts.slice(2).map((p) => p.embeds[0]);
-      ok(r4.posted === 2 && /STARTED DIFFERENTLY · ESPN box score/.test(tipPosts[0].author.name) && /Started differently than confirmed:\*\* in Miles McBride, Josh Hart · out Mikal Bridges, Mitchell Robinson/.test(tipPosts[0].description)
+      ok(r6.posted === 2 && reads === 0 && /STARTED DIFFERENTLY · ESPN box score/.test(tipPosts[0].author.name) && /Started differently than confirmed:\*\* in Miles McBride, Josh Hart · out Mikal Bridges, Mitchell Robinson/.test(tipPosts[0].description)
         && !/Inactive/.test(tipPosts[0].description) && tipPosts[0].description.startsWith("Jalen Brunson\nMiles McBride\nOG Anunoby\nJosh Hart\nKarl-Anthony Towns")
         && /Starters at tip \(none confirmed before\)/.test(tipPosts[1].author.name) && tipPosts[1].title.startsWith("IND @ NYK"),
-        "lineups: after tip, a late swap vs the confirmed five posts 'started differently'; a team never confirmed gets its starters at tip", JSON.stringify(tipPosts.map((e) => [e.author.name, e.description])));
-      const r5 = await lineupCheck(env, at + 1200e3);
-      ok(r5.skipped === "all of today's games have tipped" && posts.length === 4, "lineups: stops reading for the day once every game has tipped and its starters were checked", JSON.stringify(r5));
+        "lineups: at tip, ESPN's box (not NBA.com): a late swap vs the confirmed five posts 'started differently'; a team never confirmed gets its starters", JSON.stringify(tipPosts.map((e) => [e.author.name, e.title, e.description])));
+      const r7 = await lineupCheck(env, T("19:31"));
+      ok(r7.skipped === "all of today's games have tipped" && posts.length === 4, "lineups: done for the day once every game's starters were checked", JSON.stringify(r7));
       const early = await lineupCheck(env, Date.parse("2026-11-12T13:00:00Z"));
       ok(early.skipped === "before 10 AM ET", "lineups: nothing before 10 AM ET");
+      // The Worker's two schedules: "*/5" runs articles only; "* * * * *" runs lineups only.
+      const ran = [];
+      const env3 = { DISCORD_WEBHOOK: "https://discord.com/api/webhooks/1/test-x", LINEUPS_WEBHOOK: env.LINEUPS_WEBHOOK, STATE: { get: async (k) => { ran.push(k); return null; }, put: async () => {} } };
+      const wait = [];
+      articlesWorker.scheduled({ cron: "* * * * *", scheduledTime: T("09:00") }, env3, { waitUntil: (p) => wait.push(p) });
+      await Promise.all(wait);
+      const lineupsOnly = ran.join();
+      ran.length = 0; wait.length = 0;
+      articlesWorker.scheduled({ cron: "*/5 * * * *", scheduledTime: T("09:00") }, env3, { waitUntil: (p) => wait.push(p) });
+      await Promise.all(wait).catch(() => {});
+      ok(lineupsOnly === "" && ran.includes("state") && !ran.includes("lineups"), "articles: the 5-minute schedule runs the articles check, the 1-minute one the lineups check", JSON.stringify([lineupsOnly, ran]));
     } finally { globalThis.fetch = realFetch; }
   }
 }
