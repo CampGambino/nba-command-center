@@ -4,6 +4,7 @@
  * deploy (tests/articles-only.js); tests/run.js runs them as part of the full suite.
  */
 import fs from "node:fs";
+import { parseLineups, diff as lineupDiff, lastStarters, lineupEmbed, lineupCheck, feedTime } from "../cloudflare/lineups.js";
 import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey, tagOf as articleTag } from "../cloudflare/articles-worker.js";
 
 export async function articlesChecks(ok) {
@@ -135,5 +136,52 @@ export async function articlesChecks(ok) {
     ok(!articleDecide(u("Victor Wembanyama scores 40 points in 25 minutes as Spurs win 9th straight"), {}, now).post && !articleDecide(u("Paul George torches 76ers as Celtics take edge in renewed rivalry"), {}, now).post
       && !articleDecide({ ...wilson, type: "Recap" }, {}, now).post && !articleDecide({ ...wilson, type: "Media" }, {}, now).post,
       "articles: unsigned game stories, recaps and videos stay skipped even when they mention an injury");
+  }
+  // Lineups (cloudflare/lineups.js): confirmed fives to the private #lineups channel, once, with what changed.
+  {
+    const P = (name, pos, status = "Confirmed", roster = "Active") => ({ playerName: name, position: pos, lineupStatus: status, rosterStatus: roster, timestamp: "2026-11-12T23:30:00" });
+    const feed = (st, swap = false) => ({ games: [{ gameId: "0022600300", gameStatus: 1, gameStatusText: "7:30 pm ET",
+      homeTeam: { teamAbbreviation: "NYK", players: [P("Mikal Bridges", "SG", st), P("OG Anunoby", "SF", st), P("Jalen Brunson", "PG", st), P(swap ? "Mitchell Robinson" : "Josh Hart", "PF", st), P("Karl-Anthony Towns", "C", st), P(swap ? "Josh Hart" : "Mitchell Robinson", ""), P("Miles McBride", "", "Confirmed", "Inactive")] },
+      awayTeam: { teamAbbreviation: "IND", players: [P("Aaron Nesmith", "SG", "Expected"), P("Kelly Oubre Jr.", "SF", "Expected"), P("Andrew Nembhard", "PG", "Expected"), P("Pascal Siakam", "PF", "Expected"), P("Ivica Zubac", "C", "Expected")] } }] });
+    const g = parseLineups(feed("Confirmed"))[0];
+    ok(g.teams[0].tri === "NYK" && g.teams[0].opp === "IND" && g.teams[0].status === "Confirmed" && g.teams[1].status === "Expected" && g.teams[0].starters.map((p) => p.pos).join() === "PG,SG,SF,PF,C" && g.teams[0].inactive.join() === "Miles McBride",
+      "lineups: starters are the players with a position, PG to C; a five is Confirmed only when all five are; inactives listed", JSON.stringify(g.teams[0]));
+    ok(feedTime("2026-11-11T22:49:00") === Date.parse("2026-11-11T22:49:00Z"), "lineups: feed times are UTC");
+    ok(JSON.stringify(lineupDiff(["A B", "C D"], ["A B", "E F"])) === JSON.stringify({ in: ["E F"], out: ["C D"] }), "lineups: who's in and out");
+    const file = { names: { 1: "Jalen Brunson", 2: "Mikal Bridges", 3: "OG Anunoby", 4: "Mitchell Robinson", 5: "Karl-Anthony Towns", 6: "Josh Hart" },
+      games: [{ d: "2026-11-10", opp: "BOS", pl: { 1: [1], 2: [1], 3: [1], 4: [1], 5: [1], 6: [0] } }, { d: "2026-11-12", opp: "IND", pl: {} }] };
+    const last = lastStarters(file, "2026-11-12");
+    ok(last && last.d === "2026-11-10" && last.names.length === 5, "lineups: the last game's starters come from our box-score file (before today)", JSON.stringify(last));
+    const e = lineupEmbed(g, g.teams[0], { last, expected: ["Jalen Brunson", "Mikal Bridges", "OG Anunoby", "Mitchell Robinson", "Karl-Anthony Towns"] });
+    ok(/in \*\*Josh Hart\*\* · out Mitchell Robinson/.test(e.description) && /vs expected earlier today/.test(e.description) && /Inactive: Miles McBride/.test(e.description) && e.title === "NYK vs IND · 7:30 pm ET",
+      "lineups: the post says what changed from the last game and from the expected five", e.description);
+    // A run: posts once per confirmed five; a later change posts again; dry runs post nothing.
+    const kv = new Map(), posts = [];
+    const env = { LINEUPS_WEBHOOK: "https://discord.com/api/webhooks/3/test-z", STATE: { get: async (k) => (kv.has(k) ? JSON.parse(kv.get(k)) : null), put: async (k, v) => kv.set(k, v) } };
+    const realFetch = globalThis.fetch;
+    let current = feed("Confirmed");
+    globalThis.fetch = async (u, o = {}) => {
+      u = String(u);
+      if (u.includes("daily_lineups_20261112")) return new Response(JSON.stringify(current), { status: 200 });
+      if (u.includes("raw.githubusercontent.com")) return new Response(JSON.stringify(file), { status: 200 });
+      if (u.startsWith("https://discord.com/")) { posts.push(JSON.parse(o.body)); return new Response("{}", { status: 200 }); }
+      return new Response("", { status: 404 });
+    };
+    const at = Date.parse("2026-11-12T23:40:00Z");
+    try {
+      const dry = await lineupCheck(env, at, { dry: true });
+      ok(posts.length === 0 && dry.teams.find((t) => t.team === "NYK").wouldPost === "confirmed" && !kv.has("lineups"), "lineups: a dry run reports what it would post and changes nothing", JSON.stringify(dry));
+      const r1 = await lineupCheck(env, at), r2 = await lineupCheck(env, at + 300e3);
+      ok(r1.posted === 1 && r2.posted === 0 && posts.length === 1 && posts[0].username === "NBA Command Center · Lineups", "lineups: a confirmed five is posted once (IND, still expected, isn't)", JSON.stringify([r1.posted, r2.posted]));
+      current = feed("Confirmed", true);
+      const r3 = await lineupCheck(env, at + 600e3);
+      ok(r3.posted === 1 && /LINEUP CHANGE/.test(posts[1].embeds[0].author.name) && /Changed after it was confirmed:\*\* in Mitchell Robinson · out Josh Hart/.test(posts[1].embeds[0].description), "lineups: a change after it was confirmed posts again", JSON.stringify(posts[1]?.embeds?.[0]));
+      current.games[0].gameStatus = 2;
+      await lineupCheck(env, at + 900e3);
+      const r5 = await lineupCheck(env, at + 1200e3);
+      ok(r5.skipped === "all of today's games have tipped", "lineups: stops reading for the day once every game has tipped", JSON.stringify(r5));
+      const early = await lineupCheck(env, Date.parse("2026-11-12T13:00:00Z"));
+      ok(early.skipped === "before 10 AM ET", "lineups: nothing before 10 AM ET");
+    } finally { globalThis.fetch = realFetch; }
   }
 }

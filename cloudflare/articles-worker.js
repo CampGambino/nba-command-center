@@ -26,6 +26,7 @@
  * plan): a quiet run reads only the small "seen" record; the decision log is read and written
  * only when there is something new to log.
  */
+import { lineupCheck } from "./lineups.js";
 
 const FEEDS = [
   { src: "espn", kind: "espn", url: "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/news?limit=25" },
@@ -286,7 +287,8 @@ async function act(env, url, key) {
 }
 
 export default {
-  async scheduled(event, env, ctx) { ctx.waitUntil(check(env)); },
+  // Each run: articles, then lineups (cloudflare/lineups.js; private #lineups channel, LINEUPS_WEBHOOK secret).
+  async scheduled(event, env, ctx) { ctx.waitUntil(Promise.allSettled([check(env), lineupCheck(env)])); },
   async fetch(req, env) {
     const url = new URL(req.url);
     const key = await adminKey(env);
@@ -311,6 +313,12 @@ export default {
       return new Response(`${f.url}\n\nfeed head:\n${text.slice(0, 700)}\n\nfirst item:\n${m ? m[0].slice(0, 3000) : "(no <item>)"}`, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
     }
     if (url.pathname === "/labels") return Response.json({ labels: await load(env, "labels", []), rules: await load(env, "rules", {}) });
+    // Lineups: ?dry=1 reads and reports without posting; &date=YYYYMMDD reads another day's file;
+    // &test=1 (with a past date) posts one sample to #lineups to check the webhook.
+    if (url.pathname === "/lineups") {
+      const q = url.searchParams;
+      return Response.json(await lineupCheck(env, Date.now(), { dry: q.get("dry") === "1", date: q.get("date") || null, test: q.get("test") === "1" && !!q.get("date") }));
+    }
     return new Response("Not found", { status: 404 });
   },
 };

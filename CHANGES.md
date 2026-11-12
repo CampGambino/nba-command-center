@@ -2,6 +2,30 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.25.0 (2026-11-12): confirmed starting lineups to a private #lineups channel
+
+### Why
+- **The user:** could nba.com/players/todays-lineups be used to send confirmed starting lineups to Discord?
+- **The page** loads a daily file (`stats.nba.com/js/data/leaders/00_daily_lineups_YYYYMMDD.json`): each team's five with positions, the bench, inactives, and "Expected" / "Confirmed" with the time.
+- **The user's decision:** it's for their own use, not Underdog's. NBA.com's terms allow personal, non-commercial use (Section 1) and statistics for "private, non-commercial purposes" (Section 9). So: a private channel, nothing on the public site, no lineup history kept.
+
+### What changed
+- **New `cloudflare/lineups.js`, run by the ncc-articles Worker on its 5-minute schedule** (no computer needed). From 10 AM ET until the day's last game tips:
+  - **Reads the day's file.** Before it's up, NBA.com redirects to an error page: nothing happens.
+  - **Posts once per team when its five is Confirmed** before tip-off: positions PG to C, plus what changed vs the team's last game (from our box-score file on GitHub), what changed vs the five listed as Expected earlier that day, and inactives.
+  - **Colors:** green = same five as last game; amber = a change; red = "LINEUP CHANGE", a confirmed five that changed again before tip (posted again).
+  - **State:** KV `lineups` holds only today's expected and posted fives, replaced each day, and written only when something changes.
+- **Secret `LINEUPS_WEBHOOK`** (#lineups, private; added by the user in Cloudflare). Without it the lineup check does nothing.
+- **Private endpoint `/lineups?k=…`:** `&dry=1` reports without posting; `&date=YYYYMMDD` reads another day; `&test=1` with a past date posts one sample, marked TEST.
+
+### Tested
+- **The real 11/11 file:** 10 games, 17-18 players a team, starters marked by position, inactives listed. Times are UTC (IND confirmed 22:49 = 5:49 PM ET).
+- **New watcher checks** (29 pass; they also run before every deploy): starters, order and status; UTC times; in/out; last game's starters; post text (vs last game, vs expected, inactives); dry run posts nothing; posted once; a change after confirmation posts again; stops after every game has tipped; nothing before 10 AM ET.
+
+### Still unproven
+- **Whether Cloudflare can read stats.nba.com** (it may block cloud servers). Checked right after deploy; see below.
+- **The live timing:** how early "Confirmed" appears (the 11/11 file suggests 45-75 minutes before tip). Tonight is the first real night.
+
 ## 0.24.1 (2026-11-12): With / without counts games a player sat before his debut (from the injury reports)
 
 ### Why
