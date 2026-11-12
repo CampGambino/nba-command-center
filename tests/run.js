@@ -419,6 +419,20 @@ for (const [team, r] of Object.entries(results)) {
   }
 }
 
+// ---------- published data files: every one parses, none carries merge-conflict markers ----------
+// (11/11: a push carried "<<<<<<<" markers in 7 data files and broke the site for ~2 minutes.)
+{
+  const bad = [];
+  const walk = (dir) => { for (const f of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, f.name);
+    if (f.isDirectory()) walk(p);
+    else if (f.name.endsWith(".json")) { const t = fs.readFileSync(p, "utf8"); if (/^(<{7}|={7}|>{7})( |$)/m.test(t)) bad.push(`${p}: conflict markers`); else { try { JSON.parse(t); } catch (e) { bad.push(`${p}: ${e.message.slice(0, 60)}`); } } }
+  } };
+  const dataDir = path.join(root, "docs", "data");
+  if (fs.existsSync(dataDir)) walk(dataDir);
+  ok(!bad.length, "published data: every docs/data JSON file parses and has no merge-conflict markers", bad.slice(0, 5).join("; "));
+}
+
 // ---------- website (docs/) ----------
 {
   const docs = path.join(root, "docs");

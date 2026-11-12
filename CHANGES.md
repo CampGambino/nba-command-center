@@ -2,6 +2,26 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.20.1 (2026-11-11): incident: broken site data for ~2 minutes, and two guards
+
+### What happened
+- **The bad push:** the 0.20.0 push (8:54:45 PM ET) carried merge-conflict markers in 7 published data files (`clutch-players`, `games`, `leaders`, `q4-players`, `situations`, `tonight`, `trends`). Every tab but the Watch List and With / without couldn't load its data.
+- **Cause:**
+  - I had regenerated the data locally while testing.
+  - The bot had pushed newer data meanwhile.
+  - Re-applying my local changes left conflicted files.
+  - `git add -A` committed them.
+  - The 448 checks passed because none looked at the data files.
+- **Fix at ~8:56 PM:** regenerated all data, validated every file, pushed. Checked again on GitHub: all 9 data files parse.
+
+### What changed
+- **New check:** every `docs/data/**/*.json` parses and has no `<<<<<<<` / `=======` / `>>>>>>>` lines. Confirmed: it fails on a file with conflict markers.
+- **A local pre-commit guard in the cloud clone** (`.git/hooks/pre-commit`; not in the repo) refuses commits with conflict markers or JSON that doesn't parse. Confirmed: it blocks one.
+- **Practice:** my commits stage only the files I changed; generated data is left to the bot's builds.
+
+### Tested
+- **449 checks pass;** page sweep OK.
+
 ## 0.20.0 (2026-11-11): the official injury report in tonight's storylines
 
 ### What changed
