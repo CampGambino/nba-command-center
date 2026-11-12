@@ -2,6 +2,31 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.25.3 (2026-11-12): lineup checks concentrated 31-29 minutes before tip
+
+### Why
+- **The user:** starting lineups usually land about 30 minutes before tip, so that is the window that matters. Check every 5 minutes from 90 to 31 minutes out (the rare early confirmations still get caught), every 20 seconds from 31 to 29 minutes out, then every 3 minutes until tip.
+
+### What changed
+- **NBA.com's file, by minutes before each game's scheduled tip:**
+  - 90, 85, … 35: every 5 minutes;
+  - 31 → 29: every 20 seconds, 7 reads in all. Cloudflare's cron fires at most once a minute, so the runs at 31 and 30 minutes out each read three times (:00, :20, :40), waiting in between. Waiting costs no CPU time; a scheduled run may last up to 15 minutes;
+  - 29, 26, … 2: every 3 minutes.
+  - **Replaced rule:** 0.25.2's "every 3 minutes once confirmed" is gone. The timing is now by the clock, whatever the status.
+- **From tip:** unchanged. ESPN's box every minute until it shows who started.
+- **`feedDue(tip, t)`** holds the timing in one place. One read covers every game, so a read happens whenever any game is due.
+
+### Tested
+- **New and rewritten checks** (35 watcher checks pass), on a 7:30 PM tip:
+  - the exact read times: 6:00 … 6:55 every 5 minutes; 6:59:00, :20, :40, 7:00:00, :20, :40; 7:01, 7:04 … 7:28; none at or after 7:30;
+  - the runs at 6:59 and 7:00 read three times each and 7:01 once; 7:02 doesn't read;
+  - no repeat post;
+  - a change posts on the next 3-minute check;
+  - tip-off and end of day as before.
+
+### Still unproven
+- **The 20-second reads live:** the first real window is 31 minutes before 11/12's first tip.
+
 ## 0.25.2 (2026-11-12): lineup timing set by the user (90-minute window; 5 / 3 / 1 minutes)
 
 ### Why

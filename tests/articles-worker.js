@@ -4,7 +4,7 @@
  * deploy (tests/articles-only.js); tests/run.js runs them as part of the full suite.
  */
 import fs from "node:fs";
-import { parseLineups, diff as lineupDiff, lastStarters, lineupEmbed, lineupCheck, feedTime, espnStarters } from "../cloudflare/lineups.js";
+import { parseLineups, diff as lineupDiff, lastStarters, lineupEmbed, lineupCheck, feedTime, espnStarters, feedDue } from "../cloudflare/lineups.js";
 import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey, tagOf as articleTag } from "../cloudflare/articles-worker.js";
 
 export async function articlesChecks(ok) {
@@ -176,29 +176,39 @@ export async function articlesChecks(ok) {
       if (u.includes("/summary?event=401")) return new Response(JSON.stringify(espn), { status: 200 });
       return new Response("", { status: 404 });
     };
-    // Tip 7:30 PM ET (00:30 UTC). The user's timing: nothing until 6:00; NBA.com every 5 min until confirmed,
-    // every 3 once confirmed; ESPN's box every minute from tip.
-    const T = (hhmm) => Date.parse(`2026-11-12T${hhmm}:00-05:00`);
+    // Tip 7:30 PM ET (00:30 UTC). The user's timing (11/12): NBA.com every 5 minutes from 6:00 (90 out) to 6:55 (35 out);
+    // every 20 seconds 6:59:00-7:00:40 (31 to 29 out); every 3 minutes from 7:01 (29 out) to 7:28; ESPN every minute from 7:30.
+    const T = (hhmm, sec = 0) => Date.parse(`2026-11-12T${hhmm}:${String(sec).padStart(2, "0")}-05:00`);
+    const tip = T("19:30");
+    const dueAt = [];
+    for (let t = T("17:55"); t < tip + 60e3; t += 20e3) if (feedDue(tip, t)) dueAt.push(new Date(t - 5 * 3600e3).toISOString().slice(11, 19));
+    ok(dueAt.join() === "18:00:00,18:05:00,18:10:00,18:15:00,18:20:00,18:25:00,18:30:00,18:35:00,18:40:00,18:45:00,18:50:00,18:55:00,18:59:00,18:59:20,18:59:40,19:00:00,19:00:20,19:00:40,19:01:00,19:04:00,19:07:00,19:10:00,19:13:00,19:16:00,19:19:00,19:22:00,19:25:00,19:28:00",
+      "lineups: NBA.com read every 5 min from 90 to 35 out, every 20 s from 31 to 29 out, every 3 min from 29 out to tip, never at or after tip", dueAt.join());
+    const noSleep = { sleep: async () => {} };
     try {
-      const pre = await lineupCheck(env, T("17:30"));
+      const pre = await lineupCheck(env, T("17:30"), noSleep);
       ok(reads === 0 && posts.length === 0 && pre.phases.NYK === null, "lineups: nothing read before 90 minutes to tip", JSON.stringify(pre));
-      const dry = await lineupCheck(env, T("18:00"), { dry: true });
+      const dry = await lineupCheck(env, T("18:00"), { dry: true, ...noSleep });
       ok(posts.length === 0 && (dry.wouldPost || []).includes("NYK confirmed") && JSON.parse(kv.get("lineups")).teams.NYK.posted === null, "lineups: a dry run reports what it would post and posts nothing", JSON.stringify(dry));
       reads = 0;
-      const r1 = await lineupCheck(env, T("18:00")), r2 = await lineupCheck(env, T("18:03")), r3 = await lineupCheck(env, T("18:04")), r4 = await lineupCheck(env, T("18:05"));
-      ok(r1.posted === 1 && r2.posted === 0 && posts.length === 1 && posts[0].username === "NBA Command Center · Lineups" && reads === 3 && r3.read.length === 0,
-        "lineups: from 90 minutes out, NBA.com read on the 5s (IND not confirmed) and the 3s (NYK confirmed), not between; a confirmed five posted once", JSON.stringify({ reads, r3 }));
-      current = feed("Confirmed", true);
-      const r5 = await lineupCheck(env, T("18:06"));
-      ok(r5.posted === 1 && /LINEUP CHANGE/.test(posts[1].embeds[0].author.name) && /Changed after it was confirmed:\*\* in Mitchell Robinson · out Josh Hart/.test(posts[1].embeds[0].description), "lineups: a change after it was confirmed posts again (within 3 minutes)", JSON.stringify(posts[1]?.embeds?.[0]));
+      const r1 = await lineupCheck(env, T("18:00"), noSleep), r2 = await lineupCheck(env, T("18:03"), noSleep);
+      ok(r1.posted === 1 && r2.posted === 0 && r2.read.length === 0 && posts.length === 1 && posts[0].username === "NBA Command Center · Lineups" && reads === 1,
+        "lineups: from 90 minutes out, read on the 5-minute marks only; a confirmed five posted once", JSON.stringify({ reads, r2 }));
       reads = 0;
-      const r6 = await lineupCheck(env, T("19:30"));
+      const b1 = await lineupCheck(env, T("18:59"), noSleep), b2 = await lineupCheck(env, T("19:00"), noSleep), b3 = await lineupCheck(env, T("19:01"), noSleep), b4 = await lineupCheck(env, T("19:02"), noSleep);
+      ok(reads === 7 && b1.read.length === 3 && b2.read.length === 3 && b3.read.length === 1 && b4.read.length === 0 && posts.length === 1,
+        "lineups: three reads a run (:00, :20, :40) in the 31-29 minute window, then every 3 minutes; no repeat post", JSON.stringify([b1.read, b2.read, b3.read, b4.read]));
+      current = feed("Confirmed", true);
+      const r5 = await lineupCheck(env, T("19:04"), noSleep);
+      ok(r5.posted === 1 && /LINEUP CHANGE/.test(posts[1].embeds[0].author.name) && /Changed after it was confirmed:\*\* in Mitchell Robinson · out Josh Hart/.test(posts[1].embeds[0].description), "lineups: a change after it was confirmed posts on the next 3-minute check", JSON.stringify(posts[1]?.embeds?.[0]));
+      reads = 0;
+      const r6 = await lineupCheck(env, T("19:30"), noSleep);
       const tipPosts = posts.slice(2).map((p) => p.embeds[0]);
       ok(r6.posted === 2 && reads === 0 && /STARTED DIFFERENTLY · ESPN box score/.test(tipPosts[0].author.name) && /Started differently than confirmed:\*\* in Miles McBride, Josh Hart · out Mikal Bridges, Mitchell Robinson/.test(tipPosts[0].description)
         && !/Inactive/.test(tipPosts[0].description) && tipPosts[0].description.startsWith("Jalen Brunson\nMiles McBride\nOG Anunoby\nJosh Hart\nKarl-Anthony Towns")
         && /Starters at tip \(none confirmed before\)/.test(tipPosts[1].author.name) && tipPosts[1].title.startsWith("IND @ NYK"),
         "lineups: at tip, ESPN's box (not NBA.com): a late swap vs the confirmed five posts 'started differently'; a team never confirmed gets its starters", JSON.stringify(tipPosts.map((e) => [e.author.name, e.title, e.description])));
-      const r7 = await lineupCheck(env, T("19:31"));
+      const r7 = await lineupCheck(env, T("19:31"), noSleep);
       ok(r7.skipped === "all of today's games have tipped" && posts.length === 4, "lineups: done for the day once every game's starters were checked", JSON.stringify(r7));
       const early = await lineupCheck(env, Date.parse("2026-11-12T13:00:00Z"));
       ok(early.skipped === "before 10 AM ET", "lineups: nothing before 10 AM ET");
