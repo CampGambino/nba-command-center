@@ -137,6 +137,15 @@
     <span class="key" id="statkey"></span>
   </div>
   <div class="scroll"><table id="board"></table></div>
+  <h2>This season vs his career</h2>
+  <div class="controls">
+    <select id="ckind"><option value="">Everything</option><option value="change">Big changes from last season</option><option value="low">Lowest in years</option><option value="high">Highest in years</option></select>
+    <select id="cstat"><option value="">All stats</option><option value="pts">Points</option><option value="reb">Rebounds</option><option value="ast">Assists</option><option value="fg3m">3-pointers</option><option value="min">Minutes</option></select>
+    <select id="cteam"><option value="">All teams</option></select>
+    <input type="search" id="cq" placeholder="Player">
+  </div>
+  <div class="scroll"><table id="ctx"></table></div>
+  <div class="key">Per game this season (8+ games) against each of his seasons since 1979-80 with 20+ games (the NBA Guide's year-by-year statistics, through 2025-26). Early-season samples are small: read the games column first.</div>
   <h2>Stat title races, in history</h2>
   <div class="scroll"><table id="titles"></table></div>
   <div class="key">Per game, qualified at 70% of his team's games. History: the NBA Guide's yearly leaders, 1946-47 to 2025-26 (by totals through 1968-69). A team's past leaders are matched by the guide's team names, so a franchise's earlier city doesn't count.</div>
@@ -180,6 +189,13 @@ function renderItems() {
       : `<tr><td colspan=6 class="empty">Nothing matches.</td></tr>`);
 }
 let RB = [], SG = null, PS = null;
+function renderCtx() {
+  const k = $("ckind").value, st = $("cstat").value, tm = $("cteam").value, q = $("cq").value.trim().toLowerCase();
+  const rows = (D.context || []).filter((c) => (!k || c.kind === k) && (!st || c.stat === st) && (!tm || c.team === tm) && (!q || c.name.toLowerCase().includes(q)));
+  $("ctx").innerHTML = `<tr><th>Player</th><th>What</th><th class="num">Now</th><th class="num">Last season</th><th class="num">Change</th><th class="num">GP</th></tr>` +
+    (rows.length ? rows.slice(0, 150).map((c) => `<tr><td><b>${esc(c.name)}</b> <span class="team">${esc(c.team)}</span>${aw(c.name)}</td><td>${esc(c.text.replace(/^[^:]+: /, ""))}</td><td class="num">${c.now}</td><td class="num">${c.last}</td><td class="num ${c.delta > 0 ? "hi" : c.delta < 0 ? "lo" : ""}">${c.delta > 0 ? "+" : ""}${c.delta}</td><td class="num">${c.games}</td></tr>`).join("")
+      : `<tr><td colspan=6 class="empty">Nothing matches.</td></tr>`);
+}
 const PS_BOOK = { playoffs: "Playoffs", finals: "Finals", playIn: "Play-In", allStar: "All-Star Game" };
 function renderBook() {
   const book = $("book").value, scope = $("scope").value, side = $("side").value, q = $("rq").value.trim().toLowerCase();
@@ -216,6 +232,9 @@ Promise.all([fetch("data/records.json", { cache: "no-store" }).then((r) => r.jso
     + (d.cup ? Object.keys(d.cup.boards).filter((k) => LABEL[k]).map((k) => `<option value="cup:${k}">NBA Cup: ${LABEL[k]}</option>`).join("") : "");
   if (d.cup) for (const rows of Object.values(d.cup.boards)) for (const r of rows) r.season = r.live && r.base != null ? r.now - r.base : null;
   ["kind", "team", "games", "q"].forEach((id) => $(id).addEventListener("input", renderItems));
+  $("cteam").innerHTML += [...new Set((d.context || []).map((c) => c.team))].sort().map((t) => `<option>${t}</option>`).join("");
+  ["ckind", "cstat", "cteam", "cq"].forEach((id) => $(id).addEventListener("input", renderCtx));
+  renderCtx();
   $("titles").innerHTML = (d.titles || []).length ? `<tr><th>Title</th><th>Leaders now</th><th class="num">Per game</th><th class="num">GP</th><th>What it would mean</th></tr>` +
     d.titles.map((t) => t.rows.map((r, i) => `<tr>${i === 0 ? `<td rowspan=${t.rows.length}><b>${esc(t.label[0].toUpperCase() + t.label.slice(1))}</b></td>` : ""}<td>${i === 0 ? "<b>" : ""}${esc(r.name)}${i === 0 ? "</b>" : ""} <span class="team">${esc(r.team)}</span>${aw(r.name)}</td><td class="num">${r.perGame.toFixed(1)}</td><td class="num">${r.gp}</td><td class="small">${esc(r.note)}</td></tr>`).join("")).join("")
     : `<tr><td class="empty">No title races yet.</td></tr>`;

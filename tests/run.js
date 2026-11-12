@@ -1409,6 +1409,27 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     "single-game lists: playoffs (63, list from 49), Finals (61), Play-In (50) beside the regular season's");
 }
 
+// ---------- This season vs his career (NBA Guide year-by-year stats) ----------
+{
+  const { careerContext } = await import("../src/records/yoy.js");
+  const { tonightStorylines } = await import("../src/anticipate/tonight.js");
+  const cs = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-career-seasons-2026-27.json"), "utf8"));
+  const H = cs.players["James Harden"], K = Object.fromEntries(cs.keys.map((k, i) => [k, i]));
+  ok(H.length === 17 && H[0][K.season] === "2009-10" && H.at(-1)[K.season] === "2025-26" && cs.players["LeBron James"].length === 23 && cs.players["Gary Payton II"]?.length >= 8,
+    "career seasons: every season of active players since 1979-80 (Harden 17, LeBron 23; Gary Payton II not mixed with his father)");
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const L = (o) => keys.map((k) => o[k] ?? 0);
+  const games = Array.from({ length: 10 }, (_, i) => ({ d: `2026-11-${String(i + 1).padStart(2, "0")}`, opp: "BOS", home: true, pf: 1, pa: 0, pl: { 1: L({ min: 30, pts: 17, ast: 6, reb: 5 }) } }));
+  const seasons = { keys: cs.keys, players: { "Vet Guard": [["2019-20", 70, 2400, 1400, 300, 400, 0, 0, 0, 0, 0, 0, 0, 0, 0, 40], ["2020-21", 70, 2400, 1000, 300, 400, 0, 0, 0, 0, 0, 0, 0, 0, 0, 40], ["2024-25", 70, 2400, 1600, 300, 400, 0, 0, 0, 0, 0, 0, 0, 0, 0, 40], ["2025-26", 70, 2400, 1680, 300, 400, 0, 0, 0, 0, 0, 0, 0, 0, 0, 40]], "Bench Guy": [["2023-24", 60, 600, 300, 300, 60, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20], ["2024-25", 60, 600, 300, 300, 60, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20], ["2025-26", 60, 600, 900, 300, 60, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20]] } };
+  games.forEach((g) => { g.pl[2] = L({ min: 10, pts: 3 }); });
+  const c = careerContext({ seasons, teamFiles: { LAC: { team: "LAC", keys, names: { 1: "Vet Guard", 2: "Bench Guy" }, games } } });
+  const ch = c.find((x) => x.kind === "change" && x.stat === "pts" && x.name === "Vet Guard");
+  ok(ch && ch.text === "Guard: 17 points a game, down 7 from 24 in 2025-26; his lowest since 2020-21 (14.3)", "career context: a big drop from last season, with the last season he was this low", ch && ch.text);
+  const watch = { today: "2026-11-11", games: [{ id: "1", awayTri: "BOS", homeTri: "LAC" }], teams: [] };
+  const lines = tonightStorylines({ watch, records: { today: "2026-11-11", context: c } })[0].lines.filter((l) => l.kind === "context");
+  ok(lines.length === 1 && /^Guard:/.test(lines[0].text) && c.some((x) => x.name === "Bench Guy"), "career context: at most one line a game, a regular's (10 minutes a game last season isn't storyline material; it stays on the page)", JSON.stringify(lines));
+}
+
 // ---------- NBA Cup final: counts in neither standings nor stats ----------
 {
   // Shapes as ESPN gave them for the 12/13/25 semifinals and 12/16/25 final (scoreboard and team schedule).

@@ -22,6 +22,10 @@
  *              and best-start lists that tonight's game decides. Where the notes already carry the same
  *              milestone, theirs is kept; a notes history line about the same pass gives way to this one.
  *              A former MVP, Finals MVP or DPOY carries it: "James (4× MVP): ...".
+ *   context    this season against his own career (records.json "context", src/records/yoy.js, from the NBA Guide's
+ *              year-by-year stats): a big swing from last season or a career low / high ("Harden: 16.7 points a game,
+ *              down 6.9 from 23.6 in 2025-26; his lowest since 2023-24"). Not an event tonight, so ranked low:
+ *              at most 1 a game, shown when there's room.
  *   injury     a regular listed out / doubtful / questionable on the official injury report, with the
  *              team's record and teammates' numbers without him (src/injuries/impact.js); at most 2 a game.
  *              The report also removes every other line about a player listed Out or Doubtful, and
@@ -178,6 +182,14 @@ function recordLines(records, teams, today, milestones) {
   return out;
 }
 
+function contextLines(records, teams, today) {
+  if (!records || !Array.isArray(records.context) || (records.today && today && records.today !== today)) return [];
+  // Regulars only (24+ minutes a game last season), points / rebounds / assists; a swing from last season first.
+  return records.context.filter((c) => teams.has(c.team) && c.games >= 8 && (c.lastMin ?? 0) >= 24 && ["pts", "reb", "ast"].includes(c.stat)
+    && (c.kind === "change" || (c.since === null && c.last >= ({ pts: 15, reb: 7, ast: 5 })[c.stat])))
+    .map((c) => ({ team: c.team, player: c.name, kind: "context", text: c.text, score: Math.min(1.7, 0.8 + c.score / 5 + (c.kind === "change" ? 0.2 : 0) + (c.stat === "pts" ? 0.1 : 0)) }));
+}
+
 /**
  * The injury report as a lookup: (team, player name) -> "Out" / "Doubtful" / "Questionable" / … or undefined.
  * Only a report for tonight's date counts.
@@ -201,7 +213,7 @@ export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries =
   const hist = historyLines(facts, teams, watch.today).filter((h) => !recs.some((r) => r.player && r.passing && r.team === h.team
     && new RegExp(`\\b${surname(r.player)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
     && r.passing.split(" and ").some((n) => new RegExp(`\\b${surname(n)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, "")))));
-  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams), ...teamLines(trends, teams)]
+  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today)]
     .flatMap((l) => {
       const st = l.player ? listed.get(`${l.team}|${nameKey(l.player)}`) : null;
       if (st === "Out" || st === "Doubtful") return [];
@@ -209,9 +221,9 @@ export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries =
     });
   const all = [...injuryLines(injuries, teams, watch.today), ...others];
   return games.map((g) => {
-    let inj = 0, hist = 0;
+    let inj = 0, hist = 0, ctx = 0;
     const lines = all.filter((l) => l.team === g.away || l.team === g.home).sort((a, b) => b.score - a.score)
-      .filter((l) => (l.kind !== "injury" || ++inj <= 2) && (l.kind !== "history" || ++hist <= 2)).slice(0, maxLines);
+      .filter((l) => (l.kind !== "injury" || ++inj <= 2) && (l.kind !== "history" || ++hist <= 2) && (l.kind !== "context" || ++ctx <= 1)).slice(0, maxLines);
     return { ...g, lines };
   });
 }

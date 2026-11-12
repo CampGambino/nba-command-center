@@ -241,7 +241,15 @@ for (const [tri, games] of Object.entries(perTeam)) {
         ...Object.values(rec.boards).flatMap((rows) => rows.slice(0, 40).map((r) => r.name)), ...Object.values(coachTeams), ...(titles || []).flatMap((t) => t.rows.map((r) => r.name))]);
       for (const n of names) { const r = R.get(nameKey(n)); if (r) awards[n] = r; }
     }
-    fs.writeFileSync(path.join(root, "docs", "data", "records.json"), JSON.stringify({ titles, awards,
+    // This season against each player's career, season by season (src/records/yoy.js, the NBA Guide's year-by-year stats).
+    let context = null;
+    const csFile = path.join(root, "src", "data", `nba-career-seasons-${season - 1}-${String(season).slice(2)}.json`);
+    if (fs.existsSync(csFile)) {
+      const { careerContext } = await import("../src/records/yoy.js");
+      context = careerContext({ seasons: JSON.parse(fs.readFileSync(csFile, "utf8")), teamFiles }).slice(0, 250);
+      console.log(`career context: ${context.length} notes (e.g. ${context.find((c) => c.kind === "change")?.text || "none"})`);
+    }
+    fs.writeFileSync(path.join(root, "docs", "data", "records.json"), JSON.stringify({ titles, awards, context,
       generatedAt: out.generatedAt, through: rec.through, today, source: guide.source, items: rec.items, boards, checks, problems: rec.problems, errata: guide.errata || [],
       coaches: coachTeams, teamRecords: guide.teamRecords, cup: cupOut,
     }));

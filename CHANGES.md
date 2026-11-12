@@ -2,6 +2,36 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.43.0 (2026-11-12): This season vs his career (the NBA Guide's year-by-year stats)
+
+### Why
+- **The user:** the 700+ year-by-year pages, "year-over-year comparisons that shed more light on performances this season, like James Harden's dip".
+
+### What changed
+- **`tools/parse-season-lines.py`:** every regular-season player stat line in the NBA Guide, 1979-80 to 2025-26 (28,133 rows from 372 pages; 2025-26 on pp. 10-19, earlier from p. 270), in the 23-column layout. A traded player's lines are told apart by the guide's marks: "(!)" totals for all his teams, "(*)" his last team, "(>)" a team he left.
+- **`tools/build-career-seasons.py` → `src/data/nba-career-seasons-2026-27.json`:** the seasons of the 716 players active in 2024-25 or 2025-26 (4,789 seasons).
+  - A traded season is his "(!)" total.
+  - A name two players shared is split into careers at gaps of 4+ seasons (Gary Payton II stays apart from his father).
+- **New `src/records/yoy.js`:** each player's per-game points, rebounds, assists, 3-pointers and minutes this season (8+ games) against every season of his with 20+ games:
+  - **big swings from last season** (5+ points, 3+ rebounds or assists, 1.5+ threes), with where it sits in his career. Example: "Harden: 16.7 points a game, down 6.9 from 23.6 in 2025-26; his lowest since 2023-24 (16.6)";
+  - **lowest / highest since** a season 5+ years back, or a **career low / high**.
+- **Records tab:** a "This season vs his career" table (filter by kind, stat, team, player).
+- **Storylines:** at most 1 context line a game, ranked low (shown when there's room): regulars only (24+ minutes a game last season), points, rebounds or assists, a big swing or a career low/high from a real role (15+ points, 7+ rebounds, 5+ assists). Tonight: Embiid 17.7 points (career low; questionable), Trae Young 18.3 (career low), LaMelo Ball 6.0 assists (career low), Jalen Green 11.8 points (career low).
+- **NBA Live bridge:** icons for the "record" and "context" pre-game lines.
+
+### Tested
+- **Checks** (575 pass):
+  - Harden's 17 seasons and LeBron's 23; Gary Payton II not mixed with his father;
+  - a big drop from last season worded with the last season he was that low;
+  - one context line a game, a regular's, never a bench player's.
+- **Built:** 250 notes. E.g. Ty Jerome up 13.7 points to a career high; Markkanen down 8.7 (lowest since 2021-22); DeRozan 10.0 (lowest since 2009-10).
+- **Rendered:** page sweep OK.
+
+### Still unproven
+- **Before 1979-80:** seasons in the older layouts (no 3-pointers) aren't read; no active player played then.
+- **Rookies:** this season's rookies have no history.
+- **Young careers:** a player with fewer than 3 seasons of 20+ games gets no context.
+
 ## 0.42.0 (2026-11-12): All-Star, Play-In, playoff and Finals career lists and single-game lists (NBA Guide pp. 157-186)
 
 ### What changed
