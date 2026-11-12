@@ -64,12 +64,55 @@ fs.writeFileSync(path.join(root, "docs", "data", "q4-players.json"), JSON.string
 // (computed in the browser). A file is rewritten only when that team has played.
 const teamDir = path.join(root, "docs", "data", "teams");
 fs.mkdirSync(teamDir, { recursive: true });
+// Each game date's final injury report (history/injuries/<date>.json), fetched once: who was on each team's
+// report that night. ESPN's box scores leave inactive players out, so this is how we know a player who
+// hadn't debuted yet (or sat injured) was on the team for those games.
+const injDir = path.join(root, "history", "injuries");
+fs.mkdirSync(injDir, { recursive: true });
+const injByDate = {};
+{
+  const { finalReportFor } = await import("../src/injuries/history.js");
+  let pdfjs = null;
+  const fetchPdf = async (url) => {
+    const res = await fetch(url, { signal: AbortSignal.timeout(20000) }).catch(() => null);
+    if (!res || !res.ok) return null;
+    pdfjs ??= await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const doc = await pdfjs.getDocument({ data: new Uint8Array(await res.arrayBuffer()), verbosity: 0 }).promise;
+    const pages = [];
+    for (let p = 1; p <= doc.numPages; p++) pages.push((await (await doc.getPage(p)).getTextContent()).items.map((it) => ({ x: it.transform[4], y: it.transform[5], str: it.str })));
+    return pages;
+  };
+  const dates = [...new Set(rows.filter((g) => g.pl).map((g) => g.d))].sort();
+  let fetched = 0, missing = 0;
+  for (const d of dates) {
+    const f = path.join(injDir, `${d}.json`);
+    if (fs.existsSync(f)) { injByDate[d] = JSON.parse(fs.readFileSync(f, "utf8")); continue; }
+    if (fetched >= 40) { missing++; continue; } // the rest on the next run
+    try {
+      const r = await finalReportFor(d, fetchPdf);
+      fetched++;
+      if (r) { fs.writeFileSync(f, JSON.stringify(r)); injByDate[d] = r; } else missing++;
+    } catch (e) { missing++; warnings.push(`injury report ${d}: ${e.message}`); }
+  }
+  console.log(`injury reports by game date: ${Object.keys(injByDate).length} of ${dates.length} dates (${fetched} fetched now${missing ? `, ${missing} still missing` : ""})`);
+}
 const perTeam = {};
 for (const g of rows) {
   if (!g.pl) continue;
   for (const [side, tri] of [[0, g.h], [1, g.a]]) {
     const pl = Object.fromEntries(Object.entries(g.pl).filter(([, v]) => v[0] === side).map(([id, v]) => [id, v.slice(1)]));
     (perTeam[tri] ??= []).push({ id: g.id, d: g.d, opp: side === 0 ? g.a : g.h, home: side === 0 && !g.n, pf: side === 0 ? g.hs : g.as, pa: side === 0 ? g.as : g.hs, pl });
+  }
+}
+// Attach each game's injury-report listings for the team: inj: { id: "Out" | "Doubtful" | … }.
+{
+  const { listedIds } = await import("../src/injuries/history.js");
+  const teamIds = Object.fromEntries(Object.entries(perTeam).map(([tri, games]) => [tri, new Set(games.flatMap((x) => Object.keys(x.pl)))]));
+  const byDate = {};
+  for (const [tri, games] of Object.entries(perTeam)) for (const g of games) {
+    if (!injByDate[g.d]) continue; // no report for that night: unknown (no inj key)
+    const L = (byDate[g.d] ??= listedIds(injByDate[g.d], store.names || {}, teamIds))[tri] || [];
+    g.inj = Object.fromEntries(L.map((x) => [x.id, x.status])); // {} = report read, nobody listed
   }
 }
 for (const [tri, games] of Object.entries(perTeam)) {
@@ -113,7 +156,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
 // means (team record and teammates with / without him). Read from the league's PDF, newest
 // 15-minute slot first. If no report can be read, the last one written for tonight stays.
 {
-  const { slotsBackFrom, parseReport } = await import("../src/injuries/report.js");
+  const { slotsBackFrom, parseReport, isoDate } = await import("../src/injuries/report.js");
   const { injuryImpacts } = await import("../src/injuries/impact.js");
   const file = path.join(root, "docs", "data", "injuries.json");
   const etNow = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
@@ -137,8 +180,8 @@ for (const [tri, games] of Object.entries(perTeam)) {
       const ids = new Set(games.flatMap((x) => Object.keys(x.pl)));
       return [tri, { team: tri, names: Object.fromEntries([...ids].map((id) => [id, store.names?.[id] || id])), games }];
     }));
-    const mdY = `${Number(today.slice(5, 7))}/${Number(today.slice(8, 10))}/${today.slice(0, 4)}`;
-    const tonightRows = report.rows.filter((r) => r.date === mdY);
+    // The report writes "11/02/2026" (zero-padded): compare as dates, not strings.
+    const tonightRows = report.rows.filter((r) => isoDate(r.date) === today);
     const impact = injuryImpacts(report.rows, files, { date: today });
     fs.writeFileSync(file, JSON.stringify({ generatedAt: out.generatedAt, date: today, report: { url: report.url, asOf: report.asOf },
       players: tonightRows.map(({ team, name, status, reason, matchup, time }) => ({ team, name, status, reason, matchup, time })), impact }));

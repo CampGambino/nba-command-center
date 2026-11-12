@@ -18,6 +18,14 @@ import { teamFromText } from "../teams.js";
 export const BASE = "https://ak-static.cms.nba.com/referee/injury";
 export const STATUSES = ["Out", "Doubtful", "Questionable", "Probable", "Available"];
 
+/** A report's game date ("11/02/2026", "11/2/26") as YYYY-MM-DD; null if it isn't one. */
+export function isoDate(mdY) {
+  const m = String(mdY || "").match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+  if (!m) return null;
+  const y = m[3].length === 2 ? `20${m[3]}` : m[3];
+  return `${y}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}`;
+}
+
 /** Report URL for an Eastern date and time (minutes rounded down to the 15-minute slot). */
 export function slotUrl(dateYmd, hour24, minute) {
   const m = Math.floor(minute / 15) * 15;

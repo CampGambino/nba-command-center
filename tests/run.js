@@ -925,6 +925,27 @@ const more = {};
     const r = roster(file);
     ok(r[0].id === "B" && r.find((p) => p.id === "A").missed === 2, "with/without: roster sorted by minutes, games missed since first listed", JSON.stringify(r));
   }
+  // With the injury reports (inj): D is on the report for games 1-3 and debuts in game 4 (ESPN leaves inactive
+  // players out of the box score); E plays 1-2 and is gone from 3 on (traded: on no report).
+  {
+    const L = (min, pts) => [1, min, pts, 5, 10, 1, 3, 2, 2, 4, 3, 1, 1, 0, 1, 3, 2, 0];
+    const file = { team: "XXX", names: { B: "Player B", D: "Player D", E: "Player E" }, games: [
+      { id: "1", d: "2026-10-21", pf: 110, pa: 100, pl: { B: L(30, 10), E: L(20, 8) }, inj: { D: "Out" } },
+      { id: "2", d: "2026-10-23", pf: 100, pa: 105, pl: { B: L(30, 10), E: L(20, 8) }, inj: { D: "Out" } },
+      { id: "3", d: "2026-10-25", pf: 120, pa: 100, pl: { B: L(30, 10) }, inj: { D: "Out" } },
+      { id: "4", d: "2026-10-27", pf: 95, pa: 110, pl: { B: L(36, 20), D: L(6, 3) }, inj: {} },
+      { id: "5", d: "2026-10-29", pf: 101, pa: 100, pl: { B: L(36, 24) }, inj: { D: "Out" } },
+    ] };
+    const D = withWithout(file, "D"), E = withWithout(file, "E");
+    ok(D.games.with === 1 && D.games.without === 4 && D.games.withoutWhy.join() === "Out,Out,Out,Out" && roster(file).find((p) => p.id === "D").missed === 4,
+      "with/without: games on the injury report before his debut count as missed (Knueppel: 1 played, 10 missed)", JSON.stringify(D.games));
+    ok(E.games.with === 2 && E.games.without === 0, "with/without: games after he's gone (in no box score, on no report) don't count", JSON.stringify(E.games));
+    const { isoDate } = await import("../src/injuries/report.js");
+    const { listedIds } = await import("../src/injuries/history.js");
+    ok(isoDate("11/02/2026") === "2026-11-02" && isoDate("11/2/26") === "2026-11-02" && isoDate("x") === null, "injury report: game dates read zero-padded or not (\"11/02/2026\" had been missed)");
+    const li = listedIds({ rows: [{ team: "CHA", name: "Kon Knueppel", status: "Out" }, { team: "CHA", name: "Nobody Yet", status: "Out" }, { team: "BOS", name: "Kon Knueppel", status: "Out" }] }, { 5: "Kon Knueppel" }, { CHA: new Set(["5"]) });
+    ok(JSON.stringify(li) === JSON.stringify({ CHA: [{ id: "5", status: "Out", reason: undefined }] }), "injury report: names matched to the team's player ids only", JSON.stringify(li));
+  }
   // Results store, one file per date: round trip, and unchanged files aren't rewritten.
   {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ncc-store-"));

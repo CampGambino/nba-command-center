@@ -2,6 +2,29 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.24.1 (2026-11-12): With / without counts games a player sat before his debut (from the injury reports)
+
+### Why
+- **The user:** Kon Knueppel has played one game this season (11/4), yet With / without said "missed 2". He was out from opening night. Basketball-Reference shows 1 game played, 10 inactive.
+- **Cause:** "missed" counted only from a player's first box score, so that games before a trade weren't held against him. ESPN's box scores leave inactive players out entirely, so a player injured from opening night looked like he joined on the day he debuted.
+
+### What changed
+- **New `src/injuries/history.js`:** each game date's final official injury report is read once and kept in `history/injuries/<date>.json` (team, player, status, reason). Late at night the report can already list the next day's games, so earlier 15-minute slots are tried until one lists that date. The build (`scripts/situations.js`) fetches any missing dates (up to 40 a run) and adds `inj: { id: status }` to each game in `docs/data/teams/<TRI>.json` (`{}` = report read, nobody listed; no key = no report).
+- **`src/situations/withwithout.js`:**
+  - **When he's counted with the team:** from the first game he was in the box score or on the team's injury report, to the last such game. Games where he's in no box score and on no report, after he's gone, aren't counted as missed (a trade or a waiver). Games with no report on file are counted as before.
+  - **Why he missed each game:** the reason is kept (`withoutWhy`: Out / DNP / not in box score). The injury impact lines in the storylines use the same code, so they get the corrected records too.
+- **Bug fixed along the way:** the report writes dates zero-padded ("11/02/2026"), and tonight's injury step compared them to "11/2/2026". On days 1–9 of a month the Watch List and storylines would have shown no injuries. Now dates are compared as dates (`isoDate`).
+
+### Tested
+- **All 22 game dates this season** read (14 on the first pass; the other 8 needed the earlier-slot and date fixes above).
+- **Knueppel:** 1 played, 10 missed, all "Out" on the report (10/21–11/2, 11/6, 11/9). CHA without him: 4-6, matching the team's results in the user's Basketball-Reference log. Rendered on the page: "Kon Knueppel · 6.0 mpg · missed 10"; "without: 4-6, average margin -11.7 (10 games…)".
+- **League-wide, 72 players' missed counts changed.** Up where a player was hurt from the start: Coby White 0→7, Nic Claxton 0→8, T.J. McConnell 0→9, Santi Aldama 0→8. Down where a player left: Dalton Knecht's Lakers count 12→2 after his move to the Knicks.
+- **New checks** (481 pass): games on the report before a debut count; games after he's gone don't; zero-padded report dates; report names matched only to that team's players. Page sweep OK.
+
+### Still unproven
+- **Players who haven't appeared in any box score** (injured all season) can't be matched to an ESPN id, so they don't appear in the picker yet.
+- **A two-way player on G League assignment** is listed "Out" on the report and counts as missed. That's true, but not an injury.
+
 ## 0.24.0 (2026-11-12): history lines checked against the box scores; Out players hidden
 
 ### Why
