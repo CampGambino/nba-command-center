@@ -1020,16 +1020,37 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     L("• Lonzo Ball 29p-11r-9a 10/20/17 @ PHO and became the youngest player in franchise history to post that line."),
     L("• Entered 2026-27 as one of four undrafted players in NBA history to (10) as turnovers (11)."),
     L("• Became the second player in NBA history to tally multiple 30-point, 10-assist games within his first 10 career games."),
+    // The user's 11/12 review: each of these must be dropped.
+    L("• Jakob Poeltl became the first Austrian-born player in NBA history when he was drafted in 2016."),
+    L("• Became the first player in Texas Tech history to be named a consensus first-team All-American."),
+    L("• Darko Rajaković earned his 100th career win as head coach on 3/4/26 vs. Charlotte, the fastest in franchise history."),
+    L("• DIRK NOWITZKI 10/30/08 36 points, the first teenager in NBA history to record 40+ 3-pointers in his first 10 games."),
+    L("• .joined Shaquille O'Neal as the only players in NBA history to post 30-15 with 7 blocks in a game."),
+    L("• The Mavericks have picked ninth four other times in franchise history (Dirk Nowitzki, 1998)."),
+    L("• Kristaps Porziņģis had 30 points, 15 rebounds and 7 blocks on 1/2/22, the first Maverick in franchise history to do so."),
+    L("• He is the only rookie in NBA history to record 50+ points while committing zero turnovers in a game."),
+    L("• TOLU SMITH Ron Holland II became the youngest player in franchise history to record 5+ steals this season."),
+    // Last season's days with no year (today is 11/11): "11/26" and "Dec. 19-28, 2025" are a year old.
+    L("• Kevin Durant passed Matt Bonner for fourth in franchise history in made threes on 11/26 in Portland."),
+    L("• Kevin Durant had 2+ STL in five straight games from Dec. 19-28, 2025, the longest such streak in franchise history."),
+    L("• Passed Kevin Durant (1,391) for eighth on the all-time free throws made list on Oct. 28 @ Toronto."),
+    L("• Anthony Davis is the first player in franchise history with 20 blocks in a season opener stretch this season (10/21-10/25)."),
   ] }] };
-  const players = [{ id: "1", name: "Anthony Davis" }, { id: "2", name: "Stephon Castle" }, { id: "3", name: "Kevin Durant" }];
-  const h = readHistory(doc, players, { seasonStart: "2026-10-01" });
+  const players = [{ id: "1", name: "Anthony Davis" }, { id: "2", name: "Stephon Castle" }, { id: "3", name: "Kevin Durant" }, { id: "4", name: "Jakob Poeltl" }, { id: "5", name: "Tolu Smith" }];
+  const h = readHistory(doc, players, { seasonStart: "2026-10-01", today: "2026-11-11", teamWords: ["Dallas", "Mavericks", "Mavs"] });
   const by = (re) => h.find((x) => re.test(x.text));
-  const davis = by(/39th career/), castle = by(/3\/27\/25/), kd = h.filter((x) => /816 points/.test(x.text)), unnamed = by(/second player in NBA history/);
-  ok(davis && davis.player === "Anthony Davis" && !davis.guessed && /^Logged his 39th/.test(davis.text), "history: a capitals heading is dropped and names the player", JSON.stringify(davis));
-  ok(castle && castle.when === "older" && davis.when !== "older", "history: a line whose dates are all before this season is older (even if it says \"this season\")", JSON.stringify(castle));
-  ok(kd.length === 1 && kd[0].player === "Kevin Durant" && kd[0].kind === "pass" && !kd[0].guessed, "history: a pass printed twice is kept once, the copy that names the player", JSON.stringify(kd));
+  const davis = by(/39th career/), kd = h.filter((x) => /816 points/.test(x.text));
+  ok(davis && davis.player === "Anthony Davis" && /^Logged his 39th/.test(davis.text), "history: a capitals heading is dropped and names the player", JSON.stringify(davis));
+  ok(!by(/3\/27\/25/), "history: a line whose dates are all before this season is dropped (even if it says \"this season\")", JSON.stringify(h.map((x) => x.text.slice(0, 40))));
+  ok(kd.length === 1 && kd[0].player === "Kevin Durant" && kd[0].kind === "pass", "history: a pass printed twice is kept once, the copy that names the player", JSON.stringify(kd));
   ok(!by(/school history/) && !by(/29p-11r-9a/) && !by(/undrafted/), "history: college lines, stat-table splices and unbalanced fragments are left out", JSON.stringify(h.map((x) => x.text.slice(0, 30))));
-  ok(unnamed && unnamed.guessed === true, "history: an unnamed sentence's player is only a guess", JSON.stringify(unnamed));
+  ok(!by(/second player in NBA history to tally/), "history: a sentence that names no one is dropped, not guessed");
+  const review = [/Austrian/, /Texas Tech/, /Rajakovi/, /DIRK|teenager/, /joined Shaq/, /picked ninth/, /Porzi/, /only rookie in NBA history to record 50/, /Ron Holland/];
+  ok(review.every((re) => !by(re)), "history: the nine lines from the 11/12 review are all dropped", JSON.stringify(review.filter((re) => by(re)).map(String)));
+  ok(!by(/Matt Bonner/) && !by(/Dec\. 19-28/), "history: a yearless day later than today, and a dated range, are last season's", JSON.stringify(h.map((x) => x.text.slice(0, 40))));
+  ok(!by(/^Passed Kevin Durant/), "history: \"Passed <name>\" names the player passed, not the subject");
+  const ad = by(/20 blocks/);
+  ok(ad && ad.player === "Anthony Davis" && ad.when === "season" && h.length === 3, "history: a named, current line is kept (3 lines kept in all)", JSON.stringify(h.map((x) => [x.player, x.text.slice(0, 40)])));
   // In tonight's storylines: named or team lines only, at most 2 a game, an Out player's line removed.
   const watch = { today: "2026-11-11", games: [{ id: "g", awayTri: "WAS", homeTri: "IND", start: "2026-11-12T00:00Z" }], teams: [] };
   const F = (text, player, score, isNew = false) => ({ text, kind: "record", player, score, isNew });
@@ -1038,8 +1059,8 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     IND: [F("Haliburton became the first player in franchise history to do X.", "Tyrese Haliburton", 4.4), F("Siakam is the first Pacer in team history to do Y.", "Pascal Siakam", 3.5)] } };
   const st = tonightStorylines({ watch, facts, injuries: { date: "2026-11-11", players: [{ team: "IND", name: "Tyrese Haliburton", status: "Out" }], impact: [] } });
   const hl = st[0].lines.filter((l) => l.kind === "history").map((l) => l.text);
-  ok(hl.length === 2 && hl[0].startsWith("WAS notes: Logged his 39th") && hl.some((t) => /Siakam/.test(t)) && !hl.some((t) => /second player in NBA history to do it|Haliburton/.test(t)),
-    "storylines: history lines labelled by team, 2 a game, unnamed pronoun lines and an Out player's lines left out", JSON.stringify(hl));
+  ok(hl.length === 2 && hl[0].startsWith("WAS notes — Anthony Davis: Logged his 39th") && hl.some((t) => t.startsWith("IND notes: Siakam")) && hl.some((t) => /Siakam/.test(t)) && !hl.some((t) => /second player in NBA history to do it|Haliburton/.test(t)),
+    "storylines: history lines labelled by team (and player when the line doesn't name him), 2 a game, unnamed pronoun lines and an Out player's lines left out", JSON.stringify(hl));
 }
 
 // ---------- NBA Cup final: counts in neither standings nor stats ----------

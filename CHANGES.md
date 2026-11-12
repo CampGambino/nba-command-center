@@ -2,6 +2,47 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.23.1 (2026-11-12): history lines must say who and be from this season
+
+### Why
+- **The user's review** of the "History in tonight's notes" panel flagged 9 bad lines: some with no player ("He is the only rookie…", ".joined Shaq…"), one credited to the wrong player (a "Tolu Smith" heading over a Ron Holland line), and old or minor background (Poeltl first Austrian, Rajaković's 100th win, Mavericks picked ninth, Porziņģis as a Maverick, Texas Tech, a Nowitzki stat row).
+- **The user's conclusion:** "players are not attributed in some blurbs while other blurbs are considered non critical." 0.23.0 ranked such lines lower; they should not be shown at all.
+
+### What changed
+- **`readHistory` is strict** (`src/notes/narrative.js`). A line is kept only if it says WHO and is CURRENT; everything else is dropped, not ranked lower.
+  - **Who:**
+    - the team's player as the subject: full name in the first 40 characters, or the sentence opens with his unique last name;
+    - not a name right after "passed / tied / joined / behind / than…" ("Passed Nikola Vučević…" is not about Vučević);
+    - a capitals heading's player only when the sentence doesn't open with someone else's name;
+    - "He… / The rookie…" only inside the same paragraph as a named sentence;
+    - or the team itself (sentence opens with its city, nickname or alias).
+    - No more guesses: an unnamed line is dropped.
+  - **When:**
+    - a day with no year is the latest such day on or before today ("11/26" on 11/12 is last season's; "2/20" too);
+    - "Dec. 19-28, 2025" ranges are read;
+    - two-digit years over 50 are 1900s ("1/29/88" had been read as 2088, which made some old lines look current);
+    - "last season / during 2025-26" lines are dropped unless they also carry a real day from this season (a "2026-27" spliced in from a table no longer counts);
+    - a line must be dated this season, say "this season" or similar, or look ahead.
+  - **Background dropped:** draft lines, transfers, college honours, "left the Miami Heat…", former-team careers.
+  - **Splices dropped:** two capitals words in a row that aren't common abbreviations ("seventh MOST DOUBLE-DOUBLES double-double"); sub-bullets ("o The Pelicans…") and "**MAGIC TRICKS…" tails are split off.
+  - **Look-ahead must not be past tense** ("was the first… within 60 games" is a record, not a look-ahead).
+- **The build passes today's date and team words** (`scripts/tonight.js`: city, nickname, `alt` and aliases like Mavs, Cavs, Sixers, HEAT).
+- **Storylines, Discord and NBA Live cards name the player** when the line doesn't ("WAS notes — Anthony Davis: Logged his 39th…"). Before, only the Watch List panel showed the name.
+
+### Tested
+- **Last night's notes, all 29 teams with notes cached:** 644 lines before (0.23.0), 48 now. All 9 flagged lines are gone. Read through the 48; examples kept:
+  - Davis "Logged his 39th career 40-point double-double on 11/9…, tying Michael Jordan" (heading named);
+  - Durant "needs 816 points to pass Kobe Bryant for 4th";
+  - Brandon Miller "second-fastest player in NBA history to reach 500 career 3-pointers made (Oct. 26 vs. WAS)";
+  - Bulls "attempted 47 free throws in their season opener… most since Dec. 12, 2014" (team line).
+- **Dropped in the second pass** (found while reading): Vassell 11/26 and 12/5, Sensabaugh 1/14-1/17, Nuggets 2/20, Paul Reed Dec. 19-28 2025 (all last season); "SHARPE Assists per game…" and Sabonis splices; "Passed Nikola Vučević" credited to Vučević; Duncan Robinson's Miami record; Jalen Johnson's 2025-26 All-NBA; Knueppel's rookie-season 3PM.
+- **New checks** (466 pass): the user's 9 lines rebuilt as must-drop cases; yearless future day and dated range → dropped; "Passed <name>" not the subject; a named current line kept (exactly 3 of 21 kept); unnamed line dropped; storyline label carries the player.
+- **The real build** (`scripts/tonight.js --today 2026-11-11`): 33 lines from 20 teams, 25 naming a player, 8 team lines. Page sweep OK at 1400 and 390 px. Local data not committed.
+
+### Still unproven
+- **Too strict in places:** a good line can be lost (e.g. a sentence naming two players where ours is second, or a heading line that opens with an opponent's name). 48 lines a night may be fewer than the user wants; loosen from what's missed.
+- **Pronoun lines** rely on the paragraph's named sentence coming first.
+
 ## 0.23.0 (2026-11-12): history from the teams' notes ("first since…", "only player in NBA history…")
 
 ### Why

@@ -58,6 +58,9 @@ console.log(`built: ${site.teams.length} teams, ${n} milestones -> docs/data/wat
 {
   const { readPdf } = await import("../src/notes/pdf-layout.js");
   const { readHistory } = await import("../src/notes/narrative.js");
+  const { TEAMS } = await import("../src/teams.js");
+  // How notes refer to a team besides city and nickname (a sentence that opens with one is about the team).
+  const TEAM_ALIASES = { DAL: ["Mavs"], CLE: ["Cavs"], PHI: ["Sixers", "76ers"], MIN: ["Wolves", "Timberwolves"], POR: ["Blazers", "Trail Blazers"], MIA: ["HEAT"], LAC: ["LA Clippers"], GSW: ["Golden State"] };
   const factsDir = path.join(root, "history", "notes-facts");
   fs.mkdirSync(factsDir, { recursive: true });
   const keyOf = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().slice(0, 160);
@@ -68,7 +71,9 @@ console.log(`built: ${site.teams.length} teams, ${n} milestones -> docs/data/wat
       const tf = path.join(root, "docs", "data", "teams", `${e.team}.json`);
       const players = fs.existsSync(tf) ? Object.entries(JSON.parse(fs.readFileSync(tf, "utf8")).names || {}).map(([id, name]) => ({ id, name })) : [];
       const seasonStart = `${Number(today.slice(0, 4)) - (Number(today.slice(5, 7)) < 8 ? 1 : 0)}-10-01`;
-      const lines = readHistory(await readPdf(e.buf), players, { seasonStart });
+      const T = TEAMS[e.team] || {};
+      const teamWords = [T.city, T.nick, T.city && T.nick ? `${T.city} ${T.nick}` : null, ...(T.alt || []), ...(TEAM_ALIASES[e.team] || [])].filter(Boolean);
+      const lines = readHistory(await readPdf(e.buf), players, { seasonStart, today, teamWords });
       const seenFile = path.join(factsDir, `${e.team}.json`);
       const seen = fs.existsSync(seenFile) ? JSON.parse(fs.readFileSync(seenFile, "utf8")) : {};
       const facts = lines.map((l) => {

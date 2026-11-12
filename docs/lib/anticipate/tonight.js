@@ -132,7 +132,10 @@ function historyLines(facts, teams, today) {
     // Readable on its own: names a player, or names the team / says "team" / "franchise".
     for (const f of list) {
       if (!f.player && !/\b(?:team|franchise|club)\b/i.test(f.text) && !new RegExp(`\\b${team}\\b`).test(f.text) && /^(?:He|His|She|They|It|With|Became|Recorded|Notched|Has|Is)\b/.test(f.text)) continue;
-      out.push({ team, player: f.player, kind: "history", text: `${team} notes: ${f.text.length > 260 ? f.text.slice(0, 257).replace(/\s+\S*$/, "") + "…" : f.text}`, score: Math.min(4.5, f.score), isNew: f.isNew });
+      // A line that doesn't name its player ("He can become…", "Logged his 39th…") carries the name in front.
+      const last = f.player ? f.player.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+(?:Jr\.?|Sr\.?|II|III|IV)$/, "").split(" ").pop() : null;
+      const who = last && !f.text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(last) ? ` — ${f.player}:` : ":";
+      out.push({ team, player: f.player, kind: "history", text: `${team} notes${who} ${f.text.length > 260 ? f.text.slice(0, 257).replace(/\s+\S*$/, "") + "…" : f.text}`, score: Math.min(4.5, f.score), isNew: f.isNew });
     }
   }
   return out;
