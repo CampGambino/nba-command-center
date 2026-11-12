@@ -4,7 +4,7 @@
  * deploy (tests/articles-only.js); tests/run.js runs them as part of the full suite.
  */
 import fs from "node:fs";
-import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey } from "../cloudflare/articles-worker.js";
+import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey, tagOf as articleTag } from "../cloudflare/articles-worker.js";
 
 export async function articlesChecks(ok) {
   const T0 = Date.parse("2026-11-12T11:00:00Z"); // 6:00 AM ET
@@ -124,5 +124,16 @@ export async function articlesChecks(ok) {
     const t = fs.readFileSync(new URL("../cloudflare/wrangler.toml", import.meta.url), "utf8");
     ok(/^name = "ncc-articles"$/m.test(t) && /^main = "articles-worker\.js"$/m.test(t) && /\[\[kv_namespaces\]\]\s*\nbinding = "STATE"\s*\nid = "[0-9a-f]{32}"/.test(t) && /^crons = \["\*\/5 \* \* \* \*"\]$/m.test(t) && /^workers_dev = true/m.test(t) && !/DISCORD|webhooks/i.test(t.replace(/#.*$/gm, "")),
       "articles: deploy settings keep the name, the STATE store, the 5-minute schedule and workers.dev, and hold no secret");
+  }
+  // Injury news posts even without a writer's name (user, 11/11); unsigned game stories still don't.
+  {
+    const now = Date.parse("2026-11-12T04:30:00Z");
+    const u = (title, type = "HeadlineNews") => ({ src: "espn", type, title, byline: "", description: "", url: "https://www.espn.com/nba/story/_/id/1/x", published: now });
+    const wilson = u("Bulls rookie Caleb Wilson leaves loss to Spurs with right hand injury");
+    ok(articleDecide(wilson, {}, now).post && articleTag(wilson) === "🩹 Injury" && articleDecide(u("Raptors say Kawhi Leonard will miss at least 1 more week due to knee swelling", "Story"), {}, now).post,
+      "articles: unsigned ESPN injury news is posted, tagged 🩹 Injury");
+    ok(!articleDecide(u("Victor Wembanyama scores 40 points in 25 minutes as Spurs win 9th straight"), {}, now).post && !articleDecide(u("Paul George torches 76ers as Celtics take edge in renewed rivalry"), {}, now).post
+      && !articleDecide({ ...wilson, type: "Recap" }, {}, now).post && !articleDecide({ ...wilson, type: "Media" }, {}, now).post,
+      "articles: unsigned game stories, recaps and videos stay skipped even when they mention an injury");
   }
 }

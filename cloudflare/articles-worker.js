@@ -4,7 +4,7 @@
  * Every few minutes (on its Cloudflare cron schedule; the user runs it every 5) it reads ESPN's NBA news API and The Athletic's NBA RSS feed and posts each
  * NEW article worth reading to a Discord channel, with when it was published. Every Athletic NBA
  * story is posted. From ESPN, game recaps, the automated previews, videos, fantasy, betting and
- * wire stories are skipped; everything it
+ * unsigned wire / game stories are skipped, except injury news, which is always posted; everything it
  * decided (posted or skipped, and why) is listed on its review page, where the reader trains it:
  * mute a writer or a phrase, always allow a writer, flag a post as noise, or post a skipped one.
  *
@@ -44,6 +44,11 @@ const SEEN_DAYS = 5;
 const ESPN_SKIP_TYPE = { Recap: "game recap", Preview: "automated game preview", Media: "video" };
 const ESPN_KEEP_TYPE = new Set(["Story", "HeadlineNews"]);
 const SECTION_SKIP = [[/\/fantasy\//, "fantasy"], [/\/betting\//, "betting"], [/\/recap/, "game recap"]];
+// Injury news: posted even without a writer's name (the user's choice, 11/11). Unsigned ESPN stories
+// are otherwise mostly AI-written game stories, which stay skipped.
+export const INJURY = /\b(injur(y|ies|ed)|sprain(ed)?|strain(ed)?|fractur(e|ed)|surgery|mri|torn|tear|ruptured?|concussion|sidelined|day-to-day|ruled out|will miss|expected to miss|to miss|out (for|at least|indefinitely)|hamstring|achilles|ankle|knee|calf|groin|illness|(return|returns|returning) (from|to the lineup))\b/i;
+const isInjury = (item) => INJURY.test(`${item.title || ""} ${item.description || ""}`);
+
 const TITLE_SKIP = [
   [/\b(where|how) to watch\b/i, "how-to-watch"],
   [/\bodds\b|\bbest bets?\b|\bparlay|\bpicks?\b|\bprops?\b|\bbetting\b/i, "betting"],
@@ -68,7 +73,7 @@ export function decide(item, rules = {}, now = Date.now()) {
     try { path = item.url ? new URL(item.url).pathname : ""; } catch { path = ""; }
     for (const [re, why] of SECTION_SKIP) if (re.test(path) && !allowWriter) return { post: false, reason: why };
     if (path && !path.startsWith("/nba/") && !allowWriter) return { post: false, reason: "not the NBA section" };
-    if (!by) return { post: false, reason: "no writer named (wire or game story)" };
+    if (!by) return isInjury(item) ? { post: true, reason: "injury news (no writer named)" } : { post: false, reason: "no writer named (wire or game story)" };
   }
   // The Athletic: every NBA story is wanted (only muted phrases and the age limit apply).
   if (item.src === "athletic") return { post: true, reason: "Athletic NBA story" };
@@ -78,6 +83,7 @@ export function decide(item, rules = {}, now = Date.now()) {
 
 export function tagOf(item) {
   if (/^sources?\b|\bsources (say|tell|said)\b|\bsources:/i.test(item.title || "") || /\bsources (told|said|say)\b/i.test(item.description || "")) return "🚨 Reporting";
+  if (INJURY.test(item.title || "")) return "🩹 Injury";
   if (item.type === "HeadlineNews") return "🗞️ News";
   if (item.src === "espn") return item.premium ? "📰 Feature · ESPN+" : "📰 Feature";
   return "📰 Article";

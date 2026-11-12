@@ -2,6 +2,19 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.22.1 (2026-11-11): articles watcher posts unsigned ESPN injury news
+
+### What changed
+- **ESPN stories with no writer's name** (otherwise skipped as wire or AI game stories) now post when the headline or description is injury news, tagged "🩹 Injury". The user's choice, after "Bulls rookie Caleb Wilson leaves loss to Spurs with right hand injury" (11:24 PM) was skipped.
+  - **What counts as injury news:** injury, sprain, strain, fracture, surgery, MRI, tear, concussion, sidelined, day-to-day, ruled out, will / to miss, out for / at least / indefinitely, hamstring, Achilles, ankle, knee, calf, groin, illness, returns from.
+  - **Still skipped:** recaps, previews and videos, even if they mention an injury.
+- **Any article with an injury headline** is tagged 🩹 Injury unless it's "Sources:" reporting.
+
+### Tested
+- **Today's real ESPN feed, unsigned items:** "Kawhi Leonard will miss at least 1 more week" now posts. Wembanyama's 40-point game story, George vs. the 76ers, and the Acuff "not a loser" piece stay skipped.
+- **New checks:** 19 watcher checks; the full suite passes.
+- **Deployed by the new workflow** (checks first).
+
 ## 0.22.0 (2026-11-11): the articles watcher deploys itself
 
 ### What changed
