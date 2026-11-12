@@ -165,6 +165,7 @@ const md = (d) => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
 const LABEL = { pts: "Points", reb: "Rebounds", oreb: "Offensive rebounds", dreb: "Defensive rebounds", ast: "Assists", stl: "Steals", blk: "Blocks", fgm: "Field goals made", ftm: "Free throws made", fg3m: "3-pointers made", gp: "Games played", min: "Minutes", td: "Triple-doubles", wins: "Wins (players)", fg2m: "2-point field goals made" };
 const KIND = { pass: "all-time", round: "round number", franchise: "franchise", coach: "coach", team: "team record", franchiseWins: "franchise", cup: "NBA Cup" };
 let D = null, INJ = new Map();
+const aw = (n) => (D?.awards?.[n] ? ` <span class="small" title="Major awards through 2025-26">${esc(D.awards[n])}</span>` : "");
 const nk = (n) => String(n || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[.'’]/g, "").trim();
 const injTag = (i) => { const s = INJ.get(`${i.team}|${nk(i.who)}`); return s ? ` <span class="tag" style="color:var(--${s === "Out" || s === "Doubtful" ? "bad" : "warn"})">${esc(s.toLowerCase())} tonight</span>` : ""; };
 const kindTag = (i) => (i.rank === 1 ? `<span class="tag record">${i.kind === "franchise" ? "franchise record" : i.kind === "coach" ? "coaching record" : i.kind === "cup" ? "NBA Cup record" : "NBA record"}</span>` : `<span class="tag">${KIND[i.kind]}</span>`);
@@ -174,7 +175,7 @@ function renderItems() {
   const kind = $("kind").value, team = $("team").value, games = +$("games").value, q = $("q").value.trim().toLowerCase();
   const rows = D.items.filter((i) => (!kind || i.kind === kind) && (!team || i.team === team) && (i.gamesAway ?? 99) <= games && (!q || `${i.who} ${i.team} ${i.text}`.toLowerCase().includes(q)));
   $("items").innerHTML = `<tr><th>Who</th><th class="what">What</th><th class="num">Now</th><th class="num">Needs</th><th class="num">≈ games</th><th class="num">Next 5 games</th></tr>` +
-    (rows.length ? rows.map((i) => `<tr><td><b>${esc(i.who)}</b> <span class="team">${esc(i.team)}</span><br>${kindTag(i)}${i.tonight ? ` <span class="tag tonight">tonight${i.opp ? ` vs ${esc(i.opp)}` : ""}</span>` : ""}${injTag(i)}</td>
+    (rows.length ? rows.map((i) => `<tr><td><b>${esc(i.who)}</b> <span class="team">${esc(i.team)}</span>${aw(i.who)}<br>${kindTag(i)}${i.tonight ? ` <span class="tag tonight">tonight${i.opp ? ` vs ${esc(i.opp)}` : ""}</span>` : ""}${injTag(i)}</td>
       <td class="what">${esc(i.text.replace(/^[^:]+: /, ""))}${i.note ? `<div class="small">${esc(i.note)}</div>` : ""}</td><td class="num">${fmt(i.now)}</td><td class="num">${fmt(i.need)}</td><td class="num">${i.gamesAway ?? "–"}</td><td class="num">${bar(i.pNext5)}${i.kind === "cup" ? `<div class=small>in his ${i.cupGamesLeft} Cup game${i.cupGamesLeft === 1 ? "" : "s"} left</div>` : ""}</td></tr>`).join("")
       : `<tr><td colspan=6 class="empty">Nothing matches.</td></tr>`);
 }
@@ -193,7 +194,7 @@ function renderBoard() {
   const stat = $("stat").value, rows = (stat.startsWith("cup:") ? D.cup?.boards?.[stat.slice(4)] : D.boards[stat]) || [];
   $("board").innerHTML = `<tr><th class="num">Rank</th><th>Player</th><th class="num">Now</th><th class="num">Start of season</th><th class="num">This season</th></tr>` +
     rows.map((r) => `<tr class="${r.live ? "live" : ""}"><td class="num">${r.rank ?? "<span class=small>–</span>"}${r.rank && r.preRank && r.rank !== r.preRank ? ` <span class="small ${r.rank < r.preRank ? "hi" : "lo"}">${r.rank < r.preRank ? "▲" : "▼"}${Math.abs(r.preRank - r.rank)}</span>` : ""}</td>
-      <td>${r.live ? `<b>${esc(r.name)}</b> <span class="team">${esc(r.team || "")}</span>` : esc(r.name)}</td><td class="num">${fmt(r.now)}</td><td class="num">${r.live ? fmt(r.now - (r.season ?? 0)) : ""}</td><td class="num">${r.live && r.season ? `+${fmt(r.season)}` : ""}</td></tr>`).join("");
+      <td>${r.live ? `<b>${esc(r.name)}</b> <span class="team">${esc(r.team || "")}</span>` : esc(r.name)}${aw(r.name)}</td><td class="num">${fmt(r.now)}</td><td class="num">${r.live ? fmt(r.now - (r.season ?? 0)) : ""}</td><td class="num">${r.live && r.season ? `+${fmt(r.season)}` : ""}</td></tr>`).join("");
   $("statkey").textContent = "Bold: playing this season, totals current. A dash: the guide lists the total but not the rank.";
 }
 
@@ -211,7 +212,7 @@ Promise.all([fetch("data/records.json", { cache: "no-store" }).then((r) => r.jso
   if (d.cup) for (const rows of Object.values(d.cup.boards)) for (const r of rows) r.season = r.live && r.base != null ? r.now - r.base : null;
   ["kind", "team", "games", "q"].forEach((id) => $(id).addEventListener("input", renderItems));
   $("titles").innerHTML = (d.titles || []).length ? `<tr><th>Title</th><th>Leaders now</th><th class="num">Per game</th><th class="num">GP</th><th>What it would mean</th></tr>` +
-    d.titles.map((t) => t.rows.map((r, i) => `<tr>${i === 0 ? `<td rowspan=${t.rows.length}><b>${esc(t.label[0].toUpperCase() + t.label.slice(1))}</b></td>` : ""}<td>${i === 0 ? "<b>" : ""}${esc(r.name)}${i === 0 ? "</b>" : ""} <span class="team">${esc(r.team)}</span></td><td class="num">${r.perGame.toFixed(1)}</td><td class="num">${r.gp}</td><td class="small">${esc(r.note)}</td></tr>`).join("")).join("")
+    d.titles.map((t) => t.rows.map((r, i) => `<tr>${i === 0 ? `<td rowspan=${t.rows.length}><b>${esc(t.label[0].toUpperCase() + t.label.slice(1))}</b></td>` : ""}<td>${i === 0 ? "<b>" : ""}${esc(r.name)}${i === 0 ? "</b>" : ""} <span class="team">${esc(r.team)}</span>${aw(r.name)}</td><td class="num">${r.perGame.toFixed(1)}</td><td class="num">${r.gp}</td><td class="small">${esc(r.note)}</td></tr>`).join("")).join("")
     : `<tr><td class="empty">No title races yet.</td></tr>`;
   const st = d.cup?.standings || [], wl = (x) => `${x[0]}-${x[1]}`, pct = (x) => (x[0] + x[1] ? (x[0] / (x[0] + x[1])).toFixed(3).replace(/^0/, "") : "–");
   const nextCup = d.cup?.schedule || [];

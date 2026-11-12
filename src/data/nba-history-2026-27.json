@@ -767,6 +767,16 @@
 "team": "Milwaukee"
 },
 {
+"season": "1970-71",
+"player": "Dave Cowens",
+"team": "Boston"
+},
+{
+"season": "1970-71",
+"player": "Geoff Petrie",
+"team": "Portland"
+},
+{
 "season": "1971-72",
 "player": "Sidney Wicks",
 "team": "Portland"
@@ -882,6 +892,16 @@
 "team": "Golden State"
 },
 {
+"season": "1994-95",
+"player": "Grant Hill",
+"team": "Detroit"
+},
+{
+"season": "1994-95",
+"player": "Jason Kidd",
+"team": "Dallas"
+},
+{
 "season": "1995-96",
 "player": "Damon Stoudamire",
 "team": "Toronto"
@@ -900,6 +920,16 @@
 "season": "1998-99",
 "player": "Vince Carter",
 "team": "Toronto"
+},
+{
+"season": "1999-00",
+"player": "Elton Brand",
+"team": "Chicago"
+},
+{
+"season": "1999-00",
+"player": "Steve Francis",
+"team": "Houston"
 },
 {
 "season": "2000-01",
@@ -1939,6 +1969,16 @@
 "team": "Milwaukee"
 },
 {
+"season": "2010-11",
+"player": "Gar Forman",
+"team": "Chicago"
+},
+{
+"season": "2010-11",
+"player": "Pat Riley",
+"team": "Miami"
+},
+{
 "season": "2011-12",
 "player": "Larry Bird",
 "team": "Indiana"
@@ -2402,6 +2442,16 @@
 "team": "St. Louis"
 },
 {
+"season": "1959",
+"player": "Elgin Baylor",
+"team": "Minneapolis"
+},
+{
+"season": "1959",
+"player": "Bob Pettit",
+"team": "St. Louis"
+},
+{
 "season": "1960",
 "player": "Wilt Chamberlain",
 "team": "Philadelphia"
@@ -2567,6 +2617,16 @@
 "team": "LA Lakers"
 },
 {
+"season": "1993",
+"player": "Karl Malone",
+"team": "Utah"
+},
+{
+"season": "1993",
+"player": "John Stockton",
+"team": "Utah"
+},
+{
 "season": "1994",
 "player": "Scottie Pippen",
 "team": "Chicago"
@@ -2590,6 +2650,16 @@
 "season": "1998",
 "player": "Michael Jordan",
 "team": "Chicago"
+},
+{
+"season": "2000",
+"player": "Tim Duncan",
+"team": "San Antonio"
+},
+{
+"season": "2000",
+"player": "Shaquille O’Neal",
+"team": "LA Lakers"
 },
 {
 "season": "2001",
@@ -2630,6 +2700,16 @@
 "season": "2008",
 "player": "LeBron James",
 "team": "Cleveland"
+},
+{
+"season": "2009",
+"player": "Kobe Bryant",
+"team": "LA Lakers"
+},
+{
+"season": "2009",
+"player": "Shaquille O’Neal",
+"team": "Phoenix"
 },
 {
 "season": "2010",
@@ -3090,6 +3170,16 @@
 "season": "1984-85",
 "player": "Dan Issel",
 "team": "Denver"
+},
+{
+"season": "1985-86",
+"player": "Michael Cooper",
+"team": "LA Lakers"
+},
+{
+"season": "1985-86",
+"player": "Rory Sparrow",
+"team": "New York"
 },
 {
 "season": "1986-87",

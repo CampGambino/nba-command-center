@@ -7,15 +7,23 @@ Output: { awards: { "NBA Most Valuable Player": [{ season, player, team }] }, le
 """
 import json, re, sys
 aw_txt, yl_txt = (open(p, encoding="utf-8").read() for p in sys.argv[1:3])
-ENTRY_A = re.compile(r"(\d{4}(?:-\d{2})?) — ([^,]+?), ([A-Za-z.’' ]+?)(?=\s{3,}|\s*$)")
-awards, title = {}, None
+ENTRY_A = re.compile(r"(\d{4}(?:-\d{2})?) — ([^,]+?), ([A-Za-z.’' ]+?)( \(tie\))?(?=\s{3,}|\s*$)")
+# A shared award prints the second winner on the next line, under the first, without the season.
+TIE_2 = re.compile(r"(?:(?<=\s{3})|^)([A-Z][^,—\d]+?), ([A-Za-z.’' ]+?) \(tie\)(?=\s{3,}|\s*$)")
+awards, title, ties = {}, None, {}
 for line in aw_txt.splitlines():
     s = line.strip()
     if re.fullmatch(r"(NBA [A-Z].*|TWYMAN-STOKES.*|BOB LANIER.*|KAREEM.*|J\. WALTER.*)", s) and s.upper() == s:
         title = s.title().replace("Nba", "NBA").replace("Mvp", "MVP"); continue
     if s.startswith("ALL-NBA") or s.startswith("ALL-DEFENSIVE") or s.startswith("ALL-ROOKIE"): title = None; continue
     if title:
-        for m in ENTRY_A.finditer(line): awards.setdefault(title, []).append({"season": m.group(1), "player": m.group(2).strip(), "team": m.group(3).strip()})
+        for m in ENTRY_A.finditer(line):
+            awards.setdefault(title, []).append({"season": m.group(1), "player": m.group(2).strip(), "team": m.group(3).strip()})
+            if m.group(4): ties[(title, m.start() // 20)] = m.group(1)
+        for m in TIE_2.finditer(line):
+            if re.match(r"\s*\d{4}", line[max(0, m.start() - 12):m.start() + 1]): continue
+            season = ties.pop((title, (m.start() - 7) // 20), None) or ties.pop((title, m.start() // 20), None)
+            if season: awards[title].append({"season": season, "player": m.group(1).strip(), "team": m.group(2).strip()})
 TITLES = {"SCORING": "pts", "FIELD GOAL PERCENTAGE": "fgPct", "FREE THROW PERCENTAGE": "ftPct", "3-POINT FIELD GOAL PERCENTAGE": "fg3Pct", "MINUTES": "min",
           "REBOUNDING": "reb", "ASSISTS": "ast", "STEALS": "stl", "PERSONAL FOULS": "pf", "BLOCKED SHOTS": "blk", "DISQUALIFICATIONS": "dq"}
 ENTRY = re.compile(r"(\d{4}-\d{2})\s*—\s*([\d,]*\.?\d+)\*?\s+([^,]+?), ([A-Za-z.’' /]+?)(?=\s{3,}|\s*$)")

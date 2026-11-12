@@ -1357,6 +1357,16 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   ok(t[0].rows[0].note === "would be his 3rd scoring title (last 2025-26)", "title races: the leader's Nth title from the guide's history (accents ignored)", t[0].rows[0]?.note);
 }
 
+// ---------- Award résumés (NBA Guide award history) ----------
+{
+  const { resumes } = await import("../src/records/awards.js");
+  const h = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-history-2026-27.json"), "utf8"));
+  const R = resumes(h);
+  ok(R.get("kobe bryant") === "MVP · 2× Finals MVP · 4× All-Star MVP" && R.get("shaquille oneal") === "MVP · 3× Finals MVP · Rookie of the Year · 3× All-Star MVP"
+    && R.get("nikola jokic") === "3× MVP · Finals MVP · West Finals MVP" && R.get("joe mazzulla") === "Coach of the Year",
+    "awards: résumés from the history, shared awards counted for both winners (2009 All-Star MVP: Kobe and Shaq), accents ignored", [R.get("kobe bryant"), R.get("shaquille oneal")].join(" | "));
+}
+
 // ---------- NBA Cup final: counts in neither standings nor stats ----------
 {
   // Shapes as ESPN gave them for the 12/13/25 semifinals and 12/16/25 final (scoreboard and team schedule).

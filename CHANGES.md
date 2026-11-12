@@ -2,6 +2,25 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.38.0 (2026-11-12): Award résumés on the Records tab
+
+### Why
+- **The user:** next NBA Guide task, put the award history (pp. 100-121, parsed in 0.34) to use.
+
+### What changed
+- **New `src/records/awards.js`:** each player's and coach's major awards through 2025-26: MVP, Finals MVP, DPOY, Rookie of the Year, Sixth Man, Most Improved, Clutch Player, conference finals MVPs, All-Star MVP, Coach of the Year. For example "4× MVP · 4× Finals MVP · Rookie of the Year · 3× All-Star MVP".
+- **`tools/parse-history.py`:** shared awards are now read for both winners. The second name is printed on the next line with "(tie)" (e.g. the 2009 All-Star MVP, Kobe and Shaq), and was missed before: 665 winners, up from 647.
+- **The build** writes the résumés of every name the Records tab shows (`awards` in `docs/data/records.json`).
+- **Records tab:** the résumé next to each name in "Within reach", the all-time lists and the title races.
+
+### Tested
+- **Checks** (560 pass): Kobe "MVP · 2× Finals MVP · 4× All-Star MVP", Shaq "MVP · 3× Finals MVP · Rookie of the Year · 3× All-Star MVP" (both 2009 and 2000 shared All-Star MVPs counted), Jokić with or without the accent, Mazzulla Coach of the Year.
+- **Rendered:** page sweep OK.
+
+### Still unproven
+- **Not in storylines yet:** e.g. "four-time MVP LeBron James..." phrasing.
+- **Not used for "first MVP to..." facts:** those need the stat history the guide doesn't have per player.
+
 ## 0.37.0 (2026-11-12): Stat title races in history (NBA Guide yearly leaders)
 
 ### Why

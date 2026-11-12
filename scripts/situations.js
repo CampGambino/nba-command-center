@@ -225,13 +225,21 @@ for (const [tri, games] of Object.entries(perTeam)) {
     } catch { /* no watch list yet */ }
     const boards = Object.fromEntries(Object.entries(rec.boards).map(([stat, rows]) => [stat, rows.slice(0, 40).map(({ name, team, live, now, base, rank, preRank }) => ({ name, team, live, now, base, rank: rank ?? null, preRank: preRank ?? null }))]));
     // Stat titles in context (src/records/titles.js), from the NBA Guide's yearly leaders.
-    let titles = null;
+    let titles = null, awards = {};
     const histFile = path.join(root, "src", "data", `nba-history-${season - 1}-${String(season).slice(2)}.json`);
     if (fs.existsSync(histFile)) {
+      const history = JSON.parse(fs.readFileSync(histFile, "utf8"));
       const { titleRace } = await import("../src/records/titles.js");
-      titles = titleRace({ history: JSON.parse(fs.readFileSync(histFile, "utf8")), teamFiles });
+      titles = titleRace({ history, teamFiles });
+      // Award résumés for every name the page shows (players on the lists and items, coaches, title races).
+      const { resumes } = await import("../src/records/awards.js");
+      const { nameKey } = await import("../src/notes/names.js");
+      const R = resumes(history);
+      const names = new Set([...rec.items.map((i) => i.who), ...rec.items.map((i) => i.passing?.name).filter(Boolean).flatMap((n) => n.split(" and ")),
+        ...Object.values(rec.boards).flatMap((rows) => rows.slice(0, 40).map((r) => r.name)), ...Object.values(coachTeams), ...(titles || []).flatMap((t) => t.rows.map((r) => r.name))]);
+      for (const n of names) { const r = R.get(nameKey(n)); if (r) awards[n] = r; }
     }
-    fs.writeFileSync(path.join(root, "docs", "data", "records.json"), JSON.stringify({ titles,
+    fs.writeFileSync(path.join(root, "docs", "data", "records.json"), JSON.stringify({ titles, awards,
       generatedAt: out.generatedAt, through: rec.through, today, source: guide.source, items: rec.items, boards, checks, problems: rec.problems, errata: guide.errata || [],
       coaches: coachTeams, teamRecords: guide.teamRecords, cup: cupOut,
     }));
