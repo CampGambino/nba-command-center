@@ -201,7 +201,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
       addChances(c.items, teamFiles, { makeSampler, simulate });
       rec.items.push(...c.items);
       cupOut = { played: c.cupGamesPlayed, tonight: c.tonight, boards: Object.fromEntries(Object.entries(c.boards).map(([k, rows]) => [k, rows.slice(0, 25).map(({ name, team, live, now, base, rank, preRank }) => ({ name, team, live, now, base, rank: rank ?? null, preRank: preRank ?? null }))])),
-        schedule: cup.group.filter((g) => g.d >= today).slice(0, 15), problems: c.problems };
+        schedule: cup.group.filter((g) => g.d >= today).slice(0, 15), standings: c.standings, problems: c.problems };
       console.log(`NBA Cup: ${c.cupGamesPlayed} Cup games played this season, ${c.items.length} Cup marks within reach, ${c.tonight.length} Cup games tonight`);
     }
     // Cross-check: the same totals in the teams' notes and ESPN's career stats (docs/data/watch.json).

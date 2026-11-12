@@ -2,6 +2,24 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.35.0 (2026-11-12): NBA Cup all-time standings, kept current
+
+### Why
+- **The user:** "and the emirates cup tasks too?" The Cup media guide still had one thing the NBA Guide doesn't: all-time Cup standings (p. 31). Its player and team records (pp. 43-53) are the same entries as the NBA Guide's record book (checked: e.g. most minutes 51 Harden, most points 60 Fox, points in a half 33 Fox, points in a quarter 26 Haliburton). They're already on the Records tab.
+
+### What changed
+- **`tools/parse-cup-guide.py`** also reads pp. 31-32: each team's all-time Cup record (overall, home, road; 2023-2025, knockout and Championship games included). The check: 30 teams, 201 wins, matching the guide's totals.
+- **`src/records/cup.js`:** the standings plus this season's Cup results, overall, home and road; this season's Cup record; Cup games left.
+- **Records tab:** an "NBA Cup all-time standings" table with each team's next Cup game.
+
+### Tested
+- **Bucks 14-3 in the guide:** now 14-4 with this season's loss; Lakers 14-4, Magic 12-4, Knicks 13-5.
+- **New checks** (555 pass): this season's Cup results added on the right side (overall, road).
+- **Rendered:** page sweep OK.
+
+### Still unproven
+- **The Cup guide's single-game bests** (pp. 33-38) aren't compared line by line with the NBA Guide's (p. 149); the pages checked match.
+
 ## 0.34.0 (2026-11-12): Every head coach's milestones; award history
 
 ### Why

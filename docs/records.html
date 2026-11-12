@@ -137,6 +137,9 @@
     <span class="key" id="statkey"></span>
   </div>
   <div class="scroll"><table id="board"></table></div>
+  <h2>NBA Cup all-time standings</h2>
+  <div class="scroll"><table id="cupst"></table></div>
+  <div class="key" id="cupkey"></div>
   <h2>Record book</h2>
   <div class="controls">
     <select id="book"><option>Regular season</option><option>NBA Cup</option><option>Play-In</option><option>Playoffs</option><option>Finals</option><option>All-Star</option></select>
@@ -204,6 +207,13 @@ Promise.all([fetch("data/records.json", { cache: "no-store" }).then((r) => r.jso
     + (d.cup ? Object.keys(d.cup.boards).filter((k) => LABEL[k]).map((k) => `<option value="cup:${k}">NBA Cup: ${LABEL[k]}</option>`).join("") : "");
   if (d.cup) for (const rows of Object.values(d.cup.boards)) for (const r of rows) r.season = r.live && r.base != null ? r.now - r.base : null;
   ["kind", "team", "games", "q"].forEach((id) => $(id).addEventListener("input", renderItems));
+  const st = d.cup?.standings || [], wl = (x) => `${x[0]}-${x[1]}`, pct = (x) => (x[0] + x[1] ? (x[0] / (x[0] + x[1])).toFixed(3).replace(/^0/, "") : "–");
+  const nextCup = d.cup?.schedule || [];
+  $("cupst").innerHTML = st.length ? `<tr><th>Team</th><th class="num">All-time</th><th class="num">Pct</th><th class="num">Home</th><th class="num">Road</th><th class="num">This season</th><th>Next Cup game</th></tr>` +
+    st.map((r) => { const g = nextCup.find((x) => x.away === r.team || x.home === r.team);
+      return `<tr><td><b>${r.team}</b></td><td class="num">${wl(r.overall)}</td><td class="num">${pct(r.overall)}</td><td class="num">${wl(r.home)}</td><td class="num">${wl(r.road)}</td><td class="num">${wl(r.season)}</td><td class="small">${g ? `${md(g.d)} ${g.away === r.team ? `at ${g.home}` : `vs ${g.away}`} (${esc(g.group)})` : r.cupGamesLeft ? "" : "group play done"}</td></tr>`; }).join("")
+    : `<tr><td class="empty">No Cup standings.</td></tr>`;
+  $("cupkey").textContent = "All-time: the Cup media guide's 2023-2025 records (knockout rounds and Championship games included) plus this season's Cup games. Neutral-site games count in all-time only.";
   ["book", "scope", "side", "rq"].forEach((id) => $(id).addEventListener("input", renderBook));
   Promise.all([fetch("ref/nba-record-book.json").then((r) => r.json()), fetch("ref/nba-single-game-bests.json").then((r) => r.json())]).then(([rb, sg]) => { RB = rb; SG = sg; renderBook(); }).catch(() => { $("book-t").innerHTML = `<tr><td class="empty">Record book not loaded.</td></tr>`; });
   $("stat").addEventListener("input", renderBoard);

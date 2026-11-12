@@ -1300,6 +1300,9 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     { d: "2026-11-08", opp: "MEM", home: true, pf: 120, pa: 110, pl: { 9: L({ min: 34, pts: 40 }) } } ] } }; // not a Cup game
   ok(cupOnly(files, cup).OKC.games.length === 1, "NBA Cup: only the schedule's Cup games count (date and teams)");
   const c = cupRecords({ cup, teamFiles: files, tonight: [{ away: "OKC", home: "LAC" }], today: "2026-11-13" });
+  const okcSt = c.standings.find((x) => x.team === "OKC");
+  ok(okcSt.overall[0] === cup.standings.OKC.overall[0] + 1 && okcSt.road[0] === cup.standings.OKC.road[0] + 1 && okcSt.season.join() === "1,0" && cup.standings.MIL.overall.join() === "14,3",
+    "NBA Cup: all-time standings (Bucks 14-3) plus this season's Cup results, home and road", JSON.stringify(okcSt));
   ok(c.boards.pts[0].now === 532 && c.tonight.length === 1 && !c.items.some((i) => i.stat === "gp"), "NBA Cup: his Cup total = the guide's + this season's Cup games; tonight's Cup game; no games-played passes", JSON.stringify(c.boards.pts[0]));
 }
 

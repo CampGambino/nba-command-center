@@ -39,5 +39,11 @@ export function cupRecords({ cup, teamFiles, tonight = [], today = null }) {
   const items = r.items.filter((i) => i.kind === "cup" && !["gp", "min"].includes(i.stat) && (left[i.team] || 0) >= i.gamesAway)
     .map((i) => ({ ...i, cupGamesLeft: left[i.team] || 0, horizonGames: left[i.team] || 0 }));
   const played = (cup.group || []).filter((g) => today && g.d < today).length;
-  return { items, boards: r.boards, problems: r.problems, cupGamesPlayed: played, tonight: cupTonight };
+  // All-time Cup standings (the guide's 2023-2025, knockout and Championships included) plus this season's Cup games.
+  const standings = Object.entries(cup.standings || {}).map(([team, s]) => {
+    const G = files[team]?.games?.filter((g) => g.pf != null && g.pa != null) || [];
+    const add = (base, games) => [base[0] + games.filter((g) => g.pf > g.pa).length, base[1] + games.filter((g) => g.pf < g.pa).length];
+    return { team, overall: add(s.overall, G), home: add(s.home, G.filter((g) => g.home)), road: add(s.road, G.filter((g) => !g.home)), season: add([0, 0], G), cupGamesLeft: left[team] || 0 };
+  }).sort((a, b) => b.overall[0] / Math.max(1, b.overall[0] + b.overall[1]) - a.overall[0] / Math.max(1, a.overall[0] + a.overall[1]) || b.overall[0] - a.overall[0]);
+  return { items, boards: r.boards, problems: r.problems, cupGamesPlayed: played, tonight: cupTonight, standings };
 }
