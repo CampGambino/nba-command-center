@@ -1,5 +1,5 @@
 /*
- * NBA Command Center -> NBA Live bridge.                                  version 1
+ * NBA Command Center -> NBA Live bridge.                                  version 2
  *
  * Add ONE line to NBA Live, just before </body>:
  *   <script src="https://campgambino.github.io/nba-command-center/bridge/cc-bridge.js"></script>
@@ -12,6 +12,9 @@
  *     - stats outside NBA Live's career ladders (defensive rebounds, games, starts, ...),
  *     - a count note where the team's notes and ESPN disagree on a total NBA Live chases.
  *   Each card carries the pre-game chance and whether the item is verified or "review".
+ *   Before tip-off (v2): each game's top 3 storylines from tonight.json (streaks on the line,
+ *   runs leading the team, shooters near 50/40/90, team streaks, milestones in reach): the
+ *   same lines as the Command Center's Watch List and the 3 PM Discord digest.
  *
  * What it never does
  *   - change NBA Live's own checks, data or cards;
@@ -22,13 +25,15 @@
  */
 (function () {
   "use strict";
-  var VERSION = 1;
+  var VERSION = 2;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
   var MIN_CHANCE = 0.10;      // pre-game chance tonight needed to take a card while live
   var MIN_IMPORTANCE = 15;    // round numbers below this never get a card (passes always can). Was 20 until 0.15.2; tune from use
   var MAX_PER_GAME = 6;       // in-play cards per game, best first (reached ones always show)
+  var PRE_PER_GAME = 3;       // pre-game storyline cards per game
+  var ICON = { milestone: "🎯 IN REACH", streak: "🔥 STREAK", lead: "👑 TEAM LEADER", shooting: "🏹 50/40/90", team: "📈 TEAM STREAK" };
 
   // ESPN abbreviations NBA Live shows -> Command Center tricodes.
   var TRI = { GS: "GSW", NO: "NOP", NY: "NYK", SA: "SAS", UTAH: "UTA", WSH: "WAS", PHO: "PHX", BRK: "BKN", CHO: "CHA" };
@@ -39,12 +44,13 @@
   // NBA Live's own ladders (MILESTONE_LADDERS): those round numbers are already its cards.
   var NBA_LIVE_STAT = { pts: "pts", fg3m: "tpm", reb: "reb", ast: "ast", stl: "stl", blk: "blk" };
 
-  var state = { data: null, items: [], loadedAt: 0, error: null, connected: false, fired: 0, keys: {} };
+  var state = { data: null, items: [], tonight: null, loadedAt: 0, error: null, connected: false, fired: 0, keys: {} };
   window.CC_BRIDGE = { version: VERSION, state: state };
 
   function param(name) { try { return new URLSearchParams(location.search).get(name); } catch (e) { return null; } }
   var url = param("cc") || DEFAULT_URL;
   if (url === "off") return;
+  var tonightUrl = url.replace(/watch\.json(\?.*)?$/, "tonight.json");
 
   function has(name) { try { return typeof eval(name) !== "undefined"; } catch (e) { return false; } }
   function games() { try { return GAMES; } catch (e) { return null; } } // NBA Live's top-level `let GAMES`
@@ -69,6 +75,9 @@
   }
 
   function load() {
+    // Tonight's storylines: optional; a missing file just means no pre-game cards.
+    if (tonightUrl !== url) fetch(tonightUrl, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (t) { state.tonight = t && Array.isArray(t.games) ? t : null; }).catch(function (e) { state.tonight = null; state.tonightError = String(e && e.message || e); });
     return fetch(url, { cache: "no-store" }).then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
@@ -85,6 +94,21 @@
       });
       status();
     }).catch(function (e) { state.error = String(e.message || e); status(); });
+  }
+
+  // Pre-game: the top storylines for a game that hasn't tipped off, once per night.
+  function pregame(game, sides, tag) {
+    var T = state.tonight;
+    if (!T || (state.data && T.today !== state.data.today)) return;
+    var g = T.games.find(function (x) { return x.away === sides.away && x.home === sides.home; });
+    if (!g) return;
+    g.lines.slice(0, PRE_PER_GAME).forEach(function (l, n) {
+      fire("cc-pre-" + T.today + "-" + sides.away + "-" + sides.home + "-" + n, {
+        type: "milestone", icon: ICON[l.kind] || "📌 STORYLINE", text: l.text,
+        sub: "Command Center · tonight's storyline (pre-game)",
+        live: false, gameId: game.id, gameTag: tag, gameScore: "Pre-game",
+      });
+    });
   }
 
   function status() {
@@ -133,10 +157,11 @@
     }
     state.wrongNight = null;
     G.forEach(function (game) {
-      if (!game || game.status !== "live" && game.status !== "final") return;
+      if (!game) return;
       var sides = { away: tri(game.away && game.away.tricode), home: tri(game.home && game.home.tricode) };
-      var box = (game.boxscore || {});
       var tag = (game.away && game.away.tricode) + " @ " + (game.home && game.home.tricode);
+      if (game.status !== "live" && game.status !== "final") return pregame(game, sides, tag);
+      var box = (game.boxscore || {});
       var scr = game.status === "final" ? "Final" : (game.away.score + "–" + game.home.score);
       var picks = [];
       state.items.forEach(function (i) {

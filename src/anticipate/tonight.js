@@ -1,7 +1,10 @@
 /**
  * Tonight's storylines per game, from data the site already publishes (pure, browser-safe).
  *
- *   tonightStorylines({ watch, trends, leaders, situations? }) -> [{ id, away, home, start, lines: [{ kind, text, score }] }]
+ *   tonightStorylines({ watch, trends, leaders, maxLines? }) -> [{ id, away, home, start, lines: [{ kind, team, text, score }] }]
+ *
+ * Used by the Discord digest (scripts/notify.js, 6 lines a game) and the Watch List page
+ * (docs/lib/anticipate/tonight.js, a copy kept identical by the build).
  *
  * Inputs are the parsed docs/data files: watch.json, trends.json, leaders.json.
  * Every line is something that can happen or end TONIGHT:
@@ -107,12 +110,12 @@ function teamLines(trends, teams) {
   return out;
 }
 
-export function tonightStorylines({ watch, trends = {}, leaders = {} }) {
+export function tonightStorylines({ watch, trends = {}, leaders = {}, maxLines = MAX_LINES }) {
   const games = (watch.games || []).map((g) => ({ id: g.id, away: g.awayTri, home: g.homeTri, start: g.start }));
   const teams = new Set(games.flatMap((g) => [g.away, g.home]));
   const all = [...milestoneLines(watch, teams), ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams), ...teamLines(trends, teams)];
   return games.map((g) => {
-    const lines = all.filter((l) => l.team === g.away || l.team === g.home).sort((a, b) => b.score - a.score).slice(0, MAX_LINES);
+    const lines = all.filter((l) => l.team === g.away || l.team === g.home).sort((a, b) => b.score - a.score).slice(0, maxLines);
     return { ...g, lines };
   });
 }

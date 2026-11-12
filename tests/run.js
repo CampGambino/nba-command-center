@@ -421,12 +421,12 @@ for (const [team, r] of Object.entries(results)) {
 {
   const docs = path.join(root, "docs");
   if (fs.existsSync(path.join(docs, "lib"))) {
-    for (const rel of ["teams.js", "notes/names.js", "espn/parse.js", "registry/track.js", "nba/movement.js", "situations/ratings.js", "espn/pbp.js", "situations/withwithout.js", "situations/leaders.js"]) {
+    for (const rel of ["teams.js", "notes/names.js", "espn/parse.js", "registry/track.js", "nba/movement.js", "situations/ratings.js", "espn/pbp.js", "situations/withwithout.js", "situations/leaders.js", "anticipate/tonight.js"]) {
       const a = fs.readFileSync(path.join(root, "src", rel), "utf8"), b = fs.existsSync(path.join(docs, "lib", rel)) ? fs.readFileSync(path.join(docs, "lib", rel), "utf8") : null;
       ok(a === b, `website: docs/lib/${rel} matches src (run scripts/publish.js after code changes)`);
     }
     // Everything the page imports, followed through its own imports, must run in a browser.
-    const seen = new Set(), stack = ["espn/parse.js", "registry/track.js", "situations/ratings.js", "situations/withwithout.js", "situations/leaders.js"];
+    const seen = new Set(), stack = ["espn/parse.js", "registry/track.js", "situations/ratings.js", "situations/withwithout.js", "situations/leaders.js", "anticipate/tonight.js"];
     while (stack.length) {
       const rel = stack.pop();
       if (seen.has(rel)) continue;
@@ -1132,9 +1132,9 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     const el = { style: {}, textContent: "" };
     const ctx = {
       URLSearchParams, console, Promise, Object, Number, String, Math, Array, Date, JSON,
-      location: { search: "?cc=test" },
+      location: { search: "?cc=" + encodeURIComponent("https://cc.example/data/watch.json") },
       document: { readyState: "complete", getElementById: (id) => (id === "cc-bridge-note" ? el : null), createElement: () => el, body: { appendChild() {} } },
-      fetch: async () => ({ ok: true, json: async () => watch }),
+      fetch: async (u) => ({ ok: true, json: async () => (String(u).includes("tonight.json") ? tonightData : watch) }),
       setInterval() {}, setTimeout() {}, clearTimeout() {}, addEventListener() {},
     };
     ctx.window = ctx;
@@ -1149,16 +1149,29 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     vm.runInContext(code, ctx);
     return { ctx, cards, el, orig: () => original };
   }
+  // tonight.json for the pre-game cards (v2): LAL @ ATL is live in the games below, MIA @ BOS hasn't tipped.
+  const L = (kind, text) => ({ kind, text, team: "X", score: 1 });
+  const tonightData = { today: "2026-11-09", games: [
+    { away: "LAL", home: "ATL", lines: [L("streak", "Live game line")] },
+    { away: "MIA", home: "BOS", lines: [L("streak", "Pre one: 30+ points in 8 straight"), L("lead", "Pre two"), L("shooting", "Pre three"), L("team", "Pre four")] },
+  ] };
   const flush = () => new Promise((r) => setTimeout(r, 5));
   const games = [
     { id: "g1", status: "live", away: { tricode: "LAL", score: 50 }, home: { tricode: "ATL", score: 48 }, boxscore: { away: [pl("1"), pl("2"), pl("3"), pl("4"), pl("5"), pl("6"), pl("7", { min: 0, pts: 0 }), pl("9"), pl("10"), pl("11")], home: [] } },
     { id: "g2", status: "final", away: { tricode: "SA", score: 100 }, home: { tricode: "PHX", score: 90 }, boxscore: { away: [pl("20"), pl("21")], home: [] } },
   ];
+  games.push({ id: "g9", status: "pre", away: { tricode: "MIA", score: 0 }, home: { tricode: "BOS", score: 0 }, boxscore: { away: [], home: [] } });
   const t = run({ games });
   await flush(); t.ctx.runAlertChecks(); await flush();
   const keys = [...t.cards.keys()];
   const has = (frag) => keys.some((k) => k.includes(frag));
   ok(t.orig() === 1, "bridge: NBA Live's own checks still run, once");
+  {
+    const pre = keys.filter((k) => k.startsWith("cc-pre-"));
+    const c0 = t.cards.get(pre[0]);
+    ok(pre.length === 3 && pre.every((k) => k.includes("MIA-BOS")) && c0.text === "Pre one: 30+ points in 8 straight" && /STREAK/.test(c0.icon) && c0.live === false && c0.gameScore === "Pre-game",
+      "bridge v2: a game before tip-off gets its top 3 storylines as cards; a live game gets none of them", pre.join(" ") + " | " + keys.join(" ") + " | tonight=" + JSON.stringify(t.ctx.CC_BRIDGE.state.tonightError));
+  }
   ok(has("cc-1-"), "bridge: an in-play milestone gets a card");
   ok(!has("cc-2-"), "bridge: under 10% tonight and not reached: no card", keys.join(" "));
   ok(!has("cc-3-"), "bridge: a minor round number gets no card even when reached", keys.join(" "));

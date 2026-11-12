@@ -26,6 +26,9 @@ page = (page[:cut] if cut > 0 else page) + '<script src="cc-bridge.js"></script>
 open(os.path.join(SITE, "index.html"), "w", encoding="utf-8").write(page)
 shutil.copy(os.path.join(HERE, "..", "docs", "bridge", "cc-bridge.js"), SITE)
 shutil.copy(WATCH, os.path.join(SITE, "watch.json"))
+# tonight.json (bridge v2's pre-game storylines) sits next to the Watch List it was built from.
+_tonight = os.path.join(os.path.dirname(os.path.abspath(WATCH)), "tonight.json")
+if os.path.exists(_tonight): shutil.copy(_tonight, os.path.join(SITE, "tonight.json"))
 server = subprocess.Popen([sys.executable, "-m", "http.server", "8791", "--directory", SITE], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(1)
 log = {"passed": 0, "blocked": 0, "errors": 0, "hosts": {}}
@@ -76,7 +79,7 @@ async def main():
         await pg.route("**/*", handle)
         await pg.goto(f"http://localhost:8791/index.html?date={DATE}&cc=watch.json", wait_until="domcontentloaded", timeout=120000)
         await pg.wait_for_timeout(SECONDS * 1000)
-        st = await pg.evaluate("() => { const s = window.CC_BRIDGE && window.CC_BRIDGE.state; return s && {connected: s.connected, items: s.items.length, fired: s.fired, error: s.error, today: s.data && s.data.today, wrongNight: s.wrongNight}; }")
+        st = await pg.evaluate("() => { const s = window.CC_BRIDGE && window.CC_BRIDGE.state; return s && {connected: s.connected, items: s.items.length, fired: s.fired, error: s.error, today: s.data && s.data.today, wrongNight: s.wrongNight, tonight: s.tonight ? s.tonight.games.length : null, version: window.CC_BRIDGE.version}; }")
         note = await pg.evaluate("() => (document.getElementById('cc-bridge-note')||{}).textContent || null")
         cards = await pg.evaluate("() => [...document.querySelectorAll('#alerts-scroll > *')].map(e => e.innerText.replace(/\\s+/g,' ').slice(0,230))")
         games = await pg.evaluate("() => { try { return GAMES.map(g => g.away.tricode+'@'+g.home.tricode+' '+g.status+' box:'+(g.boxscore? (g.boxscore.away||[]).length : 0)); } catch(e) { return String(e); } }")

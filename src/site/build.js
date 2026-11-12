@@ -78,7 +78,7 @@ export async function buildSite({ entries, games = [], espn, nba = null, today, 
   const site = { generatedAt: new Date().toISOString(), today, games: games.map((g) => ({ id: g.id, start: g.start, home: g.home, away: g.away, homeTri: g.homeTri, awayTri: g.awayTri })), teams };
   fs.writeFileSync(path.join(docs, "data", "watch.json"), JSON.stringify(site));
   // Same code the tests cover, for the page's live countdowns.
-  for (const rel of ["teams.js", "notes/names.js", "espn/parse.js", "registry/track.js", "nba/movement.js", "situations/ratings.js", "espn/pbp.js", "situations/withwithout.js", "situations/leaders.js"]) {
+  for (const rel of ["teams.js", "notes/names.js", "espn/parse.js", "registry/track.js", "nba/movement.js", "situations/ratings.js", "espn/pbp.js", "situations/withwithout.js", "situations/leaders.js", "anticipate/tonight.js"]) {
     const dst = path.join(docs, "lib", rel);
     fs.mkdirSync(path.dirname(dst), { recursive: true });
     fs.copyFileSync(path.join(root, "src", rel), dst);

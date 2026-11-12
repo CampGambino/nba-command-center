@@ -2,6 +2,38 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.19.0 (2026-11-11): tonight's storylines on the Watch List and in NBA Live before tip-off
+
+### What changed
+- **Watch List: new "Tonight's storylines" section** under tonight's games. One card per game, up to 8 lines:
+  - 🎯 milestones in reach;
+  - 🔥 streaks on the line;
+  - 👑 runs leading the team;
+  - 🏹 shooters a make or two from 50/40/90;
+  - 📈 team streaks.
+  - Each line links to the tab with the details. Built in the browser by the same `src/anticipate/tonight.js` as the Discord digest (copied to `docs/lib/anticipate/`, a test keeps it identical), so the site and Discord always agree.
+- **New `docs/data/tonight.json`,** written by every build (`scripts/situations.js`): each game's storylines.
+- **NBA Live bridge v2** (`docs/bridge/cc-bridge.js`): before a game tips off, its top 3 storylines go to NBA Live's League Alerts as cards ("🔥 STREAK", "👑 TEAM LEADER", "🏹 50/40/90", "📈 TEAM STREAK", "🎯 IN REACH"), once per night.
+  - Live games are handled exactly as before.
+  - If `tonight.json` is missing or for another night, there are simply no pre-game cards.
+- **`tools/check-nba-live.py`** also serves `tonight.json` and reports the bridge version and storyline count.
+
+### Tested
+- **433 checks pass.** New:
+  - a pre-game game gets exactly its top 3 storylines;
+  - a live game gets none of them;
+  - the card's icon, text and "Pre-game" tag.
+- **A real bug caught by the new check:** the `tonight.json` fetch had been placed after a `return`, so it never ran (no pre-game cards at all). Moved before the return.
+- **Real NBA Live (`nba-live_14.html`) with bridge v2, 11/11 at 8 PM:** 3 games live, 7 pre-game.
+  - **Pre-game:** 21 storyline cards (3 for each pre-game game, e.g. "OKC @ POR · PRE-GAME 🔥 STREAK Shai Gilgeous-Alexander: 25+ points in 6 straight games").
+  - **Live:** milestone cards still fire, and NBA Live's own cards and checks are unaffected. No page errors beyond the 8 requests the test blocks on purpose.
+- **Watch List page** in headless Chrome at desktop and phone width: 10 game cards, 73 lines; the full page sweep passes.
+
+### Still unproven
+- **Not in the user's NBA Live yet:** the user's current file (`Downloads/nba-live.html`) doesn't include the bridge line, so neither these cards nor the earlier ones show there.
+- **League Alerts shows "Q1 0:00" on pre-game cards** (NBA Live's own rendering of a card without a clock).
+- **3 cards per game** could crowd League Alerts on big nights (7 pre-game games = 21 cards); tune `PRE_PER_GAME` from use.
+
 ## 0.18.2 (2026-11-11): articles watcher: The Athletic's NBA feed only, every story posted
 
 ### What changed

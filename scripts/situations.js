@@ -109,12 +109,26 @@ for (const [tri, games] of Object.entries(perTeam)) {
     names: Object.fromEntries([...used].map((id) => [id, names[id] || id])), gameKeys, games, season, shootKeys, shooting: shoot,
   }));
 }
+// Tonight's storylines per game (the Watch List cards and NBA Live's pre-game cards read this),
+// from the published Watch List plus the trends and leaders data written above.
+{
+  const { tonightStorylines } = await import("../src/anticipate/tonight.js");
+  const rd = (f) => JSON.parse(fs.readFileSync(path.join(root, "docs", "data", f), "utf8"));
+  try {
+    const watch = rd("watch.json");
+    const games = tonightStorylines({ watch, trends: rd("trends.json"), leaders: rd("leaders.json"), maxLines: 8 })
+      .map((g) => ({ ...g, lines: g.lines.map(({ kind, team, text, score }) => ({ kind, team, text, score: Math.round(score * 100) / 100 })) }));
+    fs.writeFileSync(path.join(root, "docs", "data", "tonight.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, games }));
+  } catch (e) { console.error(`tonight's storylines not written: ${e.message}`); }
+}
 // Per-game box totals for the "vs top teams" page, which computes in the browser.
 const slim = rows.filter((g) => g.hb && g.ab).map(({ id, d, h, a, hs, as, hb, ab }) => ({ id, d, h, a, hs, as, hb, ab }));
 fs.writeFileSync(path.join(root, "docs", "data", "games.json"), JSON.stringify({ generatedAt: out.generatedAt, through, games: slim }));
 // The page's copy of the ratings code (kept identical to src; a test checks).
 fs.mkdirSync(path.join(root, "docs", "lib", "situations"), { recursive: true });
 for (const f of ["ratings.js", "withwithout.js", "leaders.js"]) fs.copyFileSync(path.join(root, "src", "situations", f), path.join(root, "docs", "lib", "situations", f));
+fs.mkdirSync(path.join(root, "docs", "lib", "anticipate"), { recursive: true });
+fs.copyFileSync(path.join(root, "src", "anticipate", "tonight.js"), path.join(root, "docs", "lib", "anticipate", "tonight.js"));
 fs.mkdirSync(path.join(root, "docs", "lib", "espn"), { recursive: true });
 for (const f of ["parse.js", "pbp.js"]) fs.copyFileSync(path.join(root, "src", "espn", f), path.join(root, "docs", "lib", "espn", f));
 const after = Object.values(store.dates).filter((d) => d.complete).length;
