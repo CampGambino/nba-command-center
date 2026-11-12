@@ -33,7 +33,7 @@ import { repairToUnicode } from "../src/notes/pdf-repair.js";
 import { dropShadowLayer } from "../src/notes/pdf-layout.js";
 import { computeSituations, teamGames } from "../src/situations/records.js";
 import { rowFromGame, collectResults, allGames } from "../src/situations/results.js";
-import { readScoreboard, readGameDetail, clockSeconds, readPlayerBox } from "../src/espn/parse.js";
+import { readScoreboard, readGameDetail, clockSeconds, readPlayerBox, readSchedule, isCupFinal, CUP_FINAL } from "../src/espn/parse.js";
 import { teamGameLines, offense, ratings, vsTopDefenses, vsTop } from "../src/situations/ratings.js";
 import { tonightStorylines, discordDigest, MIN_IMPORTANCE } from "../src/anticipate/tonight.js";
 import { parseReport, slotUrl, slotsBackFrom, displayName, shortReason } from "../src/injuries/report.js";
@@ -1004,6 +1004,25 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   }
   ok(pay.length >= 3 && pay.every((p) => p.embeds.length <= 10) && sizes.every((n) => n <= 6000) && pay.reduce((a, p) => a + p.embeds.length, 0) === 23 && pay[0].content && !pay[1].content && pay.every((p) => p.allowed_mentions.parse.length === 0),
     "tonight: Discord digest split within limits (10 embeds, 6,000 characters per message), no @-mentions", JSON.stringify(sizes));
+}
+
+// ---------- NBA Cup final: counts in neither standings nor stats ----------
+{
+  // Shapes as ESPN gave them for the 12/13/25 semifinals and 12/16/25 final (scoreboard and team schedule).
+  const ev = (id, note, type, home, away, hs, as) => ({ id, date: "2025-12-17T01:30Z", season: { year: 2026, type: 2 }, seasonType: { type: 2 },
+    competitions: [{ type, notes: [{ headline: note }], neutralSite: true, status: { type: { completed: true, state: "post" }, period: 4 },
+      competitors: [{ homeAway: "home", score: String(hs), team: { displayName: home } }, { homeAway: "away", score: String(as), team: { displayName: away } }] }] });
+  const json = { events: [
+    ev("401809839", "NBA Cup Championship", { id: "39", abbreviation: "CC" }, "New York Knicks", "San Antonio Spurs", 124, 113),
+    ev("401809838", "NBA Cup - Semifinals", { id: "1", abbreviation: "STD" }, "San Antonio Spurs", "Oklahoma City Thunder", 111, 109),
+  ] };
+  const sb = readScoreboard(json).games;
+  ok(sb[0].seasonType === CUP_FINAL && sb[1].seasonType === 2, "NBA Cup: the final is set apart (type CC / note), a semifinal still counts", JSON.stringify(sb.map((g) => g.seasonType)));
+  ok(isCupFinal({ type: { id: "1" }, notes: [{ headline: "NBA Cup Championship" }] }) && isCupFinal({ type: { abbreviation: "CC" } }) && !isCupFinal({ type: { abbreviation: "STD" }, notes: [{ headline: "NBA Cup - East Group A" }] }),
+    "NBA Cup: either signal marks the final; group games don't");
+  const sch = readSchedule(json);
+  ok(sch.filter((g) => g.seasonType === 2).length === 1 && sch.find((g) => g.id === "401809839").seasonType === CUP_FINAL, "NBA Cup: team schedules mark it too");
+  ok(rowFromGame({ ...sb[0], date: "2025-12-16" }) === null && rowFromGame({ ...sb[1], date: "2025-12-13" }) !== null, "NBA Cup: team records skip the final, keep the semifinal");
 }
 
 // ---------- Official injury report: reading the PDF's table, and what an absence means ----------

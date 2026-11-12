@@ -35,6 +35,20 @@ export function readRoster(json) {
     .map((a) => ({ id: String(a.id), name: a.fullName || a.displayName }));
 }
 
+/**
+ * The NBA Cup championship game counts in neither the standings nor season or career stats
+ * (group games, quarterfinals and semifinals do). ESPN lists it as a regular-season game, with
+ * competition type "CC" (id 39, "Commissioner's Cup") and the note "NBA Cup Championship"
+ * (checked on the 12/16/25 final, scoreboard and team schedule). Such a game gets seasonType
+ * CUP_FINAL, so everything that counts only seasonType 2 (team records, milestone tracking,
+ * predictions, scoring) leaves it out.
+ */
+export const CUP_FINAL = "cup-final";
+export function isCupFinal(c) {
+  return c?.type?.abbreviation === "CC" || String(c?.type?.id ?? "") === "39" ||
+    (c?.notes || []).some((n) => /NBA Cup Championship|In-Season Tournament Championship/i.test(n?.headline || ""));
+}
+
 /** /teams/:id/schedule -> regular-season games with ET date and whether final. */
 export function readSchedule(json) {
   const out = [];
@@ -47,7 +61,7 @@ export function readSchedule(json) {
       start: e.date || c.date || null,
       final: c.status?.type?.completed === true,
       state: c.status?.type?.name || null,
-      seasonType: e.seasonType?.type ?? c.season?.type ?? null,
+      seasonType: isCupFinal(c) ? CUP_FINAL : e.seasonType?.type ?? c.season?.type ?? null,
       teams: (c.competitors || []).map((k) => k.team?.displayName).filter(Boolean),
       home: (c.competitors || []).find((k) => k.homeAway === "home")?.team?.displayName || null,
       away: (c.competitors || []).find((k) => k.homeAway === "away")?.team?.displayName || null,
@@ -252,7 +266,7 @@ export function readScoreboard(json) {
     games.push({
       id: String(e.id), date: etDate(e.date || c.date), start: e.date || c.date || null,
       home, away, homeTri: teamFromText(home || ""), awayTri: teamFromText(away || ""),
-      seasonType: e.season?.type ?? null, state: c.status?.type?.state || null,
+      seasonType: isCupFinal(c) ? CUP_FINAL : e.season?.type ?? null, state: c.status?.type?.state || null,
       // Results (for team situations): final score and points by period, OT periods included.
       final: c.status?.type?.completed === true, periods: c.status?.period ?? null, neutral: c.neutralSite === true,
       homeScore: score("home"), awayScore: score("away"), homeQ: quarters("home"), awayQ: quarters("away"),

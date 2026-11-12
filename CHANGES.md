@@ -2,6 +2,28 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.21.0 (2026-11-11): the NBA Cup final is left out of records and stats
+
+### What changed
+- **Why:** the NBA Cup championship game counts in neither the standings nor season or career stats (group games, quarterfinals and semifinals do). ESPN lists it as a regular-season game.
+- **How it's spotted:** its competition type is "CC" (id 39, "Commissioner's Cup") and its note reads "NBA Cup Championship", in both the scoreboard and team schedules. `src/espn/parse.js` (`isCupFinal`, `CUP_FINAL`) gives such a game its own season type, `"cup-final"`.
+- **What leaves it out:** every part that counts only regular-season games (team situations and records, milestone tracking since a team's notes, the prediction model's game logs, scoring, tonight's slate) now skips it, with no other code changes.
+- **Watch List on the final's night:** it lists the final in a banner ("doesn't count in the standings or in season and career stats, so it isn't tracked here") instead of looking empty. `watch.json` gains `uncounted`.
+
+### Tested
+- **Last season's real ESPN data:** the 12/16/25 final (SAS vs NYK) is marked; the 12/13/25 semifinals still count.
+- **The Spurs' 2025-26 schedule** now reads 82 regular-season games plus the final; it had been 83.
+- **New checks** (453 pass):
+  - the final marked, a semifinal not;
+  - either signal alone marks it, a group game doesn't;
+  - team schedules marked too;
+  - team records skip the final and keep the semifinal.
+- **Tonight's data:** builds the same as before (no Cup final yet this season); page sweep OK.
+
+### Still unproven
+- **This season's final** (December) will be the first live case.
+- **NBA Live's own ladders** count whatever ESPN's box shows; that's for NBA Live's own chat if wanted.
+
 ## 0.20.1 (2026-11-11): incident: broken site data for ~2 minutes, and two guards
 
 ### What happened

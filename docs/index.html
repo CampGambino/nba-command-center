@@ -287,7 +287,9 @@ async function main() {
   const gen = new Date(data.generatedAt);
   $("sub").textContent = `${new Date(data.today + "T12:00:00").toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })} · ${gamesList().length} games · ${data.teams.filter((t) => t.items.length).length} teams' notes · updated ${gen.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`;
   const todayLocal = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
-  if (todayLocal > data.today) $("stale").innerHTML = `<div class="warn-banner">This list was built for ${esc(data.today)}. Newer notes haven't been published yet, so "tonight" here means ${esc(data.today)}.</div>`;
+  const cup = (data.uncounted || []).map((g) => `<b>${esc(g.note)}</b>: ${esc(g.away)} vs ${esc(g.home)}, ${new Date(g.start).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`);
+  if (cup.length) $("stale").innerHTML += `<div class="warn-banner">${cup.join("<br>")}. It doesn't count in the standings or in season and career stats, so it isn't tracked here (no milestones, streaks or records from it).</div>`;
+  if (todayLocal > data.today) $("stale").innerHTML += `<div class="warn-banner">This list was built for ${esc(data.today)}. Newer notes haven't been published yet, so "tonight" here means ${esc(data.today)}.</div>`;
   for (const t of [...new Set(data.teams.map((t) => t.team))].sort()) $("teamFilter").insertAdjacentHTML("beforeend", `<option>${esc(t)}</option>`);
   for (const id of ["teamFilter", "q", "showReview"]) $(id).addEventListener("input", render);
   render();

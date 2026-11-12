@@ -18,8 +18,9 @@ export const VERIFIED_FORMATS = new Set(["CLE", "LAL", "SAS", "PHX", "ATL", "CHA
  * @param {object} p
  * @param {Array<{team:string, buf?:Buffer, notes?:{status:string, why?:string, error?:string}}>} p.entries
  * @param {Array} [p.games] the day's games (readScoreboard), for the games strip
+ * @param {Array} [p.uncounted] tonight's games that count in neither standings nor stats (the NBA Cup final)
  */
-export async function buildSite({ entries, games = [], espn, nba = null, today, root }) {
+export async function buildSite({ entries, games = [], uncounted = [], espn, nba = null, today, root }) {
   const reports = [], teams = [];
   for (const e of entries) {
     const base = { team: e.team, notesStatus: e.notes?.status || "local", notesWhy: e.notes?.why || e.notes?.error || null, verifiedFormat: VERIFIED_FORMATS.has(e.team) };
@@ -75,7 +76,7 @@ export async function buildSite({ entries, games = [], espn, nba = null, today, 
 
   const docs = path.join(root, "docs");
   fs.mkdirSync(path.join(docs, "data"), { recursive: true });
-  const site = { generatedAt: new Date().toISOString(), today, games: games.map((g) => ({ id: g.id, start: g.start, home: g.home, away: g.away, homeTri: g.homeTri, awayTri: g.awayTri })), teams };
+  const site = { generatedAt: new Date().toISOString(), today, games: games.map((g) => ({ id: g.id, start: g.start, home: g.home, away: g.away, homeTri: g.homeTri, awayTri: g.awayTri })), uncounted, teams };
   fs.writeFileSync(path.join(docs, "data", "watch.json"), JSON.stringify(site));
   // Same code the tests cover, for the page's live countdowns.
   for (const rel of ["teams.js", "notes/names.js", "espn/parse.js", "registry/track.js", "nba/movement.js", "situations/ratings.js", "espn/pbp.js", "situations/withwithout.js", "situations/leaders.js", "anticipate/tonight.js"]) {

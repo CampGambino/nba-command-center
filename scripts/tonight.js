@@ -32,6 +32,8 @@ const nba = createNbaStatic({ dataDir });
 const sb = await espn.scoreboard(today);
 if (!sb.ok) { console.error(`can't read tonight's schedule: ${sb.error}`); process.exit(1); }
 const games = sb.data.games.filter((g) => g.date === today && (g.seasonType == null || g.seasonType === 2));
+// Games tonight that don't count (the NBA Cup final): listed on the Watch List, not tracked.
+const uncounted = sb.data.games.filter((g) => g.date === today && g.seasonType === "cup-final").map((g) => ({ id: g.id, start: g.start, home: g.home, away: g.away, note: "NBA Cup final" }));
 console.log(`${today}: ${games.length} games`);
 
 const entries = [];
@@ -45,6 +47,6 @@ for (const g of games) {
     entries.push({ team, buf, notes: { status: r.status, why: r.why, error: r.error } });
   }
 }
-const { site } = await buildSite({ entries, games, espn, nba, today, root });
+const { site } = await buildSite({ entries, games, uncounted, espn, nba, today, root });
 const n = site.teams.reduce((a, t) => a + t.items.length, 0);
 console.log(`built: ${site.teams.length} teams, ${n} milestones -> docs/data/watch.json`);
