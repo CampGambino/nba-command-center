@@ -1367,6 +1367,24 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     "awards: résumés from the history, shared awards counted for both winners (2009 All-Star MVP: Kobe and Shaq), accents ignored", [R.get("kobe bryant"), R.get("shaquille oneal")].join(" | "));
 }
 
+// ---------- Franchise streak records and reference tables (NBA Guide pp. 27-28, 44-45, 142-143) ----------
+{
+  const { currentRecords } = await import("../src/records/guide.js");
+  const rd = (f) => JSON.parse(fs.readFileSync(path.join(root, "src", "data", f), "utf8"));
+  const fs2 = rd("nba-franchise-streaks-2026-27.json");
+  ok(Object.keys(fs2.win).length === 30 && Object.keys(fs2.lose).length === 30 && fs2.win.LAL.n === 33 && fs2.lose.DET.n === 28 && fs2.lose.MEM.also[0].n === 19 && /Vancouver/.test(fs2.lose.MEM.seasons),
+    "franchise streaks: all 30 teams' longest winning and losing streaks (Lakers 33, Pistons 28 losses; Memphis's Vancouver record kept with the Memphis-era one)");
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const games = Array.from({ length: 15 }, (_, i) => ({ d: `2026-11-${String(i + 1).padStart(2, "0")}`, opp: "BOS", home: true, pf: 90, pa: 100, pl: {} }));
+  const g = { alltime: {}, active: {}, extra: {}, watch: [], targets: [], rounds: [], coaches: {}, franchises: [], teamRecords: {} };
+  const r = currentRecords({ guide: g, teamFiles: { WAS: { team: "WAS", keys, names: {}, games } }, tonight: [{ away: "BOS", home: "WAS" }], franchiseStreaks: fs2 });
+  const it = r.items.find((i) => i.stat === "franchiseLoseStreak");
+  ok(it && it.text === "Wizards: lost 15 straight; a loss tonight ties the franchise record (16, 2009-10, 2023-24, 2024-25, 2025-26)" && it.need === 1 && it.tonight, "franchise streaks: one loss from tying the franchise record, tonight", it && it.text);
+  const ref = rd("nba-guide-reference-2026-27.json");
+  ok(ref.cup2025.pts.find((x) => x.player === "Jalen Brunson")?.total === 199 && ref.playoffActive.pts[0].value === 8521 && ref.playoffActive.ast?.length === 10,
+    "reference: 2025 Cup leaders (Brunson 199 points) and active career playoff leaders (LeBron 8,521)");
+}
+
 // ---------- NBA Cup final: counts in neither standings nor stats ----------
 {
   // Shapes as ESPN gave them for the 12/13/25 semifinals and 12/16/25 final (scoreboard and team schedule).
@@ -1472,7 +1490,7 @@ await articlesChecks(ok);
       URLSearchParams, console, Promise, Object, Number, String, Math, Array, Date, JSON,
       location: { search: "?cc=" + encodeURIComponent("https://cc.example/data/watch.json") },
       document: { readyState: "complete", getElementById: (id) => (id === "cc-bridge-note" ? el : null), createElement: () => el, body: { appendChild() {} } },
-      fetch: async (u) => ({ ok: true, json: async () => (String(u).includes("tonight.json") ? tonightData : watch) }),
+      fetch: async (u) => ({ ok: true, json: async () => (String(u).includes("tonight.json") ? tonightData : String(u).includes("records.json") ? recordsData : String(u).includes("single-game-bests") ? bestsData : watch) }),
       setInterval() {}, setTimeout() {}, clearTimeout() {}, addEventListener() {},
     };
     ctx.window = ctx;
@@ -1493,9 +1511,21 @@ await articlesChecks(ok);
     { away: "LAL", home: "ATL", lines: [L("streak", "Live game line")] },
     { away: "MIA", home: "BOS", lines: [L("streak", "Pre one: 30+ points in 8 straight"), L("lead", "Pre two"), L("shooting", "Pre three"), L("team", "Pre four")] },
   ] };
+  // v3: career records and the single-game lists.
+  const rec = (o) => ({ id: "30", who: "Rec Man", team: "LAL", stat: "ast", label: "assists", kind: "pass", need: 3, target: 101, rank: 26, score: 3, pTonight: 0.6,
+    passing: { name: "Old Passer", value: 100, rank: 26 }, text: "Man: 3 assists from passing Old Passer (100) for 26th all-time", ...o });
+  const recordsData = { today: "2026-11-09", cup: { tonight: [{ away: "LAL", home: "ATL" }] }, items: [
+    rec({}),                                                                                      // reached tonight (5 assists): card
+    rec({ id: "31", who: "Cup Man", kind: "cup", stat: "fg3m", label: "3-pointers", need: 2, rank: 1, passing: { name: "Cup King", value: 64, rank: 1 }, text: "Man: 2 3-pointers from passing Cup King (64) for the NBA Cup record; 1 ties him" }), // Cup game: card
+    rec({ id: "32", who: "Far Man", need: 40, pTonight: 0.05 }),                                   // long shot, not reached: none
+    rec({ id: "1", who: "P One", stat: "pts", kind: "round", target: 1000, need: 10, text: "One: 10 points from 1,000 career points", passing: null }), // the notes already carry it: none
+  ] };
+  const bestsData = { "Regular season": { pts: { floor: 57, games: [{ value: 100 }, { value: 81 }, { value: 60 }, { value: 58 }, { value: 58 }, { value: 57 }] }, fg3m: { floor: 11, games: [{ value: 14 }, { value: 11 }] } },
+    "NBA Cup": { pts: { floor: 39, games: [{ value: 60 }, { value: 49 }, { value: 39 }] } } };
   const flush = () => new Promise((r) => setTimeout(r, 5));
   const games = [
-    { id: "g1", status: "live", away: { tricode: "LAL", score: 50 }, home: { tricode: "ATL", score: 48 }, boxscore: { away: [pl("1"), pl("2"), pl("3"), pl("4"), pl("5"), pl("6"), pl("7", { min: 0, pts: 0 }), pl("9"), pl("10"), pl("11")], home: [] } },
+    { id: "g1", status: "live", away: { tricode: "LAL", score: 50 }, home: { tricode: "ATL", score: 48 }, boxscore: { away: [pl("1"), pl("2"), pl("3"), pl("4"), pl("5"), pl("6"), pl("7", { min: 0, pts: 0 }), pl("9"), pl("10"), pl("11"),
+      pl("30", { name: "Rec Man", ast: 5 }), pl("31", { name: "Cup Man", tpm: 1 }), pl("32", { name: "Far Man", ast: 3 }), pl("40", { name: "Big Night", pts: 58, tpm: 9 }), pl("41", { name: "Warm Hand", pts: 52 })], home: [] } },
     { id: "g2", status: "final", away: { tricode: "SA", score: 100 }, home: { tricode: "PHX", score: 90 }, boxscore: { away: [pl("20"), pl("21")], home: [] } },
   ];
   games.push({ id: "g9", status: "pre", away: { tricode: "MIA", score: 0 }, home: { tricode: "BOS", score: 0 }, boxscore: { away: [], home: [] } });
@@ -1521,7 +1551,7 @@ await articlesChecks(ok);
   ok(!has("cc-7-") && !has("cc-8-"), "bridge: a player who hasn't played, and ESPN-only items: no card");
   ok(has("cc-20-") && !has("cc-21-"), "bridge: a final game shows only what fell in it");
   ok(/SA @ PHX/.test(t.cards.get(keys.find((k) => k.includes("cc-20-"))).gameTag) && /Command Center/.test(t.cards.get(keys.find((k) => k.includes("cc-1-"))).sub), "bridge: cards carry the game and say they come from the Command Center");
-  ok(/milestones for 2026-11-09/.test(t.el.textContent), "bridge: status note shows it is connected", t.el.textContent);
+  ok(/milestones.* for 2026-11-09/.test(t.el.textContent), "bridge: status note shows it is connected", t.el.textContent);
   // Cap: 9 in-play milestones in one game -> 6 cards.
   const many = { id: "g3", status: "live", away: { tricode: "LAL", score: 1 }, home: { tricode: "ATL", score: 1 }, boxscore: { away: Array.from({ length: 9 }, (_, k) => pl(String(100 + k))), home: [] } };
   watch.teams[0].items.push(...Array.from({ length: 9 }, (_, k) => item({ espnId: String(100 + k), player: `Many ${k}`, need: 50, pTonight: 0.2 + k / 100 })));
@@ -1532,6 +1562,20 @@ await articlesChecks(ok);
   let threw = null;
   try { const t4 = run({ hooks: false }); await flush(); ok(/not connected/.test(t4.el.textContent), "bridge: an NBA Live without the hooks gets a 'not connected' note"); } catch (e) { threw = e; }
   ok(!threw, "bridge: missing hooks never throw", String(threw));
+  // v3
+  const recCard = t.cards.get(keys.find((k) => k.startsWith("cc-rec-30-")) || "");
+  ok(recCard && recCard.text === "Rec Man (LAL) — passes Old Passer (100) for 26th all-time" && /all-time/.test(recCard.sub),
+    "bridge v3: a career-list pass reached tonight gets a card, re-worded for now", recCard && recCard.text);
+  const cupCard = t.cards.get(keys.find((k) => k.startsWith("cc-rec-31-")) || "");
+  ok(cupCard && cupCard.text === "Cup Man (LAL) — 1 3-pointer from passing Cup King (64) for the NBA Cup record", "bridge v3: an NBA Cup mark in a Cup game, counting down live", cupCard && cupCard.text);
+  ok(!has("cc-rec-32-") && !has("cc-rec-1-"), "bridge v3: a long shot not reached, and a milestone the notes already carry: no record card", keys.filter((k) => k.startsWith("cc-rec")).join(" "));
+  if (!t.cards.get("cc-list-cup-40-pts-made")) console.log("DEBUG keys", [...t.cards.keys()].filter((k) => k.includes("list")).join(" "), JSON.stringify(t.ctx.CC_BRIDGE.state.listError));
+  const made = t.cards.get("cc-list-40-pts-made"), near = t.cards.get("cc-list-41-pts-near"), cupMade = t.cards.get("cc-list-cup-40-pts-made");
+  ok(made && made.text === "Big Night (LAL) — 58 points: tied for the 4th-most in a game on the NBA's all-time list (6 games of 57+)" && near && /5 from the NBA's all-time single-game list \(57\+, 6 games\)/.test(near.text) && cupMade && /CUP/.test(cupMade.icon),
+    "bridge v3: making the all-time single-game list (with his place), nearing it, and the Cup's list on a Cup night", [made && made.text, near && near.text].join(" | "));
+  ok(has("cc-list-40-fg3m-near") && !has("cc-list-1-fg3m"), "bridge v3: 9 threes is 2 from the 11+ list (window 2): a card; 3 threes: none");
+  const t5 = run({ games: [{ ...games[1], status: "final" }] }); await flush(); t5.ctx.runAlertChecks(); await flush();
+  ok(![...t5.cards.keys()].some((k) => k.startsWith("cc-list-")), "bridge v3: a final game with nobody on a list gets no list card");
 }
 
 // ---------- snapshot ----------

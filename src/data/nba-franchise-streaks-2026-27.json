@@ -1,0 +1,332 @@
+{
+"source": "NBA 2026-27 Guide pp. 142-143 (through 2025-26)",
+"win": {
+"ATL": {
+"n": 19,
+"seasons": "2014-15",
+"also": []
+},
+"BOS": {
+"n": 19,
+"seasons": "2008-09",
+"also": []
+},
+"BKN": {
+"n": 14,
+"seasons": "2003-04 (New Jersey), 2005-06 (New Jersey)",
+"also": [
+{
+"n": 12,
+"seasons": "2022-23 (Brooklyn)"
+}
+]
+},
+"CHA": {
+"n": 10,
+"seasons": "1997-98",
+"also": []
+},
+"CHI": {
+"n": 18,
+"seasons": "1995-96",
+"also": []
+},
+"CLE": {
+"n": 16,
+"seasons": "2024-25",
+"also": []
+},
+"DAL": {
+"n": 17,
+"seasons": "2006-07",
+"also": []
+},
+"DEN": {
+"n": 15,
+"seasons": "2012-13",
+"also": []
+},
+"DET": {
+"n": 13,
+"seasons": "1989-90, 2003-04, 2025-26",
+"also": []
+},
+"GSW": {
+"n": 24,
+"seasons": "2015-16",
+"also": []
+},
+"HOU": {
+"n": 22,
+"seasons": "2007-08",
+"also": []
+},
+"IND": {
+"n": 9,
+"seasons": "2002-03, 2013-14",
+"also": []
+},
+"LAC": {
+"n": 17,
+"seasons": "2012-13",
+"also": []
+},
+"LAL": {
+"n": 33,
+"seasons": "1971-72",
+"also": []
+},
+"MEM": {
+"n": 11,
+"seasons": "2021-22, 2022-23",
+"also": []
+},
+"MIA": {
+"n": 27,
+"seasons": "2012-13",
+"also": []
+},
+"MIL": {
+"n": 20,
+"seasons": "1970-71",
+"also": []
+},
+"MIN": {
+"n": 11,
+"seasons": "2000-01",
+"also": []
+},
+"NOP": {
+"n": 10,
+"seasons": "2010-11, 2017-18",
+"also": []
+},
+"NYK": {
+"n": 18,
+"seasons": "1969-70",
+"also": []
+},
+"OKC": {
+"n": 16,
+"seasons": "2025-26",
+"also": []
+},
+"ORL": {
+"n": 9,
+"seasons": "1994-95, 2000-01, 2010-11, 2023-24",
+"also": []
+},
+"PHI": {
+"n": 16,
+"seasons": "2017-18",
+"also": []
+},
+"PHX": {
+"n": 18,
+"seasons": "2021-22",
+"also": []
+},
+"POR": {
+"n": 16,
+"seasons": "1990-91",
+"also": []
+},
+"SAC": {
+"n": 15,
+"seasons": "1949-50 (Rochester)",
+"also": [
+{
+"n": 12,
+"seasons": "2001-02 (Sacramento)"
+}
+]
+},
+"SAS": {
+"n": 19,
+"seasons": "2013-14",
+"also": []
+},
+"TOR": {
+"n": 15,
+"seasons": "2019-20",
+"also": []
+},
+"UTA": {
+"n": 15,
+"seasons": "1996-97 (twice)",
+"also": []
+},
+"WAS": {
+"n": 9,
+"seasons": "1968-69 (Baltimore), 1969-70 (Baltimore), 1978-79 (Washington), 2001-02 (Washington)",
+"also": []
+}
+},
+"lose": {
+"ATL": {
+"n": 16,
+"seasons": "1975-76",
+"also": []
+},
+"BOS": {
+"n": 18,
+"seasons": "2006-07",
+"also": []
+},
+"BKN": {
+"n": 18,
+"seasons": "2009-10 (New Jersey)",
+"also": [
+{
+"n": 16,
+"seasons": "2016-17 (Brooklyn)"
+}
+]
+},
+"CHA": {
+"n": 23,
+"seasons": "2011-12",
+"also": []
+},
+"CHI": {
+"n": 16,
+"seasons": "2000-01",
+"also": []
+},
+"CLE": {
+"n": 26,
+"seasons": "2010-11",
+"also": []
+},
+"DAL": {
+"n": 20,
+"seasons": "1993-94",
+"also": []
+},
+"DEN": {
+"n": 23,
+"seasons": "1997-98",
+"also": []
+},
+"DET": {
+"n": 28,
+"seasons": "2023-24",
+"also": []
+},
+"GSW": {
+"n": 17,
+"seasons": "1964-65 (San Francisco)",
+"also": [
+{
+"n": 16,
+"seasons": "1984-85 (Golden State)"
+}
+]
+},
+"HOU": {
+"n": 20,
+"seasons": "2020-21",
+"also": []
+},
+"IND": {
+"n": 16,
+"seasons": "2025-26",
+"also": []
+},
+"LAC": {
+"n": 19,
+"seasons": "1981-82 (San Diego), 1988-89 (Los Angeles)",
+"also": []
+},
+"LAL": {
+"n": 10,
+"seasons": "1993-94, 2015-16",
+"also": []
+},
+"MEM": {
+"n": 23,
+"seasons": "1995-96 (Vancouver)",
+"also": [
+{
+"n": 19,
+"seasons": "2017-18 (Memphis)"
+}
+]
+},
+"MIA": {
+"n": 17,
+"seasons": "1988-89",
+"also": []
+},
+"MIL": {
+"n": 15,
+"seasons": "1995-96",
+"also": []
+},
+"MIN": {
+"n": 16,
+"seasons": "1991-92, 2009-10",
+"also": []
+},
+"NOP": {
+"n": 13,
+"seasons": "2019-20",
+"also": []
+},
+"NYK": {
+"n": 18,
+"seasons": "2018-19",
+"also": []
+},
+"OKC": {
+"n": 14,
+"seasons": "2007-08 (Seattle), 2008-09 (Oklahoma City), 2020-21 (Oklahoma City)",
+"also": []
+},
+"ORL": {
+"n": 19,
+"seasons": "2003-04",
+"also": []
+},
+"PHI": {
+"n": 26,
+"seasons": "2013-14",
+"also": []
+},
+"PHX": {
+"n": 17,
+"seasons": "2018-19",
+"also": []
+},
+"POR": {
+"n": 13,
+"seasons": "1971-72, 2012-13",
+"also": []
+},
+"SAC": {
+"n": 16,
+"seasons": "2025-26",
+"also": []
+},
+"SAS": {
+"n": 18,
+"seasons": "2023-24",
+"also": []
+},
+"TOR": {
+"n": 17,
+"seasons": "1997-98",
+"also": []
+},
+"UTA": {
+"n": 18,
+"seasons": "1981-82",
+"also": []
+},
+"WAS": {
+"n": 16,
+"seasons": "2009-10, 2023-24, 2024-25, 2025-26",
+"also": []
+}
+}
+}

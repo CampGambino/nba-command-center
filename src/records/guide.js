@@ -81,7 +81,7 @@ export function teamResults(teamFiles) {
   return out;
 }
 
-export function currentRecords({ guide, teamFiles, today = null, tonight = [], scorers = [], coachList = null, coachTeams = null, current = null, where = "all-time", record = "the NBA record", rounds = true, kind = null, horizon = HORIZON }) {
+export function currentRecords({ guide, teamFiles, today = null, tonight = [], scorers = [], coachList = null, coachTeams = null, current = null, franchiseStreaks = null, where = "all-time", record = "the NBA record", rounds = true, kind = null, horizon = HORIZON }) {
   const problems = [];
   const lines = seasonLines(teamFiles);
   const byKey = {};
@@ -304,6 +304,28 @@ export function currentRecords({ guide, teamFiles, today = null, tonight = [], s
       items.push({ kind: "team", who: name, team: tri, stat: c.list, label: c.what, now: c.n, target: next, need: next >= floor ? 1 : 2, rate: null, gamesAway: next >= floor ? 1 : 2,
         rank: better + 1, text: next >= floor ? text : `${name}: ${c.n}${c.losses ? `-${c.losses}` : ""} ${c.what}; two more wins reach the NBA's top list (${floor})`,
         score: next >= floor ? (better <= 2 ? 4.5 : 3.5) : 1.5, tonight: !!fits, opp: t?.opp || null });
+    }
+  }
+  // Franchise records for streaks within a season (NBA Guide pp. 142-143): the next win (or loss) that
+  // ties or sets the team's longest winning (or losing) streak.
+  if (franchiseStreaks) {
+    for (const [tri, R] of Object.entries(results)) {
+      const name = TEAMS[tri]?.nick || tri;
+      const t = playing.get(tri);
+      for (const [key, won, word] of [["win", true, "win"], ["lose", false, "loss"]]) {
+        const rec = franchiseStreaks[key]?.[tri];
+        if (!rec) continue;
+        let n = 0;
+        for (let i = R.length - 1; i >= 0 && R[i].win === won; i--) n++;
+        if (n < 3) continue;
+        const toTie = rec.n - n;
+        if (toTie > 2 || toTie < 0) continue;
+        const need = toTie === 0 ? 1 : toTie;
+        const what = toTie === 0 ? `sets the franchise record (${rec.n}, ${rec.seasons})` : `${toTie === 1 ? "ties" : "two more tie"} the franchise record (${rec.n}, ${rec.seasons})`;
+        const text = `${name}: ${won ? "won" : "lost"} ${n} straight; ${toTie === 2 ? `two more ${word === "win" ? "wins" : "losses"}` : `a ${word}${t ? " tonight" : ""}`} ${toTie === 2 ? what.replace("two more tie", "tie") : what}`;
+        items.push({ kind: "team", who: name, team: tri, stat: won ? "franchiseWinStreak" : "franchiseLoseStreak", label: `franchise ${won ? "winning" : "losing"} streak`, now: n, target: rec.n + (toTie === 0 ? 1 : 0), need,
+          rate: null, gamesAway: need, rank: null, text, score: toTie === 0 ? 4 : 3.2, tonight: !!t, opp: t?.opp || null });
+      }
     }
   }
   // Franchises: round-number wins (every 500) and all-time .500.

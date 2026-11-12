@@ -29,6 +29,11 @@ shutil.copy(WATCH, os.path.join(SITE, "watch.json"))
 # tonight.json (bridge v2's pre-game storylines) sits next to the Watch List it was built from.
 _tonight = os.path.join(os.path.dirname(os.path.abspath(WATCH)), "tonight.json")
 if os.path.exists(_tonight): shutil.copy(_tonight, os.path.join(SITE, "tonight.json"))
+# bridge v3: career records and the single-game lists
+_records = os.path.join(os.path.dirname(os.path.abspath(WATCH)), "records.json")
+if os.path.exists(_records): shutil.copy(_records, os.path.join(SITE, "records.json"))
+_bests = os.path.join(HERE, "..", "docs", "ref", "nba-single-game-bests.json")
+if os.path.exists(_bests): os.makedirs(os.path.join(SITE, "ref"), exist_ok=True); shutil.copy(_bests, os.path.join(SITE, "ref", "nba-single-game-bests.json"))
 server = subprocess.Popen([sys.executable, "-m", "http.server", "8791", "--directory", SITE], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(1)
 log = {"passed": 0, "blocked": 0, "errors": 0, "hosts": {}}
@@ -79,7 +84,7 @@ async def main():
         await pg.route("**/*", handle)
         await pg.goto(f"http://localhost:8791/index.html?date={DATE}&cc=watch.json", wait_until="domcontentloaded", timeout=120000)
         await pg.wait_for_timeout(SECONDS * 1000)
-        st = await pg.evaluate("() => { const s = window.CC_BRIDGE && window.CC_BRIDGE.state; return s && {connected: s.connected, items: s.items.length, fired: s.fired, error: s.error, today: s.data && s.data.today, wrongNight: s.wrongNight, tonight: s.tonight ? s.tonight.games.length : null, version: window.CC_BRIDGE.version}; }")
+        st = await pg.evaluate("() => { const s = window.CC_BRIDGE && window.CC_BRIDGE.state; return s && {connected: s.connected, items: s.items.length, fired: s.fired, error: s.error, today: s.data && s.data.today, wrongNight: s.wrongNight, tonight: s.tonight ? s.tonight.games.length : null, version: window.CC_BRIDGE.version, records: s.recItems ? s.recItems.length : null, bests: !!s.bests, recErr: s.recError || s.recordsError || null, listErr: s.listError || s.bestsError || null}; }")
         note = await pg.evaluate("() => (document.getElementById('cc-bridge-note')||{}).textContent || null")
         cards = await pg.evaluate("() => [...document.querySelectorAll('#alerts-scroll > *')].map(e => e.innerText.replace(/\\s+/g,' ').slice(0,230))")
         games = await pg.evaluate("() => { try { return GAMES.map(g => g.away.tricode+'@'+g.home.tricode+' '+g.status+' box:'+(g.boxscore? (g.boxscore.away||[]).length : 0)); } catch(e) { return String(e); } }")

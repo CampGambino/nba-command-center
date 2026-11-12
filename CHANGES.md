@@ -2,6 +2,54 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.40.0 (2026-11-12): Franchise streak records; reference tables (NBA Guide pp. 25-28, 44-45, 137-148)
+
+### Why
+- **The user:** "run what must be done". Next on the NBA Guide list: pp. 25-28, 44-45, 137-148.
+
+### What changed
+- **`tools/parse-franchise-streaks.py` → `src/data/nba-franchise-streaks-2026-27.json`:** every franchise's longest winning and losing streak within a season (pp. 142-143), with the seasons and earlier cities (Vancouver for Memphis, Seattle for OKC).
+- **`src/records/guide.js`:** a team within 2 of its franchise streak record (winning or losing; 3+ straight) gets an item: "Wizards: lost 15 straight; a loss tonight ties the franchise record (16, ...)". These go to tonight's storylines when tonight's game decides it (like the NBA's own streak lists in 0.31). None is close today: the longest active runs are the Spurs' 10 wins (franchise 19) and the Jazz's 10 losses (franchise 18).
+- **`tools/parse-guide-reference.py` → `src/data/nba-guide-reference-2026-27.json`:** stored for later, nothing alerts on them yet:
+  - the 2025 NBA Cup individual leaders (pp. 27-28: points, rebounds, assists, steals, blocks, minutes, per game);
+  - career playoff leaders among active players (pp. 44-45, 19 lists).
+- **Left out:**
+  - **pp. 25-26:** active career leaders (the Tip-Off Guide's lists, already used).
+  - **pp. 137-141:** the remaining top 10s (already in the Tip-Off Guide and the user's top-40 lists) and combined NBA/ABA lists.
+  - **p. 141:** neutral-court records.
+  - **pp. 142, 146-148:** best single-season records, attendance.
+  - **pp. 144-145:** coaching, done in 0.34.
+
+### Tested
+- **Checks** (569 pass): all 30 teams in both lists (Lakers 33 wins, Pistons 28 losses, the Memphis-era record kept beside Vancouver's), a team one loss from tying its record tonight, the reference tables (Brunson 199 Cup points in 2025, LeBron 8,521 playoff points).
+
+## 0.39.0 (2026-11-12): NBA Live bridge v3: career records and the all-time single-game lists, live
+
+### Why
+- **NBA Live** was the next step for the records work: the Command Center now knows the career lists (to 40th), NBA Cup careers, franchise records and the NBA's single-game lists, but NBA Live only knew the top single-game marks.
+
+### What changed
+- **`docs/bridge/cc-bridge.js` v3**, during games:
+  - **Career records** from `records.json`, live: passing a name on the all-time lists (to 40th; points to 68th), round career numbers, franchise records, and NBA Cup career marks (only in Cup games). Example: "Kevin Durant (HOU) — passes Shaquille O'Neal (11,330) for 7th all-time". Same gates as the notes' milestones: a card while in play (10%+ pre-game) or when reached; 6 a game. A milestone the team's notes already carry is left to that card.
+  - **The NBA's all-time single-game lists** (`ref/nba-single-game-bests.json`): a player within a few of a list ("5 from the NBA's all-time single-game list (57+, 153 games)") or on it ("58 points: tied for the 74th-most in a game on the NBA's all-time list"). On Cup nights the NBA Cup's own lists are checked too. NBA Live's own record cards (the top mark, rookie, team, half and quarter records) are left to NBA Live.
+- **Never breaks NBA Live:** the new checks run inside the bridge's existing try/catch, after NBA Live's own checks.
+- **`tools/check-nba-live.py`** serves `records.json` and the single-game lists too, and reports the record count.
+
+### Tested
+- **Real NBA Live** (`nba-live_14.html`), 11/11 with GSW at HOU replayed as live: connected, 870 milestones + 161 records. In the 4th quarter: "Kevin Durant (HOU) — passes Shaquille O'Neal (11,330) for 7th all-time", the fact @NBAPR posted that night. No bridge errors. The page errors are the test's blocked hosts.
+- **New stand-in checks** (6):
+  - a career pass reached and re-worded for now;
+  - a Cup mark counting down in a Cup game;
+  - a long shot gets no card; a milestone the notes carry gets no duplicate;
+  - making a single-game list with the right place (ties counted), nearing it, and the Cup list on a Cup night;
+  - a final game without a list game gets no card.
+
+### Still unproven
+- **Not in the user's NBA Live yet:** the user's NBA Live still needs the one bridge line (from 0.6.0) for any of this to show.
+- **Not checked by the bridge:**
+  - half and quarter records (NBA Live has its own);
+  - triple-doubles and wins are counted at the end, not live.
+
 ## 0.38.0 (2026-11-12): Award résumés on the Records tab
 
 ### Why

@@ -191,7 +191,9 @@ for (const [tri, games] of Object.entries(perTeam)) {
     // The newest current career lists (src/data/career-leaders-<date>.json), if any.
     const curFile = fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^career-leaders-\d{4}-\d\d-\d\d\.json$/.test(f)).sort().pop();
     const current = curFile ? JSON.parse(fs.readFileSync(path.join(root, "src", "data", curFile), "utf8")) : null;
-    const rec = currentRecords({ guide, teamFiles, today, tonight, scorers, coachList, coachTeams: coachList ? coachTeams : null, current });
+    const streaksFile = path.join(root, "src", "data", `nba-franchise-streaks-${season - 1}-${String(season).slice(2)}.json`);
+    const franchiseStreaks = fs.existsSync(streaksFile) ? JSON.parse(fs.readFileSync(streaksFile, "utf8")) : null;
+    const rec = currentRecords({ guide, teamFiles, today, tonight, scorers, coachList, coachTeams: coachList ? coachTeams : null, current, franchiseStreaks });
     addChances(rec.items, teamFiles, { makeSampler, simulate });
     // NBA Cup career lists (src/records/cup.js): the Cup media guide's leaders plus this season's Cup games.
     let cupOut = null;
