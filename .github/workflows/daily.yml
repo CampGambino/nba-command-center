@@ -26,7 +26,7 @@ on:
         default: ""
   push:
     branches: [main]
-    paths: [".github/workflows/daily.yml", "scripts/ci.js", "scripts/situations.js", "scripts/notify.js", "src/situations/**", "src/injuries/**", "src/anticipate/tonight.js"]
+    paths: [".github/workflows/daily.yml", "scripts/ci.js", "scripts/situations.js", "scripts/notify.js", "scripts/tonight.js", "src/notes/**", "src/situations/**", "src/injuries/**", "src/anticipate/tonight.js"]
 
 permissions:
   contents: write

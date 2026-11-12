@@ -27,6 +27,7 @@ Each entry: what changed, how it was tested, and what is still unproven.
   - **Splices dropped:** two capitals words in a row that aren't common abbreviations ("seventh MOST DOUBLE-DOUBLES double-double"); sub-bullets ("o The Pelicans…") and "**MAGIC TRICKS…" tails are split off.
   - **Look-ahead must not be past tense** ("was the first… within 60 games" is a record, not a look-ahead).
 - **The build passes today's date and team words** (`scripts/tonight.js`: city, nickname, `alt` and aliases like Mavs, Cavs, Sixers, HEAT).
+- **Pushes that change `scripts/tonight.js` or `src/notes/**` now rebuild** (`daily.yml`), so a reader fix reaches the site without waiting for the next scheduled build.
 - **Storylines, Discord and NBA Live cards name the player** when the line doesn't ("WAS notes — Anthony Davis: Logged his 39th…"). Before, only the Watch List panel showed the name.
 
 ### Tested
