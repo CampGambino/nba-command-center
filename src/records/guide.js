@@ -80,7 +80,7 @@ export function teamResults(teamFiles) {
   return out;
 }
 
-export function currentRecords({ guide, teamFiles, today = null, tonight = [], scorers = [] }) {
+export function currentRecords({ guide, teamFiles, today = null, tonight = [], scorers = [], where = "all-time", record = "the NBA record", rounds = true, kind = null, horizon = HORIZON }) {
   const problems = [];
   const lines = seasonLines(teamFiles);
   const byKey = {};
@@ -145,9 +145,9 @@ export function currentRecords({ guide, teamFiles, today = null, tonight = [], s
   const add = (it) => {
     const gamesAway = it.rate > 0 ? Math.max(1, Math.ceil(it.need / it.rate)) : null;
     // An NBA record chase stays listed however far off; the rest only within HORIZON games.
-    if (it.need <= 0 || gamesAway == null || (gamesAway > HORIZON && !(it.kind === "pass" && it.rank === 1 && gamesAway <= RECORD_HORIZON))) return;
+    if (it.need <= 0 || gamesAway == null || (gamesAway > horizon && !(it.kind === "pass" && it.rank === 1 && gamesAway <= RECORD_HORIZON))) return;
     const t = playing.get(it.team);
-    items.push({ ...it, gamesAway, tonight: !!t, opp: t?.opp || null });
+    items.push({ ...it, ...(kind ? { kind } : {}), gamesAway, tonight: !!t, opp: t?.opp || null });
   };
   for (const p of players) {
     if (!p.id) continue;
@@ -168,12 +168,12 @@ export function currentRecords({ guide, teamFiles, today = null, tonight = [], s
         const need = a.now - T.now + 1;
         add({ kind: "pass", who: p.name, last, id: p.id, team: p.team, stat, label: LABEL[stat], now: T.now, target: a.now + 1, need, rate,
           passing: { name: a.name, value: a.now, rank: a.rank || null, live: a.live }, rank: a.rank || null,
-          text: `${last}: ${fmt(need)} ${statWord(stat, need)} from passing ${a.name} (${fmt(a.now)})${a.rank === 1 ? " for the NBA record" : a.rank ? ` for ${ORD(a.rank)} all-time` : ""}${a.rank === 1 && need > 1 ? `; ${fmt(need - 1)} ties him` : ""}`,
+          text: `${last}: ${fmt(need)} ${statWord(stat, need)} from passing ${a.name} (${fmt(a.now)})${a.rank === 1 ? ` for ${record}` : a.rank ? ` for ${ORD(a.rank)} ${where}` : ""}${a.rank === 1 && need > 1 ? `; ${fmt(need - 1)} ties him` : ""}`,
           score: a.rank ? (a.rank === 1 ? 5 : a.rank <= 5 ? 4.2 : a.rank <= 10 ? 3.6 : a.rank <= 25 ? 2.8 : 2.2) : 2 });
       }
       // Round numbers: the guide's own marks, and the usual steps past the floor.
       const marks = new Set((guide.rounds || []).filter((r) => r.scope === "nba" && r.stat === stat && r.player === p.name).map((r) => r.value));
-      if (STEPS[stat] && T.now >= FLOOR[stat] - STEPS[stat]) marks.add(Math.floor(T.now / STEPS[stat]) * STEPS[stat] + STEPS[stat]);
+      if (rounds && STEPS[stat] && T.now >= FLOOR[stat] - STEPS[stat]) marks.add(Math.floor(T.now / STEPS[stat]) * STEPS[stat] + STEPS[stat]);
       for (const v of marks) {
         if (v <= T.now || v < FLOOR[stat]) continue;
         const need = v - T.now;
@@ -322,12 +322,13 @@ export function addChances(items, teamFiles, { makeSampler, simulate, sims = 300
       cache.set(key, { pPlay, sample: makeSampler(lines.slice(0, 20), { smooth: binary ? 0 : 0.2 }) });
     }
     const c = cache.get(key);
-    const games = Array.from({ length: 5 }, () => ({ pPlay: c.pPlay }));
+    const n = Math.max(1, it.horizonGames ?? 5); // the Cup: his Cup games left
+    const games = Array.from({ length: n }, () => ({ pPlay: c.pPlay }));
     const sim = simulate({ need: it.need, stat: it.stat, sample: c.sample, games, sims, seed: hash(`${it.who}|${it.stat}|${it.need}`) });
     if (sim.unknown) continue;
     it.pPlay = Math.round(c.pPlay * 100) / 100;
     it.pTonight = it.tonight ? Math.round(sim.byGame[0] * 1000) / 1000 : 0;
-    it.pNext5 = Math.round(sim.byGame[4] * 1000) / 1000;
+    it.pNext5 = Math.round(sim.byGame[Math.min(4, n - 1)] * 1000) / 1000;
   }
   return items;
 }

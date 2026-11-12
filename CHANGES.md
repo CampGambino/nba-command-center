@@ -2,6 +2,28 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.33.0 (2026-11-12): NBA Cup career lists, kept current from the Cup media guide
+
+### Why
+- **The user** added the Emirates NBA Cup 2026 media guide: it gives the Cup nights (pp. 4, 8, 9) and the Cup's records. Marking Cup games was the missing piece for tracking Cup career totals (0.32.0's "still unproven").
+
+### What changed
+- **`tools/parse-cup-guide.py` → `src/data/nba-cup-2026-27.json`:** the 60 Group Play games (group, teams, date, time; every Friday 10/30-11/27 plus Tue 11/24 and Wed 11/25), the knockout dates (quarterfinals 12/4-5, semifinals 12/8-9, Championship 12/11), and the all-time Cup leaders for 12 counting stats (pp. 39-42).
+- **New `src/records/cup.js`:** picks this season's Cup games out of the box scores by the schedule (date and teams), adds them to the guide's Cup totals, and lists the Cup marks a player can still reach in his remaining Cup games. These include passing a listed name, or "for the NBA Cup record". Games played and minutes aren't listed. The chances cover his Cup games left. Knockout games will count by date once they're played (a game on 12/4-5 or 12/8-9).
+- **Storylines:** a Cup line when it's 25%+ in tonight's Cup game (the first Cup night it applies to is 11/13).
+- **Records tab:** "NBA Cup career" in the kind filter; NBA Cup lists in the all-time list selector; Cup progress in the header.
+
+### Tested
+- **The schedule:** 60 games, 4 per team, 9 on 11/13; all 19 games played so far found in the box scores.
+- **Built with this season's data:** 117 Cup marks within reach. The Cup points list now: Gilgeous-Alexander 530, Dončić 516, Antetokounmpo 484, Brunson 481.
+- **New checks** (551 pass): schedule and leaders, only scheduled Cup games counted, Cup totals plus this season, no games-played passes.
+- **Rendered:** page sweep OK.
+
+### Still unproven
+- **The guide's lists** are the top 10 per stat (ties included), so ranks beyond 10th aren't known.
+- **Knockout games** are matched by date alone. That's safe only if no other game is played between those two teams on those dates.
+- **Not parsed yet:** the media guide's single-game bests, team and player records (pp. 33-38, 43-53). The NBA Guide's record book already has the Cup records (0.32.0).
+
 ## 0.32.0 (2026-11-12): The NBA Guide: points ranks to 68th, the Elias record book, single-game lists
 
 ### Why

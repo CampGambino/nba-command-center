@@ -125,7 +125,7 @@
   <div id="tonight"></div>
   <h2>Within reach</h2>
   <div class="controls">
-    <select id="kind"><option value="">Everything</option><option value="pass">Passing an all-time name</option><option value="round">Round career numbers</option><option value="franchise">Franchise records</option><option value="coach">Coaches</option><option value="team">Team streaks and starts</option><option value="franchiseWins">Franchise wins</option></select>
+    <select id="kind"><option value="">Everything</option><option value="pass">Passing an all-time name</option><option value="round">Round career numbers</option><option value="franchise">Franchise records</option><option value="coach">Coaches</option><option value="team">Team streaks and starts</option><option value="franchiseWins">Franchise wins</option><option value="cup">NBA Cup career</option></select>
     <select id="team"><option value="">All teams</option></select>
     <label>Within <select id="games"><option value="3">3 games</option><option value="5">5 games</option><option value="10">10 games</option><option value="99" selected>the list</option></select></label>
     <input type="search" id="q" placeholder="Player, coach or team">
@@ -157,11 +157,11 @@ const fmt = (n) => (n == null ? "–" : Number(n).toLocaleString("en-US"));
 const pc = (p) => (p == null ? "–" : `${Math.round(p * 100)}%`);
 const md = (d) => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
 const LABEL = { pts: "Points", reb: "Rebounds", oreb: "Offensive rebounds", dreb: "Defensive rebounds", ast: "Assists", stl: "Steals", blk: "Blocks", fgm: "Field goals made", ftm: "Free throws made", fg3m: "3-pointers made", gp: "Games played", min: "Minutes", td: "Triple-doubles", wins: "Wins (players)" };
-const KIND = { pass: "all-time", round: "round number", franchise: "franchise", coach: "coach", team: "team record", franchiseWins: "franchise" };
+const KIND = { pass: "all-time", round: "round number", franchise: "franchise", coach: "coach", team: "team record", franchiseWins: "franchise", cup: "NBA Cup" };
 let D = null, INJ = new Map();
 const nk = (n) => String(n || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[.'’]/g, "").trim();
 const injTag = (i) => { const s = INJ.get(`${i.team}|${nk(i.who)}`); return s ? ` <span class="tag" style="color:var(--${s === "Out" || s === "Doubtful" ? "bad" : "warn"})">${esc(s.toLowerCase())} tonight</span>` : ""; };
-const kindTag = (i) => (i.rank === 1 ? `<span class="tag record">${i.kind === "franchise" ? "franchise record" : i.kind === "coach" ? "coaching record" : "NBA record"}</span>` : `<span class="tag">${KIND[i.kind]}</span>`);
+const kindTag = (i) => (i.rank === 1 ? `<span class="tag record">${i.kind === "franchise" ? "franchise record" : i.kind === "coach" ? "coaching record" : i.kind === "cup" ? "NBA Cup record" : "NBA record"}</span>` : `<span class="tag">${KIND[i.kind]}</span>`);
 
 const bar = (p) => (p == null ? "–" : `${pc(p)}<span class="pbar"><i style="width:${Math.round(p * 100)}%"></i></span>`);
 function renderItems() {
@@ -169,7 +169,7 @@ function renderItems() {
   const rows = D.items.filter((i) => (!kind || i.kind === kind) && (!team || i.team === team) && (i.gamesAway ?? 99) <= games && (!q || `${i.who} ${i.team} ${i.text}`.toLowerCase().includes(q)));
   $("items").innerHTML = `<tr><th>Who</th><th class="what">What</th><th class="num">Now</th><th class="num">Needs</th><th class="num">≈ games</th><th class="num">Next 5 games</th></tr>` +
     (rows.length ? rows.map((i) => `<tr><td><b>${esc(i.who)}</b> <span class="team">${esc(i.team)}</span><br>${kindTag(i)}${i.tonight ? ` <span class="tag tonight">tonight${i.opp ? ` vs ${esc(i.opp)}` : ""}</span>` : ""}${injTag(i)}</td>
-      <td class="what">${esc(i.text.replace(/^[^:]+: /, ""))}${i.note ? `<div class="small">${esc(i.note)}</div>` : ""}</td><td class="num">${fmt(i.now)}</td><td class="num">${fmt(i.need)}</td><td class="num">${i.gamesAway ?? "–"}</td><td class="num">${bar(i.pNext5)}</td></tr>`).join("")
+      <td class="what">${esc(i.text.replace(/^[^:]+: /, ""))}${i.note ? `<div class="small">${esc(i.note)}</div>` : ""}</td><td class="num">${fmt(i.now)}</td><td class="num">${fmt(i.need)}</td><td class="num">${i.gamesAway ?? "–"}</td><td class="num">${bar(i.pNext5)}${i.kind === "cup" ? `<div class=small>in his ${i.cupGamesLeft} Cup game${i.cupGamesLeft === 1 ? "" : "s"} left</div>` : ""}</td></tr>`).join("")
       : `<tr><td colspan=6 class="empty">Nothing matches.</td></tr>`);
 }
 let RB = [], SG = null;
@@ -184,7 +184,7 @@ function renderBook() {
   $("lists").innerHTML = sg && (book === "Regular season" || book === "NBA Cup") ? `${book} single-game lists (every game at or above the floor; a game that reaches the floor makes the list): ${Object.entries(sg).map(([k, v]) => `${LABEL[k] || k} ${v.floor}+ (${v.games.length} games, best ${Math.max(...v.games.map((g) => g.value))})`).join(" · ")}` : "";
 }
 function renderBoard() {
-  const stat = $("stat").value, rows = D.boards[stat] || [];
+  const stat = $("stat").value, rows = (stat.startsWith("cup:") ? D.cup?.boards?.[stat.slice(4)] : D.boards[stat]) || [];
   $("board").innerHTML = `<tr><th class="num">Rank</th><th>Player</th><th class="num">Now</th><th class="num">Start of season</th><th class="num">This season</th></tr>` +
     rows.map((r) => `<tr class="${r.live ? "live" : ""}"><td class="num">${r.rank ?? "<span class=small>–</span>"}${r.rank && r.preRank && r.rank !== r.preRank ? ` <span class="small ${r.rank < r.preRank ? "hi" : "lo"}">${r.rank < r.preRank ? "▲" : "▼"}${Math.abs(r.preRank - r.rank)}</span>` : ""}</td>
       <td>${r.live ? `<b>${esc(r.name)}</b> <span class="team">${esc(r.team || "")}</span>` : esc(r.name)}</td><td class="num">${fmt(r.now)}</td><td class="num">${r.live ? fmt(r.now - (r.season ?? 0)) : ""}</td><td class="num">${r.live && r.season ? `+${fmt(r.season)}` : ""}</td></tr>`).join("");
@@ -195,12 +195,14 @@ Promise.all([fetch("data/records.json", { cache: "no-store" }).then((r) => r.jso
   D = d;
   if (inj && inj.date === d.today) for (const p of inj.players || []) INJ.set(`${p.team}|${nk(p.name)}`, p.status);
   for (const rows of Object.values(d.boards)) for (const r of rows) r.season = r.live && r.base != null ? r.now - r.base : r.season;
-  $("sub").textContent = `Career leaderboards and records, kept current: the NBA's Tip-Off Guide totals (through 2025-26) plus this season's games through ${md(d.through)}`;
+  $("sub").textContent = `Career leaderboards and records, kept current: the NBA's Tip-Off Guide totals (through 2025-26) plus this season's games through ${md(d.through)}${d.cup ? ` · NBA Cup: ${d.cup.played} of 60 Group Play games played${d.cup.schedule?.[0] ? `, next Cup night ${md(d.cup.schedule[0].d)}` : ""}` : ""}`;
   const tn = d.items.filter((i) => i.tonight && ((i.pTonight ?? 0) >= 0.05 || i.need === 1) && !/Out|Doubtful/.test(INJ.get(`${i.team}|${nk(i.who)}`) || ""));
   $("tonight").innerHTML = tn.length ? `<div class="scroll"><table><tr><th>Who</th><th class="what">What</th><th class="num">Tonight</th></tr>${tn.sort((a, b) => (b.pTonight ?? 1) - (a.pTonight ?? 1)).map((i) => `<tr><td><b>${esc(i.who)}</b> <span class="team">${esc(i.team)}${i.opp ? ` vs ${esc(i.opp)}` : ""}</span>${injTag(i)}</td><td class="what">${esc(i.text.replace(/^[^:]+: /, ""))}</td><td class="num">${i.pTonight != null ? bar(i.pTonight) : "if it happens"}</td></tr>`).join("")}</table></div>`
     : `<div class="empty">Nothing on these lists is likely to fall tonight.</div>`;
   $("team").innerHTML += [...new Set(d.items.map((i) => i.team))].sort().map((t) => `<option>${t}</option>`).join("");
-  $("stat").innerHTML = Object.keys(d.boards).filter((k) => LABEL[k]).map((k) => `<option value="${k}">${LABEL[k]}</option>`).join("");
+  $("stat").innerHTML = Object.keys(d.boards).filter((k) => LABEL[k]).map((k) => `<option value="${k}">${LABEL[k]}</option>`).join("")
+    + (d.cup ? Object.keys(d.cup.boards).filter((k) => LABEL[k]).map((k) => `<option value="cup:${k}">NBA Cup: ${LABEL[k]}</option>`).join("") : "");
+  if (d.cup) for (const rows of Object.values(d.cup.boards)) for (const r of rows) r.season = r.live && r.base != null ? r.now - r.base : null;
   ["kind", "team", "games", "q"].forEach((id) => $(id).addEventListener("input", renderItems));
   ["book", "scope", "side", "rq"].forEach((id) => $(id).addEventListener("input", renderBook));
   Promise.all([fetch("ref/nba-record-book.json").then((r) => r.json()), fetch("ref/nba-single-game-bests.json").then((r) => r.json())]).then(([rb, sg]) => { RB = rb; SG = sg; renderBook(); }).catch(() => { $("book-t").innerHTML = `<tr><td class="empty">Record book not loaded.</td></tr>`; });

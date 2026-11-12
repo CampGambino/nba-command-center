@@ -153,7 +153,7 @@ function recordLines(records, teams, today, milestones) {
   const out = [];
   for (const i of records.items || []) {
     if (!i.tonight || !teams.has(i.team)) continue;
-    if (i.kind === "pass" || i.kind === "round" || i.kind === "franchise") {
+    if (i.kind === "pass" || i.kind === "round" || i.kind === "franchise" || i.kind === "cup") {
       const p = i.pTonight || 0;
       if (p < 0.25) continue;
       // The notes' own version of the same milestone wins (same player and stat, same mark or same name passed).

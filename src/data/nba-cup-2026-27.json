@@ -1,0 +1,946 @@
+{
+ "source": "Emirates NBA Cup 2026 Media Guide (NBA): schedule p. 8, dates p. 4, all-time leaders pp. 39-42 (2023-2025 Cups)",
+ "group": [
+  {
+   "d": "2026-10-30",
+   "group": "West C",
+   "away": "LAL",
+   "home": "GSW",
+   "time": "10:00 PM"
+  },
+  {
+   "d": "2026-10-30",
+   "group": "West A",
+   "away": "DEN",
+   "home": "PHX",
+   "time": "10:00 PM"
+  },
+  {
+   "d": "2026-10-30",
+   "group": "East C",
+   "away": "CHA",
+   "home": "WAS",
+   "time": "7:00 PM"
+  },
+  {
+   "d": "2026-10-30",
+   "group": "East C",
+   "away": "CHI",
+   "home": "BOS",
+   "time": "7:30 PM"
+  },
+  {
+   "d": "2026-10-30",
+   "group": "East A",
+   "away": "DET",
+   "home": "BKN",
+   "time": "7:30 PM"
+  },
+  {
+   "d": "2026-10-30",
+   "group": "East B",
+   "away": "NYK",
+   "home": "PHI",
+   "time": "7:30 PM"
+  },
+  {
+   "d": "2026-10-30",
+   "group": "East A",
+   "away": "ORL",
+   "home": "TOR",
+   "time": "7:30 PM"
+  },
+  {
+   "d": "2026-10-30",
+   "group": "East B",
+   "away": "IND",
+   "home": "MIA",
+   "time": "8:00 PM"
+  },
+  {
+   "d": "2026-10-30",
+   "group": "West A",
+   "away": "HOU",
+   "home": "DAL",
+   "time": "8:00 PM"
+  },
+  {
+   "d": "2026-10-30",
+   "group": "West B",
+   "away": "LAC",
+   "home": "MIN",
+   "time": "8:00 PM"
+  },
+  {
+   "d": "2026-11-06",
+   "group": "West C",
+   "away": "POR",
+   "home": "LAL",
+   "time": "10:00 PM"
+  },
+  {
+   "d": "2026-11-06",
+   "group": "West C",
+   "away": "SAS",
+   "home": "SAC",
+   "time": "10:00 PM"
+  },
+  {
+   "d": "2026-11-06",
+   "group": "East C",
+   "away": "WAS",
+   "home": "ATL",
+   "time": "7:00 PM"
+  },
+  {
+   "d": "2026-11-06",
+   "group": "East C",
+   "away": "BOS",
+   "home": "CHA",
+   "time": "7:00 PM"
+  },
+  {
+   "d": "2026-11-06",
+   "group": "East B",
+   "away": "PHI",
+   "home": "CLE",
+   "time": "7:30 PM"
+  },
+  {
+   "d": "2026-11-06",
+   "group": "West A",
+   "away": "UTA",
+   "home": "DAL",
+   "time": "8:00 PM"
+  },
+  {
+   "d": "2026-11-06",
+   "group": "West B",
+   "away": "OKC",
+   "home": "MEM",
+   "time": "8:00 PM"
+  },
+  {
+   "d": "2026-11-06",
+   "group": "East A",
+   "away": "TOR",
+   "home": "MIL",
+   "time": "8:00 PM"
+  },
+  {
+   "d": "2026-11-06",
+   "group": "West B",
+   "away": "MIN",
+   "home": "NOP",
+   "time": "8:00 PM"
+  },
+  {
+   "d": "2026-11-13",
+   "group": "West C",
+   "away": "POR",
+   "home": "SAC",
+   "time": "10:00 PM"
+  },
+  {
+   "d": "2026-11-13",
+   "group": "West B",
+   "away": "OKC",
+   "home": "LAC",
+   "time": "10:30 PM"
+  },
+  {
+   "d": "2026-11-13",
+   "group": "East B",
+   "away": "NYK",
+   "home": "IND",
+   "time": "7:00 PM"
+  },
+  {
+   "d": "2026-11-13",
+   "group": "East A",
+   "away": "MIL",
+   "home": "ORL",
+   "time": "7:00 PM"
+  },
+  {
+   "d": "2026-11-13",
+   "group": "East B",
+   "away": "CLE",
+   "home": "MIA",
+   "time": "8:00 PM"
+  },
+  {
+   "d": "2026-11-13",
+   "group": "East C",
+   "away": "ATL",
+   "home": "CHI",
+   "time": "8:00 PM"
+  },
+  {
+   "d": "2026-11-13",
+   "group": "West B",
+   "away": "MEM",
+   "home": "NOP",
+   "time": "8:00 PM"
+  },
+  {
+   "d": "2026-11-13",
+   "group": "West A",
+   "away": "UTA",
+   "home": "HOU",
+   "time": "8:30 PM"
+  },
+  {
+   "d": "2026-11-13",
+   "group": "West C",
+   "away": "GSW",
+   "home": "SAS",
+   "time": "9:30 PM"
+  },
+  {
+   "d": "2026-11-20",
+   "group": "West A",
+   "away": "HOU",
+   "home": "DEN",
+   "time": "10:00 PM"
+  },
+  {
+   "d": "2026-11-20",
+   "group": "West C",
+   "away": "SAC",
+   "home": "LAL",
+   "time": "10:00 PM"
+  },
+  {
+   "d": "2026-11-20",
+   "group": "East C",
+   "away": "CHA",
+   "home": "ATL",
+   "time": "7:00 PM"
+  },
+  {
+   "d": "2026-11-20",
+   "group": "East A",
+   "away": "ORL",
+   "home": "BKN",
+   "time": "7:30 PM"
+  },
+  {
+   "d": "2026-11-20",
+   "group": "East B",
+   "away": "IND",
+   "home": "CLE",
+   "time": "7:30 PM"
+  },
+  {
+   "d": "2026-11-20",
+   "group": "East A",
+   "away": "TOR",
+   "home": "DET",
+   "time": "7:30 PM"
+  },
+  {
+   "d": "2026-11-20",
+   "group": "East C",
+   "away": "WAS",
+   "home": "CHI",
+   "time": "8:00 PM"
+  },
+  {
+   "d": "2026-11-20",
+   "group": "West B",
+   "away": "NOP",
+   "home": "OKC",
+   "time": "8:00 PM"
+  },
+  {
+   "d": "2026-11-20",
+   "group": "West A",
+   "away": "PHX",
+   "home": "UTA",
+   "time": "9:30 PM"
+  },
+  {
+   "d": "2026-11-24",
+   "group": "West A",
+   "away": "DAL",
+   "home": "DEN",
+   "time": "10:00 PM"
+  },
+  {
+   "d": "2026-11-24",
+   "group": "East A",
+   "away": "DET",
+   "home": "ORL",
+   "time": "7:00 PM"
+  },
+  {
+   "d": "2026-11-24",
+   "group": "East C",
+   "away": "BOS",
+   "home": "WAS",
+   "time": "8:00 PM"
+  },
+  {
+   "d": "2026-11-25",
+   "group": "West C",
+   "away": "SAC",
+   "home": "GSW",
+   "time": "10:00 PM"
+  },
+  {
+   "d": "2026-11-25",
+   "group": "West C",
+   "away": "SAS",
+   "home": "POR",
+   "time": "10:00 PM"
+  },
+  {
+   "d": "2026-11-25",
+   "group": "East B",
+   "away": "MIA",
+   "home": "PHI",
+   "time": "5:00 PM"
+  },
+  {
+   "d": "2026-11-25",
+   "group": "East C",
+   "away": "CHI",
+   "home": "CHA",
+   "time": "7:00 PM"
+  },
+  {
+   "d": "2026-11-25",
+   "group": "East B",
+   "away": "CLE",
+   "home": "NYK",
+   "time": "7:30 PM"
+  },
+  {
+   "d": "2026-11-25",
+   "group": "West B",
+   "away": "MIN",
+   "home": "OKC",
+   "time": "7:30 PM"
+  },
+  {
+   "d": "2026-11-25",
+   "group": "West B",
+   "away": "LAC",
+   "home": "MEM",
+   "time": "8:00 PM"
+  },
+  {
+   "d": "2026-11-25",
+   "group": "East A",
+   "away": "BKN",
+   "home": "MIL",
+   "time": "8:00 PM"
+  },
+  {
+   "d": "2026-11-25",
+   "group": "West A",
+   "away": "PHX",
+   "home": "HOU",
+   "time": "8:30 PM"
+  },
+  {
+   "d": "2026-11-27",
+   "group": "East B",
+   "away": "MIA",
+   "home": "NYK",
+   "time": "7:00 PM"
+  },
+  {
+   "d": "2026-11-27",
+   "group": "East A",
+   "away": "MIL",
+   "home": "DET",
+   "time": "7:30 PM"
+  },
+  {
+   "d": "2026-11-27",
+   "group": "East B",
+   "away": "PHI",
+   "home": "IND",
+   "time": "7:30 PM"
+  },
+  {
+   "d": "2026-11-27",
+   "group": "East A",
+   "away": "BKN",
+   "home": "TOR",
+   "time": "7:30 PM"
+  },
+  {
+   "d": "2026-11-27",
+   "group": "East C",
+   "away": "ATL",
+   "home": "BOS",
+   "time": "8:00 PM"
+  },
+  {
+   "d": "2026-11-27",
+   "group": "West B",
+   "away": "MEM",
+   "home": "MIN",
+   "time": "8:30 PM"
+  },
+  {
+   "d": "2026-11-27",
+   "group": "West A",
+   "away": "DAL",
+   "home": "PHX",
+   "time": "9:00 PM"
+  },
+  {
+   "d": "2026-11-27",
+   "group": "West C",
+   "away": "LAL",
+   "home": "SAS",
+   "time": "9:30 PM"
+  },
+  {
+   "d": "2026-11-27",
+   "group": "West A",
+   "away": "DEN",
+   "home": "UTA",
+   "time": "9:30 PM"
+  },
+  {
+   "d": "2026-11-27",
+   "group": "West B",
+   "away": "NOP",
+   "home": "LAC",
+   "time": "9:30 PM"
+  },
+  {
+   "d": "2026-11-27",
+   "group": "West C",
+   "away": "GSW",
+   "home": "POR",
+   "time": "9:30 PM"
+  }
+ ],
+ "knockout": {
+  "quarterfinals": [
+   "2026-12-04",
+   "2026-12-05"
+  ],
+  "semifinals": [
+   "2026-12-08",
+   "2026-12-09"
+  ],
+  "championship": "2026-12-11"
+ },
+ "leaders": {
+  "gp": [
+   {
+    "name": "Josh Hart",
+    "value": 17
+   },
+   {
+    "name": "Bobby Portis Jr.",
+    "value": 17
+   },
+   {
+    "name": "Cason Wallace",
+    "value": 17
+   },
+   {
+    "name": "Harrison Barnes",
+    "value": 16
+   },
+   {
+    "name": "Mikal Bridges",
+    "value": 16
+   },
+   {
+    "name": "Jalen Brunson",
+    "value": 16
+   },
+   {
+    "name": "Dyson Daniels",
+    "value": 16
+   },
+   {
+    "name": "Luguentz Dort",
+    "value": 16
+   },
+   {
+    "name": "Shai Gilgeous-Alexander",
+    "value": 16
+   },
+   {
+    "name": "AJ Green",
+    "value": 16
+   },
+   {
+    "name": "Buddy Hield",
+    "value": 16
+   },
+   {
+    "name": "Austin Reaves",
+    "value": 16
+   }
+  ],
+  "min": [
+   {
+    "name": "Mikal Bridges",
+    "value": 580
+   },
+   {
+    "name": "Jalen Brunson",
+    "value": 572
+   },
+   {
+    "name": "Josh Hart",
+    "value": 561
+   },
+   {
+    "name": "Shai Gilgeous-Alexander",
+    "value": 544
+   },
+   {
+    "name": "Karl-Anthony Towns",
+    "value": 532
+   },
+   {
+    "name": "Giannis Antetokounmpo",
+    "value": 527
+   },
+   {
+    "name": "Dyson Daniels",
+    "value": 520
+   },
+   {
+    "name": "De’Aaron Fox",
+    "value": 519
+   },
+   {
+    "name": "Austin Reaves",
+    "value": 503
+   },
+   {
+    "name": "Brandon Ingram",
+    "value": 502
+   }
+  ],
+  "pts": [
+   {
+    "name": "Shai Gilgeous-Alexander",
+    "value": 502
+   },
+   {
+    "name": "Jalen Brunson",
+    "value": 457
+   },
+   {
+    "name": "Giannis Antetokounmpo",
+    "value": 453
+   },
+   {
+    "name": "Luka Dončić",
+    "value": 426
+   },
+   {
+    "name": "De’Aaron Fox",
+    "value": 405
+   },
+   {
+    "name": "Jaylen Brown",
+    "value": 358
+   },
+   {
+    "name": "Anthony Edwards",
+    "value": 355
+   },
+   {
+    "name": "Damian Lillard",
+    "value": 336
+   },
+   {
+    "name": "Karl-Anthony Towns",
+    "value": 332
+   },
+   {
+    "name": "Brandon Ingram",
+    "value": 331
+   }
+  ],
+  "fgm": [
+   {
+    "name": "Shai Gilgeous-Alexander",
+    "value": 180
+   },
+   {
+    "name": "Jalen Brunson",
+    "value": 169
+   },
+   {
+    "name": "Giannis Antetokounmpo",
+    "value": 168
+   },
+   {
+    "name": "De’Aaron Fox",
+    "value": 144
+   },
+   {
+    "name": "Luka Dončić",
+    "value": 142
+   },
+   {
+    "name": "Jaylen Brown",
+    "value": 139
+   },
+   {
+    "name": "Brandon Ingram",
+    "value": 124
+   },
+   {
+    "name": "LeBron James",
+    "value": 115
+   },
+   {
+    "name": "Alperen Sengun",
+    "value": 114
+   },
+   {
+    "name": "Mikal Bridges",
+    "value": 112
+   },
+   {
+    "name": "Anthony Edwards",
+    "value": 112
+   }
+  ],
+  "fg3m": [
+   {
+    "name": "Stephen Curry",
+    "value": 55
+   },
+   {
+    "name": "Luka Dončić",
+    "value": 53
+   },
+   {
+    "name": "Damian Lillard",
+    "value": 52
+   },
+   {
+    "name": "Tyrese Haliburton",
+    "value": 46
+   },
+   {
+    "name": "Anthony Edwards",
+    "value": 45
+   },
+   {
+    "name": "De’Aaron Fox",
+    "value": 40
+   },
+   {
+    "name": "AJ Green",
+    "value": 40
+   },
+   {
+    "name": "Devin Vassell",
+    "value": 40
+   },
+   {
+    "name": "Jalen Brunson",
+    "value": 39
+   }
+  ],
+  "ftm": [
+   {
+    "name": "Giannis Antetokounmpo",
+    "value": 111
+   },
+   {
+    "name": "Shai Gilgeous-Alexander",
+    "value": 107
+   },
+   {
+    "name": "Luka Dončić",
+    "value": 89
+   },
+   {
+    "name": "Anthony Edwards",
+    "value": 86
+   },
+   {
+    "name": "Damian Lillard",
+    "value": 84
+   },
+   {
+    "name": "Joel Embiid",
+    "value": 82
+   },
+   {
+    "name": "Jalen Brunson",
+    "value": 80
+   },
+   {
+    "name": "Devin Booker",
+    "value": 78
+   },
+   {
+    "name": "Karl-Anthony Towns",
+    "value": 78
+   },
+   {
+    "name": "De’Aaron Fox",
+    "value": 77
+   }
+  ],
+  "reb": [
+   {
+    "name": "Karl-Anthony Towns",
+    "value": 179
+   },
+   {
+    "name": "Anthony Davis",
+    "value": 160
+   },
+   {
+    "name": "Giannis Antetokounmpo",
+    "value": 151
+   },
+   {
+    "name": "Josh Hart",
+    "value": 142
+   },
+   {
+    "name": "Rudy Gobert",
+    "value": 138
+   },
+   {
+    "name": "Nikola Jokić",
+    "value": 134
+   },
+   {
+    "name": "Jalen Johnson",
+    "value": 133
+   },
+   {
+    "name": "Evan Mobley",
+    "value": 128
+   },
+   {
+    "name": "Alperen Sengun",
+    "value": 127
+   },
+   {
+    "name": "Isaiah Hartenstein",
+    "value": 126
+   },
+   {
+    "name": "Ivica Zubac",
+    "value": 126
+   }
+  ],
+  "oreb": [
+   {
+    "name": "Clint Capela",
+    "value": 59
+   },
+   {
+    "name": "Mitchell Robinson",
+    "value": 53
+   },
+   {
+    "name": "Anthony Davis",
+    "value": 51
+   },
+   {
+    "name": "Mark Williams",
+    "value": 51
+   },
+   {
+    "name": "Ivica Zubac",
+    "value": 47
+   },
+   {
+    "name": "Rudy Gobert",
+    "value": 44
+   },
+   {
+    "name": "Jakob Poeltl",
+    "value": 43
+   },
+   {
+    "name": "Isaiah Hartenstein",
+    "value": 42
+   },
+   {
+    "name": "Alperen Sengun",
+    "value": 41
+   }
+  ],
+  "dreb": [
+   {
+    "name": "Karl-Anthony Towns",
+    "value": 142
+   },
+   {
+    "name": "Giannis Antetokounmpo",
+    "value": 123
+   },
+   {
+    "name": "Josh Hart",
+    "value": 120
+   },
+   {
+    "name": "Jalen Johnson",
+    "value": 110
+   },
+   {
+    "name": "Anthony Davis",
+    "value": 109
+   },
+   {
+    "name": "LeBron James",
+    "value": 105
+   },
+   {
+    "name": "Nikola Jokić",
+    "value": 98
+   },
+   {
+    "name": "Nikola Vučević",
+    "value": 97
+   },
+   {
+    "name": "Rudy Gobert",
+    "value": 94
+   },
+   {
+    "name": "Evan Mobley",
+    "value": 91
+   }
+  ],
+  "ast": [
+   {
+    "name": "Tyrese Haliburton",
+    "value": 121
+   },
+   {
+    "name": "Giannis Antetokounmpo",
+    "value": 116
+   },
+   {
+    "name": "LeBron James",
+    "value": 114
+   },
+   {
+    "name": "De’Aaron Fox",
+    "value": 102
+   },
+   {
+    "name": "James Harden",
+    "value": 98
+   },
+   {
+    "name": "Nikola Jokić",
+    "value": 97
+   },
+   {
+    "name": "Luka Dončić",
+    "value": 95
+   },
+   {
+    "name": "Cade Cunningham",
+    "value": 94
+   },
+   {
+    "name": "Shai Gilgeous-Alexander",
+    "value": 93
+   }
+  ],
+  "blk": [
+   {
+    "name": "Brook Lopez",
+    "value": 40
+   },
+   {
+    "name": "Anthony Davis",
+    "value": 33
+   },
+   {
+    "name": "Myles Turner",
+    "value": 27
+   },
+   {
+    "name": "Goga Bitadze",
+    "value": 26
+   },
+   {
+    "name": "Giannis Antetokounmpo",
+    "value": 25
+   },
+   {
+    "name": "Rudy Gobert",
+    "value": 23
+   },
+   {
+    "name": "Evan Mobley",
+    "value": 23
+   },
+   {
+    "name": "Victor Wembanyama",
+    "value": 23
+   },
+   {
+    "name": "Clint Capela",
+    "value": 18
+   },
+   {
+    "name": "Ivica Zubac",
+    "value": 18
+   }
+  ],
+  "stl": [
+   {
+    "name": "Shai Gilgeous-Alexander",
+    "value": 39
+   },
+   {
+    "name": "Dyson Daniels",
+    "value": 38
+   },
+   {
+    "name": "Josh Hart",
+    "value": 31
+   },
+   {
+    "name": "Cason Wallace",
+    "value": 28
+   },
+   {
+    "name": "Mikal Bridges",
+    "value": 25
+   },
+   {
+    "name": "Alex Caruso",
+    "value": 25
+   },
+   {
+    "name": "De’Aaron Fox",
+    "value": 24
+   },
+   {
+    "name": "Jalen Williams",
+    "value": 24
+   },
+   {
+    "name": "Alperen Sengun",
+    "value": 23
+   },
+   {
+    "name": "Jalen Suggs",
+    "value": 23
+   }
+  ]
+ }
+}

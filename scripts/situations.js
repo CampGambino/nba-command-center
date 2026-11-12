@@ -184,6 +184,20 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const scorers = fs.existsSync(scorersFile) ? JSON.parse(fs.readFileSync(scorersFile, "utf8")) : [];
     const rec = currentRecords({ guide, teamFiles, today, tonight, scorers });
     addChances(rec.items, teamFiles, { makeSampler, simulate });
+    // NBA Cup career lists (src/records/cup.js): the Cup media guide's leaders plus this season's Cup games.
+    let cupOut = null;
+    const cupFile = path.join(root, "src", "data", `nba-cup-${season - 1}-${String(season).slice(2)}.json`);
+    if (fs.existsSync(cupFile)) {
+      const { cupRecords, cupOnly } = await import("../src/records/cup.js");
+      const cup = JSON.parse(fs.readFileSync(cupFile, "utf8"));
+      const c = cupRecords({ cup, teamFiles, tonight, today });
+      // Chances from his games this season (all of them: a Cup game is a regular game).
+      addChances(c.items, teamFiles, { makeSampler, simulate });
+      rec.items.push(...c.items);
+      cupOut = { played: c.cupGamesPlayed, tonight: c.tonight, boards: Object.fromEntries(Object.entries(c.boards).map(([k, rows]) => [k, rows.slice(0, 25).map(({ name, team, live, now, base, rank, preRank }) => ({ name, team, live, now, base, rank: rank ?? null, preRank: preRank ?? null }))])),
+        schedule: cup.group.filter((g) => g.d >= today).slice(0, 15), problems: c.problems };
+      console.log(`NBA Cup: ${c.cupGamesPlayed} Cup games played this season, ${c.items.length} Cup marks within reach, ${c.tonight.length} Cup games tonight`);
+    }
     // Cross-check: the same totals in the teams' notes and ESPN's career stats (docs/data/watch.json).
     const checks = { same: 0, differ: [] };
     try {
@@ -203,7 +217,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const boards = Object.fromEntries(Object.entries(rec.boards).map(([stat, rows]) => [stat, rows.slice(0, 40).map(({ name, team, live, now, base, rank, preRank }) => ({ name, team, live, now, base, rank: rank ?? null, preRank: preRank ?? null }))]));
     fs.writeFileSync(path.join(root, "docs", "data", "records.json"), JSON.stringify({
       generatedAt: out.generatedAt, through: rec.through, today, source: guide.source, items: rec.items, boards, checks, problems: rec.problems, errata: guide.errata || [],
-      coaches: guide.coaches?.watch || [], teamRecords: guide.teamRecords,
+      coaches: guide.coaches?.watch || [], teamRecords: guide.teamRecords, cup: cupOut,
     }));
     console.log(`records: ${rec.players.filter((p) => p.id).length} guide players playing this season, ${rec.items.length} within reach (${rec.items.filter((i) => i.tonight).length} playing tonight); vs notes/ESPN: ${checks.same} agree, ${checks.differ.length} differ${rec.problems.length ? `; ${rec.problems.length} problems` : ""}`);
   } else console.log(`records: no Tip-Off Guide file for ${season - 1}-${String(season).slice(2)} (src/data/)`);

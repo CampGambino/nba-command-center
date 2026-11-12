@@ -1284,6 +1284,25 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     "single-game lists: floors (57 points, 11 threes), the Cup's list, a row whose numbers wrapped");
 }
 
+// ---------- NBA Cup career lists from the Cup media guide (the user, 11/12) ----------
+{
+  const { cupRecords, cupOnly } = await import("../src/records/cup.js");
+  const cup = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-cup-2026-27.json"), "utf8"));
+  const per = {};
+  for (const g of cup.group) for (const t of [g.away, g.home]) per[t] = (per[t] || 0) + 1;
+  ok(cup.group.length === 60 && Object.keys(per).length === 30 && Object.values(per).every((n) => n === 4) && cup.group.filter((g) => g.d === "2026-11-13").length === 9
+    && cup.leaders.pts[0].name === "Shai Gilgeous-Alexander" && cup.leaders.pts[0].value === 502 && cup.leaders.fg3m[0].value === 55,
+    "NBA Cup guide: 60 Group Play games (4 a team, 9 on 11/13), all-time leaders (SGA 502 points, Curry 55 threes)");
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const L = (o) => keys.map((k) => o[k] ?? 0);
+  const files = { OKC: { team: "OKC", keys, names: { 9: "Shai Gilgeous-Alexander" }, games: [
+    { d: "2026-11-06", opp: "MEM", home: false, pf: 120, pa: 110, pl: { 9: L({ min: 34, pts: 30 }) } },   // Cup (OKC at MEM)
+    { d: "2026-11-08", opp: "MEM", home: true, pf: 120, pa: 110, pl: { 9: L({ min: 34, pts: 40 }) } } ] } }; // not a Cup game
+  ok(cupOnly(files, cup).OKC.games.length === 1, "NBA Cup: only the schedule's Cup games count (date and teams)");
+  const c = cupRecords({ cup, teamFiles: files, tonight: [{ away: "OKC", home: "LAC" }], today: "2026-11-13" });
+  ok(c.boards.pts[0].now === 532 && c.tonight.length === 1 && !c.items.some((i) => i.stat === "gp"), "NBA Cup: his Cup total = the guide's + this season's Cup games; tonight's Cup game; no games-played passes", JSON.stringify(c.boards.pts[0]));
+}
+
 // ---------- NBA Cup final: counts in neither standings nor stats ----------
 {
   // Shapes as ESPN gave them for the 12/13/25 semifinals and 12/16/25 final (scoreboard and team schedule).
