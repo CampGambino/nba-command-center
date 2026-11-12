@@ -2,6 +2,28 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.22.0 (2026-11-11): the articles watcher deploys itself
+
+### What changed
+- **New `cloudflare/wrangler.toml`:** the Worker's settings.
+  - Name `ncc-articles`, `main = "articles-worker.js"`, workers.dev kept.
+  - The `STATE` KV binding (namespace `ncc-articles`, id 308ac0ac…; ids aren't secret).
+  - The 5-minute cron.
+  - **Why all of it is listed:** a deploy replaces bindings and crons with this file. The `DISCORD_WEBHOOK` secret isn't in it and survives deploys.
+- **New `.github/workflows/deploy-articles.yml`:** on any push to `main` that changes `cloudflare/` (or the watcher's checks), it runs the watcher's checks and then deploys with `cloudflare/wrangler-action@v3`.
+  - The Cloudflare token and account id are repository secrets (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`), given to the deploy step only.
+- **The token** (created by the user 11/11): "ncc-articles-deploy", their account only, Workers permissions only, no zone access. **It expires 2027-11-11; renew before then.**
+- **The watcher's checks moved to `tests/articles-worker.js`,** so they can run alone (`tests/articles-only.js`): the full suite needs the saved team notes, which aren't in the repo. `tests/run.js` still runs them.
+- **New check:** the deploy settings keep the name, `STATE`, the 5-minute schedule and workers.dev, and hold no secret.
+- **This deploy also ships the pending wording change** (the review page says "every 5 minutes").
+
+### Tested
+- **454 checks pass** (full suite).
+- **The watcher's 17 checks pass in a bare copy of the repo** (no samples, no node_modules), as GitHub will run them.
+
+### Still unproven
+- **The first automatic deploy:** this push triggers it. Afterwards, the review page should say "every 5 minutes".
+
 ## 0.21.0 (2026-11-11): the NBA Cup final is left out of records and stats
 
 ### What changed

@@ -1,0 +1,37 @@
+# Deploys the articles watcher (cloudflare/) to Cloudflare whenever its code or settings change.
+# Runs the watcher's checks first (tests/articles-only.js: the full suite needs the saved team notes,
+# which aren't in the repo); deploys only if they pass. The Cloudflare token and account id are
+# repository secrets, given to the deploy step only.
+name: deploy articles watcher
+
+on:
+  push:
+    branches: [main]
+    paths: ["cloudflare/**", "tests/articles-worker.js", "tests/articles-only.js", ".github/workflows/deploy-articles.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-articles
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Run the watcher's checks first
+        run: node tests/articles-only.js
+      - name: Deploy to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: cloudflare
+          command: deploy

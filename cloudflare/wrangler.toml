@@ -1,0 +1,17 @@
+# Cloudflare settings for the articles watcher (cloudflare/articles-worker.js).
+# Deployed by .github/workflows/deploy-articles.yml whenever cloudflare/ changes.
+# A deploy REPLACES the Worker's bindings and cron triggers with what is here, so everything the
+# Worker needs must be listed. Secrets (DISCORD_WEBHOOK) are not in this file and survive deploys.
+name = "ncc-articles"
+main = "articles-worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = true            # keep https://ncc-articles.dukie0813.workers.dev
+
+# The "seen", log, rules and labels store (KV namespace "ncc-articles"; the id isn't secret).
+[[kv_namespaces]]
+binding = "STATE"
+id = "308ac0ac87b94e36ae7786085b15bd55"
+
+# Check the feeds every 5 minutes (the user's choice, 11/11).
+[triggers]
+crons = ["*/5 * * * *"]
