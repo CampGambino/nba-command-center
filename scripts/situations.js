@@ -57,6 +57,7 @@ fs.writeFileSync(path.join(root, "docs", "data", "situations.json"), JSON.string
 // Current teams (src/rosters/current.js): a traded player shows his new team in the league-wide lists
 // (Clutch, 4th quarter, Streaks) from the day it's official, before he plays for it. ESPN's 30 rosters,
 // with NBA.com's official transactions as the fallback for changes ESPN hasn't caught up to.
+const coachTeams = {}; // tri -> head coach's name, from ESPN's rosters (for the coaching records)
 const rosterChanges = await (async () => {
   const { currentTeams, readMoves, readEspnRoster, ESPN_ROSTER, MOVES_URL, NBA_TEAM_ID } = await import("../src/rosters/current.js");
   const TEAMS = Object.fromEntries(Object.values(NBA_TEAM_ID).map((t) => [t, true]));
@@ -68,7 +69,10 @@ const rosterChanges = await (async () => {
   }
   const espn = {}, problems = [];
   await Promise.all(Object.keys(TEAMS).map(async (tri) => {
-    try { const r = await fetch(ESPN_ROSTER(ESPN_CODE[tri] || tri), { signal: AbortSignal.timeout(15000) }); if (r.ok) espn[tri] = readEspnRoster(await r.json()); else problems.push(`${tri} ${r.status}`); }
+    try {
+      const r = await fetch(ESPN_ROSTER(ESPN_CODE[tri] || tri), { signal: AbortSignal.timeout(15000) });
+      if (r.ok) { const j = await r.json(); espn[tri] = readEspnRoster(j); const c = j.coach?.[0]; if (c) coachTeams[tri] = `${c.firstName} ${c.lastName}`; } else problems.push(`${tri} ${r.status}`);
+    }
     catch (e) { problems.push(`${tri} ${e.name}`); }
   }));
   let moves = [], movesNote = "";
@@ -182,7 +186,9 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const guide = JSON.parse(fs.readFileSync(guideFile, "utf8"));
     const scorersFile = path.join(root, "src", "data", `nba-career-scorers-${season - 1}-${String(season).slice(2)}.json`);
     const scorers = fs.existsSync(scorersFile) ? JSON.parse(fs.readFileSync(scorersFile, "utf8")) : [];
-    const rec = currentRecords({ guide, teamFiles, today, tonight, scorers });
+    const coachesFile = path.join(root, "src", "data", `nba-coaches-${season - 1}-${String(season).slice(2)}.json`);
+    const coachList = fs.existsSync(coachesFile) && Object.keys(coachTeams).length >= 25 ? JSON.parse(fs.readFileSync(coachesFile, "utf8")) : null;
+    const rec = currentRecords({ guide, teamFiles, today, tonight, scorers, coachList, coachTeams: coachList ? coachTeams : null });
     addChances(rec.items, teamFiles, { makeSampler, simulate });
     // NBA Cup career lists (src/records/cup.js): the Cup media guide's leaders plus this season's Cup games.
     let cupOut = null;
@@ -217,7 +223,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const boards = Object.fromEntries(Object.entries(rec.boards).map(([stat, rows]) => [stat, rows.slice(0, 40).map(({ name, team, live, now, base, rank, preRank }) => ({ name, team, live, now, base, rank: rank ?? null, preRank: preRank ?? null }))]));
     fs.writeFileSync(path.join(root, "docs", "data", "records.json"), JSON.stringify({
       generatedAt: out.generatedAt, through: rec.through, today, source: guide.source, items: rec.items, boards, checks, problems: rec.problems, errata: guide.errata || [],
-      coaches: guide.coaches?.watch || [], teamRecords: guide.teamRecords, cup: cupOut,
+      coaches: coachTeams, teamRecords: guide.teamRecords, cup: cupOut,
     }));
     console.log(`records: ${rec.players.filter((p) => p.id).length} guide players playing this season, ${rec.items.length} within reach (${rec.items.filter((i) => i.tonight).length} playing tonight); vs notes/ESPN: ${checks.same} agree, ${checks.differ.length} differ${rec.problems.length ? `; ${rec.problems.length} problems` : ""}`);
   } else console.log(`records: no Tip-Off Guide file for ${season - 1}-${String(season).slice(2)} (src/data/)`);

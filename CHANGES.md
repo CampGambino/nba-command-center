@@ -2,6 +2,28 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.34.0 (2026-11-12): Every head coach's milestones; award history
+
+### Why
+- **The user:** "don't forget the nba guide pdf tasks either". Next on the list: coaching rankings (p. 145), award winners (pp. 100-121), yearly leaders (pp. 122-127).
+
+### What changed
+- **`tools/parse-coaches.py` → `src/data/nba-coaches-2026-27.json`:** the 79 coaches with 300+ wins (W-L, rank) and the top 20 by games coached.
+- **Coaches on the Records tab:** today's head coach for each team comes from ESPN's rosters (read in the same pass as the players). Every ranked coach is followed, not just Carlisle, Spoelstra and Kerr. A coach's wins and games = the guide's + his team's games this season.
+  - **Items:** passing the next ranked coaches, plus every 100th win and 100th game.
+  - **Examples now:** Nurse 3 wins from passing Brad Stevens for 62nd; Mike Brown 5 from passing Terry Stotts for 38th; Snyder 7 from passing Stotts.
+  - **Not followed:** coaches under 300 wins.
+- **`tools/parse-history.py` → `src/data/nba-history-2026-27.json`:** award winners for 18 single-winner awards (MVP, ROY, DPOY, MIP, 6MOY, Clutch, Coach, Finals MVP, conference finals MVPs, All-Star MVP and others; 647 winners). Stored for reference; nothing uses it yet.
+
+### Tested
+- **Coaches:** Carlisle 1,012-923 (11th), 1,935 games, as on the Tip-Off Guide; a name sharing a line with a heading read right (Bill Russell). All 30 head coaches read from ESPN.
+- **Awards:** 71 MVPs, 1955-56 to 2025-26 (Gilgeous-Alexander); Finals MVPs from 1969.
+- **New checks:** 554 pass.
+
+### Still unproven
+- **Yearly statistical leaders** (pp. 122-127) are not read. The columns change width from page to page, and the plain-text order separates seasons from names. The parser keeps a list only if it runs without a gap to 2025-26; none does yet.
+- **Coaches' totals** assume each coach ran every game this season (an interim game would be counted for him).
+
 ## 0.33.0 (2026-11-12): NBA Cup career lists, kept current from the Cup media guide
 
 ### Why

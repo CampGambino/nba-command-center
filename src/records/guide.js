@@ -80,7 +80,7 @@ export function teamResults(teamFiles) {
   return out;
 }
 
-export function currentRecords({ guide, teamFiles, today = null, tonight = [], scorers = [], where = "all-time", record = "the NBA record", rounds = true, kind = null, horizon = HORIZON }) {
+export function currentRecords({ guide, teamFiles, today = null, tonight = [], scorers = [], coachList = null, coachTeams = null, where = "all-time", record = "the NBA record", rounds = true, kind = null, horizon = HORIZON }) {
   const problems = [];
   const lines = seasonLines(teamFiles);
   const byKey = {};
@@ -204,11 +204,26 @@ export function currentRecords({ guide, teamFiles, today = null, tonight = [], s
   }
   // Coaches: wins and games coached = guide + the team's games this season.
   const results = teamResults(teamFiles);
-  const coachBoard = (stat) => [
+  // With the NBA Guide's coaching rankings (every 300-win coach, top 20 by games) and today's head coaches
+  // from ESPN's rosters, every ranked coach is followed; otherwise the Tip-Off Guide's three.
+  let coachWatch = guide.coaches?.watch || [], coachBoard = (stat) => [
     ...(stat === "wins" ? guide.coaches?.wins || [] : []),
     ...(guide.coaches?.targets || []).filter((t) => t.stat === stat),
   ];
-  for (const c of guide.coaches?.watch || []) {
+  let coachRounds = guide.coaches?.rounds || [];
+  if (coachList && coachTeams) {
+    const byName = new Map(coachList.wins.map((c) => [nameKey(c.name), c]));
+    coachWatch = Object.entries(coachTeams).flatMap(([team, name]) => {
+      const c = name && byName.get(nameKey(name));
+      return c ? [{ name: c.name, team, wins: c.w, games: c.w + c.l }] : [];
+    });
+    coachBoard = (stat) => (stat === "wins" ? coachList.wins.map((c) => ({ name: c.name, value: c.w, rank: c.rank })) : coachList.games.map((c) => ({ name: c.name, value: c.g, rank: c.rank })));
+    coachRounds = coachWatch.flatMap((c) => [
+      { name: c.name, stat: "wins", value: Math.floor(c.wins / 100) * 100 + 100 },
+      ...(c.games >= 900 ? [{ name: c.name, stat: "games", value: Math.floor(c.games / 100) * 100 + 100 }] : []),
+    ]);
+  }
+  for (const c of coachWatch) {
     const R = results[c.team] || [];
     const tw = R.filter((r) => r.win).length, tg = R.length;
     for (const stat of ["wins", "games"]) {
@@ -224,10 +239,11 @@ export function currentRecords({ guide, teamFiles, today = null, tonight = [], s
           text: `${last}: ${fmt(need)} ${stat === "games" ? (need === 1 ? "game" : "games") : need === 1 ? "win" : "wins"} from passing ${t.name} (${fmt(t.value)}) for ${ORD(t.rank)} in career ${stat === "games" ? "games coached" : "coaching wins"}`,
           score: t.rank <= 10 ? 3 : 2.2 });
       }
-      for (const r of (guide.coaches?.rounds || []).filter((r) => r.name === c.name && r.stat === stat && r.value > now)) {
+      for (const r of coachRounds.filter((r) => r.name === c.name && r.stat === stat && r.value > now)) {
         const need = r.value - now;
-        add({ kind: "coach", who: c.name, last, team: c.team, stat, label: "games coached", now, target: r.value, need, rate,
-          text: `${last}: ${need === 1 ? `coaches his ${fmt(r.value)}th game` : `${need} games from his ${fmt(r.value)}th game coached`}`, score: 2.6 });
+        add({ kind: "coach", who: c.name, last, team: c.team, stat, label: stat === "games" ? "games coached" : "coaching wins", now, target: r.value, need, rate,
+          text: stat === "games" ? `${last}: ${need === 1 ? `coaches his ${fmt(r.value)}th game` : `${need} games from his ${fmt(r.value)}th game coached`}`
+            : `${last}: ${need === 1 ? "1 win" : `${need} wins`} from his ${fmt(r.value)}th career win`, score: r.value % 500 === 0 ? 3 : 2.4 });
       }
     }
   }

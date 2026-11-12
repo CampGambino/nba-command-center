@@ -1,0 +1,3290 @@
+{
+"source": "NBA 2026-27 Guide pp. 100-127 (through 2025-26)",
+"awards": {
+"NBA Most Valuable Player": [
+{
+"season": "1955-56",
+"player": "Bob Pettit",
+"team": "St. Louis"
+},
+{
+"season": "1956-57",
+"player": "Bob Cousy",
+"team": "Boston"
+},
+{
+"season": "1957-58",
+"player": "Bill Russell",
+"team": "Boston"
+},
+{
+"season": "1958-59",
+"player": "Bob Pettit",
+"team": "St. Louis"
+},
+{
+"season": "1959-60",
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1960-61",
+"player": "Bill Russell",
+"team": "Boston"
+},
+{
+"season": "1961-62",
+"player": "Bill Russell",
+"team": "Boston"
+},
+{
+"season": "1962-63",
+"player": "Bill Russell",
+"team": "Boston"
+},
+{
+"season": "1963-64",
+"player": "Oscar Robertson",
+"team": "Cincinnati"
+},
+{
+"season": "1964-65",
+"player": "Bill Russell",
+"team": "Boston"
+},
+{
+"season": "1965-66",
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1966-67",
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1967-68",
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1968-69",
+"player": "Wes Unseld",
+"team": "Baltimore"
+},
+{
+"season": "1969-70",
+"player": "Willis Reed",
+"team": "New York"
+},
+{
+"season": "1970-71",
+"player": "Kareem Abdul-Jabbar",
+"team": "Milwaukee"
+},
+{
+"season": "1971-72",
+"player": "Kareem Abdul-Jabbar",
+"team": "Milwaukee"
+},
+{
+"season": "1972-73",
+"player": "Dave Cowens",
+"team": "Boston"
+},
+{
+"season": "1973-74",
+"player": "Kareem Abdul-Jabbar",
+"team": "Milwaukee"
+},
+{
+"season": "1974-75",
+"player": "Bob McAdoo",
+"team": "Buffalo"
+},
+{
+"season": "1975-76",
+"player": "Kareem Abdul-Jabbar",
+"team": "LA Lakers"
+},
+{
+"season": "1976-77",
+"player": "Kareem Abdul-Jabbar",
+"team": "LA Lakers"
+},
+{
+"season": "1977-78",
+"player": "Bill Walton",
+"team": "Portland"
+},
+{
+"season": "1978-79",
+"player": "Moses Malone",
+"team": "Houston"
+},
+{
+"season": "1979-80",
+"player": "Kareem Abdul-Jabbar",
+"team": "LA Lakers"
+},
+{
+"season": "1980-81",
+"player": "Julius Erving",
+"team": "Philadelphia"
+},
+{
+"season": "1981-82",
+"player": "Moses Malone",
+"team": "Houston"
+},
+{
+"season": "1982-83",
+"player": "Moses Malone",
+"team": "Philadelphia"
+},
+{
+"season": "1983-84",
+"player": "Larry Bird",
+"team": "Boston"
+},
+{
+"season": "1984-85",
+"player": "Larry Bird",
+"team": "Boston"
+},
+{
+"season": "1985-86",
+"player": "Larry Bird",
+"team": "Boston"
+},
+{
+"season": "1986-87",
+"player": "Magic Johnson",
+"team": "LA Lakers"
+},
+{
+"season": "1987-88",
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1988-89",
+"player": "Magic Johnson",
+"team": "LA Lakers"
+},
+{
+"season": "1989-90",
+"player": "Magic Johnson",
+"team": "LA Lakers"
+},
+{
+"season": "1990-91",
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1991-92",
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1992-93",
+"player": "Charles Barkley",
+"team": "Phoenix"
+},
+{
+"season": "1993-94",
+"player": "Hakeem Olajuwon",
+"team": "Houston"
+},
+{
+"season": "1994-95",
+"player": "David Robinson",
+"team": "San Antonio"
+},
+{
+"season": "1995-96",
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1996-97",
+"player": "Karl Malone",
+"team": "Utah"
+},
+{
+"season": "1997-98",
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1998-99",
+"player": "Karl Malone",
+"team": "Utah"
+},
+{
+"season": "1999-00",
+"player": "Shaquille O’Neal",
+"team": "LA Lakers"
+},
+{
+"season": "2000-01",
+"player": "Allen Iverson",
+"team": "Philadelphia"
+},
+{
+"season": "2001-02",
+"player": "Tim Duncan",
+"team": "San Antonio"
+},
+{
+"season": "2002-03",
+"player": "Tim Duncan",
+"team": "San Antonio"
+},
+{
+"season": "2003-04",
+"player": "Kevin Garnett",
+"team": "Minnesota"
+},
+{
+"season": "2004-05",
+"player": "Steve Nash",
+"team": "Phoenix"
+},
+{
+"season": "2005-06",
+"player": "Steve Nash",
+"team": "Phoenix"
+},
+{
+"season": "2006-07",
+"player": "Dirk Nowitzki",
+"team": "Dallas"
+},
+{
+"season": "2007-08",
+"player": "Kobe Bryant",
+"team": "LA Lakers"
+},
+{
+"season": "2008-09",
+"player": "LeBron James",
+"team": "Cleveland"
+},
+{
+"season": "2009-10",
+"player": "LeBron James",
+"team": "Cleveland"
+},
+{
+"season": "2010-11",
+"player": "Derrick Rose",
+"team": "Chicago"
+},
+{
+"season": "2011-12",
+"player": "LeBron James",
+"team": "Miami"
+},
+{
+"season": "2012-13",
+"player": "LeBron James",
+"team": "Miami"
+},
+{
+"season": "2013-14",
+"player": "Kevin Durant",
+"team": "Oklahoma City"
+},
+{
+"season": "2014-15",
+"player": "Stephen Curry",
+"team": "Golden State"
+},
+{
+"season": "2015-16",
+"player": "Stephen Curry",
+"team": "Golden State"
+},
+{
+"season": "2016-17",
+"player": "Russell Westbrook",
+"team": "Oklahoma City"
+},
+{
+"season": "2017-18",
+"player": "James Harden",
+"team": "Houston"
+},
+{
+"season": "2018-19",
+"player": "Giannis Antetokounmpo",
+"team": "Milwaukee"
+},
+{
+"season": "2019-20",
+"player": "Giannis Antetokounmpo",
+"team": "Milwaukee"
+},
+{
+"season": "2020-21",
+"player": "Nikola Jokic",
+"team": "Denver"
+},
+{
+"season": "2021-22",
+"player": "Nikola Jokic",
+"team": "Denver"
+},
+{
+"season": "2022-23",
+"player": "Joel Embiid",
+"team": "Philadelphia"
+},
+{
+"season": "2023-24",
+"player": "Nikola Jokic",
+"team": "Denver"
+},
+{
+"season": "2024-25",
+"player": "Shai Gilgeous-Alexander",
+"team": "Oklahoma City"
+},
+{
+"season": "2025-26",
+"player": "Shai Gilgeous-Alexander",
+"team": "Oklahoma City"
+}
+],
+"NBA Coach Of The Year": [
+{
+"season": "1962-63",
+"player": "Harry Gallatin",
+"team": "St. Louis"
+},
+{
+"season": "1963-64",
+"player": "Alex Hannum",
+"team": "San Francisco"
+},
+{
+"season": "1964-65",
+"player": "Red Auerbach",
+"team": "Boston"
+},
+{
+"season": "1965-66",
+"player": "Dolph Schayes",
+"team": "Philadelphia"
+},
+{
+"season": "1966-67",
+"player": "Johnny Kerr",
+"team": "Chicago"
+},
+{
+"season": "1967-68",
+"player": "Richie Guerin",
+"team": "St. Louis"
+},
+{
+"season": "1968-69",
+"player": "Gene Shue",
+"team": "Baltimore"
+},
+{
+"season": "1969-70",
+"player": "Red Holzman",
+"team": "New York"
+},
+{
+"season": "1970-71",
+"player": "Dick Motta",
+"team": "Chicago"
+},
+{
+"season": "1971-72",
+"player": "Bill Sharman",
+"team": "LA Lakers"
+},
+{
+"season": "1972-73",
+"player": "Tom Heinsohn",
+"team": "Boston"
+},
+{
+"season": "1973-74",
+"player": "Ray Scott",
+"team": "Detroit"
+},
+{
+"season": "1975-76",
+"player": "Bill Fitch",
+"team": "Cleveland"
+},
+{
+"season": "1976-77",
+"player": "Tom Nissalke",
+"team": "Houston"
+},
+{
+"season": "1977-78",
+"player": "Hubie Brown",
+"team": "Atlanta"
+},
+{
+"season": "1978-79",
+"player": "Cotton Fitzsimmons",
+"team": "Kansas City"
+},
+{
+"season": "1979-80",
+"player": "Bill Fitch",
+"team": "Boston"
+},
+{
+"season": "1980-81",
+"player": "Jack McKinney",
+"team": "Indiana"
+},
+{
+"season": "1981-82",
+"player": "Gene Shue",
+"team": "Washington"
+},
+{
+"season": "1982-83",
+"player": "Don Nelson",
+"team": "Milwaukee"
+},
+{
+"season": "1983-84",
+"player": "Frank Layden",
+"team": "Utah"
+},
+{
+"season": "1984-85",
+"player": "Don Nelson",
+"team": "Milwaukee"
+},
+{
+"season": "1985-86",
+"player": "Mike Fratello",
+"team": "Atlanta"
+},
+{
+"season": "1986-87",
+"player": "Mike Schuler",
+"team": "Portland"
+},
+{
+"season": "1987-88",
+"player": "Doug Moe",
+"team": "Denver"
+},
+{
+"season": "1988-89",
+"player": "Cotton Fitzsimmons",
+"team": "Phoenix"
+},
+{
+"season": "1989-90",
+"player": "Pat Riley",
+"team": "LA Lakers"
+},
+{
+"season": "1990-91",
+"player": "Don Chaney",
+"team": "Houston"
+},
+{
+"season": "1991-92",
+"player": "Don Nelson",
+"team": "Golden State"
+},
+{
+"season": "1992-93",
+"player": "Pat Riley",
+"team": "New York"
+},
+{
+"season": "1993-94",
+"player": "Lenny Wilkens",
+"team": "Atlanta"
+},
+{
+"season": "1994-95",
+"player": "Del Harris",
+"team": "LA Lakers"
+},
+{
+"season": "1995-96",
+"player": "Phil Jackson",
+"team": "Chicago"
+},
+{
+"season": "1996-97",
+"player": "Pat Riley",
+"team": "Miami"
+},
+{
+"season": "1997-98",
+"player": "Larry Bird",
+"team": "Indiana"
+},
+{
+"season": "1998-99",
+"player": "Mike Dunleavy",
+"team": "Portland"
+},
+{
+"season": "1999-00",
+"player": "Doc Rivers",
+"team": "Orlando"
+},
+{
+"season": "2000-01",
+"player": "Larry Brown",
+"team": "Philadelphia"
+},
+{
+"season": "2001-02",
+"player": "Rick Carlisle",
+"team": "Detroit"
+},
+{
+"season": "2002-03",
+"player": "Gregg Popovich",
+"team": "San Antonio"
+},
+{
+"season": "2003-04",
+"player": "Hubie Brown",
+"team": "Memphis"
+},
+{
+"season": "2004-05",
+"player": "Mike D’Antoni",
+"team": "Phoenix"
+},
+{
+"season": "2005-06",
+"player": "Avery Johnson",
+"team": "Dallas"
+},
+{
+"season": "2006-07",
+"player": "Sam Mitchell",
+"team": "Toronto"
+},
+{
+"season": "2007-08",
+"player": "Byron Scott",
+"team": "New Orleans"
+},
+{
+"season": "2008-09",
+"player": "Mike Brown",
+"team": "Cleveland"
+},
+{
+"season": "2009-10",
+"player": "Scott Brooks",
+"team": "Oklahoma City"
+},
+{
+"season": "2010-11",
+"player": "Tom Thibodeau",
+"team": "Chicago"
+},
+{
+"season": "2011-12",
+"player": "Gregg Popovich",
+"team": "San Antonio"
+},
+{
+"season": "2012-13",
+"player": "George Karl",
+"team": "Denver"
+},
+{
+"season": "2013-14",
+"player": "Gregg Popovich",
+"team": "San Antonio"
+},
+{
+"season": "2014-15",
+"player": "Mike Budenholzer",
+"team": "Atlanta"
+},
+{
+"season": "2015-16",
+"player": "Steve Kerr",
+"team": "Golden State"
+},
+{
+"season": "2016-17",
+"player": "Mike D’Antoni",
+"team": "Houston"
+},
+{
+"season": "2017-18",
+"player": "Dwane Casey",
+"team": "Toronto"
+},
+{
+"season": "2018-19",
+"player": "Mike Budenholzer",
+"team": "Milwaukee"
+},
+{
+"season": "2019-20",
+"player": "Nick Nurse",
+"team": "Toronto"
+},
+{
+"season": "2020-21",
+"player": "Tom Thibodeau",
+"team": "New York"
+},
+{
+"season": "2021-22",
+"player": "Monty Williams",
+"team": "Phoenix"
+},
+{
+"season": "2022-23",
+"player": "Mike Brown",
+"team": "Sacramento"
+},
+{
+"season": "2023-24",
+"player": "Mark Daigneault",
+"team": "Oklahoma City"
+},
+{
+"season": "2024-25",
+"player": "Kenny Atkinson",
+"team": "Cleveland"
+},
+{
+"season": "2025-26",
+"player": "Joe Mazzulla",
+"team": "Boston"
+}
+],
+"NBA Rookie Of The Year": [
+{
+"season": "1952-53",
+"player": "Don Meineke",
+"team": "Fort Wayne"
+},
+{
+"season": "1953-54",
+"player": "Ray Felix",
+"team": "Baltimore"
+},
+{
+"season": "1954-55",
+"player": "Bob Pettit",
+"team": "Milwaukee"
+},
+{
+"season": "1955-56",
+"player": "Maurice Stokes",
+"team": "Rochester"
+},
+{
+"season": "1956-57",
+"player": "Tom Heinsohn",
+"team": "Boston"
+},
+{
+"season": "1957-58",
+"player": "Woody Sauldsberry",
+"team": "Philadelphia"
+},
+{
+"season": "1958-59",
+"player": "Elgin Baylor",
+"team": "Minneapolis"
+},
+{
+"season": "1959-60",
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1960-61",
+"player": "Oscar Robertson",
+"team": "Cincinnati"
+},
+{
+"season": "1961-62",
+"player": "Walt Bellamy",
+"team": "Chicago"
+},
+{
+"season": "1962-63",
+"player": "Terry Dischinger",
+"team": "Chicago"
+},
+{
+"season": "1963-64",
+"player": "Jerry Lucas",
+"team": "Cincinnati"
+},
+{
+"season": "1964-65",
+"player": "Willis Reed",
+"team": "New York"
+},
+{
+"season": "1965-66",
+"player": "Rick Barry",
+"team": "San Francisco"
+},
+{
+"season": "1966-67",
+"player": "Dave Bing",
+"team": "Detroit"
+},
+{
+"season": "1967-68",
+"player": "Earl Monroe",
+"team": "Baltimore"
+},
+{
+"season": "1968-69",
+"player": "Wes Unseld",
+"team": "Baltimore"
+},
+{
+"season": "1969-70",
+"player": "Kareem Abdul-Jabbar",
+"team": "Milwaukee"
+},
+{
+"season": "1971-72",
+"player": "Sidney Wicks",
+"team": "Portland"
+},
+{
+"season": "1972-73",
+"player": "Bob McAdoo",
+"team": "Buffalo"
+},
+{
+"season": "1973-74",
+"player": "Ernie DiGregorio",
+"team": "Buffalo"
+},
+{
+"season": "1974-75",
+"player": "Jamaal Wilkes",
+"team": "Golden State"
+},
+{
+"season": "1975-76",
+"player": "Alvan Adams",
+"team": "Phoenix"
+},
+{
+"season": "1976-77",
+"player": "Adrian Dantley",
+"team": "Buffalo"
+},
+{
+"season": "1977-78",
+"player": "Walter Davis",
+"team": "Phoenix"
+},
+{
+"season": "1978-79",
+"player": "Phil Ford",
+"team": "Kansas City"
+},
+{
+"season": "1979-80",
+"player": "Larry Bird",
+"team": "Boston"
+},
+{
+"season": "1980-81",
+"player": "Darrell Griffith",
+"team": "Utah"
+},
+{
+"season": "1981-82",
+"player": "Buck Williams",
+"team": "New Jersey"
+},
+{
+"season": "1982-83",
+"player": "Terry Cummings",
+"team": "San Diego"
+},
+{
+"season": "1983-84",
+"player": "Ralph Sampson",
+"team": "Houston"
+},
+{
+"season": "1984-85",
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1985-86",
+"player": "Patrick Ewing",
+"team": "New York"
+},
+{
+"season": "1986-87",
+"player": "Chuck Person",
+"team": "Indiana"
+},
+{
+"season": "1987-88",
+"player": "Mark Jackson",
+"team": "New York"
+},
+{
+"season": "1988-89",
+"player": "Mitch Richmond",
+"team": "Golden State"
+},
+{
+"season": "1989-90",
+"player": "David Robinson",
+"team": "San Antonio"
+},
+{
+"season": "1990-91",
+"player": "Derrick Coleman",
+"team": "New Jersey"
+},
+{
+"season": "1991-92",
+"player": "Larry Johnson",
+"team": "Charlotte"
+},
+{
+"season": "1992-93",
+"player": "Shaquille O’Neal",
+"team": "Orlando"
+},
+{
+"season": "1993-94",
+"player": "Chris Webber",
+"team": "Golden State"
+},
+{
+"season": "1995-96",
+"player": "Damon Stoudamire",
+"team": "Toronto"
+},
+{
+"season": "1996-97",
+"player": "Allen Iverson",
+"team": "Philadelphia"
+},
+{
+"season": "1997-98",
+"player": "Tim Duncan",
+"team": "San Antonio"
+},
+{
+"season": "1998-99",
+"player": "Vince Carter",
+"team": "Toronto"
+},
+{
+"season": "2000-01",
+"player": "Mike Miller",
+"team": "Orlando"
+},
+{
+"season": "2001-02",
+"player": "Pau Gasol",
+"team": "Memphis"
+},
+{
+"season": "2002-03",
+"player": "Amar’e Stoudemire",
+"team": "Phoenix"
+},
+{
+"season": "2003-04",
+"player": "LeBron James",
+"team": "Cleveland"
+},
+{
+"season": "2004-05",
+"player": "Emeka Okafor",
+"team": "Charlotte"
+},
+{
+"season": "2006-07",
+"player": "Brandon Roy",
+"team": "Portland"
+},
+{
+"season": "2007-08",
+"player": "Kevin Durant",
+"team": "Seattle"
+},
+{
+"season": "2008-09",
+"player": "Derrick Rose",
+"team": "Chicago"
+},
+{
+"season": "2009-10",
+"player": "Tyreke Evans",
+"team": "Sacramento"
+},
+{
+"season": "2010-11",
+"player": "Blake Griffin",
+"team": "LA Clippers"
+},
+{
+"season": "2011-12",
+"player": "Kyrie Irving",
+"team": "Cleveland"
+},
+{
+"season": "2012-13",
+"player": "Damian Lillard",
+"team": "Portland"
+},
+{
+"season": "2013-14",
+"player": "Michael Carter-Williams",
+"team": "Philadelphia"
+},
+{
+"season": "2014-15",
+"player": "Andrew Wiggins",
+"team": "Minnesota"
+},
+{
+"season": "2015-16",
+"player": "Karl-Anthony Towns",
+"team": "Minnesota"
+},
+{
+"season": "2016-17",
+"player": "Malcolm Brogdon",
+"team": "Milwaukee"
+},
+{
+"season": "2017-18",
+"player": "Ben Simmons",
+"team": "Philadelphia"
+},
+{
+"season": "2018-19",
+"player": "Luka Doncic",
+"team": "Dallas"
+},
+{
+"season": "2019-20",
+"player": "Ja Morant",
+"team": "Memphis"
+},
+{
+"season": "2020-21",
+"player": "LaMelo Ball",
+"team": "Charlotte"
+},
+{
+"season": "2021-22",
+"player": "Scottie Barnes",
+"team": "Toronto"
+},
+{
+"season": "2022-23",
+"player": "Paolo Banchero",
+"team": "Orlando"
+},
+{
+"season": "2023-24",
+"player": "Victor Wembanyama",
+"team": "San Antonio"
+},
+{
+"season": "2024-25",
+"player": "Stephon Castle",
+"team": "San Antonio"
+},
+{
+"season": "2025-26",
+"player": "Cooper Flagg",
+"team": "Dallas"
+}
+],
+"NBA Most Improved Player": [
+{
+"season": "1985-86",
+"player": "Alvin Robertson",
+"team": "San Antonio"
+},
+{
+"season": "1986-87",
+"player": "Dale Ellis",
+"team": "Seattle"
+},
+{
+"season": "1987-88",
+"player": "Kevin Duckworth",
+"team": "Portland"
+},
+{
+"season": "1988-89",
+"player": "Kevin Johnson",
+"team": "Phoenix"
+},
+{
+"season": "1989-90",
+"player": "Rony Seikaly",
+"team": "Miami"
+},
+{
+"season": "1990-91",
+"player": "Scott Skiles",
+"team": "Orlando"
+},
+{
+"season": "1991-92",
+"player": "Pervis Ellison",
+"team": "Washington"
+},
+{
+"season": "1992-93",
+"player": "Mahmoud Abdul-Rauf",
+"team": "Denver"
+},
+{
+"season": "1993-94",
+"player": "Don MacLean",
+"team": "Washington"
+},
+{
+"season": "1994-95",
+"player": "Dana Barros",
+"team": "Philadelphia"
+},
+{
+"season": "1995-96",
+"player": "Gheorghe Muresan",
+"team": "Washington"
+},
+{
+"season": "1996-97",
+"player": "Isaac Austin",
+"team": "Miami"
+},
+{
+"season": "1997-98",
+"player": "Alan Henderson",
+"team": "Atlanta"
+},
+{
+"season": "1998-99",
+"player": "Darrell Armstrong",
+"team": "Orlando"
+},
+{
+"season": "1999-00",
+"player": "Jalen Rose",
+"team": "Indiana"
+},
+{
+"season": "2000-01",
+"player": "Tracy McGrady",
+"team": "Orlando"
+},
+{
+"season": "2001-02",
+"player": "Jermaine O’Neal",
+"team": "Indiana"
+},
+{
+"season": "2002-03",
+"player": "Gilbert Arenas",
+"team": "Golden State"
+},
+{
+"season": "2003-04",
+"player": "Zach Randolph",
+"team": "Portland"
+},
+{
+"season": "2004-05",
+"player": "Bobby Simmons",
+"team": "LA Clippers"
+},
+{
+"season": "2005-06",
+"player": "Boris Diaw",
+"team": "Phoenix"
+},
+{
+"season": "2006-07",
+"player": "Monta Ellis",
+"team": "Golden State"
+},
+{
+"season": "2007-08",
+"player": "Hedo Turkoglu",
+"team": "Orlando"
+},
+{
+"season": "2008-09",
+"player": "Danny Granger",
+"team": "Indiana"
+},
+{
+"season": "2009-10",
+"player": "Aaron Brooks",
+"team": "Houston"
+},
+{
+"season": "2010-11",
+"player": "Kevin Love",
+"team": "Minnesota"
+},
+{
+"season": "2011-12",
+"player": "Ryan Anderson",
+"team": "Orlando"
+},
+{
+"season": "2012-13",
+"player": "Paul George",
+"team": "Indiana"
+},
+{
+"season": "2013-14",
+"player": "Goran Dragic",
+"team": "Phoenix"
+},
+{
+"season": "2014-15",
+"player": "Jimmy Butler",
+"team": "Chicago"
+},
+{
+"season": "2015-16",
+"player": "CJ McCollum",
+"team": "Portland"
+},
+{
+"season": "2016-17",
+"player": "Giannis Antetokounmpo",
+"team": "Milwaukee"
+},
+{
+"season": "2017-18",
+"player": "Victor Oladipo",
+"team": "Indiana"
+},
+{
+"season": "2018-19",
+"player": "Pascal Siakam",
+"team": "Toronto"
+},
+{
+"season": "2019-20",
+"player": "Brandon Ingram",
+"team": "New Orleans"
+},
+{
+"season": "2020-21",
+"player": "Julius Randle",
+"team": "New York"
+},
+{
+"season": "2021-22",
+"player": "Ja Morant",
+"team": "Memphis"
+},
+{
+"season": "2022-23",
+"player": "Lauri Markkanen",
+"team": "Utah"
+},
+{
+"season": "2023-24",
+"player": "Tyrese Maxey",
+"team": "Philadelphia"
+},
+{
+"season": "2024-25",
+"player": "Dyson Daniels",
+"team": "Atlanta"
+},
+{
+"season": "2025-26",
+"player": "Nickeil Alexander-Walker",
+"team": "Atlanta"
+}
+],
+"NBA Defensive Player Of The Year": [
+{
+"season": "1982-83",
+"player": "Sidney Moncrief",
+"team": "Milwaukee"
+},
+{
+"season": "1983-84",
+"player": "Sidney Moncrief",
+"team": "Milwaukee"
+},
+{
+"season": "1984-85",
+"player": "Mark Eaton",
+"team": "Utah"
+},
+{
+"season": "1985-86",
+"player": "Alvin Robertson",
+"team": "San Antonio"
+},
+{
+"season": "1986-87",
+"player": "Michael Cooper",
+"team": "LA Lakers"
+},
+{
+"season": "1987-88",
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1988-89",
+"player": "Mark Eaton",
+"team": "Utah"
+},
+{
+"season": "1989-90",
+"player": "Dennis Rodman",
+"team": "Detroit"
+},
+{
+"season": "1990-91",
+"player": "Dennis Rodman",
+"team": "Detroit"
+},
+{
+"season": "1991-92",
+"player": "David Robinson",
+"team": "San Antonio"
+},
+{
+"season": "1992-93",
+"player": "Hakeem Olajuwon",
+"team": "Houston"
+},
+{
+"season": "1993-94",
+"player": "Hakeem Olajuwon",
+"team": "Houston"
+},
+{
+"season": "1994-95",
+"player": "Dikembe Mutombo",
+"team": "Denver"
+},
+{
+"season": "1995-96",
+"player": "Gary Payton",
+"team": "Seattle"
+},
+{
+"season": "1996-97",
+"player": "Dikembe Mutombo",
+"team": "Atlanta"
+},
+{
+"season": "1997-98",
+"player": "Dikembe Mutombo",
+"team": "Atlanta"
+},
+{
+"season": "1998-99",
+"player": "Alonzo Mourning",
+"team": "Miami"
+},
+{
+"season": "1999-00",
+"player": "Alonzo Mourning",
+"team": "Miami"
+},
+{
+"season": "2000-01",
+"player": "Dikembe Mutombo",
+"team": "Philadelphia"
+},
+{
+"season": "2001-02",
+"player": "Ben Wallace",
+"team": "Detroit"
+},
+{
+"season": "2002-03",
+"player": "Ben Wallace",
+"team": "Detroit"
+},
+{
+"season": "2003-04",
+"player": "Metta World Peace",
+"team": "Indiana"
+},
+{
+"season": "2004-05",
+"player": "Ben Wallace",
+"team": "Detroit"
+},
+{
+"season": "2005-06",
+"player": "Ben Wallace",
+"team": "Detroit"
+},
+{
+"season": "2006-07",
+"player": "Marcus Camby",
+"team": "Denver"
+},
+{
+"season": "2007-08",
+"player": "Kevin Garnett",
+"team": "Boston"
+},
+{
+"season": "2008-09",
+"player": "Dwight Howard",
+"team": "Orlando"
+},
+{
+"season": "2009-10",
+"player": "Dwight Howard",
+"team": "Orlando"
+},
+{
+"season": "2010-11",
+"player": "Dwight Howard",
+"team": "Orlando"
+},
+{
+"season": "2011-12",
+"player": "Tyson Chandler",
+"team": "New York"
+},
+{
+"season": "2012-13",
+"player": "Marc Gasol",
+"team": "Memphis"
+},
+{
+"season": "2013-14",
+"player": "Joakim Noah",
+"team": "Chicago"
+},
+{
+"season": "2014-15",
+"player": "Kawhi Leonard",
+"team": "San Antonio"
+},
+{
+"season": "2015-16",
+"player": "Kawhi Leonard",
+"team": "San Antonio"
+},
+{
+"season": "2016-17",
+"player": "Draymond Green",
+"team": "Golden State"
+},
+{
+"season": "2017-18",
+"player": "Rudy Gobert",
+"team": "Utah"
+},
+{
+"season": "2018-19",
+"player": "Rudy Gobert",
+"team": "Utah"
+},
+{
+"season": "2019-20",
+"player": "Giannis Antetokounmpo",
+"team": "Milwaukee"
+},
+{
+"season": "2020-21",
+"player": "Rudy Gobert",
+"team": "Utah"
+},
+{
+"season": "2021-22",
+"player": "Marcus Smart",
+"team": "Boston"
+},
+{
+"season": "2022-23",
+"player": "Jaren Jackson Jr.",
+"team": "Memphis"
+},
+{
+"season": "2023-24",
+"player": "Rudy Gobert",
+"team": "Minnesota"
+},
+{
+"season": "2024-25",
+"player": "Evan Mobley",
+"team": "Cleveland"
+},
+{
+"season": "2025-26",
+"player": "Victor Wembanyama",
+"team": "San Antonio"
+}
+],
+"NBA Sixth Man Of The Year": [
+{
+"season": "1982-83",
+"player": "Bobby Jones",
+"team": "Philadelphia"
+},
+{
+"season": "1983-84",
+"player": "Kevin McHale",
+"team": "Boston"
+},
+{
+"season": "1984-85",
+"player": "Kevin McHale",
+"team": "Boston"
+},
+{
+"season": "1985-86",
+"player": "Bill Walton",
+"team": "Boston"
+},
+{
+"season": "1986-87",
+"player": "Ricky Pierce",
+"team": "Milwaukee"
+},
+{
+"season": "1987-88",
+"player": "Roy Tarpley",
+"team": "Dallas"
+},
+{
+"season": "1988-89",
+"player": "Eddie Johnson",
+"team": "Phoenix"
+},
+{
+"season": "1989-90",
+"player": "Ricky Pierce",
+"team": "Milwaukee"
+},
+{
+"season": "1990-91",
+"player": "Detlef Schrempf",
+"team": "Indiana"
+},
+{
+"season": "1991-92",
+"player": "Detlef Schrempf",
+"team": "Indiana"
+},
+{
+"season": "1992-93",
+"player": "Clifford Robinson",
+"team": "Portland"
+},
+{
+"season": "1993-94",
+"player": "Dell Curry",
+"team": "Charlotte"
+},
+{
+"season": "1994-95",
+"player": "Anthony Mason",
+"team": "New York"
+},
+{
+"season": "1995-96",
+"player": "Toni Kukoc",
+"team": "Chicago"
+},
+{
+"season": "1996-97",
+"player": "John Starks",
+"team": "New York"
+},
+{
+"season": "1997-98",
+"player": "Danny Manning",
+"team": "Phoenix"
+},
+{
+"season": "1998-99",
+"player": "Darrell Armstrong",
+"team": "Orlando"
+},
+{
+"season": "1999-00",
+"player": "Rodney Rogers",
+"team": "Phoenix"
+},
+{
+"season": "2000-01",
+"player": "Aaron McKie",
+"team": "Philadelphia"
+},
+{
+"season": "2001-02",
+"player": "Corliss Williamson",
+"team": "Detroit"
+},
+{
+"season": "2002-03",
+"player": "Bobby Jackson",
+"team": "Sacramento"
+},
+{
+"season": "2003-04",
+"player": "Antawn Jamison",
+"team": "Dallas"
+},
+{
+"season": "2004-05",
+"player": "Ben Gordon",
+"team": "Chicago"
+},
+{
+"season": "2005-06",
+"player": "Mike Miller",
+"team": "Memphis"
+},
+{
+"season": "2006-07",
+"player": "Leandro Barbosa",
+"team": "Phoenix"
+},
+{
+"season": "2007-08",
+"player": "Manu Ginobili",
+"team": "San Antonio"
+},
+{
+"season": "2008-09",
+"player": "Jason Terry",
+"team": "Dallas"
+},
+{
+"season": "2009-10",
+"player": "Jamal Crawford",
+"team": "Atlanta"
+},
+{
+"season": "2010-11",
+"player": "Lamar Odom",
+"team": "LA Lakers"
+},
+{
+"season": "2011-12",
+"player": "James Harden",
+"team": "Oklahoma City"
+},
+{
+"season": "2012-13",
+"player": "J.R. Smith",
+"team": "New York"
+},
+{
+"season": "2013-14",
+"player": "Jamal Crawford",
+"team": "LA Clippers"
+},
+{
+"season": "2014-15",
+"player": "Lou Williams",
+"team": "Toronto"
+},
+{
+"season": "2015-16",
+"player": "Jamal Crawford",
+"team": "LA Clippers"
+},
+{
+"season": "2016-17",
+"player": "Eric Gordon",
+"team": "Houston"
+},
+{
+"season": "2017-18",
+"player": "Lou Williams",
+"team": "LA Clippers"
+},
+{
+"season": "2018-19",
+"player": "Lou Williams",
+"team": "LA Clippers"
+},
+{
+"season": "2019-20",
+"player": "Montrezl Harrell",
+"team": "LA Clippers"
+},
+{
+"season": "2020-21",
+"player": "Jordan Clarkson",
+"team": "Utah"
+},
+{
+"season": "2021-22",
+"player": "Tyler Herro",
+"team": "Miami"
+},
+{
+"season": "2022-23",
+"player": "Malcolm Brogdon",
+"team": "Boston"
+},
+{
+"season": "2023-24",
+"player": "Naz Reid",
+"team": "Minnesota"
+},
+{
+"season": "2024-25",
+"player": "Payton Pritchard",
+"team": "Boston"
+},
+{
+"season": "2025-26",
+"player": "Keldon Johnson",
+"team": "San Antonio"
+}
+],
+"NBA Clutch Player Of The Year": [
+{
+"season": "2022-23",
+"player": "De’Aaron Fox",
+"team": "Sacramento"
+},
+{
+"season": "2023-24",
+"player": "Stephen Curry",
+"team": "Golden State"
+},
+{
+"season": "2024-25",
+"player": "Jalen Brunson",
+"team": "New York"
+},
+{
+"season": "2025-26",
+"player": "Shai Gilgeous-Alexander",
+"team": "Oklahoma City"
+}
+],
+"NBA Hustle Award": [
+{
+"season": "2016-17",
+"player": "Patrick Beverley",
+"team": "Houston"
+},
+{
+"season": "2017-18",
+"player": "Amir Johnson",
+"team": "Philadelphia"
+},
+{
+"season": "2018-19",
+"player": "Marcus Smart",
+"team": "Boston"
+},
+{
+"season": "2019-20",
+"player": "Montrezl Harrell",
+"team": "LA Clippers"
+},
+{
+"season": "2020-21",
+"player": "Thaddeus Young",
+"team": "Chicago"
+},
+{
+"season": "2021-22",
+"player": "Marcus Smart",
+"team": "Boston"
+},
+{
+"season": "2022-23",
+"player": "Marcus Smart",
+"team": "Boston"
+},
+{
+"season": "2023-24",
+"player": "Alex Caruso",
+"team": "Chicago"
+},
+{
+"season": "2024-25",
+"player": "Draymond Green",
+"team": "Golden State"
+},
+{
+"season": "2025-26",
+"player": "Moussa Diabate",
+"team": "Charlotte"
+}
+],
+"NBA Basketball Executive Of The Year": [
+{
+"season": "1973-74",
+"player": "Eddie Donovan",
+"team": "Buffalo"
+},
+{
+"season": "1974-75",
+"player": "Dick Vertlieb",
+"team": "Golden State"
+},
+{
+"season": "1975-76",
+"player": "Jerry Colangelo",
+"team": "Phoenix"
+},
+{
+"season": "1976-77",
+"player": "Ray Patterson",
+"team": "Houston"
+},
+{
+"season": "1977-78",
+"player": "Angelo Drossos",
+"team": "San Antonio"
+},
+{
+"season": "1978-79",
+"player": "Bob Ferry",
+"team": "Washington"
+},
+{
+"season": "1979-80",
+"player": "Red Auerbach",
+"team": "Boston"
+},
+{
+"season": "1980-81",
+"player": "Jerry Colangelo",
+"team": "Phoenix"
+},
+{
+"season": "1981-82",
+"player": "Bob Ferry",
+"team": "Washington"
+},
+{
+"season": "1982-83",
+"player": "Zollie Volchok",
+"team": "Seattle"
+},
+{
+"season": "1983-84",
+"player": "Frank Layden",
+"team": "Utah"
+},
+{
+"season": "1984-85",
+"player": "Vince Boryla",
+"team": "Denver"
+},
+{
+"season": "1985-86",
+"player": "Stan Kasten",
+"team": "Atlanta"
+},
+{
+"season": "1986-87",
+"player": "Stan Kasten",
+"team": "Atlanta"
+},
+{
+"season": "1987-88",
+"player": "Jerry Krause",
+"team": "Chicago"
+},
+{
+"season": "1988-89",
+"player": "Jerry Colangelo",
+"team": "Phoenix"
+},
+{
+"season": "1989-90",
+"player": "Bob Bass",
+"team": "San Antonio"
+},
+{
+"season": "1990-91",
+"player": "Bucky Buckwalter",
+"team": "Portland"
+},
+{
+"season": "1991-92",
+"player": "Wayne Embry",
+"team": "Cleveland"
+},
+{
+"season": "1992-93",
+"player": "Jerry Colangelo",
+"team": "Phoenix"
+},
+{
+"season": "1993-94",
+"player": "Bob Whitsitt",
+"team": "Seattle"
+},
+{
+"season": "1994-95",
+"player": "Jerry West",
+"team": "LA Lakers"
+},
+{
+"season": "1995-96",
+"player": "Jerry Krause",
+"team": "Chicago"
+},
+{
+"season": "1996-97",
+"player": "Bob Bass",
+"team": "Charlotte"
+},
+{
+"season": "1997-98",
+"player": "Wayne Embry",
+"team": "Cleveland"
+},
+{
+"season": "1998-99",
+"player": "Geoff Petrie",
+"team": "Sacramento"
+},
+{
+"season": "1999-00",
+"player": "John Gabriel",
+"team": "Orlando"
+},
+{
+"season": "2000-01",
+"player": "Geoff Petrie",
+"team": "Sacramento"
+},
+{
+"season": "2001-02",
+"player": "Rod Thorn",
+"team": "New Jersey"
+},
+{
+"season": "2002-03",
+"player": "Joe Dumars",
+"team": "Detroit"
+},
+{
+"season": "2003-04",
+"player": "Jerry West",
+"team": "Memphis"
+},
+{
+"season": "2004-05",
+"player": "Bryan Colangelo",
+"team": "Phoenix"
+},
+{
+"season": "2005-06",
+"player": "Elgin Baylor",
+"team": "LA Clippers"
+},
+{
+"season": "2006-07",
+"player": "Bryan Colangelo",
+"team": "Toronto"
+},
+{
+"season": "2007-08",
+"player": "Danny Ainge",
+"team": "Boston"
+},
+{
+"season": "2008-09",
+"player": "Mark Warkentien",
+"team": "Denver"
+},
+{
+"season": "2009-10",
+"player": "John Hammond",
+"team": "Milwaukee"
+},
+{
+"season": "2011-12",
+"player": "Larry Bird",
+"team": "Indiana"
+},
+{
+"season": "2012-13",
+"player": "Masai Ujiri",
+"team": "Denver"
+},
+{
+"season": "2013-14",
+"player": "R.C. Buford",
+"team": "San Antonio"
+},
+{
+"season": "2014-15",
+"player": "Bob Myers",
+"team": "Golden State"
+},
+{
+"season": "2015-16",
+"player": "R.C. Buford",
+"team": "San Antonio"
+},
+{
+"season": "2016-17",
+"player": "Bob Myers",
+"team": "Golden State"
+},
+{
+"season": "2017-18",
+"player": "Daryl Morey",
+"team": "Houston"
+},
+{
+"season": "2018-19",
+"player": "Jon Horst",
+"team": "Milwaukee"
+},
+{
+"season": "2019-20",
+"player": "Lawrence Frank",
+"team": "LA Clippers"
+},
+{
+"season": "2020-21",
+"player": "James Jones",
+"team": "Phoenix"
+},
+{
+"season": "2021-22",
+"player": "Zach Kleiman",
+"team": "Memphis"
+},
+{
+"season": "2022-23",
+"player": "Monte McNair",
+"team": "Sacramento"
+},
+{
+"season": "2023-24",
+"player": "Brad Stevens",
+"team": "Boston"
+},
+{
+"season": "2024-25",
+"player": "Sam Presti",
+"team": "Oklahoma City"
+},
+{
+"season": "2025-26",
+"player": "Brad Stevens",
+"team": "Boston"
+}
+],
+"NBA Finals Most Valuable Player": [
+{
+"season": "1969",
+"player": "Jerry West",
+"team": "LA Lakers"
+},
+{
+"season": "1970",
+"player": "Willis Reed",
+"team": "New York"
+},
+{
+"season": "1971",
+"player": "Kareem Abdul-Jabbar",
+"team": "Milwaukee"
+},
+{
+"season": "1972",
+"player": "Wilt Chamberlain",
+"team": "LA Lakers"
+},
+{
+"season": "1973",
+"player": "Willis Reed",
+"team": "New York"
+},
+{
+"season": "1974",
+"player": "John Havlicek",
+"team": "Boston"
+},
+{
+"season": "1975",
+"player": "Rick Barry",
+"team": "Golden State"
+},
+{
+"season": "1976",
+"player": "Jo Jo White",
+"team": "Boston"
+},
+{
+"season": "1977",
+"player": "Bill Walton",
+"team": "Portland"
+},
+{
+"season": "1978",
+"player": "Wes Unseld",
+"team": "Washington"
+},
+{
+"season": "1979",
+"player": "Dennis Johnson",
+"team": "Seattle"
+},
+{
+"season": "1980",
+"player": "Magic Johnson",
+"team": "LA Lakers"
+},
+{
+"season": "1981",
+"player": "Cedric Maxwell",
+"team": "Boston"
+},
+{
+"season": "1982",
+"player": "Magic Johnson",
+"team": "LA Lakers"
+},
+{
+"season": "1983",
+"player": "Moses Malone",
+"team": "Philadelphia"
+},
+{
+"season": "1984",
+"player": "Larry Bird",
+"team": "Boston"
+},
+{
+"season": "1985",
+"player": "Kareem Abdul-Jabbar",
+"team": "LA Lakers"
+},
+{
+"season": "1986",
+"player": "Larry Bird",
+"team": "Boston"
+},
+{
+"season": "1987",
+"player": "Magic Johnson",
+"team": "LA Lakers"
+},
+{
+"season": "1988",
+"player": "James Worthy",
+"team": "LA Lakers"
+},
+{
+"season": "1989",
+"player": "Joe Dumars",
+"team": "Detroit"
+},
+{
+"season": "1990",
+"player": "Isiah Thomas",
+"team": "Detroit"
+},
+{
+"season": "1991",
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1992",
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1993",
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1994",
+"player": "Hakeem Olajuwon",
+"team": "Houston"
+},
+{
+"season": "1995",
+"player": "Hakeem Olajuwon",
+"team": "Houston"
+},
+{
+"season": "1996",
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1997",
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1998",
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1999",
+"player": "Tim Duncan",
+"team": "San Antonio"
+},
+{
+"season": "2000",
+"player": "Shaquille O’Neal",
+"team": "LA Lakers"
+},
+{
+"season": "2001",
+"player": "Shaquille O’Neal",
+"team": "LA Lakers"
+},
+{
+"season": "2002",
+"player": "Shaquille O’Neal",
+"team": "LA Lakers"
+},
+{
+"season": "2003",
+"player": "Tim Duncan",
+"team": "San Antonio"
+},
+{
+"season": "2004",
+"player": "Chauncey Billups",
+"team": "Detroit"
+},
+{
+"season": "2005",
+"player": "Tim Duncan",
+"team": "San Antonio"
+},
+{
+"season": "2006",
+"player": "Dwyane Wade",
+"team": "Miami"
+},
+{
+"season": "2007",
+"player": "Tony Parker",
+"team": "San Antonio"
+},
+{
+"season": "2008",
+"player": "Paul Pierce",
+"team": "Boston"
+},
+{
+"season": "2009",
+"player": "Kobe Bryant",
+"team": "LA Lakers"
+},
+{
+"season": "2010",
+"player": "Kobe Bryant",
+"team": "LA Lakers"
+},
+{
+"season": "2011",
+"player": "Dirk Nowitzki",
+"team": "Dallas"
+},
+{
+"season": "2012",
+"player": "LeBron James",
+"team": "Miami"
+},
+{
+"season": "2013",
+"player": "LeBron James",
+"team": "Miami"
+},
+{
+"season": "2014",
+"player": "Kawhi Leonard",
+"team": "San Antonio"
+},
+{
+"season": "2015",
+"player": "Andre Iguodala",
+"team": "Golden State"
+},
+{
+"season": "2016",
+"player": "LeBron James",
+"team": "Cleveland"
+},
+{
+"season": "2017",
+"player": "Kevin Durant",
+"team": "Golden State"
+},
+{
+"season": "2018",
+"player": "Kevin Durant",
+"team": "Golden State"
+},
+{
+"season": "2019",
+"player": "Kawhi Leonard",
+"team": "Toronto"
+},
+{
+"season": "2020",
+"player": "LeBron James",
+"team": "LA Lakers"
+},
+{
+"season": "2021",
+"player": "Giannis Antetokounmpo",
+"team": "Milwaukee"
+},
+{
+"season": "2022",
+"player": "Stephen Curry",
+"team": "Golden State"
+},
+{
+"season": "2023",
+"player": "Nikola Jokic",
+"team": "Denver"
+},
+{
+"season": "2024",
+"player": "Jaylen Brown",
+"team": "Boston"
+},
+{
+"season": "2025",
+"player": "Shai Gilgeous-Alexander",
+"team": "Oklahoma City"
+},
+{
+"season": "2026",
+"player": "Jalen Brunson",
+"team": "New York"
+}
+],
+"NBA Eastern Conference Finals MVP": [
+{
+"season": "2022",
+"player": "Jayson Tatum",
+"team": "Boston"
+},
+{
+"season": "2023",
+"player": "Jimmy Butler",
+"team": "Miami"
+},
+{
+"season": "2024",
+"player": "Jaylen Brown",
+"team": "Boston"
+},
+{
+"season": "2025",
+"player": "Pascal Siakam",
+"team": "Indiana"
+},
+{
+"season": "2026",
+"player": "Jalen Brunson",
+"team": "New York"
+}
+],
+"NBA Western Conference Finals MVP": [
+{
+"season": "2022",
+"player": "Stephen Curry",
+"team": "Golden State"
+},
+{
+"season": "2023",
+"player": "Nikola Jokic",
+"team": "Denver"
+},
+{
+"season": "2024",
+"player": "Luka Doncic",
+"team": "Dallas"
+},
+{
+"season": "2025",
+"player": "Shai Gilgeous-Alexander",
+"team": "Oklahoma City"
+},
+{
+"season": "2026",
+"player": "Victor Wembanyama",
+"team": "San Antonio"
+}
+],
+"NBA All-Star Game Most Valuable Player": [
+{
+"season": "1951",
+"player": "Ed Macauley",
+"team": "Boston"
+},
+{
+"season": "1952",
+"player": "Paul Arizin",
+"team": "Philadelphia"
+},
+{
+"season": "1953",
+"player": "George Mikan",
+"team": "Minneapolis"
+},
+{
+"season": "1954",
+"player": "Bob Cousy",
+"team": "Boston"
+},
+{
+"season": "1955",
+"player": "Bill Sharman",
+"team": "Boston"
+},
+{
+"season": "1956",
+"player": "Bob Pettit",
+"team": "St. Louis"
+},
+{
+"season": "1957",
+"player": "Bob Cousy",
+"team": "Boston"
+},
+{
+"season": "1958",
+"player": "Bob Pettit",
+"team": "St. Louis"
+},
+{
+"season": "1960",
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1961",
+"player": "Oscar Robertson",
+"team": "Cincinnati"
+},
+{
+"season": "1962",
+"player": "Bob Pettit",
+"team": "St. Louis"
+},
+{
+"season": "1963",
+"player": "Bill Russell",
+"team": "Boston"
+},
+{
+"season": "1964",
+"player": "Oscar Robertson",
+"team": "Cincinnati"
+},
+{
+"season": "1965",
+"player": "Jerry Lucas",
+"team": "Cincinnati"
+},
+{
+"season": "1966",
+"player": "Adrian Smith",
+"team": "Cincinnati"
+},
+{
+"season": "1967",
+"player": "Rick Barry",
+"team": "San Francisco"
+},
+{
+"season": "1968",
+"player": "Hal Greer",
+"team": "Philadelphia"
+},
+{
+"season": "1969",
+"player": "Oscar Robertson",
+"team": "Cincinnati"
+},
+{
+"season": "1970",
+"player": "Willis Reed",
+"team": "New York"
+},
+{
+"season": "1971",
+"player": "Lenny Wilkens",
+"team": "Seattle"
+},
+{
+"season": "1972",
+"player": "Jerry West",
+"team": "LA Lakers"
+},
+{
+"season": "1973",
+"player": "Dave Cowens",
+"team": "Boston"
+},
+{
+"season": "1974",
+"player": "Bob Lanier",
+"team": "Detroit"
+},
+{
+"season": "1975",
+"player": "Walt Frazier",
+"team": "New York"
+},
+{
+"season": "1976",
+"player": "Dave Bing",
+"team": "Washington"
+},
+{
+"season": "1977",
+"player": "Julius Erving",
+"team": "Philadelphia"
+},
+{
+"season": "1978",
+"player": "Randy Smith",
+"team": "Buffalo"
+},
+{
+"season": "1979",
+"player": "David Thompson",
+"team": "Denver"
+},
+{
+"season": "1980",
+"player": "George Gervin",
+"team": "San Antonio"
+},
+{
+"season": "1981",
+"player": "Nate Archibald",
+"team": "Boston"
+},
+{
+"season": "1982",
+"player": "Larry Bird",
+"team": "Boston"
+},
+{
+"season": "1983",
+"player": "Julius Erving",
+"team": "Philadelphia"
+},
+{
+"season": "1984",
+"player": "Isiah Thomas",
+"team": "Detroit"
+},
+{
+"season": "1985",
+"player": "Ralph Sampson",
+"team": "Houston"
+},
+{
+"season": "1986",
+"player": "Isiah Thomas",
+"team": "Detroit"
+},
+{
+"season": "1987",
+"player": "Tom Chambers",
+"team": "Seattle"
+},
+{
+"season": "1988",
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1989",
+"player": "Karl Malone",
+"team": "Utah"
+},
+{
+"season": "1990",
+"player": "Magic Johnson",
+"team": "LA Lakers"
+},
+{
+"season": "1991",
+"player": "Charles Barkley",
+"team": "Philadelphia"
+},
+{
+"season": "1992",
+"player": "Magic Johnson",
+"team": "LA Lakers"
+},
+{
+"season": "1994",
+"player": "Scottie Pippen",
+"team": "Chicago"
+},
+{
+"season": "1995",
+"player": "Mitch Richmond",
+"team": "Sacramento"
+},
+{
+"season": "1996",
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1997",
+"player": "Glen Rice",
+"team": "Charlotte"
+},
+{
+"season": "1998",
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "2001",
+"player": "Allen Iverson",
+"team": "Philadelphia"
+},
+{
+"season": "2002",
+"player": "Kobe Bryant",
+"team": "LA Lakers"
+},
+{
+"season": "2003",
+"player": "Kevin Garnett",
+"team": "Minnesota"
+},
+{
+"season": "2004",
+"player": "Shaquille O’Neal",
+"team": "LA Lakers"
+},
+{
+"season": "2005",
+"player": "Allen Iverson",
+"team": "Philadelphia"
+},
+{
+"season": "2006",
+"player": "LeBron James",
+"team": "Cleveland"
+},
+{
+"season": "2007",
+"player": "Kobe Bryant",
+"team": "LA Lakers"
+},
+{
+"season": "2008",
+"player": "LeBron James",
+"team": "Cleveland"
+},
+{
+"season": "2010",
+"player": "Dwyane Wade",
+"team": "Miami"
+},
+{
+"season": "2011",
+"player": "Kobe Bryant",
+"team": "LA Lakers"
+},
+{
+"season": "2012",
+"player": "Kevin Durant",
+"team": "Oklahoma City"
+},
+{
+"season": "2013",
+"player": "Chris Paul",
+"team": "LA Clippers"
+},
+{
+"season": "2014",
+"player": "Kyrie Irving",
+"team": "Cleveland"
+},
+{
+"season": "2015",
+"player": "Russell Westbrook",
+"team": "Oklahoma City"
+},
+{
+"season": "2016",
+"player": "Russell Westbrook",
+"team": "Oklahoma City"
+},
+{
+"season": "2017",
+"player": "Anthony Davis",
+"team": "New Orleans"
+},
+{
+"season": "2018",
+"player": "LeBron James",
+"team": "Cleveland"
+},
+{
+"season": "2019",
+"player": "Kevin Durant",
+"team": "Golden State"
+},
+{
+"season": "2020",
+"player": "Kawhi Leonard",
+"team": "LA Clippers"
+},
+{
+"season": "2021",
+"player": "Giannis Antetokounmpo",
+"team": "Milwaukee"
+},
+{
+"season": "2022",
+"player": "Stephen Curry",
+"team": "Golden State"
+},
+{
+"season": "2023",
+"player": "Jayson Tatum",
+"team": "Boston"
+},
+{
+"season": "2024",
+"player": "Damian Lillard",
+"team": "Milwaukee"
+},
+{
+"season": "2025",
+"player": "Stephen Curry",
+"team": "Golden State"
+},
+{
+"season": "2026",
+"player": "Anthony Edwards",
+"team": "Minnesota"
+}
+],
+"NBA Sportsmanship Award": [
+{
+"season": "1995-96",
+"player": "Joe Dumars",
+"team": "Detroit"
+},
+{
+"season": "1996-97",
+"player": "Terrell Brandon",
+"team": "Cleveland"
+},
+{
+"season": "1997-98",
+"player": "Avery Johnson",
+"team": "San Antonio"
+},
+{
+"season": "1998-99",
+"player": "Hersey Hawkins",
+"team": "Seattle"
+},
+{
+"season": "1999-00",
+"player": "Eric Snow",
+"team": "Philadelphia"
+},
+{
+"season": "2000-01",
+"player": "David Robinson",
+"team": "San Antonio"
+},
+{
+"season": "2001-02",
+"player": "Steve Smith",
+"team": "San Antonio"
+},
+{
+"season": "2002-03",
+"player": "Ray Allen",
+"team": "Seattle"
+},
+{
+"season": "2003-04",
+"player": "P.J. Brown",
+"team": "New Orleans"
+},
+{
+"season": "2004-05",
+"player": "Grant Hill",
+"team": "Orlando"
+},
+{
+"season": "2005-06",
+"player": "Elton Brand",
+"team": "LA Clippers"
+},
+{
+"season": "2006-07",
+"player": "Luol Deng",
+"team": "Chicago"
+},
+{
+"season": "2007-08",
+"player": "Grant Hill",
+"team": "Phoenix"
+},
+{
+"season": "2008-09",
+"player": "Chauncey Billups",
+"team": "Denver"
+},
+{
+"season": "2009-10",
+"player": "Grant Hill",
+"team": "Phoenix"
+},
+{
+"season": "2010-11",
+"player": "Stephen Curry",
+"team": "Golden State"
+},
+{
+"season": "2011-12",
+"player": "Jason Kidd",
+"team": "Dallas"
+},
+{
+"season": "2012-13",
+"player": "Jason Kidd",
+"team": "New York"
+},
+{
+"season": "2013-14",
+"player": "Mike Conley",
+"team": "Memphis"
+},
+{
+"season": "2014-15",
+"player": "Kyle Korver",
+"team": "Atlanta"
+},
+{
+"season": "2015-16",
+"player": "Mike Conley",
+"team": "Memphis"
+},
+{
+"season": "2016-17",
+"player": "Kemba Walker",
+"team": "Charlotte"
+},
+{
+"season": "2017-18",
+"player": "Kemba Walker",
+"team": "Charlotte"
+},
+{
+"season": "2018-19",
+"player": "Mike Conley",
+"team": "Memphis"
+},
+{
+"season": "2019-20",
+"player": "Vince Carter",
+"team": "Atlanta"
+},
+{
+"season": "2020-21",
+"player": "Jrue Holiday",
+"team": "Milwaukee"
+},
+{
+"season": "2021-22",
+"player": "Patty Mills",
+"team": "Brooklyn"
+},
+{
+"season": "2022-23",
+"player": "Mike Conley",
+"team": "Minnesota"
+},
+{
+"season": "2023-24",
+"player": "Tyrese Maxey",
+"team": "Philadelphia"
+},
+{
+"season": "2024-25",
+"player": "Jrue Holiday",
+"team": "Boston"
+},
+{
+"season": "2025-26",
+"player": "Derrick White",
+"team": "Boston"
+}
+],
+"Twyman-Stokes Teammate Of The Year Award": [
+{
+"season": "2012-13",
+"player": "Chauncey Billups",
+"team": "LA Clippers"
+},
+{
+"season": "2013-14",
+"player": "Shane Battier",
+"team": "Miami"
+},
+{
+"season": "2014-15",
+"player": "Tim Duncan",
+"team": "San Antonio"
+},
+{
+"season": "2015-16",
+"player": "Vince Carter",
+"team": "Memphis"
+},
+{
+"season": "2016-17",
+"player": "Dirk Nowitzki",
+"team": "Dallas"
+},
+{
+"season": "2017-18",
+"player": "Jamal Crawford",
+"team": "Minnesota"
+},
+{
+"season": "2018-19",
+"player": "Mike Conley",
+"team": "Memphis"
+},
+{
+"season": "2019-20",
+"player": "Jrue Holiday",
+"team": "New Orleans"
+},
+{
+"season": "2020-21",
+"player": "Damian Lillard",
+"team": "Portland"
+},
+{
+"season": "2021-22",
+"player": "Jrue Holiday",
+"team": "Milwaukee"
+},
+{
+"season": "2022-23",
+"player": "Jrue Holiday",
+"team": "Milwaukee"
+},
+{
+"season": "2023-24",
+"player": "Mike Conley",
+"team": "Minnesota"
+},
+{
+"season": "2024-25",
+"player": "Stephen Curry",
+"team": "Golden State"
+},
+{
+"season": "2025-26",
+"player": "DeAndre Jordan",
+"team": "New Orleans"
+}
+],
+"Bob Lanier Community Assist Award": [
+{
+"season": "2011-12",
+"player": "Pau Gasol",
+"team": "LA Lakers"
+},
+{
+"season": "2012-13",
+"player": "Dwyane Wade",
+"team": "Miami"
+},
+{
+"season": "2013-14",
+"player": "Stephen Curry",
+"team": "Golden State"
+},
+{
+"season": "2014-15",
+"player": "Russell Westbrook",
+"team": "Oklahoma City"
+},
+{
+"season": "2015-16",
+"player": "John Wall",
+"team": "Washington"
+},
+{
+"season": "2016-17",
+"player": "Isaiah Thomas",
+"team": "Boston"
+},
+{
+"season": "2017-18",
+"player": "Kevin Durant",
+"team": "Golden State"
+},
+{
+"season": "2018-19",
+"player": "Bradley Beal",
+"team": "Washington"
+},
+{
+"season": "2019-20",
+"player": "Harrison Barnes (Sacramento)    2022-23 — Brook Lopez",
+"team": "Milwaukee"
+},
+{
+"season": "2020-21",
+"player": "Devin Booker",
+"team": "Phoenix"
+},
+{
+"season": "2021-22",
+"player": "Gary Payton II",
+"team": "Golden State"
+}
+],
+"Kareem Abdul-Jabbar Social Justice Champion Award": [
+{
+"season": "2020-21",
+"player": "Carmelo Anthony",
+"team": "Portland"
+},
+{
+"season": "2021-22",
+"player": "Reggie Bullock",
+"team": "Dallas"
+},
+{
+"season": "2022-23",
+"player": "Stephen Curry",
+"team": "Golden State"
+},
+{
+"season": "2023-24",
+"player": "Karl-Anthony Towns",
+"team": "Minnesota"
+},
+{
+"season": "2024-25",
+"player": "Jrue Holiday",
+"team": "Boston"
+},
+{
+"season": "2025-26",
+"player": "Bam Adebayo",
+"team": "Miami"
+}
+],
+"J. Walter Kennedy Citizenship Award": [
+{
+"season": "1974-75",
+"player": "Wes Unseld",
+"team": "Washington"
+},
+{
+"season": "1975-76",
+"player": "Slick Watts",
+"team": "Seattle"
+},
+{
+"season": "1976-77",
+"player": "Dave Bing",
+"team": "Washington"
+},
+{
+"season": "1977-78",
+"player": "Bob Lanier",
+"team": "Detroit"
+},
+{
+"season": "1978-79",
+"player": "Calvin Murphy",
+"team": "Houston"
+},
+{
+"season": "1979-80",
+"player": "Austin Carr",
+"team": "Cleveland"
+},
+{
+"season": "1980-81",
+"player": "Mike Glenn",
+"team": "New York"
+},
+{
+"season": "1981-82",
+"player": "Kent Benson",
+"team": "Detroit"
+},
+{
+"season": "1982-83",
+"player": "Julius Erving",
+"team": "Philadelphia"
+},
+{
+"season": "1983-84",
+"player": "Frank Layden",
+"team": "Utah"
+},
+{
+"season": "1984-85",
+"player": "Dan Issel",
+"team": "Denver"
+},
+{
+"season": "1986-87",
+"player": "Isiah Thomas",
+"team": "Detroit"
+},
+{
+"season": "1987-88",
+"player": "Alex English",
+"team": "Denver"
+},
+{
+"season": "1988-89",
+"player": "Thurl Bailey",
+"team": "Utah"
+},
+{
+"season": "1989-90",
+"player": "Doc Rivers",
+"team": "Atlanta"
+},
+{
+"season": "1990-91",
+"player": "Kevin Johnson",
+"team": "Phoenix"
+},
+{
+"season": "1991-92",
+"player": "Magic Johnson",
+"team": "LA Lakers"
+},
+{
+"season": "1992-93",
+"player": "Terry Porter",
+"team": "Portland"
+},
+{
+"season": "1993-94",
+"player": "Joe Dumars",
+"team": "Detroit"
+},
+{
+"season": "1994-95",
+"player": "Joe O’Toole",
+"team": "Atlanta"
+},
+{
+"season": "1995-96",
+"player": "Chris Dudley",
+"team": "Portland"
+},
+{
+"season": "1996-97",
+"player": "P.J. Brown",
+"team": "Miami"
+},
+{
+"season": "1997-98",
+"player": "Steve Smith",
+"team": "Atlanta"
+},
+{
+"season": "1998-99",
+"player": "Brian Grant",
+"team": "Portland"
+},
+{
+"season": "1999-00",
+"player": "Vlade Divac",
+"team": "Sacramento"
+},
+{
+"season": "2000-01",
+"player": "Dikembe Mutombo",
+"team": "Philadelphia"
+},
+{
+"season": "2001-02",
+"player": "Alonzo Mourning",
+"team": "Miami"
+},
+{
+"season": "2002-03",
+"player": "David Robinson",
+"team": "San Antonio"
+},
+{
+"season": "2003-04",
+"player": "Reggie Miller",
+"team": "Indiana"
+},
+{
+"season": "2004-05",
+"player": "Eric Snow",
+"team": "Cleveland"
+},
+{
+"season": "2005-06",
+"player": "Kevin Garnett",
+"team": "Minnesota"
+},
+{
+"season": "2006-07",
+"player": "Steve Nash",
+"team": "Phoenix"
+},
+{
+"season": "2007-08",
+"player": "Chauncey Billups",
+"team": "Detroit"
+},
+{
+"season": "2008-09",
+"player": "Dikembe Mutombo",
+"team": "Houston"
+},
+{
+"season": "2009-10",
+"player": "Samuel Dalembert",
+"team": "Philadelphia"
+},
+{
+"season": "2010-11",
+"player": "Metta World Peace",
+"team": "LA Lakers"
+},
+{
+"season": "2011-12",
+"player": "Pau Gasol",
+"team": "LA Lakers"
+},
+{
+"season": "2012-13",
+"player": "Kenneth Faried",
+"team": "Denver"
+},
+{
+"season": "2013-14",
+"player": "Luol Deng",
+"team": "Cleveland"
+},
+{
+"season": "2014-15",
+"player": "Joakim Noah",
+"team": "Chicago"
+},
+{
+"season": "2015-16",
+"player": "Wayne Ellington",
+"team": "Brooklyn"
+},
+{
+"season": "2016-17",
+"player": "LeBron James",
+"team": "Cleveland"
+},
+{
+"season": "2017-18",
+"player": "J.J. Barea",
+"team": "Dallas"
+},
+{
+"season": "2018-19",
+"player": "Damian Lillard",
+"team": "Portland"
+},
+{
+"season": "2019-20",
+"player": "Malcolm Brogdon",
+"team": "Indiana"
+},
+{
+"season": "2022-23",
+"player": "Stephen Curry",
+"team": "Golden State"
+},
+{
+"season": "2023-24",
+"player": "CJ McCollum",
+"team": "New Orleans"
+}
+]
+},
+"leaders": {},
+"leadersNotRead": [
+"pts",
+"fgPct",
+"ftPct",
+"fg3Pct",
+"min",
+"reb",
+"ast",
+"stl",
+"pf",
+"blk",
+"dq"
+]
+}

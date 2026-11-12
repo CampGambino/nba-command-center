@@ -1303,6 +1303,24 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   ok(c.boards.pts[0].now === 532 && c.tonight.length === 1 && !c.items.some((i) => i.stat === "gp"), "NBA Cup: his Cup total = the guide's + this season's Cup games; tonight's Cup game; no games-played passes", JSON.stringify(c.boards.pts[0]));
 }
 
+// ---------- NBA Guide: coaching rankings and award history (the user, 11/12) ----------
+{
+  const { currentRecords } = await import("../src/records/guide.js");
+  const rd = (f) => JSON.parse(fs.readFileSync(path.join(root, "src", "data", f), "utf8"));
+  const co = rd("nba-coaches-2026-27.json");
+  const carl = co.wins.find((c) => c.name === "Rick Carlisle");
+  ok(co.wins.length >= 79 && co.wins[0].name === "Gregg Popovich" && carl?.w === 1012 && carl.l === 923 && carl.rank === 11 && co.games.find((c) => c.name === "Rick Carlisle")?.g === 1935
+    && co.wins.some((c) => c.name === "Bill Russell" && c.w === 341), "coaches: every 300-win coach (Carlisle 1,012-923, 11th; 1,935 games), a name next to a heading read right (Bill Russell)");
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const files = { NYK: { team: "NYK", keys, names: {}, games: [{ d: "2026-11-01", opp: "BOS", home: true, pf: 100, pa: 90, pl: {} }, { d: "2026-11-03", opp: "BOS", home: false, pf: 100, pa: 90, pl: {} }] } };
+  const list = { wins: [{ name: "Old Coach", w: 510, l: 400, rank: 1 }, { name: "Mike Brown", w: 507, l: 333, rank: 2 }], games: [] };
+  const r = currentRecords({ guide: { alltime: {}, active: {}, extra: {}, watch: [], targets: [], rounds: [], coaches: {}, franchises: [], teamRecords: {} }, teamFiles: files, coachList: list, coachTeams: { NYK: "Mike Brown" } });
+  ok(r.items.some((i) => i.text === "Brown: 2 wins from passing Old Coach (510) for 1st in career coaching wins"), "coaches: today's head coach (from ESPN) with his ranked total plus his team's wins", JSON.stringify(r.items.map((i) => i.text)));
+  const h = rd("nba-history-2026-27.json");
+  ok(h.awards["NBA Most Valuable Player"].length === 71 && h.awards["NBA Most Valuable Player"].at(-1).player === "Shai Gilgeous-Alexander" && h.awards["NBA Finals Most Valuable Player"][0].season === "1969",
+    "award history: MVPs 1955-56 to 2025-26, Finals MVPs from 1969");
+}
+
 // ---------- NBA Cup final: counts in neither standings nor stats ----------
 {
   // Shapes as ESPN gave them for the 12/13/25 semifinals and 12/16/25 final (scoreboard and team schedule).

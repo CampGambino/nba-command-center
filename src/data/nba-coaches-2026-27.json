@@ -1,0 +1,581 @@
+{
+"source": "NBA 2026-27 Guide p. 145 (through 2025-26)",
+"wins": [
+{
+"name": "Gregg Popovich",
+"w": 1390,
+"l": 824,
+"rank": 1
+},
+{
+"name": "Don Nelson",
+"w": 1335,
+"l": 1063,
+"rank": 2
+},
+{
+"name": "Lenny Wilkens",
+"w": 1332,
+"l": 1155,
+"rank": 3
+},
+{
+"name": "Jerry Sloan",
+"w": 1221,
+"l": 803,
+"rank": 4
+},
+{
+"name": "Pat Riley",
+"w": 1210,
+"l": 694,
+"rank": 5
+},
+{
+"name": "Doc Rivers",
+"w": 1194,
+"l": 866,
+"rank": 6
+},
+{
+"name": "George Karl",
+"w": 1175,
+"l": 824,
+"rank": 7
+},
+{
+"name": "Phil Jackson",
+"w": 1155,
+"l": 485,
+"rank": 8
+},
+{
+"name": "Larry Brown",
+"w": 1098,
+"l": 904,
+"rank": 9
+},
+{
+"name": "Rick Adelman",
+"w": 1042,
+"l": 749,
+"rank": 10
+},
+{
+"name": "Rick Carlisle",
+"w": 1012,
+"l": 923,
+"rank": 11
+},
+{
+"name": "Bill Fitch",
+"w": 944,
+"l": 1106,
+"rank": 12
+},
+{
+"name": "Red Auerbach",
+"w": 938,
+"l": 479,
+"rank": 13
+},
+{
+"name": "Dick Motta",
+"w": 935,
+"l": 1017,
+"rank": 14
+},
+{
+"name": "Jack Ramsay",
+"w": 864,
+"l": 783,
+"rank": 15
+},
+{
+"name": "Cotton Fitzsimmons",
+"w": 832,
+"l": 775,
+"rank": 16
+},
+{
+"name": "Erik Spoelstra",
+"w": 830,
+"l": 611,
+"rank": 17
+},
+{
+"name": "Gene Shue",
+"w": 784,
+"l": 861,
+"rank": 18
+},
+{
+"name": "Nate McMillan",
+"w": 760,
+"l": 668,
+"rank": 19
+},
+{
+"name": "John MacLeod",
+"w": 707,
+"l": 657,
+"rank": 20
+},
+{
+"name": "Red Holzman",
+"w": 696,
+"l": 603,
+"rank": 21
+},
+{
+"name": "Mike D’Antoni",
+"w": 672,
+"l": 527,
+"rank": 22
+},
+{
+"name": "Mike Fratello",
+"w": 667,
+"l": 548,
+"rank": 23
+},
+{
+"name": "Flip Saunders",
+"w": 654,
+"l": 592,
+"rank": 24
+},
+{
+"name": "Chuck Daly",
+"w": 638,
+"l": 437,
+"rank": 25
+},
+{
+"name": "Doug Moe",
+"w": 628,
+"l": 529,
+"rank": 26
+},
+{
+"name": "Mike Dunleavy",
+"w": 613,
+"l": 716,
+"rank": 27
+},
+{
+"name": "Steve Kerr",
+"w": 604,
+"l": 353,
+"rank": 28
+},
+{
+"name": "Tom Thibodeau",
+"w": 578,
+"l": 420,
+"rank": 29
+},
+{
+"name": "Alvin Attles",
+"w": 557,
+"l": 518,
+"rank": 30
+},
+{
+"name": "Del Harris",
+"w": 556,
+"l": 457,
+"rank": 31
+},
+{
+"name": "Stan Van Gundy",
+"w": 554,
+"l": 425,
+"rank": 32
+},
+{
+"name": "Alvin Gentry",
+"w": 534,
+"l": 636,
+"rank": 33
+},
+{
+"name": "Rudy Tomjanovich",
+"w": 525,
+"l": 416,
+"rank": 34
+},
+{
+"name": "K.C. Jones",
+"w": 522,
+"l": 252,
+"rank": 35
+},
+{
+"name": "Scott Brooks",
+"w": 521,
+"l": 414,
+"rank": 36
+},
+{
+"name": "Mike Budenholzer",
+"w": 520,
+"l": 363,
+"rank": 37
+},
+{
+"name": "Terry Stotts",
+"w": 517,
+"l": 486,
+"rank": 38
+},
+{
+"name": "Michael Malone",
+"w": 510,
+"l": 394,
+"rank": 39
+},
+{
+"name": "Mike Brown",
+"w": 507,
+"l": 333,
+"rank": 40
+},
+{
+"name": "Quin Snyder",
+"w": 504,
+"l": 399,
+"rank": 41
+},
+{
+"name": "Dwane Casey",
+"w": 494,
+"l": 570,
+"rank": 42
+},
+{
+"name": "Frank Vogel",
+"w": 480,
+"l": 422,
+"rank": 43
+},
+{
+"name": "Scott Skiles",
+"w": 478,
+"l": 480,
+"rank": 44
+},
+{
+"name": "Kevin Loughery",
+"w": 474,
+"l": 662,
+"rank": 45
+},
+{
+"name": "Alex Hannum",
+"w": 471,
+"l": 412,
+"rank": 46
+},
+{
+"name": "Billy Donovan",
+"w": 469,
+"l": 413,
+"rank": 47
+},
+{
+"name": "Billy Cunningham",
+"w": 454,
+"l": 196,
+"rank": 48
+},
+{
+"name": "Byron Scott",
+"w": 454,
+"l": 647,
+"rank": 48
+},
+{
+"name": "Doug Collins",
+"w": 442,
+"l": 407,
+"rank": 50
+},
+{
+"name": "Larry Costello",
+"w": 430,
+"l": 300,
+"rank": 51
+},
+{
+"name": "Jeff Van Gundy",
+"w": 430,
+"l": 318,
+"rank": 51
+},
+{
+"name": "Tom Heinsohn",
+"w": 427,
+"l": 263,
+"rank": 53
+},
+{
+"name": "Hubie Brown",
+"w": 424,
+"l": 495,
+"rank": 54
+},
+{
+"name": "John Kundla",
+"w": 423,
+"l": 302,
+"rank": 55
+},
+{
+"name": "Bernie Bickerstaff",
+"w": 419,
+"l": 518,
+"rank": 56
+},
+{
+"name": "Tyronn Lue",
+"w": 404,
+"l": 289,
+"rank": 57
+},
+{
+"name": "Jason Kidd",
+"w": 388,
+"l": 395,
+"rank": 58
+},
+{
+"name": "Paul Silas",
+"w": 387,
+"l": 488,
+"rank": 59
+},
+{
+"name": "Monty Williams",
+"w": 381,
+"l": 404,
+"rank": 60
+},
+{
+"name": "J.B. Bickerstaff",
+"w": 359,
+"l": 350,
+"rank": 61
+},
+{
+"name": "Brad Stevens",
+"w": 354,
+"l": 282,
+"rank": 62
+},
+{
+"name": "Nick Nurse",
+"w": 343,
+"l": 293,
+"rank": 63
+},
+{
+"name": "Bill Russell",
+"w": 341,
+"l": 290,
+"rank": 64
+},
+{
+"name": "Steve Clifford",
+"w": 340,
+"l": 461,
+"rank": 65
+},
+{
+"name": "Don Chaney",
+"w": 337,
+"l": 494,
+"rank": 66
+},
+{
+"name": "Bill Sharman",
+"w": 333,
+"l": 240,
+"rank": 67
+},
+{
+"name": "Jim Lynam",
+"w": 328,
+"l": 392,
+"rank": 68
+},
+{
+"name": "Richie Guerin",
+"w": 327,
+"l": 291,
+"rank": 69
+},
+{
+"name": "Al Cervi",
+"w": 326,
+"l": 241,
+"rank": 70
+},
+{
+"name": "Joe Lapchick",
+"w": 326,
+"l": 247,
+"rank": 70
+},
+{
+"name": "Chris Ford",
+"w": 323,
+"l": 376,
+"rank": 72
+},
+{
+"name": "Paul Westphal",
+"w": 318,
+"l": 279,
+"rank": 73
+},
+{
+"name": "Fred Schaus",
+"w": 315,
+"l": 245,
+"rank": 74
+},
+{
+"name": "Mike Woodson",
+"w": 315,
+"l": 365,
+"rank": 74
+},
+{
+"name": "Bob Hill",
+"w": 310,
+"l": 293,
+"rank": 76
+},
+{
+"name": "Stan Albeck",
+"w": 307,
+"l": 267,
+"rank": 77
+},
+{
+"name": "Maurice Cheeks",
+"w": 305,
+"l": 315,
+"rank": 78
+},
+{
+"name": "Jim O’Brien",
+"w": 303,
+"l": 327,
+"rank": 79
+}
+],
+"games": [
+{
+"name": "Lenny Wilkens",
+"g": 2487,
+"rank": 1
+},
+{
+"name": "Don Nelson",
+"g": 2398,
+"rank": 2
+},
+{
+"name": "Gregg Popovich",
+"g": 2214,
+"rank": 3
+},
+{
+"name": "Doc Rivers",
+"g": 2060,
+"rank": 4
+},
+{
+"name": "Bill Fitch",
+"g": 2050,
+"rank": 5
+},
+{
+"name": "Jerry Sloan",
+"g": 2024,
+"rank": 6
+},
+{
+"name": "Larry Brown",
+"g": 2002,
+"rank": 7
+},
+{
+"name": "George Karl",
+"g": 1999,
+"rank": 8
+},
+{
+"name": "Dick Motta",
+"g": 1952,
+"rank": 9
+},
+{
+"name": "Rick Carlisle",
+"g": 1935,
+"rank": 10
+},
+{
+"name": "Pat Riley",
+"g": 1904,
+"rank": 11
+},
+{
+"name": "Rick Adelman",
+"g": 1791,
+"rank": 12
+},
+{
+"name": "Jack Ramsay",
+"g": 1647,
+"rank": 13
+},
+{
+"name": "Gene Shue",
+"g": 1645,
+"rank": 14
+},
+{
+"name": "Phil Jackson",
+"g": 1640,
+"rank": 15
+},
+{
+"name": "Cotton Fitzsimmons",
+"g": 1607,
+"rank": 16
+},
+{
+"name": "Erik Spoelstra",
+"g": 1441,
+"rank": 17
+},
+{
+"name": "Nate McMillan",
+"g": 1428,
+"rank": 18
+},
+{
+"name": "Red Auerbach",
+"g": 1417,
+"rank": 19
+},
+{
+"name": "John MacLeod",
+"g": 1364,
+"rank": 20
+}
+]
+}
