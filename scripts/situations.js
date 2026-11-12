@@ -209,6 +209,22 @@ for (const [tri, games] of Object.entries(perTeam)) {
         schedule: cup.group.filter((g) => g.d >= today).slice(0, 15), standings: c.standings, problems: c.problems };
       console.log(`NBA Cup: ${c.cupGamesPlayed} Cup games played this season, ${c.items.length} Cup marks within reach, ${c.tonight.length} Cup games tonight`);
     }
+    // Franchise history (src/records/franchise.js): every player's totals with each franchise, from the NBA
+    // Guide's year-by-year team pages, plus his games for that team this season.
+    let franchiseOut = null;
+    const fcFile = path.join(root, "src", "data", `nba-franchise-careers-${season - 1}-${String(season).slice(2)}.json`);
+    if (fs.existsSync(fcFile)) {
+      const { franchiseRecords } = await import("../src/records/franchise.js");
+      const f = franchiseRecords({ careers: JSON.parse(fs.readFileSync(fcFile, "utf8")), teamFiles, tonight });
+      addChances(f.items, teamFiles, { makeSampler, simulate });
+      // The Tip-Off Guide's franchise marks say the same thing: keep one of each (the history list's).
+      const seen = new Set(f.items.map((i) => `${strictKey(i.who)}|${i.team}|${i.stat}|${i.target}`));
+      rec.items = rec.items.filter((i) => i.kind !== "franchise" || !seen.has(`${strictKey(i.who)}|${i.team}|${i.stat}|${i.target}`));
+      rec.items.push(...f.items);
+      rec.problems.push(...f.problems);
+      franchiseOut = f.boards;
+      console.log(`franchise history: ${f.items.length} franchise marks within reach (${f.items.filter((i) => i.tonight).length} playing tonight)`);
+    }
     // Cross-check: the same totals in the teams' notes and ESPN's career stats (docs/data/watch.json).
     const checks = { same: 0, differ: [] };
     try {
@@ -223,6 +239,21 @@ for (const [tri, games] of Object.entries(perTeam)) {
         seen.add(k);
         if (p.totals[i.stat].now === i.current) checks.same++;
         else checks.differ.push({ player: p.name, stat: i.stat, ours: p.totals[i.stat].now, theirs: i.current, source: i.origin === "espn" ? "ESPN career" : `${t.team} notes (${t.notesDate})` });
+      }
+      // Franchise totals: the history lists against the notes' franchise figures (the player and the name ahead).
+      if (franchiseOut) {
+        checks.franchise = { same: 0, differ: [] };
+        for (const t of watch.teams || []) for (const i of t.items || []) {
+          if (i.scope !== "franchise" || i.current == null || i.reached || i.stale) continue;
+          const b = franchiseOut[t.team]?.[i.stat] || [];
+          const pairs = [[i.player, i.current, true], ...(i.passing?.player && i.passing.total != null ? [[i.passing.player, i.passing.total, false]] : [])];
+          for (const [name, theirs, mustLive] of pairs) {
+            const r = b.find((x) => strictKey(x.name) === strictKey(name) && (mustLive || !x.live));
+            if (!r) continue;
+            if (r.now === theirs) checks.franchise.same++;
+            else checks.franchise.differ.push({ player: r.name, stat: i.stat, ours: r.now, theirs, source: `${t.team} notes (${t.notesDate})` });
+          }
+        }
       }
     } catch { /* no watch list yet */ }
     const boards = Object.fromEntries(Object.entries(rec.boards).map(([stat, rows]) => [stat, rows.slice(0, 40).map(({ name, team, live, now, base, rank, preRank }) => ({ name, team, live, now, base, rank: rank ?? null, preRank: preRank ?? null }))]));
@@ -251,7 +282,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     }
     fs.writeFileSync(path.join(root, "docs", "data", "records.json"), JSON.stringify({ titles, awards, context,
       generatedAt: out.generatedAt, through: rec.through, today, source: guide.source, items: rec.items, boards, checks, problems: rec.problems, errata: guide.errata || [],
-      coaches: coachTeams, teamRecords: guide.teamRecords, cup: cupOut,
+      coaches: coachTeams, teamRecords: guide.teamRecords, cup: cupOut, franchise: franchiseOut,
     }));
     console.log(`records: ${rec.players.filter((p) => p.id).length} guide players playing this season, ${rec.items.length} within reach (${rec.items.filter((i) => i.tonight).length} playing tonight); vs notes/ESPN: ${checks.same} agree, ${checks.differ.length} differ${rec.problems.length ? `; ${rec.problems.length} problems` : ""}`);
   } else console.log(`records: no Tip-Off Guide file for ${season - 1}-${String(season).slice(2)} (src/data/)`);

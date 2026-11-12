@@ -1430,6 +1430,32 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   ok(lines.length === 1 && /^Guard:/.test(lines[0].text) && c.some((x) => x.name === "Bench Guy"), "career context: at most one line a game, a regular's (10 minutes a game last season isn't storyline material; it stays on the page)", JSON.stringify(lines));
 }
 
+// ---------- Franchise history (NBA Guide team-by-team year-by-year pages) ----------
+{
+  const { franchiseRecords } = await import("../src/records/franchise.js");
+  const fc = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-franchise-careers-2026-27.json"), "utf8")).franchises;
+  const v = (t, s, n) => fc[t].top[s].find((r) => r[0] === n)?.[1];
+  // Every check against a team media guide or the Tip-Off Guide's franchise pages.
+  const known = [["LAL", "pts", "Kobe Bryant", 33643], ["LAL", "ast", "Magic Johnson", 10141], ["LAL", "blk", "Kareem Abdul-Jabbar", 2694], ["LAL", "pts", "Jerry West", 25192],
+    ["TOR", "pts", "DeMar DeRozan", 13296], ["TOR", "pts", "Kyle Lowry", 10540], ["MIA", "reb", "Udonis Haslem", 5791], ["MIA", "dreb", "Bam Adebayo", 4341], ["PHX", "fgm", "Walter Davis", 6497],
+    ["BOS", "fg3m", "Paul Pierce", 1823], ["ATL", "fgm", "Dominique Wilkins", 8752], ["ATL", "fgm", "Bob Pettit", 7349], ["ATL", "g", "Tree Rollins", 814], ["HOU", "pts", "Hakeem Olajuwon", 26511],
+    ["UTA", "pts", "Karl Malone", 36374], ["NYK", "pts", "Patrick Ewing", 23665], ["UTA", "ast", "John Stockton", 15806], ["DAL", "pts", "Dirk Nowitzki", 31560]];
+  const bad = known.filter(([t, s, n, x]) => v(t, s, n) !== x);
+  ok(Object.keys(fc).length === 30 && !bad.length, "franchise history: 30 franchises; totals match the team guides (Kareem's Lakers blocks with his 'K. Abdul-Jabbar' rows, Pettit's 1954-55 Milwaukee season, Hakeem's 1991-92 broken header, Malone's missing 2001-02 row)", JSON.stringify(bad.map(([t, s, n, x]) => [t, s, n, x, v(t, s, n)])));
+  ok(!fc.LAL.top.pts.some((r) => /^[A-Z ]+$/.test(r[0])) && fc.CLE.active["LeBron James"]?.pts === 23119, "franchise history: no team or opponents total rows; a player active now keeps his totals with old teams (LeBron, Cleveland)");
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const L = (o) => keys.map((k) => o[k] ?? 0);
+  const games = Array.from({ length: 4 }, (_, i) => ({ d: `2026-11-0${i + 1}`, opp: "BOS", home: true, pf: 1, pa: 0, pl: { 1: L({ min: 30, pts: 25, fgm: 10, ftm: 5 }), 2: L({ min: 20, pts: 10, fgm: 5 }) } }));
+  const careers = { franchises: { AAA: { name: "Testers", top: { pts: [["Club Legend", 2000, "1990-91", "2000-01"], ["Old Star", 1050, "1980-81", "1985-86"], ["Vet Guard", 950, "2020-21", "2025-26"]] },
+    active: { "Vet Guard": { pts: 950, first: "2020-21", last: "2025-26" } } } } };
+  const f = franchiseRecords({ careers, teamFiles: { AAA: { team: "AAA", keys, names: { 1: "Vet Guard", 2: "Club Legend" }, games } }, tonight: [{ home: "AAA", away: "BBB" }] });
+  const it = f.items.find((i) => i.who === "Vet Guard");
+  ok(it && it.now === 1050 && it.need === 1 && it.passing.name === "Old Star" && it.rank === 2 && it.tonight && /for 2nd in Testers history/.test(it.text),
+    "franchise history: last season's total + this season's games with them; the next name ahead, with the place", JSON.stringify(f.items));
+  ok(f.boards.AAA.pts.some((r) => r.name === "Club Legend" && !r.live && r.now === 2000) && f.boards.AAA.pts.some((r) => r.name === "Club Legend" && r.live && r.now === 40),
+    "franchise history: a new player with a retired player's name is a different player (his own row from zero)", JSON.stringify(f.boards.AAA.pts));
+}
+
 // ---------- NBA Cup final: counts in neither standings nor stats ----------
 {
   // Shapes as ESPN gave them for the 12/13/25 semifinals and 12/16/25 final (scoreboard and team schedule).

@@ -125,7 +125,7 @@
   <div id="tonight"></div>
   <h2>Within reach</h2>
   <div class="controls">
-    <select id="kind"><option value="">Everything</option><option value="pass">Passing an all-time name</option><option value="round">Round career numbers</option><option value="franchise">Franchise records</option><option value="coach">Coaches</option><option value="team">Team streaks and starts</option><option value="franchiseWins">Franchise wins</option><option value="cup">NBA Cup career</option></select>
+    <select id="kind"><option value="">Everything</option><option value="pass">Passing an all-time name</option><option value="round">Round career numbers</option><option value="franchise">Franchise history</option><option value="coach">Coaches</option><option value="team">Team streaks and starts</option><option value="franchiseWins">Franchise wins</option><option value="cup">NBA Cup career</option></select>
     <select id="team"><option value="">All teams</option></select>
     <label>Within <select id="games"><option value="3">3 games</option><option value="5">5 games</option><option value="10">10 games</option><option value="99" selected>the list</option></select></label>
     <input type="search" id="q" placeholder="Player, coach or team">
@@ -137,6 +137,13 @@
     <span class="key" id="statkey"></span>
   </div>
   <div class="scroll"><table id="board"></table></div>
+  <h2>Franchise history, now</h2>
+  <div class="controls">
+    <select id="fteam"></select>
+    <select id="fstat"><option value="pts">Points</option><option value="reb">Rebounds</option><option value="ast">Assists</option><option value="stl">Steals</option><option value="blk">Blocks</option><option value="fg3m">3-pointers made</option><option value="fgm">Field goals made</option><option value="ftm">Free throws made</option><option value="gp">Games played</option><option value="oreb">Offensive rebounds</option><option value="dreb">Defensive rebounds</option></select>
+    <span class="key">Bold: played for them this season, totals current. Steals, blocks and offensive/defensive rebounds since 1973-74; 3-pointers since 1979-80.</span>
+  </div>
+  <div class="scroll"><table id="fboard"></table></div>
   <h2>This season vs his career</h2>
   <div class="controls">
     <select id="ckind"><option value="">Everything</option><option value="change">Big changes from last season</option><option value="low">Lowest in years</option><option value="high">Highest in years</option></select>
@@ -189,6 +196,11 @@ function renderItems() {
       : `<tr><td colspan=6 class="empty">Nothing matches.</td></tr>`);
 }
 let RB = [], SG = null, PS = null;
+function renderFranchise() {
+  const rows = D.franchise?.[$("fteam").value]?.[$("fstat").value] || [];
+  $("fboard").innerHTML = `<tr><th class="num">Rank</th><th>Player</th><th class="num">Total</th><th>Seasons with them</th></tr>` + (rows.length ? rows.map((r) => `<tr class="${r.live ? "live" : ""}"><td class="num">${r.rank ?? "–"}</td><td>${r.live ? `<b>${esc(r.name)}</b>` : esc(r.name)}${aw(r.name)}</td><td class="num">${fmt(r.now)}</td><td class="small">${r.first ? `${esc(r.first.slice(0, 4))}-${esc(r.last.slice(5))}` : "this season"}</td></tr>`).join("")
+    : `<tr><td colspan=4 class="empty">No franchise lists.</td></tr>`);
+}
 function renderCtx() {
   const k = $("ckind").value, st = $("cstat").value, tm = $("cteam").value, q = $("cq").value.trim().toLowerCase();
   const rows = (D.context || []).filter((c) => (!k || c.kind === k) && (!st || c.stat === st) && (!tm || c.team === tm) && (!q || c.name.toLowerCase().includes(q)));
@@ -234,6 +246,9 @@ Promise.all([fetch("data/records.json", { cache: "no-store" }).then((r) => r.jso
   ["kind", "team", "games", "q"].forEach((id) => $(id).addEventListener("input", renderItems));
   $("cteam").innerHTML += [...new Set((d.context || []).map((c) => c.team))].sort().map((t) => `<option>${t}</option>`).join("");
   ["ckind", "cstat", "cteam", "cq"].forEach((id) => $(id).addEventListener("input", renderCtx));
+  $("fteam").innerHTML = Object.keys(d.franchise || {}).sort().map((t) => `<option>${t}</option>`).join("");
+  ["fteam", "fstat"].forEach((id) => $(id).addEventListener("input", renderFranchise));
+  renderFranchise();
   renderCtx();
   $("titles").innerHTML = (d.titles || []).length ? `<tr><th>Title</th><th>Leaders now</th><th class="num">Per game</th><th class="num">GP</th><th>What it would mean</th></tr>` +
     d.titles.map((t) => t.rows.map((r, i) => `<tr>${i === 0 ? `<td rowspan=${t.rows.length}><b>${esc(t.label[0].toUpperCase() + t.label.slice(1))}</b></td>` : ""}<td>${i === 0 ? "<b>" : ""}${esc(r.name)}${i === 0 ? "</b>" : ""} <span class="team">${esc(r.team)}</span>${aw(r.name)}</td><td class="num">${r.perGame.toFixed(1)}</td><td class="num">${r.gp}</td><td class="small">${esc(r.note)}</td></tr>`).join("")).join("")
@@ -254,9 +269,10 @@ Promise.all([fetch("data/records.json", { cache: "no-store" }).then((r) => r.jso
   $("stat").addEventListener("input", renderBoard);
   const c = d.checks || { same: 0, differ: [] };
   $("checks").innerHTML = `Totals checked against the teams' game notes and ESPN's career stats wherever they print the same number: <b>${c.same}</b> agree${c.differ.length ? `, <b class="lo">${c.differ.length} differ</b>: ${c.differ.map((x) => `${esc(x.player)} ${esc(x.stat)} ours ${fmt(x.ours)} vs ${esc(x.source)} ${fmt(x.theirs)}`).join("; ")}` : ""}.` +
+    (c.franchise ? `<br>Franchise totals checked against the teams' game notes: <b>${c.franchise.same}</b> agree${c.franchise.differ.length ? `, <b class="lo">${c.franchise.differ.length} differ</b>: ${c.franchise.differ.map((x) => `${esc(x.player)} ${esc(x.stat)} ours ${fmt(x.ours)} vs ${esc(x.source)} ${fmt(x.theirs)}`).join("; ")}` : ""}.` : "") +
     (d.errata?.length ? `<br>Slips in the guide itself (the totals were used, not the slip): ${d.errata.map(esc).join("; ")}.` : "") +
     (d.problems?.length ? `<br>Not counted: ${d.problems.map(esc).join("; ")}.` : "");
-  $("foot").innerHTML = `Record book and single-game lists: the NBA's 2026-27 Guide (Elias Sports Bureau), pp. 128-135, 149 and 198-268, through 2025-26; points ranks to 68th from its career scorers (p. 136). Leaderboards: ${esc(d.source)}, pages 76-83 (milestone watch), 90 (franchise records), 92-97 (career leaders) and 100-103 (streaks and best starts), plus this season's box scores. Ranks move as listed players pass each other; players the guide doesn't list can't be seen, so a rank is only as good as the guide's lists around it. Odds: from each player's games this season and how often he has played lately, before the injury report (players on tonight's report are marked). Coaches' totals assume the coach has run every game this season.`;
+  $("foot").innerHTML = `Record book and single-game lists: the NBA's 2026-27 Guide (Elias Sports Bureau), pp. 128-135, 149 and 198-268, through 2025-26; points ranks to 68th from its career scorers (p. 136). Leaderboards: ${esc(d.source)}, pages 76-83 (milestone watch), 90 (franchise records), 92-97 (career leaders) and 100-103 (streaks and best starts), plus this season's box scores. Franchise history: every player's totals with each franchise from the 2026-27 NBA Guide's team-by-team year-by-year pages (1946-47 to 2025-26), plus his games for that team this season. Ranks move as listed players pass each other; players the guide doesn't list can't be seen, so a rank is only as good as the guide's lists around it. Odds: from each player's games this season and how often he has played lately, before the injury report (players on tonight's report are marked). Coaches' totals assume the coach has run every game this season.`;
   renderItems(); renderBoard();
 }).catch((e) => { $("sub").textContent = `Couldn't load the data: ${e.message}`; });
 </script>

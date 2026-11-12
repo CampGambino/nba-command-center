@@ -2,6 +2,49 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.44.0 (2026-11-12): Franchise history for every player on all 30 teams (NBA Guide year-by-year team pages)
+
+### Why
+- **The user:** the 30 team media guides in "Team PDF", and franchise records worth alerting on before they happen. The team guides' leader pages come in 30 layouts that don't read cleanly. The NBA Guide's year-by-year pages print every player's line with every team since 1946-47, so the franchise lists are built from those instead and checked against the team guides.
+
+### What changed
+- **`tools/parse-team-rows.py`:** every team-by-team regular-season player row in the NBA Guide's year-by-year pages, 1946-47 to 2025-26 (33,793 rows, 80 seasons, 71 team names), in any of the guide's layouts. Fixes found while checking totals:
+  - **Headers broken over several lines** (1990-91 to 1993-94, 2018-19): the team's name is printed across the column labels. Before, those teams' rows went to the team above. E.g. Harden's 2018-19 Rockets season was counted for Golden State.
+  - **Labels printed together** ("FGAFG%", "FG%3PM", "Pts.Avg.Bob"): split, and the first name glued to the header goes back on its row (Bob Pettit, 1954-55).
+  - **A header printed twice** (1960-61 Knicks).
+  - **"NEW ORLEANS/OKLAHOMA CITY HORNETS"** (2005-06, 2006-07) is now read.
+- **`tools/build-franchise-careers.py` → `src/data/nba-franchise-careers-2026-27.json`:** each player's totals with each of today's 30 franchises, relocations included. Stats: games, points, rebounds (offensive and defensive too), assists, steals, blocks, FGM, FTM, 3PM.
+  - **Each franchise:** its top 60 per stat, plus the totals there of every player active in 2024-25 or 2025-26.
+  - **Rows left out:** team and opponents totals, and a traded player's totals across teams ("(!)", "‡").
+  - **Short and squashed names merged:** "K. Abdul-Jabbar" → Kareem Abdul-Jabbar, "KermitWashington" → Kermit Washington.
+  - **Two players with one name** at one franchise are split at gaps of 6+ seasons. A player active now keeps all his stints since 2003-04.
+  - **Two corrections, both written down in the file:**
+    - Karl Malone's 2001-02 Jazz row is missing from the guide (p. 597). His G, FGM, FTM, PTS and STL that season come from the guide's leader lines for that season.
+    - Pete Maravich's 1977-78 row has a stray "8" before PTS; his points are taken from his made shots.
+- **New `src/records/franchise.js`:** each franchise's lists as they stand now. A total is last season's total plus his games for that team this season.
+  - **When an item is listed:** when a current player is within 10 games of passing a name for a place in the franchise's top 10, or top 20 in points, rebounds and assists.
+  - **Example:** "Barnes: 14 rebounds from passing DeMar DeRozan (2,739) for 7th in Raptors history".
+  - **Team changes:** a player traded in starts from his total with them. One with a retired player's name and no total there is a different player.
+- **`scripts/situations.js`:** franchise items join the records with odds. A Tip-Off Guide franchise mark that says the same thing is dropped. `records.json` gains `franchise` (each team's top 25 per stat).
+- **Records tab:** a "Franchise history, now" table (team and stat), and the "Within reach" filter is now "Franchise history".
+- **NBA Live and storylines:** franchise items already flow to both through records.json (kind "franchise"), as the Tip-Off franchise marks did.
+
+### Tested
+- **Checks:** 579 pass, including:
+  - totals against the team media guides and the Tip-Off Guide: 45 of 45 match. Examples: Kobe 33,643, Magic's 10,141 assists, Kareem's 2,694 Lakers blocks, Pettit 7,349 FGM and 792 games, Tree Rollins 814 games, Hakeem 26,511, Malone 36,374, Stockton 15,806 assists, Ewing 23,665, DeRozan 13,296, Haslem 5,791;
+  - no team-total rows; LeBron keeps his 23,119 Cleveland points;
+  - a pass with the place it's for; a new player with a retired player's name gets his own row.
+- **Tip-Off Guide's franchise pages:** all 6 totals they give match.
+- **Teams' game notes:** all 17 franchise figures they print for tonight's players and the names ahead of them match (now on the Checks line).
+- **Built:** 85 franchise marks within reach, 22 for players playing tonight. Example: Scottie Barnes 3 offensive rebounds from passing Jakob Poeltl for 5th in Raptors history (41% tonight). Page sweep OK.
+
+### Still unproven
+- **Live in NBA Live:** a franchise pass firing in a live game hasn't been seen. It runs through the same path as the Tip-Off franchise marks (bridge v3), which were tested.
+- **Stats the guide didn't keep:** steals, blocks and offensive/defensive rebounds start in 1973-74, and 3-pointers in 1979-80. Older players' totals in those stats are what the guide has (none).
+- **Malone's 2001-02 season:** his minutes, rebounds, assists and blocks aren't counted.
+- **Rows with no total:** a franchise whose top-60 list ends above a current player's total can't rank him. He gets a dash, as on the all-time lists.
+- **The team media guides' other pages** (single-game franchise records, season records) aren't read.
+
 ## 0.43.0 (2026-11-12): This season vs his career (the NBA Guide's year-by-year stats)
 
 ### Why
