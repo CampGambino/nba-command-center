@@ -1,0 +1,2078 @@
+{
+"source": "Career regular-season leaders sent by the user on 11/12/26 (Basketball-Reference-style lists, top 40; triple-doubles to 72), through the games of 11/11/26",
+"asOf": "2026-11-11",
+"lists": {
+"reb": [
+[
+"Wilt Chamberlain",
+23924
+],
+[
+"Bill Russell",
+21620
+],
+[
+"Kareem Abdul-Jabbar",
+17440
+],
+[
+"Elvin Hayes",
+16279
+],
+[
+"Moses Malone",
+16212
+],
+[
+"Tim Duncan",
+15091
+],
+[
+"Karl Malone",
+14968
+],
+[
+"Robert Parish",
+14715
+],
+[
+"Kevin Garnett",
+14662
+],
+[
+"Dwight Howard",
+14627
+],
+[
+"Nate Thurmond",
+14464
+],
+[
+"Walt Bellamy",
+14241
+],
+[
+"Wes Unseld",
+13769
+],
+[
+"Hakeem Olajuwon",
+13748
+],
+[
+"Shaquille O'Neal",
+13099
+],
+[
+"Buck Williams",
+13017
+],
+[
+"Jerry Lucas",
+12942
+],
+[
+"Bob Pettit",
+12849
+],
+[
+"Charles Barkley",
+12546
+],
+[
+"Dikembe Mutombo",
+12359
+],
+[
+"Paul Silas",
+12357
+],
+[
+"Charles Oakley",
+12205
+],
+[
+"LeBron James",
+12167
+],
+[
+"Dennis Rodman",
+11954
+],
+[
+"Kevin Willis",
+11901
+],
+[
+"Patrick Ewing",
+11607
+],
+[
+"Andre Drummond",
+11601
+],
+[
+"Dirk Nowitzki",
+11489
+],
+[
+"Elgin Baylor",
+11463
+],
+[
+"Pau Gasol",
+11305
+],
+[
+"Dolph Schayes",
+11256
+],
+[
+"Bill Bridges",
+11054
+],
+[
+"DeAndre Jordan",
+10877
+],
+[
+"Jack Sikma",
+10816
+],
+[
+"Nikola Vučević",
+10738
+],
+[
+"Rudy Gobert",
+10693
+],
+[
+"David Robinson",
+10497
+],
+[
+"Ben Wallace",
+10482
+],
+[
+"Tyson Chandler",
+10467
+],
+[
+"Dave Cowens",
+10444
+]
+],
+"oreb": [
+[
+"Moses Malone",
+6731
+],
+[
+"Robert Parish",
+4598
+],
+[
+"Buck Williams",
+4526
+],
+[
+"Dennis Rodman",
+4329
+],
+[
+"Charles Barkley",
+4260
+],
+[
+"Shaquille O'Neal",
+4209
+],
+[
+"Dwight Howard",
+4151
+],
+[
+"Kevin Willis",
+4132
+],
+[
+"Hakeem Olajuwon",
+4034
+],
+[
+"Andre Drummond",
+3999
+],
+[
+"Charles Oakley",
+3924
+],
+[
+"Tim Duncan",
+3859
+],
+[
+"Dikembe Mutombo",
+3808
+],
+[
+"Karl Malone",
+3562
+],
+[
+"Tyson Chandler",
+3529
+],
+[
+"Horace Grant",
+3467
+],
+[
+"Otis Thorpe",
+3446
+],
+[
+"Ben Wallace",
+3444
+],
+[
+"Larry Smith",
+3401
+],
+[
+"A.C. Green",
+3354
+],
+[
+"Elton Brand",
+3304
+],
+[
+"Dale Davis",
+3303
+],
+[
+"Zach Randolph",
+3279
+],
+[
+"Michael Cage",
+3227
+],
+[
+"DeAndre Jordan",
+3219
+],
+[
+"Kevin Garnett",
+3209
+],
+[
+"Terry Cummings",
+3183
+],
+[
+"Rudy Gobert",
+3142
+],
+[
+"Pau Gasol",
+3085
+],
+[
+"David Robinson",
+3083
+],
+[
+"Shawn Kemp",
+3026
+],
+[
+"P.J. Brown",
+3002
+],
+[
+"Kareem Abdul-Jabbar",
+2975
+],
+[
+"Dominique Wilkins",
+2950
+],
+[
+"Steven Adams",
+2911
+],
+[
+"Vlade Divac",
+2881
+],
+[
+"Bill Laimbeer",
+2819
+],
+[
+"Alex English",
+2778
+],
+[
+"Elvin Hayes",
+2778
+],
+[
+"LaMarcus Aldridge",
+2776
+]
+],
+"dreb": [
+[
+"Kevin Garnett",
+11453
+],
+[
+"Karl Malone",
+11406
+],
+[
+"Tim Duncan",
+11232
+],
+[
+"Dwight Howard",
+10476
+],
+[
+"LeBron James",
+10320
+],
+[
+"Robert Parish",
+10117
+],
+[
+"Dirk Nowitzki",
+10021
+],
+[
+"Hakeem Olajuwon",
+9714
+],
+[
+"Moses Malone",
+9481
+],
+[
+"Kareem Abdul-Jabbar",
+9394
+],
+[
+"Shaquille O'Neal",
+8890
+],
+[
+"Patrick Ewing",
+8855
+],
+[
+"Dikembe Mutombo",
+8551
+],
+[
+"Buck Williams",
+8491
+],
+[
+"Charles Barkley",
+8286
+],
+[
+"Charles Oakley",
+8281
+],
+[
+"Jack Sikma",
+8274
+],
+[
+"Pau Gasol",
+8220
+],
+[
+"Nikola Vučević",
+8169
+],
+[
+"Kevin Willis",
+7769
+],
+[
+"DeAndre Jordan",
+7658
+],
+[
+"Dennis Rodman",
+7625
+],
+[
+"Andre Drummond",
+7602
+],
+[
+"Bill Laimbeer",
+7581
+],
+[
+"Rudy Gobert",
+7551
+],
+[
+"Kevin Durant",
+7542
+],
+[
+"Kevin Love",
+7441
+],
+[
+"David Robinson",
+7414
+],
+[
+"Shawn Marion",
+7369
+],
+[
+"Giannis Antetokounmpo",
+7285
+],
+[
+"Larry Bird",
+7217
+],
+[
+"Ben Wallace",
+7038
+],
+[
+"Al Horford",
+6982
+],
+[
+"Elvin Hayes",
+6973
+],
+[
+"Russell Westbrook",
+6971
+],
+[
+"Jason Kidd",
+6957
+],
+[
+"Tyson Chandler",
+6938
+],
+[
+"Zach Randolph",
+6929
+],
+[
+"Otis Thorpe",
+6924
+],
+[
+"Marcus Camby",
+6902
+]
+],
+"ast": [
+[
+"John Stockton",
+15806
+],
+[
+"Chris Paul",
+12552
+],
+[
+"Jason Kidd",
+12091
+],
+[
+"LeBron James",
+12081
+],
+[
+"Russell Westbrook",
+10351
+],
+[
+"Steve Nash",
+10335
+],
+[
+"Mark Jackson",
+10334
+],
+[
+"Magic Johnson",
+10141
+],
+[
+"Oscar Robertson",
+9887
+],
+[
+"Isiah Thomas",
+9061
+],
+[
+"Gary Payton",
+8966
+],
+[
+"James Harden",
+8940
+],
+[
+"Andre Miller",
+8524
+],
+[
+"Rod Strickland",
+7987
+],
+[
+"Rajon Rondo",
+7584
+],
+[
+"Maurice Cheeks",
+7392
+],
+[
+"Lenny Wilkens",
+7211
+],
+[
+"Terry Porter",
+7160
+],
+[
+"Kyle Lowry",
+7110
+],
+[
+"Tim Hardaway",
+7095
+],
+[
+"Tony Parker",
+7036
+],
+[
+"Bob Cousy",
+6955
+],
+[
+"Guy Rodgers",
+6917
+],
+[
+"Deron Williams",
+6819
+],
+[
+"Jrue Holiday",
+6805
+],
+[
+"Mike Conley",
+6784
+],
+[
+"Stephen Curry",
+6782
+],
+[
+"Muggsy Bogues",
+6726
+],
+[
+"Kevin Johnson",
+6711
+],
+[
+"Derek Harper",
+6577
+],
+[
+"Tiny Archibald",
+6476
+],
+[
+"Stephon Marbury",
+6471
+],
+[
+"John Lucas",
+6454
+],
+[
+"Reggie Theus",
+6453
+],
+[
+"Norm Nixon",
+6386
+],
+[
+"Kobe Bryant",
+6306
+],
+[
+"Jerry West",
+6238
+],
+[
+"Nikola Jokić",
+6170
+],
+[
+"Scottie Pippen",
+6135
+],
+[
+"Clyde Drexler",
+6125
+]
+],
+"stl": [
+[
+"John Stockton",
+3265
+],
+[
+"Chris Paul",
+2728
+],
+[
+"Jason Kidd",
+2684
+],
+[
+"Michael Jordan",
+2514
+],
+[
+"Gary Payton",
+2445
+],
+[
+"LeBron James",
+2430
+],
+[
+"Maurice Cheeks",
+2310
+],
+[
+"Scottie Pippen",
+2307
+],
+[
+"Clyde Drexler",
+2207
+],
+[
+"Hakeem Olajuwon",
+2162
+],
+[
+"Alvin Robertson",
+2112
+],
+[
+"Karl Malone",
+2085
+],
+[
+"Mookie Blaylock",
+2075
+],
+[
+"Russell Westbrook",
+2038
+],
+[
+"Allen Iverson",
+1983
+],
+[
+"Derek Harper",
+1957
+],
+[
+"Kobe Bryant",
+1944
+],
+[
+"Isiah Thomas",
+1861
+],
+[
+"Kevin Garnett",
+1859
+],
+[
+"James Harden",
+1804
+],
+[
+"Andre Iguodala",
+1765
+],
+[
+"Shawn Marion",
+1759
+],
+[
+"Paul Pierce",
+1752
+],
+[
+"Magic Johnson",
+1724
+],
+[
+"Metta World Peace",
+1721
+],
+[
+"Ron Harper",
+1716
+],
+[
+"Fat Lever",
+1666
+],
+[
+"Charles Barkley",
+1648
+],
+[
+"Mike Conley",
+1640
+],
+[
+"Gus Williams",
+1638
+],
+[
+"Trevor Ariza",
+1628
+],
+[
+"Paul George",
+1622
+],
+[
+"Hersey Hawkins",
+1622
+],
+[
+"Eddie Jones",
+1620
+],
+[
+"Dwyane Wade",
+1620
+],
+[
+"Rod Strickland",
+1616
+],
+[
+"Thaddeus Young",
+1612
+],
+[
+"Stephen Curry",
+1611
+],
+[
+"Mark Jackson",
+1608
+],
+[
+"Jason Terry",
+1603
+]
+],
+"blk": [
+[
+"Hakeem Olajuwon",
+3830
+],
+[
+"Dikembe Mutombo",
+3289
+],
+[
+"Kareem Abdul-Jabbar",
+3189
+],
+[
+"Mark Eaton",
+3064
+],
+[
+"Tim Duncan",
+3020
+],
+[
+"David Robinson",
+2954
+],
+[
+"Patrick Ewing",
+2894
+],
+[
+"Shaquille O'Neal",
+2732
+],
+[
+"Tree Rollins",
+2542
+],
+[
+"Robert Parish",
+2361
+],
+[
+"Alonzo Mourning",
+2356
+],
+[
+"Marcus Camby",
+2331
+],
+[
+"Dwight Howard",
+2228
+],
+[
+"Brook Lopez",
+2156
+],
+[
+"Ben Wallace",
+2137
+],
+[
+"Shawn Bradley",
+2119
+],
+[
+"Manute Bol",
+2086
+],
+[
+"George Johnson",
+2082
+],
+[
+"Kevin Garnett",
+2037
+],
+[
+"Larry Nance",
+2027
+],
+[
+"Theo Ratliff",
+1968
+],
+[
+"Pau Gasol",
+1941
+],
+[
+"Anthony Davis",
+1859
+],
+[
+"Rudy Gobert",
+1851
+],
+[
+"Elton Brand",
+1828
+],
+[
+"Jermaine O'Neal",
+1820
+],
+[
+"Elvin Hayes",
+1771
+],
+[
+"Serge Ibaka",
+1759
+],
+[
+"Artis Gilmore",
+1747
+],
+[
+"Moses Malone",
+1733
+],
+[
+"Josh Smith",
+1713
+],
+[
+"Kevin McHale",
+1690
+],
+[
+"Vlade Divac",
+1631
+],
+[
+"Herb Williams",
+1605
+],
+[
+"Elden Campbell",
+1602
+],
+[
+"Benoit Benjamin",
+1581
+],
+[
+"DeAndre Jordan",
+1581
+],
+[
+"Myles Turner",
+1553
+],
+[
+"Samuel Dalembert",
+1546
+],
+[
+"Wayne Cooper",
+1535
+]
+],
+"fgm": [
+[
+"LeBron James",
+16018
+],
+[
+"Kareem Abdul-Jabbar",
+15837
+],
+[
+"Karl Malone",
+13528
+],
+[
+"Wilt Chamberlain",
+12681
+],
+[
+"Michael Jordan",
+12192
+],
+[
+"Kobe Bryant",
+11719
+],
+[
+"Kevin Durant",
+11336
+],
+[
+"Shaquille O'Neal",
+11330
+],
+[
+"Dirk Nowitzki",
+11169
+],
+[
+"Elvin Hayes",
+10976
+],
+[
+"Hakeem Olajuwon",
+10749
+],
+[
+"Alex English",
+10659
+],
+[
+"John Havlicek",
+10513
+],
+[
+"Kevin Garnett",
+10505
+],
+[
+"Tim Duncan",
+10285
+],
+[
+"Carmelo Anthony",
+10119
+],
+[
+"Dominique Wilkins",
+9963
+],
+[
+"Russell Westbrook",
+9786
+],
+[
+"Patrick Ewing",
+9702
+],
+[
+"Robert Parish",
+9614
+],
+[
+"DeMar DeRozan",
+9595
+],
+[
+"Oscar Robertson",
+9508
+],
+[
+"Moses Malone",
+9435
+],
+[
+"Vince Carter",
+9293
+],
+[
+"Stephen Curry",
+9102
+],
+[
+"Jerry West",
+9016
+],
+[
+"James Harden",
+8718
+],
+[
+"Gary Payton",
+8708
+],
+[
+"Elgin Baylor",
+8693
+],
+[
+"Paul Pierce",
+8668
+],
+[
+"Larry Bird",
+8591
+],
+[
+"Ray Allen",
+8567
+],
+[
+"Hal Greer",
+8504
+],
+[
+"Allen Iverson",
+8467
+],
+[
+"Dwyane Wade",
+8454
+],
+[
+"Charles Barkley",
+8435
+],
+[
+"Clyde Drexler",
+8335
+],
+[
+"LaMarcus Aldridge",
+8311
+],
+[
+"Reggie Miller",
+8241
+],
+[
+"Adrian Dantley",
+8169
+]
+],
+"ftm": [
+[
+"Karl Malone",
+9787
+],
+[
+"LeBron James",
+8910
+],
+[
+"James Harden",
+8681
+],
+[
+"Moses Malone",
+8531
+],
+[
+"Kobe Bryant",
+8378
+],
+[
+"Kevin Durant",
+7783
+],
+[
+"Oscar Robertson",
+7694
+],
+[
+"Michael Jordan",
+7327
+],
+[
+"Dirk Nowitzki",
+7240
+],
+[
+"Jerry West",
+7160
+],
+[
+"DeMar DeRozan",
+6947
+],
+[
+"Paul Pierce",
+6918
+],
+[
+"Adrian Dantley",
+6832
+],
+[
+"Kareem Abdul-Jabbar",
+6712
+],
+[
+"Dolph Schayes",
+6712
+],
+[
+"Allen Iverson",
+6375
+],
+[
+"Charles Barkley",
+6349
+],
+[
+"Carmelo Anthony",
+6320
+],
+[
+"Reggie Miller",
+6237
+],
+[
+"Bob Pettit",
+6182
+],
+[
+"Russell Westbrook",
+6109
+],
+[
+"Wilt Chamberlain",
+6057
+],
+[
+"David Robinson",
+6035
+],
+[
+"Dominique Wilkins",
+6031
+],
+[
+"Shaquille O'Neal",
+5935
+],
+[
+"Tim Duncan",
+5896
+],
+[
+"Elgin Baylor",
+5763
+],
+[
+"Dwyane Wade",
+5708
+],
+[
+"Hakeem Olajuwon",
+5423
+],
+[
+"Lenny Wilkens",
+5394
+],
+[
+"Patrick Ewing",
+5392
+],
+[
+"John Havlicek",
+5369
+],
+[
+"Dwight Howard",
+5361
+],
+[
+"Elvin Hayes",
+5356
+],
+[
+"Damian Lillard",
+5321
+],
+[
+"Giannis Antetokounmpo",
+5239
+],
+[
+"Jimmy Butler",
+5168
+],
+[
+"Walt Bellamy",
+5113
+],
+[
+"Chet Walker",
+5079
+],
+[
+"Tom Chambers",
+5066
+]
+],
+"fg3m": [
+[
+"Stephen Curry",
+4291
+],
+[
+"James Harden",
+3422
+],
+[
+"Ray Allen",
+2973
+],
+[
+"Klay Thompson",
+2941
+],
+[
+"Damian Lillard",
+2835
+],
+[
+"LeBron James",
+2645
+],
+[
+"Reggie Miller",
+2560
+],
+[
+"Paul George",
+2486
+],
+[
+"Kyle Korver",
+2450
+],
+[
+"Kevin Durant",
+2393
+],
+[
+"Vince Carter",
+2290
+],
+[
+"Jason Terry",
+2282
+],
+[
+"Jamal Crawford",
+2221
+],
+[
+"Buddy Hield",
+2209
+],
+[
+"Kyle Lowry",
+2209
+],
+[
+"CJ McCollum",
+2202
+],
+[
+"Paul Pierce",
+2143
+],
+[
+"Eric Gordon",
+2092
+],
+[
+"Tim Hardaway Jr.",
+2077
+],
+[
+"Mike Conley",
+1990
+],
+[
+"Jason Kidd",
+1988
+],
+[
+"Dirk Nowitzki",
+1982
+],
+[
+"Joe Johnson",
+1978
+],
+[
+"JJ Redick",
+1950
+],
+[
+"J.R. Smith",
+1930
+],
+[
+"Kyrie Irving",
+1906
+],
+[
+"Donovan Mitchell",
+1874
+],
+[
+"Chris Paul",
+1870
+],
+[
+"Wesley Matthews",
+1845
+],
+[
+"Nicolas Batum",
+1842
+],
+[
+"Chauncey Billups",
+1830
+],
+[
+"Kobe Bryant",
+1827
+],
+[
+"Rashard Lewis",
+1787
+],
+[
+"Peja Stojaković",
+1760
+],
+[
+"Jrue Holiday",
+1739
+],
+[
+"Carmelo Anthony",
+1731
+],
+[
+"Kevin Love",
+1727
+],
+[
+"Bradley Beal",
+1724
+],
+[
+"Dale Ellis",
+1719
+],
+[
+"Luka Dončić",
+1692
+]
+],
+"gp": [
+[
+"LeBron James",
+1632
+],
+[
+"Robert Parish",
+1611
+],
+[
+"Kareem Abdul-Jabbar",
+1560
+],
+[
+"Vince Carter",
+1541
+],
+[
+"Dirk Nowitzki",
+1522
+],
+[
+"John Stockton",
+1504
+],
+[
+"Karl Malone",
+1476
+],
+[
+"Kevin Garnett",
+1462
+],
+[
+"Kevin Willis",
+1424
+],
+[
+"Jason Terry",
+1410
+],
+[
+"Tim Duncan",
+1392
+],
+[
+"Jason Kidd",
+1391
+],
+[
+"Reggie Miller",
+1389
+],
+[
+"Clifford Robinson",
+1380
+],
+[
+"Chris Paul",
+1370
+],
+[
+"Kobe Bryant",
+1346
+],
+[
+"Paul Pierce",
+1343
+],
+[
+"Gary Payton",
+1335
+],
+[
+"Moses Malone",
+1329
+],
+[
+"Jamal Crawford",
+1327
+],
+[
+"Buck Williams",
+1307
+],
+[
+"Andre Miller",
+1304
+],
+[
+"Elvin Hayes",
+1303
+],
+[
+"Russell Westbrook",
+1301
+],
+[
+"Ray Allen",
+1300
+],
+[
+"Mark Jackson",
+1296
+],
+[
+"Derek Fisher",
+1287
+],
+[
+"Sam Perkins",
+1286
+],
+[
+"Charles Oakley",
+1282
+],
+[
+"A.C. Green",
+1278
+],
+[
+"Joe Johnson",
+1277
+],
+[
+"Terry Porter",
+1274
+],
+[
+"DeMar DeRozan",
+1273
+],
+[
+"John Havlicek",
+1270
+],
+[
+"Carmelo Anthony",
+1260
+],
+[
+"Otis Thorpe",
+1257
+],
+[
+"Tony Parker",
+1254
+],
+[
+"Paul Silas",
+1254
+],
+[
+"Jeff Green",
+1247
+],
+[
+"Dwight Howard",
+1242
+]
+],
+"td": [
+[
+"Russell Westbrook",
+209
+],
+[
+"Nikola Jokić",
+201
+],
+[
+"Oscar Robertson",
+181
+],
+[
+"Magic Johnson",
+138
+],
+[
+"LeBron James",
+125
+],
+[
+"Wilt Chamberlain",
+109
+],
+[
+"Jason Kidd",
+107
+],
+[
+"Luka Dončić",
+90
+],
+[
+"James Harden",
+82
+],
+[
+"Domantas Sabonis",
+69
+],
+[
+"Larry Bird",
+59
+],
+[
+"Giannis Antetokounmpo",
+58
+],
+[
+"Fat Lever",
+43
+],
+[
+"Bob Cousy",
+33
+],
+[
+"Draymond Green",
+33
+],
+[
+"Ben Simmons",
+33
+],
+[
+"Rajon Rondo",
+32
+],
+[
+"Josh Giddey",
+31
+],
+[
+"John Havlicek",
+31
+],
+[
+"Grant Hill",
+29
+],
+[
+"Michael Jordan",
+28
+],
+[
+"Elgin Baylor",
+26
+],
+[
+"Clyde Drexler",
+25
+],
+[
+"Walt Frazier",
+23
+],
+[
+"Kareem Abdul-Jabbar",
+22
+],
+[
+"Bill Russell",
+22
+],
+[
+"Kobe Bryant",
+21
+],
+[
+"Tom Gola",
+21
+],
+[
+"Kyle Lowry",
+21
+],
+[
+"Michael Ray Richardson",
+21
+],
+[
+"Chris Webber",
+21
+],
+[
+"Charles Barkley",
+20
+],
+[
+"Dejounte Murray",
+20
+],
+[
+"Jimmy Butler",
+19
+],
+[
+"Guy Rodgers",
+19
+],
+[
+"Kevin Durant",
+18
+],
+[
+"Mark Jackson",
+18
+],
+[
+"Chris Paul",
+18
+],
+[
+"Josh Hart",
+17
+],
+[
+"Elfrid Payton",
+17
+],
+[
+"Scottie Pippen",
+17
+],
+[
+"Julius Randle",
+17
+],
+[
+"Kevin Garnett",
+16
+],
+[
+"Richie Guerin",
+16
+],
+[
+"Norm Van Lier",
+16
+],
+[
+"Jerry West",
+16
+],
+[
+"Jalen Johnson",
+15
+],
+[
+"Gary Payton",
+15
+],
+[
+"Antoine Walker",
+15
+],
+[
+"Darrell Walker",
+15
+],
+[
+"Billy Cunningham",
+14
+],
+[
+"Cade Cunningham",
+14
+],
+[
+"Hakeem Olajuwon",
+14
+],
+[
+"David Robinson",
+14
+],
+[
+"Kevin Johnson",
+13
+],
+[
+"Alvin Robertson",
+13
+],
+[
+"Alperen Şengün",
+13
+],
+[
+"Lenny Wilkens",
+13
+],
+[
+"Alvan Adams",
+12
+],
+[
+"Elvin Hayes",
+12
+],
+[
+"Ja Morant",
+12
+],
+[
+"Lamar Odom",
+12
+],
+[
+"Maurice Stokes",
+12
+],
+[
+"LaMelo Ball",
+11
+],
+[
+"Stephen Curry",
+10
+],
+[
+"Baron Davis",
+10
+],
+[
+"Joel Embiid",
+10
+],
+[
+"Pau Gasol",
+10
+],
+[
+"Blake Griffin",
+10
+],
+[
+"Jerry Lucas",
+10
+],
+[
+"Dikembe Mutombo",
+10
+],
+[
+"Andy Phillip",
+10
+]
+],
+"fg2m": [
+[
+"Kareem Abdul-Jabbar",
+15836
+],
+[
+"Karl Malone",
+13443
+],
+[
+"LeBron James",
+13373
+],
+[
+"Wilt Chamberlain",
+12681
+],
+[
+"Michael Jordan",
+11611
+],
+[
+"Shaquille O'Neal",
+11329
+],
+[
+"Elvin Hayes",
+10971
+],
+[
+"Hakeem Olajuwon",
+10724
+],
+[
+"Alex English",
+10641
+],
+[
+"John Havlicek",
+10513
+],
+[
+"Kevin Garnett",
+10331
+],
+[
+"Tim Duncan",
+10255
+],
+[
+"Kobe Bryant",
+9892
+],
+[
+"Patrick Ewing",
+9683
+],
+[
+"Robert Parish",
+9614
+],
+[
+"Oscar Robertson",
+9508
+],
+[
+"Moses Malone",
+9427
+],
+[
+"Dominique Wilkins",
+9252
+],
+[
+"Dirk Nowitzki",
+9187
+],
+[
+"Jerry West",
+9016
+],
+[
+"Kevin Durant",
+8943
+],
+[
+"DeMar DeRozan",
+8931
+],
+[
+"Elgin Baylor",
+8693
+],
+[
+"Hal Greer",
+8504
+],
+[
+"Carmelo Anthony",
+8388
+],
+[
+"Russell Westbrook",
+8291
+],
+[
+"Adrian Dantley",
+8162
+],
+[
+"LaMarcus Aldridge",
+8084
+],
+[
+"Terry Cummings",
+8001
+],
+[
+"George Gervin",
+7968
+],
+[
+"Walter Davis",
+7961
+],
+[
+"Larry Bird",
+7942
+],
+[
+"Walt Bellamy",
+7914
+],
+[
+"Dwyane Wade",
+7905
+],
+[
+"Charles Barkley",
+7897
+],
+[
+"Bernard King",
+7807
+],
+[
+"Pau Gasol",
+7801
+],
+[
+"Bob Lanier",
+7759
+],
+[
+"Gary Payton",
+7576
+],
+[
+"Clyde Drexler",
+7508
+]
+]
+}
+}

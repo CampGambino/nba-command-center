@@ -31,9 +31,9 @@ export const strictKey = (n) => {
 };
 
 export const LABEL = { pts: "points", reb: "rebounds", oreb: "offensive rebounds", dreb: "defensive rebounds", ast: "assists", stl: "steals", blk: "blocks",
-  fgm: "field goals", ftm: "free throws", fg3m: "3-pointers", gp: "games", min: "minutes", td: "triple-doubles", wins: "wins" };
+  fgm: "field goals", ftm: "free throws", fg3m: "3-pointers", gp: "games", min: "minutes", td: "triple-doubles", wins: "wins", fg2m: "2-point field goals" };
 const SINGULAR = { pts: "point", reb: "rebound", oreb: "offensive rebound", dreb: "defensive rebound", ast: "assist", stl: "steal", blk: "block",
-  fgm: "field goal", ftm: "free throw", fg3m: "3-pointer", gp: "game", min: "minute", td: "triple-double", wins: "win" };
+  fgm: "field goal", ftm: "free throw", fg3m: "3-pointer", gp: "game", min: "minute", td: "triple-double", wins: "win", fg2m: "2-point field goal" };
 export const statWord = (stat, n) => (n === 1 ? SINGULAR[stat] : LABEL[stat]) || stat;
 // Round numbers worth a post, past these floors (the guide's own "reach" marks are added on top).
 export const STEPS = { pts: 1000, reb: 1000, ast: 1000, fgm: 1000, ftm: 1000, fg3m: 100, stl: 250, blk: 250, oreb: 500, dreb: 1000, gp: 100, td: 25, wins: 100 };
@@ -59,6 +59,7 @@ export function seasonLines(teamFiles) {
         if (!played) continue;
         const stats = Object.fromEntries(BOX.map((k) => [k, v(k)]));
         stats.gp = 1;
+        stats.fg2m = stats.fgm - stats.fg3m;
         stats.td = ["pts", "reb", "ast", "stl", "blk"].filter((k) => stats[k] >= 10).length >= 3 ? 1 : 0;
         const win = g.pf != null && g.pa != null ? (g.pf > g.pa ? 1 : 0) : 0;
         stats.wins = win;
@@ -80,7 +81,7 @@ export function teamResults(teamFiles) {
   return out;
 }
 
-export function currentRecords({ guide, teamFiles, today = null, tonight = [], scorers = [], coachList = null, coachTeams = null, where = "all-time", record = "the NBA record", rounds = true, kind = null, horizon = HORIZON }) {
+export function currentRecords({ guide, teamFiles, today = null, tonight = [], scorers = [], coachList = null, coachTeams = null, current = null, where = "all-time", record = "the NBA record", rounds = true, kind = null, horizon = HORIZON }) {
   const problems = [];
   const lines = seasonLines(teamFiles);
   const byKey = {};
@@ -97,6 +98,19 @@ export function currentRecords({ guide, teamFiles, today = null, tonight = [], s
     p.totals[stat] ??= value;
     if (rank) p.preRank[stat] ??= rank;
   };
+  // Current lists (top 40 per stat, through a given date): the deepest and newest source, so they go first.
+  // A live player's total is taken back to the start of the season by removing his games up to that date.
+  const depth = {};
+  if (current?.lists) {
+    for (const [stat, rows] of Object.entries(current.lists)) {
+      depth[stat] = { n: rows.length, floor: rows[rows.length - 1][1] };
+      for (const [name, value] of rows) {
+        const m = byKey[strictKey(name)] || [];
+        const through = m.length === 1 ? m[0].lines.filter((l) => l.d <= current.asOf).reduce((a, l) => a + (l.stats[stat] || 0), 0) : 0;
+        put(name, stat, value - through, null, `current list through ${current.asOf}`);
+      }
+    }
+  }
   for (const [stat, rows] of Object.entries(guide.alltime || {})) rows.forEach((r, i) => put(r.name, stat, r.value, i + 1, "all-time list"));
   for (const [stat, rows] of Object.entries(guide.active || {})) rows.forEach((r) => put(r.name, stat, r.value, null, "active list"));
   // Per-game lists: their totals, but not their games (for older players those count only the seasons the stat was kept).
@@ -105,6 +119,7 @@ export function currentRecords({ guide, teamFiles, today = null, tonight = [], s
   // The NBA Guide's top career scorers (every 19,000-point scorer, in order): points ranks 1-68, and their other totals.
   for (const r of scorers || []) {
     put(r.name, "pts", r.pts, r.rank, "career scorers, NBA Guide p. 136");
+    depth.pts ??= { n: scorers.length, floor: scorers[scorers.length - 1].pts };
     for (const k of ["gp", "fgm", "ftm", "reb", "ast", "min"]) if (r[k] != null) put(r.name, k, r[k], null, "career scorers, NBA Guide p. 136");
   }
   for (const t of guide.targets || []) if (t.scope === "nba") put(t.name, t.stat, t.value, t.rank, `milestone watch p. ${t.page}`);
@@ -128,6 +143,12 @@ export function currentRecords({ guide, teamFiles, today = null, tonight = [], s
   for (const stat of Object.keys(LABEL)) {
     const rows = players.filter((p) => p.totals[stat]).map((p) => ({ name: p.name, id: p.id, team: p.team, live: !!p.id, now: p.totals[stat].now, base: p.totals[stat].base, preRank: p.totals[stat].preRank }));
     if (!rows.length) continue;
+    if (depth[stat]) {
+      // A complete list (everyone above its floor): rank by today's totals; below the floor, no rank.
+      for (const r of rows) r.rank = r.now >= depth[stat].floor ? 1 + rows.filter((q) => q.now > r.now).length : null;
+      boards[stat] = rows.sort((a, b) => b.now - a.now);
+      continue;
+    }
     const ranked = rows.filter((r) => r.preRank);
     for (const r of ranked) {
       // Moved down by every ranked player now ahead who started behind, up by every one now behind who started ahead.

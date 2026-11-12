@@ -1324,6 +1324,25 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     "award history: MVPs 1955-56 to 2025-26, Finals MVPs from 1969");
 }
 
+// ---------- Current career lists (top 40 per stat, sent by the user 11/12) ----------
+{
+  const { currentRecords } = await import("../src/records/guide.js");
+  const cur = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "career-leaders-2026-11-11.json"), "utf8"));
+  ok(Object.keys(cur.lists).length === 12 && Object.entries(cur.lists).every(([k, v]) => v.length >= 40 && v.every((r, i) => i === 0 || v[i - 1][1] >= r[1])) && cur.lists.td.length === 72,
+    "current lists: 12 stats, top 40 each (triple-doubles to 72), in order");
+  // A live player's listed total (through asOf) is taken back to the start of the season, so later games add once.
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const L = (o) => keys.map((k) => o[k] ?? 0);
+  const files = { PHI: { team: "PHI", keys, names: { 23: "Big Man" }, games: [
+    { d: "2026-11-10", opp: "BOS", home: true, pf: 1, pa: 0, pl: { 23: L({ min: 30, reb: 10, fgm: 5, fg3m: 1 }) } },
+    { d: "2026-11-12", opp: "BOS", home: false, pf: 1, pa: 0, pl: { 23: L({ min: 30, reb: 4, fgm: 3, fg3m: 0 }) } } ] } };
+  const g = { alltime: {}, active: {}, extra: {}, watch: [], targets: [], rounds: [], coaches: {}, franchises: [], teamRecords: {} };
+  const r = currentRecords({ guide: g, teamFiles: files, current: { asOf: "2026-11-11", lists: { reb: [["Old Big", 1010], ["Big Man", 1000], ["Third Guy", 990]], fg2m: [["Big Man", 500]] } } });
+  const big = r.boards.reb.find((x) => x.name === "Big Man");
+  ok(big.now === 1004 && big.rank === 2 && r.boards.fg2m[0].now === 503 && r.items.some((i) => i.text === "Man: 7 rebounds from passing Old Big (1,010) for the NBA record; 6 ties him"),
+    "current lists: listed total + games after the list's date only; ranks from today's totals; 2-point field goals counted (FGM - 3PM)", JSON.stringify([big, r.boards.fg2m[0]]));
+}
+
 // ---------- NBA Cup final: counts in neither standings nor stats ----------
 {
   // Shapes as ESPN gave them for the 12/13/25 semifinals and 12/16/25 final (scoreboard and team schedule).

@@ -159,7 +159,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const fmt = (n) => (n == null ? "–" : Number(n).toLocaleString("en-US"));
 const pc = (p) => (p == null ? "–" : `${Math.round(p * 100)}%`);
 const md = (d) => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
-const LABEL = { pts: "Points", reb: "Rebounds", oreb: "Offensive rebounds", dreb: "Defensive rebounds", ast: "Assists", stl: "Steals", blk: "Blocks", fgm: "Field goals made", ftm: "Free throws made", fg3m: "3-pointers made", gp: "Games played", min: "Minutes", td: "Triple-doubles", wins: "Wins (players)" };
+const LABEL = { pts: "Points", reb: "Rebounds", oreb: "Offensive rebounds", dreb: "Defensive rebounds", ast: "Assists", stl: "Steals", blk: "Blocks", fgm: "Field goals made", ftm: "Free throws made", fg3m: "3-pointers made", gp: "Games played", min: "Minutes", td: "Triple-doubles", wins: "Wins (players)", fg2m: "2-point field goals made" };
 const KIND = { pass: "all-time", round: "round number", franchise: "franchise", coach: "coach", team: "team record", franchiseWins: "franchise", cup: "NBA Cup" };
 let D = null, INJ = new Map();
 const nk = (n) => String(n || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[.'’]/g, "").trim();

@@ -2,6 +2,29 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.36.0 (2026-11-12): Career lists 40 deep (and triple-doubles, 2-point field goals)
+
+### Why
+- **The user** sent current career leader lists (top 40, through 11/11) for rebounds, offensive and defensive rebounds, assists, steals, blocks, FGM, FTM, 3PM, games, minutes, triple-doubles (to 72), turnovers and 2-point FGM: "the command center didn't have appropriate numbers".
+
+### What changed
+- **`src/data/career-leaders-2026-11-11.json`:** the lists, typed from the user's screenshots. Left out: minutes (not counted down) and turnovers (not a milestone anyone posts).
+- **`src/records/guide.js`:**
+  - **Totals:** a live player's listed total is taken back to the start of the season (his games through the list's date removed), so later games add once.
+  - **Ranks:** where a list is complete (top 40, or 68 for points), a rank is today's place among everyone above the list's floor. That gives ranks to 40th in every stat (it was the top 10 plus the names the guide mentions).
+  - **New stats:** 2-point field goals (FGM - 3PM) and triple-doubles have full lists. LeBron is 70 two-point field goals from passing Karl Malone for 2nd.
+- The build picks up the newest `career-leaders-<date>.json`.
+- The Records tab adds 2-point field goals to the list selector.
+
+### Tested
+- **Against the lists:** all 532 entries equal our own totals through 11/11 exactly. So the totals were right before; what was missing was depth.
+- **Two disagreements** with the guides, shown under Checks: Al Horford's defensive rebounds (the list gives 1 fewer than the Tip-Off Guide at the start of the season) and Dolph Schayes's free throws (6,712 here, 6,979 in the NBA Guide's scorers table, an old-records difference).
+- **Built:** 218 marks within reach (was 163), e.g. Drummond 7 rebounds from passing Ewing for 26th, Paul George 1 steal from passing Hersey Hawkins for 32nd, DeRozan 13 two-point field goals from passing Durant for 21st.
+- **New checks:** 557 pass.
+
+### Still unproven
+- **Updates:** the lists are a snapshot; ranks beyond them still come from the guides. New snapshots go in as new dated files.
+
 ## 0.35.0 (2026-11-12): NBA Cup all-time standings, kept current
 
 ### Why
