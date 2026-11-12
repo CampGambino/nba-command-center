@@ -202,6 +202,8 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
         if (!sg || !s || phaseOf(s, sg.tip, t) !== "pregame") continue;
         const names = tm.starters.map((p) => p.name);
         if (tm.status === "Expected" && !s.expected) { s.expected = names; changed = true; }
+        // Timing (times only, for the nightly summary): when NBA.com stamped it confirmed, when we first saw it.
+        if (tm.status === "Confirmed") { const w = (s.when ??= {}); if (!w.seen) { w.seen = t; w.feed = tm.at; changed = true; } }
         if (tm.status !== "Confirmed") continue;
         const again = s.posted && diff(s.posted, names).in.length > 0;
         if (s.posted && !again) continue;
@@ -209,7 +211,11 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
         let last = null;
         if (!again) { try { const r = await fetch(TEAM_FILE(tm.tri)); if (r.ok) last = lastStarters(await r.json(), ymd); } catch {} }
         const embed = lineupEmbed({ ...g, statusText: g.statusText || etClock(sg.tip) + " ET" }, tm, { expected: again ? null : s.expected, last, previous: again ? s.posted : null });
-        if (await postDiscord(env.LINEUPS_WEBHOOK, { embeds: [embed] })) { s.posted = names; s.postedTeam = { starters: tm.starters }; changed = true; report.posted++; }
+        if (await postDiscord(env.LINEUPS_WEBHOOK, { embeds: [embed] })) {
+          s.posted = names; s.postedTeam = { starters: tm.starters }; changed = true; report.posted++;
+          const w = (s.when ??= {});
+          if (again) (w.changes ??= []).push({ seen: t, feed: tm.at, posted: Date.now() }); else w.posted = Date.now();
+        }
       }
     }
   }
@@ -243,6 +249,7 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
         report.posted++;
       }
       s.tip = same ? "same" : "posted"; changed = true;
+      (s.when ??= {}).tipSeen = now;
     }
   }
   // Teams whose box never showed up within the window: give up quietly.
@@ -250,9 +257,51 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
     const s = st.teams[tri];
     if (!s.tip && now >= g.tip + TIP_GIVE_UP_MIN * 60e3) { s.tip = "gave up"; changed = true; }
   }
-  if (st.sched.every((g) => g.teams.every((tri) => st.teams[tri]?.tip))) { st.done = true; changed = true; }
+  if (st.sched.every((g) => g.teams.every((tri) => st.teams[tri]?.tip)) && !st.done) {
+    st.done = true; changed = true;
+    // The night's timing: kept 8 days (times only, no lineups) and posted to #lineups as one summary.
+    if (!dry && st.sched.length) {
+      const timing = nightTiming(st);
+      await env.STATE.put(`lineups-timing:${ymd}`, JSON.stringify(timing), { expirationTtl: 8 * 86400 });
+      await postDiscord(env.LINEUPS_WEBHOOK, { embeds: [timingEmbed(timing)] });
+    }
+  }
   if (changed && !dry) await env.STATE.put("lineups", JSON.stringify(st));
   return report;
+}
+
+/** The night's timing per team: minutes before the scheduled tip that NBA.com confirmed and we posted. */
+export function nightTiming(st) {
+  const rows = [];
+  for (const g of st.sched || []) for (const tri of g.teams) {
+    const s = st.teams[tri] || {}, w = s.when || {};
+    const before = (ms) => (ms ? Math.round(((g.tip - ms) / 60e3) * 10) / 10 : null); // minutes before tip
+    rows.push({ team: tri, opp: g.teams.find((x) => x !== tri), tip: g.tip,
+      feedMin: before(w.feed), seenMin: before(w.seen), postedMin: before(w.posted),
+      lagSec: w.posted && w.feed ? Math.round((w.posted - w.feed) / 1000) : null,
+      changes: (w.changes || []).map((c) => ({ seenMin: before(c.seen), feedMin: before(c.feed), postedMin: before(c.posted) })),
+      tipResult: s.tip || null });
+  }
+  return { date: st.date, teams: rows.sort((a, b) => a.tip - b.tip || a.team.localeCompare(b.team)) };
+}
+
+/** One Discord embed summing up the night's timing. */
+export function timingEmbed(timing) {
+  const fmt = (m) => (m == null ? "—" : `${m.toFixed(1)} min`);
+  const lines = timing.teams.map((r) => {
+    const tip = r.tipResult === "posted" ? " · 🚨 started differently" : r.tipResult === "gave up" ? " · box never checked" : "";
+    if (r.postedMin == null) return `**${r.team}** (${etClock(r.tip)}): not confirmed before tip${tip}`;
+    return `**${r.team}** (${etClock(r.tip)}): NBA.com ${fmt(r.feedMin)} before tip · posted ${fmt(r.postedMin)} before${r.lagSec != null ? ` (+${r.lagSec}s)` : ""}${r.changes.length ? ` · ${r.changes.length} change${r.changes.length > 1 ? "s" : ""}` : ""}${tip}`;
+  });
+  const conf = timing.teams.filter((r) => r.feedMin != null).map((r) => r.feedMin).sort((a, b) => a - b);
+  const median = conf.length ? conf[Math.floor(conf.length / 2)] : null;
+  const inBurst = conf.filter((m) => m <= 31 && m > 29).length;
+  return {
+    author: { name: "Lineup timing · tonight" },
+    title: `${timing.date}: median confirmation ${median == null ? "—" : `${median.toFixed(1)} min`} before tip · ${inBurst} of ${conf.length} in the 31-29 window`,
+    description: lines.join("\n").slice(0, 4000),
+    color: 0x64748b,
+  };
 }
 
 /** The /lineups?date= path: read another day's NBA.com file; report, or post one sample (test). */

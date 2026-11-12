@@ -320,6 +320,7 @@ export default {
     // &test=1 (with a past date) posts one sample to #lineups to check the webhook.
     if (url.pathname === "/lineups") {
       const q = url.searchParams;
+      if (q.get("timing")) return Response.json((await env.STATE.get(`lineups-timing:${q.get("timing")}`, "json")) || (await env.STATE.get("lineups", "json")) || {}); // ?timing=YYYY-MM-DD
       return Response.json(await lineupCheck(env, Date.now(), { dry: q.get("dry") === "1", date: q.get("date") || null, test: q.get("test") === "1" && !!q.get("date") }));
     }
     return new Response("Not found", { status: 404 });

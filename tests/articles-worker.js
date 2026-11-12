@@ -209,7 +209,15 @@ export async function articlesChecks(ok) {
         && /Starters at tip \(none confirmed before\)/.test(tipPosts[1].author.name) && tipPosts[1].title.startsWith("IND @ NYK"),
         "lineups: at tip, ESPN's box (not NBA.com): a late swap vs the confirmed five posts 'started differently'; a team never confirmed gets its starters", JSON.stringify(tipPosts.map((e) => [e.author.name, e.title, e.description])));
       const r7 = await lineupCheck(env, T("19:31"), noSleep);
-      ok(r7.skipped === "all of today's games have tipped" && posts.length === 4, "lineups: done for the day once every game's starters were checked", JSON.stringify(r7));
+      // The night's timing: kept (times only) and summed up in one #lineups post when the day is done.
+      const timing = JSON.parse(kv.get("lineups-timing:2026-11-12") || "null");
+      const nyk = timing?.teams.find((x) => x.team === "NYK"), ind = timing?.teams.find((x) => x.team === "IND");
+      ok(nyk && nyk.feedMin === 60 && nyk.seenMin === 90 && nyk.postedMin != null && nyk.changes.length === 1 && nyk.tipResult === "posted" && ind.postedMin === null && !JSON.stringify(timing).includes("Brunson"),
+        "lineups: the night's timing per team (minutes before tip NBA.com stamped it, we saw it, we posted; changes; tip result), no names kept", JSON.stringify(timing));
+      const sum = posts[posts.length - 1].embeds[0];
+      ok(posts.length === 5 && sum.author.name === "Lineup timing · tonight" && /^2026-11-12: median confirmation/.test(sum.title) && /\*\*IND\*\* \(7:30 PM\): not confirmed before tip/.test(sum.description),
+        "lineups: one timing summary posted when the night is done", JSON.stringify(sum));
+      ok(r7.skipped === "all of today's games have tipped" && posts.length === 5, "lineups: done for the day once every game's starters were checked", JSON.stringify(r7));
       const early = await lineupCheck(env, Date.parse("2026-11-12T13:00:00Z"));
       ok(early.skipped === "before 10 AM ET", "lineups: nothing before 10 AM ET");
       // The Worker's two schedules: "*/5" runs articles only; "* * * * *" runs lineups only.

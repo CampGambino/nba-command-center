@@ -2,6 +2,26 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.25.4 (2026-11-12): nightly lineup timing summary
+
+### Why
+- **The user** wants to see, after the first live night, how close to 30 minutes before tip each lineup was confirmed.
+
+### What changed
+- **Per team, the lineups state now records times** (no names):
+  - when NBA.com stamped the five confirmed;
+  - when our check first saw it;
+  - when the post went out;
+  - any later changes;
+  - the tip-off result.
+- **When the night is done** (every team's starters checked after tip), the Worker:
+  - keeps the night's timing in KV `lineups-timing:<date>` for 8 days (minutes before tip, lag in seconds, changes, tip result; no lineups);
+  - posts one "Lineup timing · tonight" summary to #lineups: each team's confirmation and post time in minutes before tip, the median, and how many landed in the 31-29 minute window.
+- **Private endpoint `/lineups?k=…&timing=YYYY-MM-DD`** returns a night's timing (or today's state while the night is on).
+
+### Tested
+- **New checks** (37 watcher checks pass): the timing per team (NBA.com stamp 60.0 min before tip, seen 90.0, one change, tip result) holds no names; one summary posted when the night is done, with "not confirmed before tip" for a team that wasn't.
+
 ## 0.25.3 (2026-11-12): lineup checks concentrated 31-29 minutes before tip
 
 ### Why
