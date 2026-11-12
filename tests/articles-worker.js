@@ -5,6 +5,7 @@
  */
 import fs from "node:fs";
 import { parseLineups, diff as lineupDiff, lastStarters, lineupEmbed, lineupCheck, feedTime, espnStarters, feedDue } from "../cloudflare/lineups.js";
+import { dueAt, dueNow, digestCheck } from "../cloudflare/digest.js";
 import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey, tagOf as articleTag } from "../cloudflare/articles-worker.js";
 
 export async function articlesChecks(ok) {
@@ -236,6 +237,51 @@ export async function articlesChecks(ok) {
       articlesWorker.scheduled({ cron: "*/5 * * * *", scheduledTime: T("09:00") }, env3, { waitUntil: (p) => wait.push(p) });
       await Promise.all(wait).catch(() => {});
       ok(lineupsOnly === "" && ran.includes("state") && !ran.includes("lineups"), "articles: the 5-minute schedule runs the articles check, the 1-minute one the lineups check", JSON.stringify([lineupsOnly, ran]));
+    } finally { globalThis.fetch = realFetch; }
+  }
+  // Storylines digest to #alerts (cloudflare/digest.js): early games 2 hours before tip, the rest at 2 PM ET, never after tip.
+  {
+    const E = (hhmm) => Date.parse(`2026-11-26T${hhmm}:00-05:00`); // a day with a 12:30 PM and a 3:30 PM tip
+    ok(dueAt(E("12:30")) === E("10:30") && dueAt(E("15:30")) === E("13:30") && dueAt(E("16:00")) === E("14:00") && dueAt(E("19:30")) === E("14:00"),
+      "digest: tips before 4 PM ET are due 2 hours before; 4 PM and later at 2 PM");
+    const sched = [{ id: "a", start: "2026-11-26T17:30Z" }, { id: "b", start: "2026-11-27T00:30Z" }]; // 12:30 PM, 7:30 PM
+    ok(dueNow(sched, E("10:29")).length === 0 && dueNow(sched, E("10:30")).map((g) => g.id).join() === "a" && dueNow(sched, E("14:00"), { a: 1 }).map((g) => g.id).join() === "b" && dueNow(sched, E("14:00")).map((g) => g.id).join() === "b",
+      "digest: due games, once each, and never one that has tipped (the 12:30 game isn't sent at 2 PM)");
+    const kv = new Map(), posts = [];
+    let data = { today: "2026-11-26", games: [
+      { id: "a", away: "NYK", home: "DET", start: "2026-11-26T17:30Z", lines: [{ text: "NYK notes: a line" }] },
+      { id: "b", away: "BOS", home: "LAL", start: "2026-11-27T00:30Z", lines: [{ text: "LAL notes: a line" }] },
+    ] };
+    let fetches = 0;
+    const env = { ALERTS_WEBHOOK: "https://discord.com/api/webhooks/4/test-a", STATE: { get: async (k) => (kv.has(k) ? JSON.parse(kv.get(k)) : null), put: async (k, v) => kv.set(k, v) } };
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async (u, o = {}) => {
+      u = String(u);
+      if (u.includes("docs/data/tonight.json")) { fetches++; return new Response(JSON.stringify(data), { status: 200 }); }
+      if (u.startsWith("https://discord.com/")) { posts.push(JSON.parse(o.body)); return new Response("{}", { status: 200 }); }
+      return new Response("", { status: 404 });
+    };
+    try {
+      const r0 = await digestCheck(env, E("07:55"));
+      const r1 = await digestCheck(env, E("08:00")), r2 = await digestCheck(env, E("08:01"));
+      ok(r0.skipped === "before 8 AM ET" && fetches === 1 && r2.skipped === "nothing due" && posts.length === 0, "digest: from 8 AM, reads the site's data once to learn the day's tips; nothing more until a game is due", JSON.stringify([r0, r1, r2, fetches]));
+      const r3 = await digestCheck(env, E("10:30"));
+      ok(r3.posted === 1 && posts[0].content.startsWith("**Afternoon storylines, Thu, Nov 26** · 1 game (tip before 4 PM ET)") && posts[0].embeds[0].title === "NYK @ DET · 12:30 PM ET",
+        "digest: the 12:30 game posts at 10:30 as 'Afternoon storylines'", JSON.stringify(posts[0]));
+      await digestCheck(env, E("10:31"));
+      const r4 = await digestCheck(env, E("14:00"));
+      ok(r4.posted === 1 && posts.length === 2 && posts[1].content.startsWith("**Tonight's storylines, Thu, Nov 26** · 1 game ·") && posts[1].embeds[0].title.startsWith("BOS @ LAL"),
+        "digest: the evening game posts at 2 PM, without the early game again", JSON.stringify(posts[1]));
+      // Data not built yet for the day: waits, then sends once it is (only games that haven't tipped).
+      kv.clear(); posts.length = 0;
+      data = { ...data, today: "2026-11-25" };
+      const w = await digestCheck(env, E("14:00"));
+      data = { ...data, today: "2026-11-26" };
+      const w2 = await digestCheck(env, E("14:05"));
+      ok(/isn't built yet/.test(w.waiting || "") && posts.length === 1 && posts[0].embeds.length === 1 && posts[0].embeds[0].title.startsWith("BOS @ LAL"),
+        "digest: waits for the day's data, then sends what hasn't tipped (the 12:30 game is left out)", JSON.stringify([w, w2]));
+      const noSecret = await digestCheck({ STATE: env.STATE }, E("14:00"));
+      ok(noSecret.skipped === "no ALERTS_WEBHOOK secret", "digest: does nothing without the ALERTS_WEBHOOK secret");
     } finally { globalThis.fetch = realFetch; }
   }
 }

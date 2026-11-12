@@ -2,6 +2,38 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.28.0 (2026-11-12): the #alerts storylines digest sent by Cloudflare, on time, around early tips
+
+### Why
+- **The user** asked why #alerts had nothing by 1:28 PM. The digest goes out on the first GitHub build at or after 2 PM, and GitHub's scheduled runs start late (11/11: the 3 PM run 87 minutes late, the 5:30 run never; digest at 5:50 PM. 11/12: the 10:30 run at 11:27).
+- **The user also asked** about days with tips before 2 PM: the digest would have arrived after those games started (nothing left them out).
+- **Agreed design:** Cloudflare sends it. Games tipping before 4 PM ET go out 2 hours before tip; the rest at 2 PM; never a game that has tipped. Two more GitHub builds keep the data fresh.
+
+### What changed
+- **New `cloudflare/digest.js`, on the Worker's 1-minute schedule** (with lineups):
+  - reads the site's `docs/data/tonight.json` from GitHub: once from 8 AM to learn the day's tips, then only when a game is due;
+  - sends each game once: "Afternoon storylines … (tip before 4 PM ET)" 2 hours before an early tip; "Tonight's storylines" at 2 PM for the rest;
+  - a game that has tipped is never sent;
+  - if the day's data isn't built yet, it waits and sends as soon as it is;
+  - KV `digest` holds today's schedule and what was sent.
+- **Secret `ALERTS_WEBHOOK`** (#alerts; added by the user in Cloudflare): without it the Worker sends nothing.
+- **Private endpoints:** `/digest?k=…` reports what's due without posting; `&test=1` posts a TEST line to #alerts.
+- **Shared formatter `src/anticipate/discord-digest.js`** (no imports), used by both the Worker and `scripts/notify.js`. It takes a heading and note; `tonight.js` re-exports it, with a copy in `docs/lib`. The Worker redeploys when it changes.
+- **`daily.yml`:** two more builds, 8 AM ET (13:00 UTC) and 1 PM ET (18:00 UTC).
+- **The GitHub sender (`scripts/notify.js`)** stays on until the Worker's test post works, so no day is missed; then it's turned off (next version).
+
+### Tested
+- **New checks** (46 watcher checks pass):
+  - due times (12:30 → 10:30; 3:30 → 1:30; 4:00 and 7:30 → 2:00 PM);
+  - due games once each, never after tip;
+  - a full day: 7:55 nothing; 8:00 one read; 8:01 nothing; 10:30 the 12:30 game as "Afternoon storylines"; 2:00 PM the evening game alone;
+  - data not built: waits, then sends only the untipped game;
+  - nothing without the secret.
+- **The existing digest checks** pass with the shared formatter (510).
+
+### Still unproven
+- **The Worker's first real send:** waiting on the `ALERTS_WEBHOOK` secret and the test post.
+
 ## 0.27.1 (2026-11-12): articles: skip The Bounce, sports trivia and fantasy from The Athletic; seen time on the review page
 
 ### Why

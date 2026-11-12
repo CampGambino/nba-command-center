@@ -11,7 +11,9 @@ name: daily
 
 on:
   schedule:
+    - cron: "0 13 * * *"   # 8 AM ET: fresh storylines for a day with early tips (Cloudflare sends them 2 h before tip)
     - cron: "30 15 * * *"
+    - cron: "0 18 * * *"   # 1 PM ET: fresh storylines for the 2 PM digest (sent by Cloudflare)
     - cron: "0 20 * * *"
     - cron: "30 22 * * *"
     - cron: "30 8 * * *"

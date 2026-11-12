@@ -27,6 +27,7 @@
  * only when there is something new to log.
  */
 import { lineupCheck } from "./lineups.js";
+import { digestCheck } from "./digest.js";
 export const ARTICLES_CRON = "*/5 * * * *";
 
 const FEEDS = [
@@ -302,8 +303,12 @@ async function act(env, url, key) {
 export default {
   // Two schedules (wrangler.toml), each its own run with its own CPU budget:
   //   every 5 minutes: articles;  every minute: lineups (cloudflare/lineups.js; private #lineups, LINEUPS_WEBHOOK
-  //   secret), which does nothing unless a game is within 90 minutes of tip or just tipped.
-  async scheduled(event, env, ctx) { ctx.waitUntil(event.cron === ARTICLES_CRON ? check(env) : lineupCheck(env, event.scheduledTime || Date.now())); },
+  //   secret), which does nothing unless a game is within 90 minutes of tip or just tipped, and the pre-game
+  //   storylines to #alerts (cloudflare/digest.js; ALERTS_WEBHOOK secret), which reads only when one is due.
+  async scheduled(event, env, ctx) {
+    const at = event.scheduledTime || Date.now();
+    ctx.waitUntil(event.cron === ARTICLES_CRON ? check(env) : Promise.allSettled([lineupCheck(env, at), digestCheck(env, at)]));
+  },
   async fetch(req, env) {
     const url = new URL(req.url);
     const key = await adminKey(env);
@@ -330,6 +335,16 @@ export default {
     if (url.pathname === "/labels") return Response.json({ labels: await load(env, "labels", []), rules: await load(env, "rules", {}) });
     // Lineups: ?dry=1 reads and reports without posting; &date=YYYYMMDD reads another day's file;
     // &test=1 (with a past date) posts one sample to #lineups to check the webhook.
+    // Storylines digest: ?dry=1 reports what's due without posting; ?test=1 posts a TEST message to #alerts.
+    if (url.pathname === "/digest") {
+      const q = url.searchParams;
+      if (q.get("test") === "1") {
+        if (!env.ALERTS_WEBHOOK) return Response.json({ error: "no ALERTS_WEBHOOK secret yet" });
+        const r = await fetch(`${env.ALERTS_WEBHOOK}?wait=true`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: "NBA Command Center", content: "✅ TEST: Cloudflare can post the pre-game storylines here (games before 4 PM ET: 2 hours before tip; the rest: 2 PM ET).", allowed_mentions: { parse: [] } }) });
+        return Response.json({ posted: r.ok, status: r.status });
+      }
+      return Response.json(await digestCheck(env, Date.now(), { dry: true }));
+    }
     if (url.pathname === "/lineups") {
       const q = url.searchParams;
       if (q.get("timing")) return Response.json((await env.STATE.get(`lineups-timing:${q.get("timing")}`, "json")) || (await env.STATE.get("lineups", "json")) || {}); // ?timing=YYYY-MM-DD

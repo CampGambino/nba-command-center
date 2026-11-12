@@ -7,7 +7,7 @@ name: deploy articles watcher
 on:
   push:
     branches: [main]
-    paths: ["cloudflare/**", "tests/articles-worker.js", "tests/articles-only.js", ".github/workflows/deploy-articles.yml"]
+    paths: ["cloudflare/**", "src/anticipate/discord-digest.js", "tests/articles-worker.js", "tests/articles-only.js", ".github/workflows/deploy-articles.yml"]
   workflow_dispatch:
 
 concurrency:
