@@ -20,10 +20,10 @@ Each entry: what changed, how it was tested, and what is still unproven.
 
 ### Tested
 - **The real 11/11 file:** 10 games, 17-18 players a team, starters marked by position, inactives listed. Times are UTC (IND confirmed 22:49 = 5:49 PM ET).
+- **Live, after deploy (2:15 AM 11/12):** the Worker read the 11/11 file from Cloudflare (status 200, 10 games, every five right), and `&test=1` posted a sample (IND) to #lineups; Discord accepted it.
 - **New watcher checks** (29 pass; they also run before every deploy): starters, order and status; UTC times; in/out; last game's starters; post text (vs last game, vs expected, inactives); dry run posts nothing; posted once; a change after confirmation posts again; stops after every game has tipped; nothing before 10 AM ET.
 
 ### Still unproven
-- **Whether Cloudflare can read stats.nba.com** (it may block cloud servers). Checked right after deploy; see below.
 - **The live timing:** how early "Confirmed" appears (the 11/11 file suggests 45-75 minutes before tip). Tonight is the first real night.
 
 ## 0.24.1 (2026-11-12): With / without counts games a player sat before his debut (from the injury reports)
