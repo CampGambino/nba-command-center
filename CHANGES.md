@@ -2,6 +2,23 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.28.1 (2026-11-12): the GitHub digest sender is off; Cloudflare sends #alerts
+
+### Why
+- **Avoiding a double post:** with both senders on, 11/12 would have posted twice (the Worker at 2 PM, GitHub after its 3 PM build). The Worker sends as soon as its secret exists, at any time before tip, so nothing is lost by switching now.
+
+### What changed
+- **`daily.yml`:** the "Post tonight's storylines to Discord" step is removed. No GitHub step receives `DISCORD_WEBHOOK` any more; the user can delete that repository secret.
+- **`scripts/notify.js`** stays for a manual send.
+- **The workflow check** now asserts that no GitHub step gets the webhook or runs notify.js.
+
+### Tested
+- **Checks:** 517 pass.
+- **Live Worker, dry run** (`/digest`, 1:40 PM): it read the site's 11/12 data (4 games) and nothing was due yet.
+
+### Still unproven
+- **The first send:** waiting on the `ALERTS_WEBHOOK` secret in Cloudflare. Until it's added, #alerts gets nothing. Once it is, today's evening games post right away (it's after 2 PM) if they haven't tipped.
+
 ## 0.28.0 (2026-11-12): the #alerts storylines digest sent by Cloudflare, on time, around early tips
 
 ### Why

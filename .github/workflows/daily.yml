@@ -67,16 +67,9 @@ jobs:
       - name: Build tonight's slate
         if: steps.pick.outputs.job == 'build'
         run: node scripts/ci.js build ${{ github.event.inputs.date && format('--today {0}', github.event.inputs.date) || '' }}
-      # Its own step so the secret is only ever in this process: scripts/notify.js imports no
-      # npm packages (only src/anticipate/tonight.js and src/situations/leaders.js), so no
-      # third-party code runs while the webhook URL is in the environment. GitHub masks the
-      # value in logs, and runs started from forks never receive repository secrets.
-      - name: Post tonight's storylines to Discord
-        if: steps.pick.outputs.job == 'build'
-        continue-on-error: true
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        run: node scripts/notify.js ${{ github.event.inputs.date && format('--today {0}', github.event.inputs.date) || '' }}
+      # The pre-game storylines to #alerts are sent by the Cloudflare Worker (cloudflare/digest.js) since
+      # 0.28.1: on time, and around early tips. scripts/notify.js stays for a manual send
+      # (DISCORD_WEBHOOK=… node scripts/notify.js --force), but no longer runs here.
       - name: Score last night
         if: steps.pick.outputs.job == 'score'
         run: node scripts/ci.js score ${{ github.event.inputs.date && format('--date {0}', github.event.inputs.date) || '' }}

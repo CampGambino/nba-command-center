@@ -1033,7 +1033,8 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     // The PC copy has no .github/ (remote tools can't write it there); the check runs where it exists.
     const wfFile = path.join(root, ".github", "workflows", "daily.yml");
     const wf = fs.existsSync(wfFile) ? fs.readFileSync(wfFile, "utf8") : null;
-    if (wf) ok((wf.match(/secrets\.DISCORD_WEBHOOK/g) || []).length === 1 && /DISCORD_WEBHOOK: \$\{\{ secrets\.DISCORD_WEBHOOK \}\}\n\s+run: node scripts\/notify\.js/.test(wf), "Discord step: the secret is given to the notify step only");
+    // Since 0.28.1 the Cloudflare Worker sends the #alerts digest; no GitHub step gets the webhook any more.
+    if (wf) ok(!/secrets\.DISCORD_WEBHOOK/.test(wf) && !/node scripts\/notify\.js/.test(wf.replace(/^\s*#.*$/gm, "")), "Discord: no GitHub step receives the #alerts webhook or runs notify.js (Cloudflare sends the digest)");
   }
   ok(pay.length >= 3 && pay.every((p) => p.embeds.length <= 10) && sizes.every((n) => n <= 6000) && pay.reduce((a, p) => a + p.embeds.length, 0) === 23 && pay[0].content && !pay[1].content && pay.every((p) => p.allowed_mentions.parse.length === 0),
     "tonight: Discord digest split within limits (10 embeds, 6,000 characters per message), no @-mentions", JSON.stringify(sizes));
