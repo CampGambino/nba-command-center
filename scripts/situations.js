@@ -180,7 +180,9 @@ for (const [tri, games] of Object.entries(perTeam)) {
   const guideFile = path.join(root, "src", "data", `tipoff-guide-${season - 1}-${String(season).slice(2)}.json`);
   if (fs.existsSync(guideFile)) {
     const guide = JSON.parse(fs.readFileSync(guideFile, "utf8"));
-    const rec = currentRecords({ guide, teamFiles, today, tonight });
+    const scorersFile = path.join(root, "src", "data", `nba-career-scorers-${season - 1}-${String(season).slice(2)}.json`);
+    const scorers = fs.existsSync(scorersFile) ? JSON.parse(fs.readFileSync(scorersFile, "utf8")) : [];
+    const rec = currentRecords({ guide, teamFiles, today, tonight, scorers });
     addChances(rec.items, teamFiles, { makeSampler, simulate });
     // Cross-check: the same totals in the teams' notes and ESPN's career stats (docs/data/watch.json).
     const checks = { same: 0, differ: [] };
@@ -297,6 +299,9 @@ fs.writeFileSync(path.join(root, "docs", "data", "games.json"), JSON.stringify({
 // The page's copy of the ratings code (kept identical to src; a test checks).
 fs.mkdirSync(path.join(root, "docs", "lib", "situations"), { recursive: true });
 for (const f of ["ratings.js", "withwithout.js", "leaders.js"]) fs.copyFileSync(path.join(root, "src", "situations", f), path.join(root, "docs", "lib", "situations", f));
+// The record book and single-game lists (static reference data) for the Records page.
+fs.mkdirSync(path.join(root, "docs", "ref"), { recursive: true });
+for (const f of fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^nba-(record-book|single-game-bests)-/.test(f))) fs.copyFileSync(path.join(root, "src", "data", f), path.join(root, "docs", "ref", f.replace(/-\d{4}-\d\d\.json$/, ".json")));
 fs.mkdirSync(path.join(root, "docs", "lib", "anticipate"), { recursive: true });
 fs.copyFileSync(path.join(root, "src", "anticipate", "tonight.js"), path.join(root, "docs", "lib", "anticipate", "tonight.js"));
 fs.mkdirSync(path.join(root, "docs", "lib", "espn"), { recursive: true });

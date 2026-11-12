@@ -1263,6 +1263,27 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   ok(!lines3.includes("history") && lines3.includes("record"), "records: a notes history line about the same pass gives way to the record line", JSON.stringify(lines3));
 }
 
+// ---------- The NBA Guide: career scorers, record book, single-game lists (the user, 11/12) ----------
+{
+  const { currentRecords } = await import("../src/records/guide.js");
+  const rd = (f) => JSON.parse(fs.readFileSync(path.join(root, "src", "data", f), "utf8"));
+  const sc = rd("nba-career-scorers-2026-27.json"), tip = rd("tipoff-guide-2026-27.json");
+  ok(sc.length === 68 && sc[0].name === "LeBron James" && sc[0].pts === 43440 && sc.find((r) => r.name === "Anthony Davis")?.rank === 61 && sc[67].pts === 19004,
+    "NBA Guide: 68 career scorers in order (19,000+), Davis 61st as the Tip-Off Guide says");
+  const r = currentRecords({ guide: tip, teamFiles: {}, scorers: sc });
+  ok(!r.problems.some((p) => /the guide gives/.test(p)) && r.boards.pts.find((x) => x.name === "Paul George").rank === 62, "NBA Guide: every scorer's totals agree with the Tip-Off Guide's (no conflicting totals)", r.problems.join("; "));
+  const rb = rd("nba-record-book-2026-27.json");
+  const find = (book, title) => rb.find((x) => x.book === book && x.title === title);
+  ok(find("Regular season", "Most points, game")?.entries[1]?.value === "83" && /Bam Adebayo/.test(find("Regular season", "Most points, game").entries[1].holder)
+    && find("Regular season", "Most three-point field goals, game")?.entries[0].value === "14" && find("NBA Cup", "Most points, game")?.entries[0].value === "60"
+    && find("Regular season", "Most points, one quarter")?.scope === "quarter" && find("Regular season", "Most consecutive games, 20 or more points")?.scope === "streak"
+    && new Set(rb.map((x) => x.book)).size === 6,
+    "record book: Elias's records by book and scope (Adebayo's 83, Klay's 14 threes, Fox's 60 in the Cup)");
+  const sg = rd("nba-single-game-bests-2026-27.json");
+  ok(sg["Regular season"].pts.floor === 57 && sg["Regular season"].fg3m.floor === 11 && sg["NBA Cup"].pts.games[0].value === 60 && sg["Regular season"].pts.games.some((g) => g.player === "Joe Fulks" && g.value === 63),
+    "single-game lists: floors (57 points, 11 threes), the Cup's list, a row whose numbers wrapped");
+}
+
 // ---------- NBA Cup final: counts in neither standings nor stats ----------
 {
   // Shapes as ESPN gave them for the 12/13/25 semifinals and 12/16/25 final (scoreboard and team schedule).

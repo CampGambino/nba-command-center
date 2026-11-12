@@ -137,6 +137,15 @@
     <span class="key" id="statkey"></span>
   </div>
   <div class="scroll"><table id="board"></table></div>
+  <h2>Record book</h2>
+  <div class="controls">
+    <select id="book"><option>Regular season</option><option>NBA Cup</option><option>Play-In</option><option>Playoffs</option><option>Finals</option><option>All-Star</option></select>
+    <select id="scope"><option value="game">Game</option><option value="half">Half</option><option value="quarter">Quarter</option><option value="overtime">Overtime period</option><option value="streak">Streaks</option><option value="season">Season</option><option value="career">Career</option><option value="other">Other</option><option value="">Everything</option></select>
+    <select id="side"><option value="player">Players</option><option value="team">Teams</option></select>
+    <input type="search" id="rq" placeholder="Record or player">
+  </div>
+  <div class="scroll"><table id="book-t"></table></div>
+  <div class="key" id="lists"></div>
   <h2>Checks</h2>
   <div id="checks" class="key"></div>
 </main>
@@ -163,6 +172,17 @@ function renderItems() {
       <td class="what">${esc(i.text.replace(/^[^:]+: /, ""))}${i.note ? `<div class="small">${esc(i.note)}</div>` : ""}</td><td class="num">${fmt(i.now)}</td><td class="num">${fmt(i.need)}</td><td class="num">${i.gamesAway ?? "–"}</td><td class="num">${bar(i.pNext5)}</td></tr>`).join("")
       : `<tr><td colspan=6 class="empty">Nothing matches.</td></tr>`);
 }
+let RB = [], SG = null;
+function renderBook() {
+  const book = $("book").value, scope = $("scope").value, side = $("side").value, q = $("rq").value.trim().toLowerCase();
+  const rows = RB.filter((r) => r.book === book && (book === "All-Star" || !scope || r.scope === scope) && r.side === side && (!q || `${r.title} ${r.entries.map((e) => e.holder).join(" ")}`.toLowerCase().includes(q)));
+  $("book-t").innerHTML = `<tr><th>Record</th><th class="num">Mark</th><th>Held by</th><th>Next on the list</th></tr>` + (rows.length ? rows.map((r) => {
+    const top = r.entries[0].value, held = r.entries.filter((e) => e.value === top), next = r.entries.filter((e) => e.value !== top).slice(0, 3);
+    return `<tr><td>${esc(r.title)}</td><td class="num"><b>${esc(top)}</b></td><td>${held.slice(0, 4).map((e) => esc(e.holder)).join("<br>")}${held.length > 4 ? `<br><span class=small>+ ${held.length - 4} more</span>` : ""}</td><td class="small">${next.map((e) => `${esc(e.value)} ${esc(e.holder.split(",")[0])}`).join("<br>")}</td></tr>`;
+  }).join("") : `<tr><td colspan=4 class="empty">Nothing matches.</td></tr>`);
+  const sg = SG?.[book === "NBA Cup" ? "NBA Cup" : "Regular season"];
+  $("lists").innerHTML = sg && (book === "Regular season" || book === "NBA Cup") ? `${book} single-game lists (every game at or above the floor; a game that reaches the floor makes the list): ${Object.entries(sg).map(([k, v]) => `${LABEL[k] || k} ${v.floor}+ (${v.games.length} games, best ${Math.max(...v.games.map((g) => g.value))})`).join(" · ")}` : "";
+}
 function renderBoard() {
   const stat = $("stat").value, rows = D.boards[stat] || [];
   $("board").innerHTML = `<tr><th class="num">Rank</th><th>Player</th><th class="num">Now</th><th class="num">Start of season</th><th class="num">This season</th></tr>` +
@@ -182,12 +202,14 @@ Promise.all([fetch("data/records.json", { cache: "no-store" }).then((r) => r.jso
   $("team").innerHTML += [...new Set(d.items.map((i) => i.team))].sort().map((t) => `<option>${t}</option>`).join("");
   $("stat").innerHTML = Object.keys(d.boards).filter((k) => LABEL[k]).map((k) => `<option value="${k}">${LABEL[k]}</option>`).join("");
   ["kind", "team", "games", "q"].forEach((id) => $(id).addEventListener("input", renderItems));
+  ["book", "scope", "side", "rq"].forEach((id) => $(id).addEventListener("input", renderBook));
+  Promise.all([fetch("ref/nba-record-book.json").then((r) => r.json()), fetch("ref/nba-single-game-bests.json").then((r) => r.json())]).then(([rb, sg]) => { RB = rb; SG = sg; renderBook(); }).catch(() => { $("book-t").innerHTML = `<tr><td class="empty">Record book not loaded.</td></tr>`; });
   $("stat").addEventListener("input", renderBoard);
   const c = d.checks || { same: 0, differ: [] };
   $("checks").innerHTML = `Totals checked against the teams' game notes and ESPN's career stats wherever they print the same number: <b>${c.same}</b> agree${c.differ.length ? `, <b class="lo">${c.differ.length} differ</b>: ${c.differ.map((x) => `${esc(x.player)} ${esc(x.stat)} ours ${fmt(x.ours)} vs ${esc(x.source)} ${fmt(x.theirs)}`).join("; ")}` : ""}.` +
     (d.errata?.length ? `<br>Slips in the guide itself (the totals were used, not the slip): ${d.errata.map(esc).join("; ")}.` : "") +
     (d.problems?.length ? `<br>Not counted: ${d.problems.map(esc).join("; ")}.` : "");
-  $("foot").innerHTML = `Source: ${esc(d.source)}, pages 76-83 (milestone watch), 90 (franchise records), 92-97 (career leaders) and 100-103 (streaks and best starts), plus this season's box scores. Ranks move as listed players pass each other; players the guide doesn't list can't be seen, so a rank is only as good as the guide's lists around it. Odds: from each player's games this season and how often he has played lately, before the injury report (players on tonight's report are marked). Coaches' totals assume the coach has run every game this season.`;
+  $("foot").innerHTML = `Record book and single-game lists: the NBA's 2026-27 Guide (Elias Sports Bureau), pp. 128-135, 149 and 198-268, through 2025-26; points ranks to 68th from its career scorers (p. 136). Leaderboards: ${esc(d.source)}, pages 76-83 (milestone watch), 90 (franchise records), 92-97 (career leaders) and 100-103 (streaks and best starts), plus this season's box scores. Ranks move as listed players pass each other; players the guide doesn't list can't be seen, so a rank is only as good as the guide's lists around it. Odds: from each player's games this season and how often he has played lately, before the injury report (players on tonight's report are marked). Coaches' totals assume the coach has run every game this season.`;
   renderItems(); renderBoard();
 }).catch((e) => { $("sub").textContent = `Couldn't load the data: ${e.message}`; });
 </script>

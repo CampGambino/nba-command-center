@@ -80,7 +80,7 @@ export function teamResults(teamFiles) {
   return out;
 }
 
-export function currentRecords({ guide, teamFiles, today = null, tonight = [] }) {
+export function currentRecords({ guide, teamFiles, today = null, tonight = [], scorers = [] }) {
   const problems = [];
   const lines = seasonLines(teamFiles);
   const byKey = {};
@@ -102,6 +102,11 @@ export function currentRecords({ guide, teamFiles, today = null, tonight = [] })
   // Per-game lists: their totals, but not their games (for older players those count only the seasons the stat was kept).
   for (const [stat, rows] of Object.entries(guide.extra || {})) if (stat !== "gp") rows.forEach((r) => put(r.name, stat, r.value, null, "per-game list"));
   for (const w of guide.watch || []) if (w.scope === "nba") put(w.player, w.stat, w.value, w.rank, `milestone watch p. ${w.page}`);
+  // The NBA Guide's top career scorers (every 19,000-point scorer, in order): points ranks 1-68, and their other totals.
+  for (const r of scorers || []) {
+    put(r.name, "pts", r.pts, r.rank, "career scorers, NBA Guide p. 136");
+    for (const k of ["gp", "fgm", "ftm", "reb", "ast", "min"]) if (r[k] != null) put(r.name, k, r[k], null, "career scorers, NBA Guide p. 136");
+  }
   for (const t of guide.targets || []) if (t.scope === "nba") put(t.name, t.stat, t.value, t.rank, `milestone watch p. ${t.page}`);
   // A rank tie in the top-10 lists ("tied for 29th") is fine; a rank the milestone pages give wins.
   for (const w of [...(guide.watch || []), ...(guide.targets || [])]) if (w.scope === "nba" && w.rank) person(w.player || w.name).preRank[w.stat] = w.rank;

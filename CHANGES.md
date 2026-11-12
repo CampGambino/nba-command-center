@@ -2,6 +2,29 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.32.0 (2026-11-12): The NBA Guide: points ranks to 68th, the Elias record book, single-game lists
+
+### Why
+- **The user** added the NBA's 2026-27 Guide (1,010 pages) and listed the useful pages: career leaders, single-game bests, NBA Cup records ("very much worth tracking now"), All-Star (February), Play-In and playoff records (later). Single-game records are wanted as a reference for NBA Live.
+
+### What changed
+- **Career scorers** (p. 136; `tools/parse-career-scorers.py` → `src/data/nba-career-scorers-2026-27.json`): all 68 players with 19,000+ points, in order, with their career totals. The Records tab's points list now ranks to 68th (it was the top 10 plus the names the Tip-Off Guide mentions), so e.g. "Davis: 19 points from passing Bernard King for 54th all-time".
+- **Elias record book** (pp. 198-268; `tools/parse-record-book.py` → `src/data/nba-record-book-2026-27.json`): 1,324 records with 5,036 marks in 6 books (regular season, NBA Cup, All-Star, Play-In, playoffs, Finals). Each has its scope: game, half, quarter, overtime, streak, season or career. Ties and wrapped lines are kept with their mark.
+- **Single-game lists** (pp. 128-135 and 149; `tools/parse-single-game-bests.py` → `src/data/nba-single-game-bests-2026-27.json`): every game on the NBA's lists, plus each list's floor (regular season: 57 points, 11 threes, 38 rebounds, 22 assists; NBA Cup: 39 points, 8 threes...).
+- **Records tab:** a "Record book" section (filter by book, scope, players or teams, search) and the single-game floors. The build copies both files to `docs/ref/`.
+- **`tools/record-book-md.py`:** a readable reference (game, half, quarter, overtime and streak records first) for NBA Live.
+
+### Tested
+- **Against the Tip-Off Guide:** every one of the 68 scorers' totals (points, games, FGM, FTM, rebounds, assists, minutes) agrees with every Tip-Off Guide total for the same player; Davis 61st and George 62nd in both.
+- **Against the notes:** 17 of 18 totals agree. Anthony Davis's assists differ by 1 (ours 2,083 from the guide's 2,082 career + this season; WAS notes 2,082). Shown on the page; not resolved.
+- **New checks** (548 pass): the 68 scorers; no conflicting totals; record book marks (Adebayo's 83, Klay's 14 threes, Fox's 60 in the Cup), scopes; single-game floors and the row whose numbers wrapped (Joe Fulks, 63).
+- **Rendered:** page sweep OK at both widths.
+
+### Still unproven
+- **NBA Cup career totals** aren't tracked live: the box scores don't mark which games are Cup games yet.
+- The record book is reference only: nothing yet checks a live game against it (that's NBA Live's job).
+- The guide's pages 25-28, 34-35, 44-45 and 100-127 (awards, season leaders, All-Star, active playoff leaders) aren't parsed yet.
+
 ## 0.31.0 (2026-11-12): Records tab: career leaderboards and records kept current, and what's within reach
 
 ### Why
