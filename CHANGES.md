@@ -2,6 +2,25 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.37.0 (2026-11-12): Stat title races in history (NBA Guide yearly leaders)
+
+### Why
+- **The user:** next NBA Guide task, one at a time: the yearly statistical leaders (pp. 122-127). The first attempt (0.34) couldn't read them, because column widths change by page.
+
+### What changed
+- **`tools/parse-yearly-leaders.py`:** reads the pages from word positions (`pdftotext -bbox`). Each column is read top to bottom, and a category title switches the category. Every season's leader from 1946-47 to 2025-26 for points, rebounds, assists, steals, blocks, FG%, FT%, 3P%, minutes and fouls (disqualifications left out: ties break the list). Merged into `src/data/nba-history-2026-27.json` as `leaders`.
+- **New `src/records/titles.js`:** the top 3 per game this season in points, rebounds, assists, steals and blocks (qualified at 70% of the team's games), each with what a title would mean: his Nth title and the last one, and the last time his team had the leader.
+- **Records tab:** a "Stat title races, in history" table.
+
+### Tested
+- **The data:** every season once, without gaps, for the 5 main stats (Doncic 2025-26 scoring, Elmore Smith the first blocks leader in 1973-74); spot-checked against the pages.
+- **Built now:** Doncic 38.6 (would be his 3rd scoring title); Wembanyama 30.3 (San Antonio's last: David Robinson, 1993-94); Towns 13.5 rebounds (New York's last: Harry Gallatin, 1953-54); Davion Mitchell 8.5 assists (no Miami player has led the league); Walker Kessler 2.2 blocks (the Lakers' last: Kareem, 1979-80).
+- **New checks** pass.
+
+### Still unproven
+- **Team history** goes by the guide's team names, so a franchise's earlier city doesn't count (Seattle for OKC, Buffalo/San Diego for the Clippers).
+- **Qualification** is 70% of team games, not the NBA's exact minimums.
+
 ## 0.36.0 (2026-11-12): Career lists 40 deep (and triple-doubles, 2-point field goals)
 
 ### Why

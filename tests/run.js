@@ -1343,6 +1343,20 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     "current lists: listed total + games after the list's date only; ranks from today's totals; 2-point field goals counted (FGM - 3PM)", JSON.stringify([big, r.boards.fg2m[0]]));
 }
 
+// ---------- Yearly stat leaders and title races (NBA Guide pp. 122-127) ----------
+{
+  const { titleRace } = await import("../src/records/titles.js");
+  const h = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-history-2026-27.json"), "utf8"));
+  const run = (k) => h.leaders[k].map((e) => Number(e.season.slice(0, 4))).every((y, i, a) => i === 0 || y - a[i - 1] === 1);
+  ok(["pts", "reb", "ast", "stl", "blk"].every(run) && h.leaders.pts.length === 80 && h.leaders.pts.at(-1).player === "Luka Doncic" && h.leaders.blk.find((e) => e.season === "1973-74")?.player === "Elmore Smith",
+    "yearly leaders: every season once, 1946-47 to 2025-26 (Doncic 2025-26 scoring; Elmore Smith first blocks leader)");
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const L = (o) => keys.map((k) => o[k] ?? 0);
+  const games = Array.from({ length: 6 }, (_, i) => ({ d: `2026-11-0${i + 1}`, opp: "BOS", home: true, pf: 1, pa: 0, pl: { 7: L({ min: 36, pts: 40 }) } }));
+  const t = titleRace({ history: h, teamFiles: { LAL: { team: "LAL", keys, names: { 7: "Luka Dončić" }, games } } });
+  ok(t[0].rows[0].note === "would be his 3rd scoring title (last 2025-26)", "title races: the leader's Nth title from the guide's history (accents ignored)", t[0].rows[0]?.note);
+}
+
 // ---------- NBA Cup final: counts in neither standings nor stats ----------
 {
   // Shapes as ESPN gave them for the 12/13/25 semifinals and 12/16/25 final (scoreboard and team schedule).

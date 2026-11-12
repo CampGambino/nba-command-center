@@ -137,6 +137,9 @@
     <span class="key" id="statkey"></span>
   </div>
   <div class="scroll"><table id="board"></table></div>
+  <h2>Stat title races, in history</h2>
+  <div class="scroll"><table id="titles"></table></div>
+  <div class="key">Per game, qualified at 70% of his team's games. History: the NBA Guide's yearly leaders, 1946-47 to 2025-26 (by totals through 1968-69). A team's past leaders are matched by the guide's team names, so a franchise's earlier city doesn't count.</div>
   <h2>NBA Cup all-time standings</h2>
   <div class="scroll"><table id="cupst"></table></div>
   <div class="key" id="cupkey"></div>
@@ -207,6 +210,9 @@ Promise.all([fetch("data/records.json", { cache: "no-store" }).then((r) => r.jso
     + (d.cup ? Object.keys(d.cup.boards).filter((k) => LABEL[k]).map((k) => `<option value="cup:${k}">NBA Cup: ${LABEL[k]}</option>`).join("") : "");
   if (d.cup) for (const rows of Object.values(d.cup.boards)) for (const r of rows) r.season = r.live && r.base != null ? r.now - r.base : null;
   ["kind", "team", "games", "q"].forEach((id) => $(id).addEventListener("input", renderItems));
+  $("titles").innerHTML = (d.titles || []).length ? `<tr><th>Title</th><th>Leaders now</th><th class="num">Per game</th><th class="num">GP</th><th>What it would mean</th></tr>` +
+    d.titles.map((t) => t.rows.map((r, i) => `<tr>${i === 0 ? `<td rowspan=${t.rows.length}><b>${esc(t.label[0].toUpperCase() + t.label.slice(1))}</b></td>` : ""}<td>${i === 0 ? "<b>" : ""}${esc(r.name)}${i === 0 ? "</b>" : ""} <span class="team">${esc(r.team)}</span></td><td class="num">${r.perGame.toFixed(1)}</td><td class="num">${r.gp}</td><td class="small">${esc(r.note)}</td></tr>`).join("")).join("")
+    : `<tr><td class="empty">No title races yet.</td></tr>`;
   const st = d.cup?.standings || [], wl = (x) => `${x[0]}-${x[1]}`, pct = (x) => (x[0] + x[1] ? (x[0] / (x[0] + x[1])).toFixed(3).replace(/^0/, "") : "–");
   const nextCup = d.cup?.schedule || [];
   $("cupst").innerHTML = st.length ? `<tr><th>Team</th><th class="num">All-time</th><th class="num">Pct</th><th class="num">Home</th><th class="num">Road</th><th class="num">This season</th><th>Next Cup game</th></tr>` +

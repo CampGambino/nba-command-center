@@ -3273,18 +3273,4251 @@
 }
 ]
 },
-"leaders": {},
-"leadersNotRead": [
-"pts",
-"fgPct",
-"ftPct",
-"fg3Pct",
-"min",
-"reb",
-"ast",
-"stl",
-"pf",
-"blk",
-"dq"
+"leaders": {
+"pts": [
+{
+"season": "1946-47",
+"value": 1389.0,
+"player": "Joe Fulks",
+"team": "Philadelphia"
+},
+{
+"season": "1947-48",
+"value": 1007.0,
+"player": "Max Zaslofsky",
+"team": "Chicago"
+},
+{
+"season": "1948-49",
+"value": 1698.0,
+"player": "George Mikan",
+"team": "Minneapolis"
+},
+{
+"season": "1949-50",
+"value": 1865.0,
+"player": "George Mikan",
+"team": "Minneapolis"
+},
+{
+"season": "1950-51",
+"value": 1932.0,
+"player": "George Mikan",
+"team": "Minneapolis"
+},
+{
+"season": "1951-52",
+"value": 1674.0,
+"player": "Paul Arizin",
+"team": "Philadelphia"
+},
+{
+"season": "1952-53",
+"value": 1564.0,
+"player": "Neil Johnston",
+"team": "Philadelphia"
+},
+{
+"season": "1953-54",
+"value": 1759.0,
+"player": "Neil Johnston",
+"team": "Philadelphia"
+},
+{
+"season": "1954-55",
+"value": 1631.0,
+"player": "Neil Johnston",
+"team": "Philadelphia"
+},
+{
+"season": "1955-56",
+"value": 1849.0,
+"player": "Bob Pettit",
+"team": "St. Louis"
+},
+{
+"season": "1956-57",
+"value": 1817.0,
+"player": "Paul Arizin",
+"team": "Philadelphia"
+},
+{
+"season": "1957-58",
+"value": 2001.0,
+"player": "George Yardley",
+"team": "Detroit"
+},
+{
+"season": "1958-59",
+"value": 2105.0,
+"player": "Bob Pettit",
+"team": "St. Louis"
+},
+{
+"season": "1959-60",
+"value": 2707.0,
+"player": "Wilt Chamberlain",
+"team": "Philadelphia *Based on average per game starting in 1969-70"
+},
+{
+"season": "1960-61",
+"value": 3033.0,
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1961-62",
+"value": 4029.0,
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1962-63",
+"value": 3586.0,
+"player": "Wilt Chamberlain",
+"team": "San Francisco Season FG% Player, Team"
+},
+{
+"season": "1963-64",
+"value": 2948.0,
+"player": "Wilt Chamberlain",
+"team": "San Francisco"
+},
+{
+"season": "1964-65",
+"value": 2534.0,
+"player": "Wilt Chamberlain",
+"team": "San Francisco/Philadelphia"
+},
+{
+"season": "1965-66",
+"value": 2649.0,
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1966-67",
+"value": 2775.0,
+"player": "Rick Barry",
+"team": "San Francisco"
+},
+{
+"season": "1967-68",
+"value": 2142.0,
+"player": "Dave Bing",
+"team": "Detroit"
+},
+{
+"season": "1968-69",
+"value": 2327.0,
+"player": "Elvin Hayes",
+"team": "San Diego"
+},
+{
+"season": "1969-70",
+"value": 31.2,
+"player": "Jerry West",
+"team": "LA Lakers"
+},
+{
+"season": "1970-71",
+"value": 31.7,
+"player": "Kareem Abdul-Jabbar",
+"team": "Milwaukee"
+},
+{
+"season": "1971-72",
+"value": 34.8,
+"player": "Kareem Abdul-Jabbar",
+"team": "Milwaukee"
+},
+{
+"season": "1972-73",
+"value": 34.0,
+"player": "Nate Archibald",
+"team": "Kansas City-Omaha"
+},
+{
+"season": "1973-74",
+"value": 30.6,
+"player": "Bob McAdoo",
+"team": "Buffalo"
+},
+{
+"season": "1974-75",
+"value": 34.5,
+"player": "Bob McAdoo",
+"team": "Buffalo"
+},
+{
+"season": "1975-76",
+"value": 31.1,
+"player": "Bob McAdoo",
+"team": "Buffalo"
+},
+{
+"season": "1976-77",
+"value": 31.1,
+"player": "Pete Maravich",
+"team": "New Orleans"
+},
+{
+"season": "1977-78",
+"value": 27.2,
+"player": "George Gervin",
+"team": "San Antonio"
+},
+{
+"season": "1978-79",
+"value": 29.6,
+"player": "George Gervin",
+"team": "San Antonio"
+},
+{
+"season": "1979-80",
+"value": 33.1,
+"player": "George Gervin",
+"team": "San Antonio"
+},
+{
+"season": "1980-81",
+"value": 30.7,
+"player": "Adrian Dantley",
+"team": "Utah"
+},
+{
+"season": "1981-82",
+"value": 32.3,
+"player": "George Gervin",
+"team": "San Antonio"
+},
+{
+"season": "1982-83",
+"value": 28.4,
+"player": "Alex English",
+"team": "Denver"
+},
+{
+"season": "1983-84",
+"value": 30.6,
+"player": "Adrian Dantley",
+"team": "Utah"
+},
+{
+"season": "1984-85",
+"value": 32.9,
+"player": "Bernard King",
+"team": "New York"
+},
+{
+"season": "1985-86",
+"value": 30.3,
+"player": "Dominique Wilkins",
+"team": "Atlanta"
+},
+{
+"season": "1986-87",
+"value": 37.1,
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1987-88",
+"value": 35.0,
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1988-89",
+"value": 32.5,
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1989-90",
+"value": 33.6,
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1990-91",
+"value": 31.5,
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1991-92",
+"value": 30.1,
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1992-93",
+"value": 32.6,
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1993-94",
+"value": 29.8,
+"player": "David Robinson",
+"team": "San Antonio"
+},
+{
+"season": "1994-95",
+"value": 29.3,
+"player": "Shaquille O’Neal",
+"team": "Orlando"
+},
+{
+"season": "1995-96",
+"value": 30.4,
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1996-97",
+"value": 29.6,
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1997-98",
+"value": 28.7,
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1998-99",
+"value": 26.8,
+"player": "Allen Iverson",
+"team": "Philadelphia"
+},
+{
+"season": "1999-00",
+"value": 29.7,
+"player": "Shaquille O’Neal",
+"team": "LA Lakers"
+},
+{
+"season": "2000-01",
+"value": 31.1,
+"player": "Allen Iverson",
+"team": "Philadelphia"
+},
+{
+"season": "2001-02",
+"value": 31.4,
+"player": "Allen Iverson",
+"team": "Philadelphia"
+},
+{
+"season": "2002-03",
+"value": 32.1,
+"player": "Tracy McGrady",
+"team": "Orlando"
+},
+{
+"season": "2003-04",
+"value": 28.0,
+"player": "Tracy McGrady",
+"team": "Orlando"
+},
+{
+"season": "2004-05",
+"value": 30.7,
+"player": "Allen Iverson",
+"team": "Philadelphia"
+},
+{
+"season": "2005-06",
+"value": 35.4,
+"player": "Kobe Bryant",
+"team": "LA Lakers"
+},
+{
+"season": "2006-07",
+"value": 31.6,
+"player": "Kobe Bryant",
+"team": "LA Lakers"
+},
+{
+"season": "2007-08",
+"value": 30.0,
+"player": "LeBron James",
+"team": "Cleveland"
+},
+{
+"season": "2008-09",
+"value": 30.2,
+"player": "Dwyane Wade",
+"team": "Miami"
+},
+{
+"season": "2009-10",
+"value": 30.1,
+"player": "Kevin Durant",
+"team": "Oklahoma City"
+},
+{
+"season": "2010-11",
+"value": 27.7,
+"player": "Kevin Durant",
+"team": "Oklahoma City"
+},
+{
+"season": "2011-12",
+"value": 28.0,
+"player": "Kevin Durant",
+"team": "Oklahoma City"
+},
+{
+"season": "2012-13",
+"value": 28.7,
+"player": "Carmelo Anthony",
+"team": "New York"
+},
+{
+"season": "2013-14",
+"value": 32.0,
+"player": "Kevin Durant",
+"team": "Oklahoma City"
+},
+{
+"season": "2014-15",
+"value": 28.1,
+"player": "Russell Westbrook",
+"team": "Oklahoma City"
+},
+{
+"season": "2015-16",
+"value": 30.1,
+"player": "Stephen Curry",
+"team": "Golden State"
+},
+{
+"season": "2016-17",
+"value": 31.6,
+"player": "Russell Westbrook",
+"team": "Oklahoma City"
+},
+{
+"season": "2017-18",
+"value": 30.4,
+"player": "James Harden",
+"team": "Houston"
+},
+{
+"season": "2018-19",
+"value": 36.1,
+"player": "James Harden",
+"team": "Houston"
+},
+{
+"season": "2019-20",
+"value": 34.3,
+"player": "James Harden",
+"team": "Houston"
+},
+{
+"season": "2020-21",
+"value": 32.0,
+"player": "Stephen Curry",
+"team": "Golden State"
+},
+{
+"season": "2021-22",
+"value": 30.6,
+"player": "Joel Embiid",
+"team": "Philadelphia"
+},
+{
+"season": "2022-23",
+"value": 33.1,
+"player": "Joel Embiid",
+"team": "Philadelphia"
+},
+{
+"season": "2023-24",
+"value": 33.9,
+"player": "Luka Doncic",
+"team": "Dallas"
+},
+{
+"season": "2024-25",
+"value": 32.7,
+"player": "Shai Gilgeous-Alexander",
+"team": "Oklahoma City"
+},
+{
+"season": "2025-26",
+"value": 33.5,
+"player": "Luka Doncic",
+"team": "LA Lakers"
+}
+],
+"fgPct": [
+{
+"season": "1946-47",
+"value": 0.401,
+"player": "Bob Feerick",
+"team": "Washington"
+},
+{
+"season": "1947-48",
+"value": 0.34,
+"player": "Bob Feerick",
+"team": "Washington"
+},
+{
+"season": "1948-49",
+"value": 0.423,
+"player": "Arnie Risen",
+"team": "Rochester"
+},
+{
+"season": "1949-50",
+"value": 0.478,
+"player": "Alex Groza",
+"team": "Indianapolis"
+},
+{
+"season": "1950-51",
+"value": 0.47,
+"player": "Alex Groza",
+"team": "Indianapolis"
+},
+{
+"season": "1951-52",
+"value": 0.448,
+"player": "Paul Arizin",
+"team": "Philadelphia"
+},
+{
+"season": "1952-53",
+"value": 0.452,
+"player": "Neil Johnston",
+"team": "Philadelphia"
+},
+{
+"season": "1953-54",
+"value": 0.486,
+"player": "Ed Macauley",
+"team": "Boston"
+},
+{
+"season": "1954-55",
+"value": 0.487,
+"player": "Larry Foust",
+"team": "Fort Wayne"
+},
+{
+"season": "1955-56",
+"value": 0.457,
+"player": "Neil Johnston",
+"team": "Philadelphia"
+},
+{
+"season": "1956-57",
+"value": 0.447,
+"player": "Neil Johnston",
+"team": "Philadelphia"
+},
+{
+"season": "1957-58",
+"value": 0.452,
+"player": "Jack Twyman",
+"team": "Cincinnati"
+},
+{
+"season": "1958-59",
+"value": 0.49,
+"player": "Kenny Sears",
+"team": "New York"
+},
+{
+"season": "1959-60",
+"value": 0.477,
+"player": "Kenny Sears",
+"team": "New York"
+},
+{
+"season": "1960-61",
+"value": 0.509,
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1961-62",
+"value": 0.519,
+"player": "Walt Bellamy",
+"team": "Chicago"
+},
+{
+"season": "1962-63",
+"value": 0.528,
+"player": "Wilt Chamberlain",
+"team": "San Francisco"
+},
+{
+"season": "1963-64",
+"value": 0.527,
+"player": "Jerry Lucas",
+"team": "Cincinnati"
+},
+{
+"season": "1964-65",
+"value": 0.51,
+"player": "Wilt Chamberlain",
+"team": "San Francisco/Philadelphia"
+},
+{
+"season": "1965-66",
+"value": 0.54,
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1966-67",
+"value": 0.683,
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1967-68",
+"value": 0.595,
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1968-69",
+"value": 0.583,
+"player": "Wilt Chamberlain",
+"team": "LA Lakers"
+},
+{
+"season": "1969-70",
+"value": 0.559,
+"player": "Johnny Green",
+"team": "Cincinnati"
+},
+{
+"season": "1970-71",
+"value": 0.587,
+"player": "Johnny Green",
+"team": "Cincinnati"
+},
+{
+"season": "1971-72",
+"value": 0.649,
+"player": "Wilt Chamberlain",
+"team": "LA Lakers"
+},
+{
+"season": "1972-73",
+"value": 0.727,
+"player": "Wilt Chamberlain",
+"team": "LA Lakers"
+},
+{
+"season": "1973-74",
+"value": 0.547,
+"player": "Bob McAdoo",
+"team": "Buffalo"
+},
+{
+"season": "1974-75",
+"value": 0.539,
+"player": "Don Nelson",
+"team": "Boston"
+},
+{
+"season": "1975-76",
+"value": 0.561,
+"player": "Wes Unseld",
+"team": "Washington"
+},
+{
+"season": "1976-77",
+"value": 0.579,
+"player": "Kareem Abdul-Jabbar",
+"team": "LA Lakers"
+},
+{
+"season": "1977-78",
+"value": 0.578,
+"player": "Bobby Jones",
+"team": "Denver"
+},
+{
+"season": "1978-79",
+"value": 0.584,
+"player": "Cedric Maxwell",
+"team": "Boston"
+},
+{
+"season": "1979-80",
+"value": 0.609,
+"player": "Cedric Maxwell",
+"team": "Boston"
+},
+{
+"season": "1980-81",
+"value": 0.67,
+"player": "Artis Gilmore",
+"team": "Chicago"
+},
+{
+"season": "1981-82",
+"value": 0.652,
+"player": "Artis Gilmore",
+"team": "Chicago"
+},
+{
+"season": "1982-83",
+"value": 0.626,
+"player": "Artis Gilmore",
+"team": "San Antonio"
+},
+{
+"season": "1983-84",
+"value": 0.631,
+"player": "Artis Gilmore",
+"team": "San Antonio"
+},
+{
+"season": "1984-85",
+"value": 0.637,
+"player": "James Donaldson",
+"team": "LA Clippers"
+},
+{
+"season": "1985-86",
+"value": 0.632,
+"player": "Steve Johnson",
+"team": "San Antonio"
+},
+{
+"season": "1986-87",
+"value": 0.604,
+"player": "Kevin McHale",
+"team": "Boston"
+},
+{
+"season": "1987-88",
+"value": 0.604,
+"player": "Kevin McHale",
+"team": "Boston"
+},
+{
+"season": "1988-89",
+"value": 0.595,
+"player": "Dennis Rodman",
+"team": "Detroit"
+},
+{
+"season": "1989-90",
+"value": 0.625,
+"player": "Mark West",
+"team": "Phoenix"
+},
+{
+"season": "1990-91",
+"value": 0.602,
+"player": "Buck Williams",
+"team": "Portland"
+},
+{
+"season": "1991-92",
+"value": 0.604,
+"player": "Buck Williams",
+"team": "Portland"
+},
+{
+"season": "1992-93",
+"value": 0.576,
+"player": "Cedric Ceballos",
+"team": "Phoenix"
+},
+{
+"season": "1993-94",
+"value": 0.599,
+"player": "Shaquille O’Neal",
+"team": "Orlando"
+},
+{
+"season": "1994-95",
+"value": 0.633,
+"player": "Chris Gatling",
+"team": "Golden State"
+},
+{
+"season": "1995-96",
+"value": 0.584,
+"player": "Gheorghe Muresan",
+"team": "Washington"
+},
+{
+"season": "1996-97",
+"value": 0.604,
+"player": "Gheorghe Muresan",
+"team": "Washington"
+},
+{
+"season": "1997-98",
+"value": 0.584,
+"player": "Shaquille O’Neal",
+"team": "LA Lakers"
+},
+{
+"season": "1998-99",
+"value": 0.576,
+"player": "Shaquille O’Neal",
+"team": "LA Lakers"
+},
+{
+"season": "1999-00",
+"value": 0.574,
+"player": "Shaquille O’Neal",
+"team": "LA Lakers"
+},
+{
+"season": "2000-01",
+"value": 0.572,
+"player": "Shaquille O’Neal",
+"team": "LA Lakers"
+},
+{
+"season": "2001-02",
+"value": 0.579,
+"player": "Shaquille O’Neal",
+"team": "LA Lakers"
+},
+{
+"season": "2002-03",
+"value": 0.585,
+"player": "Eddy Curry",
+"team": "Chicago"
+},
+{
+"season": "2003-04",
+"value": 0.584,
+"player": "Shaquille O’Neal",
+"team": "LA Lakers"
+},
+{
+"season": "2004-05",
+"value": 0.601,
+"player": "Shaquille O’Neal",
+"team": "Miami"
+},
+{
+"season": "2005-06",
+"value": 0.6,
+"player": "Shaquille O’Neal",
+"team": "Miami"
+},
+{
+"season": "2006-07",
+"value": 0.609,
+"player": "Mikki Moore",
+"team": "New Jersey"
+},
+{
+"season": "2007-08",
+"value": 0.626,
+"player": "Andris Biedrins",
+"team": "Golden State"
+},
+{
+"season": "2008-09",
+"value": 0.609,
+"player": "Shaquille O’Neal",
+"team": "Phoenix"
+},
+{
+"season": "2009-10",
+"value": 0.612,
+"player": "Dwight Howard",
+"team": "Orlando"
+},
+{
+"season": "2010-11",
+"value": 0.615,
+"player": "Nene",
+"team": "Denver"
+},
+{
+"season": "2011-12",
+"value": 0.679,
+"player": "Tyson Chandler",
+"team": "New York"
+},
+{
+"season": "2012-13",
+"value": 0.643,
+"player": "DeAndre Jordan",
+"team": "LA Clippers"
+},
+{
+"season": "2013-14",
+"value": 0.676,
+"player": "DeAndre Jordan",
+"team": "LA Clippers"
+},
+{
+"season": "2014-15",
+"value": 0.71,
+"player": "DeAndre Jordan",
+"team": "LA Clippers"
+},
+{
+"season": "2015-16",
+"value": 0.703,
+"player": "DeAndre Jordan",
+"team": "LA Clippers"
+},
+{
+"season": "2016-17",
+"value": 0.714,
+"player": "DeAndre Jordan",
+"team": "LA Clippers"
+},
+{
+"season": "2017-18",
+"value": 0.652,
+"player": "Clint Capela",
+"team": "Houston"
+},
+{
+"season": "2018-19",
+"value": 0.669,
+"player": "Rudy Gobert",
+"team": "Utah"
+},
+{
+"season": "2019-20",
+"value": 0.742,
+"player": "Mitchell Robinson",
+"team": "New York"
+},
+{
+"season": "2020-21",
+"value": 0.675,
+"player": "Rudy Gobert",
+"team": "Utah"
+},
+{
+"season": "2021-22",
+"value": 0.713,
+"player": "Rudy Gobert",
+"team": "Utah"
+},
+{
+"season": "2022-23",
+"value": 0.705,
+"player": "Nic Claxton",
+"team": "Brooklyn"
+},
+{
+"season": "2023-24",
+"value": 0.725,
+"player": "Daniel Gafford",
+"team": "Washington/Dallas"
+},
+{
+"season": "2024-25",
+"value": 0.706,
+"player": "Jarrett Allen",
+"team": "Cleveland"
+},
+{
+"season": "2025-26",
+"value": 0.682,
+"player": "Rudy Gobert",
+"team": "Minnesota"
+}
+],
+"ftPct": [
+{
+"season": "1946-47",
+"value": 0.811,
+"player": "Freddie Scolari",
+"team": "Washington"
+},
+{
+"season": "1947-48",
+"value": 0.788,
+"player": "Bob Feerick",
+"team": "Washington"
+},
+{
+"season": "1948-49",
+"value": 0.859,
+"player": "Bob Feerick",
+"team": "Washington"
+},
+{
+"season": "1949-50",
+"value": 0.843,
+"player": "Max Zaslofsky",
+"team": "Chicago"
+},
+{
+"season": "1950-51",
+"value": 0.855,
+"player": "Joe Fulks",
+"team": "Philadelphia"
+},
+{
+"season": "1951-52",
+"value": 0.904,
+"player": "Bobby Wanzer",
+"team": "Rochester"
+},
+{
+"season": "1952-53",
+"value": 0.85,
+"player": "Bill Sharman",
+"team": "Boston 3-POINT FIELD GOAL PERCENTAGE"
+},
+{
+"season": "1953-54",
+"value": 0.844,
+"player": "Bill Sharman",
+"team": "Boston Season 3P% Player, Team"
+},
+{
+"season": "1954-55",
+"value": 0.897,
+"player": "Bill Sharman",
+"team": "Boston"
+},
+{
+"season": "1955-56",
+"value": 0.867,
+"player": "Bill Sharman",
+"team": "Boston"
+},
+{
+"season": "1956-57",
+"value": 0.905,
+"player": "Bill Sharman",
+"team": "Boston"
+},
+{
+"season": "1957-58",
+"value": 0.904,
+"player": "Dolph Schayes",
+"team": "Syracuse"
+},
+{
+"season": "1958-59",
+"value": 0.932,
+"player": "Bill Sharman",
+"team": "Boston"
+},
+{
+"season": "1959-60",
+"value": 0.892,
+"player": "Dolph Schayes",
+"team": "Syracuse"
+},
+{
+"season": "1960-61",
+"value": 0.921,
+"player": "Bill Sharman",
+"team": "Boston"
+},
+{
+"season": "1961-62",
+"value": 0.896,
+"player": "Dolph Schayes",
+"team": "Syracuse"
+},
+{
+"season": "1962-63",
+"value": 0.881,
+"player": "Larry Costello",
+"team": "Syracuse"
+},
+{
+"season": "1963-64",
+"value": 0.853,
+"player": "Oscar Robertson",
+"team": "Cincinnati"
+},
+{
+"season": "1964-65",
+"value": 0.877,
+"player": "Larry Costello",
+"team": "Philadelphia"
+},
+{
+"season": "1965-66",
+"value": 0.881,
+"player": "Larry Siegfried",
+"team": "Boston"
+},
+{
+"season": "1966-67",
+"value": 0.903,
+"player": "Adrian Smith",
+"team": "Cincinnati"
+},
+{
+"season": "1967-68",
+"value": 0.873,
+"player": "Oscar Robertson",
+"team": "Cincinnati"
+},
+{
+"season": "1968-69",
+"value": 0.864,
+"player": "Larry Siegfried",
+"team": "Boston"
+},
+{
+"season": "1969-70",
+"value": 0.898,
+"player": "Flynn Robinson",
+"team": "Milwaukee"
+},
+{
+"season": "1970-71",
+"value": 0.859,
+"player": "Chet Walker",
+"team": "Chicago"
+},
+{
+"season": "1971-72",
+"value": 0.894,
+"player": "Jack Marin",
+"team": "Baltimore"
+},
+{
+"season": "1972-73",
+"value": 0.902,
+"player": "Rick Barry",
+"team": "Golden State"
+},
+{
+"season": "1973-74",
+"value": 0.902,
+"player": "Ernie DiGregorio",
+"team": "Buffalo"
+},
+{
+"season": "1974-75",
+"value": 0.904,
+"player": "Rick Barry",
+"team": "Golden State"
+},
+{
+"season": "1975-76",
+"value": 0.923,
+"player": "Rick Barry",
+"team": "Golden State"
+},
+{
+"season": "1976-77",
+"value": 0.945,
+"player": "Ernie DiGregorio",
+"team": "Buffalo"
+},
+{
+"season": "1977-78",
+"value": 0.924,
+"player": "Rick Barry",
+"team": "Golden State"
+},
+{
+"season": "1978-79",
+"value": 0.947,
+"player": "Rick Barry",
+"team": "Houston"
+},
+{
+"season": "1979-80",
+"value": 0.935,
+"player": "Rick Barry",
+"team": "Houston"
+},
+{
+"season": "1980-81",
+"value": 0.958,
+"player": "Calvin Murphy",
+"team": "Houston"
+},
+{
+"season": "1981-82",
+"value": 0.899,
+"player": "Kyle Macy",
+"team": "Phoenix"
+},
+{
+"season": "1982-83",
+"value": 0.92,
+"player": "Calvin Murphy",
+"team": "Houston"
+},
+{
+"season": "1983-84",
+"value": 0.888,
+"player": "Larry Bird",
+"team": "Boston"
+},
+{
+"season": "1984-85",
+"value": 0.907,
+"player": "Kyle Macy",
+"team": "Phoenix"
+},
+{
+"season": "1985-86",
+"value": 0.896,
+"player": "Larry Bird",
+"team": "Boston"
+},
+{
+"season": "1986-87",
+"value": 0.91,
+"player": "Larry Bird",
+"team": "Boston"
+},
+{
+"season": "1987-88",
+"value": 0.922,
+"player": "Jack Sikma",
+"team": "Milwaukee"
+},
+{
+"season": "1988-89",
+"value": 0.911,
+"player": "Magic Johnson",
+"team": "LA Lakers"
+},
+{
+"season": "1989-90",
+"value": 0.93,
+"player": "Larry Bird",
+"team": "Boston"
+},
+{
+"season": "1990-91",
+"value": 0.918,
+"player": "Reggie Miller",
+"team": "Indiana"
+},
+{
+"season": "1991-92",
+"value": 0.947,
+"player": "Mark Price",
+"team": "Cleveland"
+},
+{
+"season": "1992-93",
+"value": 0.948,
+"player": "Mark Price",
+"team": "Cleveland"
+},
+{
+"season": "1993-94",
+"value": 0.956,
+"player": "Mahmoud Abdul-Rauf",
+"team": "Denver"
+},
+{
+"season": "1994-95",
+"value": 0.934,
+"player": "Spud Webb",
+"team": "Sacramento"
+},
+{
+"season": "1995-96",
+"value": 0.93,
+"player": "Mahmoud Abdul-Rauf",
+"team": "Denver"
+},
+{
+"season": "1996-97",
+"value": 0.906,
+"player": "Mark Price",
+"team": "Golden State"
+},
+{
+"season": "1997-98",
+"value": 0.939,
+"player": "Chris Mullin",
+"team": "Indiana"
+},
+{
+"season": "1998-99",
+"value": 0.915,
+"player": "Reggie Miller",
+"team": "Indiana"
+},
+{
+"season": "1999-00",
+"value": 0.95,
+"player": "Jeff Hornacek",
+"team": "Utah"
+},
+{
+"season": "2000-01",
+"value": 0.928,
+"player": "Reggie Miller",
+"team": "Indiana"
+},
+{
+"season": "2001-02",
+"value": 0.911,
+"player": "Reggie Miller",
+"team": "Indiana"
+},
+{
+"season": "2002-03",
+"value": 0.919,
+"player": "Allan Houston",
+"team": "New York"
+},
+{
+"season": "2003-04",
+"value": 0.927,
+"player": "Peja Stojakovic",
+"team": "Sacramento"
+},
+{
+"season": "2004-05",
+"value": 0.933,
+"player": "Reggie Miller",
+"team": "Indiana"
+},
+{
+"season": "2005-06",
+"value": 0.921,
+"player": "Steve Nash",
+"team": "Phoenix"
+},
+{
+"season": "2006-07",
+"value": 0.914,
+"player": "Kyle Korver",
+"team": "Philadelphia"
+},
+{
+"season": "2007-08",
+"value": 0.929,
+"player": "Peja Stojakovic",
+"team": "New Orleans"
+},
+{
+"season": "2008-09",
+"value": 0.981,
+"player": "Jose Calderon",
+"team": "Toronto"
+},
+{
+"season": "2009-10",
+"value": 0.938,
+"player": "Steve Nash",
+"team": "Phoenix"
+},
+{
+"season": "2010-11",
+"value": 0.934,
+"player": "Stephen Curry",
+"team": "Golden State"
+},
+{
+"season": "2011-12",
+"value": 0.927,
+"player": "Jamal Crawford",
+"team": "Portland"
+},
+{
+"season": "2012-13",
+"value": 0.905,
+"player": "Kevin Durant",
+"team": "Oklahoma City"
+},
+{
+"season": "2013-14",
+"value": 0.94,
+"player": "Brian Roberts",
+"team": "New Orleans"
+},
+{
+"season": "2014-15",
+"value": 0.914,
+"player": "Stephen Curry",
+"team": "Golden State"
+},
+{
+"season": "2015-16",
+"value": 0.908,
+"player": "Stephen Curry",
+"team": "Golden State"
+},
+{
+"season": "2016-17",
+"value": 0.912,
+"player": "CJ McCollum",
+"team": "Portland"
+},
+{
+"season": "2017-18",
+"value": 0.921,
+"player": "Stephen Curry",
+"team": "Golden State"
+},
+{
+"season": "2018-19",
+"value": 0.928,
+"player": "Malcolm Brogdon",
+"team": "Milwaukee"
+},
+{
+"season": "2019-20",
+"value": 0.926,
+"player": "Brad Wanamaker",
+"team": "Boston"
+},
+{
+"season": "2020-21",
+"value": 0.934,
+"player": "Chris Paul",
+"team": "Phoenix"
+},
+{
+"season": "2021-22",
+"value": 0.925,
+"player": "Jordan Poole",
+"team": "Golden State"
+},
+{
+"season": "2022-23",
+"value": 0.934,
+"player": "Tyler Herro",
+"team": "Miami"
+},
+{
+"season": "2023-24",
+"value": 0.927,
+"player": "Klay Thompson",
+"team": "Golden State"
+},
+{
+"season": "2024-25",
+"value": 0.933,
+"player": "Stephen Curry",
+"team": "Golden State"
+},
+{
+"season": "2025-26",
+"value": 0.94,
+"player": "Cam Spencer",
+"team": "Memphis"
+}
+],
+"fg3Pct": [
+{
+"season": "1979-80",
+"value": 0.443,
+"player": "Fred Brown",
+"team": "Seattle"
+},
+{
+"season": "1980-81",
+"value": 0.383,
+"player": "Brian Taylor",
+"team": "San Diego"
+},
+{
+"season": "1981-82",
+"value": 0.439,
+"player": "Campy Russell",
+"team": "New York"
+},
+{
+"season": "1982-83",
+"value": 0.345,
+"player": "Mike Dunleavy",
+"team": "San Antonio"
+},
+{
+"season": "1983-84",
+"value": 0.361,
+"player": "Darrell Griffith",
+"team": "Utah"
+},
+{
+"season": "1984-85",
+"value": 0.433,
+"player": "Byron Scott",
+"team": "LA Lakers"
+},
+{
+"season": "1985-86",
+"value": 0.451,
+"player": "Craig Hodges",
+"team": "Milwaukee"
+},
+{
+"season": "1986-87",
+"value": 0.481,
+"player": "Kiki VanDeWeghe",
+"team": "Portland"
+},
+{
+"season": "1987-88",
+"value": 0.491,
+"player": "Craig Hodges",
+"team": "Milwaukee/Phoenix"
+},
+{
+"season": "1988-89",
+"value": 0.522,
+"player": "Jon Sundvold",
+"team": "Miami"
+},
+{
+"season": "1989-90",
+"value": 0.507,
+"player": "Steve Kerr",
+"team": "Cleveland"
+},
+{
+"season": "1990-91",
+"value": 0.461,
+"player": "Jim Les",
+"team": "Sacramento"
+},
+{
+"season": "1991-92",
+"value": 0.446,
+"player": "Dana Barros",
+"team": "Seattle"
+},
+{
+"season": "1992-93",
+"value": 0.453,
+"player": "B.J. Armstrong",
+"team": "Chicago"
+},
+{
+"season": "1993-94",
+"value": 0.459,
+"player": "Tracy Murray",
+"team": "Portland"
+},
+{
+"season": "1994-95",
+"value": 0.524,
+"player": "Steve Kerr",
+"team": "Chicago"
+},
+{
+"season": "1995-96",
+"value": 0.522,
+"player": "Tim Legler",
+"team": "Washington"
+},
+{
+"season": "1996-97",
+"value": 0.47,
+"player": "Glen Rice",
+"team": "Charlotte"
+},
+{
+"season": "1997-98",
+"value": 0.464,
+"player": "Dale Ellis",
+"team": "Seattle"
+},
+{
+"season": "1998-99",
+"value": 0.476,
+"player": "Dell Curry",
+"team": "Milwaukee"
+},
+{
+"season": "1999-00",
+"value": 0.491,
+"player": "Hubert Davis",
+"team": "Dallas"
+},
+{
+"season": "2000-01",
+"value": 0.476,
+"player": "Brent Barry",
+"team": "Seattle"
+},
+{
+"season": "2001-02",
+"value": 0.472,
+"player": "Steve Smith",
+"team": "San Antonio"
+},
+{
+"season": "2002-03",
+"value": 0.441,
+"player": "Bruce Bowen",
+"team": "San Antonio"
+},
+{
+"season": "2003-04",
+"value": 0.482,
+"player": "Anthony Peeler",
+"team": "Sacramento"
+},
+{
+"season": "2004-05",
+"value": 0.483,
+"player": "Fred Hoiberg",
+"team": "Minnesota"
+},
+{
+"season": "2005-06",
+"value": 0.458,
+"player": "Richard Hamilton",
+"team": "Detroit"
+},
+{
+"season": "2006-07",
+"value": 0.514,
+"player": "Jason Kapono",
+"team": "Miami"
+},
+{
+"season": "2007-08",
+"value": 0.483,
+"player": "Jason Kapono",
+"team": "Toronto"
+},
+{
+"season": "2008-09",
+"value": 0.467,
+"player": "Anthony Morrow",
+"team": "Golden State"
+},
+{
+"season": "2009-10",
+"value": 0.536,
+"player": "Kyle Korver",
+"team": "Utah"
+},
+{
+"season": "2010-11",
+"value": 0.457,
+"player": "Matt Bonner",
+"team": "San Antonio"
+},
+{
+"season": "2011-12",
+"value": 0.472,
+"player": "Steve Novak",
+"team": "New York"
+},
+{
+"season": "2012-13",
+"value": 0.461,
+"player": "Jose Calderon",
+"team": "Toronto/Detroit"
+},
+{
+"season": "2013-14",
+"value": 0.472,
+"player": "Kyle Korver",
+"team": "Atlanta"
+},
+{
+"season": "2014-15",
+"value": 0.492,
+"player": "Kyle Korver",
+"team": "Atlanta"
+},
+{
+"season": "2015-16",
+"value": 0.475,
+"player": "J.J. Redick",
+"team": "LA Clippers"
+},
+{
+"season": "2016-17",
+"value": 0.451,
+"player": "Kyle Korver",
+"team": "Atlanta/Cleveland"
+},
+{
+"season": "2017-18",
+"value": 0.468,
+"player": "Darren Collison",
+"team": "Indiana"
+},
+{
+"season": "2018-19",
+"value": 0.474,
+"player": "Joe Harris",
+"team": "Brooklyn"
+},
+{
+"season": "2019-20",
+"value": 0.46,
+"player": "George Hill",
+"team": "Milwaukee"
+},
+{
+"season": "2020-21",
+"value": 0.475,
+"player": "Joe Harris",
+"team": "Brooklyn"
+},
+{
+"season": "2021-22",
+"value": 0.449,
+"player": "Luke Kennard",
+"team": "LA Clippers"
+},
+{
+"season": "2022-23",
+"value": 0.494,
+"player": "Luke Kennard",
+"team": "LA Clippers/Memphis"
+},
+{
+"season": "2023-24",
+"value": 0.461,
+"player": "Grayson Allen",
+"team": "Phoenix"
+},
+{
+"season": "2024-25",
+"value": 0.456,
+"player": "Seth Curry",
+"team": "Charlotte"
+},
+{
+"season": "2025-26",
+"value": 0.478,
+"player": "Luke Kennard",
+"team": "Atlanta/LA Lakers"
+}
+],
+"min": [
+{
+"season": "1951-52",
+"value": 2939.0,
+"player": "Paul Arizin",
+"team": "Philadelphia"
+},
+{
+"season": "1952-53",
+"value": 3166.0,
+"player": "Neil Johnston",
+"team": "Philadelphia"
+},
+{
+"season": "1953-54",
+"value": 3296.0,
+"player": "Neil Johnston",
+"team": "Philadelphia"
+},
+{
+"season": "1954-55",
+"value": 2953.0,
+"player": "Paul Arizin",
+"team": "Philadelphia REBOUNDING"
+},
+{
+"season": "1955-56",
+"value": 2840.0,
+"player": "Jack George",
+"team": "Philadelphia Season REB Player, Team"
+},
+{
+"season": "1956-57",
+"value": 2851.0,
+"player": "Dolph Schayes",
+"team": "Syracuse"
+},
+{
+"season": "1957-58",
+"value": 2918.0,
+"player": "Dolph Schayes",
+"team": "Syracuse"
+},
+{
+"season": "1958-59",
+"value": 2979.0,
+"player": "Bill Russell",
+"team": "Boston Mel Hutchins, Milwaukee"
+},
+{
+"season": "1959-60",
+"value": 3338.0,
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1960-61",
+"value": 3773.0,
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1961-62",
+"value": 3882.0,
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1962-63",
+"value": 3806.0,
+"player": "Wilt Chamberlain",
+"team": "San Francisco"
+},
+{
+"season": "1963-64",
+"value": 3689.0,
+"player": "Wilt Chamberlain",
+"team": "San Francisco"
+},
+{
+"season": "1964-65",
+"value": 3466.0,
+"player": "Bill Russell",
+"team": "Boston"
+},
+{
+"season": "1965-66",
+"value": 3737.0,
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1966-67",
+"value": 3682.0,
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1967-68",
+"value": 3836.0,
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1968-69",
+"value": 3695.0,
+"player": "Elvin Hayes",
+"team": "San Diego"
+},
+{
+"season": "1969-70",
+"value": 44.7,
+"player": "Elvin Hayes",
+"team": "San Diego"
+},
+{
+"season": "1970-71",
+"value": 45.4,
+"player": "John Havlicek",
+"team": "Boston"
+},
+{
+"season": "1971-72",
+"value": 45.1,
+"player": "John Havlicek",
+"team": "Boston"
+},
+{
+"season": "1972-73",
+"value": 46.0,
+"player": "Nate Archibald",
+"team": "Kansas City-Omaha"
+},
+{
+"season": "1973-74",
+"value": 44.5,
+"player": "Elvin Hayes",
+"team": "Capital"
+},
+{
+"season": "1974-75",
+"value": 43.2,
+"player": "Bob McAdoo",
+"team": "Buffalo"
+},
+{
+"season": "1975-76",
+"value": 42.7,
+"player": "Bob McAdoo",
+"team": "Buffalo"
+},
+{
+"season": "1976-77",
+"value": 41.7,
+"player": "Pete Maravich",
+"team": "New Orleans"
+},
+{
+"season": "1977-78",
+"value": 44.4,
+"player": "Truck Robinson",
+"team": "New Orleans"
+},
+{
+"season": "1978-79",
+"value": 41.3,
+"player": "Moses Malone",
+"team": "Houston"
+},
+{
+"season": "1979-80",
+"value": 39.3,
+"player": "Norm Nixon",
+"team": "LA Lakers"
+},
+{
+"season": "1980-81",
+"value": 42.7,
+"player": "Adrian Dantley",
+"team": "Utah"
+},
+{
+"season": "1981-82",
+"value": 42.0,
+"player": "Moses Malone",
+"team": "Houston"
+},
+{
+"season": "1982-83",
+"value": 38.8,
+"player": "Kelly Tripucka",
+"team": "Detroit"
+},
+{
+"season": "1983-84",
+"value": 41.1,
+"player": "Jeff Ruland",
+"team": "Washington"
+},
+{
+"season": "1984-85",
+"value": 39.5,
+"player": "Larry Bird",
+"team": "Boston"
+},
+{
+"season": "1985-86",
+"value": 39.9,
+"player": "Maurice Cheeks",
+"team": "Philadelphia"
+},
+{
+"season": "1986-87",
+"value": 40.6,
+"player": "Larry Bird",
+"team": "Boston"
+},
+{
+"season": "1987-88",
+"value": 40.4,
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1988-89",
+"value": 40.2,
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1989-90",
+"value": 39.5,
+"player": "Rodney McCray",
+"team": "Sacramento"
+},
+{
+"season": "1990-91",
+"value": 40.4,
+"player": "Chris Mullin",
+"team": "Golden State"
+},
+{
+"season": "1991-92",
+"value": 41.3,
+"player": "Chris Mullin",
+"team": "Golden State"
+},
+{
+"season": "1992-93",
+"value": 40.5,
+"player": "Larry Johnson",
+"team": "Charlotte"
+},
+{
+"season": "1993-94",
+"value": 43.1,
+"player": "Latrell Sprewell",
+"team": "Golden State"
+},
+{
+"season": "1994-95",
+"value": 41.0,
+"player": "Vin Baker",
+"team": "Milwaukee"
+},
+{
+"season": "1995-96",
+"value": 42.2,
+"player": "Anthony Mason",
+"team": "New York"
+},
+{
+"season": "1996-97",
+"value": 43.1,
+"player": "Anthony Mason",
+"team": "Charlotte"
+},
+{
+"season": "1997-98",
+"value": 41.4,
+"player": "Michael Finley",
+"team": "Dallas"
+},
+{
+"season": "1998-99",
+"value": 41.5,
+"player": "Allen Iverson",
+"team": "Philadelphia"
+},
+{
+"season": "1999-00",
+"value": 42.2,
+"player": "Michael Finley",
+"team": "Dallas"
+},
+{
+"season": "2000-01",
+"value": 42.0,
+"player": "Michael Finley",
+"team": "Dallas"
+},
+{
+"season": "2001-02",
+"value": 43.7,
+"player": "Allen Iverson",
+"team": "Philadelphia"
+},
+{
+"season": "2002-03",
+"value": 42.5,
+"player": "Allen Iverson",
+"team": "Philadelphia"
+},
+{
+"season": "2003-04",
+"value": 42.5,
+"player": "Allen Iverson",
+"team": "Philadelphia"
+},
+{
+"season": "2004-05",
+"value": 42.4,
+"player": "LeBron James",
+"team": "Cleveland"
+},
+{
+"season": "2005-06",
+"value": 43.1,
+"player": "Allen Iverson",
+"team": "Philadelphia"
+},
+{
+"season": "2006-07",
+"value": 42.5,
+"player": "Allen Iverson",
+"team": "Philadelphia/Denver"
+},
+{
+"season": "2007-08",
+"value": 41.8,
+"player": "Allen Iverson",
+"team": "Denver"
+},
+{
+"season": "2008-09",
+"value": 39.9,
+"player": "Andre Iguodala",
+"team": "Philadelphia"
+},
+{
+"season": "2009-10",
+"value": 41.4,
+"player": "Monta Ellis",
+"team": "Golden State"
+},
+{
+"season": "2010-11",
+"value": 40.3,
+"player": "Monta Ellis",
+"team": "Golden State"
+},
+{
+"season": "2011-12",
+"value": 39.4,
+"player": "Luol Deng",
+"team": "Chicago"
+},
+{
+"season": "2012-13",
+"value": 38.7,
+"player": "Luol Deng",
+"team": "Chicago"
+},
+{
+"season": "2013-14",
+"value": 38.7,
+"player": "Carmelo Anthony",
+"team": "New York"
+},
+{
+"season": "2014-15",
+"value": 38.7,
+"player": "Jimmy Butler",
+"team": "Chicago"
+},
+{
+"season": "2015-16",
+"value": 38.1,
+"player": "James Harden",
+"team": "Houston"
+},
+{
+"season": "2016-17",
+"value": 37.8,
+"player": "LeBron James",
+"team": "Cleveland"
+},
+{
+"season": "2017-18",
+"value": 36.9,
+"player": "LeBron James",
+"team": "Cleveland"
+},
+{
+"season": "2018-19",
+"value": 36.9,
+"player": "Bradley Beal",
+"team": "Washington"
+},
+{
+"season": "2019-20",
+"value": 37.5,
+"player": "Damian Lillard",
+"team": "Portland"
+},
+{
+"season": "2020-21",
+"value": 37.6,
+"player": "Julius Randle",
+"team": "New York"
+},
+{
+"season": "2021-22",
+"value": 37.9,
+"player": "Pascal Siakam",
+"team": "Toronto"
+},
+{
+"season": "2022-23",
+"value": 37.4,
+"player": "Pascal Siakam",
+"team": "Toronto"
+},
+{
+"season": "2023-24",
+"value": 37.8,
+"player": "DeMar DeRozan",
+"team": "Chicago"
+},
+{
+"season": "2024-25",
+"value": 37.6,
+"player": "Josh Hart",
+"team": "New York"
+},
+{
+"season": "2025-26",
+"value": 38.0,
+"player": "Tyrese Maxey",
+"team": "Philadelphia"
+}
+],
+"reb": [
+{
+"season": "1950-51",
+"value": 1080.0,
+"player": "Dolph Schayes",
+"team": "Syracuse"
+},
+{
+"season": "1951-52",
+"value": 880.0,
+"player": "Larry Foust",
+"team": "Fort Wayne"
+},
+{
+"season": "1952-53",
+"value": 1007.0,
+"player": "George Mikan",
+"team": "Minneapolis"
+},
+{
+"season": "1953-54",
+"value": 1098.0,
+"player": "Harry Gallatin",
+"team": "New York"
+},
+{
+"season": "1954-55",
+"value": 1085.0,
+"player": "Neil Johnston",
+"team": "Philadelphia"
+},
+{
+"season": "1955-56",
+"value": 1164.0,
+"player": "Bob Pettit",
+"team": "St. Louis"
+},
+{
+"season": "1956-57",
+"value": 1256.0,
+"player": "Maurice Stokes",
+"team": "Rochester"
+},
+{
+"season": "1957-58",
+"value": 1564.0,
+"player": "Bill Russell",
+"team": "Boston"
+},
+{
+"season": "1958-59",
+"value": 1612.0,
+"player": "Bill Russell",
+"team": "Boston"
+},
+{
+"season": "1959-60",
+"value": 1941.0,
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1960-61",
+"value": 2149.0,
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1961-62",
+"value": 2052.0,
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1962-63",
+"value": 1946.0,
+"player": "Wilt Chamberlain",
+"team": "San Francisco"
+},
+{
+"season": "1963-64",
+"value": 1930.0,
+"player": "Bill Russell",
+"team": "Boston"
+},
+{
+"season": "1964-65",
+"value": 1878.0,
+"player": "Bill Russell",
+"team": "Boston"
+},
+{
+"season": "1965-66",
+"value": 1943.0,
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1966-67",
+"value": 1957.0,
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1967-68",
+"value": 1952.0,
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1968-69",
+"value": 1712.0,
+"player": "Wilt Chamberlain",
+"team": "LA Lakers"
+},
+{
+"season": "1969-70",
+"value": 16.9,
+"player": "Elvin Hayes",
+"team": "San Diego"
+},
+{
+"season": "1970-71",
+"value": 18.2,
+"player": "Wilt Chamberlain",
+"team": "LA Lakers"
+},
+{
+"season": "1971-72",
+"value": 19.2,
+"player": "Wilt Chamberlain",
+"team": "LA Lakers"
+},
+{
+"season": "1972-73",
+"value": 18.6,
+"player": "Wilt Chamberlain",
+"team": "LA Lakers"
+},
+{
+"season": "1973-74",
+"value": 18.1,
+"player": "Elvin Hayes",
+"team": "Capital"
+},
+{
+"season": "1974-75",
+"value": 14.8,
+"player": "Wes Unseld",
+"team": "Washington"
+},
+{
+"season": "1975-76",
+"value": 16.9,
+"player": "Kareem Abdul-Jabbar",
+"team": "LA Lakers"
+},
+{
+"season": "1976-77",
+"value": 14.4,
+"player": "Bill Walton",
+"team": "Portland"
+},
+{
+"season": "1977-78",
+"value": 15.7,
+"player": "Truck Robinson",
+"team": "New Orleans"
+},
+{
+"season": "1978-79",
+"value": 17.6,
+"player": "Moses Malone",
+"team": "Houston"
+},
+{
+"season": "1979-80",
+"value": 15.0,
+"player": "Swen Nater",
+"team": "San Diego"
+},
+{
+"season": "1980-81",
+"value": 14.8,
+"player": "Moses Malone",
+"team": "Houston"
+},
+{
+"season": "1981-82",
+"value": 14.7,
+"player": "Moses Malone",
+"team": "Houston"
+},
+{
+"season": "1982-83",
+"value": 15.3,
+"player": "Moses Malone",
+"team": "Philadelphia"
+},
+{
+"season": "1983-84",
+"value": 13.4,
+"player": "Moses Malone",
+"team": "Philadelphia"
+},
+{
+"season": "1984-85",
+"value": 13.1,
+"player": "Moses Malone",
+"team": "Philadelphia"
+},
+{
+"season": "1985-86",
+"value": 13.1,
+"player": "Bill Laimbeer",
+"team": "Detroit"
+},
+{
+"season": "1986-87",
+"value": 14.6,
+"player": "Charles Barkley",
+"team": "Philadelphia"
+},
+{
+"season": "1987-88",
+"value": 13.03,
+"player": "Michael Cage",
+"team": "LA Clippers"
+},
+{
+"season": "1988-89",
+"value": 13.5,
+"player": "Hakeem Olajuwon",
+"team": "Houston"
+},
+{
+"season": "1989-90",
+"value": 14.0,
+"player": "Hakeem Olajuwon",
+"team": "Houston"
+},
+{
+"season": "1990-91",
+"value": 13.0,
+"player": "David Robinson",
+"team": "San Antonio"
+},
+{
+"season": "1991-92",
+"value": 18.7,
+"player": "Dennis Rodman",
+"team": "Detroit"
+},
+{
+"season": "1992-93",
+"value": 18.3,
+"player": "Dennis Rodman",
+"team": "Detroit"
+},
+{
+"season": "1993-94",
+"value": 17.3,
+"player": "Dennis Rodman",
+"team": "San Antonio"
+},
+{
+"season": "1994-95",
+"value": 16.8,
+"player": "Dennis Rodman",
+"team": "San Antonio"
+},
+{
+"season": "1995-96",
+"value": 14.9,
+"player": "Dennis Rodman",
+"team": "Chicago"
+},
+{
+"season": "1996-97",
+"value": 16.1,
+"player": "Dennis Rodman",
+"team": "Chicago"
+},
+{
+"season": "1997-98",
+"value": 15.0,
+"player": "Dennis Rodman",
+"team": "Chicago"
+},
+{
+"season": "1998-99",
+"value": 13.0,
+"player": "Chris Webber",
+"team": "Sacramento"
+},
+{
+"season": "1999-00",
+"value": 14.1,
+"player": "Dikembe Mutombo",
+"team": "Atlanta"
+},
+{
+"season": "2000-01",
+"value": 13.5,
+"player": "Dikembe Mutombo",
+"team": "Atlanta/Philadelphia"
+},
+{
+"season": "2001-02",
+"value": 13.0,
+"player": "Ben Wallace",
+"team": "Detroit"
+},
+{
+"season": "2002-03",
+"value": 15.4,
+"player": "Ben Wallace",
+"team": "Detroit"
+},
+{
+"season": "2003-04",
+"value": 13.9,
+"player": "Kevin Garnett",
+"team": "Minnesota"
+},
+{
+"season": "2004-05",
+"value": 13.5,
+"player": "Kevin Garnett",
+"team": "Minnesota"
+},
+{
+"season": "2005-06",
+"value": 12.7,
+"player": "Kevin Garnett",
+"team": "Minnesota"
+},
+{
+"season": "2006-07",
+"value": 12.8,
+"player": "Kevin Garnett",
+"team": "Minnesota"
+},
+{
+"season": "2007-08",
+"value": 14.2,
+"player": "Dwight Howard",
+"team": "Orlando"
+},
+{
+"season": "2008-09",
+"value": 13.8,
+"player": "Dwight Howard",
+"team": "Orlando"
+},
+{
+"season": "2009-10",
+"value": 13.2,
+"player": "Dwight Howard",
+"team": "Orlando"
+},
+{
+"season": "2010-11",
+"value": 15.2,
+"player": "Kevin Love",
+"team": "Minnesota"
+},
+{
+"season": "2011-12",
+"value": 14.5,
+"player": "Dwight Howard",
+"team": "Orlando"
+},
+{
+"season": "2012-13",
+"value": 12.4,
+"player": "Dwight Howard",
+"team": "LA Lakers"
+},
+{
+"season": "2013-14",
+"value": 13.6,
+"player": "DeAndre Jordan",
+"team": "LA Clippers"
+},
+{
+"season": "2014-15",
+"value": 15.0,
+"player": "DeAndre Jordan",
+"team": "LA Clippers"
+},
+{
+"season": "2015-16",
+"value": 14.8,
+"player": "Andre Drummond",
+"team": "Detroit"
+},
+{
+"season": "2016-17",
+"value": 14.1,
+"player": "Hassan Whiteside",
+"team": "Miami"
+},
+{
+"season": "2017-18",
+"value": 16.0,
+"player": "Andre Drummond",
+"team": "Detroit"
+},
+{
+"season": "2018-19",
+"value": 15.6,
+"player": "Andre Drummond",
+"team": "Detroit"
+},
+{
+"season": "2019-20",
+"value": 15.2,
+"player": "Andre Drummond",
+"team": "Detroit/Cleveland"
+},
+{
+"season": "2020-21",
+"value": 14.3,
+"player": "Clint Capela",
+"team": "Atlanta"
+},
+{
+"season": "2021-22",
+"value": 14.7,
+"player": "Rudy Gobert",
+"team": "Utah"
+},
+{
+"season": "2022-23",
+"value": 12.3,
+"player": "Domantas Sabonis",
+"team": "Sacramento"
+},
+{
+"season": "2023-24",
+"value": 13.7,
+"player": "Domantas Sabonis",
+"team": "Sacramento"
+},
+{
+"season": "2024-25",
+"value": 13.9,
+"player": "Domantas Sabonis",
+"team": "Sacramento"
+},
+{
+"season": "2025-26",
+"value": 12.9,
+"player": "Nikola Jokic",
+"team": "Denver"
+}
+],
+"ast": [
+{
+"season": "1946-47",
+"value": 202.0,
+"player": "Ernie Calverley",
+"team": "Providence"
+},
+{
+"season": "1947-48",
+"value": 120.0,
+"player": "Howie Dallmar",
+"team": "Philadelphia"
+},
+{
+"season": "1948-49",
+"value": 321.0,
+"player": "Bob Davies",
+"team": "Rochester"
+},
+{
+"season": "1949-50",
+"value": 386.0,
+"player": "Dick McGuire",
+"team": "New York"
+},
+{
+"season": "1950-51",
+"value": 414.0,
+"player": "Andy Phillip",
+"team": "Philadelphia"
+},
+{
+"season": "1951-52",
+"value": 539.0,
+"player": "Andy Phillip",
+"team": "Philadelphia"
+},
+{
+"season": "1952-53",
+"value": 547.0,
+"player": "Bob Cousy",
+"team": "Boston"
+},
+{
+"season": "1953-54",
+"value": 518.0,
+"player": "Bob Cousy",
+"team": "Boston STEALS"
+},
+{
+"season": "1954-55",
+"value": 557.0,
+"player": "Bob Cousy",
+"team": "Boston Season SPG Player, Team"
+},
+{
+"season": "1955-56",
+"value": 642.0,
+"player": "Bob Cousy",
+"team": "Boston"
+},
+{
+"season": "1956-57",
+"value": 478.0,
+"player": "Bob Cousy",
+"team": "Boston"
+},
+{
+"season": "1957-58",
+"value": 463.0,
+"player": "Bob Cousy",
+"team": "Boston"
+},
+{
+"season": "1958-59",
+"value": 557.0,
+"player": "Bob Cousy",
+"team": "Boston"
+},
+{
+"season": "1959-60",
+"value": 715.0,
+"player": "Bob Cousy",
+"team": "Boston"
+},
+{
+"season": "1960-61",
+"value": 690.0,
+"player": "Oscar Robertson",
+"team": "Cincinnati"
+},
+{
+"season": "1961-62",
+"value": 899.0,
+"player": "Oscar Robertson",
+"team": "Cincinnati"
+},
+{
+"season": "1962-63",
+"value": 825.0,
+"player": "Guy Rodgers",
+"team": "San Francisco"
+},
+{
+"season": "1963-64",
+"value": 868.0,
+"player": "Oscar Robertson",
+"team": "Cincinnati"
+},
+{
+"season": "1964-65",
+"value": 861.0,
+"player": "Oscar Robertson",
+"team": "Cincinnati"
+},
+{
+"season": "1965-66",
+"value": 847.0,
+"player": "Oscar Robertson",
+"team": "Cincinnati"
+},
+{
+"season": "1966-67",
+"value": 908.0,
+"player": "Guy Rodgers",
+"team": "Chicago"
+},
+{
+"season": "1967-68",
+"value": 702.0,
+"player": "Wilt Chamberlain",
+"team": "Philadelphia"
+},
+{
+"season": "1968-69",
+"value": 772.0,
+"player": "Oscar Robertson",
+"team": "Cincinnati"
+},
+{
+"season": "1969-70",
+"value": 9.1,
+"player": "Lenny Wilkens",
+"team": "Seattle"
+},
+{
+"season": "1970-71",
+"value": 10.1,
+"player": "Norm Van Lier",
+"team": "Cincinnati"
+},
+{
+"season": "1971-72",
+"value": 9.7,
+"player": "Jerry West",
+"team": "LA Lakers"
+},
+{
+"season": "1972-73",
+"value": 11.4,
+"player": "Nate Archibald",
+"team": "Kansas City-Omaha"
+},
+{
+"season": "1973-74",
+"value": 8.2,
+"player": "Ernie DiGregorio",
+"team": "Buffalo"
+},
+{
+"season": "1974-75",
+"value": 8.0,
+"player": "Kevin Porter",
+"team": "Washington"
+},
+{
+"season": "1975-76",
+"value": 8.1,
+"player": "Slick Watts",
+"team": "Seattle"
+},
+{
+"season": "1976-77",
+"value": 8.5,
+"player": "Don Buse",
+"team": "Indiana"
+},
+{
+"season": "1977-78",
+"value": 10.2,
+"player": "Kevin Porter",
+"team": "Detroit/New Jersey"
+},
+{
+"season": "1978-79",
+"value": 13.4,
+"player": "Kevin Porter",
+"team": "Detroit"
+},
+{
+"season": "1979-80",
+"value": 10.1,
+"player": "Michael Ray Richardson",
+"team": "New York"
+},
+{
+"season": "1980-81",
+"value": 9.1,
+"player": "Kevin Porter",
+"team": "Washington"
+},
+{
+"season": "1981-82",
+"value": 9.6,
+"player": "Johnny Moore",
+"team": "San Antonio"
+},
+{
+"season": "1982-83",
+"value": 10.5,
+"player": "Magic Johnson",
+"team": "LA Lakers"
+},
+{
+"season": "1983-84",
+"value": 13.1,
+"player": "Magic Johnson",
+"team": "LA Lakers"
+},
+{
+"season": "1984-85",
+"value": 13.98,
+"player": "Isiah Thomas",
+"team": "Detroit"
+},
+{
+"season": "1985-86",
+"value": 12.6,
+"player": "Magic Johnson",
+"team": "LA Lakers"
+},
+{
+"season": "1986-87",
+"value": 12.2,
+"player": "Magic Johnson",
+"team": "LA Lakers"
+},
+{
+"season": "1987-88",
+"value": 13.8,
+"player": "John Stockton",
+"team": "Utah"
+},
+{
+"season": "1988-89",
+"value": 13.6,
+"player": "John Stockton",
+"team": "Utah"
+},
+{
+"season": "1989-90",
+"value": 14.5,
+"player": "John Stockton",
+"team": "Utah"
+},
+{
+"season": "1990-91",
+"value": 14.2,
+"player": "John Stockton",
+"team": "Utah"
+},
+{
+"season": "1991-92",
+"value": 13.7,
+"player": "John Stockton",
+"team": "Utah"
+},
+{
+"season": "1992-93",
+"value": 12.0,
+"player": "John Stockton",
+"team": "Utah"
+},
+{
+"season": "1993-94",
+"value": 12.6,
+"player": "John Stockton",
+"team": "Utah"
+},
+{
+"season": "1994-95",
+"value": 12.3,
+"player": "John Stockton",
+"team": "Utah"
+},
+{
+"season": "1995-96",
+"value": 11.2,
+"player": "John Stockton",
+"team": "Utah"
+},
+{
+"season": "1996-97",
+"value": 11.4,
+"player": "Mark Jackson",
+"team": "Denver/Indiana"
+},
+{
+"season": "1997-98",
+"value": 10.5,
+"player": "Rod Strickland",
+"team": "Washington"
+},
+{
+"season": "1998-99",
+"value": 10.8,
+"player": "Jason Kidd",
+"team": "Phoenix"
+},
+{
+"season": "1999-00",
+"value": 10.1,
+"player": "Jason Kidd",
+"team": "Phoenix"
+},
+{
+"season": "2000-01",
+"value": 9.8,
+"player": "Jason Kidd",
+"team": "Phoenix"
+},
+{
+"season": "2001-02",
+"value": 10.9,
+"player": "Andre Miller",
+"team": "Cleveland"
+},
+{
+"season": "2002-03",
+"value": 8.9,
+"player": "Jason Kidd",
+"team": "New Jersey"
+},
+{
+"season": "2003-04",
+"value": 9.2,
+"player": "Jason Kidd",
+"team": "New Jersey"
+},
+{
+"season": "2004-05",
+"value": 11.5,
+"player": "Steve Nash",
+"team": "Phoenix"
+},
+{
+"season": "2005-06",
+"value": 10.5,
+"player": "Steve Nash",
+"team": "Phoenix"
+},
+{
+"season": "2006-07",
+"value": 11.6,
+"player": "Steve Nash",
+"team": "Phoenix"
+},
+{
+"season": "2007-08",
+"value": 11.6,
+"player": "Chris Paul",
+"team": "New Orleans"
+},
+{
+"season": "2008-09",
+"value": 11.0,
+"player": "Chris Paul",
+"team": "New Orleans"
+},
+{
+"season": "2009-10",
+"value": 11.0,
+"player": "Steve Nash",
+"team": "Phoenix"
+},
+{
+"season": "2010-11",
+"value": 11.4,
+"player": "Steve Nash",
+"team": "Phoenix"
+},
+{
+"season": "2011-12",
+"value": 11.7,
+"player": "Rajon Rondo",
+"team": "Boston"
+},
+{
+"season": "2012-13",
+"value": 11.1,
+"player": "Rajon Rondo",
+"team": "Boston"
+},
+{
+"season": "2013-14",
+"value": 10.7,
+"player": "Chris Paul",
+"team": "LA Clippers"
+},
+{
+"season": "2014-15",
+"value": 10.2,
+"player": "Chris Paul",
+"team": "LA Clippers"
+},
+{
+"season": "2015-16",
+"value": 11.7,
+"player": "Rajon Rondo",
+"team": "Sacramento"
+},
+{
+"season": "2016-17",
+"value": 11.2,
+"player": "James Harden",
+"team": "Houston"
+},
+{
+"season": "2017-18",
+"value": 10.3,
+"player": "Russell Westbrook",
+"team": "Oklahoma City"
+},
+{
+"season": "2018-19",
+"value": 10.7,
+"player": "Russell Westbrook",
+"team": "Oklahoma City"
+},
+{
+"season": "2019-20",
+"value": 10.2,
+"player": "LeBron James",
+"team": "LA Lakers"
+},
+{
+"season": "2020-21",
+"value": 11.7,
+"player": "Russell Westbrook",
+"team": "Washington"
+},
+{
+"season": "2021-22",
+"value": 10.8,
+"player": "Chris Paul",
+"team": "Phoenix"
+},
+{
+"season": "2022-23",
+"value": 10.7,
+"player": "James Harden",
+"team": "Philadelphia"
+},
+{
+"season": "2023-24",
+"value": 10.9,
+"player": "Tyrese Haliburton",
+"team": "Indiana"
+},
+{
+"season": "2024-25",
+"value": 11.6,
+"player": "Trae Young",
+"team": "Atlanta"
+},
+{
+"season": "2025-26",
+"value": 10.7,
+"player": "Nikola Jokic",
+"team": "Denver"
+}
+],
+"stl": [
+{
+"season": "1973-74",
+"value": 2.68,
+"player": "Larry Steele",
+"team": "Portland"
+},
+{
+"season": "1974-75",
+"value": 2.85,
+"player": "Rick Barry",
+"team": "Golden State"
+},
+{
+"season": "1975-76",
+"value": 3.18,
+"player": "Slick Watts",
+"team": "Seattle"
+},
+{
+"season": "1976-77",
+"value": 3.47,
+"player": "Don Buse",
+"team": "Indiana"
+},
+{
+"season": "1977-78",
+"value": 2.74,
+"player": "Ron Lee",
+"team": "Phoenix"
+},
+{
+"season": "1978-79",
+"value": 2.46,
+"player": "M.L. Carr",
+"team": "Detroit"
+},
+{
+"season": "1979-80",
+"value": 3.23,
+"player": "Michael Ray Richardson",
+"team": "New York"
+},
+{
+"season": "1980-81",
+"value": 3.43,
+"player": "Magic Johnson",
+"team": "LA Lakers"
+},
+{
+"season": "1981-82",
+"value": 2.67,
+"player": "Magic Johnson",
+"team": "LA Lakers"
+},
+{
+"season": "1982-83",
+"value": 2.84,
+"player": "Michael Ray Richardson",
+"team": "Golden State/New Jersey"
+},
+{
+"season": "1983-84",
+"value": 2.65,
+"player": "Rickey Green",
+"team": "Utah"
+},
+{
+"season": "1984-85",
+"value": 2.96,
+"player": "Michael Ray Richardson",
+"team": "New Jersey"
+},
+{
+"season": "1985-86",
+"value": 3.67,
+"player": "Alvin Robertson",
+"team": "San Antonio"
+},
+{
+"season": "1986-87",
+"value": 3.21,
+"player": "Alvin Robertson",
+"team": "San Antonio"
+},
+{
+"season": "1987-88",
+"value": 3.16,
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1988-89",
+"value": 3.21,
+"player": "John Stockton",
+"team": "Utah"
+},
+{
+"season": "1989-90",
+"value": 2.77,
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1990-91",
+"value": 3.04,
+"player": "Alvin Robertson",
+"team": "Milwaukee"
+},
+{
+"season": "1991-92",
+"value": 2.98,
+"player": "John Stockton",
+"team": "Utah"
+},
+{
+"season": "1992-93",
+"value": 2.83,
+"player": "Michael Jordan",
+"team": "Chicago"
+},
+{
+"season": "1993-94",
+"value": 2.96,
+"player": "Nate McMillan",
+"team": "Seattle"
+},
+{
+"season": "1994-95",
+"value": 2.94,
+"player": "Scottie Pippen",
+"team": "Chicago"
+},
+{
+"season": "1995-96",
+"value": 2.85,
+"player": "Gary Payton",
+"team": "Seattle"
+},
+{
+"season": "1996-97",
+"value": 2.72,
+"player": "Mookie Blaylock",
+"team": "Atlanta"
+},
+{
+"season": "1997-98",
+"value": 2.61,
+"player": "Mookie Blaylock",
+"team": "Atlanta"
+},
+{
+"season": "1998-99",
+"value": 2.68,
+"player": "Kendall Gill",
+"team": "New Jersey"
+},
+{
+"season": "1999-00",
+"value": 2.67,
+"player": "Eddie Jones",
+"team": "Charlotte"
+},
+{
+"season": "2000-01",
+"value": 2.51,
+"player": "Allen Iverson",
+"team": "Philadelphia"
+},
+{
+"season": "2001-02",
+"value": 2.8,
+"player": "Allen Iverson",
+"team": "Philadelphia"
+},
+{
+"season": "2002-03",
+"value": 2.74,
+"player": "Allen Iverson",
+"team": "Philadelphia"
+},
+{
+"season": "2003-04",
+"value": 2.36,
+"player": "Baron Davis",
+"team": "New Orleans"
+},
+{
+"season": "2004-05",
+"value": 2.89,
+"player": "Larry Hughes",
+"team": "Washington"
+},
+{
+"season": "2005-06",
+"value": 2.51,
+"player": "Gerald Wallace",
+"team": "Charlotte"
+},
+{
+"season": "2006-07",
+"value": 2.14,
+"player": "Baron Davis",
+"team": "Golden State"
+},
+{
+"season": "2007-08",
+"value": 2.71,
+"player": "Chris Paul",
+"team": "New Orleans"
+},
+{
+"season": "2008-09",
+"value": 2.77,
+"player": "Chris Paul",
+"team": "New Orleans"
+},
+{
+"season": "2009-10",
+"value": 2.33,
+"player": "Rajon Rondo",
+"team": "Boston"
+},
+{
+"season": "2010-11",
+"value": 2.35,
+"player": "Chris Paul",
+"team": "New Orleans"
+},
+{
+"season": "2011-12",
+"value": 2.53,
+"player": "Chris Paul",
+"team": "LA Clippers Season PF Player, Team"
+},
+{
+"season": "2012-13",
+"value": 2.41,
+"player": "Chris Paul",
+"team": "LA Clippers"
+},
+{
+"season": "2013-14",
+"value": 2.48,
+"player": "Chris Paul",
+"team": "LA Clippers"
+},
+{
+"season": "2014-15",
+"value": 2.31,
+"player": "Kawhi Leonard",
+"team": "San Antonio"
+},
+{
+"season": "2015-16",
+"value": 2.14,
+"player": "Stephen Curry",
+"team": "Golden State"
+},
+{
+"season": "2016-17",
+"value": 2.03,
+"player": "Draymond Green",
+"team": "Golden State"
+},
+{
+"season": "2017-18",
+"value": 2.36,
+"player": "Victor Oladipo",
+"team": "Indiana"
+},
+{
+"season": "2018-19",
+"value": 2.21,
+"player": "Paul George",
+"team": "Oklahoma City"
+},
+{
+"season": "2019-20",
+"value": 2.09,
+"player": "Ben Simmons",
+"team": "Philadelphia"
+},
+{
+"season": "2020-21",
+"value": 2.08,
+"player": "Jimmy Butler",
+"team": "Miami"
+},
+{
+"season": "2021-22",
+"value": 2.03,
+"player": "Dejounte Murray",
+"team": "San Antonio"
+},
+{
+"season": "2022-23",
+"value": 1.91,
+"player": "OG Anunoby",
+"team": "Toronto"
+},
+{
+"season": "2023-24",
+"value": 2.03,
+"player": "De’Aaron Fox",
+"team": "Sacramento"
+},
+{
+"season": "2024-25",
+"value": 3.01,
+"player": "Dyson Daniels",
+"team": "Atlanta"
+},
+{
+"season": "2025-26",
+"value": 2.0,
+"player": "Ausar Thompson",
+"team": "Detroit"
+}
+],
+"blk": [
+{
+"season": "1973-74",
+"value": 4.85,
+"player": "Elmore Smith",
+"team": "LA Lakers"
+},
+{
+"season": "1974-75",
+"value": 3.26,
+"player": "Kareem Abdul-Jabbar",
+"team": "Milwaukee"
+},
+{
+"season": "1975-76",
+"value": 4.12,
+"player": "Kareem Abdul-Jabbar",
+"team": "LA Lakers"
+},
+{
+"season": "1976-77",
+"value": 3.25,
+"player": "Bill Walton",
+"team": "Portland"
+},
+{
+"season": "1977-78",
+"value": 3.38,
+"player": "George Johnson",
+"team": "New Jersey"
+},
+{
+"season": "1978-79",
+"value": 3.95,
+"player": "Kareem Abdul-Jabbar",
+"team": "LA Lakers"
+},
+{
+"season": "1979-80",
+"value": 3.41,
+"player": "Kareem Abdul-Jabbar",
+"team": "LA Lakers"
+},
+{
+"season": "1980-81",
+"value": 3.39,
+"player": "George Johnson",
+"team": "San Antonio"
+},
+{
+"season": "1981-82",
+"value": 3.12,
+"player": "George Johnson",
+"team": "San Antonio"
+},
+{
+"season": "1982-83",
+"value": 4.29,
+"player": "Tree Rollins",
+"team": "Atlanta"
+},
+{
+"season": "1983-84",
+"value": 4.28,
+"player": "Mark Eaton",
+"team": "Utah"
+},
+{
+"season": "1984-85",
+"value": 5.56,
+"player": "Mark Eaton",
+"team": "Utah"
+},
+{
+"season": "1985-86",
+"value": 4.96,
+"player": "Manute Bol",
+"team": "Washington Phil Jackson, New York"
+},
+{
+"season": "1986-87",
+"value": 4.06,
+"player": "Mark Eaton",
+"team": "Utah"
+},
+{
+"season": "1987-88",
+"value": 3.71,
+"player": "Mark Eaton",
+"team": "Utah"
+},
+{
+"season": "1988-89",
+"value": 4.31,
+"player": "Manute Bol",
+"team": "Golden State"
+},
+{
+"season": "1989-90",
+"value": 4.59,
+"player": "Hakeem Olajuwon",
+"team": "Houston"
+},
+{
+"season": "1990-91",
+"value": 3.95,
+"player": "Hakeem Olajuwon",
+"team": "Houston"
+},
+{
+"season": "1991-92",
+"value": 4.49,
+"player": "David Robinson",
+"team": "San Antonio"
+},
+{
+"season": "1992-93",
+"value": 4.17,
+"player": "Hakeem Olajuwon",
+"team": "Houston"
+},
+{
+"season": "1993-94",
+"value": 4.1,
+"player": "Dikembe Mutombo",
+"team": "Denver"
+},
+{
+"season": "1994-95",
+"value": 3.91,
+"player": "Dikembe Mutombo",
+"team": "Denver"
+},
+{
+"season": "1995-96",
+"value": 4.49,
+"player": "Dikembe Mutombo",
+"team": "Denver"
+},
+{
+"season": "1996-97",
+"value": 3.4,
+"player": "Shawn Bradley",
+"team": "New Jersey/Dallas"
+},
+{
+"season": "1997-98",
+"value": 3.65,
+"player": "Marcus Camby",
+"team": "Toronto"
+},
+{
+"season": "1998-99",
+"value": 3.91,
+"player": "Alonzo Mourning",
+"team": "Miami"
+},
+{
+"season": "1999-00",
+"value": 3.72,
+"player": "Alonzo Mourning",
+"team": "Miami"
+},
+{
+"season": "2000-01",
+"value": 3.74,
+"player": "Theo Ratliff",
+"team": "Philadelphia/Atlanta"
+},
+{
+"season": "2001-02",
+"value": 3.48,
+"player": "Ben Wallace",
+"team": "Detroit"
+},
+{
+"season": "2002-03",
+"value": 3.23,
+"player": "Theo Ratliff",
+"team": "Atlanta"
+},
+{
+"season": "2003-04",
+"value": 3.61,
+"player": "Theo Ratliff",
+"team": "Atlanta/Portland"
+},
+{
+"season": "2004-05",
+"value": 3.32,
+"player": "Andrei Kirilenko",
+"team": "Utah"
+},
+{
+"season": "2005-06",
+"value": 3.29,
+"player": "Marcus Camby",
+"team": "Denver"
+},
+{
+"season": "2006-07",
+"value": 3.3,
+"player": "Marcus Camby",
+"team": "Denver"
+},
+{
+"season": "2007-08",
+"value": 3.61,
+"player": "Marcus Camby",
+"team": "Denver Otis Thorpe, Detroit"
+},
+{
+"season": "2008-09",
+"value": 2.92,
+"player": "Dwight Howard",
+"team": "Orlando"
+},
+{
+"season": "2009-10",
+"value": 2.78,
+"player": "Dwight Howard",
+"team": "Orlando"
+},
+{
+"season": "2010-11",
+"value": 2.58,
+"player": "Andrew Bogut",
+"team": "Milwaukee"
+},
+{
+"season": "2011-12",
+"value": 3.65,
+"player": "Serge Ibaka",
+"team": "Oklahoma City"
+},
+{
+"season": "2012-13",
+"value": 3.03,
+"player": "Serge Ibaka",
+"team": "Oklahoma City"
+},
+{
+"season": "2013-14",
+"value": 2.82,
+"player": "Anthony Davis",
+"team": "New Orleans"
+},
+{
+"season": "2014-15",
+"value": 2.94,
+"player": "Anthony Davis",
+"team": "New Orleans"
+},
+{
+"season": "2015-16",
+"value": 3.68,
+"player": "Hassan Whiteside",
+"team": "Miami"
+},
+{
+"season": "2016-17",
+"value": 2.64,
+"player": "Rudy Gobert",
+"team": "Utah"
+},
+{
+"season": "2017-18",
+"value": 2.57,
+"player": "Anthony Davis",
+"team": "New Orleans"
+},
+{
+"season": "2018-19",
+"value": 2.69,
+"player": "Myles Turner",
+"team": "Indiana"
+},
+{
+"season": "2019-20",
+"value": 2.93,
+"player": "Hassan Whiteside",
+"team": "Portland"
+},
+{
+"season": "2020-21",
+"value": 3.38,
+"player": "Myles Turner",
+"team": "Indiana"
+},
+{
+"season": "2021-22",
+"value": 2.27,
+"player": "Jaren Jackson Jr.",
+"team": "Memphis"
+},
+{
+"season": "2022-23",
+"value": 3.0,
+"player": "Jaren Jackson Jr.",
+"team": "Memphis"
+},
+{
+"season": "2023-24",
+"value": 3.58,
+"player": "Victor Wembanyama",
+"team": "San Antonio"
+},
+{
+"season": "2024-25",
+"value": 3.83,
+"player": "Victor Wembanyama",
+"team": "San Antonio"
+},
+{
+"season": "2025-26",
+"value": 3.08,
+"player": "Victor Wembanyama",
+"team": "San Antonio"
+}
+],
+"pf": [
+{
+"season": "1946-47",
+"value": 208.0,
+"player": "Stan Miasek",
+"team": "Detroit"
+},
+{
+"season": "1947-48",
+"value": 231.0,
+"player": "Chuck Gilmur",
+"team": "Chicago"
+},
+{
+"season": "1948-49",
+"value": 273.0,
+"player": "Ed Sadowski",
+"team": "Philadelphia"
+},
+{
+"season": "1949-50",
+"value": 297.0,
+"player": "George Mikan",
+"team": "Minneapolis"
+},
+{
+"season": "1950-51",
+"value": 308.0,
+"player": "George Mikan",
+"team": "Minneapolis"
+},
+{
+"season": "1951-52",
+"value": 286.0,
+"player": "George Mikan",
+"team": "Minneapolis"
+},
+{
+"season": "1952-53",
+"value": 334.0,
+"player": "Don Meineke",
+"team": "Fort Wayne"
+},
+{
+"season": "1953-54",
+"value": 303.0,
+"player": "Earl Lloyd",
+"team": "Syracuse"
+},
+{
+"season": "1954-55",
+"value": 319.0,
+"player": "Vern Mikkelsen",
+"team": "Minneapolis"
+},
+{
+"season": "1955-56",
+"value": 319.0,
+"player": "Vern Mikkelsen",
+"team": "Minneapolis"
+},
+{
+"season": "1956-57",
+"value": 312.0,
+"player": "Vern Mikkelsen",
+"team": "Minneapolis"
+},
+{
+"season": "1957-58",
+"value": 311.0,
+"player": "Walter Dukes",
+"team": "Detroit"
+},
+{
+"season": "1958-59",
+"value": 332.0,
+"player": "Walter Dukes",
+"team": "Detroit"
+},
+{
+"season": "1959-60",
+"value": 311.0,
+"player": "Tom Gola",
+"team": "Philadelphia"
+},
+{
+"season": "1960-61",
+"value": 335.0,
+"player": "Paul Arizin",
+"team": "Philadelphia"
+},
+{
+"season": "1961-62",
+"value": 330.0,
+"player": "Tom Meschery",
+"team": "Philadelphia"
+},
+{
+"season": "1962-63",
+"value": 312.0,
+"player": "Zelmo Beaty",
+"team": "St. Louis"
+},
+{
+"season": "1963-64",
+"value": 325.0,
+"player": "Wayne Embry",
+"team": "Cincinnati"
+},
+{
+"season": "1964-65",
+"value": 345.0,
+"player": "Bailey Howell",
+"team": "Baltimore"
+},
+{
+"season": "1965-66",
+"value": 344.0,
+"player": "Zelmo Beaty",
+"team": "St. Louis"
+},
+{
+"season": "1966-67",
+"value": 344.0,
+"player": "Joe Strawder",
+"team": "Detroit"
+},
+{
+"season": "1967-68",
+"value": 366.0,
+"player": "Bill Bridges",
+"team": "St. Louis"
+},
+{
+"season": "1968-69",
+"value": 329.0,
+"player": "Billy Cunningham",
+"team": "Philadelphia"
+},
+{
+"season": "1969-70",
+"value": 335.0,
+"player": "Jim Davis",
+"team": "Atlanta"
+},
+{
+"season": "1970-71",
+"value": 350.0,
+"player": "Dave Cowens",
+"team": "Boston"
+},
+{
+"season": "1971-72",
+"value": 314.0,
+"player": "Dave Cowens",
+"team": "Boston"
+},
+{
+"season": "1972-73",
+"value": 323.0,
+"player": "Neal Walk",
+"team": "Phoenix"
+},
+{
+"season": "1973-74",
+"value": 319.0,
+"player": "Kevin Porter",
+"team": "Capital"
+},
+{
+"season": "1974-75",
+"value": 330.0,
+"player": "Bob Dandridge",
+"team": "Milwaukee"
+},
+{
+"season": "1975-76",
+"value": 356.0,
+"player": "Charlie Scott",
+"team": "Boston"
+},
+{
+"season": "1976-77",
+"value": 363.0,
+"player": "Lonnie Shelton",
+"team": "N.Y. Knicks"
+},
+{
+"season": "1977-78",
+"value": 350.0,
+"player": "Lonnie Shelton",
+"team": "New York"
+},
+{
+"season": "1978-79",
+"value": 367.0,
+"player": "Bill Robinzine",
+"team": "Kansas City"
+},
+{
+"season": "1979-80",
+"value": 328.0,
+"player": "Darryl Dawkins",
+"team": "Philadelphia"
+},
+{
+"season": "1980-81",
+"value": 342.0,
+"player": "Ben Poquette",
+"team": "Utah"
+},
+{
+"season": "1981-82",
+"value": 372.0,
+"player": "Steve Johnson",
+"team": "Kansas City"
+},
+{
+"season": "1982-83",
+"value": 379.0,
+"player": "Darryl Dawkins",
+"team": "New Jersey"
+},
+{
+"season": "1983-84",
+"value": 386.0,
+"player": "Darryl Dawkins",
+"team": "New Jersey"
+},
+{
+"season": "1984-85",
+"value": 344.0,
+"player": "Hakeem Olajuwon",
+"team": "Houston"
+},
+{
+"season": "1985-86",
+"value": 333.0,
+"player": "Charles Barkley",
+"team": "Philadelphia"
+},
+{
+"season": "1986-87",
+"value": 340.0,
+"player": "Steve Johnson",
+"team": "Portland"
+},
+{
+"season": "1987-88",
+"value": 332.0,
+"player": "Patrick Ewing",
+"team": "New York"
+},
+{
+"season": "1988-89",
+"value": 337.0,
+"player": "Grant Long",
+"team": "Miami"
+},
+{
+"season": "1989-90",
+"value": 328.0,
+"player": "Rik Smits",
+"team": "Indiana"
+},
+{
+"season": "1990-91",
+"value": 338.0,
+"player": "Sam Mitchell",
+"team": "Minnesota"
+},
+{
+"season": "1991-92",
+"value": 315.0,
+"player": "Tyrone Hill",
+"team": "Golden State"
+},
+{
+"season": "1992-93",
+"value": 332.0,
+"player": "Stanley Roberts",
+"team": "LA Clippers"
+},
+{
+"season": "1993-94",
+"value": 312.0,
+"player": "Shawn Kemp",
+"team": "Seattle"
+},
+{
+"season": "1994-95",
+"value": 338.0,
+"player": "Shawn Bradley",
+"team": "Philadelphia"
+},
+{
+"season": "1995-96",
+"value": 300.0,
+"player": "Elden Campbell",
+"team": "LA Lakers"
+},
+{
+"season": "1996-97",
+"value": 320.0,
+"player": "Shawn Kemp",
+"team": "Seattle"
+},
+{
+"season": "1997-98",
+"value": 321.0,
+"player": "Ervin Johnson",
+"team": "Milwaukee"
+},
+{
+"season": "1998-99",
+"value": 212.0,
+"player": "Danny Fortson",
+"team": "Denver"
+},
+{
+"season": "1999-00",
+"value": 371.0,
+"player": "Shawn Kemp",
+"team": "Cleveland"
+},
+{
+"season": "2000-01",
+"value": 319.0,
+"player": "Aaron Williams",
+"team": "New Jersey"
+},
+{
+"season": "2001-02",
+"value": 341.0,
+"player": "Kurt Thomas",
+"team": "New York"
+},
+{
+"season": "2002-03",
+"value": 344.0,
+"player": "Kurt Thomas",
+"team": "New York"
+},
+{
+"season": "2003-04",
+"value": 300.0,
+"player": "Theo Ratliff",
+"team": "Atlanta/Portland"
+},
+{
+"season": "2004-05",
+"value": 322.0,
+"player": "Jason Collins",
+"team": "New Jersey"
+},
+{
+"season": "2005-06",
+"value": 301.0,
+"player": "Al Harrington",
+"team": "Atlanta"
+},
+{
+"season": "2006-07",
+"value": 304.0,
+"player": "Andris Biedrins",
+"team": "Golden State"
+},
+{
+"season": "2007-08",
+"value": 310.0,
+"player": "Mikki Moore",
+"team": "Sacramento"
+},
+{
+"season": "2008-09",
+"value": 314.0,
+"player": "Jason Thompson",
+"team": "Sacramento"
+},
+{
+"season": "2009-10",
+"value": 287.0,
+"player": "Dwight Howard",
+"team": "Orlando"
+},
+{
+"season": "2010-11",
+"value": 332.0,
+"player": "DeMarcus Cousins",
+"team": "Sacramento"
+},
+{
+"season": "2011-12",
+"value": 257.0,
+"player": "DeMarcus Cousins",
+"team": "Sacramento"
+},
+{
+"season": "2012-13",
+"value": 301.0,
+"player": "Amir Johnson",
+"team": "Toronto"
+},
+{
+"season": "2013-14",
+"value": 273.0,
+"player": "Andre Drummond",
+"team": "Detroit"
+},
+{
+"season": "2014-15",
+"value": 285.0,
+"player": "Andre Drummond",
+"team": "Detroit"
+},
+{
+"season": "2015-16",
+"value": 258.0,
+"player": "Giannis Antetokounmpo",
+"team": "Milwaukee"
+},
+{
+"season": "2016-17",
+"value": 278.0,
+"player": "DeMarcus Cousins",
+"team": "Sacramento/New Orleans"
+},
+{
+"season": "2017-18",
+"value": 285.0,
+"player": "Karl-Anthony Towns",
+"team": "Minnesota"
+},
+{
+"season": "2018-19",
+"value": 292.0,
+"player": "Karl-Anthony Towns",
+"team": "Minnesota Lamar Odom, LA Clippers"
+},
+{
+"season": "2019-20",
+"value": 278.0,
+"player": "Dillon Brooks",
+"team": "Memphis"
+},
+{
+"season": "2020-21",
+"value": 237.0,
+"player": "Dillon Brooks",
+"team": "Memphis Michael Doleac, Orlando"
+},
+{
+"season": "2021-22",
+"value": 286.0,
+"player": "Jae’Sean Tate",
+"team": "Houston Kenyon Martin, New Jersey"
+},
+{
+"season": "2022-23",
+"value": 279.0,
+"player": "Domantas Sabonis",
+"team": "Sacramento"
+},
+{
+"season": "2023-24",
+"value": 254.0,
+"player": "Jusuf Nurkic",
+"team": "Phoenix"
+},
+{
+"season": "2024-25",
+"value": 257.0,
+"player": "Jaren Jackson Jr.",
+"team": "Memphis"
+},
+{
+"season": "2025-26",
+"value": 267.0,
+"player": "Wendell Carter Jr.",
+"team": "Orlando"
+}
 ]
+},
+"leadersNote": "Through 1968-69 points/rebounds/assists leaders are by totals, after by average (as the guide prints them). Read from word positions (tools/parse-yearly-leaders.py)."
 }

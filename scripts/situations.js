@@ -224,7 +224,14 @@ for (const [tri, games] of Object.entries(perTeam)) {
       }
     } catch { /* no watch list yet */ }
     const boards = Object.fromEntries(Object.entries(rec.boards).map(([stat, rows]) => [stat, rows.slice(0, 40).map(({ name, team, live, now, base, rank, preRank }) => ({ name, team, live, now, base, rank: rank ?? null, preRank: preRank ?? null }))]));
-    fs.writeFileSync(path.join(root, "docs", "data", "records.json"), JSON.stringify({
+    // Stat titles in context (src/records/titles.js), from the NBA Guide's yearly leaders.
+    let titles = null;
+    const histFile = path.join(root, "src", "data", `nba-history-${season - 1}-${String(season).slice(2)}.json`);
+    if (fs.existsSync(histFile)) {
+      const { titleRace } = await import("../src/records/titles.js");
+      titles = titleRace({ history: JSON.parse(fs.readFileSync(histFile, "utf8")), teamFiles });
+    }
+    fs.writeFileSync(path.join(root, "docs", "data", "records.json"), JSON.stringify({ titles,
       generatedAt: out.generatedAt, through: rec.through, today, source: guide.source, items: rec.items, boards, checks, problems: rec.problems, errata: guide.errata || [],
       coaches: coachTeams, teamRecords: guide.teamRecords, cup: cupOut,
     }));
