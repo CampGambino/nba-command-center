@@ -326,6 +326,30 @@ export default {
     if (url.pathname === "/review") return html(page(await load(env, "state", {}), await load(env, "log", []), await load(env, "rules", { muteBylines: [], muteWords: [], allowBylines: [] }), key, await load(env, "labels", [])));
     if (url.pathname === "/act") return act(env, url, key);
     if (url.pathname === "/check") return Response.json(await check(env));
+    // Private diagnostics: every item of an Athletic feed (?list=nba or nba/knicks), or a slice of an Athletic page
+    // (?page=<nytimes.com/athletic/... URL>&find=<text>), to see what a feed carries and how a page is built.
+    if (url.pathname === "/peek" && (url.searchParams.get("list") || url.searchParams.get("page"))) {
+      const UA = { "User-Agent": "Mozilla/5.0 (compatible; NBA-Command-Center articles watcher)" };
+      const list = url.searchParams.get("list");
+      if (list) {
+        if (!/^[a-z0-9-]+(\/[a-z0-9-]+)?$/.test(list)) return new Response("bad list", { status: 400 });
+        const res = await fetch(`https://www.nytimes.com/athletic/rss/${list}/`, { headers: UA });
+        const text = await res.text();
+        const items = [...text.matchAll(/<item\b[\s\S]*?<\/item>/gi)].map((m) => {
+          const g = (tag) => (m[0].match(new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?</${tag}>`, "i")) || [])[1] || "";
+          return `${g("pubDate")} | ${g("title")} | ${g("link")}`;
+        });
+        return new Response(`${res.status} ${items.length} items\n${items.join("\n")}`, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+      }
+      const page = url.searchParams.get("page");
+      if (!/^https:\/\/www\.nytimes\.com\/athletic\//.test(page)) return new Response("bad page", { status: 400 });
+      const res = await fetch(page, { headers: UA });
+      const text = await res.text();
+      const find = url.searchParams.get("find") || "";
+      const at = find ? text.indexOf(find) : 0;
+      const from = Math.max(0, at < 0 ? 0 : at - 300);
+      return new Response(`${res.status} ${text.length} chars; "${find}" at ${at}\n\n${text.slice(from, from + 4000)}`, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+    }
     if (url.pathname === "/peek") { // first item of a feed, raw, to see its layout (private)
       const f = FEEDS.find((x) => x.src === url.searchParams.get("src")) || FEEDS[1];
       const text = await (await fetch(f.url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; NBA-Command-Center articles watcher)" } })).text();
