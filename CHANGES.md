@@ -31,7 +31,7 @@ Each entry: what changed, how it was tested, and what is still unproven.
 ### What changed
 - **`docs/bridge/cc-bridge.js` v3**, during games:
   - **Career records** from `records.json`, live: passing a name on the all-time lists (to 40th; points to 68th), round career numbers, franchise records, and NBA Cup career marks (only in Cup games). Example: "Kevin Durant (HOU) — passes Shaquille O'Neal (11,330) for 7th all-time". Same gates as the notes' milestones: a card while in play (10%+ pre-game) or when reached; 6 a game. A milestone the team's notes already carry is left to that card.
-  - **The NBA's all-time single-game lists** (`ref/nba-single-game-bests.json`): a player within a few of a list ("5 from the NBA's all-time single-game list (57+, 153 games)") or on it ("58 points: tied for the 74th-most in a game on the NBA's all-time list"). On Cup nights the NBA Cup's own lists are checked too. NBA Live's own record cards (the top mark, rookie, team, half and quarter records) are left to NBA Live.
+  - **The NBA's all-time single-game lists** (`ref/nba-single-game-bests.json`): a player within a few of a list ("5 from the NBA's all-time single-game list (57+, 153 games)") or on it ("58 points: tied for the 111th-most in a game on the NBA's all-time list (153 games of 57+)"). On Cup nights the NBA Cup's own lists are checked too. NBA Live's own record cards (the top mark, rookie, team, half and quarter records) are left to NBA Live.
 - **Never breaks NBA Live:** the new checks run inside the bridge's existing try/catch, after NBA Live's own checks.
 - **`tools/check-nba-live.py`** serves `records.json` and the single-game lists too, and reports the record count.
 
