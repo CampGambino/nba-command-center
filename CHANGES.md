@@ -12,7 +12,7 @@ Each entry: what changed, how it was tested, and what is still unproven.
 - **`src/records/guide.js`:**
   - **Totals:** a live player's listed total is taken back to the start of the season (his games through the list's date removed), so later games add once.
   - **Ranks:** where a list is complete (top 40, or 68 for points), a rank is today's place among everyone above the list's floor. That gives ranks to 40th in every stat (it was the top 10 plus the names the guide mentions).
-  - **New stats:** 2-point field goals (FGM - 3PM) and triple-doubles have full lists. LeBron is 70 two-point field goals from passing Karl Malone for 2nd.
+  - **New stats:** 2-point field goals (FGM - 3PM) and triple-doubles have full lists. LeBron needs 71 two-point field goals to pass Karl Malone for 2nd.
 - The build picks up the newest `career-leaders-<date>.json`.
 - The Records tab adds 2-point field goals to the list selector.
 
