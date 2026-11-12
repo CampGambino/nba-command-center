@@ -16,6 +16,11 @@
  *   team       a team win or loss streak of 4+
  *   history    a line from tonight's team notes (docs/data/notes-facts.json): what the team's PR staff
  *              wrote about history made or in reach, verbatim; new-today lines first; at most 2 a game
+ *   record     career leaderboards and records kept current from the Tip-Off Guide (docs/data/records.json,
+ *              src/records/guide.js): passing a numbered all-time name, a round career number, a franchise
+ *              record, with a 25%+ chance tonight; a coach's milestone or a team's place in the NBA's streak
+ *              and best-start lists that tonight's game decides. Where the notes already carry the same
+ *              milestone, theirs is kept; a notes history line about the same pass gives way to this one.
  *   injury     a regular listed out / doubtful / questionable on the official injury report, with the
  *              team's record and teammates' numbers without him (src/injuries/impact.js); at most 2 a game.
  *              The report also removes every other line about a player listed Out or Doubtful, and
@@ -48,7 +53,7 @@ function milestoneLines(watch, teams) {
         : i.scope === "career" || i.scope === "season"
           ? `${Number(i.target).toLocaleString("en-US")} ${i.scope} ${label}`
           : `${Number(i.target).toLocaleString("en-US")} ${label} ${SCOPE[i.scope] || ""}`.trim();
-      out.push({ team: t.team, player: i.player, kind: "milestone", text: `${i.player}: ${i.need} ${plural(i.need, label)} from ${what} (${pct(p)} tonight)`, score: (i.importance || 0) / 10 + p });
+      out.push({ team: t.team, player: i.player, kind: "milestone", text: `${i.player}: ${i.need} ${plural(i.need, label)} from ${what} (${pct(p)} tonight)`, score: (i.importance || 0) / 10 + p, stat: i.stat, target: i.target, passing: i.passing?.player || null });
     }
   }
   return out;
@@ -141,6 +146,31 @@ function historyLines(facts, teams, today) {
   return out;
 }
 
+const surname = (n) => String(n || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+(?:Jr\.?|Sr\.?|II|III|IV)$/, "").split(" ").pop().toLowerCase();
+
+function recordLines(records, teams, today, milestones) {
+  if (!records || (records.today && today && records.today !== today)) return [];
+  const out = [];
+  for (const i of records.items || []) {
+    if (!i.tonight || !teams.has(i.team)) continue;
+    if (i.kind === "pass" || i.kind === "round" || i.kind === "franchise") {
+      const p = i.pTonight || 0;
+      if (p < 0.25) continue;
+      // The notes' own version of the same milestone wins (same player and stat, same mark or same name passed).
+      const dup = milestones.some((m) => m.team === i.team && m.stat === i.stat && nameKey(m.player) === nameKey(i.who)
+        && (m.target === i.target || m.target === i.target - 1 || (m.passing && i.passing && i.passing.name.split(" and ").some((n) => surname(n) === surname(m.passing)))));
+      if (dup) continue;
+      out.push({ team: i.team, player: i.who, kind: "record", text: `${i.text} (${pct(p)} tonight)`, score: i.score + p, passing: i.passing?.name || null });
+    } else if (i.need === 1) {
+      const text = i.kind === "coach"
+        ? i.stat === "games" ? `${i.text.replace(/: 1 game from passing/, ": coaches tonight to pass")}` : `${i.text.replace(/: 1 win from passing/, ": a win tonight passes")}`
+        : i.text;
+      out.push({ team: i.team, kind: "record", text, score: i.score });
+    }
+  }
+  return out;
+}
+
 /**
  * The injury report as a lookup: (team, player name) -> "Out" / "Doubtful" / "Questionable" / … or undefined.
  * Only a report for tonight's date counts.
@@ -151,14 +181,20 @@ export function injuryStatus(injuries, today) {
   return (team, player) => (player ? listed.get(`${team}|${nameKey(player)}`) : undefined);
 }
 
-export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries = null, facts = null, maxLines = MAX_LINES }) {
+export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries = null, facts = null, records = null, maxLines = MAX_LINES }) {
   const games = (watch.games || []).map((g) => ({ id: g.id, away: g.awayTri, home: g.homeTri, start: g.start }));
   const teams = new Set(games.flatMap((g) => [g.away, g.home]));
   // The injury report overrules the rest: a player listed Out or Doubtful loses his other lines
   // (no "54% tonight" for a man who isn't playing); a Questionable one is marked.
   const listed = new Map();
   if (injuries && (!injuries.date || !watch.today || injuries.date === watch.today)) for (const p of injuries.players || []) listed.set(`${p.team}|${nameKey(p.name)}`, p.status);
-  const others = [...historyLines(facts, teams, watch.today), ...milestoneLines(watch, teams), ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams), ...teamLines(trends, teams)]
+  const miles = milestoneLines(watch, teams);
+  const recs = recordLines(records, teams, watch.today, miles);
+  // A notes history line about a pass this record line already carries (both names in it) gives way.
+  const hist = historyLines(facts, teams, watch.today).filter((h) => !recs.some((r) => r.player && r.passing && r.team === h.team
+    && new RegExp(`\\b${surname(r.player)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
+    && r.passing.split(" and ").some((n) => new RegExp(`\\b${surname(n)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, "")))));
+  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams), ...teamLines(trends, teams)]
     .flatMap((l) => {
       const st = l.player ? listed.get(`${l.team}|${nameKey(l.player)}`) : null;
       if (st === "Out" || st === "Doubtful") return [];

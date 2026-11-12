@@ -2,6 +2,45 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.31.0 (2026-11-12): Records tab: career leaderboards and records kept current, and what's within reach
+
+### Why
+- **The user:** "milestones and leaderboards are a must" from the Tip-Off Guide; the numbers are from before the season and need updating; "with these other leaderboard numbers, you should be able to track and create alerts worth monitoring before they happen". Opening-night and season-opener records: not wanted.
+- This is layer 2 of the NBA PR test set (all-time leaderboards, `claude/nbapr-targets.md`).
+
+### What changed
+- **`tools/parse-tipoff-guide.py` → `src/data/tipoff-guide-2026-27.json`:**
+  - career leaders (pp. 92-97): top 10 all-time and among active players for 12 stats, plus the totals in the per-game lists;
+  - milestone watch (pp. 76-82): each player's totals and ranks, the players ahead of him, the round numbers named;
+  - coaches (p. 83), franchises' all-time records (p. 90), win streaks, best starts and home/road streaks (pp. 100-103).
+  - **Self-check:** every "needs N to pass No. R Name (V)" and "needs N to reach V" sentence must agree with the player's total (69 checks). It found one slip in the guide (Gobert: "532 to reach 8,000" defensive rebounds; his total gives 531), kept as an erratum.
+- **New `src/records/guide.js`:**
+  - **totals now** = the guide's total + this season's box scores (all teams, so a trade doesn't lose games). Names must match with suffixes kept (the guide's Gary Payton is not Gary Payton II);
+  - **the lists now**, re-ranked as listed players pass each other (e.g. Curry 19th → 16th in points);
+  - **within reach (15 games)**: passing a numbered all-time name, round career numbers, franchise records (Adebayo, Booker, Tatum), coaches' wins and games (Carlisle, Spoelstra, Kerr), a team's next win reaching the NBA's streak or best-start lists, franchise win milestones and all-time .500. An NBA record chase stays listed while it's reachable this season (LeBron's wins);
+  - **chances** tonight and in the next 5 games, from his games this season (`src/anticipate/model.js`).
+- **The build** (`scripts/situations.js`) writes `docs/data/records.json`, with a cross-check against the same totals in the teams' notes and ESPN's career stats.
+- **Storylines** (Watch List, NBA Live pre-game cards, the #alerts digest): a "record" line when it's 25%+ tonight, or a coach's or team's milestone tonight's game decides. The notes' own version of the same milestone wins; a notes history line about the same pass gives way.
+- **New page `docs/records.html` ("Records" tab, in every page's nav):** tonight; everything within reach (filter by kind, team, games away); the all-time lists now with rank changes; the checks.
+- **Daily build** also runs on changes to `src/records/**` and `src/data/**`.
+
+### Tested
+- **Against @NBAPR's posts** (the test set), rebuilt with only the games before each date:
+  - 11/5: "Curry: 3 points from passing Oscar Robertson (26,710) for 17th all-time" (NBAPR: 3);
+  - 11/10: "James: 16 assists from passing Jason Kidd (12,091) for 3rd all-time" (NBAPR: 16);
+  - 11/11: "Durant: 3 field goals from passing Shaquille O'Neal (11,330) for 7th all-time" (NBAPR: 3).
+- **Against the notes and ESPN:** 16 of 16 totals printed in both agree exactly (17 of 17 in the earlier dry run).
+- **New checks** (544 pass): the parsed guide; totals plus this season (a DNP adds nothing); ranks moving; a broken franchise record not listed; coach totals; a team streak reaching the list; the suffix rule; chances; storylines with and without the notes' version and the history line.
+- **Built with this season's data:** 42 guide players playing this season, 40 milestones within 15 games. Today's 4 games have none likely tonight (LeBron is out).
+- **Rendered:** page sweep OK at both widths (9 nav links).
+
+### Still unproven
+- **Ranks** are only as good as the guide's lists: top 10, plus the names its milestone pages mention. A player outside those (e.g. 40th in assists) can't be seen passing anyone, and no rank is shown for an unlisted total.
+- **Coaches** assume the coach ran every game this season.
+- **Minutes** aren't counted down (box-score minutes are rounded).
+- **Played games** are counted when a box line shows minutes or a stat; a 0-minute, 0-stat appearance would be missed (the NBA counts it).
+- Players the guide doesn't mention get round numbers from the existing ESPN-only path (held for review), not from here.
+
 ## 0.30.0 (2026-11-12): National TV tab: players and teams on national TV vs other games
 
 ### Why

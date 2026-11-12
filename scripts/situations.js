@@ -171,6 +171,41 @@ for (const [tri, games] of Object.entries(perTeam)) {
     console.log(`national TV: ${played} of ${sched.games.length} national games played; ${players.length} players with a national game`);
   } else console.log(`national TV: no schedule file for ${season - 1}-${String(season).slice(2)} (src/data/)`);
 }
+// Career leaderboards and records (src/records/guide.js): the Tip-Off Guide's totals through last season
+// plus this season's box scores; what's within reach, with chances from src/anticipate/model.js.
+{
+  const { currentRecords, addChances, strictKey } = await import("../src/records/guide.js");
+  const { makeSampler, simulate } = await import("../src/anticipate/model.js");
+  const season = store.season || Number(today.slice(0, 4)) + (Number(today.slice(5, 7)) >= 8 ? 1 : 0);
+  const guideFile = path.join(root, "src", "data", `tipoff-guide-${season - 1}-${String(season).slice(2)}.json`);
+  if (fs.existsSync(guideFile)) {
+    const guide = JSON.parse(fs.readFileSync(guideFile, "utf8"));
+    const rec = currentRecords({ guide, teamFiles, today, tonight });
+    addChances(rec.items, teamFiles, { makeSampler, simulate });
+    // Cross-check: the same totals in the teams' notes and ESPN's career stats (docs/data/watch.json).
+    const checks = { same: 0, differ: [] };
+    try {
+      const watch = JSON.parse(fs.readFileSync(path.join(root, "docs", "data", "watch.json"), "utf8"));
+      const byName = new Map(rec.players.filter((p) => p.id).map((p) => [strictKey(p.name), p]));
+      const seen = new Set();
+      for (const t of watch.teams || []) for (const i of t.items || []) {
+        const p = byName.get(strictKey(i.player));
+        if (!p || !p.totals[i.stat] || !(i.scope === "career" || i.scope === "nba") || i.current == null || i.reached || i.stale) continue;
+        const k = `${p.name}|${i.stat}|${i.origin}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        if (p.totals[i.stat].now === i.current) checks.same++;
+        else checks.differ.push({ player: p.name, stat: i.stat, ours: p.totals[i.stat].now, theirs: i.current, source: i.origin === "espn" ? "ESPN career" : `${t.team} notes (${t.notesDate})` });
+      }
+    } catch { /* no watch list yet */ }
+    const boards = Object.fromEntries(Object.entries(rec.boards).map(([stat, rows]) => [stat, rows.slice(0, 40).map(({ name, team, live, now, base, rank, preRank }) => ({ name, team, live, now, base, rank: rank ?? null, preRank: preRank ?? null }))]));
+    fs.writeFileSync(path.join(root, "docs", "data", "records.json"), JSON.stringify({
+      generatedAt: out.generatedAt, through: rec.through, today, source: guide.source, items: rec.items, boards, checks, problems: rec.problems, errata: guide.errata || [],
+      coaches: guide.coaches?.watch || [], teamRecords: guide.teamRecords,
+    }));
+    console.log(`records: ${rec.players.filter((p) => p.id).length} guide players playing this season, ${rec.items.length} within reach (${rec.items.filter((i) => i.tonight).length} playing tonight); vs notes/ESPN: ${checks.same} agree, ${checks.differ.length} differ${rec.problems.length ? `; ${rec.problems.length} problems` : ""}`);
+  } else console.log(`records: no Tip-Off Guide file for ${season - 1}-${String(season).slice(2)} (src/data/)`);
+}
 // Streaks and anomalies: active streaks, team streaks, unusual games on each of the last 7 game dates.
 {
   const pg = playerGames(rows);
@@ -250,7 +285,8 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const watch = rd("watch.json");
     const injuries = fs.existsSync(path.join(root, "docs", "data", "injuries.json")) ? rd("injuries.json") : null;
     const facts = fs.existsSync(path.join(root, "docs", "data", "notes-facts.json")) ? rd("notes-facts.json") : null;
-    const games = tonightStorylines({ watch, trends: rd("trends.json"), leaders: rd("leaders.json"), injuries, facts, maxLines: 8 })
+    const records = fs.existsSync(path.join(root, "docs", "data", "records.json")) ? rd("records.json") : null;
+    const games = tonightStorylines({ watch, trends: rd("trends.json"), leaders: rd("leaders.json"), injuries, facts, records, maxLines: 8 })
       .map((g) => ({ ...g, lines: g.lines.map(({ kind, team, text, score }) => ({ kind, team, text, score: Math.round(score * 100) / 100 })) }));
     fs.writeFileSync(path.join(root, "docs", "data", "tonight.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, games }));
   } catch (e) { console.error(`tonight's storylines not written: ${e.message}`); }

@@ -1,0 +1,3916 @@
+{
+ "source": "2026-27 NBA Tip-Off Guide (NBA Communications, 10/8/26): totals through 2025-26, regular season",
+ "season": "2026-27",
+ "asOf": "2026-10-01",
+ "alltime": {
+  "gp": [
+   {
+    "name": "LeBron James",
+    "value": 1622
+   },
+   {
+    "name": "Robert Parish",
+    "value": 1611
+   },
+   {
+    "name": "Kareem Abdul-Jabbar",
+    "value": 1560
+   },
+   {
+    "name": "Vince Carter",
+    "value": 1541
+   },
+   {
+    "name": "Dirk Nowitzki",
+    "value": 1522
+   },
+   {
+    "name": "John Stockton",
+    "value": 1504
+   },
+   {
+    "name": "Karl Malone",
+    "value": 1476
+   },
+   {
+    "name": "Kevin Garnett",
+    "value": 1462
+   },
+   {
+    "name": "Kevin Willis",
+    "value": 1424
+   },
+   {
+    "name": "Jason Terry",
+    "value": 1410
+   }
+  ],
+  "min": [
+   {
+    "name": "LeBron James",
+    "value": 61031
+   },
+   {
+    "name": "Kareem Abdul-Jabbar",
+    "value": 57446
+   },
+   {
+    "name": "Karl Malone",
+    "value": 54852
+   },
+   {
+    "name": "Dirk Nowitzki",
+    "value": 51369
+   },
+   {
+    "name": "Kevin Garnett",
+    "value": 50418
+   },
+   {
+    "name": "Jason Kidd",
+    "value": 50110
+   },
+   {
+    "name": "Elvin Hayes",
+    "value": 50000
+   },
+   {
+    "name": "Kobe Bryant",
+    "value": 48638
+   },
+   {
+    "name": "Wilt Chamberlain",
+    "value": 47859
+   },
+   {
+    "name": "John Stockton",
+    "value": 47764
+   }
+  ],
+  "pts": [
+   {
+    "name": "LeBron James",
+    "value": 43440
+   },
+   {
+    "name": "Kareem Abdul-Jabbar",
+    "value": 38387
+   },
+   {
+    "name": "Karl Malone",
+    "value": 36928
+   },
+   {
+    "name": "Kobe Bryant",
+    "value": 33643
+   },
+   {
+    "name": "Kevin Durant",
+    "value": 32597
+   },
+   {
+    "name": "Michael Jordan",
+    "value": 32292
+   },
+   {
+    "name": "Dirk Nowitzki",
+    "value": 31560
+   },
+   {
+    "name": "Wilt Chamberlain",
+    "value": 31419
+   },
+   {
+    "name": "James Harden",
+    "value": 29339
+   },
+   {
+    "name": "Shaquille O’Neal",
+    "value": 28596
+   }
+  ],
+  "fgm": [
+   {
+    "name": "LeBron James",
+    "value": 15961
+   },
+   {
+    "name": "Kareem Abdul-Jabbar",
+    "value": 15837
+   },
+   {
+    "name": "Karl Malone",
+    "value": 13528
+   },
+   {
+    "name": "Wilt Chamberlain",
+    "value": 12681
+   },
+   {
+    "name": "Michael Jordan",
+    "value": 12192
+   },
+   {
+    "name": "Kobe Bryant",
+    "value": 11719
+   },
+   {
+    "name": "Shaquille O’Neal",
+    "value": 11330
+   },
+   {
+    "name": "Kevin Durant",
+    "value": 11258
+   },
+   {
+    "name": "Dirk Nowitzki",
+    "value": 11169
+   },
+   {
+    "name": "Elvin Hayes",
+    "value": 10976
+   }
+  ],
+  "ftm": [
+   {
+    "name": "Karl Malone",
+    "value": 9787
+   },
+   {
+    "name": "LeBron James",
+    "value": 8882
+   },
+   {
+    "name": "James Harden",
+    "value": 8627
+   },
+   {
+    "name": "Moses Malone",
+    "value": 8531
+   },
+   {
+    "name": "Kobe Bryant",
+    "value": 8378
+   },
+   {
+    "name": "Kevin Durant",
+    "value": 7704
+   },
+   {
+    "name": "Oscar Robertson",
+    "value": 7694
+   },
+   {
+    "name": "Michael Jordan",
+    "value": 7327
+   },
+   {
+    "name": "Dirk Nowitzki",
+    "value": 7240
+   },
+   {
+    "name": "Jerry West",
+    "value": 7160
+   }
+  ],
+  "fg3m": [
+   {
+    "name": "Stephen Curry",
+    "value": 4248
+   },
+   {
+    "name": "James Harden",
+    "value": 3390
+   },
+   {
+    "name": "Ray Allen",
+    "value": 2973
+   },
+   {
+    "name": "Klay Thompson",
+    "value": 2899
+   },
+   {
+    "name": "Damian Lillard",
+    "value": 2804
+   },
+   {
+    "name": "LeBron James",
+    "value": 2636
+   },
+   {
+    "name": "Reggie Miller",
+    "value": 2560
+   },
+   {
+    "name": "Kyle Korver",
+    "value": 2450
+   },
+   {
+    "name": "Paul George",
+    "value": 2449
+   },
+   {
+    "name": "Kevin Durant",
+    "value": 2377
+   }
+  ],
+  "oreb": [
+   {
+    "name": "Moses Malone",
+    "value": 6731
+   },
+   {
+    "name": "Robert Parish",
+    "value": 4598
+   },
+   {
+    "name": "Buck Williams",
+    "value": 4526
+   },
+   {
+    "name": "Dennis Rodman",
+    "value": 4329
+   },
+   {
+    "name": "Charles Barkley",
+    "value": 4260
+   },
+   {
+    "name": "Shaquille O’Neal",
+    "value": 4209
+   },
+   {
+    "name": "Dwight Howard",
+    "value": 4151
+   },
+   {
+    "name": "Kevin Willis",
+    "value": 4132
+   },
+   {
+    "name": "Hakeem Olajuwon",
+    "value": 4034
+   },
+   {
+    "name": "Andre Drummond",
+    "value": 3965
+   }
+  ],
+  "dreb": [
+   {
+    "name": "Kevin Garnett",
+    "value": 11453
+   },
+   {
+    "name": "Karl Malone",
+    "value": 11406
+   },
+   {
+    "name": "Tim Duncan",
+    "value": 11232
+   },
+   {
+    "name": "Dwight Howard",
+    "value": 10476
+   },
+   {
+    "name": "LeBron James",
+    "value": 10253
+   },
+   {
+    "name": "Robert Parish",
+    "value": 10117
+   },
+   {
+    "name": "Dirk Nowitzki",
+    "value": 10021
+   },
+   {
+    "name": "Hakeem Olajuwon",
+    "value": 9714
+   },
+   {
+    "name": "Moses Malone",
+    "value": 9481
+   },
+   {
+    "name": "Kareem Abdul-Jabbar",
+    "value": 9394
+   }
+  ],
+  "reb": [
+   {
+    "name": "Wilt Chamberlain",
+    "value": 23924
+   },
+   {
+    "name": "Bill Russell",
+    "value": 21620
+   },
+   {
+    "name": "Kareem Abdul-Jabbar",
+    "value": 17440
+   },
+   {
+    "name": "Elvin Hayes",
+    "value": 16279
+   },
+   {
+    "name": "Moses Malone",
+    "value": 16212
+   },
+   {
+    "name": "Tim Duncan",
+    "value": 15091
+   },
+   {
+    "name": "Karl Malone",
+    "value": 14968
+   },
+   {
+    "name": "Robert Parish",
+    "value": 14715
+   },
+   {
+    "name": "Kevin Garnett",
+    "value": 14662
+   },
+   {
+    "name": "Dwight Howard",
+    "value": 14627
+   }
+  ],
+  "ast": [
+   {
+    "name": "John Stockton",
+    "value": 15806
+   },
+   {
+    "name": "Chris Paul",
+    "value": 12552
+   },
+   {
+    "name": "Jason Kidd",
+    "value": 12091
+   },
+   {
+    "name": "LeBron James",
+    "value": 12016
+   },
+   {
+    "name": "Russell Westbrook",
+    "value": 10351
+   },
+   {
+    "name": "Steve Nash",
+    "value": 10335
+   },
+   {
+    "name": "Mark Jackson",
+    "value": 10334
+   },
+   {
+    "name": "Magic Johnson",
+    "value": 10141
+   },
+   {
+    "name": "Oscar Robertson",
+    "value": 9887
+   },
+   {
+    "name": "Isiah Thomas",
+    "value": 9061
+   }
+  ],
+  "stl": [
+   {
+    "name": "John Stockton",
+    "value": 3265
+   },
+   {
+    "name": "Chris Paul",
+    "value": 2728
+   },
+   {
+    "name": "Jason Kidd",
+    "value": 2684
+   },
+   {
+    "name": "Michael Jordan",
+    "value": 2514
+   },
+   {
+    "name": "Gary Payton",
+    "value": 2445
+   },
+   {
+    "name": "LeBron James",
+    "value": 2417
+   },
+   {
+    "name": "Maurice Cheeks",
+    "value": 2310
+   },
+   {
+    "name": "Scottie Pippen",
+    "value": 2307
+   },
+   {
+    "name": "Clyde Drexler",
+    "value": 2207
+   },
+   {
+    "name": "Hakeem Olajuwon",
+    "value": 2162
+   }
+  ],
+  "blk": [
+   {
+    "name": "Hakeem Olajuwon",
+    "value": 3830
+   },
+   {
+    "name": "Dikembe Mutombo",
+    "value": 3289
+   },
+   {
+    "name": "Kareem Abdul-Jabbar",
+    "value": 3189
+   },
+   {
+    "name": "Mark Eaton",
+    "value": 3064
+   },
+   {
+    "name": "Tim Duncan",
+    "value": 3020
+   },
+   {
+    "name": "David Robinson",
+    "value": 2954
+   },
+   {
+    "name": "Patrick Ewing",
+    "value": 2894
+   },
+   {
+    "name": "Shaquille O’Neal",
+    "value": 2732
+   },
+   {
+    "name": "Tree Rollins",
+    "value": 2542
+   },
+   {
+    "name": "Robert Parish",
+    "value": 2361
+   }
+  ]
+ },
+ "active": {
+  "gp": [
+   {
+    "name": "LeBron James",
+    "value": 1622
+   },
+   {
+    "name": "Chris Paul",
+    "value": 1370
+   },
+   {
+    "name": "Russell Westbrook",
+    "value": 1301
+   },
+   {
+    "name": "DeMar DeRozan",
+    "value": 1264
+   },
+   {
+    "name": "Jeff Green",
+    "value": 1247
+   },
+   {
+    "name": "Mike Conley",
+    "value": 1226
+   },
+   {
+    "name": "James Harden",
+    "value": 1221
+   },
+   {
+    "name": "Nicolas Batum",
+    "value": 1205
+   },
+   {
+    "name": "Kevin Durant",
+    "value": 1201
+   },
+   {
+    "name": "Kyle Lowry",
+    "value": 1187
+   }
+  ],
+  "min": [
+   {
+    "name": "LeBron James",
+    "value": 61031
+   },
+   {
+    "name": "Chris Paul",
+    "value": 45836
+   },
+   {
+    "name": "Kevin Durant",
+    "value": 44075
+   },
+   {
+    "name": "DeMar DeRozan",
+    "value": 43634
+   },
+   {
+    "name": "Russell Westbrook",
+    "value": 43023
+   },
+   {
+    "name": "James Harden",
+    "value": 42448
+   },
+   {
+    "name": "Mike Conley",
+    "value": 37587
+   },
+   {
+    "name": "Al Horford",
+    "value": 36887
+   },
+   {
+    "name": "Kyle Lowry",
+    "value": 36801
+   },
+   {
+    "name": "Stephen Curry",
+    "value": 36305
+   }
+  ],
+  "pts": [
+   {
+    "name": "LeBron James",
+    "value": 43440
+   },
+   {
+    "name": "Kevin Durant",
+    "value": 32597
+   },
+   {
+    "name": "James Harden",
+    "value": 29339
+   },
+   {
+    "name": "Russell Westbrook",
+    "value": 27176
+   },
+   {
+    "name": "DeMar DeRozan",
+    "value": 26711
+   },
+   {
+    "name": "Stephen Curry",
+    "value": 26528
+   },
+   {
+    "name": "Chris Paul",
+    "value": 23058
+   },
+   {
+    "name": "Damian Lillard",
+    "value": 22598
+   },
+   {
+    "name": "Giannis Antetokounmpo",
+    "value": 21531
+   },
+   {
+    "name": "Anthony Davis",
+    "value": 19385
+   }
+  ],
+  "fgm": [
+   {
+    "name": "LeBron James",
+    "value": 15961
+   },
+   {
+    "name": "Kevin Durant",
+    "value": 11258
+   },
+   {
+    "name": "Russell Westbrook",
+    "value": 9786
+   },
+   {
+    "name": "DeMar DeRozan",
+    "value": 9563
+   },
+   {
+    "name": "Stephen Curry",
+    "value": 9022
+   },
+   {
+    "name": "James Harden",
+    "value": 8661
+   },
+   {
+    "name": "Chris Paul",
+    "value": 8165
+   },
+   {
+    "name": "Giannis Antetokounmpo",
+    "value": 7898
+   },
+   {
+    "name": "Nikola Vučević",
+    "value": 7524
+   },
+   {
+    "name": "Anthony Davis",
+    "value": 7269
+   }
+  ],
+  "ftm": [
+   {
+    "name": "LeBron James",
+    "value": 8882
+   },
+   {
+    "name": "James Harden",
+    "value": 8627
+   },
+   {
+    "name": "Kevin Durant",
+    "value": 7704
+   },
+   {
+    "name": "DeMar DeRozan",
+    "value": 6923
+   },
+   {
+    "name": "Russell Westbrook",
+    "value": 6109
+   },
+   {
+    "name": "Damian Lillard",
+    "value": 5262
+   },
+   {
+    "name": "Giannis Antetokounmpo",
+    "value": 5178
+   },
+   {
+    "name": "Jimmy Butler",
+    "value": 5168
+   },
+   {
+    "name": "Chris Paul",
+    "value": 4858
+   },
+   {
+    "name": "Anthony Davis",
+    "value": 4462
+   }
+  ],
+  "fg3m": [
+   {
+    "name": "Stephen Curry",
+    "value": 4248
+   },
+   {
+    "name": "James Harden",
+    "value": 3390
+   },
+   {
+    "name": "Klay Thompson",
+    "value": 2899
+   },
+   {
+    "name": "Damian Lillard",
+    "value": 2804
+   },
+   {
+    "name": "LeBron James",
+    "value": 2636
+   },
+   {
+    "name": "Paul George",
+    "value": 2449
+   },
+   {
+    "name": "Kevin Durant",
+    "value": 2377
+   },
+   {
+    "name": "Kyle Lowry",
+    "value": 2209
+   },
+   {
+    "name": "Buddy Hield",
+    "value": 2201
+   },
+   {
+    "name": "CJ McCollum",
+    "value": 2180
+   }
+  ],
+  "oreb": [
+   {
+    "name": "Andre Drummond",
+    "value": 3965
+   },
+   {
+    "name": "DeAndre Jordan",
+    "value": 3217
+   },
+   {
+    "name": "Rudy Gobert",
+    "value": 3103
+   },
+   {
+    "name": "Steven Adams",
+    "value": 2910
+   },
+   {
+    "name": "Jonas Valančiūnas",
+    "value": 2659
+   },
+   {
+    "name": "Clint Capela",
+    "value": 2592
+   },
+   {
+    "name": "Nikola Vučević",
+    "value": 2559
+   },
+   {
+    "name": "Kevin Love",
+    "value": 2271
+   },
+   {
+    "name": "Al Horford",
+    "value": 2213
+   },
+   {
+    "name": "Brook Lopez",
+    "value": 2208
+   }
+  ],
+  "dreb": [
+   {
+    "name": "LeBron James",
+    "value": 10253
+   },
+   {
+    "name": "Nikola Vučević",
+    "value": 8148
+   },
+   {
+    "name": "DeAndre Jordan",
+    "value": 7644
+   },
+   {
+    "name": "Andre Drummond",
+    "value": 7548
+   },
+   {
+    "name": "Kevin Durant",
+    "value": 7473
+   },
+   {
+    "name": "Rudy Gobert",
+    "value": 7469
+   },
+   {
+    "name": "Kevin Love",
+    "value": 7441
+   },
+   {
+    "name": "Giannis Antetokounmpo",
+    "value": 7185
+   },
+   {
+    "name": "Russell Westbrook",
+    "value": 6971
+   },
+   {
+    "name": "Al Horford",
+    "value": 6950
+   }
+  ],
+  "reb": [
+   {
+    "name": "LeBron James",
+    "value": 12095
+   },
+   {
+    "name": "Andre Drummond",
+    "value": 11513
+   },
+   {
+    "name": "DeAndre Jordan",
+    "value": 10861
+   },
+   {
+    "name": "Nikola Vučević",
+    "value": 10707
+   },
+   {
+    "name": "Rudy Gobert",
+    "value": 10572
+   },
+   {
+    "name": "Kevin Love",
+    "value": 9712
+   },
+   {
+    "name": "Al Horford",
+    "value": 9163
+   },
+   {
+    "name": "Jonas Valančiūnas",
+    "value": 9052
+   },
+   {
+    "name": "Russell Westbrook",
+    "value": 9025
+   },
+   {
+    "name": "Nikola Jokić",
+    "value": 8977
+   }
+  ],
+  "ast": [
+   {
+    "name": "Chris Paul",
+    "value": 12552
+   },
+   {
+    "name": "LeBron James",
+    "value": 12016
+   },
+   {
+    "name": "Russell Westbrook",
+    "value": 10351
+   },
+   {
+    "name": "James Harden",
+    "value": 8873
+   },
+   {
+    "name": "Kyle Lowry",
+    "value": 7110
+   },
+   {
+    "name": "Mike Conley",
+    "value": 6782
+   },
+   {
+    "name": "Jrue Holiday",
+    "value": 6762
+   },
+   {
+    "name": "Stephen Curry",
+    "value": 6743
+   },
+   {
+    "name": "Nikola Jokić",
+    "value": 6080
+   },
+   {
+    "name": "Damian Lillard",
+    "value": 6069
+   }
+  ],
+  "stl": [
+   {
+    "name": "Chris Paul",
+    "value": 2728
+   },
+   {
+    "name": "LeBron James",
+    "value": 2417
+   },
+   {
+    "name": "Russell Westbrook",
+    "value": 2038
+   },
+   {
+    "name": "James Harden",
+    "value": 1794
+   },
+   {
+    "name": "Mike Conley",
+    "value": 1638
+   },
+   {
+    "name": "Stephen Curry",
+    "value": 1602
+   },
+   {
+    "name": "Paul George",
+    "value": 1601
+   },
+   {
+    "name": "Jrue Holiday",
+    "value": 1527
+   },
+   {
+    "name": "Kyle Lowry",
+    "value": 1501
+   },
+   {
+    "name": "Jimmy Butler",
+    "value": 1455
+   }
+  ],
+  "blk": [
+   {
+    "name": "Brook Lopez",
+    "value": 2147
+   },
+   {
+    "name": "Anthony Davis",
+    "value": 1848
+   },
+   {
+    "name": "Rudy Gobert",
+    "value": 1842
+   },
+   {
+    "name": "DeAndre Jordan",
+    "value": 1578
+   },
+   {
+    "name": "Myles Turner",
+    "value": 1527
+   },
+   {
+    "name": "Al Horford",
+    "value": 1351
+   },
+   {
+    "name": "Kevin Durant",
+    "value": 1344
+   },
+   {
+    "name": "Andre Drummond",
+    "value": 1197
+   },
+   {
+    "name": "LeBron James",
+    "value": 1185
+   },
+   {
+    "name": "Bismack Biyombo",
+    "value": 1102
+   }
+  ]
+ },
+ "extra": {
+  "ast": [
+   {
+    "name": "Magic Johnson",
+    "value": 10141
+   },
+   {
+    "name": "John Stockton",
+    "value": 15806
+   },
+   {
+    "name": "Trae Young",
+    "value": 4868
+   },
+   {
+    "name": "Oscar Robertson",
+    "value": 9887
+   },
+   {
+    "name": "Isiah Thomas",
+    "value": 9061
+   },
+   {
+    "name": "Chris Paul",
+    "value": 12552
+   },
+   {
+    "name": "Kevin Johnson",
+    "value": 6711
+   },
+   {
+    "name": "John Wall",
+    "value": 5735
+   },
+   {
+    "name": "Jason Kidd",
+    "value": 12091
+   },
+   {
+    "name": "Steve Nash",
+    "value": 10335
+   },
+   {
+    "name": "Trae Young",
+    "value": 4868
+   },
+   {
+    "name": "Chris Paul",
+    "value": 12552
+   },
+   {
+    "name": "Luka Dončić",
+    "value": 4230
+   },
+   {
+    "name": "Russell Westbrook",
+    "value": 10351
+   },
+   {
+    "name": "Nikola Jokić",
+    "value": 6080
+   },
+   {
+    "name": "LeBron James",
+    "value": 12016
+   },
+   {
+    "name": "James Harden",
+    "value": 8873
+   },
+   {
+    "name": "Damian Lillard",
+    "value": 6069
+   },
+   {
+    "name": "Darius Garland",
+    "value": 2859
+   },
+   {
+    "name": "Stephen Curry",
+    "value": 6743
+   }
+  ],
+  "blk": [
+   {
+    "name": "Mark Eaton",
+    "value": 3064
+   },
+   {
+    "name": "Manute Bol",
+    "value": 2086
+   },
+   {
+    "name": "Hakeem Olajuwon",
+    "value": 3830
+   },
+   {
+    "name": "David Robinson",
+    "value": 2954
+   },
+   {
+    "name": "Elmore Smith",
+    "value": 1183
+   },
+   {
+    "name": "Alonzo Mourning",
+    "value": 2356
+   },
+   {
+    "name": "Dikembe Mutombo",
+    "value": 3289
+   },
+   {
+    "name": "Kareem Abdul-Jabbar",
+    "value": 3189
+   },
+   {
+    "name": "Shawn Bradley",
+    "value": 2119
+   },
+   {
+    "name": "George T. Johnson",
+    "value": 2082
+   },
+   {
+    "name": "Anthony Davis",
+    "value": 1848
+   },
+   {
+    "name": "Myles Turner",
+    "value": 1527
+   },
+   {
+    "name": "Rudy Gobert",
+    "value": 1842
+   },
+   {
+    "name": "Jaren Jackson Jr.",
+    "value": 846
+   },
+   {
+    "name": "Brook Lopez",
+    "value": 2147
+   },
+   {
+    "name": "Kristaps Porziņģis",
+    "value": 947
+   },
+   {
+    "name": "Joel Embiid",
+    "value": 784
+   },
+   {
+    "name": "Daniel Gafford",
+    "value": 653
+   },
+   {
+    "name": "DeAndre Jordan",
+    "value": 1578
+   },
+   {
+    "name": "Clint Capela",
+    "value": 1014
+   }
+  ],
+  "fgm": [
+   {
+    "name": "Michael Jordan",
+    "value": 12192
+   },
+   {
+    "name": "Wilt Chamberlain",
+    "value": 12681
+   },
+   {
+    "name": "Luka Dončić",
+    "value": 5052
+   },
+   {
+    "name": "Joel Embiid",
+    "value": 4458
+   },
+   {
+    "name": "Elgin Baylor",
+    "value": 8693
+   },
+   {
+    "name": "Kevin Durant",
+    "value": 11258
+   },
+   {
+    "name": "Jerry West",
+    "value": 9016
+   },
+   {
+    "name": "LeBron James",
+    "value": 15961
+   },
+   {
+    "name": "Allen Iverson",
+    "value": 8467
+   },
+   {
+    "name": "Bob Pettit",
+    "value": 7349
+   },
+   {
+    "name": "Luka Dončić",
+    "value": 5052
+   },
+   {
+    "name": "Joel Embiid",
+    "value": 4458
+   },
+   {
+    "name": "Kevin Durant",
+    "value": 11258
+   },
+   {
+    "name": "LeBron James",
+    "value": 15961
+   },
+   {
+    "name": "Shai Gilgeous-Alexander",
+    "value": 4674
+   },
+   {
+    "name": "Damian Lillard",
+    "value": 7266
+   },
+   {
+    "name": "Trae Young",
+    "value": 3946
+   },
+   {
+    "name": "Donovan Mitchell",
+    "value": 5398
+   },
+   {
+    "name": "Stephen Curry",
+    "value": 9022
+   },
+   {
+    "name": "Devin Booker",
+    "value": 6295
+   }
+  ],
+  "ftm": [
+   {
+    "name": "Michael Jordan",
+    "value": 7327
+   },
+   {
+    "name": "Wilt Chamberlain",
+    "value": 6057
+   },
+   {
+    "name": "Luka Dončić",
+    "value": 3285
+   },
+   {
+    "name": "Joel Embiid",
+    "value": 4043
+   },
+   {
+    "name": "Elgin Baylor",
+    "value": 5763
+   },
+   {
+    "name": "Kevin Durant",
+    "value": 7704
+   },
+   {
+    "name": "Jerry West",
+    "value": 7160
+   },
+   {
+    "name": "LeBron James",
+    "value": 8882
+   },
+   {
+    "name": "Allen Iverson",
+    "value": 6375
+   },
+   {
+    "name": "Bob Pettit",
+    "value": 6182
+   },
+   {
+    "name": "Luka Dončić",
+    "value": 3285
+   },
+   {
+    "name": "Joel Embiid",
+    "value": 4043
+   },
+   {
+    "name": "Kevin Durant",
+    "value": 7704
+   },
+   {
+    "name": "LeBron James",
+    "value": 8882
+   },
+   {
+    "name": "Shai Gilgeous-Alexander",
+    "value": 3334
+   },
+   {
+    "name": "Damian Lillard",
+    "value": 5262
+   },
+   {
+    "name": "Trae Young",
+    "value": 3293
+   },
+   {
+    "name": "Donovan Mitchell",
+    "value": 2634
+   },
+   {
+    "name": "Stephen Curry",
+    "value": 4236
+   },
+   {
+    "name": "Devin Booker",
+    "value": 3984
+   }
+  ],
+  "gp": [
+   {
+    "name": "Michael Jordan",
+    "value": 1072
+   },
+   {
+    "name": "Wilt Chamberlain",
+    "value": 1045
+   },
+   {
+    "name": "Luka Dončić",
+    "value": 514
+   },
+   {
+    "name": "Joel Embiid",
+    "value": 490
+   },
+   {
+    "name": "Elgin Baylor",
+    "value": 846
+   },
+   {
+    "name": "Kevin Durant",
+    "value": 1201
+   },
+   {
+    "name": "Jerry West",
+    "value": 932
+   },
+   {
+    "name": "LeBron James",
+    "value": 1622
+   },
+   {
+    "name": "Allen Iverson",
+    "value": 914
+   },
+   {
+    "name": "Bob Pettit",
+    "value": 792
+   },
+   {
+    "name": "Wilt Chamberlain",
+    "value": 1045
+   },
+   {
+    "name": "Bill Russell",
+    "value": 963
+   },
+   {
+    "name": "Bob Pettit",
+    "value": 792
+   },
+   {
+    "name": "Jerry Lucas",
+    "value": 829
+   },
+   {
+    "name": "Nate Thurmond",
+    "value": 964
+   },
+   {
+    "name": "Wes Unseld",
+    "value": 984
+   },
+   {
+    "name": "Walt Bellamy",
+    "value": 1043
+   },
+   {
+    "name": "Dave Cowens",
+    "value": 766
+   },
+   {
+    "name": "Elgin Baylor",
+    "value": 846
+   },
+   {
+    "name": "Dennis Rodman",
+    "value": 911
+   },
+   {
+    "name": "Magic Johnson",
+    "value": 906
+   },
+   {
+    "name": "Alvin Robertson",
+    "value": 779
+   },
+   {
+    "name": "Mark Eaton",
+    "value": 875
+   },
+   {
+    "name": "John Stockton",
+    "value": 1504
+   },
+   {
+    "name": "Michael Ray Richardson",
+    "value": 556
+   },
+   {
+    "name": "Manute Bol",
+    "value": 624
+   },
+   {
+    "name": "Trae Young",
+    "value": 498
+   },
+   {
+    "name": "Michael Jordan",
+    "value": 1072
+   },
+   {
+    "name": "Hakeem Olajuwon",
+    "value": 1238
+   },
+   {
+    "name": "Oscar Robertson",
+    "value": 1040
+   },
+   {
+    "name": "Mookie Blaylock",
+    "value": 889
+   },
+   {
+    "name": "David Robinson",
+    "value": 987
+   },
+   {
+    "name": "Isiah Thomas",
+    "value": 979
+   },
+   {
+    "name": "Fat Lever",
+    "value": 752
+   },
+   {
+    "name": "Elmore Smith",
+    "value": 408
+   },
+   {
+    "name": "Chris Paul",
+    "value": 1370
+   },
+   {
+    "name": "Slick Watts",
+    "value": 437
+   },
+   {
+    "name": "Alonzo Mourning",
+    "value": 838
+   },
+   {
+    "name": "Kevin Johnson",
+    "value": 735
+   },
+   {
+    "name": "John Stockton",
+    "value": 1504
+   },
+   {
+    "name": "Dikembe Mutombo",
+    "value": 1196
+   },
+   {
+    "name": "John Wall",
+    "value": 647
+   },
+   {
+    "name": "Allen Iverson",
+    "value": 914
+   },
+   {
+    "name": "Kareem Abdul-Jabbar",
+    "value": 1239
+   },
+   {
+    "name": "Jason Kidd",
+    "value": 1391
+   },
+   {
+    "name": "Maurice Cheeks",
+    "value": 1101
+   },
+   {
+    "name": "Shawn Bradley",
+    "value": 832
+   },
+   {
+    "name": "Steve Nash",
+    "value": 1217
+   },
+   {
+    "name": "Clyde Drexler",
+    "value": 1086
+   },
+   {
+    "name": "George T. Johnson",
+    "value": 848
+   },
+   {
+    "name": "Luka Dončić",
+    "value": 514
+   },
+   {
+    "name": "Joel Embiid",
+    "value": 490
+   },
+   {
+    "name": "Kevin Durant",
+    "value": 1201
+   },
+   {
+    "name": "LeBron James",
+    "value": 1622
+   },
+   {
+    "name": "Shai Gilgeous-Alexander",
+    "value": 530
+   },
+   {
+    "name": "Damian Lillard",
+    "value": 900
+   },
+   {
+    "name": "Trae Young",
+    "value": 498
+   },
+   {
+    "name": "Donovan Mitchell",
+    "value": 609
+   },
+   {
+    "name": "Stephen Curry",
+    "value": 1069
+   },
+   {
+    "name": "Devin Booker",
+    "value": 737
+   },
+   {
+    "name": "Andre Drummond",
+    "value": 967
+   },
+   {
+    "name": "Rudy Gobert",
+    "value": 905
+   },
+   {
+    "name": "Karl-Anthony Towns",
+    "value": 720
+   },
+   {
+    "name": "Nikola Jokić",
+    "value": 810
+   },
+   {
+    "name": "Joel Embiid",
+    "value": 490
+   },
+   {
+    "name": "Anthony Davis",
+    "value": 807
+   },
+   {
+    "name": "Domantas Sabonis",
+    "value": 665
+   },
+   {
+    "name": "Nikola Vučević",
+    "value": 1036
+   },
+   {
+    "name": "Deandre Ayton",
+    "value": 470
+   },
+   {
+    "name": "Giannis Antetokounmpo",
+    "value": 895
+   },
+   {
+    "name": "Trae Young",
+    "value": 498
+   },
+   {
+    "name": "Chris Paul",
+    "value": 1370
+   },
+   {
+    "name": "Anthony Davis",
+    "value": 807
+   },
+   {
+    "name": "Chris Paul",
+    "value": 1370
+   },
+   {
+    "name": "Kawhi Leonard",
+    "value": 798
+   },
+   {
+    "name": "Myles Turner",
+    "value": 713
+   },
+   {
+    "name": "Luka Dončić",
+    "value": 514
+   },
+   {
+    "name": "Paul George",
+    "value": 945
+   },
+   {
+    "name": "Rudy Gobert",
+    "value": 905
+   },
+   {
+    "name": "Russell Westbrook",
+    "value": 1301
+   },
+   {
+    "name": "Jimmy Butler",
+    "value": 907
+   },
+   {
+    "name": "Jaren Jackson Jr.",
+    "value": 455
+   },
+   {
+    "name": "Nikola Jokić",
+    "value": 810
+   },
+   {
+    "name": "Russell Westbrook",
+    "value": 1301
+   },
+   {
+    "name": "Brook Lopez",
+    "value": 1180
+   },
+   {
+    "name": "LeBron James",
+    "value": 1622
+   },
+   {
+    "name": "Marcus Smart",
+    "value": 697
+   },
+   {
+    "name": "Kristaps Porziņģis",
+    "value": 533
+   },
+   {
+    "name": "James Harden",
+    "value": 1221
+   },
+   {
+    "name": "Stephen Curry",
+    "value": 1069
+   },
+   {
+    "name": "Joel Embiid",
+    "value": 490
+   },
+   {
+    "name": "Damian Lillard",
+    "value": 900
+   },
+   {
+    "name": "LeBron James",
+    "value": 1622
+   },
+   {
+    "name": "Daniel Gafford",
+    "value": 433
+   },
+   {
+    "name": "Darius Garland",
+    "value": 427
+   },
+   {
+    "name": "Kris Dunn",
+    "value": 489
+   },
+   {
+    "name": "DeAndre Jordan",
+    "value": 1123
+   },
+   {
+    "name": "Stephen Curry",
+    "value": 1069
+   },
+   {
+    "name": "Dejounte Murray",
+    "value": 517
+   },
+   {
+    "name": "Clint Capela",
+    "value": 739
+   }
+  ],
+  "pts": [
+   {
+    "name": "Michael Jordan",
+    "value": 32292
+   },
+   {
+    "name": "Wilt Chamberlain",
+    "value": 31419
+   },
+   {
+    "name": "Luka Dončić",
+    "value": 15021
+   },
+   {
+    "name": "Joel Embiid",
+    "value": 13544
+   },
+   {
+    "name": "Elgin Baylor",
+    "value": 23149
+   },
+   {
+    "name": "Kevin Durant",
+    "value": 32597
+   },
+   {
+    "name": "Jerry West",
+    "value": 25192
+   },
+   {
+    "name": "LeBron James",
+    "value": 43440
+   },
+   {
+    "name": "Allen Iverson",
+    "value": 24368
+   },
+   {
+    "name": "Bob Pettit",
+    "value": 20880
+   },
+   {
+    "name": "Luka Dončić",
+    "value": 15021
+   },
+   {
+    "name": "Joel Embiid",
+    "value": 13544
+   },
+   {
+    "name": "Kevin Durant",
+    "value": 32597
+   },
+   {
+    "name": "LeBron James",
+    "value": 43440
+   },
+   {
+    "name": "Shai Gilgeous-Alexander",
+    "value": 13411
+   },
+   {
+    "name": "Damian Lillard",
+    "value": 22598
+   },
+   {
+    "name": "Trae Young",
+    "value": 12489
+   },
+   {
+    "name": "Donovan Mitchell",
+    "value": 15272
+   },
+   {
+    "name": "Stephen Curry",
+    "value": 26528
+   },
+   {
+    "name": "Devin Booker",
+    "value": 18120
+   }
+  ],
+  "reb": [
+   {
+    "name": "Wilt Chamberlain",
+    "value": 23924
+   },
+   {
+    "name": "Bill Russell",
+    "value": 21620
+   },
+   {
+    "name": "Bob Pettit",
+    "value": 12849
+   },
+   {
+    "name": "Jerry Lucas",
+    "value": 12942
+   },
+   {
+    "name": "Nate Thurmond",
+    "value": 14464
+   },
+   {
+    "name": "Wes Unseld",
+    "value": 13769
+   },
+   {
+    "name": "Walt Bellamy",
+    "value": 14241
+   },
+   {
+    "name": "Dave Cowens",
+    "value": 10444
+   },
+   {
+    "name": "Elgin Baylor",
+    "value": 11463
+   },
+   {
+    "name": "Dennis Rodman",
+    "value": 11954
+   },
+   {
+    "name": "Andre Drummond",
+    "value": 11513
+   },
+   {
+    "name": "Rudy Gobert",
+    "value": 10572
+   },
+   {
+    "name": "Karl-Anthony Towns",
+    "value": 8025
+   },
+   {
+    "name": "Nikola Jokić",
+    "value": 8977
+   },
+   {
+    "name": "Joel Embiid",
+    "value": 5280
+   },
+   {
+    "name": "Anthony Davis",
+    "value": 8636
+   },
+   {
+    "name": "Domantas Sabonis",
+    "value": 7097
+   },
+   {
+    "name": "Nikola Vučević",
+    "value": 10707
+   },
+   {
+    "name": "Deandre Ayton",
+    "value": 4742
+   },
+   {
+    "name": "Giannis Antetokounmpo",
+    "value": 8882
+   }
+  ],
+  "stl": [
+   {
+    "name": "Alvin Robertson",
+    "value": 2112
+   },
+   {
+    "name": "Michael Ray Richardson",
+    "value": 1463
+   },
+   {
+    "name": "Michael Jordan",
+    "value": 2514
+   },
+   {
+    "name": "Mookie Blaylock",
+    "value": 2075
+   },
+   {
+    "name": "Fat Lever",
+    "value": 1666
+   },
+   {
+    "name": "Slick Watts",
+    "value": 961
+   },
+   {
+    "name": "John Stockton",
+    "value": 3265
+   },
+   {
+    "name": "Allen Iverson",
+    "value": 1983
+   },
+   {
+    "name": "Maurice Cheeks",
+    "value": 2310
+   },
+   {
+    "name": "Clyde Drexler",
+    "value": 2207
+   },
+   {
+    "name": "Chris Paul",
+    "value": 2728
+   },
+   {
+    "name": "Kawhi Leonard",
+    "value": 1377
+   },
+   {
+    "name": "Paul George",
+    "value": 1601
+   },
+   {
+    "name": "Jimmy Butler",
+    "value": 1455
+   },
+   {
+    "name": "Russell Westbrook",
+    "value": 2038
+   },
+   {
+    "name": "Marcus Smart",
+    "value": 1081
+   },
+   {
+    "name": "Stephen Curry",
+    "value": 1602
+   },
+   {
+    "name": "LeBron James",
+    "value": 2417
+   },
+   {
+    "name": "Kris Dunn",
+    "value": 728
+   },
+   {
+    "name": "Dejounte Murray",
+    "value": 764
+   }
+  ]
+ },
+ "watch": [
+  {
+   "player": "LeBron James",
+   "stat": "ast",
+   "scope": "nba",
+   "value": 12016,
+   "rank": 4,
+   "page": 76
+  },
+  {
+   "player": "LeBron James",
+   "stat": "stl",
+   "scope": "nba",
+   "value": 2417,
+   "rank": 6,
+   "page": 76
+  },
+  {
+   "player": "LeBron James",
+   "stat": "reb",
+   "scope": "nba",
+   "value": 12095,
+   "rank": 23,
+   "page": 76
+  },
+  {
+   "player": "LeBron James",
+   "stat": "dreb",
+   "scope": "nba",
+   "value": 10253,
+   "rank": 5,
+   "page": 76
+  },
+  {
+   "player": "LeBron James",
+   "stat": "td",
+   "scope": "nba",
+   "value": 125,
+   "rank": 5,
+   "page": 76
+  },
+  {
+   "player": "LeBron James",
+   "stat": "pts",
+   "scope": "nba",
+   "value": 43440,
+   "rank": 1,
+   "page": 76
+  },
+  {
+   "player": "LeBron James",
+   "stat": "fgm",
+   "scope": "nba",
+   "value": 15961,
+   "rank": 1,
+   "page": 76
+  },
+  {
+   "player": "LeBron James",
+   "stat": "ftm",
+   "scope": "nba",
+   "value": 8882,
+   "rank": 2,
+   "page": 76
+  },
+  {
+   "player": "LeBron James",
+   "stat": "blk",
+   "scope": "nba",
+   "value": 1185,
+   "rank": 69,
+   "page": 76
+  },
+  {
+   "player": "Kevin Durant",
+   "stat": "fgm",
+   "scope": "nba",
+   "value": 11258,
+   "rank": 8,
+   "page": 77
+  },
+  {
+   "player": "Kevin Durant",
+   "stat": "fg3m",
+   "scope": "nba",
+   "value": 2377,
+   "rank": 10,
+   "page": 77
+  },
+  {
+   "player": "Kevin Durant",
+   "stat": "ftm",
+   "scope": "nba",
+   "value": 7704,
+   "rank": 6,
+   "page": 77
+  },
+  {
+   "player": "Kevin Durant",
+   "stat": "min",
+   "scope": "nba",
+   "value": 44075,
+   "rank": 23,
+   "page": 77
+  },
+  {
+   "player": "Bam Adebayo",
+   "stat": "reb",
+   "scope": "franchise",
+   "team": "MIA",
+   "value": 5756,
+   "rank": 2,
+   "page": 80
+  },
+  {
+   "player": "DeMar DeRozan",
+   "stat": "pts",
+   "scope": "nba",
+   "value": 26711,
+   "rank": 16,
+   "page": 80
+  },
+  {
+   "player": "Giannis Antetokounmpo",
+   "stat": "pts",
+   "scope": "nba",
+   "value": 21531,
+   "rank": 42,
+   "page": 80
+  },
+  {
+   "player": "Devin Booker",
+   "stat": "fgm",
+   "scope": "franchise",
+   "team": "PHX",
+   "value": 6295,
+   "rank": 2,
+   "page": 80
+  },
+  {
+   "player": "DeMar DeRozan",
+   "stat": "fgm",
+   "scope": "nba",
+   "value": 9563,
+   "rank": 21,
+   "page": 80
+  },
+  {
+   "player": "DeMar DeRozan",
+   "stat": "ftm",
+   "scope": "nba",
+   "value": 6923,
+   "rank": 11,
+   "page": 80
+  },
+  {
+   "player": "DeMar DeRozan",
+   "stat": "gp",
+   "scope": "nba",
+   "value": 1264,
+   "rank": 34,
+   "page": 80
+  },
+  {
+   "player": "Mike Conley",
+   "stat": "fg3m",
+   "scope": "nba",
+   "value": 1986,
+   "rank": 21,
+   "page": 80
+  },
+  {
+   "player": "Mike Conley",
+   "stat": "ast",
+   "scope": "nba",
+   "value": 6782,
+   "rank": 25,
+   "page": 80
+  },
+  {
+   "player": "Anthony Davis",
+   "stat": "pts",
+   "scope": "nba",
+   "value": 19385,
+   "rank": 61,
+   "page": 80
+  },
+  {
+   "player": "Anthony Davis",
+   "stat": "blk",
+   "scope": "nba",
+   "value": 1848,
+   "rank": 23,
+   "page": 80
+  },
+  {
+   "player": "Luka Dončić",
+   "stat": "td",
+   "scope": "nba",
+   "value": 90,
+   "rank": 7,
+   "page": 80
+  },
+  {
+   "player": "Andre Drummond",
+   "stat": "reb",
+   "scope": "nba",
+   "value": 11513,
+   "rank": 27,
+   "page": 81
+  },
+  {
+   "player": "Andre Drummond",
+   "stat": "oreb",
+   "scope": "nba",
+   "value": 3965,
+   "rank": 10,
+   "page": 81
+  },
+  {
+   "player": "Andre Drummond",
+   "stat": "dreb",
+   "scope": "nba",
+   "value": 7548,
+   "rank": 24,
+   "page": 81
+  },
+  {
+   "player": "Paul George",
+   "stat": "pts",
+   "scope": "nba",
+   "value": 19338,
+   "rank": 62,
+   "page": 81
+  },
+  {
+   "player": "Paul George",
+   "stat": "fg3m",
+   "scope": "nba",
+   "value": 2449,
+   "rank": 9,
+   "page": 81
+  },
+  {
+   "player": "Rudy Gobert",
+   "stat": "reb",
+   "scope": "nba",
+   "value": 10572,
+   "rank": 36,
+   "page": 81
+  },
+  {
+   "player": "Rudy Gobert",
+   "stat": "oreb",
+   "scope": "nba",
+   "value": 3103,
+   "rank": 26,
+   "page": 81
+  },
+  {
+   "player": "Rudy Gobert",
+   "stat": "dreb",
+   "scope": "nba",
+   "value": 7469,
+   "rank": 26,
+   "page": 81
+  },
+  {
+   "player": "Rudy Gobert",
+   "stat": "blk",
+   "scope": "nba",
+   "value": 1842,
+   "rank": 24,
+   "page": 81
+  },
+  {
+   "player": "Tim Hardaway Jr.",
+   "stat": "fg3m",
+   "scope": "nba",
+   "value": 2068,
+   "rank": 19,
+   "page": 81
+  },
+  {
+   "player": "Buddy Hield",
+   "stat": "fg3m",
+   "scope": "nba",
+   "value": 2201,
+   "rank": 15,
+   "page": 81
+  },
+  {
+   "player": "Jrue Holiday",
+   "stat": "ast",
+   "scope": "nba",
+   "value": 6762,
+   "rank": 26,
+   "page": 81
+  },
+  {
+   "player": "Kyrie Irving",
+   "stat": "fg3m",
+   "scope": "nba",
+   "value": 1876,
+   "rank": 26,
+   "page": 81
+  },
+  {
+   "player": "Damian Lillard",
+   "stat": "pts",
+   "scope": "nba",
+   "value": 22598,
+   "rank": 37,
+   "page": 82
+  },
+  {
+   "player": "Donovan Mitchell",
+   "stat": "fg3m",
+   "scope": "nba",
+   "value": 1842,
+   "rank": 29,
+   "page": 82
+  },
+  {
+   "player": "Damian Lillard",
+   "stat": "fg3m",
+   "scope": "nba",
+   "value": 2804,
+   "rank": 5,
+   "page": 82
+  },
+  {
+   "player": "Jayson Tatum",
+   "stat": "fg3m",
+   "scope": "franchise",
+   "team": "BOS",
+   "value": 1593,
+   "rank": 2,
+   "page": 82
+  },
+  {
+   "player": "Klay Thompson",
+   "stat": "fg3m",
+   "scope": "nba",
+   "value": 2899,
+   "rank": 4,
+   "page": 82
+  },
+  {
+   "player": "Brook Lopez",
+   "stat": "blk",
+   "scope": "nba",
+   "value": 2147,
+   "rank": 14,
+   "page": 82
+  },
+  {
+   "player": "Nikola Vučević",
+   "stat": "reb",
+   "scope": "nba",
+   "value": 10707,
+   "rank": 35,
+   "page": 82
+  },
+  {
+   "player": "CJ McCollum",
+   "stat": "fg3m",
+   "scope": "nba",
+   "value": 2180,
+   "rank": 16,
+   "page": 82
+  },
+  {
+   "player": "Nikola Vučević",
+   "stat": "dreb",
+   "scope": "nba",
+   "value": 8148,
+   "rank": 19,
+   "page": 82
+  },
+  {
+   "player": "LeBron James",
+   "stat": "wins",
+   "scope": "nba",
+   "value": 1048,
+   "rank": 2,
+   "page": 76
+  },
+  {
+   "player": "Stephen Curry",
+   "stat": "pts",
+   "scope": "nba",
+   "value": 26528,
+   "rank": 19,
+   "page": 79
+  },
+  {
+   "player": "Stephen Curry",
+   "stat": "ast",
+   "scope": "nba",
+   "value": 6743,
+   "rank": 27,
+   "page": 79
+  },
+  {
+   "player": "James Harden",
+   "stat": "ast",
+   "scope": "nba",
+   "value": 8873,
+   "rank": 12,
+   "page": 78
+  }
+ ],
+ "targets": [
+  {
+   "stat": "ast",
+   "scope": "nba",
+   "name": "Jason Kidd",
+   "value": 12091,
+   "rank": 3,
+   "page": 76,
+   "of": "LeBron James"
+  },
+  {
+   "stat": "ast",
+   "scope": "nba",
+   "name": "Chris Paul",
+   "value": 12552,
+   "rank": 2,
+   "page": 76,
+   "of": "LeBron James"
+  },
+  {
+   "stat": "stl",
+   "scope": "nba",
+   "name": "Gary Payton",
+   "value": 2445,
+   "rank": 5,
+   "page": 76,
+   "of": "LeBron James"
+  },
+  {
+   "stat": "stl",
+   "scope": "nba",
+   "name": "Michael Jordan",
+   "value": 2514,
+   "rank": 4,
+   "page": 76,
+   "of": "LeBron James"
+  },
+  {
+   "stat": "reb",
+   "scope": "nba",
+   "name": "Charles Oakley",
+   "value": 12205,
+   "rank": 22,
+   "page": 76,
+   "of": "LeBron James"
+  },
+  {
+   "stat": "reb",
+   "scope": "nba",
+   "name": "Paul Silas",
+   "value": 12357,
+   "rank": 21,
+   "page": 76,
+   "of": "LeBron James"
+  },
+  {
+   "stat": "reb",
+   "scope": "nba",
+   "name": "Dikembe Mutombo",
+   "value": 12359,
+   "rank": 20,
+   "page": 76,
+   "of": "LeBron James"
+  },
+  {
+   "stat": "dreb",
+   "scope": "nba",
+   "name": "Dwight Howard",
+   "value": 10476,
+   "rank": 4,
+   "page": 76,
+   "of": "LeBron James"
+  },
+  {
+   "stat": "td",
+   "scope": "nba",
+   "name": "Magic Johnson",
+   "value": 138,
+   "rank": 4,
+   "page": 76,
+   "of": "LeBron James"
+  },
+  {
+   "stat": "ftm",
+   "scope": "nba",
+   "name": "Karl Malone",
+   "value": 9787,
+   "rank": 1,
+   "page": 76,
+   "of": "LeBron James"
+  },
+  {
+   "stat": "fgm",
+   "scope": "nba",
+   "name": "Shaquille O’Neal",
+   "value": 11330,
+   "rank": 7,
+   "page": 77,
+   "of": "Kevin Durant"
+  },
+  {
+   "stat": "fgm",
+   "scope": "nba",
+   "name": "Kobe Bryant",
+   "value": 11719,
+   "rank": 6,
+   "page": 77,
+   "of": "Kevin Durant"
+  },
+  {
+   "stat": "fg3m",
+   "scope": "nba",
+   "name": "Paul George",
+   "value": 2449,
+   "rank": 9,
+   "page": 77,
+   "of": "Kevin Durant"
+  },
+  {
+   "stat": "fg3m",
+   "scope": "nba",
+   "name": "Kyle Korver",
+   "value": 2450,
+   "rank": 8,
+   "page": 77,
+   "of": "Kevin Durant"
+  },
+  {
+   "stat": "fg3m",
+   "scope": "nba",
+   "name": "Reggie Miller",
+   "value": 2560,
+   "rank": 7,
+   "page": 77,
+   "of": "Kevin Durant"
+  },
+  {
+   "stat": "min",
+   "scope": "nba",
+   "name": "Moses Malone",
+   "value": 45071,
+   "rank": 20,
+   "page": 77,
+   "of": "Kevin Durant"
+  },
+  {
+   "stat": "min",
+   "scope": "nba",
+   "name": "Vince Carter",
+   "value": 46369,
+   "rank": 15,
+   "page": 77,
+   "of": "Kevin Durant"
+  },
+  {
+   "stat": "reb",
+   "scope": "franchise",
+   "team": "MIA",
+   "name": "Udonis Haslem",
+   "value": 5791,
+   "rank": 1,
+   "page": 80,
+   "of": "Bam Adebayo"
+  },
+  {
+   "stat": "pts",
+   "scope": "nba",
+   "name": "Hakeem Olajuwon",
+   "value": 26946,
+   "rank": 15,
+   "page": 80,
+   "of": "DeMar DeRozan"
+  },
+  {
+   "stat": "pts",
+   "scope": "nba",
+   "name": "Russell Westbrook",
+   "value": 27176,
+   "rank": 14,
+   "page": 80,
+   "of": "DeMar DeRozan"
+  },
+  {
+   "stat": "pts",
+   "scope": "nba",
+   "name": "Elvin Hayes",
+   "value": 27313,
+   "rank": 13,
+   "page": 80,
+   "of": "DeMar DeRozan"
+  },
+  {
+   "stat": "pts",
+   "scope": "nba",
+   "name": "Moses Malone",
+   "value": 27409,
+   "rank": 12,
+   "page": 80,
+   "of": "DeMar DeRozan"
+  },
+  {
+   "stat": "pts",
+   "scope": "nba",
+   "name": "Robert Parish",
+   "value": 23334,
+   "rank": 32,
+   "page": 80,
+   "of": "Giannis Antetokounmpo"
+  },
+  {
+   "stat": "fgm",
+   "scope": "franchise",
+   "team": "PHX",
+   "name": "Walter Davis",
+   "value": 6497,
+   "rank": 1,
+   "page": 80,
+   "of": "Devin Booker"
+  },
+  {
+   "stat": "ftm",
+   "scope": "nba",
+   "name": "Jerry West",
+   "value": 7160,
+   "rank": 10,
+   "page": 80,
+   "of": "DeMar DeRozan"
+  },
+  {
+   "stat": "ftm",
+   "scope": "nba",
+   "name": "Dirk Nowitzki",
+   "value": 7240,
+   "rank": 9,
+   "page": 80,
+   "of": "DeMar DeRozan"
+  },
+  {
+   "stat": "ftm",
+   "scope": "nba",
+   "name": "Michael Jordan",
+   "value": 7327,
+   "rank": 8,
+   "page": 80,
+   "of": "DeMar DeRozan"
+  },
+  {
+   "stat": "fg3m",
+   "scope": "nba",
+   "name": "Jason Kidd",
+   "value": 1988,
+   "rank": 20,
+   "page": 80,
+   "of": "Mike Conley"
+  },
+  {
+   "stat": "ast",
+   "scope": "nba",
+   "name": "Deron Williams",
+   "value": 6819,
+   "rank": 24,
+   "page": 80,
+   "of": "Mike Conley"
+  },
+  {
+   "stat": "blk",
+   "scope": "nba",
+   "name": "Rudy Gobert",
+   "value": 1842,
+   "rank": 24,
+   "page": 80,
+   "of": "Anthony Davis"
+  },
+  {
+   "stat": "blk",
+   "scope": "nba",
+   "name": "Pau Gasol",
+   "value": 1941,
+   "rank": 22,
+   "page": 80,
+   "of": "Anthony Davis"
+  },
+  {
+   "stat": "td",
+   "scope": "nba",
+   "name": "Jason Kidd",
+   "value": 107,
+   "rank": 6,
+   "page": 80,
+   "of": "Luka Dončić"
+  },
+  {
+   "stat": "reb",
+   "scope": "nba",
+   "name": "Dennis Rodman",
+   "value": 11954,
+   "rank": 24,
+   "page": 81,
+   "of": "Andre Drummond"
+  },
+  {
+   "stat": "oreb",
+   "scope": "nba",
+   "name": "Hakeem Olajuwon",
+   "value": 4034,
+   "rank": 9,
+   "page": 81,
+   "of": "Andre Drummond"
+  },
+  {
+   "stat": "oreb",
+   "scope": "nba",
+   "name": "Kevin Willis",
+   "value": 4132,
+   "rank": 8,
+   "page": 81,
+   "of": "Andre Drummond"
+  },
+  {
+   "stat": "oreb",
+   "scope": "nba",
+   "name": "Dwight Howard",
+   "value": 4151,
+   "rank": 7,
+   "page": 81,
+   "of": "Andre Drummond"
+  },
+  {
+   "stat": "dreb",
+   "scope": "nba",
+   "name": "Kevin Willis",
+   "value": 7769,
+   "rank": 20,
+   "page": 81,
+   "of": "Andre Drummond"
+  },
+  {
+   "stat": "reb",
+   "scope": "nba",
+   "name": "Pau Gasol",
+   "value": 11305,
+   "rank": 30,
+   "page": 81,
+   "of": "Rudy Gobert"
+  },
+  {
+   "stat": "oreb",
+   "scope": "nba",
+   "name": "A.C. Green",
+   "value": 3354,
+   "rank": 20,
+   "page": 81,
+   "of": "Rudy Gobert"
+  },
+  {
+   "stat": "blk",
+   "scope": "nba",
+   "name": "Anthony Davis",
+   "value": 1848,
+   "rank": 23,
+   "page": 81,
+   "of": "Rudy Gobert"
+  },
+  {
+   "stat": "blk",
+   "scope": "nba",
+   "name": "Theo Ratliff",
+   "value": 1968,
+   "rank": 21,
+   "page": 81,
+   "of": "Rudy Gobert"
+  },
+  {
+   "stat": "fg3m",
+   "scope": "nba",
+   "name": "Eric Gordon",
+   "value": 2092,
+   "rank": 18,
+   "page": 81,
+   "of": "Tim Hardaway Jr."
+  },
+  {
+   "stat": "fg3m",
+   "scope": "nba",
+   "name": "Paul Pierce",
+   "value": 2143,
+   "rank": 17,
+   "page": 81,
+   "of": "Tim Hardaway Jr."
+  },
+  {
+   "stat": "fg3m",
+   "scope": "nba",
+   "name": "Kyle Lowry",
+   "value": 2209,
+   "rank": 14,
+   "page": 81,
+   "of": "Buddy Hield"
+  },
+  {
+   "stat": "fg3m",
+   "scope": "nba",
+   "name": "Vince Carter",
+   "value": 2290,
+   "rank": 11,
+   "page": 81,
+   "of": "Buddy Hield"
+  },
+  {
+   "stat": "ast",
+   "scope": "nba",
+   "name": "Mike Conley",
+   "value": 6782,
+   "rank": 25,
+   "page": 81,
+   "of": "Jrue Holiday"
+  },
+  {
+   "stat": "pts",
+   "scope": "nba",
+   "name": "Charles Barkley",
+   "value": 23757,
+   "rank": 31,
+   "page": 82,
+   "of": "Damian Lillard"
+  },
+  {
+   "stat": "fg3m",
+   "scope": "nba",
+   "name": "Klay Thompson",
+   "value": 2899,
+   "rank": 4,
+   "page": 82,
+   "of": "Damian Lillard"
+  },
+  {
+   "stat": "fg3m",
+   "scope": "nba",
+   "name": "Ray Allen",
+   "value": 2973,
+   "rank": 3,
+   "page": 82,
+   "of": "Damian Lillard"
+  },
+  {
+   "stat": "fg3m",
+   "scope": "franchise",
+   "team": "BOS",
+   "name": "Paul Pierce",
+   "value": 1823,
+   "rank": 1,
+   "page": 82,
+   "of": "Jayson Tatum"
+  },
+  {
+   "stat": "blk",
+   "scope": "nba",
+   "name": "Dwight Howard",
+   "value": 2228,
+   "rank": 13,
+   "page": 82,
+   "of": "Brook Lopez"
+  },
+  {
+   "stat": "fg3m",
+   "scope": "nba",
+   "name": "Buddy Hield",
+   "value": 2201,
+   "rank": 15,
+   "page": 82,
+   "of": "CJ McCollum"
+  },
+  {
+   "stat": "dreb",
+   "scope": "nba",
+   "name": "Dikembe Mutombo",
+   "value": 8551,
+   "rank": 13,
+   "page": 82,
+   "of": "Nikola Vučević"
+  },
+  {
+   "stat": "wins",
+   "scope": "nba",
+   "name": "Kareem Abdul-Jabbar",
+   "value": 1074,
+   "rank": 1,
+   "page": 76,
+   "of": "LeBron James"
+  },
+  {
+   "stat": "wins",
+   "scope": "nba",
+   "name": "Robert Parish",
+   "value": 1014,
+   "rank": 3,
+   "page": 76
+  },
+  {
+   "stat": "wins",
+   "scope": "nba",
+   "name": "Tim Duncan",
+   "value": 1001,
+   "rank": 4,
+   "page": 76
+  },
+  {
+   "stat": "pts",
+   "scope": "nba",
+   "name": "Kobe Bryant",
+   "value": 33643,
+   "rank": 4,
+   "page": 77,
+   "of": "Kevin Durant"
+  },
+  {
+   "stat": "pts",
+   "scope": "nba",
+   "name": "Dominique Wilkins",
+   "value": 26668,
+   "rank": 18,
+   "page": 79,
+   "of": "Stephen Curry"
+  },
+  {
+   "stat": "pts",
+   "scope": "nba",
+   "name": "Oscar Robertson",
+   "value": 26710,
+   "rank": 17,
+   "page": 79,
+   "of": "Stephen Curry"
+  },
+  {
+   "stat": "pts",
+   "scope": "nba",
+   "name": "Carmelo Anthony",
+   "value": 28289,
+   "rank": 11,
+   "page": 79,
+   "of": "Stephen Curry"
+  },
+  {
+   "stat": "ast",
+   "scope": "nba",
+   "name": "Gary Payton",
+   "value": 8966,
+   "rank": 11,
+   "page": 78,
+   "of": "James Harden"
+  }
+ ],
+ "rounds": [
+  {
+   "player": "LeBron James",
+   "stat": "pts",
+   "scope": "nba",
+   "value": 44000,
+   "page": 76
+  },
+  {
+   "player": "LeBron James",
+   "stat": "pts",
+   "scope": "nba",
+   "value": 45000,
+   "page": 76
+  },
+  {
+   "player": "LeBron James",
+   "stat": "fgm",
+   "scope": "nba",
+   "value": 16000,
+   "page": 76
+  },
+  {
+   "player": "LeBron James",
+   "stat": "ftm",
+   "scope": "nba",
+   "value": 9000,
+   "page": 76
+  },
+  {
+   "player": "LeBron James",
+   "stat": "blk",
+   "scope": "nba",
+   "value": 1200,
+   "page": 76
+  },
+  {
+   "player": "Kevin Durant",
+   "stat": "ftm",
+   "scope": "nba",
+   "value": 8000,
+   "page": 77
+  },
+  {
+   "player": "DeMar DeRozan",
+   "stat": "fgm",
+   "scope": "nba",
+   "value": 10000,
+   "page": 80
+  },
+  {
+   "player": "DeMar DeRozan",
+   "stat": "ftm",
+   "scope": "nba",
+   "value": 7000,
+   "page": 80
+  },
+  {
+   "player": "DeMar DeRozan",
+   "stat": "gp",
+   "scope": "nba",
+   "value": 1300,
+   "page": 80
+  },
+  {
+   "player": "Mike Conley",
+   "stat": "fg3m",
+   "scope": "nba",
+   "value": 2000,
+   "page": 80
+  },
+  {
+   "player": "Mike Conley",
+   "stat": "ast",
+   "scope": "nba",
+   "value": 7000,
+   "page": 80
+  },
+  {
+   "player": "Anthony Davis",
+   "stat": "pts",
+   "scope": "nba",
+   "value": 20000,
+   "page": 80
+  },
+  {
+   "player": "Anthony Davis",
+   "stat": "blk",
+   "scope": "nba",
+   "value": 2000,
+   "page": 80
+  },
+  {
+   "player": "Luka Dončić",
+   "stat": "td",
+   "scope": "nba",
+   "value": 100,
+   "page": 80
+  },
+  {
+   "player": "Andre Drummond",
+   "stat": "reb",
+   "scope": "nba",
+   "value": 12000,
+   "page": 81
+  },
+  {
+   "player": "Andre Drummond",
+   "stat": "oreb",
+   "scope": "nba",
+   "value": 4000,
+   "page": 81
+  },
+  {
+   "player": "Andre Drummond",
+   "stat": "dreb",
+   "scope": "nba",
+   "value": 8000,
+   "page": 81
+  },
+  {
+   "player": "Paul George",
+   "stat": "pts",
+   "scope": "nba",
+   "value": 20000,
+   "page": 81
+  },
+  {
+   "player": "Paul George",
+   "stat": "fg3m",
+   "scope": "nba",
+   "value": 2500,
+   "page": 81
+  },
+  {
+   "player": "Rudy Gobert",
+   "stat": "reb",
+   "scope": "nba",
+   "value": 11000,
+   "page": 81
+  },
+  {
+   "player": "Rudy Gobert",
+   "stat": "dreb",
+   "scope": "nba",
+   "value": 8000,
+   "page": 81
+  },
+  {
+   "player": "Rudy Gobert",
+   "stat": "blk",
+   "scope": "nba",
+   "value": 2000,
+   "page": 81
+  },
+  {
+   "player": "Kyrie Irving",
+   "stat": "fg3m",
+   "scope": "nba",
+   "value": 2000,
+   "page": 81
+  },
+  {
+   "player": "Damian Lillard",
+   "stat": "pts",
+   "scope": "nba",
+   "value": 23000,
+   "page": 82
+  },
+  {
+   "player": "Donovan Mitchell",
+   "stat": "fg3m",
+   "scope": "nba",
+   "value": 2000,
+   "page": 82
+  },
+  {
+   "player": "Damian Lillard",
+   "stat": "fg3m",
+   "scope": "nba",
+   "value": 3000,
+   "page": 82
+  },
+  {
+   "player": "Klay Thompson",
+   "stat": "fg3m",
+   "scope": "nba",
+   "value": 3000,
+   "page": 82
+  },
+  {
+   "player": "Klay Thompson",
+   "stat": "fg3m",
+   "scope": "nba",
+   "value": 2900,
+   "page": 82
+  },
+  {
+   "player": "Nikola Vučević",
+   "stat": "reb",
+   "scope": "nba",
+   "value": 11000,
+   "page": 82
+  },
+  {
+   "player": "James Harden",
+   "stat": "pts",
+   "scope": "nba",
+   "value": 30000,
+   "page": 78
+  },
+  {
+   "player": "Stephen Curry",
+   "stat": "ast",
+   "scope": "nba",
+   "value": 7000,
+   "page": 79
+  },
+  {
+   "player": "Stephen Curry",
+   "stat": "reb",
+   "scope": "nba",
+   "value": 5000,
+   "page": 79
+  }
+ ],
+ "errata": [
+  "Rudy Gobert dreb: guide says 532 to reach 8,000, the total (7,469) gives 531"
+ ],
+ "coaches": {
+  "wins": [
+   {
+    "stat": "wins",
+    "rank": 1,
+    "name": "Gregg Popovich",
+    "value": 1390
+   },
+   {
+    "stat": "wins",
+    "rank": 2,
+    "name": "Don Nelson",
+    "value": 1335
+   },
+   {
+    "stat": "wins",
+    "rank": 3,
+    "name": "Lenny Wilkens",
+    "value": 1332
+   },
+   {
+    "stat": "wins",
+    "rank": 4,
+    "name": "Jerry Sloan",
+    "value": 1221
+   },
+   {
+    "stat": "wins",
+    "rank": 5,
+    "name": "Pat Riley",
+    "value": 1210
+   },
+   {
+    "stat": "wins",
+    "rank": 6,
+    "name": "Doc Rivers",
+    "value": 1194
+   },
+   {
+    "stat": "wins",
+    "rank": 7,
+    "name": "George Karl",
+    "value": 1175
+   },
+   {
+    "stat": "wins",
+    "rank": 8,
+    "name": "Phil Jackson",
+    "value": 1155
+   },
+   {
+    "stat": "wins",
+    "rank": 9,
+    "name": "Larry Brown",
+    "value": 1098
+   },
+   {
+    "stat": "wins",
+    "rank": 10,
+    "name": "Rick Adelman",
+    "value": 1042
+   },
+   {
+    "stat": "wins",
+    "rank": 11,
+    "name": "Rick Carlisle",
+    "value": 1012
+   },
+   {
+    "stat": "wins",
+    "rank": 12,
+    "name": "Bill Fitch",
+    "value": 944
+   }
+  ],
+  "watch": [
+   {
+    "name": "Rick Carlisle",
+    "team": "IND",
+    "wins": 1012,
+    "games": 1935
+   },
+   {
+    "name": "Erik Spoelstra",
+    "team": "MIA",
+    "wins": 830,
+    "games": 1441
+   },
+   {
+    "name": "Steve Kerr",
+    "team": "GSW",
+    "wins": 604
+   }
+  ],
+  "targets": [
+   {
+    "stat": "games",
+    "name": "Dick Motta",
+    "value": 1952,
+    "rank": 9
+   },
+   {
+    "stat": "games",
+    "name": "George Karl",
+    "value": 1999,
+    "rank": 8
+   },
+   {
+    "stat": "games",
+    "name": "Larry Brown",
+    "value": 2002,
+    "rank": 7
+   },
+   {
+    "stat": "wins",
+    "name": "Cotton Fitzsimmons",
+    "value": 832,
+    "rank": 16
+   },
+   {
+    "stat": "wins",
+    "name": "Jack Ramsay",
+    "value": 864,
+    "rank": 15
+   },
+   {
+    "stat": "wins",
+    "name": "Mike Dunleavy",
+    "value": 613,
+    "rank": 27
+   },
+   {
+    "stat": "wins",
+    "name": "Doug Moe",
+    "value": 628,
+    "rank": 26
+   },
+   {
+    "stat": "wins",
+    "name": "Chuck Daly",
+    "value": 638,
+    "rank": 25
+   }
+  ],
+  "rounds": [
+   {
+    "name": "Rick Carlisle",
+    "stat": "games",
+    "value": 2000
+   },
+   {
+    "name": "Erik Spoelstra",
+    "stat": "games",
+    "value": 1500
+   }
+  ]
+ },
+ "franchises": [
+  {
+   "team": "Boston Celtics",
+   "w": 3751,
+   "l": 2527
+  },
+  {
+   "team": "San Antonio Spurs",
+   "w": 2401,
+   "l": 1630
+  },
+  {
+   "team": "Los Angeles Lakers",
+   "w": 3653,
+   "l": 2515
+  },
+  {
+   "team": "Oklahoma City Thunder",
+   "w": 2602,
+   "l": 2168
+  },
+  {
+   "team": "Phoenix Suns",
+   "w": 2510,
+   "l": 2179
+  },
+  {
+   "team": "Utah Jazz",
+   "w": 2216,
+   "l": 1980
+  },
+  {
+   "team": "Milwaukee Bucks",
+   "w": 2469,
+   "l": 2220
+  },
+  {
+   "team": "Miami Heat",
+   "w": 1601,
+   "l": 1448
+  },
+  {
+   "team": "Portland Trail Blazers",
+   "w": 2370,
+   "l": 2156
+  },
+  {
+   "team": "Philadelphia 76ers",
+   "w": 3170,
+   "l": 2935
+  },
+  {
+   "team": "Houston Rockets",
+   "w": 2473,
+   "l": 2297
+  },
+  {
+   "team": "Denver Nuggets",
+   "w": 2058,
+   "l": 1975
+  },
+  {
+   "team": "Chicago Bulls",
+   "w": 2453,
+   "l": 2391
+  },
+  {
+   "team": "Dallas Mavericks",
+   "w": 1862,
+   "l": 1845
+  },
+  {
+   "team": "Indiana Pacers",
+   "w": 1999,
+   "l": 2033
+  },
+  {
+   "team": "Atlanta Hawks",
+   "w": 3013,
+   "l": 3088
+  },
+  {
+   "team": "New York Knicks",
+   "w": 3078,
+   "l": 3191
+  },
+  {
+   "team": "Golden State Warriors",
+   "w": 3054,
+   "l": 3213
+  },
+  {
+   "team": "Detroit Pistons",
+   "w": 2931,
+   "l": 3231
+  },
+  {
+   "team": "Cleveland Cavaliers",
+   "w": 2148,
+   "l": 2369
+  },
+  {
+   "team": "Toronto Raptors",
+   "w": 1172,
+   "l": 1302
+  },
+  {
+   "team": "Orlando Magic",
+   "w": 1401,
+   "l": 1566
+  },
+  {
+   "team": "Sacramento Kings",
+   "w": 2810,
+   "l": 3359
+  },
+  {
+   "team": "New Orleans Pelicans",
+   "w": 878,
+   "l": 1054
+  },
+  {
+   "team": "Washington Wizards",
+   "w": 2307,
+   "l": 2944
+  },
+  {
+   "team": "Memphis Grizzlies",
+   "w": 1071,
+   "l": 1404
+  },
+  {
+   "team": "Charlotte Hornets",
+   "w": 1237,
+   "l": 1640
+  },
+  {
+   "team": "LA Clippers",
+   "w": 1935,
+   "l": 2589
+  },
+  {
+   "team": "Brooklyn Nets",
+   "w": 1700,
+   "l": 2332
+  },
+  {
+   "team": "Minnesota Timberwolves",
+   "w": 1245,
+   "l": 1713
+  }
+ ],
+ "teamRecords": {
+  "winStreak": [
+   {
+    "w": 33,
+    "team": "Los Angeles Lakers",
+    "when": "Nov. 5, 1971 – Jan. 7, 1972"
+   },
+   {
+    "w": 27,
+    "team": "Miami Heat",
+    "when": "Feb. 3, 2013 – March 25, 2013"
+   },
+   {
+    "w": 24,
+    "team": "Golden State Warriors",
+    "when": "Oct. 27, 2015 – Dec. 11, 2015"
+   },
+   {
+    "w": 22,
+    "team": "Houston Rockets",
+    "when": "Jan. 29, 2008 – March 16, 2008"
+   },
+   {
+    "w": 20,
+    "team": "Milwaukee Bucks",
+    "when": "Feb. 6, 1971 – March 8, 1971"
+   },
+   {
+    "w": 19,
+    "team": "Atlanta Hawks",
+    "when": "Dec. 27, 2014 – Jan. 31, 2015"
+   },
+   {
+    "w": 19,
+    "team": "San Antonio Spurs",
+    "when": "Feb. 26, 2014 – April 2, 2014"
+   },
+   {
+    "w": 19,
+    "team": "Boston Celtics",
+    "when": "Nov. 15, 2008 – Dec. 23, 2008"
+   },
+   {
+    "w": 19,
+    "team": "Los Angeles Lakers",
+    "when": "Feb. 4, 2000 – March 13, 2000"
+   }
+  ],
+  "startUnbeaten": [
+   {
+    "w": 24,
+    "l": 0,
+    "team": "Golden State Warriors",
+    "when": "2015-16"
+   },
+   {
+    "w": 15,
+    "l": 0,
+    "team": "Washington Capitols",
+    "when": "1948-49"
+   },
+   {
+    "w": 15,
+    "l": 0,
+    "team": "Houston Rockets",
+    "when": "1993-94"
+   },
+   {
+    "w": 15,
+    "l": 0,
+    "team": "Cleveland Cavaliers",
+    "when": "2024-25"
+   },
+   {
+    "w": 14,
+    "l": 0,
+    "team": "Boston Celtics",
+    "when": "1957-58"
+   },
+   {
+    "w": 14,
+    "l": 0,
+    "team": "Dallas Mavericks",
+    "when": "2002-03"
+   },
+   {
+    "w": 12,
+    "l": 0,
+    "team": "Seattle SuperSonics",
+    "when": "1982-83"
+   },
+   {
+    "w": 12,
+    "l": 0,
+    "team": "Chicago Bulls",
+    "when": "1996-97"
+   },
+   {
+    "w": 11,
+    "l": 0,
+    "team": "Boston Celtics",
+    "when": "1964-65"
+   },
+   {
+    "w": 11,
+    "l": 0,
+    "team": "Portland Trail Blazers",
+    "when": "1990-91"
+   },
+   {
+    "w": 11,
+    "l": 0,
+    "team": "Los Angeles Lakers",
+    "when": "1997-98"
+   },
+   {
+    "w": 11,
+    "l": 0,
+    "team": "Atlanta Hawks",
+    "when": "1997-98"
+   }
+  ],
+  "start1": [
+   {
+    "w": 29,
+    "l": 1,
+    "team": "Golden State Warriors",
+    "when": "2015-16"
+   },
+   {
+    "w": 24,
+    "l": 1,
+    "team": "Oklahoma City Thunder",
+    "when": "2025-26"
+   },
+   {
+    "w": 23,
+    "l": 1,
+    "team": "New York Knicks",
+    "when": "1969-70"
+   },
+   {
+    "w": 22,
+    "l": 1,
+    "team": "Houston Rockets",
+    "when": "1993-94"
+   },
+   {
+    "w": 19,
+    "l": 1,
+    "team": "Portland Trail Blazers",
+    "when": "1990-91"
+   }
+  ],
+  "start2": [
+   {
+    "w": 36,
+    "l": 2,
+    "team": "Golden State Warriors",
+    "when": "2015-16"
+   },
+   {
+    "w": 27,
+    "l": 2,
+    "team": "Boston Celtics",
+    "when": "2008-09"
+   },
+   {
+    "w": 26,
+    "l": 2,
+    "team": "Philadelphia 76ers",
+    "when": "1966-67"
+   },
+   {
+    "w": 26,
+    "l": 2,
+    "team": "New York Knicks",
+    "when": "1969-70"
+   },
+   {
+    "w": 25,
+    "l": 2,
+    "team": "Oklahoma City Thunder",
+    "when": "2025-26"
+   },
+   {
+    "w": 23,
+    "l": 2,
+    "team": "Chicago Bulls",
+    "when": "1995-96"
+   }
+  ],
+  "start3": [
+   {
+    "w": 41,
+    "l": 3,
+    "team": "Chicago Bulls",
+    "when": "1995-96"
+   },
+   {
+    "w": 39,
+    "l": 3,
+    "team": "Los Angeles Lakers",
+    "when": "1971-72"
+   },
+   {
+    "w": 37,
+    "l": 3,
+    "team": "Philadelphia 76ers",
+    "when": "1966-67"
+   },
+   {
+    "w": 37,
+    "l": 3,
+    "team": "Golden State Warriors",
+    "when": "2015-16"
+   },
+   {
+    "w": 29,
+    "l": 3,
+    "team": "Boston Celtics",
+    "when": "2007-08"
+   }
+  ],
+  "homeStart": [
+   {
+    "w": 39,
+    "team": "San Antonio Spurs",
+    "when": "Oct. 30, 2015 – April 2, 2016"
+   },
+   {
+    "w": 37,
+    "team": "Chicago Bulls",
+    "when": "Nov. 3, 1995 – April 4, 1996"
+   },
+   {
+    "w": 36,
+    "team": "Golden State Warriors",
+    "when": "Oct. 27, 2015 – March 29, 2016"
+   },
+   {
+    "w": 33,
+    "team": "Orlando Magic",
+    "when": "Nov. 3, 1995 – March 19, 1996"
+   },
+   {
+    "w": 27,
+    "team": "Washington Capitols",
+    "when": "Nov. 20, 1946 – March 19, 1947"
+   },
+   {
+    "w": 26,
+    "team": "Portland Trail Blazers",
+    "when": "Oct. 22, 1977 – Feb. 3, 1978"
+   },
+   {
+    "w": 23,
+    "team": "Cleveland Cavaliers",
+    "when": "Oct. 30, 2008 – Feb. 3, 2009"
+   },
+   {
+    "w": 23,
+    "team": "Rochester Royals",
+    "when": "Nov. 1, 1949 – Feb. 7, 1950"
+   },
+   {
+    "w": 22,
+    "team": "Philadelphia 76ers",
+    "when": "Oct. 15, 1966 – Jan. 20, 1967"
+   },
+   {
+    "w": 21,
+    "team": "Orlando Magic",
+    "when": "Nov. 5, 1994 – Jan. 28, 1995"
+   }
+  ],
+  "homeStreak": [
+   {
+    "w": 39,
+    "team": "San Antonio Spurs",
+    "when": "Oct. 30, 2015 – April 2, 2016"
+   },
+   {
+    "w": 37,
+    "team": "Chicago Bulls",
+    "when": "Nov. 3, 1995 – April 4, 1996"
+   },
+   {
+    "w": 36,
+    "team": "Golden State Warriors",
+    "when": "Oct. 27, 2015 – March 29, 2016"
+   },
+   {
+    "w": 33,
+    "team": "Orlando Magic",
+    "when": "Nov. 3, 1995 – March 19, 1996"
+   },
+   {
+    "w": 32,
+    "team": "Chicago Bulls",
+    "when": "Dec. 11, 1996 – April 14, 1997"
+   },
+   {
+    "w": 31,
+    "team": "Boston Celtics",
+    "when": "Dec. 10, 1985 – April 13, 1986"
+   },
+   {
+    "w": 29,
+    "team": "Boston Celtics",
+    "when": "Dec. 17, 1986 – April 19, 1987"
+   },
+   {
+    "w": 27,
+    "team": "Minneapolis Lakers",
+    "when": "Nov. 30, 1949 – March 15, 1950"
+   },
+   {
+    "w": 27,
+    "team": "Washington Capitols",
+    "when": "Nov. 20, 1946 – March 19, 1947"
+   }
+  ],
+  "roadStart": [
+   {
+    "w": 14,
+    "team": "Golden State Warriors",
+    "when": "Oct. 30, 2015 – Dec. 11, 2015"
+   },
+   {
+    "w": 13,
+    "team": "San Antonio Spurs",
+    "when": "Oct. 25, 2016 – Dec. 6, 2016"
+   },
+   {
+    "w": 12,
+    "team": "New York Knicks",
+    "when": "Oct. 15, 1969 – Dec. 10, 1969"
+   },
+   {
+    "w": 10,
+    "team": "Los Angeles Lakers",
+    "when": "Dec. 30, 2020 – Jan. 25, 2021"
+   },
+   {
+    "w": 10,
+    "team": "Boston Celtics",
+    "when": "Nov. 3, 1961 – Dec. 17, 1961"
+   },
+   {
+    "w": 10,
+    "team": "Boston Celtics",
+    "when": "Oct. 28, 1960 – Dec. 5, 1960"
+   },
+   {
+    "w": 9,
+    "team": "Houston Rockets",
+    "when": "Nov. 7, 1993 – Dec. 2, 1993"
+   }
+  ],
+  "roadStreak": [
+   {
+    "w": 16,
+    "team": "Los Angeles Lakers",
+    "when": "Nov. 6, 1971 – Jan. 7, 1972"
+   },
+   {
+    "w": 15,
+    "team": "Utah Jazz",
+    "when": "Nov. 27, 1994 – Jan. 26, 1995"
+   },
+   {
+    "w": 14,
+    "team": "Los Angeles Lakers",
+    "when": "Nov. 1, 2019 – Dec. 15, 2019"
+   },
+   {
+    "w": 14,
+    "team": "Golden State Warriors",
+    "when": "Nov. 29, 2017 – Jan. 17, 2018"
+   },
+   {
+    "w": 14,
+    "team": "Golden State Warriors",
+    "when": "Oct. 30, 2015 – Dec. 11, 2015"
+   },
+   {
+    "w": 14,
+    "team": "Miami Heat",
+    "when": "Nov. 19, 1996 – Dec. 29, 1996"
+   },
+   {
+    "w": 13,
+    "team": "San Antonio Spurs",
+    "when": "Oct. 25, 2016 – Dec. 6, 2016"
+   },
+   {
+    "w": 13,
+    "team": "Miami Heat",
+    "when": "Feb. 3, 2013 – March 25, 2013"
+   },
+   {
+    "w": 13,
+    "team": "Miami Heat",
+    "when": "Dec. 2, 2010 – Jan. 9, 2011"
+   },
+   {
+    "w": 13,
+    "team": "Philadelphia 76ers",
+    "when": "Dec. 8, 2000 – Jan. 28, 2001"
+   },
+   {
+    "w": 13,
+    "team": "Boston Celtics",
+    "when": "Dec. 5, 1964 – Jan. 20, 1965"
+   }
+  ]
+ }
+}

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NBA Command Center · Records</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a;
+    --text: #e8eaef; --muted: #9aa3b2; --faint: #6b7383;
+    --accent: #4f9cf7; --good: #3fbf7f; --warn: #e5a93b; --bad: #e5604f; --live: #ff4d6d;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg: #f5f6f8; --panel: #fff; --panel2: #f0f2f5; --line: #e1e4ea; --text: #161a22; --muted: #5b6474; --faint: #8a93a3; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 18px 16px 8px; max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  main { max-width: 980px; margin: 0 auto; padding: 0 12px 40px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 22px 4px 10px; }
+  .games { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 6px; }
+  .game { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; min-width: 170px; }
+  .game .teams { font-weight: 650; }
+  .game .state { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .game.live { border-color: var(--live); }
+  .game.live .state { color: var(--live); font-weight: 600; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: grid; grid-template-columns: 58px 1fr; gap: 12px; }
+  .card.hit { border-color: var(--good); }
+  .pct { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 16px;
+         background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--panel2) 0); position: relative; }
+  .pct::before { content: ""; position: absolute; inset: 6px; background: var(--panel); border-radius: 50%; }
+  .pct span { position: relative; }
+  .card.hit .pct { background: var(--good); }
+  .card.hit .pct::before { background: var(--good); }
+  .card.hit .pct span { color: #fff; }
+  .who { font-weight: 650; }
+  .team { color: var(--faint); font-weight: 500; font-size: 12px; margin-left: 4px; }
+  .what { margin-top: 2px; }
+  .meta { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .chip { font-size: 11.5px; padding: 2px 7px; border-radius: 999px; background: var(--panel2); color: var(--muted); border: 1px solid var(--line); }
+  .chip.review { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+  .chip.out { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
+  .chip.dtd { color: var(--warn); }
+  .chip.live { color: var(--live); border-color: var(--live); font-weight: 600; }
+  .chip.hit { color: var(--good); border-color: var(--good); font-weight: 600; }
+  details { margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+  summary { cursor: pointer; color: var(--faint); }
+  details ul { margin: 4px 0 0 16px; padding: 0; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 13.5px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; background: var(--panel2); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 2px 10px; }
+  select, input[type=search] { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 14px; }
+  label { color: var(--muted); font-size: 13px; }
+  button { background: var(--panel); color: var(--accent); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 14px; cursor: pointer; }
+  .empty { color: var(--faint); padding: 12px 4px; }
+  footer { color: var(--faint); font-size: 12px; max-width: 980px; margin: 0 auto; padding: 0 16px 30px; }
+  .warn-banner { background: color-mix(in srgb, var(--warn) 12%, var(--panel)); border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); border-radius: var(--radius); padding: 10px 12px; font-size: 13px; margin: 10px 0; }
+  @media (max-width: 600px) { .hide-sm { display: none; } }
+  nav { display: flex; flex-wrap: wrap; row-gap: 4px; gap: 14px; margin-top: 6px; font-size: 13.5px; }
+  nav a { color: var(--muted); text-decoration: none; padding-bottom: 2px; }
+  nav a.on { color: var(--text); border-bottom: 2px solid var(--accent); }
+  .match { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
+  .match h3 { margin: 0 0 6px; font-size: 15px; }
+  .match table { border: 0; background: transparent; table-layout: fixed; }
+  .match td, .match th { padding: 5px 6px; font-size: 13px; }
+  .match col.l { width: 42%; } .match col.t { width: 19%; } .match col.b { width: 20%; }
+  .matches { grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); }
+  @media (max-width: 600px) { .match td, .match th { padding: 5px 4px; font-size: 12.5px; } }
+  .match th.c, .match td.c { text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .match th.c.team-h { color: var(--text); font-weight: 700; font-size: 13px; }
+  .match td.base, .match th.base { color: var(--faint); }
+  th.num { text-align: right; }
+  .matches { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 10px; }
+  .scroll { overflow-x: auto; border-radius: var(--radius); }
+  .scroll table { min-width: 860px; }
+  th.sort { cursor: pointer; }
+  th.sort.on { color: var(--accent); }
+  .hi { color: var(--good); }
+  .lo { color: var(--bad); }
+  .hi.strong, .lo.strong { font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+  .flag { color: var(--warn); }
+  .key { color: var(--muted); font-size: 12.5px; margin: 0 4px 8px; }
+  .key b.hi, .key b.lo { font-weight: 650; }
+  .toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .toggle button { border: 0; border-radius: 0; padding: 5px 10px; font-size: 13px; color: var(--muted); }
+  .toggle button.on { background: var(--accent); color: #fff; }
+  .odd { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 0; margin: 0; list-style: none; }
+  .odd li { padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .odd li:last-child { border-bottom: 0; }
+  .odd .luck { color: var(--faint); font-size: 12px; white-space: nowrap; }
+  header, main, footer { max-width: 1180px; }
+  .nets { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 6px; }
+  .net { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 9px 12px; min-width: 175px; }
+  .net .teams { font-weight: 650; }
+  .net .state { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .net.today { border-color: var(--accent); }
+  td.chg { font-weight: 650; }
+  .small { color: var(--faint); font-size: 12px; }
+  .pbar { display: inline-block; width: 46px; height: 6px; border-radius: 3px; background: var(--panel2); vertical-align: middle; margin-left: 6px; overflow: hidden; }
+  .pbar i { display: block; height: 100%; background: var(--accent); }
+  td.what { min-width: 280px; }
+  tr.live td:first-child b { color: var(--text); }
+  tr.gone td { color: var(--faint); }
+  .tag { font-size: 11px; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+  .tag.tonight { color: var(--accent); border-color: var(--accent); }
+  .tag.record { color: var(--warn); border-color: var(--warn); }
+</style>
+</head>
+<body>
+<header>
+  <h1>NBA Command Center</h1>
+  <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a href="clutch.html">Clutch</a><a href="players.html">With / without</a><a href="trends.html">Streaks &amp; outliers</a><a href="leaders.html">Team leaders</a><a href="defenses.html">vs top teams</a><a href="national.html">National TV</a><a class="on" href="records.html">Records</a></nav>
+  <div class="sub" id="sub">Loading…</div>
+</header>
+<main>
+  <h2>Tonight</h2>
+  <div id="tonight"></div>
+  <h2>Within reach</h2>
+  <div class="controls">
+    <select id="kind"><option value="">Everything</option><option value="pass">Passing an all-time name</option><option value="round">Round career numbers</option><option value="franchise">Franchise records</option><option value="coach">Coaches</option><option value="team">Team streaks and starts</option><option value="franchiseWins">Franchise wins</option></select>
+    <select id="team"><option value="">All teams</option></select>
+    <label>Within <select id="games"><option value="3">3 games</option><option value="5">5 games</option><option value="10">10 games</option><option value="99" selected>the list</option></select></label>
+    <input type="search" id="q" placeholder="Player, coach or team">
+  </div>
+  <div class="scroll"><table id="items"></table></div>
+  <h2>All-time lists, now</h2>
+  <div class="controls">
+    <select id="stat"></select>
+    <span class="key" id="statkey"></span>
+  </div>
+  <div class="scroll"><table id="board"></table></div>
+  <h2>Checks</h2>
+  <div id="checks" class="key"></div>
+</main>
+<footer id="foot"></footer>
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = (n) => (n == null ? "–" : Number(n).toLocaleString("en-US"));
+const pc = (p) => (p == null ? "–" : `${Math.round(p * 100)}%`);
+const md = (d) => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
+const LABEL = { pts: "Points", reb: "Rebounds", oreb: "Offensive rebounds", dreb: "Defensive rebounds", ast: "Assists", stl: "Steals", blk: "Blocks", fgm: "Field goals made", ftm: "Free throws made", fg3m: "3-pointers made", gp: "Games played", min: "Minutes", td: "Triple-doubles", wins: "Wins (players)" };
+const KIND = { pass: "all-time", round: "round number", franchise: "franchise", coach: "coach", team: "team record", franchiseWins: "franchise" };
+let D = null, INJ = new Map();
+const nk = (n) => String(n || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[.'’]/g, "").trim();
+const injTag = (i) => { const s = INJ.get(`${i.team}|${nk(i.who)}`); return s ? ` <span class="tag" style="color:var(--${s === "Out" || s === "Doubtful" ? "bad" : "warn"})">${esc(s.toLowerCase())} tonight</span>` : ""; };
+const kindTag = (i) => (i.rank === 1 ? `<span class="tag record">${i.kind === "franchise" ? "franchise record" : i.kind === "coach" ? "coaching record" : "NBA record"}</span>` : `<span class="tag">${KIND[i.kind]}</span>`);
+
+const bar = (p) => (p == null ? "–" : `${pc(p)}<span class="pbar"><i style="width:${Math.round(p * 100)}%"></i></span>`);
+function renderItems() {
+  const kind = $("kind").value, team = $("team").value, games = +$("games").value, q = $("q").value.trim().toLowerCase();
+  const rows = D.items.filter((i) => (!kind || i.kind === kind) && (!team || i.team === team) && (i.gamesAway ?? 99) <= games && (!q || `${i.who} ${i.team} ${i.text}`.toLowerCase().includes(q)));
+  $("items").innerHTML = `<tr><th>Who</th><th class="what">What</th><th class="num">Now</th><th class="num">Needs</th><th class="num">≈ games</th><th class="num">Next 5 games</th></tr>` +
+    (rows.length ? rows.map((i) => `<tr><td><b>${esc(i.who)}</b> <span class="team">${esc(i.team)}</span><br>${kindTag(i)}${i.tonight ? ` <span class="tag tonight">tonight${i.opp ? ` vs ${esc(i.opp)}` : ""}</span>` : ""}${injTag(i)}</td>
+      <td class="what">${esc(i.text.replace(/^[^:]+: /, ""))}${i.note ? `<div class="small">${esc(i.note)}</div>` : ""}</td><td class="num">${fmt(i.now)}</td><td class="num">${fmt(i.need)}</td><td class="num">${i.gamesAway ?? "–"}</td><td class="num">${bar(i.pNext5)}</td></tr>`).join("")
+      : `<tr><td colspan=6 class="empty">Nothing matches.</td></tr>`);
+}
+function renderBoard() {
+  const stat = $("stat").value, rows = D.boards[stat] || [];
+  $("board").innerHTML = `<tr><th class="num">Rank</th><th>Player</th><th class="num">Now</th><th class="num">Start of season</th><th class="num">This season</th></tr>` +
+    rows.map((r) => `<tr class="${r.live ? "live" : ""}"><td class="num">${r.rank ?? "<span class=small>–</span>"}${r.rank && r.preRank && r.rank !== r.preRank ? ` <span class="small ${r.rank < r.preRank ? "hi" : "lo"}">${r.rank < r.preRank ? "▲" : "▼"}${Math.abs(r.preRank - r.rank)}</span>` : ""}</td>
+      <td>${r.live ? `<b>${esc(r.name)}</b> <span class="team">${esc(r.team || "")}</span>` : esc(r.name)}</td><td class="num">${fmt(r.now)}</td><td class="num">${r.live ? fmt(r.now - (r.season ?? 0)) : ""}</td><td class="num">${r.live && r.season ? `+${fmt(r.season)}` : ""}</td></tr>`).join("");
+  $("statkey").textContent = "Bold: playing this season, totals current. A dash: the guide lists the total but not the rank.";
+}
+
+Promise.all([fetch("data/records.json", { cache: "no-store" }).then((r) => r.json()), fetch("data/injuries.json", { cache: "no-store" }).then((r) => r.json()).catch(() => null)]).then(([d, inj]) => {
+  D = d;
+  if (inj && inj.date === d.today) for (const p of inj.players || []) INJ.set(`${p.team}|${nk(p.name)}`, p.status);
+  for (const rows of Object.values(d.boards)) for (const r of rows) r.season = r.live && r.base != null ? r.now - r.base : r.season;
+  $("sub").textContent = `Career leaderboards and records, kept current: the NBA's Tip-Off Guide totals (through 2025-26) plus this season's games through ${md(d.through)}`;
+  const tn = d.items.filter((i) => i.tonight && ((i.pTonight ?? 0) >= 0.05 || i.need === 1) && !/Out|Doubtful/.test(INJ.get(`${i.team}|${nk(i.who)}`) || ""));
+  $("tonight").innerHTML = tn.length ? `<div class="scroll"><table><tr><th>Who</th><th class="what">What</th><th class="num">Tonight</th></tr>${tn.sort((a, b) => (b.pTonight ?? 1) - (a.pTonight ?? 1)).map((i) => `<tr><td><b>${esc(i.who)}</b> <span class="team">${esc(i.team)}${i.opp ? ` vs ${esc(i.opp)}` : ""}</span>${injTag(i)}</td><td class="what">${esc(i.text.replace(/^[^:]+: /, ""))}</td><td class="num">${i.pTonight != null ? bar(i.pTonight) : "if it happens"}</td></tr>`).join("")}</table></div>`
+    : `<div class="empty">Nothing on these lists is likely to fall tonight.</div>`;
+  $("team").innerHTML += [...new Set(d.items.map((i) => i.team))].sort().map((t) => `<option>${t}</option>`).join("");
+  $("stat").innerHTML = Object.keys(d.boards).filter((k) => LABEL[k]).map((k) => `<option value="${k}">${LABEL[k]}</option>`).join("");
+  ["kind", "team", "games", "q"].forEach((id) => $(id).addEventListener("input", renderItems));
+  $("stat").addEventListener("input", renderBoard);
+  const c = d.checks || { same: 0, differ: [] };
+  $("checks").innerHTML = `Totals checked against the teams' game notes and ESPN's career stats wherever they print the same number: <b>${c.same}</b> agree${c.differ.length ? `, <b class="lo">${c.differ.length} differ</b>: ${c.differ.map((x) => `${esc(x.player)} ${esc(x.stat)} ours ${fmt(x.ours)} vs ${esc(x.source)} ${fmt(x.theirs)}`).join("; ")}` : ""}.` +
+    (d.errata?.length ? `<br>Slips in the guide itself (the totals were used, not the slip): ${d.errata.map(esc).join("; ")}.` : "") +
+    (d.problems?.length ? `<br>Not counted: ${d.problems.map(esc).join("; ")}.` : "");
+  $("foot").innerHTML = `Source: ${esc(d.source)}, pages 76-83 (milestone watch), 90 (franchise records), 92-97 (career leaders) and 100-103 (streaks and best starts), plus this season's box scores. Ranks move as listed players pass each other; players the guide doesn't list can't be seen, so a rank is only as good as the guide's lists around it. Odds: from each player's games this season and how often he has played lately, before the injury report (players on tonight's report are marked). Coaches' totals assume the coach has run every game this season.`;
+  renderItems(); renderBoard();
+}).catch((e) => { $("sub").textContent = `Couldn't load the data: ${e.message}`; });
+</script>
+</body>
+</html>

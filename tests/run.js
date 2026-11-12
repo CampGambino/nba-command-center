@@ -1193,6 +1193,76 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   ok(pg.pts === 35 && pg.fgPct === 50 && Math.abs(pg.tsPct - Math.round((70 / (2 * (32 + 0.44 * 8))) * 1000) / 10) < 1e-9, "national TV: per-game averages and shooting", JSON.stringify(pg));
 }
 
+// ---------- Career leaderboards and records from the Tip-Off Guide (the user, 11/12) ----------
+{
+  const { currentRecords, addChances, strictKey } = await import("../src/records/guide.js");
+  const { makeSampler, simulate } = await import("../src/anticipate/model.js");
+  const { tonightStorylines } = await import("../src/anticipate/tonight.js");
+  const guide = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "tipoff-guide-2026-27.json"), "utf8"));
+  // The parsed guide: 10 per list, and the numbers the pages print.
+  const at = (stat, name) => guide.alltime[stat]?.find((r) => r.name === name)?.value;
+  ok(Object.values(guide.alltime).every((r) => r.length === 10) && Object.values(guide.active).every((r) => r.length === 10)
+    && at("pts", "LeBron James") === 43440 && at("fgm", "Shaquille O’Neal") === 11330 && at("ast", "Jason Kidd") === 12091 && at("fg3m", "Paul George") === 2449
+    && guide.active.pts.find((r) => r.name === "DeMar DeRozan")?.value === 26711,
+    "records: the guide's career lists (top 10 all-time and active, 12 stats) read with the printed totals");
+  const W = (p, s) => guide.watch.find((w) => w.player === p && w.stat === s);
+  ok(W("Stephen Curry", "pts")?.value === 26528 && W("Stephen Curry", "pts").rank === 19 && W("Bam Adebayo", "reb")?.scope === "franchise" && W("Bam Adebayo", "reb").team === "MIA"
+    && guide.targets.some((t) => t.name === "Oscar Robertson" && t.value === 26710 && t.rank === 17) && guide.targets.some((t) => t.name === "Kobe Bryant" && t.stat === "fgm" && t.value === 11719),
+    "records: milestone-watch pages: totals, franchise scope, the players ahead (a surname-only mention gets its full name)");
+  ok(guide.franchises.length === 30 && guide.teamRecords.startUnbeaten[0].w === 24 && guide.teamRecords.start2.some((r) => r.team === "Philadelphia 76ers")
+    && guide.coaches.watch.length === 3 && guide.errata.length === 1, "records: franchise records, streak and best-start lists (a team named with digits), coaches, the guide's one slip");
+
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const L = (o) => keys.map((k) => o[k] ?? 0);
+  const g = (d, opp, home, pf, pa, pl) => ({ d, opp, home, pf, pa, pl });
+  const mini = {
+    alltime: { pts: [{ name: "Old Star", value: 30000 }, { name: "Mid Star", value: 29000 }], fg3m: [] },
+    active: { pts: [{ name: "Young Gun", value: 28990 }] }, extra: {},
+    watch: [{ player: "Young Gun", stat: "pts", scope: "nba", value: 28990, rank: 3, page: 1 }, { player: "Young Gun", stat: "ast", scope: "franchise", team: "AAA", value: 990, rank: 2, page: 1 }],
+    targets: [{ stat: "ast", scope: "franchise", team: "AAA", name: "Club Legend", value: 1000, rank: 1, page: 1 }],
+    rounds: [], coaches: { wins: [{ name: "Old Coach", value: 503, rank: 9 }], watch: [{ name: "New Coach", team: "AAA", wins: 498, games: 995 }], targets: [], rounds: [{ name: "New Coach", stat: "games", value: 1000 }] },
+    franchises: [], teamRecords: { winStreak: [{ w: 5, team: "X", when: "then" }, { w: 4, team: "Y", when: "then" }] },
+  };
+  const files = {
+    AAA: { team: "AAA", keys, names: { 1: "Young Gun", 2: "Gary Payton II" }, games: [
+      g("2026-11-01", "BBB", true, 110, 100, { 1: L({ min: 34, pts: 20, ast: 5 }), 2: L({ min: 10, pts: 2 }) }),
+      g("2026-11-03", "BBB", false, 101, 100, { 1: L({ min: 30, pts: 10, ast: 3 }), 2: L({}) }),
+      g("2026-11-05", "CCC", true, 99, 90, { 1: L({ min: 33, pts: 15, reb: 10, ast: 11 }) }),
+      g("2026-11-07", "CCC", false, 120, 100, { 1: L({ min: 36, pts: 25, ast: 2 }) }) ] },
+  };
+  const r = currentRecords({ guide: mini, teamFiles: files, today: "2026-11-09", tonight: [{ away: "BBB", home: "AAA" }] });
+  const yg = r.players.find((p) => p.name === "Young Gun");
+  ok(yg.id === "1" && yg.totals.pts.now === 28990 + 70 && yg.totals.pts.season === 70, "records: a guide total plus this season's games (DNP rows add nothing)", JSON.stringify(yg.totals));
+  // He started 3rd (28,990) and is past Mid Star (29,000) now: 2nd, Mid Star 3rd.
+  ok(r.boards.pts.map((x) => `${x.name}:${x.rank}`).join() === "Old Star:1,Young Gun:2,Mid Star:3" && r.boards.pts[1].now === 29060, "records: ranks move when a listed player passes another", JSON.stringify(r.boards.pts.map((x) => [x.name, x.rank])));
+  ok(!r.items.some((i) => i.kind === "franchise"), "records: a franchise record he has already broken (990 + 21 > 1,000) isn't listed");
+  const r2 = currentRecords({ guide: { ...mini, alltime: { pts: [{ name: "Old Star", value: 29080 }, { name: "Mid Star", value: 29000 }] } }, teamFiles: files, today: "2026-11-09", tonight: [{ away: "BBB", home: "AAA" }] });
+  const p2 = r2.items.find((i) => i.kind === "pass");
+  ok(p2 && p2.passing.name === "Old Star" && p2.need === 29080 - 29060 + 1 && p2.text === "Gun: 21 points from passing Old Star (29,080) for the NBA record; 20 ties him" && p2.tonight && p2.gamesAway === 2,
+    "records: the next name ahead, the points needed, 'for the NBA record' at No. 1, games away from his rate, tonight's game", JSON.stringify(p2));
+  const coach = r.items.filter((i) => i.kind === "coach").map((i) => i.text);
+  ok(coach.includes("Coach: 2 wins from passing Old Coach (503) for 9th in career coaching wins") && coach.includes("Coach: coaches his 1,000th game"),
+    "records: a coach's wins and games = the guide's + his team's this season (4-0: 502 wins, 999 games)", JSON.stringify(coach));
+  const team = r.items.find((i) => i.kind === "team");
+  ok(team && team.text === "AAA: 4 straight; a win tonight makes 5, tie the best win streak in NBA history (X, then)" && team.tonight, "records: a team streak reaching the NBA's list", JSON.stringify(team));
+  ok(!r.players.some((p) => p.name === "Gary Payton") && strictKey("Gary Payton II") !== strictKey("Gary Payton") && strictKey("Tim Hardaway Jr.") === strictKey("Tim Hardaway Jr"),
+    "records: the guide's Gary Payton is never this season's Gary Payton II (suffixes kept in matching)");
+  addChances(r2.items, files, { makeSampler, simulate, sims: 500 });
+  ok(p2.pTonight > 0 && p2.pTonight < 1 && p2.pNext5 >= p2.pTonight, "records: chances tonight and in the next 5 games", JSON.stringify([p2.pTonight, p2.pNext5]));
+  // Storylines: a record line tonight, unless the notes carry the same milestone.
+  const watch = { today: "2026-11-09", games: [{ id: "1", awayTri: "BBB", homeTri: "AAA" }], teams: [] };
+  const recs = { today: "2026-11-09", items: [{ ...p2, pTonight: 0.4 }, { kind: "coach", team: "AAA", stat: "wins", need: 1, tonight: true, text: "Coach: 1 win from passing Old Coach (503) for 9th in career coaching wins", score: 3 }] };
+  const lines = tonightStorylines({ watch, records: recs })[0].lines.filter((l) => l.kind === "record").map((l) => l.text);
+  ok(lines.includes("Gun: 21 points from passing Old Star (29,080) for the NBA record; 20 ties him (40% tonight)") && lines.includes("Coach: a win tonight passes Old Coach (503) for 9th in career coaching wins"),
+    "records: tonight's storylines carry them", JSON.stringify(lines));
+  const watch2 = { ...watch, teams: [{ team: "AAA", items: [{ player: "Young Gun", stat: "pts", kind: "pass", scope: "nba", target: 29080, need: 21, passing: { player: "Old Star" }, publishable: true, importance: 50, pTonight: 0.4 }] }] };
+  const lines2 = tonightStorylines({ watch: watch2, records: recs })[0].lines.map((l) => l.kind);
+  ok(lines2.filter((k) => k === "milestone").length === 1 && lines2.filter((k) => k === "record").length === 1, "records: the notes' own version of the same milestone wins (no double line)", JSON.stringify(lines2));
+  const facts = { today: "2026-11-09", teams: { AAA: [{ text: "Young Gun needs 21 points to pass Old Star for the most in NBA history.", player: "Young Gun", score: 4 }] } };
+  const lines3 = tonightStorylines({ watch, records: recs, facts })[0].lines.map((l) => l.kind);
+  ok(!lines3.includes("history") && lines3.includes("record"), "records: a notes history line about the same pass gives way to the record line", JSON.stringify(lines3));
+}
+
 // ---------- NBA Cup final: counts in neither standings nor stats ----------
 {
   // Shapes as ESPN gave them for the 12/13/25 semifinals and 12/16/25 final (scoreboard and team schedule).
