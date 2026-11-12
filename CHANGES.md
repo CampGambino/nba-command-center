@@ -2,6 +2,14 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.41.0 (2026-11-12): Former MVPs, Finals MVPs and DPOYs named in record storylines
+
+### What changed
+- **`src/anticipate/tonight.js`:** a record line (passing an all-time name, a round number, a franchise or Cup record) for a player with a headline award carries it: "James (4× MVP): 11 assists from passing Jason Kidd (12,091) for 3rd all-time (54% tonight)". MVP, Finals MVP or DPOY only, whichever comes first in his résumé (from the NBA Guide's award history, 0.38). Goes to the Watch List, NBA Live's pre-game cards and the #alerts digest.
+
+### Tested
+- **New check** (570 pass): a 4× MVP's line carries "(4× MVP)"; a Sixth Man's doesn't.
+
 ## 0.40.0 (2026-11-12): Franchise streak records; reference tables (NBA Guide pp. 25-28, 44-45, 137-148)
 
 ### Why

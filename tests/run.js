@@ -1385,6 +1385,18 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     "reference: 2025 Cup leaders (Brunson 199 points) and active career playoff leaders (LeBron 8,521)");
 }
 
+// ---------- Award phrasing in record storylines ----------
+{
+  const { tonightStorylines } = await import("../src/anticipate/tonight.js");
+  const watch = { today: "2026-11-09", games: [{ id: "1", awayTri: "BBB", homeTri: "AAA" }], teams: [] };
+  const item = (who, text) => ({ kind: "pass", team: "AAA", who, stat: "pts", target: 10, need: 5, tonight: true, pTonight: 0.5, score: 3, text });
+  const recs = { today: "2026-11-09", awards: { "Star Guy": "4× MVP · 4× Finals MVP", "Sixth Guy": "Sixth Man" },
+    items: [item("Star Guy", "Guy: 5 points from passing Old (100) for 3rd all-time"), item("Sixth Guy", "Guy: 5 assists from passing Old (100) for 9th all-time")] };
+  const lines = tonightStorylines({ watch, records: recs })[0].lines.map((l) => l.text);
+  ok(lines.includes("Guy (4× MVP): 5 points from passing Old (100) for 3rd all-time (50% tonight)") && lines.includes("Guy: 5 assists from passing Old (100) for 9th all-time (50% tonight)"),
+    "record lines: a former MVP's carries his MVPs; a Sixth Man's doesn't (headline awards only)", JSON.stringify(lines));
+}
+
 // ---------- NBA Cup final: counts in neither standings nor stats ----------
 {
   // Shapes as ESPN gave them for the 12/13/25 semifinals and 12/16/25 final (scoreboard and team schedule).
