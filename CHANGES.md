@@ -18,8 +18,10 @@ Each entry: what changed, how it was tested, and what is still unproven.
 ### Tested
 - **430 checks pass.** Changed: every Athletic story posts, even a "Best bets" title; a story listed twice in the feed posts once; a muted phrase still skips an Athletic story; ESPN live blogs are still skipped.
 
+- **Wording:** the user set the schedule to every 5 minutes, so the page and the connected message no longer say "every 2 minutes" (applies at the next deploy).
+
 ### Still unproven
-- **The schedule running on its own.**
+- **The schedule running on its own:** checked again at 8:08 PM ET.
 
 ## 0.18.1 (2026-11-11): articles watcher, fixes from the first live run
 

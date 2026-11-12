@@ -1,7 +1,7 @@
 /**
  * NBA Command Center: articles watcher (a Cloudflare Worker).
  *
- * Every 2 minutes it reads ESPN's NBA news API and The Athletic's NBA RSS feed and posts each
+ * Every few minutes (on its Cloudflare cron schedule; the user runs it every 5) it reads ESPN's NBA news API and The Athletic's NBA RSS feed and posts each
  * NEW article worth reading to a Discord channel, with when it was published. Every Athletic NBA
  * story is posted. From ESPN, game recaps, the automated previews, videos, fantasy, betting and
  * wire stories are skipped; everything it
@@ -13,7 +13,7 @@
  *   2. Storage & Databases > KV > Create namespace "ncc-articles";
  *      Worker > Settings > Bindings > Add > KV namespace: variable name STATE.
  *   3. Worker > Settings > Variables and Secrets > Add > Secret: DISCORD_WEBHOOK = the channel's webhook URL.
- *   4. Worker > Settings > Trigger events > Add > Cron: every 2 minutes (*\/2 * * * *).
+ *   4. Worker > Settings > Trigger events > Add > Cron: every 5 minutes (*\/5 * * * *); every 2 also fits the free plan.
  *   5. Open https://<worker>.workers.dev/setup once. It posts the review page's private address
  *      to the Discord channel (never shows it in the browser), turns on the buttons under each
  *      post, and sends a test message.
@@ -21,7 +21,7 @@
  * Nothing here is secret: the webhook lives only in the Worker's secret. The review page's key
  * is derived from the webhook, so replacing the webhook also replaces the key.
  *
- * Free-plan budgets: 720 runs a day; KV writes only when something new happens (plus one every
+ * Free-plan budgets: 288 runs a day at every 5 minutes (720 at every 2); KV writes only when something new happens (plus one every
  * 30 minutes as a heartbeat), well under the 1,000 a day allowed. CPU (10 ms a run on the free
  * plan): a quiet run reads only the small "seen" record; the decision log is read and written
  * only when there is something new to log.
@@ -243,7 +243,7 @@ function page(st, log, rules, key, labels) {
 tr.skip td{color:#777}.m{color:#888;font-size:12px}.b{display:inline-block;margin:2px 4px 2px 0;padding:2px 7px;border:1px solid #ccc;border-radius:6px;text-decoration:none;font-size:12px;white-space:nowrap}.bad{color:#c00}
 input{padding:5px;font-size:14px}</style>
 <h2>NBA Command Center · Articles watcher</h2>
-<ul>${src}</ul><p class=m>Checks every 2 minutes; saves only when something new arrives, or every 30 minutes to show it's alive. Last saved ${ago(st.lastWrite)}${st.lastWrite && Date.now() - st.lastWrite > 40 * 60e3 ? ` <span class=bad>(over 40 minutes: the 2-minute schedule may not be running)</span>` : ""}.</p>
+<ul>${src}</ul><p class=m>Checks on its Cloudflare schedule (every 5 minutes); saves only when something new arrives, or every 30 minutes to show it's alive. Last saved ${ago(st.lastWrite)}${st.lastWrite && Date.now() - st.lastWrite > 40 * 60e3 ? ` <span class=bad>(over 40 minutes: the 2-minute schedule may not be running)</span>` : ""}.</p>
 ${list("Muted writers", rules.muteBylines, "unmute-writer")}${list("Always-allowed writers", rules.allowBylines, "unallow-writer")}${list("Muted phrases", rules.muteWords, "unmute-word")}
 <form action="/act"><input type=hidden name=k value="${key}"><input type=hidden name=do value="mute-word"><input name=v placeholder="mute a phrase in titles"> <button>Mute</button></form>
 <h3>Recent decisions</h3><table>${rows || "<tr><td>Nothing yet.</td></tr>"}</table>`;
@@ -291,7 +291,7 @@ export default {
       // opens /setup learns nothing. Opening it again just re-sends the link to the channel.
       const st = await load(env, "state", null) || { seen: {}, errors: {}, lastWrite: 0 };
       if (st.base !== url.origin) { st.base = url.origin; await save(env, "state", st); }
-      const ok = await discord(env, { content: `✅ Articles watcher connected. New ESPN and Athletic NBA articles will post here within about 2 minutes of going up (recaps, previews, videos, fantasy and betting skipped).\nYour private review page, to train what gets posted: ${url.origin}/review?k=${key}` });
+      const ok = await discord(env, { content: `✅ Articles watcher connected. New ESPN and Athletic NBA articles will post here within a few minutes of going up (every Athletic NBA story; from ESPN, recaps, previews, videos, fantasy and betting are skipped).\nYour private review page, to train what gets posted: ${url.origin}/review?k=${key}` });
       return html(ok ? "<p style='font:16px sans-serif'>Done. Check the Discord channel: a test message with your private review link is there.</p>" : "<p>Discord didn't accept the message. Check the DISCORD_WEBHOOK secret.</p>", ok ? 200 : 502);
     }
     if (url.searchParams.get("k") !== key) return new Response("Not found", { status: 404 });
