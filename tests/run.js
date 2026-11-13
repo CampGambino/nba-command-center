@@ -1031,7 +1031,7 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
         stack.push(path.posix.normalize(path.posix.join(path.posix.dirname(rel), spec)));
       }
     }
-    ok(!bad.length && seen.size === 3, "Discord step: scripts/notify.js loads only Node built-ins and our own files (no npm packages run with the secret)", [...seen, ...bad].join(", "));
+    ok(!bad.length && seen.size === 4, "Discord step: scripts/notify.js loads only Node built-ins and our own files (no npm packages run with the secret)", [...seen, ...bad].join(", "));
     // The PC copy has no .github/ (remote tools can't write it there); the check runs where it exists.
     const wfFile = path.join(root, ".github", "workflows", "daily.yml");
     const wf = fs.existsSync(wfFile) ? fs.readFileSync(wfFile, "utf8") : null;
@@ -2047,6 +2047,26 @@ await articlesChecks(ok);
   const st = TS({ watch: { today: "2026-11-14", games: [{ id: "1", awayTri: "BBB", homeTri: "AAA" }], teams: [] }, rest: out, maxLines: 10 })[0].lines.filter((l) => l.kind === "rest");
   ok(st.length === 2 && st.some((l) => /^AAA: second night of a back-to-back.*2-0 on no rest/.test(l.text)) && st.some((l) => /Tired Guy on no rest: 12\.0 points in 2 back-to-back games vs 24\.0/.test(l.text)),
     "rest on the Watch List: the team on a back-to-back and its regular with a clear split", JSON.stringify(st.map((l) => l.text)));
+}
+
+// ---------- Hot hand (src/situations/form.js, moved from GameFlow, 0.56) ----------
+{
+  const F = await import("../src/situations/form.js");
+  const g = (pts, min = 30) => ["2026-11-01", min, pts, 5, 3, 1];
+  const players = {
+    1: { name: "Heater", team: "AAA", g: [12, 14, 10, 13, 11, 12, 25, 28, 24, 26, 30].map((p) => g(p)) },
+    2: { name: "One Night", team: "AAA", g: [12, 14, 10, 13, 11, 12, 10, 40, 11, 12, 10].map((p) => g(p)) },
+    3: { name: "Cameo", team: "BBB", g: [12, 14, 10, 13, 11, 12, 25, 28, 24, 26, 30].map((p, i) => g(p, i === 9 ? 6 : 30)) },
+  };
+  const rows = F.formRows(players, { len: 5, key: "pts", dir: "up", minMinutes: 20 });
+  const h = rows.find((r) => r.name === "Heater"), o = rows.find((r) => r.name === "One Night");
+  ok(h && h.real && h.z > 3 && h.above === 5 && o && !o.real && !rows.some((r) => r.name === "Cameo"),
+    "hot hand: a real heater; one 40 doesn't make a heater (median test); a 6-minute game in the stretch takes a player out", JSON.stringify(rows.map((r) => [r.name, r.real, r.z.toFixed(1)])));
+  const runs = F.formRuns(players, { key: "pts", dir: "up" });
+  ok(runs.find((r) => r.name === "Heater")?.run === 5 && !runs.some((r) => r.name === "One Night" && r.run > 1), "hot hand: runs above his own normal (5 straight)", JSON.stringify(runs.map((r) => [r.name, r.run])));
+  const { tonightStorylines: TS } = await import("../src/anticipate/tonight.js");
+  const st = TS({ watch: { today: "2026-11-05", games: [{ id: "1", awayTri: "BBB", homeTri: "AAA" }], teams: [] }, form: { players }, maxLines: 10 })[0].lines.filter((l) => l.kind === "form");
+  ok(st.length === 1 && /^Heater is hot: 26\.6 points over his last 5 vs 12\.0/.test(st[0].text), "hot hand on the Watch List: only the real heater", JSON.stringify(st.map((l) => l.text)));
 }
 
 // ---------- snapshot ----------

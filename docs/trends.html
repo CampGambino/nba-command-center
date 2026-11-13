@@ -143,13 +143,27 @@
   </div>
   <div class="scroll"><table id="streaks"></table></div>
 
+  <h2 id="form">Hot and cold</h2>
+  <div class="controls">
+    <span class="toggle" id="fdir"><button data-d="up" class="on">Hot</button><button data-d="down">Cold</button></span>
+    <select id="flen"><option value="3">last 3 games</option><option value="4">last 4 games</option><option value="5" selected>last 5 games</option></select>
+    <select id="fstat"><option value="pts">points</option><option value="reb">rebounds</option><option value="ast">assists</option><option value="pra">pts + reb + ast</option><option value="min">minutes</option></select>
+    <select id="fsd"><option value="1">1.0+ SD from normal</option><option value="0.5">0.5+ SD</option></select>
+    <select id="ffloor"></select>
+    <select id="fmin"><option value="0">any minutes</option><option value="15">15+ min each</option><option value="20" selected>20+ min each</option><option value="25">25+ min each</option></select>
+    <span class="toggle" id="fview"><button data-v="stretch" class="on">Stretches</button><button data-v="runs">Runs</button></span>
+  </div>
+  <div class="key" id="fkey"></div>
+  <div class="scroll"><table id="ftab"></table></div>
+
   <h2>Team streaks</h2>
   <div class="controls"><span class="toggle" id="tdir"><button data-d="best" class="on">Best first</button><button data-d="worst">Worst first</button></span><label>Click a column to sort; click again to flip.</label></div>
   <div class="key">Current runs only. <b>Offense</b> counts the team's own points (red: scoring under 110, a cold offense). <b>Defense</b> counts what opponents scored against them: "Held opp. under 110" means their opponents scored under 110 in each game (red: allowing 120+).</div>
   <div class="scroll" id="tscroll"><table id="teams"></table></div>
 </main>
 <footer id="foot"></footer>
-<script>
+<script type="module">
+import { formRows, formRuns, FLOORS, STATS } from "./lib/situations/form.js";
 // A player's current team; if he has moved since his last game (traded, signed, waived), where he was.
 const teamCell = (x) => x.was ? `${x.team === "FA" ? "<i>no team</i>" : x.team} <span class="team" title="${x.team === "FA" ? "waived" : "moved"}${x.moved ? ` ${x.moved}` : ""}; these numbers are from ${x.was}">from ${x.was}</span>` : x.team;
 const $ = (id) => document.getElementById(id);
@@ -224,6 +238,39 @@ document.querySelectorAll("#sdir button").forEach((b) => b.onclick = () => { sdi
 document.querySelectorAll("#sorder button").forEach((b) => b.onclick = () => { sorder = b.dataset.o; sync(); renderStreaks(); });
 document.querySelectorAll("#tdir button").forEach((b) => b.onclick = () => { tdir = b.dataset.d; sync(); renderTeams(); });
 
+// ---- Hot and cold (GameFlow's hot hand, 0.56): docs/data/form.json ----
+let FD = null, fdir = "up", fview = "stretch";
+function setFloors() {
+  const k = $("ffloor"), key = $("fstat").value, want = FLOORS[key] || FLOORS.pts, keep = k.value;
+  k.innerHTML = want.map((v) => `<option value="${v}">${v ? `${v}+ ${key === "min" ? "min" : key === "pra" ? "PRA" : STATS[key].split(" ")[0]}` : "no floor"}</option>`).join("");
+  k.value = want.map(String).includes(keep) ? keep : String(want.includes(10) ? 10 : want[1] ?? 0);
+}
+function renderForm() {
+  if (!FD) return;
+  document.querySelectorAll("#fdir button").forEach((b) => b.classList.toggle("on", b.dataset.d === fdir));
+  document.querySelectorAll("#fview button").forEach((b) => b.classList.toggle("on", b.dataset.v === fview));
+  const len = +$("flen").value, key = $("fstat").value, k = +$("fsd").value, floor = +$("ffloor").value, minMinutes = +$("fmin").value;
+  const word = STATS[key], hot = fdir === "up";
+  const md = (d) => new Date(d + "T12:00:00").toLocaleDateString([], { month: "short", day: "numeric" });
+  for (const id of ["flen", "fsd", "ffloor", "fmin"]) $(id).hidden = fview === "runs" && id !== "ffloor" ? true : false;
+  if (fview === "runs") {
+    const rows = formRuns(FD.players, { key, dir: fdir }).filter((r) => !floor || (hot ? r.runAvg : r.baseAvg) >= floor).slice(0, 25);
+    $("fkey").innerHTML = `Games in a row, from his latest, each ${hot ? "above" : "below"} his average in ${word} over all the games before them (2+ needed; 5+ games of normal behind it). Longest first.${floor ? ` Floor: ${hot ? "the run" : "his normal"} at ${floor}+.` : ""}`;
+    $("ftab").innerHTML = `<tr><th>Player</th><th>Team</th><th class="num">Run</th><th class="num">Run avg</th><th class="num">Normal before</th><th>The games</th><th class="num">Latest</th></tr>` +
+      (rows.map((r) => `<tr><td><b>${esc(r.name)}</b></td><td>${r.team}</td><td class="num"><b>${r.run}</b></td><td class="num">${r.runAvg.toFixed(1)}</td><td class="num">${r.baseAvg.toFixed(1)} <span class="team">${r.baseN} g</span></td><td class="team">${r.values.join(", ")}</td><td class="num">${md(r.last)}</td></tr>`).join("") || `<tr><td class="empty" colspan="7">No runs.</td></tr>`);
+    return;
+  }
+  const rows = formRows(FD.players, { len, key, dir: fdir, floor, minMinutes }).filter((r) => (hot ? r.z >= k : r.z <= -k));
+  $("fkey").innerHTML = `His last ${len} games played against his <b>normal</b> (his games before them, 5+ needed), in standard deviations of that normal. <b>Real</b>: the middle game of the stretch is also ${hot ? "above" : "below"} normal, so one big night can't carry it; rows that fail it are dimmed. ${floor ? `Floor: ${hot ? "the stretch" : "his normal"} at ${floor}+. ` : ""}${minMinutes ? `Every game of the stretch ${minMinutes}+ minutes. ` : ""}P / R / A: whether points, rebounds and assists all moved the same way. ${hot ? "Hot" : "Cold"} stretches in points also go on the Watch List when he plays that night (1.0+ SD, real, 15+ points, 20+ minutes).`;
+  $("ftab").innerHTML = `<tr><th>Player</th><th>Team</th><th class="num">Last ${len}</th><th class="num">Normal</th><th class="num">Gap</th><th class="num">SD</th><th>The games</th><th class="num">${hot ? "Above" : "Below"}</th><th class="num">Min</th><th class="num">Season</th><th>P / R / A</th><th class="num">Latest</th></tr>` +
+    (rows.slice(0, 40).map((r) => `<tr style="${r.real ? "" : "opacity:.5"}"><td><b>${esc(r.name)}</b></td><td>${r.team}</td><td class="num"><b>${r.recentAvg.toFixed(1)}</b></td><td class="num">${r.baseAvg.toFixed(1)} <span class="team">${r.baseN} g</span></td><td class="num ${hot ? "hi" : "lo"}">${r.gap > 0 ? "+" : ""}${r.gap.toFixed(1)}</td><td class="num">${r.z > 0 ? "+" : ""}${r.z.toFixed(1)}</td><td class="team">${r.values.join(", ")}</td><td class="num">${hot ? r.above : r.below} of ${len}</td><td class="num">${r.minAvg.toFixed(0)}</td><td class="num">${r.seasonAvg.toFixed(1)}</td><td>${r.cats.map((c) => `<span class="${c.moved ? (hot ? "hi" : "lo") : "team"}">${c.cat === "pts" ? "P" : c.cat === "reb" ? "R" : "A"}</span>`).join(" ")}</td><td class="num">${md(r.last)}</td></tr>`).join("") || `<tr><td class="empty" colspan="12">Nobody clears this filter.</td></tr>`);
+}
+document.querySelectorAll("#fdir button").forEach((b) => b.onclick = () => { fdir = b.dataset.d; renderForm(); });
+document.querySelectorAll("#fview button").forEach((b) => b.onclick = () => { fview = b.dataset.v; renderForm(); });
+$("fstat").onchange = () => { setFloors(); renderForm(); };
+for (const id of ["flen", "fsd", "ffloor", "fmin"]) $(id).onchange = renderForm;
+setFloors();
+fetch("data/form.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => { FD = d; if (FD) renderForm(); else $("fkey").textContent = "Form data comes with the next build."; }).catch(() => {});
 fetch("data/trends.json", { cache: "no-store" }).then((r) => r.json()).then((d) => {
   T = d;
   const dates = Object.keys(d.anomalies).sort().reverse();

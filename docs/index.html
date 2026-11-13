@@ -278,7 +278,7 @@ async function poll() {
 
 // Tonight's storylines: the shared builder (also used for the Discord digest), with the
 // season data it needs. A failure here never stops the rest of the page.
-const KIND = { matchup: ["🆚", "#matchups"], history: ["📜", "#history"], injury: ["🩹", "players.html"], milestone: ["🎯", "#all"], streak: ["🔥", "trends.html"], lead: ["👑", "leaders.html"], shooting: ["🏹", "leaders.html"], club: ["💯", "leaders.html#club"], tv: ["📺", "national.html"], rest: ["😴", "situations.html#rest"], team: ["📈", "trends.html"] };
+const KIND = { matchup: ["🆚", "#matchups"], history: ["📜", "#history"], injury: ["🩹", "players.html"], milestone: ["🎯", "#all"], streak: ["🔥", "trends.html"], lead: ["👑", "leaders.html"], shooting: ["🏹", "leaders.html"], club: ["💯", "leaders.html#club"], tv: ["📺", "national.html"], rest: ["😴", "situations.html#rest"], form: ["♨️", "trends.html#form"], team: ["📈", "trends.html"] };
 let FACTS = null;
 let INJ = null;
 function renderHistory(facts, injuries) {
@@ -318,8 +318,8 @@ function renderMatchups(m, injuries) {
 
 async function renderStories() {
   try {
-    const [trends, leaders, injuries, facts, matchups, national, rest] = await Promise.all(["data/trends.json", "data/leaders.json", "data/injuries.json", "data/notes-facts.json", "data/matchups.json", "data/national.json", "data/rest.json"].map((f) => fetch(f, { cache: "no-store" }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))));
-    const stories = tonightStorylines({ watch: data, trends, leaders, injuries, facts, matchups, national, rest, maxLines: 8 });
+    const [trends, leaders, injuries, facts, matchups, national, rest, form] = await Promise.all(["data/trends.json", "data/leaders.json", "data/injuries.json", "data/notes-facts.json", "data/matchups.json", "data/national.json", "data/rest.json", "data/form.json"].map((f) => fetch(f, { cache: "no-store" }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))));
+    const stories = tonightStorylines({ watch: data, trends, leaders, injuries, facts, matchups, national, rest, form, maxLines: 8 });
     renderHistory(facts, injuries);
     renderMatchups(matchups, injuries);
     $("injAsOf").textContent = injuries?.report?.asOf ? ` Injuries from the official NBA injury report of ${injuries.report.asOf} ET.` : "";

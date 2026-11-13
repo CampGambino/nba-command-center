@@ -2,6 +2,34 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.56.0 (2026-11-13): GameFlow merge, stage 2d: hot hand, on Streaks & outliers and the Watch List
+
+### What changed
+- **Streaks & outliers → "Hot and cold"** (`trends.html#form`), GameFlow's Hot hand with its rules (`src/situations/form.js`):
+  - a player's last 3/4/5 games against his **normal**, the games before them (5+ needed), in standard deviations of that normal;
+  - **real** = the middle game of the stretch is on the same side as the average, so one big night can't carry it (rows that fail it are dimmed);
+  - a floor (on the stretch for hot, on his normal for cold) and a minutes bar every game must clear;
+  - P / R / A shows whether points, rebounds and assists all moved;
+  - **Runs**: games in a row, from his latest, each beating his average over everything before them.
+- **Watch List (new line kind `form`, at most 2 a game):** a player playing tonight whose last 5 games are 1+ SD hot or cold in points, real, 15+ points (stretch for hot, normal for cold), 20+ minutes every game, latest game within 10 days.
+  - On this season's data for 11/13: Wagner hot (28.0 vs 19.7, +1.8 SD), Peterson hot, Klay Thompson hot, Mobley cold (13.8 vs 19.1).
+- The build writes each player's game lines to `docs/data/form.json` (players with 8+ games). `trends.html` is now a module page.
+- **Game Flow page:** "Hot hand" is gone from its tabs.
+- The Discord step's own-files check now allows `src/situations/form.js` (our file, no npm).
+
+### Tested
+- 644 checks pass. New ones cover:
+  - a real heater;
+  - one 40-point night that isn't one (median test);
+  - a 6-minute game taking a player out;
+  - a 5-game run;
+  - the Watch List line only for the real heater.
+- Section screenshots on this season's data, both views.
+- Fixed before shipping: the Hot list let negative stretches through (it filtered on the size of the change, not its sign). Runs now honour the floor.
+
+### Unproven
+- The first build writes `form.json`. Until then the section and Watch List ask for it and get a 404, which they handle.
+
 ## 0.55.0 (2026-11-13): GameFlow merge, stage 2c: rest and back-to-backs, for teams and players
 
 The user: "Rest and back-to-backs is a good one to bring over, and I also want to extend that to player performance to catch any outliers."

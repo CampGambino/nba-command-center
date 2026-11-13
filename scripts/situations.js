@@ -330,6 +330,13 @@ for (const [tri, games] of Object.entries(perTeam)) {
   const ch = Object.values(byDate).flat().filter((a) => a.notes.some((n) => n.careerHigh)).length;
   console.log(`outliers: ${Object.values(byDate).flat().length} over ${dates.length} dates, ${ch} with a career high`);
   fs.writeFileSync(path.join(root, "docs", "data", "trends.json"), JSON.stringify({ generatedAt: out.generatedAt, through, streaks: activeStreaks(pg, store.names || {}).map(nowTeam), teams: teamStreaks(rows), anomalies: byDate }));
+  // Hot hand (src/situations/form.js, moved from GameFlow in 0.56): each player's game lines for the form section.
+  try {
+    const { formData } = await import("../src/situations/form.js");
+    const F = formData(pg, store.names || {}, (id, last) => nowTeam({ id, team: last }).team);
+    fs.writeFileSync(path.join(root, "docs", "data", "form.json"), JSON.stringify({ generatedAt: out.generatedAt, through, ...F }));
+    console.log(`form: ${Object.keys(F.players).length} players with 8+ games`);
+  } catch (e) { console.error(`form not written: ${e.message}`); }
 }
 // Team leaders: game-by-game leads, season-total leaders, and shooting lines (50 / 40 / 90).
 {
@@ -430,7 +437,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const facts = fs.existsSync(path.join(root, "docs", "data", "notes-facts.json")) ? rd("notes-facts.json") : null;
     const records = fs.existsSync(path.join(root, "docs", "data", "records.json")) ? rd("records.json") : null;
     const matchupData = fs.existsSync(path.join(root, "docs", "data", "matchups.json")) ? rd("matchups.json") : null;
-    const games = tonightStorylines({ watch, trends: rd("trends.json"), leaders: rd("leaders.json"), injuries, facts, records, matchups: matchupData, national: (() => { try { return rd("national.json"); } catch { return null; } })(), rest: (() => { try { return rd("rest.json"); } catch { return null; } })(), maxLines: 8 })
+    const games = tonightStorylines({ watch, trends: rd("trends.json"), leaders: rd("leaders.json"), injuries, facts, records, matchups: matchupData, national: (() => { try { return rd("national.json"); } catch { return null; } })(), rest: (() => { try { return rd("rest.json"); } catch { return null; } })(), form: (() => { try { return rd("form.json"); } catch { return null; } })(), maxLines: 8 })
       .map((g) => ({ ...g, lines: g.lines.map(({ kind, team, text, score }) => ({ kind, team, text, score: Math.round(score * 100) / 100 })) }));
     fs.writeFileSync(path.join(root, "docs", "data", "tonight.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, games }));
   } catch (e) { console.error(`tonight's storylines not written: ${e.message}`); }
