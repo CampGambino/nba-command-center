@@ -1,0 +1,67 @@
+{
+  "source": "Basketball Reference pages the user screenshotted (career and team totals, through the date given)",
+  "note": "Third-party confirmations used to settle a disagreement between our total and a team's game notes or the guide. A row settles a check only while our total still equals its value (any game after asOf moves it on).",
+  "rows": [
+    {
+      "player": "Al Horford",
+      "stat": "dreb",
+      "scope": "career",
+      "value": 6982,
+      "asOf": "2026-11-13",
+      "season": 33
+    },
+    {
+      "player": "Victor Wembanyama",
+      "stat": "blk",
+      "scope": "career",
+      "value": 680,
+      "asOf": "2026-11-13",
+      "season": 53
+    },
+    {
+      "player": "Victor Wembanyama",
+      "stat": "blk",
+      "scope": "franchise",
+      "team": "SAS",
+      "value": 680,
+      "asOf": "2026-11-13",
+      "season": 53
+    },
+    {
+      "player": "Donovan Mitchell",
+      "stat": "fg3m",
+      "scope": "franchise",
+      "team": "CLE",
+      "value": 916,
+      "asOf": "2026-11-13",
+      "season": 32
+    },
+    {
+      "player": "Sam Merrill",
+      "stat": "fg3m",
+      "scope": "franchise",
+      "team": "CLE",
+      "value": 457,
+      "asOf": "2026-11-13",
+      "season": 14
+    },
+    {
+      "player": "Jarrett Allen",
+      "stat": "reb",
+      "scope": "franchise",
+      "team": "CLE",
+      "value": 3942,
+      "asOf": "2026-11-13",
+      "season": 83
+    },
+    {
+      "player": "Domantas Sabonis",
+      "stat": "oreb",
+      "scope": "franchise",
+      "team": "SAC",
+      "value": 961,
+      "asOf": "2026-11-13",
+      "season": 39
+    }
+  ]
+}

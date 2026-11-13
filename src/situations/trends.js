@@ -67,7 +67,10 @@ export function activeStreaks(pg, names = {}) {
   return out.sort((a, b) => b.length - a.length || a.name.localeCompare(b.name));
 }
 
-/** Team streaks: wins, losses, home, road, scoring 120+, holding under 110. */
+/**
+ * Team streaks: wins, losses, home, road; their own scoring (120+, 110+, held under 110) and their
+ * defence (opponents held under 110 and under 100, opponents scoring 120+). Each is the current run.
+ */
 export function teamStreaks(rows) {
   const tg = {};
   for (const g of [...rows].sort((a, b) => a.d.localeCompare(b.d) || a.id.localeCompare(b.id))) {
@@ -89,7 +92,11 @@ export function teamStreaks(rows) {
       home: hw === null ? null : { type: hw ? "W" : "L", n: run(homeG, (x) => (x.pf > x.pa) === hw) },
       road: rw === null ? null : { type: rw ? "W" : "L", n: run(roadG, (x) => (x.pf > x.pa) === rw) },
       scored120: run(games, (x) => x.pf >= 120),
+      scored110: run(games, (x) => x.pf >= 110),
+      under110: run(games, (x) => x.pf < 110),
       held110: run(games, (x) => x.pa < 110),
+      held100: run(games, (x) => x.pa < 100),
+      allowed120: run(games, (x) => x.pa >= 120),
     };
   }
   return out;

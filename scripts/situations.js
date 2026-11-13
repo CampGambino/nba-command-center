@@ -194,7 +194,8 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const streaksFile = path.join(root, "src", "data", `nba-franchise-streaks-${season - 1}-${String(season).slice(2)}.json`);
     const franchiseStreaks = fs.existsSync(streaksFile) ? JSON.parse(fs.readFileSync(streaksFile, "utf8")) : null;
     const rec = currentRecords({ guide, teamFiles, today, tonight, scorers, coachList, coachTeams: coachList ? coachTeams : null, current, franchiseStreaks });
-    addChances(rec.items, teamFiles, { makeSampler, simulate });
+    const tonightTeams = new Set((tonight || []).flatMap((g) => [g.home, g.away]));
+    addChances(rec.items, teamFiles, { makeSampler, simulate, tonightTeams });
     // NBA Cup career lists (src/records/cup.js): the Cup media guide's leaders plus this season's Cup games.
     let cupOut = null;
     const cupFile = path.join(root, "src", "data", `nba-cup-${season - 1}-${String(season).slice(2)}.json`);
@@ -203,7 +204,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
       const cup = JSON.parse(fs.readFileSync(cupFile, "utf8"));
       const c = cupRecords({ cup, teamFiles, tonight, today });
       // Chances from his games this season (all of them: a Cup game is a regular game).
-      addChances(c.items, teamFiles, { makeSampler, simulate });
+      addChances(c.items, teamFiles, { makeSampler, simulate, tonightTeams: new Set(c.tonight.flatMap((g) => [g.home, g.away])) });
       rec.items.push(...c.items);
       cupOut = { played: c.cupGamesPlayed, tonight: c.tonight, boards: Object.fromEntries(Object.entries(c.boards).map(([k, rows]) => [k, rows.slice(0, 25).map(({ name, team, live, now, base, rank, preRank }) => ({ name, team, live, now, base, rank: rank ?? null, preRank: preRank ?? null }))])),
         schedule: cup.group.filter((g) => g.d >= today).slice(0, 15), standings: c.standings, problems: c.problems };
@@ -216,7 +217,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     if (fs.existsSync(fcFile)) {
       const { franchiseRecords } = await import("../src/records/franchise.js");
       const f = franchiseRecords({ careers: JSON.parse(fs.readFileSync(fcFile, "utf8")), teamFiles, tonight });
-      addChances(f.items, teamFiles, { makeSampler, simulate });
+      addChances(f.items, teamFiles, { makeSampler, simulate, tonightTeams });
       // The Tip-Off Guide's franchise marks say the same thing: keep one of each (the history list's).
       const seen = new Set(f.items.map((i) => `${strictKey(i.who)}|${i.team}|${i.stat}|${i.target}`));
       rec.items = rec.items.filter((i) => i.kind !== "franchise" || !seen.has(`${strictKey(i.who)}|${i.team}|${i.stat}|${i.target}`));
@@ -292,8 +293,18 @@ for (const [tri, games] of Object.entries(perTeam)) {
       context = careerContext({ seasons: JSON.parse(fs.readFileSync(csFile, "utf8")), teamFiles }).slice(0, 250);
       console.log(`career context: ${context.length} notes (e.g. ${context.find((c) => c.kind === "change")?.text || "none"})`);
     }
+    // Outside confirmations (Basketball Reference pages the user checked) settle disagreements in the checks.
+    let settledErrata = [];
+    const vFile = path.join(root, "src", "data", "verified-totals.json");
+    if (fs.existsSync(vFile)) {
+      const { settleChecks, settleProblems } = await import("../src/records/verified.js");
+      const verified = JSON.parse(fs.readFileSync(vFile, "utf8"));
+      settleChecks(checks, verified, today);
+      const s = settleProblems(rec.problems, rec.players, verified);
+      rec.problems = s.problems; settledErrata = s.errata;
+    }
     fs.writeFileSync(path.join(root, "docs", "data", "records.json"), JSON.stringify({ titles, awards, context,
-      generatedAt: out.generatedAt, through: rec.through, today, source: guide.source, items: rec.items, boards, checks, problems: rec.problems, errata: guide.errata || [],
+      generatedAt: out.generatedAt, through: rec.through, today, source: guide.source, items: rec.items, boards, checks, problems: rec.problems, errata: [...(guide.errata || []), ...settledErrata],
       coaches: coachTeams, teamRecords: guide.teamRecords, cup: cupOut, franchise: franchiseOut, seasonPace: seasonPaceOut, franchiseGame: franchiseGameOut,
     }));
     console.log(`records: ${rec.players.filter((p) => p.id).length} guide players playing this season, ${rec.items.length} within reach (${rec.items.filter((i) => i.tonight).length} playing tonight); vs notes/ESPN: ${checks.same} agree, ${checks.differ.length} differ${rec.problems.length ? `; ${rec.problems.length} problems` : ""}`);
@@ -395,7 +406,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const facts = fs.existsSync(path.join(root, "docs", "data", "notes-facts.json")) ? rd("notes-facts.json") : null;
     const records = fs.existsSync(path.join(root, "docs", "data", "records.json")) ? rd("records.json") : null;
     const matchupData = fs.existsSync(path.join(root, "docs", "data", "matchups.json")) ? rd("matchups.json") : null;
-    const games = tonightStorylines({ watch, trends: rd("trends.json"), leaders: rd("leaders.json"), injuries, facts, records, matchups: matchupData, maxLines: 8 })
+    const games = tonightStorylines({ watch, trends: rd("trends.json"), leaders: rd("leaders.json"), injuries, facts, records, matchups: matchupData, national: (() => { try { return rd("national.json"); } catch { return null; } })(), maxLines: 8 })
       .map((g) => ({ ...g, lines: g.lines.map(({ kind, team, text, score }) => ({ kind, team, text, score: Math.round(score * 100) / 100 })) }));
     fs.writeFileSync(path.join(root, "docs", "data", "tonight.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, games }));
   } catch (e) { console.error(`tonight's storylines not written: ${e.message}`); }

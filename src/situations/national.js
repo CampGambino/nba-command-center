@@ -21,18 +21,23 @@ const blank = () => ({ gp: 0, ...Object.fromEntries(STATS.map((k) => [k, 0])) })
 
 /**
  * teamFiles: { TRI: file }. index: nationalIndex(). currentTeam: (id) -> team code (optional; else his last team).
- * -> { teams: { TRI: { nat: { w, l }, other: { w, l } } }, players: [{ id, name, team, nat, other }] } where nat/other
- *    are totals ({ gp, min, pts, … }) over the games he played.
+ * -> { teams: { TRI: { nat: { w, l }, other: { w, l }, byNet: { ABC: { w, l }, … } } }, players: [{ id, name, team, nat, other }] }
+ *    where nat/other are totals ({ gp, min, pts, … }) over the games he played. A game carried by two networks
+ *    counts for each (byNet), once in nat.
  */
 export function nationalSplits(teamFiles, index, { currentTeam = null } = {}) {
   const teams = {}, players = {};
   for (const [tri, f] of Object.entries(teamFiles)) {
     const ix = Object.fromEntries((f.keys || []).map((k, i) => [k, i]));
-    const t = (teams[tri] = { nat: { w: 0, l: 0 }, other: { w: 0, l: 0 } });
+    const t = (teams[tri] = { nat: { w: 0, l: 0 }, other: { w: 0, l: 0 }, byNet: {} });
     for (const g of f.games || []) {
       const key = g.home ? nationalKey(g.d, g.opp, tri) : nationalKey(g.d, tri, g.opp);
       const side = index.has(key) ? "nat" : "other";
-      if (g.pf != null && g.pa != null) t[side][g.pf > g.pa ? "w" : "l"]++;
+      if (g.pf != null && g.pa != null) {
+        const r = g.pf > g.pa ? "w" : "l";
+        t[side][r]++;
+        for (const n of new Set(index.get(key) || [])) (t.byNet[n] ??= { w: 0, l: 0 })[r]++;
+      }
       for (const [id, row] of Object.entries(g.pl || {})) {
         if (!(row[ix.min] > 0)) continue;
         const p = (players[id] ??= { id, name: (f.names || {})[id] || id, team: tri, last: "", nat: blank(), other: blank() });

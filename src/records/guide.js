@@ -365,29 +365,56 @@ function streak(R) {
  * games this season (src/anticipate/model.js). pPlay = share of his team's last 10 games he played.
  * Mutates and returns items.
  */
-export function addChances(items, teamFiles, { makeSampler, simulate, sims = 3000 }) {
+/**
+ * Odds from each player's games this season. When the man he is passing is still playing (passing.live),
+ * that player's games count too: he can pull away, so both are simulated night by night and the pass needs
+ * our player's total to get beyond his. He plays tonight only if his team does (tonightTeams); a franchise
+ * mark moves only with games for that franchise (a former player now elsewhere is frozen).
+ * Brunson 1 point from Giannis on the Cup list while Giannis also plays tonight is not the same as 1 point
+ * from a retired name.
+ */
+export function addChances(items, teamFiles, { makeSampler, simulate, sims = 3000, tonightTeams = null }) {
   const L = seasonLines(teamFiles);
+  const byName = new Map();
+  for (const p of Object.values(L)) { const k = strictKey(p.name); if (!byName.has(k)) byName.set(k, p); else byName.set(k, null); } // null: two players, same name
   const cache = new Map();
+  const playRate = (p) => {
+    const tg = (p.teamGames[p.team] || []).slice(-10);
+    return Math.min(0.97, tg.length >= 3 ? Math.max(0.05, tg.filter((g) => g.played).length / tg.length) : 0.9);
+  };
   for (const it of items) {
     if (!it.id || !L[it.id] || it.kind === "coach" || it.kind === "team" || it.kind === "franchiseWins") continue;
     const p = L[it.id];
     const lines = it.kind === "franchise" ? p.lines.filter((l) => l.team === it.team) : p.lines;
     if (lines.length < 3) { it.note = "fewer than 3 games this season: no odds"; continue; }
     const binary = ["gp", "td", "wins"].includes(it.stat);
-    const key = `${it.id}|${binary}`;
-    if (!cache.has(key)) {
-      const tg = (p.teamGames[p.team] || []).slice(-10);
-      const pPlay = Math.min(0.97, tg.length >= 3 ? Math.max(0.05, tg.filter((g) => g.played).length / tg.length) : 0.9);
-      cache.set(key, { pPlay, sample: makeSampler(lines.slice(0, 20), { smooth: binary ? 0 : 0.2 }) });
-    }
+    const key = `${it.id}|${binary}|${it.kind === "franchise" ? it.team : ""}`;
+    if (!cache.has(key)) cache.set(key, { pPlay: playRate(p), sample: makeSampler(lines.slice(0, 20), { smooth: binary ? 0 : 0.2 }) });
     const c = cache.get(key);
     const n = Math.max(1, it.horizonGames ?? 5); // the Cup: his Cup games left
     const games = Array.from({ length: n }, () => ({ pPlay: c.pPlay }));
-    const sim = simulate({ need: it.need, stat: it.stat, sample: c.sample, games, sims, seed: hash(`${it.who}|${it.stat}|${it.need}`) });
+    // The players being passed who are still adding to their totals.
+    const rivals = [], rivalNames = [];
+    if (it.passing?.live && it.passing.name) {
+      for (const nm of String(it.passing.name).split(" and ")) {
+        const q = byName.get(strictKey(nm));
+        if (!q || q.id === it.id) continue;
+        if (it.kind === "franchise" && q.team !== it.team) continue; // his total for this franchise is frozen
+        const ql = it.kind === "franchise" ? q.lines.filter((l) => l.team === it.team) : q.lines;
+        if (ql.length < 3) continue;
+        const qp = playRate(q);
+        const tonightToo = !tonightTeams || tonightTeams.has(q.team);
+        rivals.push({ sample: makeSampler(ql.slice(0, 20), { smooth: binary ? 0 : 0.2 }), games: Array.from({ length: n }, (_, i) => ({ pPlay: i === 0 && it.tonight && !tonightToo ? 0 : qp })) });
+        rivalNames.push({ name: q.name, tonight: !!it.tonight && tonightToo && !!tonightTeams });
+      }
+    }
+    // The bar against a rival is passing him: one more than his total, so need already holds that.
+    const sim = simulate({ need: it.need, stat: it.stat, sample: c.sample, games, rivals, sims, seed: hash(`${it.who}|${it.stat}|${it.need}`) });
     if (sim.unknown) continue;
     it.pPlay = Math.round(c.pPlay * 100) / 100;
     it.pTonight = it.tonight ? Math.round(sim.byGame[0] * 1000) / 1000 : 0;
     it.pNext5 = Math.round(sim.byGame[Math.min(4, n - 1)] * 1000) / 1000;
+    if (rivalNames.length) it.rivals = rivalNames;
   }
   return items;
 }

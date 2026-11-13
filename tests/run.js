@@ -984,6 +984,7 @@ const more = {};
     ok(!quiet.some((x) => x.notes.some((n) => n.stat === "pts" && !n.low)), "outliers: an ordinary 16-point game isn't listed as a scoring outlier", JSON.stringify(quiet.map((x) => x.text)));
     const ts = teamStreaks(rows);
     ok(ts.AAA.streak.type === "W" && ts.AAA.streak.n === 8 && ts.AAA.home.n === 8 && ts.AAA.road === null && ts.BBB.streak.type === "L", "team streaks: wins, home wins, no road games yet, losses", JSON.stringify(ts.AAA));
+    ok(ts.AAA.scored110 === 8 && ts.AAA.under110 === 0 && ts.AAA.held110 === 8 && ts.AAA.held100 === 0 && ts.BBB.under110 > 0 && ts.BBB.allowed120 === 0, "team streaks: 110+ scored, opponents held under 110 but not under 100 (100 isn't under), the losers' own scoring held under 110", JSON.stringify([ts.AAA, ts.BBB]));
   }
 }
 function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
@@ -1189,6 +1190,9 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   ok(star.nat.gp === 2 && star.nat.pts === 70 && star.other.gp === 2 && star.other.pts === 44 && star.team === "DDD" && bench.nat.gp === 1 && bench.other.gp === 0,
     "national TV: a player's national and other games, summed across his teams (latest team shown); a 0-minute game doesn't count", JSON.stringify(sp.players));
   ok(sp.teams.AAA.nat.w === 1 && sp.teams.AAA.nat.l === 0 && sp.teams.AAA.other.w === 1 && sp.teams.AAA.other.l === 1 && sp.teams.DDD.nat.l === 1, "national TV: team records split the same way", JSON.stringify(sp.teams));
+  const sp2 = nationalSplits(files, nationalIndex({ games: [{ d: "2026-11-01", away: "BBB", home: "AAA", networks: ["NBC", "Peacock"] }, { d: "2026-11-05", away: "CCC", home: "AAA", networks: ["ESPN"] }] }));
+  ok(sp2.teams.AAA.nat.w === 2 && sp2.teams.AAA.byNet.NBC.w === 1 && sp2.teams.AAA.byNet.Peacock.w === 1 && sp2.teams.AAA.byNet.ESPN.w === 1 && !sp2.teams.AAA.byNet.ABC,
+    "national TV: each network's record (an NBC/Peacock simulcast counts for both, once in the national total)", JSON.stringify(sp2.teams.AAA));
   const pg = perGame(star.nat);
   ok(pg.pts === 35 && pg.fgPct === 50 && Math.abs(pg.tsPct - Math.round((70 / (2 * (32 + 0.44 * 8))) * 1000) / 10) < 1e-9, "national TV: per-game averages and shooting", JSON.stringify(pg));
 }
@@ -1249,6 +1253,20 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     "records: the guide's Gary Payton is never this season's Gary Payton II (suffixes kept in matching)");
   addChances(r2.items, files, { makeSampler, simulate, sims: 500 });
   ok(p2.pTonight > 0 && p2.pTonight < 1 && p2.pNext5 >= p2.pTonight, "records: chances tonight and in the next 5 games", JSON.stringify([p2.pTonight, p2.pNext5]));
+  {
+    // Passing an active player: his games count too (0.50, the user's Brunson/Giannis and Gobert/Davis question).
+    const G = (d, pts) => g(d, "ZZZ", true, 100, 90, { 1: L({ min: 34, pts: 20 }), 7: L({ min: 34, pts }) });
+    const f2 = { ...files, RRR: { team: "RRR", keys, names: { 7: "Rival Guy" }, games: [G("2026-11-01", 30), G("2026-11-03", 30), G("2026-11-05", 30), G("2026-11-07", 30)].map((x) => ({ ...x, pl: { 7: x.pl[7] } })) } };
+    const base = { kind: "pass", id: "1", who: "Young Gun", stat: "pts", need: 15, tonight: true, team: "AAA" };
+    const frozen = { ...base, passing: { name: "Rival Guy", value: 1, live: false } };
+    const both = { ...base, passing: { name: "Rival Guy", value: 1, live: true } };
+    const off = { ...base, passing: { name: "Rival Guy", value: 1, live: true } };
+    addChances([frozen, both], f2, { makeSampler, simulate, sims: 800, tonightTeams: new Set(["AAA", "RRR"]) });
+    addChances([off], f2, { makeSampler, simulate, sims: 800, tonightTeams: new Set(["AAA"]) });
+    ok(frozen.pTonight > 0.5 && both.pTonight < 0.2 && both.rivals?.[0]?.tonight === true && Math.abs(off.pTonight - frozen.pTonight) < 0.08 && off.rivals?.[0]?.tonight === false,
+      "records: 15 from passing a retired name is likely tonight; 15 from passing a 30-a-game player who also plays tonight isn't; if he's off tonight the odds tonight are about a retired name's",
+      JSON.stringify([frozen.pTonight, both.pTonight, off.pTonight, both.rivals]));
+  }
   // Storylines: a record line tonight, unless the notes carry the same milestone.
   const watch = { today: "2026-11-09", games: [{ id: "1", awayTri: "BBB", homeTri: "AAA" }], teams: [] };
   const recs = { today: "2026-11-09", items: [{ ...p2, pTonight: 0.4 }, { kind: "coach", team: "AAA", stat: "wins", need: 1, tonight: true, text: "Coach: 1 win from passing Old Coach (503) for 9th in career coaching wins", score: 3 }] };
@@ -1851,6 +1869,60 @@ await articlesChecks(ok);
     matchups: { today: "2026-11-12", games: [{ away: "DET", home: "WAS", items: [...t, ...p] }] } });
   ok(st[0].lines.filter((l) => l.kind === "matchup").length === 2 && st[0].lines.every((l) => /^[^:]+: /.test(l.text)),
     "matchups in tonight's storylines: at most two a game, tag first", JSON.stringify(st[0].lines.map((l) => l.text)));
+}
+
+// ---------- Outside confirmations settle the Records checks (src/records/verified.js, 0.50) ----------
+{
+  const V = await import("../src/records/verified.js");
+  const verified = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "verified-totals.json"), "utf8"));
+  const c = { same: 0, differ: [], franchise: { same: 0, differ: [
+    { player: "Jarrett Allen", stat: "reb", ours: 3942, theirs: 3442, source: "CLE notes (2026-11-13)" },
+    { player: "Sam Merrill", stat: "fg3m", ours: 450, theirs: 454, source: "CLE notes (2026-11-13)" },
+    { player: "Domantas Sabonis", stat: "oreb", ours: 970, theirs: 3599, source: "SAC notes (2026-11-20)" },
+  ] } };
+  V.settleChecks(c, verified, "2026-11-13");
+  const [a, m, s] = c.franchise.differ;
+  ok(a.settled?.value === 3942 && !a.against, "verified: B-Ref's 3,942 settles Allen's CLE rebounds in our favour");
+  ok(!m.settled && m.against?.value === 457, "verified: a same-day B-Ref figure that disagrees with ours is flagged against us");
+  const s2 = { ...s, against: undefined };
+  V.settleChecks({ differ: [], franchise: { differ: [s2] } }, verified, "2026-11-20");
+  ok(!s2.settled && !s2.against, "verified: a week-old confirmation says nothing once our total has moved on");
+  const p = V.settleProblems(["Al Horford dreb: the guide gives 6,949 and 6,950 (active list)", "Dolph Schayes ftm: the guide gives 6,712 and 6,979 (career scorers, NBA Guide p. 136)"],
+    [{ name: "Al Horford", totals: { dreb: { base: 6949, season: 33, now: 6982 } } }], verified);
+  ok(p.problems.length === 1 && /Schayes/.test(p.problems[0]), "verified: an unconfirmed guide clash stays a problem");
+  ok(p.errata.length === 1 && /6,950 \(active list\); 6,949 is right/.test(p.errata[0]), "verified: B-Ref's 6,982 makes the guide's 6,950 a slip", p.errata[0]);
+}
+
+{
+  const { fixReboundSplit } = await import("../src/notes/parse.js");
+  const mk = (stat, current) => ({ player: "Domantas Sabonis", stat, scope: "franchise", current, checks: [], status: "ok" });
+  const L = [mk("oreb", 961), mk("dreb", 2638), mk("oreb", 3599)];
+  fixReboundSplit(L);
+  ok(L[2].stat === "reb" && L[2].status === "review" && L[0].stat === "oreb", "notes: SAC's 3,599 'offensive' rebounds (961 + 2,638) is Sabonis's total rebounds", JSON.stringify(L[2]));
+}
+
+// ---------- Watch List: 50-40-90 watch and national-TV splits (0.50) ----------
+{
+  const watch = { today: "2026-11-13", games: [{ id: "g1", awayTri: "AAA", homeTri: "BBB" }], teams: [] };
+  const leaders = { names: { 1: "Ayo D", 2: "Far Off", 3: "In Club" }, lines: [{ key: "fg", pct: 50 }, { key: "fg3", pct: 40 }, { key: "ft", pct: 90 }],
+    shootKeys: ["id", "team", "games", "teamGames", "fg.m", "fg.a", "fg.q", "fg.min", "fg3.m", "fg3.a", "fg3.q", "fg3.min", "ft.m", "ft.a", "ft.q", "ft.min"],
+    shooting: [["1", "AAA", 10, 10, 60, 115, 1, 1, 23, 49, 1, 1, 26, 29, 1, 1], ["2", "AAA", 10, 10, 50, 110, 1, 1, 20, 55, 1, 1, 30, 36, 1, 1], ["3", "BBB", 10, 10, 60, 110, 1, 1, 30, 70, 1, 1, 40, 44, 1, 1]] };
+  const L = tonightStorylines({ watch, leaders, maxLines: 20 }).flatMap((g) => g.lines);
+  const club = L.filter((l) => l.kind === "club");
+  ok(club.length === 2 && /Ayo D: 0\.3 short of 50-40-90 .*1 make from the line/.test(club.find((l) => l.player === "Ayo D").text) && /In Club: shooting 50-40-90/.test(club.find((l) => l.player === "In Club").text)
+    && !L.some((l) => l.player === "Ayo D" && l.kind === "shooting"), "watch list: 50-40-90 watch (0.3 short at 89.7% FT; one at all three); the single-line shooting note gives way", JSON.stringify(club.map((l) => l.text)));
+  const P = (name, team, nat, other) => ({ name, team, nat, other });
+  const national = { upcoming: [{ d: "2026-11-13", away: "AAA", home: "BBB", networks: ["Prime Video"] }], players: [
+    P("Spot Light", "AAA", { gp: 4, min: 34, pts: 31, tsPct: 63 }, { gp: 6, min: 34, pts: 24, tsPct: 57 }),
+    P("Few Games", "AAA", { gp: 2, min: 34, pts: 40 }, { gp: 6, min: 34, pts: 20 }),
+    P("Small Gap", "BBB", { gp: 4, min: 30, pts: 25 }, { gp: 6, min: 30, pts: 22 }),
+    P("Bench Guy", "BBB", { gp: 4, min: 12, pts: 2 }, { gp: 6, min: 14, pts: 9 }),
+    P("Fades", "BBB", { gp: 3, min: 30, pts: 10 }, { gp: 6, min: 30, pts: 16 }) ] };
+  const T = tonightStorylines({ watch, national, injuries: { date: "2026-11-13", players: [] }, maxLines: 20 }).flatMap((g) => g.lines).filter((l) => l.kind === "tv");
+  ok(T.length === 2 && T.some((l) => l.player === "Spot Light" && /31\.0 points a game in 4 national games vs 24\.0 .*better.*Prime Video/.test(l.text)) && T.some((l) => l.player === "Fades" && /worse/.test(l.text)),
+    "watch list: national TV tonight flags a clear split (3+ games each, 20+ minutes, 4+ points and 20%+); not 2 games, a 3-point gap or a bench player", JSON.stringify(T.map((l) => l.text)));
+  const out = tonightStorylines({ watch, national, injuries: { date: "2026-11-13", players: [{ team: "AAA", name: "Spot Light", status: "Out" }] }, maxLines: 20 }).flatMap((g) => g.lines);
+  ok(!out.some((l) => l.kind === "tv" && l.player === "Spot Light"), "watch list: the injury report removes a national-TV line for a player listed out");
 }
 
 // ---------- snapshot ----------

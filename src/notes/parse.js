@@ -78,6 +78,7 @@ export function parseDoc(doc, { team } = {}) {
     return out;
   });
   const milestones = dedupe(all);
+  fixReboundSplit(milestones);
   flagTwoTotals(milestones);
 
   // A page with a milestones heading that yielded nothing is a parsing gap,
@@ -278,6 +279,32 @@ function chasesFrom(lb, roster, team) {
     });
   }
   return out;
+}
+
+/**
+ * A total-rebounds row read as offensive rebounds. Sacramento (2026-11-13) has Sabonis at 961 offensive
+ * and 2,638 defensive rebounds with the franchise, and a third row at 3,599 "offensive" chasing Jason
+ * Thompson: 3,599 is 961 + 2,638, his total, and Thompson is 10th in Kings rebounds. When one offensive
+ * row equals another offensive row plus the defensive row (same player, same scope) it is relabelled.
+ */
+export function fixReboundSplit(list) {
+  const key = (m) => `${nameKey(m.player)}|${m.scope ?? "career"}`;
+  const by = new Map();
+  for (const m of list) if (m.player && m.current != null && (m.stat === "oreb" || m.stat === "dreb")) {
+    if (!by.has(key(m))) by.set(key(m), []);
+    by.get(key(m)).push(m);
+  }
+  for (const g of by.values()) {
+    const o = g.filter((m) => m.stat === "oreb"), d = g.filter((m) => m.stat === "dreb");
+    for (const m of o) {
+      const parts = o.find((x) => x !== m && d.some((y) => x.current + y.current === m.current));
+      if (!parts) continue;
+      const dr = d.find((y) => parts.current + y.current === m.current);
+      m.stat = "reb";
+      m.label = statLabel("reb");
+      addCheck(m, `read as offensive rebounds, but ${m.current} = ${parts.current} offensive + ${dr.current} defensive: taken as total rebounds`);
+    }
+  }
 }
 
 /**

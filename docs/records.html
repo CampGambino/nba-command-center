@@ -112,6 +112,26 @@
   .tag { font-size: 11px; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
   .tag.tonight { color: var(--accent); border-color: var(--accent); }
   .tag.record { color: var(--warn); border-color: var(--warn); }
+  /* sub-tabs: one part of the Records tab at a time (the hash keeps the choice: records.html#franchise) */
+  .rtabs { position: sticky; top: 0; z-index: 5; background: var(--bg); display: flex; gap: 6px; overflow-x: auto; padding: 10px 2px 8px; margin: 4px 0 0; border-bottom: 1px solid var(--line); }
+  .rtabs a { flex: none; font-size: 13px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--muted); text-decoration: none; white-space: nowrap; }
+  .rtabs a.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .rtabs a .n { font-size: 11px; opacity: .8; margin-left: 4px; }
+  section[data-tab] { display: none; }
+  section[data-tab].on { display: block; }
+  /* Within reach, by player: one card per player, each mark a chip */
+  .who-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr)); gap: 8px; }
+  .wc { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 9px 11px; }
+  .wc.tn { border-color: color-mix(in srgb, var(--accent) 60%, var(--line)); }
+  .wc .h { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .wc ul { list-style: none; margin: 6px 0 0; padding: 0; }
+  .wc li { display: grid; grid-template-columns: 1fr auto; gap: 8px; font-size: 13px; padding: 3px 0; border-top: 1px dashed var(--line); }
+  .wc li:first-child { border-top: 0; }
+  .wc li .p { font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; font-size: 12.5px; }
+  .wc li .p b { color: var(--text); }
+  td.next { white-space: nowrap; }
+  .wc .mbtn { margin-top: 4px; padding: 2px 8px; font-size: 12px; }
+  .wc li[hidden] { display: none; }
 </style>
 </head>
 <body>
@@ -121,22 +141,43 @@
   <div class="sub" id="sub">Loading…</div>
 </header>
 <main>
+  <div class="rtabs" id="rtabs" role="tablist">
+    <a href="#tonight" data-t="tonight">Tonight<span class="n" id="n-tonight"></span></a>
+    <a href="#reach" data-t="reach">Within reach<span class="n" id="n-reach"></span></a>
+    <a href="#lists" data-t="lists">All-time lists</a>
+    <a href="#franchise" data-t="franchise">Franchise</a>
+    <a href="#season" data-t="season">This season</a>
+    <a href="#cup" data-t="cup">NBA Cup</a>
+    <a href="#book" data-t="book">Record book</a>
+    <a href="#checks" data-t="checks">Checks</a>
+  </div>
+  <section data-tab="tonight">
   <h2>Tonight</h2>
   <div id="tonight"></div>
+  </section>
+  <section data-tab="reach">
   <h2>Within reach</h2>
   <div class="controls">
     <select id="kind"><option value="">Everything</option><option value="pass">Passing an all-time name</option><option value="round">Round career numbers</option><option value="franchise">Franchise history</option><option value="coach">Coaches</option><option value="team">Team streaks and starts</option><option value="franchiseWins">Franchise wins</option><option value="cup">NBA Cup career</option></select>
     <select id="team"><option value="">All teams</option></select>
     <label>Within <select id="games"><option value="3">3 games</option><option value="5">5 games</option><option value="10">10 games</option><option value="99" selected>the list</option></select></label>
     <input type="search" id="q" placeholder="Player, coach or team">
+    <label><input type="checkbox" id="tonly"> playing tonight</label>
+    <span class="toggle" id="rview"><button data-v="who" class="on">By player</button><button data-v="table">Full table</button></span>
   </div>
+  <div class="key" id="reachkey"></div>
+  <div id="who" class="who-cards"></div>
   <div class="scroll"><table id="items"></table></div>
+  </section>
+  <section data-tab="lists">
   <h2>All-time lists, now</h2>
   <div class="controls">
     <select id="stat"></select>
     <span class="key" id="statkey"></span>
   </div>
   <div class="scroll"><table id="board"></table></div>
+  </section>
+  <section data-tab="franchise">
   <h2>Franchise history, now</h2>
   <div class="controls">
     <select id="fteam"></select>
@@ -156,6 +197,8 @@
     <span class="key">Players on track for a top-3 season in their team's history (his games for that team only). Pace: his total plus his rate per team game over the games left, so missed games count against it. Per game: once he has played 70% of the team's games. Early-season paces move a lot.</span>
   </div>
   <div class="scroll"><table id="pace"></table></div>
+  </section>
+  <section data-tab="season">
   <h2>This season vs his career</h2>
   <div class="controls">
     <select id="ckind"><option value="">Everything</option><option value="change">Big changes from last season</option><option value="low">Lowest in years</option><option value="high">Highest in years</option></select>
@@ -168,9 +211,14 @@
   <h2>Stat title races, in history</h2>
   <div class="scroll"><table id="titles"></table></div>
   <div class="key">Per game, qualified at 70% of his team's games. History: the NBA Guide's yearly leaders, 1946-47 to 2025-26 (by totals through 1968-69). A team's past leaders are matched by the guide's team names, so a franchise's earlier city doesn't count.</div>
+  </section>
+  <section data-tab="cup">
   <h2>NBA Cup all-time standings</h2>
   <div class="scroll"><table id="cupst"></table></div>
   <div class="key" id="cupkey"></div>
+  <div class="key">Cup career lists: <a href="#lists" data-goto="lists" data-stat="cup:pts">All-time lists → NBA Cup</a> · Cup marks within reach: <a href="#reach" data-goto="reach" data-kind="cup">Within reach → NBA Cup career</a>.</div>
+  </section>
+  <section data-tab="book">
   <h2>Record book</h2>
   <div class="controls">
     <select id="book"><option>Regular season</option><option>NBA Cup</option><option>Play-In</option><option>Playoffs</option><option>Finals</option><option>All-Star</option></select>
@@ -180,8 +228,11 @@
   </div>
   <div class="scroll"><table id="book-t"></table></div>
   <div class="key" id="lists"></div>
+  </section>
+  <section data-tab="checks">
   <h2>Checks</h2>
   <div id="checks" class="key"></div>
+  </section>
 </main>
 <footer id="foot"></footer>
 <script type="module">
@@ -199,12 +250,35 @@ const injTag = (i) => { const s = INJ.get(`${i.team}|${nk(i.who)}`); return s ? 
 const kindTag = (i) => (i.rank === 1 ? `<span class="tag record">${i.kind === "franchise" ? "franchise record" : i.kind === "coach" ? "coaching record" : i.kind === "cup" ? "NBA Cup record" : "NBA record"}</span>` : `<span class="tag">${KIND[i.kind]}</span>`);
 
 const bar = (p) => (p == null ? "–" : `${pc(p)}<span class="pbar"><i style="width:${Math.round(p * 100)}%"></i></span>`);
+let rview = "who";
+// "Gobert: 7 blocks from passing Davis" -> who he passes and whether that man is still adding to his total.
+const rivalNote = (i) => (i.rivals?.length ? `${i.rivals.map((r) => esc(r.name.split(" ").slice(-1)[0])).join(" and ")} ${i.rivals.length > 1 ? "are" : "is"} active too${i.rivals.some((r) => r.tonight) ? " and plays tonight" : ""}: his games count in the odds` : "");
+function reachRows() {
+  const kind = $("kind").value, team = $("team").value, games = +$("games").value, q = $("q").value.trim().toLowerCase(), tonly = $("tonly").checked;
+  return D.items.filter((i) => (!kind || i.kind === kind) && (!team || i.team === team) && (i.gamesAway ?? 99) <= games && (!tonly || i.tonight) && (!q || `${i.who} ${i.team} ${i.text}`.toLowerCase().includes(q)));
+}
+// Playing tonight and not ruled out (Out / Doubtful on the report) sorts first.
+const playsTn = (i) => (i.tonight && !/Out|Doubtful/.test(INJ.get(`${i.team}|${nk(i.who)}`) || "") ? 1 : 0);
 function renderItems() {
-  const kind = $("kind").value, team = $("team").value, games = +$("games").value, q = $("q").value.trim().toLowerCase();
-  const rows = D.items.filter((i) => (!kind || i.kind === kind) && (!team || i.team === team) && (i.gamesAway ?? 99) <= games && (!q || `${i.who} ${i.team} ${i.text}`.toLowerCase().includes(q)));
+  const rows = reachRows();
+  document.querySelectorAll("#rview button").forEach((b) => b.classList.toggle("on", b.dataset.v === rview));
+  $("who").style.display = rview === "who" ? "" : "none";
+  $("items").parentElement.style.display = rview === "table" ? "" : "none";
+  $("reachkey").innerHTML = `${rows.length} marks for ${new Set(rows.map((i) => `${i.who}|${i.team}`)).size} players, coaches and teams. ${rview === "who" ? "One card per name (tonight\'s first), his 3 closest marks shown, the rest behind a button: what it is, then <b>needs</b> · ≈ games at his rate · chance in the next 5 games. Narrow it with <i>playing tonight</i> or <i>Within 3 games</i>." : ""} When the man being passed is still playing, his games count too (he can pull away), so the odds of passing an active player are lower than passing a retired one.`;
+  if (rview === "who") {
+    const by = new Map();
+    for (const i of rows) { const k = `${i.who}|${i.team}`; if (!by.has(k)) by.set(k, []); by.get(k).push(i); }
+    const cards = [...by.values()].map((L) => L.sort((a, b) => (a.gamesAway ?? 99) - (b.gamesAway ?? 99) || (b.pNext5 ?? 0) - (a.pNext5 ?? 0)))
+      .sort((a, b) => playsTn(b[0]) - playsTn(a[0]) || (a[0].gamesAway ?? 99) - (b[0].gamesAway ?? 99) || b.length - a.length);
+    $("who").innerHTML = cards.length ? cards.map((L) => { const i = L[0];
+      return `<div class="wc${i.tonight ? " tn" : ""}"><div class="h"><div><b>${esc(i.who)}</b> <span class="team">${esc(i.team)}</span>${aw(i.who)}</div><div>${i.tonight ? `<span class="tag tonight">tonight${i.opp ? ` vs ${esc(i.opp)}` : ""}</span>` : ""}${injTag(i)}</div></div>
+        <ul>${L.map((x, k) => `<li${k >= 3 ? ' class="more" hidden' : ""}><span>${x.rank === 1 ? "🏆 " : ""}${esc(x.text.replace(/^[^:]+: /, ""))} <span class="small">${esc(KIND[x.kind])}</span>${x.rivals ? `<div class="small">${rivalNote(x)}</div>` : ""}</span><span class="p"><b>${fmt(x.need)}</b> · ≈${x.gamesAway ?? "–"} g · ${pc(x.pNext5)}</span></li>`).join("")}</ul>${L.length > 3 ? `<button class="mbtn" onclick="this.previousElementSibling.querySelectorAll('li.more').forEach((x) => (x.hidden = !x.hidden)); this.textContent = this.textContent.startsWith('+') ? 'show fewer' : '+ ${L.length - 3} more'">+ ${L.length - 3} more</button>` : ""}</div>`; }).join("")
+      : `<div class="empty">Nothing matches.</div>`;
+    return;
+  }
   $("items").innerHTML = `<tr><th>Who</th><th class="what">What</th><th class="num">Now</th><th class="num">Needs</th><th class="num">≈ games</th><th class="num">Next 5 games</th></tr>` +
     (rows.length ? rows.map((i) => `<tr><td><b>${esc(i.who)}</b> <span class="team">${esc(i.team)}</span>${aw(i.who)}<br>${kindTag(i)}${i.tonight ? ` <span class="tag tonight">tonight${i.opp ? ` vs ${esc(i.opp)}` : ""}</span>` : ""}${injTag(i)}</td>
-      <td class="what">${esc(i.text.replace(/^[^:]+: /, ""))}${i.note ? `<div class="small">${esc(i.note)}</div>` : ""}</td><td class="num">${fmt(i.now)}</td><td class="num">${fmt(i.need)}</td><td class="num">${i.gamesAway ?? "–"}</td><td class="num">${bar(i.pNext5)}${i.kind === "cup" ? `<div class=small>in his ${i.cupGamesLeft} Cup game${i.cupGamesLeft === 1 ? "" : "s"} left</div>` : ""}</td></tr>`).join("")
+      <td class="what">${esc(i.text.replace(/^[^:]+: /, ""))}${i.note ? `<div class="small">${esc(i.note)}</div>` : ""}${i.rivals ? `<div class="small">${rivalNote(i)}</div>` : ""}</td><td class="num">${fmt(i.now)}</td><td class="num">${fmt(i.need)}</td><td class="num">${i.gamesAway ?? "–"}</td><td class="num">${bar(i.pNext5)}${i.kind === "cup" ? `<div class=small>in his ${i.cupGamesLeft} Cup game${i.cupGamesLeft === 1 ? "" : "s"} left</div>` : ""}</td></tr>`).join("")
       : `<tr><td colspan=6 class="empty">Nothing matches.</td></tr>`);
 }
 let RB = [], SG = null, PS = null;
@@ -249,25 +323,52 @@ function renderBoard() {
   const ps = /^(allStarActive|allStar|playIn|playoffs|finals):/.exec(stat);
   const rows = (ps ? (PS?.careers?.[ps[1]]?.[stat.slice(ps[0].length)] || []).map((r, i, a) => ({ name: r.name, now: r.value, rank: 1 + a.filter((q) => q.value > r.value).length, live: false }))
     : stat.startsWith("cup:") ? D.cup?.boards?.[stat.slice(4)] : D.boards[stat]) || [];
-  $("board").innerHTML = `<tr><th class="num">Rank</th><th>Player</th><th class="num">Now</th><th class="num">Start of season</th><th class="num">This season</th></tr>` +
+  // To pass next: for a player still playing, how many more he needs to get past the next total above his.
+  const nextUp = (r) => {
+    if (!r.live) return "";
+    const above = rows.filter((x) => x.now > r.now);
+    if (!above.length) return `<span class="small">at the top</span>`;
+    const v = Math.min(...above.map((x) => x.now)), who = above.filter((x) => x.now === v);
+    const nm = who.map((x) => esc(x.name.split(" ").slice(-1)[0])).join(" / ");
+    return `<b>${fmt(v - r.now + 1)}</b> <span class="small">to pass ${nm}${who.some((x) => x.live) ? " (active)" : ""}${v - r.now > 0 ? `; ${fmt(v - r.now)} ties` : ""}</span>`;
+  };
+  $("board").innerHTML = `<tr><th class="num">Rank</th><th>Player</th><th class="num">Now</th><th class="num">Start of season</th><th class="num">This season</th><th title="for a player still playing: how many more he needs to pass the next total above his">To pass next</th></tr>` +
     rows.map((r) => `<tr class="${r.live ? "live" : ""}"><td class="num">${r.rank ?? "<span class=small>–</span>"}${r.rank && r.preRank && r.rank !== r.preRank ? ` <span class="small ${r.rank < r.preRank ? "hi" : "lo"}">${r.rank < r.preRank ? "▲" : "▼"}${Math.abs(r.preRank - r.rank)}</span>` : ""}</td>
-      <td>${r.live ? `<b>${esc(r.name)}</b> <span class="team">${esc(r.team || "")}</span>` : esc(r.name)}${aw(r.name)}</td><td class="num">${fmt(r.now)}</td><td class="num">${r.live ? fmt(r.now - (r.season ?? 0)) : ""}</td><td class="num">${r.live && r.season ? `+${fmt(r.season)}` : ""}</td></tr>`).join("");
+      <td>${r.live ? `<b>${esc(r.name)}</b> <span class="team">${esc(r.team || "")}</span>` : esc(r.name)}${aw(r.name)}</td><td class="num">${fmt(r.now)}</td><td class="num">${r.live ? fmt(r.now - (r.season ?? 0)) : ""}</td><td class="num">${r.live && r.season ? `+${fmt(r.season)}` : ""}</td><td class="next">${nextUp(r)}</td></tr>`).join("");
   $("statkey").textContent = "Bold: playing this season, totals current. A dash: the guide lists the total but not the rank.";
 }
 
+// Sub-tabs: show one section; the hash remembers it (records.html#franchise). Old links to a section id still land.
+const TABS = [...document.querySelectorAll("#rtabs a")].map((a) => a.dataset.t);
+function showTab(t) {
+  if (!TABS.includes(t)) t = "tonight";
+  document.querySelectorAll("section[data-tab]").forEach((x) => x.classList.toggle("on", x.dataset.tab === t));
+  document.querySelectorAll("#rtabs a").forEach((a) => a.classList.toggle("on", a.dataset.t === t));
+}
+window.addEventListener("hashchange", () => showTab(location.hash.slice(1)));
+showTab(location.hash.slice(1));
+document.addEventListener("click", (e) => {
+  const a = e.target.closest("a[data-goto]");
+  if (!a) return;
+  if (a.dataset.kind) { $("kind").value = a.dataset.kind; renderItems(); }
+  if (a.dataset.stat && [...$("stat").options].some((o) => o.value === a.dataset.stat)) { $("stat").value = a.dataset.stat; renderBoard(); }
+});
 Promise.all([fetch("data/records.json", { cache: "no-store" }).then((r) => r.json()), fetch("data/injuries.json", { cache: "no-store" }).then((r) => r.json()).catch(() => null)]).then(([d, inj]) => {
   D = d;
   if (inj && inj.date === d.today) for (const p of inj.players || []) INJ.set(`${p.team}|${nk(p.name)}`, p.status);
   for (const rows of Object.values(d.boards)) for (const r of rows) r.season = r.live && r.base != null ? r.now - r.base : r.season;
   $("sub").textContent = `Career leaderboards and records, kept current: the NBA's Tip-Off Guide totals (through 2025-26) plus this season's games through ${md(d.through)}${d.cup ? ` · NBA Cup: ${d.cup.played} of 60 Group Play games played${d.cup.schedule?.[0] ? `, next Cup night ${md(d.cup.schedule[0].d)}` : ""}` : ""}`;
   const tn = d.items.filter((i) => i.tonight && ((i.pTonight ?? 0) >= 0.05 || i.need === 1) && !/Out|Doubtful/.test(INJ.get(`${i.team}|${nk(i.who)}`) || ""));
-  $("tonight").innerHTML = tn.length ? `<div class="scroll"><table><tr><th>Who</th><th class="what">What</th><th class="num">Tonight</th></tr>${tn.sort((a, b) => (b.pTonight ?? 1) - (a.pTonight ?? 1)).map((i) => `<tr><td><b>${esc(i.who)}</b> <span class="team">${esc(i.team)}${i.opp ? ` vs ${esc(i.opp)}` : ""}</span>${injTag(i)}</td><td class="what">${esc(i.text.replace(/^[^:]+: /, ""))}</td><td class="num">${i.pTonight != null ? bar(i.pTonight) : "if it happens"}</td></tr>`).join("")}</table></div>`
+  $("n-tonight").textContent = tn.length;
+  $("tonight").innerHTML = tn.length ? `<div class="scroll"><table><tr><th>Who</th><th class="what">What</th><th class="num">Tonight</th></tr>${tn.sort((a, b) => (b.pTonight ?? 1) - (a.pTonight ?? 1)).map((i) => `<tr><td><b>${esc(i.who)}</b> <span class="team">${esc(i.team)}${i.opp ? ` vs ${esc(i.opp)}` : ""}</span>${injTag(i)}</td><td class="what">${esc(i.text.replace(/^[^:]+: /, ""))}${i.rivals ? `<div class="small">${rivalNote(i)}</div>` : ""}</td><td class="num">${i.pTonight != null ? bar(i.pTonight) : "if it happens"}</td></tr>`).join("")}</table></div>`
     : `<div class="empty">Nothing on these lists is likely to fall tonight.</div>`;
   $("team").innerHTML += [...new Set(d.items.map((i) => i.team))].sort().map((t) => `<option>${t}</option>`).join("");
   $("stat").innerHTML = Object.keys(d.boards).filter((k) => LABEL[k]).map((k) => `<option value="${k}">${LABEL[k]}</option>`).join("")
     + (d.cup ? Object.keys(d.cup.boards).filter((k) => LABEL[k]).map((k) => `<option value="cup:${k}">NBA Cup: ${LABEL[k]}</option>`).join("") : "");
   if (d.cup) for (const rows of Object.values(d.cup.boards)) for (const r of rows) r.season = r.live && r.base != null ? r.now - r.base : null;
-  ["kind", "team", "games", "q"].forEach((id) => $(id).addEventListener("input", renderItems));
+  ["kind", "team", "games", "q", "tonly"].forEach((id) => $(id).addEventListener("input", renderItems));
+  document.querySelectorAll("#rview button").forEach((b) => b.onclick = () => { rview = b.dataset.v; renderItems(); });
+  $("n-reach").textContent = d.items.length;
   $("cteam").innerHTML += [...new Set((d.context || []).map((c) => c.team))].sort().map((t) => `<option>${t}</option>`).join("");
   ["ckind", "cstat", "cteam", "cq"].forEach((id) => $(id).addEventListener("input", renderCtx));
   $("fteam").innerHTML = Object.keys(d.franchise || {}).sort().map((t) => `<option>${t}</option>`).join("");
@@ -296,8 +397,16 @@ Promise.all([fetch("data/records.json", { cache: "no-store" }).then((r) => r.jso
   Promise.all([fetch("ref/nba-record-book.json").then((r) => r.json()), fetch("ref/nba-single-game-bests.json").then((r) => r.json())]).then(([rb, sg]) => { RB = rb; SG = sg; renderBook(); }).catch(() => { $("book-t").innerHTML = `<tr><td class="empty">Record book not loaded.</td></tr>`; });
   $("stat").addEventListener("input", renderBoard);
   const c = d.checks || { same: 0, differ: [] };
-  $("checks").innerHTML = `Totals checked against the teams' game notes and ESPN's career stats wherever they print the same number: <b>${c.same}</b> agree${c.differ.length ? `, <b class="lo">${c.differ.length} differ</b>: ${c.differ.map((x) => `${esc(x.player)} ${esc(x.stat)} ours ${fmt(x.ours)} vs ${esc(x.source)} ${fmt(x.theirs)}`).join("; ")}` : ""}.` +
-    (c.franchise ? `<br>Franchise totals checked against the teams' game notes: <b>${c.franchise.same}</b> agree${c.franchise.differ.length ? `, <b class="lo">${c.franchise.differ.length} differ</b>: ${c.franchise.differ.map((x) => `${esc(x.player)} ${esc(x.stat)} ours ${fmt(x.ours)} vs ${esc(x.source)} ${fmt(x.theirs)}`).join("; ")}` : ""}.` : "") +
+  // A disagreement settled by an outside source (Basketball Reference) is listed apart from the open ones.
+  const checkLine = (k, label) => {
+    const open = k.differ.filter((x) => !x.settled), done = k.differ.filter((x) => x.settled);
+    const one = (x) => `${esc(x.player)} ${esc(x.stat)} ours ${fmt(x.ours)} vs ${esc(x.source)} ${fmt(x.theirs)}${x.against ? ` <b class="lo">(${esc(x.against.by)} ${esc(x.against.asOf)}: ${fmt(x.against.value)})</b>` : ""}`;
+    return `${label}: <b>${k.same}</b> agree` +
+      (done.length ? `, <b>${done.length}</b> settled by ${esc(done[0].settled.by)} in our favour (${done.map((x) => `${esc(x.player)} ${esc(x.stat)} ${fmt(x.ours)}, the notes said ${fmt(x.theirs)}`).join("; ")})` : "") +
+      (open.length ? `, <b class="lo">${open.length} differ</b>: ${open.map(one).join("; ")}` : "") + ".";
+  };
+  $("checks").innerHTML = checkLine(c, "Totals checked against the teams' game notes and ESPN's career stats wherever they print the same number") +
+    (c.franchise ? `<br>${checkLine(c.franchise, "Franchise totals checked against the teams' game notes")}` : "") +
     (d.errata?.length ? `<br>Slips in the guide itself (the totals were used, not the slip): ${d.errata.map(esc).join("; ")}.` : "") +
     (d.problems?.length ? `<br>Not counted: ${d.problems.map(esc).join("; ")}.` : "");
   $("foot").innerHTML = `Record book and single-game lists: the NBA's 2026-27 Guide (Elias Sports Bureau), pp. 128-135, 149 and 198-268, through 2025-26; points ranks to 68th from its career scorers (p. 136). Leaderboards: ${esc(d.source)}, pages 76-83 (milestone watch), 90 (franchise records), 92-97 (career leaders) and 100-103 (streaks and best starts), plus this season's box scores. Franchise history: every player's totals with each franchise from the 2026-27 NBA Guide's team-by-team year-by-year pages (1946-47 to 2025-26), plus his games for that team this season. Ranks move as listed players pass each other; players the guide doesn't list can't be seen, so a rank is only as good as the guide's lists around it. Odds: from each player's games this season and how often he has played lately, before the injury report (players on tonight's report are marked). Coaches' totals assume the coach has run every game this season.`;

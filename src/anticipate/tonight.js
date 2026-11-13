@@ -1,7 +1,7 @@
 /**
  * Tonight's storylines per game, from data the site already publishes (pure, browser-safe).
  *
- *   tonightStorylines({ watch, trends, leaders, maxLines? }) -> [{ id, away, home, start, lines: [{ kind, team, text, score }] }]
+ *   tonightStorylines({ watch, trends, leaders, injuries?, facts?, records?, matchups?, national?, maxLines? }) -> [{ id, away, home, start, lines: [{ kind, team, text, score }] }]
  *
  * Used by the Discord digest (scripts/notify.js, 6 lines a game) and the Watch List page
  * (docs/lib/anticipate/tonight.js, a copy kept identical by the build).
@@ -13,6 +13,9 @@
  *              biggest of a family per player (30+ points beats 25+ and 20+)
  *   lead       a run of 5+ straight games leading his team in a stat
  *   shooting   a qualified shooter one or two shots from crossing 50 / 40 / 90 either way
+ *   tv         tonight's national TV game: a player clearly better or worse on national TV than in his other games;
+ *              at most 2 a game
+ *   club       50-40-90 watch: qualified on all three lines and at all three, or within 1 point of them added up
  *   team       a team win or loss streak of 4+
  *   history    a line from tonight's team notes (docs/data/notes-facts.json): what the team's PR staff
  *              wrote about history made or in reach, verbatim; new-today lines first; at most 2 a game
@@ -112,6 +115,67 @@ function shootingLines(leaders, teams) {
       const what = L.key === "fg" ? "from the field" : L.key === "fg3" ? "on threes" : "from the line";
       if (n > 0 && n <= 2) out.push({ team, player: name, kind: "shooting", text: `${name}: ${n === 1 ? "1 make" : `${n} straight makes`} from ${L.pct}% ${what} (${p}%, ${m}-${a})`, score: 1.2 });
       else if (c === 0) out.push({ team, player: name, kind: "shooting", text: `${name}: one miss drops him below ${L.pct}% ${what} (${p}%, ${m}-${a})`, score: 1.2 });
+    }
+  }
+  return out;
+}
+
+/**
+ * 50-40-90 watch on the Watch List: a player qualified on all three lines who is at all three (and how
+ * close he is to losing one), or within a point of them added up (Dosunmu, 0.3 short on 11/13). Few
+ * players get here, so it ranks above a single line.
+ */
+export const CLUB_SHORT = 1.0;
+function clubLines(leaders, teams) {
+  const out = [];
+  const K = Object.fromEntries((leaders.shootKeys || []).map((k, i) => [k, i]));
+  const word = { fg: "from the field", fg3: "on threes", ft: "from the line" };
+  for (const r of leaders.shooting || []) {
+    const team = r[K.team];
+    if (!teams.has(team)) continue;
+    const L = (leaders.lines || []).map((l) => {
+      const m = r[K[`${l.key}.m`]], a = r[K[`${l.key}.a`]];
+      return { ...l, m, a, q: r[K[`${l.key}.q`]] === 1, p: a ? (100 * m) / a : 0, need: a ? needed(m, a, l.pct) : 0, cush: a ? cushion(m, a, l.pct) : 0 };
+    });
+    if (L.length !== 3 || !L.every((l) => l.q && l.a)) continue;
+    const short = L.reduce((x, l) => x + Math.max(0, l.pct - l.p), 0);
+    if (short > CLUB_SHORT) continue;
+    const name = leaders.names?.[r[K.id]] || r[K.id];
+    const line = L.map((l) => l.p.toFixed(1)).join(" / ");
+    let text;
+    if (short === 0) {
+      const edge = L.filter((l) => l.cush === 0).map((l) => word[l.key]);
+      text = `${name}: shooting 50-40-90 (${line})${edge.length ? `; one miss ${edge.join(" or ")} takes him off it` : ""}`;
+    } else {
+      const under = L.filter((l) => l.p < l.pct);
+      text = `${name}: ${short.toFixed(1)} short of 50-40-90 (${line}); ${under.map((l) => `${l.need === 1 ? "1 make" : `${l.need} straight makes`} ${word[l.key]}`).join(" and ")} gets him there`;
+    }
+    out.push({ team, player: name, kind: "club", text, score: short === 0 ? 2.2 : 1.8 });
+  }
+  return out;
+}
+
+/**
+ * National TV tonight: a player in tonight's national game whose national-TV games differ clearly from his
+ * other (local / League Pass) games. Fair cutoff: 3+ national and 3+ other games, 20+ minutes a game in both,
+ * and a points gap of 4+ that is also 20%+ of his other-games average. The injury report removes him as it
+ * does every line (Out / Doubtful). national: docs/data/national.json.
+ */
+export const TV_MIN_GP = 3, TV_MIN_MIN = 20, TV_GAP = 4, TV_REL = 0.2;
+function tvLines(national, teams, today) {
+  const out = [];
+  const games = (national?.upcoming || []).filter((g) => g.d === today && teams.has(g.away) && teams.has(g.home));
+  for (const g of games) {
+    const game = `${g.away}${g.neutral ? " vs " : " @ "}${g.home} on ${g.networks.join(" / ")}`;
+    for (const p of national.players || []) {
+      if (p.team !== g.away && p.team !== g.home) continue;
+      const n = p.nat, o = p.other;
+      if (!n || !o || n.gp < TV_MIN_GP || o.gp < TV_MIN_GP || n.min < TV_MIN_MIN || o.min < TV_MIN_MIN) continue;
+      const gap = n.pts - o.pts;
+      if (Math.abs(gap) < TV_GAP || Math.abs(gap) < TV_REL * o.pts) continue;
+      const ts = n.tsPct != null && o.tsPct != null ? `; TS% ${n.tsPct.toFixed(0)} vs ${o.tsPct.toFixed(0)}` : "";
+      out.push({ team: p.team, player: p.name, kind: "tv", score: 1.3 + Math.min(1, Math.abs(gap) / 10),
+        text: `${p.name} on national TV: ${n.pts.toFixed(1)} points a game in ${n.gp} national games vs ${o.pts.toFixed(1)} in his other ${o.gp}${ts} (${gap > 0 ? "better" : "worse"} in the spotlight) · ${game}` });
     }
   }
   return out;
@@ -218,7 +282,7 @@ export function injuryStatus(injuries, today) {
   return (team, player) => (player ? listed.get(`${team}|${nameKey(player)}`) : undefined);
 }
 
-export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries = null, facts = null, records = null, matchups = null, maxLines = MAX_LINES }) {
+export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries = null, facts = null, records = null, matchups = null, national = null, maxLines = MAX_LINES }) {
   const games = (watch.games || []).map((g) => ({ id: g.id, away: g.awayTri, home: g.homeTri, start: g.start }));
   const teams = new Set(games.flatMap((g) => [g.away, g.home]));
   // The injury report overrules the rest: a player listed Out or Doubtful loses his other lines
@@ -231,7 +295,7 @@ export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries =
   const hist = historyLines(facts, teams, watch.today).filter((h) => !recs.some((r) => r.player && r.passing && r.team === h.team
     && new RegExp(`\\b${surname(r.player)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
     && r.passing.split(" and ").some((n) => new RegExp(`\\b${surname(n)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, "")))));
-  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today)]
+  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams).filter((l) => !clubLines(leaders, teams).some((c) => c.player === l.player)), ...clubLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today), ...tvLines(national, teams, watch.today)]
     .flatMap((l) => {
       const st = l.player ? listed.get(`${l.team}|${nameKey(l.player)}`) : null;
       if (st === "Out" || st === "Doubtful") return [];
@@ -239,9 +303,9 @@ export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries =
     });
   const all = [...injuryLines(injuries, teams, watch.today), ...others];
   return games.map((g) => {
-    let inj = 0, hist = 0, ctx = 0, mu = 0;
+    let inj = 0, hist = 0, ctx = 0, mu = 0, tv = 0;
     const lines = all.filter((l) => (l.team === g.away || l.team === g.home) && (l.kind !== "matchup" || l.game === `${g.away}@${g.home}`)).sort((a, b) => b.score - a.score)
-      .filter((l) => (l.kind !== "injury" || ++inj <= 2) && (l.kind !== "history" || ++hist <= 2) && (l.kind !== "context" || ++ctx <= 1) && (l.kind !== "matchup" || ++mu <= 2)).slice(0, maxLines);
+      .filter((l) => (l.kind !== "injury" || ++inj <= 2) && (l.kind !== "history" || ++hist <= 2) && (l.kind !== "context" || ++ctx <= 1) && (l.kind !== "matchup" || ++mu <= 2) && (l.kind !== "tv" || ++tv <= 2)).slice(0, maxLines);
     return { ...g, lines };
   });
 }

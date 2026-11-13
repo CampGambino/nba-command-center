@@ -2,6 +2,65 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.50.0 (2026-11-13): the user's 17-image review (Basketball Reference checks, trends, Watch List, National TV, Records tabs)
+
+### What changed
+- **Basketball Reference checks (images 12-17):** all six of our totals match B-Ref exactly:
+  - Horford career DRB 6,982;
+  - Wembanyama career BLK 680;
+  - Mitchell CLE 3PM 916;
+  - Merrill CLE 3PM 457;
+  - Allen CLE REB 3,942;
+  - Sabonis SAC ORB 961.
+
+  The teams' game notes were what disagreed (917, 454, 3,442, 679 and 3,599). New `src/data/verified-totals.json` holds those confirmations, and `src/records/verified.js` applies them:
+  - Records → Checks now lists a disagreement B-Ref settles as "settled by Basketball Reference in our favour". It only does so while our total still equals the confirmed one.
+  - The guide's two Horford DRB figures (6,949 and 6,950) become an erratum: 6,949 + 33 this season = 6,982, so 6,950 is the slip.
+- **Notes reader:** Sacramento's 3,599 "offensive rebounds" chasing Jason Thompson was Sabonis's total rebounds (961 + 2,638). A row that equals another offensive row plus the defensive row is now read as total rebounds. It stays in review.
+- **Streaks & outliers:**
+  - Outlier games: one row per player, with each unusual number as its own chip (value, average, "season high (was N)"). A short-minutes game says so.
+  - Active streaks: "(this one)" is now "(active)".
+  - Team streaks: tighter cells under two header groups.
+    - Offense: Scored 120+, Scored 110+, Scored under 110.
+    - Defense: Held opp. under 110, Held opp. under 100, Allowed 120+.
+    - The old "Held under 110" (which meant held opponents) is now "Held opp. under 110", with a key above the table.
+- **Team leaders:** "Led his team, game by game" opens on a Team snapshot. Each team gets one row and each stat one cell, showing who led most games (games led of the team's games, and his share of his own games), plus the next man. The old list is under "Player list".
+- **Watch List:**
+  - 50-40-90 watch: a qualified player at all three lines, or within 1 point of them added up, gets his own line on game night. Example: "Ayo Dosunmu: 0.3 short of 50-40-90 … 1 make from the line gets him there".
+  - National TV tonight: a player in tonight's national game who is clearly better or worse on national TV gets a line, at most 2 a game. The cutoff is 3+ national and 3+ other games, 20+ minutes in both, and a gap of 4+ points that is also 20%+. The injury report removes him like any line.
+- **National TV page:**
+  - The other games are named League Pass (LP); "chg" is national minus LP.
+  - The toggle reads "Better / Worse on national TV first". Clicking a stat sorts by it, and clicking again flips the order.
+  - Players on national TV tonight are marked.
+  - The team table has ABC, ESPN, NBC, Peacock and Prime Video columns. A simulcast counts in both of its networks and once in "All national".
+- **Records:**
+  - **Sub-tabs:** Tonight, Within reach, All-time lists, Franchise, This season, NBA Cup, Record book, Checks. One shows at a time, and the address keeps it (records.html#franchise).
+  - **Odds when the man being passed is still playing (images 8, 11):** before, the chances treated his total as fixed. Now both players' games are simulated night by night (`simulate(..., rivals)`), and the pass needs our player to get beyond him.
+    - He counts tonight only if his team plays tonight (for the Cup: a Cup game tonight).
+    - A franchise mark moves only with games for that franchise.
+    - The line says "Davis is active too … his games count in the odds".
+  - **All-time lists:** a "To pass next" column for players still playing: how many to pass the next total above, how many tie it, and "(active)" when that man is still playing.
+  - **Within reach:** opens "By player". There is one card per name, tonight's first (not those ruled out), with his 3 closest marks; the rest are behind "+ N more". There is a "playing tonight" box, and the full table is one click away.
+- **Watch List (phone):** a long trimmed-line reason no longer runs off a 390 px screen.
+
+### Tested
+- 617 checks pass (604 before). New ones cover:
+  - B-Ref settling a check, a same-day disagreement, a stale confirmation, and Horford's erratum;
+  - the Sabonis rebound relabel;
+  - the new team streak columns;
+  - per-network records with simulcasts;
+  - the 50-40-90 line and that the single-line note gives way;
+  - the national-TV cutoff (2 games, a 3-point gap and a bench player are all excluded) and the injury report;
+  - passing an active 30-a-game player: 15 points is likely against a frozen total and unlikely when he plays tonight too.
+- The 60 watcher checks pass.
+- The page sweep (`tools/check-pages.py`, now also every Records sub-tab) passes at 1400 and 390 px.
+- Screenshots checked: outliers, team streaks (rebuilt from the team files), the team snapshot, the per-network table and Within reach.
+
+### Unproven
+- Tonight's build is the first with the new team streak fields, network records, rival-aware odds and the B-Ref settlement. The pages were checked with locally rebuilt data, not a live build.
+- The national-TV cutoff (4 points and 20%) is a judgment call. Early in the season the samples are 3-5 games.
+- In the odds, the rival's later games are assumed to follow ours game for game. Only tonight is matched exactly.
+
 ## 0.49.2 (2026-11-13): #lineups timing, from the first night's diagnostic
 
 The user asked for this ("make your changes but also run another diagnostic tonight with 9 games for larger sample").

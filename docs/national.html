@@ -115,17 +115,18 @@
 <main>
   <h2>Next national games</h2>
   <div class="nets" id="next"></div>
-  <h2>Players: national TV vs other games</h2>
+  <h2>Players: national TV vs League Pass games</h2>
   <div class="controls">
     <select id="team"><option value="">All teams</option></select>
     <label>National games played <select id="min"><option value="1">1+</option><option value="2" selected>2+</option><option value="3">3+</option><option value="5">5+</option></select></label>
     <label>Minutes a game (both) <select id="mpg"><option value="0">any</option><option value="15" selected>15+</option><option value="25">25+</option></select></label>
-    <span class="toggle" id="dir"><button data-d="up" class="on">Bigger on national TV</button><button data-d="down">Smaller on national TV</button></span>
+    <span class="toggle" id="dir"><button data-d="up" class="on">Better on national TV first</button><button data-d="down">Worse on national TV first</button></span>
     <input type="search" id="q" placeholder="Player">
   </div>
   <div class="key" id="key"></div>
   <div class="scroll"><table id="players"></table></div>
-  <h2>Teams: record on national TV vs other games</h2>
+  <h2>Teams: record on national TV, by network</h2>
+  <div class="key" id="tkey"></div>
   <div class="scroll"><table id="teams"></table></div>
 </main>
 <footer id="foot"></footer>
@@ -141,32 +142,39 @@ const md = (d) => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
 const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 
 function render() {
+  const onTv = new Set(D.upcoming.filter((g) => g.d === today).flatMap((g) => [g.away, g.home]));
   const team = $("team").value, min = +$("min").value, mpg = +$("mpg").value, q = $("q").value.trim().toLowerCase();
   const rows = D.players.filter((p) => (!team || p.team === team) && p.nat.gp >= min && p.other.gp >= 1 && p.nat.min >= mpg && p.other.min >= mpg && (!q || p.name.toLowerCase().includes(q)))
     .sort((a, b) => ((chg(b, sortKey) ?? -1e9) - (chg(a, sortKey) ?? -1e9)) * (dir === "up" ? 1 : -1) || a.name.localeCompare(b.name));
   const cell = (p, k) => { const c = chg(p, k), lo = k === "pm" ? 3 : k === "tsPct" ? 5 : k === "min" ? 4 : 2;
     return `<td class="num">${f1(p.nat[k])}</td><td class="num">${f1(p.other[k])}</td><td class="num chg ${c == null ? "" : c >= lo ? "hi" : c <= -lo ? "lo" : ""}">${sgn(c)}</td>`; };
-  $("players").innerHTML = `<tr><th rowspan=2>Player</th><th rowspan=2 class="num">GP<br><span class=small>nat / other</span></th>${STATS.map(([k, l]) => `<th colspan=3 class="num sort${k === sortKey ? " on" : ""}" data-k="${k}">${l}${k === sortKey ? " ▾" : ""}</th>`).join("")}</tr>
-    <tr>${STATS.map(() => `<th class="num">nat</th><th class="num">other</th><th class="num">chg</th>`).join("")}</tr>` +
-    (rows.length ? rows.slice(0, 150).map((p) => `<tr><td><b>${esc(p.name)}</b> <span class="team">${esc(p.team)}</span></td><td class="num">${p.nat.gp} / ${p.other.gp}</td>${STATS.map(([k]) => cell(p, k)).join("")}</tr>`).join("")
+  $("players").innerHTML = `<tr><th rowspan=2>Player</th><th rowspan=2 class="num">GP<br><span class=small>nat / LP</span></th>${STATS.map(([k, l]) => `<th colspan=3 class="num sort${k === sortKey ? " on" : ""}" data-k="${k}" title="sort by the change; click again to flip">${l}${k === sortKey ? (dir === "up" ? " ▾" : " ▴") : ""}</th>`).join("")}</tr>
+    <tr>${STATS.map(() => `<th class="num">nat</th><th class="num" title="local TV / League Pass">LP</th><th class="num">chg</th>`).join("")}</tr>` +
+    (rows.length ? rows.slice(0, 150).map((p) => `<tr><td><b>${esc(p.name)}</b> <span class="team">${esc(p.team)}</span>${onTv.has(p.team) ? ` <span class="small" title="on national TV tonight">📺 tonight</span>` : ""}</td><td class="num">${p.nat.gp} / ${p.other.gp}</td>${STATS.map(([k]) => cell(p, k)).join("")}</tr>`).join("")
       : `<tr><td colspan=${2 + STATS.length * 3} class="empty">No players match.</td></tr>`);
-  document.querySelectorAll("#players th.sort").forEach((th) => th.onclick = () => { sortKey = th.dataset.k; render(); });
-  $("key").innerHTML = `${rows.length} players · per-game averages in national games (ABC, ESPN, NBC, Peacock, Prime Video) and in all other games · <b class="hi">green</b> / <b class="lo">red</b>: a clear change (2+ PTS/REB/AST/3PM, 5+ TS%, 3+ +/-). Early in the season most players have only a few national games: read the GP column first.`;
-  const T = Object.entries(D.teams).map(([t, r]) => ({ t, ...r, np: r.nat.w + r.nat.l ? r.nat.w / (r.nat.w + r.nat.l) : null, op: r.other.w + r.other.l ? r.other.w / (r.other.w + r.other.l) : null }))
-    .sort((a, b) => (b.nat.w + b.nat.l) - (a.nat.w + a.nat.l) || (b.np ?? -1) - (a.np ?? -1));
+  // Click a stat to sort by its change; click it again to flip between better-first and worse-first.
+  document.querySelectorAll("#players th.sort").forEach((th) => th.onclick = () => { if (sortKey === th.dataset.k) dir = dir === "up" ? "down" : "up"; else { sortKey = th.dataset.k; dir = "up"; } syncDir(); render(); });
+  const label = Object.fromEntries(STATS)[sortKey];
+  $("key").innerHTML = `${rows.length} players · per-game averages in national games (<b>nat</b>: ABC, ESPN, NBC, Peacock, Prime Video) and in his other games (<b>LP</b>: local TV, on League Pass out of market) · <b>chg</b> = nat minus LP · sorted by the ${label} change, ${dir === "up" ? "<b>better on national TV first</b>" : "<b>worse on national TV first</b>"} (click a stat to sort, again to flip) · <b class="hi">green</b> / <b class="lo">red</b>: a clear change (2+ PTS/REB/AST/3PM, 5+ TS%, 3+ +/-). Early in the season most players have only a few national games: read the GP column first. A clear points split (3+ games each way, 20+ minutes, 4+ points and 20%+) is flagged on the Watch List when he plays on national TV that night.`;
+  const NETS = D.networks || ["ABC", "ESPN", "NBC", "Peacock", "Prime Video"];
+  const wl = (r) => (r && r.w + r.l ? `${r.w}-${r.l}` : "–");
+  const pc = (r) => (r && r.w + r.l ? ` <span class=small>(${((r.w / (r.w + r.l)) * 100).toFixed(0)}%)</span>` : "");
+  const T = Object.entries(D.teams).map(([t, r]) => ({ t, ...r, np: r.nat.w + r.nat.l ? r.nat.w / (r.nat.w + r.nat.l) : null }))
+    .sort((a, b) => (b.nat.w + b.nat.l) - (a.nat.w + a.nat.l) || (b.np ?? -1) - (a.np ?? -1) || a.t.localeCompare(b.t));
   const left = (t) => D.upcoming.filter((g) => g.away === t || g.home === t).length;
-  $("teams").innerHTML = `<tr><th>Team</th><th class="num">National TV</th><th class="num">Other games</th><th class="num">National games left (next ${D.upcoming.length} listed)</th></tr>` +
-    T.map((r) => `<tr><td><b>${r.t}</b></td><td class="num">${r.nat.w}-${r.nat.l}${r.np != null ? ` <span class=small>(${(r.np * 100).toFixed(0)}%)</span>` : ""}</td><td class="num">${r.other.w}-${r.other.l}${r.op != null ? ` <span class=small>(${(r.op * 100).toFixed(0)}%)</span>` : ""}</td><td class="num">${left(r.t) || "–"}</td></tr>`).join("");
+  $("teams").innerHTML = `<tr><th>Team</th><th class="num">All national</th>${NETS.map((n) => `<th class="num">${esc(n)}</th>`).join("")}<th class="num">League Pass</th><th class="num">National left<br><span class=small>next ${D.upcoming.length} listed</span></th></tr>` +
+    T.map((r) => `<tr><td><b>${r.t}</b></td><td class="num"><b>${wl(r.nat)}</b>${pc(r.nat)}</td>${NETS.map((n) => `<td class="num">${wl(r.byNet?.[n])}</td>`).join("")}<td class="num">${wl(r.other)}${pc(r.other)}</td><td class="num">${left(r.t) || "–"}</td></tr>`).join("");
+  $("tkey").innerHTML = `W-L in each network's games. NBC games are simulcast on Peacock, so they count in both columns (Peacock alone also has its own Monday games); ABC/ESPN simulcasts the same way. "All national" counts each game once. League Pass: every other game (local TV).`;
 }
-
+function syncDir() { document.querySelectorAll("#dir button").forEach((x) => x.classList.toggle("on", x.dataset.d === dir)); }
 fetch("data/national.json", { cache: "no-store" }).then((r) => r.json()).then((d) => {
   D = d;
-  $("sub").textContent = `How players do on national TV (ABC, ESPN, NBC, Peacock, Prime Video) vs their other games · ${d.played} of ${d.total} national games played · through ${md(d.through)}`;
+  $("sub").textContent = `How players do on national TV (ABC, ESPN, NBC, Peacock, Prime Video) vs their League Pass (local TV) games · ${d.played} of ${d.total} national games played · through ${md(d.through)}`;
   $("next").innerHTML = d.upcoming.length ? d.upcoming.map((g) => `<div class="net${g.d === today ? " today" : ""}"><div class="teams">${g.away} ${g.neutral ? "vs" : "@"} ${g.home}</div><div class="state">${g.d === today ? "Today" : new Date(g.d + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "short", month: "numeric", day: "numeric", timeZone: "UTC" })} · ${g.time} ET · ${esc(g.networks.join(" / "))}</div></div>`).join("") : `<div class="empty">No national games left on the schedule.</div>`;
   const teams = [...new Set(d.players.map((p) => p.team))].sort();
   $("team").innerHTML += teams.map((t) => `<option>${t}</option>`).join("");
   ["team", "min", "mpg", "q"].forEach((id) => $(id).addEventListener("input", render));
-  document.querySelectorAll("#dir button").forEach((b) => b.onclick = () => { dir = b.dataset.d; document.querySelectorAll("#dir button").forEach((x) => x.classList.toggle("on", x === b)); render(); });
+  document.querySelectorAll("#dir button").forEach((b) => b.onclick = () => { dir = b.dataset.d; syncDir(); render(); });
   $("foot").innerHTML = `National games: the NBA's 2026-27 Tip-Off Guide national schedule (ABC, ESPN, NBC, Peacock incl. the Monday Peacock/NBCSN games, Prime Video; not NBA TV or ESPN Radio), checked against ESPN's broadcast listings for every game played. Regular season; only games a player played count; a traded player's games are combined. Not a forecast: a baseline for who rises (or fades) with the bigger spotlight.`;
   render();
 }).catch((e) => { $("sub").textContent = `Couldn't load the data: ${e.message}`; });

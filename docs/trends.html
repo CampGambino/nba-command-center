@@ -96,8 +96,25 @@
   .odd li { padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
   .odd li:last-child { border-bottom: 0; }
   .odd .luck { color: var(--faint); font-size: 12px; white-space: nowrap; }
-  /* the outlier detail line is long: let it wrap on phones instead of widening the page */
-  #outliers .luck { white-space: normal; }
+  /* outliers: one row per player, each unusual number its own chip, the box line underneath */
+  #outliers li { display: grid; grid-template-columns: minmax(150px, 210px) 1fr; gap: 4px 12px; align-items: start; }
+  #outliers .pl .team { margin-left: 0; display: block; }
+  #outliers .notes { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ochip { border: 1px solid var(--line); border-radius: 8px; padding: 3px 8px; background: var(--panel2); font-size: 13px; line-height: 1.3; }
+  .ochip b { font-size: 15px; font-variant-numeric: tabular-nums; }
+  .ochip small { display: block; color: var(--muted); font-size: 11.5px; }
+  .ochip.hi { border-color: color-mix(in srgb, var(--good) 55%, transparent); }
+  .ochip.hi b { color: var(--good); }
+  .ochip.lo { border-color: color-mix(in srgb, var(--bad) 55%, transparent); }
+  .ochip.lo b { color: var(--bad); }
+  .ochip .sh { color: var(--warn); font-weight: 650; }
+  #outliers .box { grid-column: 2; color: var(--faint); font-size: 12px; }
+  @media (max-width: 600px) { #outliers li { grid-template-columns: 1fr; } #outliers .box { grid-column: 1; } }
+  /* team streaks: compact cells, grouped header */
+  #teams th, #teams td { padding: 6px 8px; }
+  #teams th.grp { text-align: center; color: var(--text); font-size: 11.5px; letter-spacing: .5px; text-transform: uppercase; border-left: 1px solid var(--line); }
+  #teams .gl { border-left: 1px solid var(--line); }
+  #tscroll table { min-width: 760px; }
 </style>
 </head>
 <body>
@@ -126,7 +143,8 @@
 
   <h2>Team streaks</h2>
   <div class="controls"><span class="toggle" id="tdir"><button data-d="best" class="on">Best first</button><button data-d="worst">Worst first</button></span><label>Click a column to sort; click again to flip.</label></div>
-  <div class="scroll"><table id="teams"></table></div>
+  <div class="key">Current runs only. <b>Offense</b> counts the team's own points (red: scoring under 110, a cold offense). <b>Defense</b> counts what opponents scored against them: "Held opp. under 110" means their opponents scored under 110 in each game (red: allowing 120+).</div>
+  <div class="scroll" id="tscroll"><table id="teams"></table></div>
 </main>
 <footer id="foot"></footer>
 <script>
@@ -139,6 +157,7 @@ let T = null, kind = "all", sdir = "best", sorder = "notable", tkey = "streak", 
 // rank above 12 straight 10-point games.
 const WEIGHT = { pts10: 0.4, three: 0.4, pts20: 1.2, threes3: 1.5, reb10: 1.5, ast8: 1.8, dd: 1.8, pts25: 2, pts30: 3 };
 const notable = (s) => s.length * (WEIGHT[s.key] ?? 1);
+const OLABEL = { pts: "pts", reb: "reb", ast: "ast", fg3m: "3PM", stl: "stl", blk: "blk", min: "min" };
 const day = (d) => new Date(d + "T12:00:00").toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
 
 function renderOutliers() {
@@ -146,10 +165,18 @@ function renderOutliers() {
   const list = (T.anomalies[$("date").value] || []).filter((a) => (!team || a.team === team) && (kind === "all" || (kind === "low" ? a.notes.some((n) => n.low) : a.notes.some((n) => !n.low))));
   $("outliers").innerHTML = list.length ? list.map((a) => {
     const l = a.line;
-    const tag = a.notes.every((n) => n.low) ? "lo" : a.notes.every((n) => !n.low) ? "hi" : "";
-    return `<li><b>${esc(a.name)}</b> <span class="team">${a.team} ${a.home ? "vs" : "@"} ${a.opp} · ${a.win ? "W" : "L"}</span><br>
-      <span class="${tag}">${esc(a.text)}</span>
-      <span class="luck"> · ${l.pts} pts, ${l.reb} reb, ${l.ast} ast, ${l.fgm}-${l.fga} FG in ${a.min} min · strength ${a.score.toFixed(1)} · ${a.games} games played</span></li>`;
+    const chips = a.notes.map((n) => {
+      const cls = n.low ? "lo" : "hi";
+      if (n.stat === "fgp") return `<span class="ochip ${cls}"><b>${n.fgm}-${n.fga}</b> FG<small>${n.value}% · usually ${n.avg}%</small></span>`;
+      if (n.stat === "fg3cold") return `<span class="ochip lo"><b>0-${n.fg3a}</b> 3PT<small>no threes made</small></span>`;
+      const lbl = OLABEL[n.stat] || n.stat;
+      const extra = n.seasonHigh ? ` · <span class="sh">season high</span>${n.prevHigh != null ? ` (was ${n.prevHigh})` : ""}` : "";
+      return `<span class="ochip ${cls}"><b>${n.value}</b> ${lbl}<small>avg ${n.avg}${extra}</small></span>`;
+    }).join("");
+    const shortMin = a.notes.some((n) => n.stat === "min" && n.low);
+    return `<li><div class="pl"><b>${esc(a.name)}</b><span class="team">${a.team} ${a.home ? "vs" : "@"} ${a.opp} · ${a.win ? "W" : "L"}</span></div>
+      <div class="notes">${chips}</div>
+      <div class="box">${l.pts} pts, ${l.reb} reb, ${l.ast} ast, ${l.fgm}-${l.fga} FG in ${a.min} min${shortMin ? " · short minutes: injury, fouls or a blowout?" : ""} · strength ${a.score.toFixed(1)} · ${a.games} games</div></li>`;
   }).join("") : `<li class="empty">Nothing unusual for this filter.</li>`;
 }
 function renderStreaks() {
@@ -157,20 +184,28 @@ function renderStreaks() {
   const val = sorder === "notable" ? notable : (s) => s.length;
   const list = T.streaks.filter((s) => (!cat || s.key === cat) && (!team || s.team === team)).sort((a, b) => sign * (val(b) - val(a)) || b.length - a.length || a.name.localeCompare(b.name));
   $("streaks").innerHTML = `<tr><th>Player</th><th>Team</th><th>Streak</th><th class="num">Games</th><th class="num">His games this season</th><th class="num">Since</th><th class="num">Season best</th></tr>` +
-    (list.map((s) => `<tr><td><b>${esc(s.name)}</b></td><td>${teamCell(s)}</td><td>${esc(s.label)}</td><td class="num"><b>${s.length}</b></td><td class="num">${s.ofGames}${s.length === s.ofGames ? " (every game)" : ""}</td><td class="num">${day(s.since)}</td><td class="num">${s.seasonBest}${s.seasonBest > s.length ? "" : " (this one)"}</td></tr>`).join("") || `<tr><td class="empty" colspan="7">No streaks match.</td></tr>`);
+    (list.map((s) => `<tr><td><b>${esc(s.name)}</b></td><td>${teamCell(s)}</td><td>${esc(s.label)}</td><td class="num"><b>${s.length}</b></td><td class="num">${s.ofGames}${s.length === s.ofGames ? " (every game)" : ""}</td><td class="num">${day(s.since)}</td><td class="num">${s.seasonBest}${s.seasonBest > s.length ? "" : " (active)"}</td></tr>`).join("") || `<tr><td class="empty" colspan="7">No streaks match.</td></tr>`);
 }
+// [key, header, sort value, cell, group]: group "o" = their own scoring, "d" = their defence (the opponents' points).
 const TCOLS = [
-  ["streak", "Streak", (t) => (t.streak.type === "W" ? 1 : -1) * t.streak.n, (t) => `${t.streak.type}${t.streak.n}`],
-  ["home", "Home", (t) => (t.home ? (t.home.type === "W" ? 1 : -1) * t.home.n : null), (t) => (t.home ? `${t.home.type}${t.home.n}` : "–")],
-  ["road", "Road", (t) => (t.road ? (t.road.type === "W" ? 1 : -1) * t.road.n : null), (t) => (t.road ? `${t.road.type}${t.road.n}` : "–")],
-  ["scored120", "Scored 120+ in a row", (t) => t.scored120, (t) => t.scored120 || "–"],
-  ["held110", "Held under 110 in a row", (t) => t.held110, (t) => t.held110 || "–"],
+  ["streak", "Streak", (t) => (t.streak.type === "W" ? 1 : -1) * t.streak.n, (t) => `${t.streak.type}${t.streak.n}`, ""],
+  ["home", "Home", (t) => (t.home ? (t.home.type === "W" ? 1 : -1) * t.home.n : null), (t) => (t.home ? `${t.home.type}${t.home.n}` : "–"), ""],
+  ["road", "Road", (t) => (t.road ? (t.road.type === "W" ? 1 : -1) * t.road.n : null), (t) => (t.road ? `${t.road.type}${t.road.n}` : "–"), ""],
+  ["scored120", "Scored 120+", (t) => t.scored120, (t) => t.scored120 || "–", "o"],
+  ["scored110", "Scored 110+", (t) => t.scored110, (t) => t.scored110 || "–", "o"],
+  ["under110", "Scored under 110", (t) => t.under110, (t) => (t.under110 ? `<span class="lo">${t.under110}</span>` : "–"), "o"],
+  ["held110", "Held opp. under 110", (t) => t.held110, (t) => t.held110 || "–", "d"],
+  ["held100", "Held opp. under 100", (t) => t.held100, (t) => t.held100 || "–", "d"],
+  ["allowed120", "Allowed 120+", (t) => t.allowed120, (t) => (t.allowed120 ? `<span class="lo">${t.allowed120}</span>` : "–"), "d"],
 ];
 function renderTeams() {
   const col = TCOLS.find((c) => c[0] === tkey), sign = tdir === "best" ? 1 : -1;
   const list = Object.entries(T.teams).map(([code, t]) => ({ code, ...t })).sort((x, y) => { const a = col[2](x), b = col[2](y); if (a == null) return 1; if (b == null) return -1; return sign * (b - a) || x.code.localeCompare(y.code); });
-  $("teams").innerHTML = `<tr><th>Team</th>${TCOLS.map((c) => `<th class="num sort ${tkey === c[0] ? "on" : ""}" data-k="${c[0]}">${c[1]}${tkey === c[0] ? (tdir === "best" ? " ▾" : " ▴") : ""}</th>`).join("")}</tr>` +
-    list.map((t) => `<tr><td><b>${t.code}</b></td>${TCOLS.map((c) => `<td class="num">${c[3](t)}</td>`).join("")}</tr>`).join("");
+  const span = (g) => TCOLS.filter((c) => c[4] === g).length;
+  const first = (c, i) => c[4] && TCOLS[i - 1]?.[4] !== c[4] ? " gl" : "";
+  $("teams").innerHTML = `<tr><th></th><th colspan="${span("")}"></th><th class="grp" colspan="${span("o")}">Offense · their points, games in a row</th><th class="grp" colspan="${span("d")}">Defense · opponents' points, games in a row</th></tr>` +
+    `<tr><th>Team</th>${TCOLS.map((c, i) => `<th class="num sort${first(c, i)} ${tkey === c[0] ? "on" : ""}" data-k="${c[0]}">${c[1]}${tkey === c[0] ? (tdir === "best" ? " ▾" : " ▴") : ""}</th>`).join("")}</tr>` +
+    list.map((t) => `<tr><td><b>${t.code}</b></td>${TCOLS.map((c, i) => `<td class="num${first(c, i)}">${c[3](t)}</td>`).join("")}</tr>`).join("");
   document.querySelectorAll("#teams th.sort").forEach((el) => el.onclick = () => { if (tkey === el.dataset.k) tdir = tdir === "best" ? "worst" : "best"; else { tkey = el.dataset.k; tdir = "best"; } sync(); renderTeams(); });
 }
 function sync() {

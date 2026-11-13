@@ -68,27 +68,40 @@ export function makeSampler(lines, { smooth = 0.2 } = {}) {
  * @param {Function} p.sample      from makeSampler
  * @param {Array<{date:string, pPlay:number, pStart?:number}>} p.games  upcoming games, first = next;
  *   pStart (optional) overrides whether he starts that game
+ * @param {Array<{sample:Function, games:Array<{pPlay:number}>}>} [p.rivals]  a pass of active players: each one's
+ *   own games add to the bar (game i of his runs alongside game i of ours; pPlay 0 = he isn't playing that night).
+ *   The pass happens when our total gets need beyond the highest of theirs.
  * @param {number} [p.sims=4000]
  * @param {number} [p.seed=7]
  * @returns {{ byGame:number[], pNever:number, medianGame:number|null, unknown?:boolean }}
  *   byGame[i] = probability the milestone has fallen by the end of game i (0 = next game)
  */
-export function simulate({ need, stat, sample, games, sims = 4000, seed = 7 }) {
+export function simulate({ need, stat, sample, games, rivals = [], sims = 4000, seed = 7 }) {
   if (!games.length) return { byGame: [], pNever: 1, medianGame: null };
-  if (need <= 0) return { byGame: games.map(() => 1), pNever: 0, medianGame: 0 };
+  if (need <= 0 && !rivals.length) return { byGame: games.map(() => 1), pNever: 0, medianGame: 0 };
   const r = rng(seed);
   const hits = new Array(games.length).fill(0);
   for (let s = 0; s < sims; s++) {
     let cum = 0;
+    const rc = rivals.map(() => 0);
     for (let i = 0; i < games.length; i++) {
-      if (r() >= games[i].pPlay) continue;
-      let line = sample(r);
-      // Tonight's lineup can settle whether he starts (games-started milestones).
-      if (games[i].pStart != null) line = { ...line, started: r() < games[i].pStart };
-      const v = statFromLine(stat, line);
-      if (v === null) return { byGame: [], pNever: 1, medianGame: null, unknown: true };
-      cum += v;
-      if (cum >= need) { hits[i]++; break; }
+      let moved = false;
+      rivals.forEach((rv, j) => {
+        const g = rv.games[Math.min(i, rv.games.length - 1)];
+        if (!g || !g.pPlay || r() >= g.pPlay) return;
+        const v = statFromLine(stat, rv.sample(r));
+        if (v) { rc[j] += v; moved = true; }
+      });
+      if (r() >= games[i].pPlay) { if (!moved) continue; }
+      else {
+        let line = sample(r);
+        // Tonight's lineup can settle whether he starts (games-started milestones).
+        if (games[i].pStart != null) line = { ...line, started: r() < games[i].pStart };
+        const v = statFromLine(stat, line);
+        if (v === null) return { byGame: [], pNever: 1, medianGame: null, unknown: true };
+        cum += v;
+      }
+      if (cum >= need + (rivals.length ? Math.max(...rc) : 0)) { hits[i]++; break; }
     }
   }
   const byGame = [];

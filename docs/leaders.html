@@ -132,12 +132,14 @@
   <h2>Led his team, game by game</h2>
   <div class="intro">How often a player had his team's most of a stat in a game. Ties count as leading. Only games he played count.</div>
   <div class="controls">
+    <span class="toggle" id="gview"><button data-v="team" class="on">Team snapshot</button><button data-v="player">Player list</button></span>
     <select id="gstat"><option value="">All stats</option></select>
     <select id="gteam"><option value="">All teams</option></select>
     <span class="toggle" id="gsort"><button data-s="share" class="on">Share of his games</button><button data-s="led">Games led</button><button data-s="run">Current run</button></span>
     <span class="toggle" id="gdir"><button data-d="best" class="on">Top first</button><button data-d="worst">Bottom first</button></span>
   </div>
-  <div class="scroll"><table id="games"></table></div>
+  <div class="key" id="gkey"></div>
+  <div class="scroll"><table id="games" class="grid"></table></div>
 
   <h2>Shooting lines: 50 / 40 / 90</h2>
   <div class="intro">Who is right around 50% from the field, 40% on threes or 90% from the line, and how many shots from crossing it.</div>
@@ -160,7 +162,7 @@
 import { cushion, needed } from "./lib/situations/leaders.js";
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-let gShow = 40, D = null, cdir = "best", gsort = "share", gdir = "best", sside = "both", squal = "q", ssort = "gap", gridKey = "team", gridDir = 1;
+let gShow = 40, gview = "team", D = null, cdir = "best", gsort = "share", gdir = "best", sside = "both", squal = "q", ssort = "gap", gridKey = "team", gridDir = 1;
 const SHORT = { pts: "PTS", reb: "REB", ast: "AST", stl: "STL", blk: "BLK", fg3m: "3PM" };
 const name = (id) => esc(D.names[id] || id);
 // "Nickeil Alexander-Walker" -> "N. Alexander-Walker"; suffixes stay ("J. Jackson Jr.").
@@ -168,7 +170,7 @@ const short = (id) => { const n = D.names[id] || id, parts = n.split(" "); retur
 const toggle = (id, attr, get, set) => document.querySelectorAll(`#${id} button`).forEach((b) => b.onclick = () => { set(b.dataset[attr]); syncAll(); renderAll(); });
 function syncAll() {
   const s = (id, attr, v) => document.querySelectorAll(`#${id} button`).forEach((b) => b.classList.toggle("on", b.dataset[attr] === v));
-  s("cdir", "d", cdir); s("gsort", "s", gsort); s("gdir", "d", gdir); s("sside", "s", sside); s("squal", "q", squal); s("ssort", "s", ssort);
+  s("cdir", "d", cdir); s("gview", "v", gview); s("gsort", "s", gsort); s("gdir", "d", gdir); s("sside", "s", sside); s("squal", "q", squal); s("ssort", "s", ssort);
 }
 
 function renderCats() {
@@ -198,11 +200,28 @@ function renderGrid() {
   document.querySelectorAll("#grid th.sort").forEach((el) => el.onclick = () => { if (gridKey === el.dataset.k) gridDir = -gridDir; else { gridKey = el.dataset.k; gridDir = 1; } renderGrid(); });
 }
 
+// Team snapshot: one row per team, one cell per stat, the players who led most of its games in it.
+function renderGameGrid(all) {
+  const team = $("gteam").value, stats = D.stats.map((s) => s[0]);
+  const teams = Object.keys(D.season).filter((t) => !team || t === team).sort();
+  const by = {};
+  for (const r of all) ((by[r.team] ??= {})[r.stat] ??= []).push(r);
+  $("gkey").innerHTML = `Each cell: who led that team in the stat most often, as games led of the team's games (his share of his own games in brackets), then the next man. <b class="hi">Green</b>: he leads in it right now, game after game (current run 3+).`;
+  $("games").innerHTML = `<tr><th>Team</th>${stats.map((k) => `<th>${SHORT[k]}</th>`).join("")}</tr>` + teams.map((t) => `<tr><td><b>${t}</b></td>${stats.map((k) => {
+    const rows = (by[t]?.[k] || []).sort((a, b) => b.led - a.led || b.sole - a.sole);
+    if (!rows.length) return `<td>–</td>`;
+    const [a, b] = rows;
+    return `<td><span class="${a.run >= 3 ? "hi" : ""}" title="${esc(D.names[a.id] || a.id)}: led ${a.led} of his ${a.played} games${a.run ? `; current run ${a.run}` : ""}">${short(a.id)}</span> <span class="tot">${a.led}/${a.teamGames}</span> <span class="mg">(${Math.round((100 * a.led) / a.played)}%)</span>${b ? `<br><span class="mg">${short(b.id)} ${b.led}</span>` : ""}</td>`;
+  }).join("")}</tr>`).join("");
+}
 function renderGames() {
   const stat = $("gstat").value, team = $("gteam").value, sign = gdir === "best" ? 1 : -1;
   const K = Object.fromEntries(D.gameKeys.map((k, i) => [k, i]));
-  const rows = D.games.map((r) => Object.fromEntries(D.gameKeys.map((k) => [k, r[K[k]]])))
-    .filter((r) => r.played >= 3 && (!stat || r.stat === stat) && (!team || r.team === team));
+  const all = D.games.map((r) => Object.fromEntries(D.gameKeys.map((k) => [k, r[K[k]]])));
+  for (const id of ["gstat", "gsort", "gdir"]) $(id).style.display = gview === "team" ? "none" : "";
+  if (gview === "team") return renderGameGrid(all);
+  $("gkey").innerHTML = "";
+  const rows = all.filter((r) => r.played >= 3 && (!stat || r.stat === stat) && (!team || r.team === team));
   const val = gsort === "share" ? (r) => r.led / r.played + r.led / 1000 : gsort === "led" ? (r) => r.led + r.led / r.played / 100 : (r) => r.run + r.led / 1000;
   rows.sort((a, b) => sign * (val(b) - val(a)) || a.team.localeCompare(b.team));
   const label = Object.fromEntries(D.stats);
@@ -252,6 +271,7 @@ function renderClub() {
 function renderAll() { renderCats(); renderGrid(); renderGames(); renderShoot(); renderClub(); }
 
 toggle("cdir", "d", null, (v) => (cdir = v));
+toggle("gview", "v", null, (v) => { gview = v; gShow = 40; });
 toggle("gsort", "s", null, (v) => { gsort = v; gShow = 40; });
 toggle("gdir", "d", null, (v) => { gdir = v; gShow = 40; });
 toggle("sside", "s", null, (v) => (sside = v));

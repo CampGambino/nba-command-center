@@ -12,7 +12,8 @@ from playwright.async_api import async_playwright
 
 DOCS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "docs")
 PAGES = ["index.html", "situations.html", "clutch.html", "clutch.html?mode=q4", "players.html?team=SAS",
-         "trends.html", "leaders.html", "defenses.html", "defenses.html?by=defense", "national.html", "records.html"]
+         "trends.html", "leaders.html", "defenses.html", "defenses.html?by=defense", "national.html", "records.html",
+         "records.html#reach", "records.html#lists", "records.html#franchise", "records.html#season", "records.html#cup", "records.html#book", "records.html#checks"]
 CHROME = "/usr/bin/google-chrome"
 
 
@@ -53,7 +54,7 @@ async def main():
                 for url in PAGES:
                     problems, info = await check(browser, url, width)
                     bad += 1 if problems else 0
-                    print(f"{'BAD' if problems else 'OK '} {width:>4} {url:26} rows={info['rows']:<4} {'; '.join(problems)}")
+                    print(f"{'BAD' if problems else 'OK '} {width:>4} {url:28} rows={info['rows']:<4} {'; '.join(problems)}")
             await browser.close()
     finally:
         server.terminate()
