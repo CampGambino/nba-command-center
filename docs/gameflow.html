@@ -443,7 +443,7 @@
         <option value="thirty">30-point games allowed</option>
         <option value="allstars">Scoring vs top defenses</option>
         <option value="records">Records vs top teams</option>
-        <option value="streaks">Holding the lead</option>
+        <option value="streaks">Leads &amp; comebacks</option>
         <option value="rest">Rest &amp; back-to-backs</option>
         <option value="form">Hot hand</option>
         <option value="cup">NBA Cup vs season</option>
@@ -3279,7 +3279,8 @@ async function buildLeague(limit, onProgress){
   let done=0, failed=0;
   const T=t=>{ let r=team.get(t);
     if(!r){ r={tri:t, gp:0, pf:0, pa:0, fga:0, fta:0, tov:0, oreb:0,
-               ofga:0, ofta:0, otov:0, ooreb:0, allowed30:0, neverLed:0, neverTrailed:0, held:0, heldStrict:0}; team.set(t,r); }
+               ofga:0, ofta:0, otov:0, ooreb:0, allowed30:0, neverLed:0, neverTrailed:0, held:0, heldStrict:0,
+               blown10:0, comeback10:0, bigBlown:null, bigComeback:null}; team.set(t,r); }
     return r; };
 
   const queue=slate.slice();
@@ -3332,6 +3333,15 @@ async function buildLeague(limit, onProgress){
           const ls=G.leadState && G.leadState[side];
           if(ls && ls.held) me.held++;
           if(ls && ls.heldStrict) me.heldStrict++;
+          /* Blown leads and comebacks (the user, 11/13): the biggest lead and deficit this side had, from the
+             margin after every basket (home minus away), against how the game ended. */
+          const sign = side===1? 1 : -1;
+          const ms = (G.flow||[]).map(f=>f.d*sign);
+          const maxLead = Math.max(0, ...ms), maxDef = Math.max(0, ...ms.map(v=>-v));
+          const won = pts[side]>pts[op];
+          const vs = {opp:tri[op], date:g.date, home:side===1, score:`${pts[side]}-${pts[op]}`};
+          if(!won && maxLead>=10){ me.blown10++; if(!me.bigBlown || maxLead>me.bigBlown.n) me.bigBlown={n:maxLead, ...vs}; }
+          if(won && maxDef>=10){ me.comeback10++; if(!me.bigComeback || maxDef>me.bigComeback.n) me.bigComeback={n:maxDef, ...vs}; }
           me.gp++; me.pf+=pts[side]; me.pa+=pts[op];
           me.fga+=tally[side].fga; me.fta+=tally[side].fta;
           me.tov+=tally[side].tov; me.oreb+=tally[side].oreb;
@@ -4784,7 +4794,7 @@ function renderStreaks(agg){
 
   const gh=el("div","gamehead");
   const sc=el("div","score"); const w=el("span","tri");
-  w.appendChild(el("span","","League — holding the lead"));
+  w.appendChild(el("span","","League — leads & comebacks"));
   sc.appendChild(w); gh.appendChild(sc);
   const m=el("div","meta");
   m.innerHTML=(agg.window.limit>0? `<b>last ${agg.window.limit}</b> games per team`
@@ -4849,32 +4859,45 @@ function renderStreaks(agg){
     finishRender(); return;
   }
 
-  table("Games never trailing",
-    agg.teams.slice().sort((a,b)=>b.neverTrailed-a.neverTrailed
-      || a.tri.localeCompare(b.tri)),
-    [["team",t=>t.tri], ["never trailed",t=>t.neverTrailed],
-     ["share",t=>pc(t.neverTrailed,t.gp)],
-     ["led, then never behind",t=>t.held],
-     ["and never even level after",t=>t.heldStrict], ["games",t=>t.gp]],
-    `<b>Never behind at any point.</b> A game opens level at 0-0, which is not a deficit, so `+
-    `this is the count of games a team took the lead and never gave it back. Because winning `+
-    `means being ahead at the final whistle, <b>every one of these is a win</b> — the tests `+
-    `assert that rather than assuming it.<br>`+
-    `The next column is looser and kept for contrast: it allows a team to fall behind early, `+
-    `then take the lead and never be caught again. It will always be the larger number. The `+
-    `last is the strictest of the three, counting only games where the score never even `+
-    `drew level again after the team went ahead.`);
-
-  table("Games never holding the lead",
-    agg.teams.slice().sort((a,b)=>b.neverLed-a.neverLed || a.tri.localeCompare(b.tri)),
-    [["team",t=>t.tri], ["never led",t=>t.neverLed],
-     ["share",t=>pc(t.neverLed,t.gp)], ["games",t=>t.gp]],
-    `Never in front at any point. A lead means strictly ahead, so a game level at the tip `+
-    `counts as nobody leading. Read from the margin after every basket — a final score `+
-    `cannot tell you whether a team was ever in front.<br>`+
-    `<b>Every never-led game is a loss</b>, because winning means being ahead at the last `+
-    `whistle, and every never-trailed game is a win for the same reason. Both are asserted `+
-    `in the tests rather than assumed.`);
+  /* One table, plain names (the user, 11/13: the old titles were confusing). Click a column to sort. */
+  const COLS=[
+    ["gp","Games",t=>t.gp,"games read"],
+    ["wire","Wire to wire",t=>t.neverTrailed,"Never behind at any point: always a win"],
+    ["forgood","Took the lead for good",t=>t.held-t.neverTrailed,"Fell behind, then took the lead and was never behind again: always a win"],
+    ["blown","Blew a 10+ lead",t=>t.blown10,"Led by 10 or more at some point and lost"],
+    ["never","Never led",t=>t.neverLed,"Never in front at any point: always a loss"],
+    ["back","Came back from 10+ down",t=>t.comeback10,"Trailed by 10 or more at some point and won"],
+  ];
+  const sortKey = (window.__leadSort ||= {k:"wire", d:-1});
+  const col=COLS.find(c=>c[0]===sortKey.k)||COLS[1];
+  const rows=agg.teams.slice().sort((a,b)=>sortKey.d*(col[2](a)-col[2](b)) || a.tri.localeCompare(b.tri));
+  card.appendChild(el("div","rule"));
+  const tbl=el("table","per lb"); const th=el("tr");
+  th.appendChild(el("th","","team"));
+  COLS.forEach(c=>{ const h=el("th","",c[1]+(c[0]===sortKey.k?(sortKey.d<0?" ▾":" ▴"):"")); h.title=c[3]+". Click to sort.";
+    h.style.cursor="pointer"; h.addEventListener("click",()=>{ if(sortKey.k===c[0]) sortKey.d=-sortKey.d; else { sortKey.k=c[0]; sortKey.d=-1; } renderStreaks(agg); });
+    th.appendChild(h); });
+  ["Biggest lead blown","Biggest comeback"].forEach(x=>th.appendChild(el("th","",x)));
+  tbl.appendChild(th);
+  const game = b => b? `${b.n} <span style="color:var(--dim)">(${b.home?"vs":"at"} ${b.opp}, ${new Date(b.date).toLocaleDateString(undefined,{month:"short",day:"numeric"})}, ${b.score})</span>` : "—";
+  rows.forEach(t=>{
+    const tr=el("tr");
+    const td=el("td"); td.style.textAlign="left";
+    td.innerHTML=`<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${tcol(t.tri)};margin-right:5px"></span>${t.tri}`;
+    tr.appendChild(td);
+    COLS.forEach(c=>{ const v=c[2](t); const d=el("td","",String(v)+(c[0]!=="gp" && t.gp? ` <span style="color:var(--dimmer)">${pc(v,t.gp)}</span>`:""));
+      d.innerHTML=String(v)+(c[0]!=="gp" && t.gp? ` <span style="color:var(--dimmer)">${pc(v,t.gp)}</span>`:"");
+      if(c[0]===sortKey.k){ d.style.color="var(--text)"; d.style.fontWeight="500"; } tr.appendChild(d); });
+    [t.bigBlown,t.bigComeback].forEach(b=>{ const d=el("td"); d.innerHTML=game(b); d.style.textAlign="left"; tr.appendChild(d); });
+    tbl.appendChild(tr);
+  });
+  card.appendChild(tbl);
+  card.appendChild(noteEl(
+    `<b>Wire to wire</b>: never behind at any point (a game opens level at 0-0, which is not a deficit), so always a win. `+
+    `<b>Took the lead for good</b>: fell behind, then went ahead and was never behind again, also always a win. `+
+    `<b>Never led</b>: never in front, always a loss. <b>Blew a 10+ lead</b> and <b>Came back from 10+ down</b> read the `+
+    `biggest lead and deficit from the margin after every basket. Percentages are of the team's games. `+
+    `(${agg.teams.reduce((a,t)=>a+t.heldStrict,0)} of the leads taken for good league-wide were never even tied again.)`));
   finishRender();
 }
 

@@ -2,6 +2,28 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.53.0 (2026-11-13): GameFlow merge, stage 2a: leads and comebacks
+
+The user: "continue" (stage 2), and earlier: "Holding leads is a good one to carry over. I may need to make it make more sense because some of the titles are confusing."
+
+### What changed
+- **Game Flow → "Leads & comebacks"** (was "Holding the lead"): one table with plain names, sortable by any column.
+  - **Wire to wire:** never behind.
+  - **Took the lead for good:** fell behind, then led the rest of the way.
+  - **Blew a 10+ lead:** led by 10+ and lost.
+  - **Never led.**
+  - **Came back from 10+ down:** trailed by 10+ and won.
+  - Each count shows its share of the team's games, and each team's biggest lead blown and biggest comeback show with the game.
+- The old "led then never behind" column included the wire-to-wire games. "Took the lead for good" doesn't, so the two no longer overlap.
+- The strictest reading (never even tied again) moved to the note as one league-wide count.
+
+### Tested
+- Offline page check on all 174 games, with no script errors. Spot-checked BOS: blew a 22-point lead at DET 10/20 (lost 113-121) and came back from 22 down at TOR 11/11.
+- The page sweep passes.
+
+### Unproven
+- Blown leads and comebacks read the margin after each basket, so a lead held only between two free throws counts. That is the same margin GameFlow's runs use.
+
 ## 0.52.0 (2026-11-13): GameFlow merge, stage 1: the play-by-play reader and the Game Flow page
 
 The user: "begin" (merging NBA GameFlow into the Command Center, per the plan agreed in chat).
