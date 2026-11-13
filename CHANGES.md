@@ -2,6 +2,17 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.47.3 (2026-11-12): team single-game records cross-checked with the NBA Guide's all-time lists
+
+### What changed
+- **The check:** every team record at or above the NBA Guide's single-game list floors (pp. 128-135: 57+ points, 38+ rebounds, 22+ assists, 11+ 3-pointers, …) was compared with that list, with relocated teams mapped by city. That's 113 comparisons.
+- **One fix:** the Kings' points record is **60, De'Aaron Fox vs. Minnesota (OT), 11/15/24**. The Kings guide (p. 118) shows Jack Twyman's 59 (regulation, 1960) and no overtime line, while other teams' guides count overtime games (Jordan's 69, Mitchell's 71). The note on that record says so.
+- **Utah's 3-pointer record is confirmed:** Bogdanovic's 11 (3/6/22) is the only Jazz game on the NBA Guide's list of every 11+ game through 2025-26. Nobody has matched or beaten it.
+- **The rest agreed.** The other differences were only city names (Wilt's 100 is listed under "Philadelphia" for the Warriors; Maravich's 68 under "New Orleans" for the Jazz; Pettit under "St. Louis"; Art Williams and Elvin Hayes under "San Diego").
+
+### Tested
+- 588 checks pass.
+
 ## 0.47.2 (2026-11-12): Utah's single-game records found (all 30 teams now)
 
 ### What changed

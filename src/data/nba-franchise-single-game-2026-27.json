@@ -9,7 +9,7 @@
   "fg3m"
  ],
  "notes": {
-  "UTA": "The Jazz guide's 'Jazz top individual' lists (pp. 137-138) have points, rebounds, assists, steals and blocks. It has no 3-pointer game list: the 11 is from its 2021-22 season notes (p. 242), 'set a franchise record', and isn't confirmed as still standing.",
+  "UTA": "The Jazz guide's 'Jazz top individual' lists (pp. 137-138) have points, rebounds, assists, steals and blocks. It has no 3-pointer game list; the 11 is from its 2021-22 notes (p. 242) and is confirmed by the NBA Guide's 11+ list, where it is Utah's only game.",
   "OKC": "The Thunder guide gives Oklahoma City-era records only (2008-09 on), not Seattle's.",
   "DEN": "NBA seasons only; the Nuggets' ABA records are listed separately in their guide.",
   "steals_blocks": "Steals and blocks were first kept in 1973-74; 3-pointers in 1979-80.",
@@ -1072,10 +1072,11 @@
    "name": "Kings",
    "src": "Kings guide p. 118 (Kings-Royals franchise)",
    "pts": {
-    "value": 59,
+    "value": 60,
     "holders": [
-     "Jack Twyman vs. Minneapolis 1/15/60"
-    ]
+     "De'Aaron Fox vs. Minnesota (OT) 11/15/24"
+    ],
+    "note": "The Kings guide (p. 118) lists Jack Twyman's 59 (regulation, 1/15/60) and no overtime line; the NBA Guide's single-game list (pp. 128-135) has Fox's 60 in overtime."
    },
    "reb": {
     "value": 40,
@@ -1232,7 +1233,8 @@
     "value": 11,
     "holders": [
      "Bojan Bogdanovic at Oklahoma City 3/6/22"
-    ]
+    ],
+    "note": "Confirmed by the NBA Guide's list of every 11+ 3-pointer game through 2025-26 (pp. 128-135): Bogdanovic's is the only Jazz game on it."
    }
   },
   "WAS": {
