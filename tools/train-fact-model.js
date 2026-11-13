@@ -22,7 +22,10 @@ export const PRIOR = {
   bias: -0.6,
   weights: { club: 0.8, clubSmall: 0.6, league: 0.5, history: 0.4, franchise: -0.1, season: 0.4, rank1: 0.8, rankTop3: 0.5, rankTop10: 0.1, rankDeep: -0.5,
     streak: 0.7, race: 0.6, matchup: 0.6, perGame: 0.1, combo: 0.3, singleGame: -0.3, slice: -0.1, since1973: 0.1, vague: -0.6, bio: -1.2,
-    team: 0.1, player: 0.2, forward: 0.5, live: 0.6, long: -0.2 },
+    team: 0.1, player: 0.2, forward: 0.5, live: 0.6, long: -0.2,
+    // From the user's review of 11/13: a closed one-off (opener, debut, "first two games", a pass made weeks ago, a trip,
+    // the franchise's age) gives little to build on; rarity over 10+ years does.
+    opener: -0.9, pastPass: -0.8, oneOff: -1.0, longSpan: 0.8 },
 };
 
 export function train(labels, { prior = PRIOR, sigma = 1, steps = 4000, lr = 0.05 } = {}) {

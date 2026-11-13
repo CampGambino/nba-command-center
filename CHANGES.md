@@ -2,6 +2,44 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.49.0 (2026-11-13): trimming the notes by the user's review
+
+The user reviewed 13 lines from the 11/13 slate. Their rule: keep what can still move (a streak, a club, a race, a count that grows, the series) and what is rare over a long span ("the most FTA in a regulation game since Dec. 12, 2014", "most in over 10 years"). Cut what is a closed, past one-off that "can't be added to or expanded on". Their caution: "don't be too strict … for fear of missing something that might spark an idea".
+
+### What changed
+- **Trimming** (`trimReason`/`trimLines` in `src/notes/facts.js`, run by `scripts/tonight.js`). A line is trimmed when it is:
+  - **A closed past one-off.** That covers a season-opener or debut total, a fixed early window ("each of the first two games"), a pass made weeks ago ("Passed Scott Skiles … on Oct. 28"), or a trip ("traveled to Mexico City"). It must also have no sign it is still going, and its date (read from the line; "season opener" is the team's first game) must be 2+ games or 7+ days back.
+    - **Saved:** rarity over 10+ years ("since Dec. 12, 2014", "since 1985-86", "first time in 12 years").
+    - **Not affected:** the last game's line (Jalen Smith's 11/11 game stays).
+  - **Filler:** "The HEAT are currently in their 39th season in franchise history".
+  - **The other venue:** a home-only stat on a road night (the Warriors' home sellout streak while at San Antonio), and the reverse.
+  - **Garbled by the page layout:** a bio-table row glued to a sentence ("…on Virginia / USA 8th Season 10/21/26 vs UTA"), or two columns read as one ("…in four of Darius Acuff Jr. notches his second consecutive…", or "joining" twice).
+- **Not too strict:** a team left with fewer than 4 lines gets its best trimmed one-offs back, marked "kept: few lines". This is the user's "with the Grizzlies having only 4 items … I am comfortable including them". Filler, wrong-venue and garbled lines never come back.
+- **Every trimmed line is listed on the page** under its team ("N trimmed"), with its reason, so nothing is hidden for good.
+- **Every team playing tonight is listed in "History in tonight's notes", lines or not,** with its notes status:
+  - notes read;
+  - notes read (last game's version);
+  - not updated for tonight yet;
+  - none posted.
+  
+  This is so the user can confirm each team was checked. `notes-facts.json` gains `status` and `trimmed`.
+- **The scorer:**
+  - Four new features (opener/debut/early window, a past pass, a one-off event or the franchise's age, rarity over 10+ years), with hand-set weights from this review.
+  - The review joins the labels: 7 "not needed" lines (weight 1), the 2014 FTA line (a pick) and the Grizzlies lines (weight 0.5).
+  - 44 labels in all. Held-out, the learned weights still rank below the prior (0.736 vs. 0.767), so the prior stays in use.
+- **Matchups:** "his teams have won/lost N straight against them with him playing" ranks higher (base 1.8, was 1.3-1.4). The user liked "Kelly Oubre Jr.'s teams have lost 6 straight against the Knicks".
+
+### Tested
+- 603 checks pass. Added:
+  - the user's 13 lines as cases: 9 cut with the right reason; kept are the 2014 FTA mark, Acuff's 7-game streak, the 11/11 line, Giddey's growing count, and the sellout streak on a home night;
+  - the few-lines floor.
+- check-pages OK.
+
+### Unproven
+- The "still going" signals are words ("consecutive", "this season", "has now", "averaging"…). A closed line that happens to use one stays.
+- The column-splice check is a pattern, not a fix to the PDF reading; other splices can get through.
+- Image 11 of the review was a second copy of image 10, so the Grizzlies line the user meant was found from the description ("on Virginia").
+
 ## 0.48.1 (2026-11-13): tags and hooks fixed after the first real slate
 
 ### What changed

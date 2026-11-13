@@ -1776,6 +1776,39 @@ await articlesChecks(ok);
     "notes, fact-model.json: trained on the user's picks; learned weights only when they beat the prior on held-out lines", JSON.stringify({ labels: fm.labels, learned: fm.learned, priorAuc: fm.priorAuc, heldOutAuc: fm.heldOutAuc }));
 }
 
+// ---------- Trimming the notes (0.49, the user's review of the 11/13 slate) ----------
+{
+  const F = await import("../src/notes/facts.js");
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const days = ["2026-10-21", "2026-10-24", "2026-10-26", "2026-10-28", "2026-10-31", "2026-11-02", "2026-11-04", "2026-11-07", "2026-11-09", "2026-11-11"];
+  const box = { keys, names: {}, games: days.map((d) => ({ d, opp: "BOS", home: true, pf: 1, pa: 0, pl: {} })) };
+  const T = (text, extra = {}, home = true) => F.trimReason({ text, ...extra }, { box, today: "2026-11-13", home });
+  const cut = [
+    [T("The Warriors’ franchise-record home sellout streak, the fifth-longest in NBA history, is at 613 consecutive games (7 sellouts in 2026-27).", {}, false), /home stat, on a road night/],
+    [T("Passed Scott Skiles (1,176) for eighth on the Magic’s all-time free throws made list on Oct. 28 @ Toronto.", { player: "Franz Wagner" }), /past one-off/],
+    [T("The Indiana Pacers traveled to Mexico City for the first time in team history to face the Denver Nuggets as part of the NBA Mexico City Game 2026 on November 7."), /past one-off/],
+    [T("Giannis Antetokounmpo scored at least 35 points in each of the first two games this season, becoming just the third player in NBA history to score at least 35 points in his first two games with a new team.", { player: "Giannis Antetokounmpo" }), /past one-off/],
+    [T("Giannis Antetokounmpo scored a team-high 35 points vs. Minnesota in the season opener on October 21, the second-most in a HEAT season opener in franchise history.", { player: "Giannis Antetokounmpo" }), /past one-off \(season opener/],
+    [T("The HEAT are currently in their 39th season in franchise history."), /filler/],
+    [T("Chicago recorded 57 rebounds in the season opener at TOR (10/21), which marked the third-highest rebound total in a season opener in franchise history (most: 64 vs. PHI, 10/10/72)."), /past one-off/],
+    [T("Scored career-high 45 PTS and set franchise record for Opening Night PTS on Virginia / USA 8th Season 10/21/26 vs UTA.", { player: "Ty Jerome" }), /garbled \(a table row\)/],
+    [T("With 38 points at Memphis on Oct 31st, Acuff is also one of six players in NBA history with 30+ points in four of Darius Acuff Jr. notches his second consecutive 30+ point game, joining their first 10 career games, joining Wilt Chamberlain.", { player: "Darius Acuff Jr." }), /garbled \(two columns/],
+  ];
+  const kept = [
+    T("The Bulls attempted 47 free throws in their season opener at TOR (10/21), the most FTA in a regulation game for the team since Dec. 12, 2014."),
+    T("With 29 points and six assists versus Orlando on Nov. 10th, he recorded his seventh consecutive game with 20+ points and 5+ assists, the second longest streak this season.", { player: "Darius Acuff Jr." }),
+    T("Jalen Smith logged a career-high five 3FGM en route to matching a career-high 23 points vs. SAS (11/11), joining Nikola Vučević (9x) as the only centers in team history to do it.", { player: "Jalen Smith" }),
+    T("Giddey has recorded six games of 15plus assists while with Chicago, which is tied for fourth-most in team history (most: Guy Rodgers, 17).", { player: "Josh Giddey" }),
+    T("The Warriors’ franchise-record home sellout streak, the fifth-longest in NBA history, is at 613 consecutive games (7 sellouts in 2026-27).", {}, true),
+  ];
+  ok(cut.every(([why, re]) => re.test(why || "")) && kept.every((x) => x === null),
+    "notes, trimming (the user's 11/13 review): past one-offs, filler, the other venue and garbled lines cut; the 2014 FTA mark, a live streak, the last game's line and a growing count kept",
+    JSON.stringify({ cut: cut.map(([w]) => w), kept }));
+  const few = F.trimLines([{ text: "Chicago recorded 57 rebounds in the season opener at TOR (10/21), which marked the third-highest rebound total in a season opener in franchise history.", score: 2 }, { text: "The HEAT are currently in their 39th season in franchise history.", score: 3 }], { box, today: "2026-11-13", home: true });
+  ok(few.keep.length === 1 && few.keep[0].kept === "few lines tonight" && few.trimmed.length === 1 && few.trimmed[0].trimmed === "filler",
+    "notes, trimming isn't too strict: a team with few lines keeps its best past one-offs (never filler)");
+}
+
 // ---------- Tonight's matchups (src/records/matchup.js, 0.48) ----------
 {
   const M = await import("../src/records/matchup.js");

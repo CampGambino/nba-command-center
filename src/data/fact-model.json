@@ -1,15 +1,15 @@
 {
  "trainedAt": "2026-11-13",
- "labels": 33,
- "picks": 23,
+ "labels": 44,
+ "picks": 27,
  "learned": false,
  "sigma": null,
  "heldOutAuc": {
-  "sigma0.25": 0.752,
-  "sigma0.5": 0.73,
-  "sigma1": 0.709
+  "sigma0.25": 0.736,
+  "sigma0.5": 0.702,
+  "sigma1": 0.693
  },
- "priorAuc": 0.783,
+ "priorAuc": 0.767,
  "prior": {
   "bias": -0.6,
   "weights": {
@@ -37,7 +37,11 @@
    "player": 0.2,
    "forward": 0.5,
    "live": 0.6,
-   "long": -0.2
+   "long": -0.2,
+   "opener": -0.9,
+   "pastPass": -0.8,
+   "oneOff": -1,
+   "longSpan": 0.8
   }
  },
  "bias": -0.6,
@@ -66,6 +70,10 @@
   "player": 0.2,
   "forward": 0.5,
   "live": 0.6,
-  "long": -0.2
+  "long": -0.2,
+  "opener": -0.9,
+  "pastPass": -0.8,
+  "oneOff": -1,
+  "longSpan": 0.8
  }
 }

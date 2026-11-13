@@ -1,5 +1,5 @@
 {
- "note": "Lines from teams' notes the user picked as interesting (label 1) or that were read from the same notes and not picked (label 0, weight 0.25). tools/train-fact-model.js learns src/data/fact-model.json from these.",
+ "note": "Lines from teams' notes the user picked as interesting (label 1) or that were read from the same notes and not picked (label 0, weight 0.25), plus the user's verdicts on a slate (label 0 weight 1 = 'not needed'; label 1 = 'interesting'; weight 0.5 = 'comfortable including'). tools/train-fact-model.js learns src/data/fact-model.json from these. Venue and layout problems are rules (trimReason), not labels.",
  "labels": [
   {
    "date": "2026-11-12",
@@ -495,6 +495,171 @@
    "label": 0,
    "weight": 0.25,
    "source": "same notes, not picked"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "ORL",
+   "text": "Passed Scott Skiles (1,176) for eighth on the Magic’s all-time free throws made list on Oct. 28 @ Toronto.",
+   "meta": {
+    "player": "Franz Wagner",
+    "team": false,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 0,
+   "weight": 1,
+   "source": "user's review of the 11/13 slate: team stat, the name passed, 8th, two weeks ago: doesn't mean much"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "IND",
+   "text": "The Indiana Pacers traveled to Mexico City for the first time in team history to face the Denver Nuggets as part of the NBA Mexico City Game 2026 on November 7.",
+   "meta": {
+    "player": null,
+    "team": true,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 0,
+   "weight": 1,
+   "source": "user's review of the 11/13 slate: not needed anymore"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "MIA",
+   "text": "Giannis Antetokounmpo scored at least 35 points in each of the first two games this season, becoming just the third player in NBA history to score at least 35 points in his first two games with a new team.",
+   "meta": {
+    "player": "Giannis Antetokounmpo",
+    "team": false,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 0,
+   "weight": 1,
+   "source": "user's review of the 11/13 slate: obsolete: weeks ago, can't be added to"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "MIA",
+   "text": "Giannis Antetokounmpo scored a team-high 35 points vs. Minnesota in the season opener on October 21, the second-most in a HEAT season opener in franchise history.",
+   "meta": {
+    "player": "Giannis Antetokounmpo",
+    "team": false,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 0,
+   "weight": 1,
+   "source": "user's review of the 11/13 slate: obsolete: season opener"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "MIA",
+   "text": "Posted an 11-point, 11-assist double-double in the season opener vs. Minnesota on October 21, and after also recording a points-assists double-double in last year’s opener, he now becomes just the second player in HEAT history to post multiple points-assists double-doubles in an opener, joining only Tim Hardaway who did so twice (1996 & 1997).",
+   "meta": {
+    "player": "Davion Mitchell",
+    "team": false,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 0,
+   "weight": 1,
+   "source": "user's review of the 11/13 slate: obsolete: season opener"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "MIA",
+   "text": "The HEAT are currently in their 39th season in franchise history.",
+   "meta": {
+    "player": null,
+    "team": true,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 0,
+   "weight": 1,
+   "source": "user's review of the 11/13 slate: filler"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "CHI",
+   "text": "Chicago recorded 57 rebounds in the season opener at TOR (10/21), which marked the third-highest rebound total in a season opener in franchise history (most: 64 vs. PHI, 10/10/72).",
+   "meta": {
+    "player": null,
+    "team": true,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 0,
+   "weight": 1,
+   "source": "user's review of the 11/13 slate: season-opener team stat from three weeks ago"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "CHI",
+   "text": "The Bulls attempted 47 free throws in their season opener at TOR (10/21), the most FTA in a regulation game for the team since Dec. 12, 2014.",
+   "meta": {
+    "player": null,
+    "team": true,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's review of the 11/13 slate: genuinely interesting: most in over 10 years"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "MEM",
+   "text": "Became second youngest player in NBA history to record a triple-double (19 years, 103 days) when he posted 18 PTS, 12 REB and 12 AST on 10/29 at POR.",
+   "meta": {
+    "player": "Cameron Boozer",
+    "team": false,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 1,
+   "weight": 0.5,
+   "source": "user's review of the 11/13 slate: comfortable including (few lines for the team)"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "MEM",
+   "text": "Jerome, who had a career-high 45 points in the season opener, became the first player in Grizzlies history to record multiple 40-point performances within the first 10 games of a season.",
+   "meta": {
+    "player": "Ty Jerome",
+    "team": false,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 1,
+   "weight": 0.5,
+   "source": "user's review of the 11/13 slate: comfortable including (few lines for the team)"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "MEM",
+   "text": "Ty Jerome’s career-high 45-point performance in the season opener on Oct. 21 vs. Utah made him the fourth player in franchise history in score at least 45 points in a game, joining Ja Morant, Desmond Bane and Zach Randolph.",
+   "meta": {
+    "player": "Ty Jerome",
+    "team": false,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 1,
+   "weight": 0.5,
+   "source": "user's review of the 11/13 slate: comfortable including (few lines for the team)"
   }
  ]
 }

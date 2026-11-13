@@ -98,6 +98,11 @@ export function features(text, meta = {}) {
     forward: meta.kind === "pass" || meta.kind === "next" ? 1 : 0,
     live: meta.live ? 1 : 0,
     long: Math.min(1.5, t.length / 250),
+    // 0.49, from the user's review of 11/13: closed past one-offs score low, rarity over a long span scores high.
+    opener: /\bseason[- ]opener\b|\bopening night\b|\bin (?:his|their|the) opener\b|\b(?:NBA|career) debut\b|\b(?:first|opening) (?:two|three|four|five|six|\d) (?:career )?games\b|\beach of the first\b/i.test(t) ? 1 : 0,
+    pastPass: /\b(?:passed|surpassed|moved past|eclipsed|overtook)\b[^.]{0,80}\bon (?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)[a-z]*\.? \d|\d{1,2}\/\d)/i.test(t) ? 1 : 0,
+    oneOff: /\btraveled to\b|\bfor the first time in (?:team|franchise) history to (?:face|play|visit|travel)\b|\b\d{1,3}(?:st|nd|rd|th) season in (?:franchise|team) history\b/i.test(t) ? 1 : 0,
+    longSpan: (() => { const m = t.match(/\bsince\s+(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},\s+)?((?:19|20)\d\d)/i); return m && new Date().getUTCFullYear() - Number(m[1]) >= 10 ? 1 : 0; })(),
   };
   return f;
 }
@@ -346,4 +351,86 @@ export function annotate(lines, { doc = null, tables = null, box = null, model =
     const p = model ? score(f, model) : null;
     return { ...l, features: f, type: d.type, tag: d.tag, why: d.why, race: race || undefined, stay: stay || undefined, hook: hook || undefined, model: p == null ? undefined : Math.round(p * 1000) / 1000 };
   });
+}
+
+// ---------- What to trim (0.49, from the user's review of the 11/13 slate) ----------
+// The user's rule: keep what can still move — a streak, a club, a race, a count that grows, a rank this season, the
+// series — and what is rare over a long span ("the most FTA in a regulation game since Dec. 12, 2014"). Trim what is a
+// closed, past one-off (a season-opener total, a "first two games" fact, a pass made weeks ago, a trip to Mexico City)
+// once the team has moved on, plus filler, a stat about the other venue, and lines garbled by the page layout.
+// Not too strict: a team with few lines left gets its best trimmed ones back (up to 4 shown), and every trimmed line
+// is listed on the page with its reason.
+const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12 };
+const OPENER = /\b(?:season[- ]opener|season opener|opening night|opener)\b/i;
+const DEBUT = /\b(?:NBA|career|team|Bulls|[A-Z][a-z]+) debut\b/;
+const FIXED_WINDOW = /\b(?:first|opening) (?:two|three|four|five|six|seven|eight|nine|ten|\d{1,2}) (?:career )?games\b|\beach of the first (?:two|three|four|five|six|\d) games\b/i;
+const OPEN = /\b(?:active streak|consecutive|straight|in a row|has now|now has|now ranks|is now|career-best|this season|is averaging|averaging|leads? (?:the|all)|ranks? \w+ in the (?:NBA|league)|needs?|within|away from|on pace|on track|has recorded|has registered|has posted|has made|has scored|has appeared|has played|games? with)\b/i;
+
+/** The latest date a line is about, ignoring a "since …" span and dates from other seasons ("most: 64 vs. PHI, 10/10/72"). */
+export function eventDate(text, { today, firstGame = null } = {}) {
+  const t = plain(text).replace(/\bsince\s+(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},\s+)?(?:19|20)\d\d(?:-\d\d)?/gi, "");
+  const y = Number(today.slice(0, 4)), m0 = Number(today.slice(5, 7));
+  const iso = (mo, d) => { const yr = mo > m0 + 1 ? y - 1 : y; return `${yr}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`; };
+  const out = [];
+  for (const m of t.matchAll(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/g)) {
+    if (m[3] && !(Number(m[3].slice(-2)) === y % 100 || Number(m[3].slice(-2)) === (y - 1) % 100)) continue;
+    if (Number(m[1]) <= 12 && Number(m[2]) <= 31) out.push(iso(Number(m[1]), Number(m[2])));
+  }
+  for (const m of t.matchAll(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b(?!,?\s*(?:19|20)\d\d)/gi)) out.push(iso(MON[m[1].toLowerCase()], Number(m[2])));
+  if (firstGame && (OPENER.test(t) || FIXED_WINDOW.test(t))) out.push(firstGame);
+  const ok = out.filter((d) => d <= today).sort();
+  return ok.length ? ok[ok.length - 1] : null;
+}
+
+/** Rare over a long span: "since 2014", "since 1985-86", "first time in 12 years". */
+export function longSpan(text, today) {
+  const y = Number(today.slice(0, 4));
+  const m = plain(text).match(/\bsince\s+(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},\s+)?((?:19|20)\d\d)/i);
+  if (m && y - Number(m[1]) >= 10) return true;
+  const n = plain(text).match(/\b(?:in|over|more than|first time in)\s+(?:over\s+)?(\d{2,3})\s+years\b/i);
+  return !!(n && Number(n[1]) >= 10);
+}
+
+/**
+ * Why a line should be trimmed tonight, or null to keep it.
+ *   { box, today, home: true|false|null (tonight's venue for this team) }
+ */
+export function trimReason(line, { box = null, today, home = null } = {}) {
+  const t = plain(line.text);
+  const d = line.facts || describe(line.text, line);
+  // Layout damage: a bio-table row ("… on Virginia / USA 8th Season 10/21/26 vs UTA") or two columns read across.
+  if (/\b[A-Z][a-z]+(?: [A-Z][a-z]+)? \/ [A-Z]{2,3}\b|\b\d{1,2}(?:st|nd|rd|th) Season\b/.test(t)) return "garbled (a table row)";
+  if ((t.match(/\bjoining\b/g) || []).length >= 2 || /\b(?:of|in|to|the|for|and)\s+[A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+(?:Jr|Sr)\.?|\s+I{2,3})?\s+(?:notches|notched|records|recorded|becomes|became|scores|scored|posts|posted|tallies|tallied)\b/.test(t)) return "garbled (two columns read as one)";
+  // Filler about the franchise's age.
+  if (!line.player && /\b\d{1,3}(?:st|nd|rd|th) season in (?:franchise|team) history\b/i.test(t) && t.length < 120) return "filler";
+  // The other venue: a home-only stat on a road night, and the reverse.
+  const homeStat = /\bhome (?:sellouts?|sellout streak|attendance|crowds?|games?|record|winning streak|win streak|losing streak|court)\b|\bsellouts?\b|\bat home\b/i.test(t);
+  const roadStat = /\bon the road\b|\broad (?:games?|record|trip|winning streak|win streak|losing streak|wins?|losses)\b|\baway from home\b/i.test(t);
+  if (home === false && homeStat && !roadStat) return "a home stat, on a road night";
+  if (home === true && roadStat && !homeStat) return "a road stat, on a home night";
+  // Closed, past one-offs.
+  const games = (box?.games || []).filter((g) => g.d < today).map((g) => g.d).sort();
+  const when = eventDate(line.text, { today, firstGame: games[0] || null });
+  const singleGame = OPENER.test(t) || DEBUT.test(t) || FIXED_WINDOW.test(t) || /\bin a (?:single )?game\b|\btraveled to\b|\b(?:passed|surpassed|moved past|eclipsed|overtook)\b[^.]{0,80}\bon (?:\w+\.? \d|\d)/i.test(t);
+  const open = !singleGame && (OPEN.test(t) || d.type === "club" || d.type === "race" || d.type === "streak" || !!line.matchup || line.kind === "pass" || line.kind === "next" || !!line.hook?.live);
+  if (open || !when) return null;
+  if (longSpan(t, today)) return null; // rare over a long span: the user keeps these
+  const age = Math.round((Date.parse(today) - Date.parse(when)) / 864e5);
+  const since = games.filter((g) => g > when).length;
+  if (since >= 2 || age > 7) return `past one-off (${OPENER.test(t) ? "season opener, " : ""}${age} days ago, ${since} games since)`;
+  return null;
+}
+
+/**
+ * Split a team's lines into kept and trimmed. A team left with fewer than `floor` lines gets its best trimmed
+ * past one-offs back (never garbled, filler or wrong-venue ones).
+ */
+export function trimLines(lines, { box = null, today, home = null, floor = 4 } = {}) {
+  const keep = [], trimmed = [];
+  for (const l of lines) { const why = trimReason(l, { box, today, home }); (why ? trimmed : keep).push(why ? { ...l, trimmed: why } : l); }
+  if (keep.length < floor) {
+    const back = trimmed.filter((l) => /^past one-off/.test(l.trimmed)).sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, floor - keep.length);
+    for (const b of back) { keep.push({ ...b, trimmed: undefined, kept: "few lines tonight" }); trimmed.splice(trimmed.indexOf(b), 1); }
+  }
+  return { keep, trimmed };
 }

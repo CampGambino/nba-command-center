@@ -44,7 +44,7 @@ for (const g of games) {
     const file = r.version ? versionPath(dataDir, team, r.version) : null;
     const buf = file && fs.existsSync(file) ? fs.readFileSync(file) : null;
     console.log(`  ${team.padEnd(3)} notes: ${r.status}${r.why ? ` (${r.why})` : ""}${r.error ? ` (${r.error})` : ""}`);
-    entries.push({ team, opp, buf, notes: { status: r.status, why: r.why, error: r.error } });
+    entries.push({ team, opp, home: team === g.homeTri, buf, notes: { status: r.status, why: r.why, error: r.error } });
   }
 }
 const { site } = await buildSite({ entries, games, uncounted, espn, nba, today, root });
@@ -58,7 +58,7 @@ console.log(`built: ${site.teams.length} teams, ${n} milestones -> docs/data/wat
 {
   const { readPdf } = await import("../src/notes/pdf-layout.js");
   const { readHistory } = await import("../src/notes/narrative.js");
-  const { annotate } = await import("../src/notes/facts.js");
+  const { annotate, trimLines } = await import("../src/notes/facts.js");
   const modelFile = path.join(root, "src", "data", "fact-model.json");
   const model = fs.existsSync(modelFile) ? JSON.parse(fs.readFileSync(modelFile, "utf8")) : null;
   const { TEAMS } = await import("../src/teams.js");
@@ -67,7 +67,9 @@ console.log(`built: ${site.teams.length} teams, ${n} milestones -> docs/data/wat
   const factsDir = path.join(root, "history", "notes-facts");
   fs.mkdirSync(factsDir, { recursive: true });
   const keyOf = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().slice(0, 160);
-  const teams = {};
+  const teams = {}, trimmedBy = {}, status = {};
+  // Every team playing tonight is listed, with or without lines, so the page shows each one was checked (0.49).
+  for (const e of entries) status[e.team] = { opp: e.opp, home: e.home, notes: e.notes.status, why: e.notes.why || e.notes.error || null, read: !!e.buf };
   for (const e of entries) {
     if (!e.buf) continue;
     try {
@@ -81,7 +83,10 @@ console.log(`built: ${site.teams.length} teams, ${n} milestones -> docs/data/wat
       const oppWords = [O.city, O.nick, ...(O.alt || []), ...(TEAM_ALIASES[e.opp] || [])].filter(Boolean);
       const doc = await readPdf(e.buf);
       // 0.48: league context, clubs, races and the series too, each read for type, tag, the table beside it and what tonight can change.
-      const lines = annotate(readHistory(doc, players, { seasonStart, today, teamWords, oppWords, box }), { doc, box, model, teamNames: [T.city, T.nick, e.team].filter(Boolean) });
+      const read = annotate(readHistory(doc, players, { seasonStart, today, teamWords, oppWords, box }), { doc, box, model, teamNames: [T.city, T.nick, e.team].filter(Boolean) });
+      // 0.49: closed past one-offs, filler, the other venue's stats and layout-garbled lines are trimmed (listed on the page).
+      const { keep: lines, trimmed } = trimLines(read, { box, today, home: e.home });
+      trimmedBy[e.team] = trimmed.map((l) => ({ text: l.text, player: l.player && !l.guessed ? l.player : null, why: l.trimmed }));
       const seenFile = path.join(factsDir, `${e.team}.json`);
       const seen = fs.existsSync(seenFile) ? JSON.parse(fs.readFileSync(seenFile, "utf8")) : {};
       const facts = lines.map((l) => {
@@ -93,16 +98,18 @@ console.log(`built: ${site.teams.length} teams, ${n} milestones -> docs/data/wat
         const stale = l.hook?.stale;
         const score = l.score + (isNew ? 1.5 : 0) + (named ? 0.6 : 0) - (/^(?:He|His|She|They|It)\b/.test(l.text) ? 0.8 : 0) + (l.model != null ? 3 * (l.model - 0.5) : 0) + (l.hook?.live ? 0.5 : 0) - (stale ? 3 : 0);
         return { text: l.text, kind: l.kind, player: named ? l.player : null, playerId: named ? l.playerId : null, how: l.how, game: l.boxGame ? { d: l.boxGame.d, opp: l.boxGame.opp } : undefined, when: l.when, isNew, firstSeen: seen[k], score: Math.round(score * 100) / 100,
-          type: l.type, tag: l.tag, matchup: l.matchup || undefined, hook: l.hook ? { text: l.hook.text, live: !!l.hook.live, stale: !!stale } : undefined, model: l.model };
+          type: l.type, tag: l.tag, matchup: l.matchup || undefined, hook: l.hook ? { text: l.hook.text, live: !!l.hook.live, stale: !!stale } : undefined, model: l.model, kept: l.kept };
       }).sort((a, b) => b.score - a.score);
       // Keep 60 days of first-seen dates.
       const cut = new Date(Date.parse(`${today}T12:00:00Z`) - 60 * 864e5).toISOString().slice(0, 10);
       for (const [k, d] of Object.entries(seen)) if (d < cut) delete seen[k];
       fs.writeFileSync(seenFile, JSON.stringify(seen));
       teams[e.team] = facts.slice(0, 40);
-    } catch (err) { console.log(`  ${e.team} history lines: ${err.message}`); }
+    } catch (err) { console.log(`  ${e.team} history lines: ${err.message}`); status[e.team].error = err.message; }
   }
-  fs.writeFileSync(path.join(root, "docs", "data", "notes-facts.json"), JSON.stringify({ generatedAt: site.generatedAt, today, teams }));
+  for (const t of Object.keys(status)) teams[t] ??= [];
+  fs.writeFileSync(path.join(root, "docs", "data", "notes-facts.json"), JSON.stringify({ generatedAt: site.generatedAt, today, teams, trimmed: trimmedBy, status }));
+  console.log(`trimmed: ${Object.values(trimmedBy).flat().length} lines (${Object.entries(Object.values(trimmedBy).flat().reduce((a, l) => { const k = l.why.replace(/ \(.*$/, ""); a[k] = (a[k] || 0) + 1; return a; }, {})).map(([k, n]) => `${n} ${k}`).join(", ")})`);
   const all = Object.values(teams).flat();
   console.log(`history lines: ${all.length} from ${Object.keys(teams).length} teams' notes (${all.filter((f) => f.isNew).length} new today, ${all.filter((f) => f.player).length} naming a player)`);
 }

@@ -160,7 +160,8 @@ export function playerItems({ id, name, team, opp, logs, teamFiles, today, minGa
     ["30+ points", (r) => r[C.pts] >= 30, 3, 2.0], ["25+ points", (r) => r[C.pts] >= 25, 4, 1.7], ["20+ points", (r) => r[C.pts] >= 20, 6, 1.5],
     ["a double-double", (r) => [r[C.pts], r[C.reb], r[C.ast], r[C.stl], r[C.blk]].filter((x) => x >= 10).length >= 2, 4, 1.6],
     ["10+ rebounds", (r) => r[C.reb] >= 10, 5, 1.4], ["10+ assists", (r) => r[C.ast] >= 10, 4, 1.5], ["3+ threes", (r) => r[C.fg3m] >= 3, 5, 1.4],
-    ["a win", (r) => r[C.res] === "W", 6, 1.4], ["a loss", (r) => r[C.res] === "L", 6, 1.3],
+    // His teams' run against this opponent (the user liked "Oubre's teams have lost 6 straight against the Knicks", 11/13).
+    ["a win", (r) => r[C.res] === "W", 6, 1.8], ["a loss", (r) => r[C.res] === "L", 6, 1.8],
   ];
   // A scoring or rebounding streak counts only at a bar near his own average (20+ in a row means little from a 30-a-game scorer).
   const mean = (i) => (games.length ? avg(games, i) : 0);
