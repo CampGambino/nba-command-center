@@ -1,0 +1,35 @@
+name: backfill-matchups
+# Matchup history (0.48): every game 2016-17 to 2025-26 and every current player's game logs, from ESPN.
+# Run by hand; the files only change when a season is added. Logs print counts only.
+on:
+  workflow_dispatch:
+    inputs:
+      args:
+        description: "extra arguments (e.g. --results-only, --max-players 20)"
+        required: false
+        default: ""
+permissions:
+  contents: write
+concurrency:
+  group: backfill-matchups
+  cancel-in-progress: false
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - run: node tools/backfill-matchups.js ${{ github.event.inputs.args }}
+      - name: commit
+        run: |
+          git config user.name "nba-command-center bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/data/nba-results-history.json src/data/player-logs-history.json.gz 2>/dev/null || true
+          git diff --cached --quiet && { echo "nothing new"; exit 0; }
+          git commit -m "data: matchup history back-fill (automatic)"
+          for i in 1 2 3; do git pull --rebase -q origin main && git push -q origin HEAD:main && exit 0; sleep 5; done
+          exit 1
