@@ -26,7 +26,7 @@ Each entry: what changed, how it was tested, and what is still unproven.
 ### What changed
 - **`cloudflare/lineups.js` `feedTime`:** reads NBA.com's stamps as Eastern time (EST or EDT, right on the night the clocks change). A stamp with a zone is kept as given. Card footers and the nightly summary's "minutes before tip" are right from tomorrow.
 - **A replaced card is marked:** when a change posts before tip, or a different five starts, the previous card is edited in place. It turns grey and its header reads "⚠️ REPLACED (changed at 6:50 PM ET / a different five started) · see the newer post". Nobody reads an old five as current. The Worker now keeps each team's last card id for the night.
-- **New `.github/workflows/lineup-timing` reader** (run by hand): prints the night's timing from the Worker's storage. It prints times and results only, with no names, because the repository's logs are public.
+- **New `.github/workflows/lineups-timing.yml` reader** (run by hand): prints the night's timing from the Worker's storage. It prints times and results only, with no names, because the repository's logs are public.
 
 ### Tested
 - **Watcher checks:** 57 pass, including:
