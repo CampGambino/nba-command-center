@@ -2083,6 +2083,27 @@ await articlesChecks(ok);
     "Cup vs season: Cup games against every other game (a partition), z on the spread of a 2-game average", JSON.stringify([p?.cup, p?.base, p?.z, r.teams[0]]));
 }
 
+// ---------- One player with / without another (src/situations/pairsplit.js, moved from GameFlow, 0.58) ----------
+{
+  const P = await import("../src/situations/pairsplit.js");
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const L = (min, pts) => keys.map((k) => ({ min, pts, fgm: 5, fga: 10 }[k] ?? 0));
+  const files = {
+    AAA: { team: "AAA", keys, names: { 1: "Guard", 2: "Big" }, games: [
+      { d: "2026-11-01", opp: "BBB", home: true, pf: 100, pa: 90, pl: { 1: L(30, 20), 2: L(30, 10) } },
+      { d: "2026-11-03", opp: "CCC", home: true, pf: 100, pa: 90, pl: { 1: L(30, 30) }, inj: { 2: "Out" } },
+      { d: "2026-11-05", opp: "BBB", home: false, pf: 90, pa: 100, pl: { 1: L(30, 25), 2: L(0, 0) } } ] },
+    BBB: { team: "BBB", keys, names: { 3: "Rival" }, games: [
+      { d: "2026-11-01", opp: "AAA", home: false, pf: 90, pa: 100, pl: { 3: L(34, 25) } },
+      { d: "2026-11-05", opp: "AAA", home: true, pf: 100, pa: 90, pl: {}, inj: { 3: "Out" } } ] },
+  };
+  const t = P.pairSplit(files, 1, 2);
+  ok(t.mode === "teammates" && t.with.n === 1 && t.without.n === 2 && t.without.avg.pts === 27.5, "with / without: a teammate on the injury report or listed with 0 minutes is 'without'", JSON.stringify([t.with.n, t.without.n, t.without.avg.pts]));
+  const o = P.pairSplit(files, 1, 3);
+  ok(o.mode === "opponents" && o.with.n === 1 && o.without.n === 1 && o.with.avg.pts === 20 && o.without.avg.pts === 25, "with / without: an opponent splits his games against that team (new)", JSON.stringify([o.mode, o.with.n, o.without.n]));
+  ok(P.everyone(files).map((x) => x.name).join() === "Big,Guard,Rival", "with / without: the league picker lists everyone who has played");
+}
+
 // ---------- snapshot ----------
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });

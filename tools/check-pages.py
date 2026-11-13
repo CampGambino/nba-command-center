@@ -11,7 +11,7 @@ import asyncio, os, subprocess, sys, time
 from playwright.async_api import async_playwright
 
 DOCS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "docs")
-PAGES = ["index.html", "situations.html", "clutch.html", "clutch.html?mode=q4", "players.html?team=SAS",
+PAGES = ["index.html", "situations.html", "clutch.html", "clutch.html?mode=q4", "players.html?team=SAS", "players.html?a=3936299&b=3112335",
          "trends.html", "leaders.html", "defenses.html", "defenses.html?by=defense", "defenses.html?view=players", "defenses.html?view=thirty", "national.html", "gameflow.html", "records.html",
          "records.html#reach", "records.html#lists", "records.html#franchise", "records.html#season", "records.html#cup", "records.html#book", "records.html#checks"]
 CHROME = "/usr/bin/google-chrome"

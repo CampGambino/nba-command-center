@@ -2,6 +2,31 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.58.0 (2026-11-13): GameFlow merge, stage 2f: one player with or without another, on the With / without page
+
+The user: "the version from the gameflow offers more customizability since players from other teams can be measured… re-evaluate which on/off to use or if both have their place."
+
+### What changed
+- **With / without** now has two modes. Both have their place: one asks about a team, the other about one player.
+  - **Team without a player** (as before): how the team and every teammate do in the games one player missed.
+  - **One player with / without another** (`src/situations/pairsplit.js`): pick any two players in the league by typing names. The address keeps them (`players.html?a=…&b=…`).
+    - **Teammates:** A's games split by whether B played. GameFlow's rules apply: A's own games are the denominator, and games when they weren't on the same roster (before or after a trade) are set aside.
+    - The Command Center's rule applies too: B on the injury report counts as with the team, so "without" includes his injured games.
+    - **Opponents (new):** A's games against B's team, split by whether B played.
+    - Shows per-game averages, shooting, the without − with row, and every game on each side.
+- **Game Flow → "On / off court"** (was "With / without a teammate") keeps the within-game split by shared floor time, which needs the play-by-play. The With / without page links to it.
+
+### Tested
+- 648 checks pass. New ones cover:
+  - injury report and 0-minute games count as "without";
+  - the opponent split;
+  - the league picker.
+- Screenshot: Murray with Jokic (10 with, 0 without).
+- The page sweep includes the new mode (`players.html?a=3936299&b=3112335`).
+
+### Unproven
+- The pair mode loads all 30 team files (about 0.4 MB now, more by April) the first time it opens.
+
 ## 0.57.0 (2026-11-13): GameFlow merge, stage 2e: NBA Cup vs season, on Records → NBA Cup
 
 ### What changed

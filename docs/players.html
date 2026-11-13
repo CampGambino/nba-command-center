@@ -57,7 +57,7 @@
   td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   tr:last-child td { border-bottom: 0; }
   .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 2px 10px; }
-  select, input[type=search] { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 14px; }
+  select, input[type=search], input[list] { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 14px; }
   label { color: var(--muted); font-size: 13px; }
   button { background: var(--panel); color: var(--accent); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 14px; cursor: pointer; }
   .empty { color: var(--faint); padding: 12px 4px; }
@@ -105,6 +105,18 @@
   <div class="sub" id="sub">Pick a team and a player: how the team and his teammates do in the games he missed.</div>
 </header>
 <main>
+  <div class="controls"><span class="toggle" id="mode"><button data-m="team" class="on">Team without a player</button><button data-m="pair">One player with / without another</button></span></div>
+  <section id="m-pair" hidden>
+    <div class="controls">
+      <label>Player <input list="plist" id="pa" placeholder="type a name" autocomplete="off"></label>
+      <label>with / without <input list="plist" id="pb" placeholder="teammate or opponent" autocomplete="off"></label>
+      <datalist id="plist"></datalist>
+    </div>
+    <div class="key" id="pkey"></div>
+    <div class="scroll"><table id="pt"></table></div>
+    <div class="scroll" style="margin-top:12px"><table id="pg"></table></div>
+  </section>
+  <section id="m-team">
   <div class="controls">
     <select id="team"></select>
     <label>Without <select id="out"></select></label>
@@ -112,10 +124,12 @@
   </div>
   <div class="key" id="summary"></div>
   <div class="scroll"><table id="t"></table></div>
+  </section>
 </main>
 <footer id="foot">"Without" counts games he didn't play (not listed, or 0 minutes) since his first game listed with the team. Averages are per game played by each teammate. Small samples: a 1- or 2-game "without" sample says little. From ESPN box scores.</footer>
 <script type="module">
 import { roster, withWithout } from "./lib/situations/withwithout.js";
+import { pairSplit, everyone } from "./lib/situations/pairsplit.js";
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const TEAMS = ["ATL","BOS","BKN","CHA","CHI","CLE","DAL","DEN","DET","GSW","HOU","IND","LAC","LAL","MEM","MIA","MIL","MIN","NOP","NYK","OKC","ORL","PHI","PHX","POR","SAC","SAS","TOR","UTA","WAS"];
@@ -159,6 +173,51 @@ $("team").value = new URLSearchParams(location.search).get("team") || "PHI";
 $("team").onchange = loadTeam;
 $("out").onchange = render;
 loadTeam().catch((e) => { $("summary").textContent = "Couldn't load the data: " + e.message; });
+
+// ---- One player with / without another (GameFlow's with / without a teammate, 0.58): any two players in the league ----
+let FILES = null, PEOPLE = [], mode = new URLSearchParams(location.search).get("a") ? "pair" : "team";
+const byLabel = new Map();
+const labelOf = (p) => `${p.name} · ${p.tri}`;
+async function loadAll() {
+  if (FILES) return;
+  FILES = Object.fromEntries(await Promise.all(TEAMS.map((t) => fetch(`data/teams/${t}.json`, { cache: "no-store" }).then((r) => r.json()).then((j) => [t, j]).catch(() => [t, { games: [] }]))));
+  PEOPLE = everyone(FILES);
+  for (const p of PEOPLE) byLabel.set(labelOf(p), p);
+  $("plist").innerHTML = PEOPLE.map((p) => `<option value="${esc(labelOf(p))}"></option>`).join("");
+  const q = new URLSearchParams(location.search), A = PEOPLE.find((p) => p.id === q.get("a")), B = PEOPLE.find((p) => p.id === q.get("b"));
+  if (A) $("pa").value = labelOf(A); if (B) $("pb").value = labelOf(B);
+}
+function renderPair() {
+  const A = byLabel.get($("pa").value), B = byLabel.get($("pb").value);
+  if (!A || !B) { $("pkey").innerHTML = `Pick two players (type a name). A teammate splits his games by whether the other played; an opponent splits his games against that team by whether the other played (e.g. a guard against MIL with and without its center).`; $("pt").innerHTML = $("pg").innerHTML = ""; return; }
+  const u = new URL(location.href); u.searchParams.set("a", A.id); u.searchParams.set("b", B.id); history.replaceState(null, "", u);
+  if (A.id === B.id) { $("pkey").innerHTML = "Both are the same player: pick someone else."; $("pt").innerHTML = $("pg").innerHTML = ""; return; }
+  const r = pairSplit(FILES, A.id, B.id);
+  const W = r.with, WO = r.without, vs = r.mode === "opponents";
+  const what = vs ? `${esc(A.name)}'s games against ${esc(B.tri)}` : `${esc(A.name)}'s games`;
+  $("pkey").innerHTML = r.mode === "none" ? `${esc(A.name)} and ${esc(B.name)} haven't been teammates or met yet this season.` :
+    `${what}, split by whether ${esc(B.name)} played: ${W.n} with, ${WO.n} without. Averages per game ${esc(A.name)} played${vs ? "" : `; ${r.apart} game(s) when they weren't on the same roster are set aside`}. A teammate on the injury report counts as with the team. Small samples: a 1- or 2-game side says little. <a href="gameflow.html">On / off court within games → Game Flow</a>.`;
+  if (r.mode === "none") { $("pt").innerHTML = $("pg").innerHTML = ""; return; }
+  const f = (x) => (x == null ? "–" : x.toFixed(1));
+  const cols = [["min", "MIN"], ["pts", "PTS"], ["reb", "REB"], ["ast", "AST"], ["stl", "STL"], ["blk", "BLK"], ["tov", "TOV"], ["pm", "+/-"]];
+  const row = (lab, t) => `<tr><td><b>${lab}</b></td><td class="num">${t.n}</td>${cols.map(([k]) => `<td class="num">${f(t.avg[k])}</td>`).join("")}<td class="num">${f(t.fg)}</td><td class="num">${f(t.tp)}</td><td class="num">${f(t.ft)}</td></tr>`;
+  const d = (k) => (W.avg[k] == null || WO.avg[k] == null ? null : WO.avg[k] - W.avg[k]), dp = (k) => (W[k] == null || WO[k] == null ? null : WO[k] - W[k]);
+  const cls = (x, big) => (x == null ? "" : x >= big ? "hi" : x <= -big ? "lo" : "");
+  $("pt").innerHTML = `<tr><th>Split</th><th class="num">GP</th>${cols.map((c) => `<th class="num">${c[1]}</th>`).join("")}<th class="num">FG%</th><th class="num">3P%</th><th class="num">FT%</th></tr>` +
+    row(`with ${esc(B.name)}`, W) + row(`without ${esc(B.name)}`, WO) +
+    `<tr><td class="team">without − with</td><td></td>${cols.map(([k]) => `<td class="num ${cls(d(k), k === "pts" || k === "min" ? 3 : 1.5)}">${sg(d(k))}</td>`).join("")}<td class="num ${cls(dp("fg"), 5)}">${sg(dp("fg"))}</td><td class="num">${sg(dp("tp"))}</td><td class="num">${sg(dp("ft"))}</td></tr>`;
+  const md = (x) => new Date(x + "T12:00:00").toLocaleDateString([], { month: "short", day: "numeric" });
+  const list = (lab, gs) => gs.map((g) => `<tr><td>${lab}</td><td>${md(g.d)}</td><td>${g.home ? "vs" : "at"} ${g.opp} <span class="team">${g.win ? "W" : "L"}</span></td><td class="num">${g.min.toFixed(0)}</td><td class="num"><b>${g.pts}</b></td><td class="num">${g.reb}</td><td class="num">${g.ast}</td><td class="num">${g.fgm}-${g.fga}</td><td class="num">${g.fg3m}-${g.fg3a}</td><td class="num">${g.ftm}-${g.fta}</td><td class="num">${sg(g.pm)}</td></tr>`).join("");
+  $("pg").innerHTML = `<tr><th></th><th>Date</th><th>Game</th><th class="num">MIN</th><th class="num">PTS</th><th class="num">REB</th><th class="num">AST</th><th class="num">FG</th><th class="num">3PT</th><th class="num">FT</th><th class="num">+/-</th></tr>` + list("with", r.games.with) + list("without", r.games.without);
+}
+async function showMode() {
+  document.querySelectorAll("#mode button").forEach((b) => b.classList.toggle("on", b.dataset.m === mode));
+  $("m-pair").hidden = mode !== "pair"; $("m-team").hidden = mode !== "team";
+  if (mode === "pair") { $("pkey").textContent = "Loading every team's box scores…"; await loadAll(); renderPair(); }
+}
+document.querySelectorAll("#mode button").forEach((b) => b.onclick = () => { mode = b.dataset.m; showMode(); });
+for (const id of ["pa", "pb"]) $(id).addEventListener("change", renderPair);
+showMode();
 </script>
 </body>
 </html>
