@@ -1486,8 +1486,8 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
 {
   const fg = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-franchise-single-game-2026-27.json"), "utf8")).teams;
   const st = ["pts", "reb", "ast", "stl", "blk", "fg3m"];
-  ok(Object.keys(fg).length === 29 && !fg.UTA && Object.values(fg).every((t) => st.every((s) => t[s] && t[s].value > 0 && t[s].holders.length)),
-    "franchise single-game records: 29 teams (Utah's guide has none), all six stats with holders");
+  ok(Object.keys(fg).length === 30 && fg.UTA.pts.value === 68 && Object.values(fg).every((t) => st.every((s) => t[s] && t[s].value > 0 && t[s].holders.length)),
+    "franchise single-game records: all 30 teams (Utah from its 'top individual' lists, Maravich 68), all six stats with holders");
   ok(fg.GSW.pts.value === 100 && fg.LAL.pts.value === 81 && fg.MIA.pts.value === 83 && fg.PHX.pts.value === 70 && fg.LAL.blk.value === 17 && fg.ORL.ast.value === 30 && fg.OKC.era,
     "franchise single-game records: Wilt 100, Kobe 81, Adebayo 83, Booker 70, Elmore Smith 17 blocks, Skiles 30 assists; the Thunder's are OKC-era");
 }

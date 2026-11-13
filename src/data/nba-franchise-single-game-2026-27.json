@@ -9,7 +9,7 @@
   "fg3m"
  ],
  "notes": {
-  "UTA": "The Jazz guide has no single-game individual records pages.",
+  "UTA": "The Jazz guide's 'Jazz top individual' lists (pp. 137-138) have points, rebounds, assists, steals and blocks. It has no 3-pointer game list: the 11 is from its 2021-22 season notes (p. 242), 'set a franchise record', and isn't confirmed as still standing.",
   "OKC": "The Thunder guide gives Oklahoma City-era records only (2008-09 on), not Seattle's.",
   "DEN": "NBA seasons only; the Nuggets' ABA records are listed separately in their guide.",
   "steals_blocks": "Steals and blocks were first kept in 1973-74; 3-pointers in 1979-80.",
@@ -1189,6 +1189,49 @@
     "value": 12,
     "holders": [
      "Donyell Marshall vs. Philadelphia 3/13/05"
+    ]
+   }
+  },
+  "UTA": {
+   "name": "Jazz",
+   "src": "Jazz guide pp. 137-138 (3-pointers: p. 242)",
+   "pts": {
+    "value": 68,
+    "holders": [
+     "Pete Maravich vs. New York 2/25/77"
+    ]
+   },
+   "reb": {
+    "value": 28,
+    "holders": [
+     "Rudy Gobert at Golden State 3/14/21"
+    ]
+   },
+   "ast": {
+    "value": 28,
+    "holders": [
+     "John Stockton vs. San Antonio 1/15/91"
+    ]
+   },
+   "stl": {
+    "value": 9,
+    "holders": [
+     "Rickey Green vs. Denver 11/10/82",
+     "Rickey Green at Philadelphia 11/27/82",
+     "John Stockton vs. Houston 2/12/91"
+    ]
+   },
+   "blk": {
+    "value": 14,
+    "holders": [
+     "Mark Eaton vs. Portland 1/18/85",
+     "Mark Eaton vs. San Antonio 2/18/89"
+    ]
+   },
+   "fg3m": {
+    "value": 11,
+    "holders": [
+     "Bojan Bogdanovic at Oklahoma City 3/6/22"
     ]
    }
   },

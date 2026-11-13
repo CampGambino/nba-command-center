@@ -2,6 +2,21 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.47.2 (2026-11-12): Utah's single-game records found (all 30 teams now)
+
+### What changed
+- **The Jazz guide does have them, under "Jazz top individual…" (pp. 137-138),** not a "records" heading, which is why the first search missed it. Its lists:
+  - points: 68, Pete Maravich vs. New York, 2/25/77;
+  - rebounds: 28, Rudy Gobert at Golden State, 3/14/21;
+  - assists: 28, John Stockton vs. San Antonio, 1/15/91;
+  - steals: 9, Rickey Green twice and John Stockton;
+  - blocks: 14, Mark Eaton twice.
+- **3-pointers:** the guide has no game list. Its 2021-22 season notes (p. 242) say Bojan Bogdanovic "set a franchise record" with 11 at Oklahoma City, 3/6/22. That is used, with a note that the guide doesn't confirm it still stands.
+- **The Records tab note** no longer says Utah is missing.
+
+### Tested
+- 588 checks pass; the single-game check now expects 30 teams.
+
 ## 0.47.1 (2026-11-12): daily build's commit step fixed (a stale docs/ref copy)
 
 ### What happened
