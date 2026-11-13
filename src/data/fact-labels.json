@@ -1,0 +1,500 @@
+{
+ "note": "Lines from teams' notes the user picked as interesting (label 1) or that were read from the same notes and not picked (label 0, weight 0.25). tools/train-fact-model.js learns src/data/fact-model.json from these.",
+ "labels": [
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "Leads all NBA third-years with 18.5 points per game this season.",
+   "meta": {
+    "player": "Kyshawn George",
+    "team": false,
+    "matchup": false,
+    "kind": "context",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "Is one of five players averaging 18+ points, 4+ assists, 4+ rebounds and 1+ block per game this season.",
+   "meta": {
+    "player": "Kyshawn George",
+    "team": false,
+    "matchup": false,
+    "kind": "context",
+    "live": true
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "One of two players in the league averaging 25+ points, 10+ rebounds, 1+ steal and 1+ block per game this season.",
+   "meta": {
+    "player": "Anthony Davis",
+    "team": false,
+    "matchup": false,
+    "kind": "context",
+    "live": true
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "Logged his 39th career 40-point double-double on 11/9 at Detroit, tying Michael Jordan for the seventh-most since 1973-74.",
+   "meta": {
+    "player": "Anthony Davis",
+    "team": false,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "Has appeared in 176 consecutive games, the third-longest active streak in the NBA.",
+   "meta": {
+    "player": "Bub Carrington",
+    "team": false,
+    "matchup": false,
+    "kind": "context",
+    "live": true
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "Detroit took the first game of this season's series on Nov. 9, and has won each of the past two season series between the teams.",
+   "meta": {
+    "player": null,
+    "team": true,
+    "matchup": true,
+    "kind": "context",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "They have the highest rate of points coming off twopointers in the league at 54.7%.",
+   "meta": {
+    "player": null,
+    "team": true,
+    "matchup": false,
+    "kind": "context",
+    "live": true
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "Despite having the sixth-most points in the paint in the NBA according to Sportradar, the Wizards have been blocked the least of any team in the league this season.",
+   "meta": {
+    "player": null,
+    "team": true,
+    "matchup": false,
+    "kind": "context",
+    "live": true
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "The Wizards currently lead the league in the NBA in opponent three-point percentage, while also ranking ninth in opponent field goal percentage at .448.",
+   "meta": {
+    "player": null,
+    "team": true,
+    "matchup": false,
+    "kind": "context",
+    "live": true
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "Washington has been one of the top dunking teams in the league so far this season, producing the third-most slams per game at 6.3, per Sportradar.",
+   "meta": {
+    "player": null,
+    "team": true,
+    "matchup": false,
+    "kind": "context",
+    "live": true
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "Per Sportradar, dunks have made up 16.2% of the Wizards' field goals, the second-highest percentage in the league.",
+   "meta": {
+    "player": null,
+    "team": true,
+    "matchup": false,
+    "kind": "context",
+    "live": true
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "They held the Hornets to just 79 points on .297 shooting from the field and .214 from beyond the arc on 10/30. 79 points is the fewest the team has allowed since the 2015-16 season.",
+   "meta": {
+    "player": null,
+    "team": true,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 0,
+   "weight": 0.25,
+   "source": "same notes, not picked"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "The Wizards broke their all-time record for points in a season opener with 128 against Milwaukee on 10/21/26.",
+   "meta": {
+    "player": null,
+    "team": true,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 0,
+   "weight": 0.25,
+   "source": "same notes, not picked"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "Per Sportradar, Washington joins Atlanta and Utah as the only teams in the NBA to be ranked in the top six in pace in each of the past three seasons (2023-26).",
+   "meta": {
+    "player": null,
+    "team": true,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "Davis is one of two players in the NBA this season to average 25.0+ points, 10.0+ rebounds , 1.0+ steal and 1.0+ block per game.",
+   "meta": {
+    "player": "Anthony Davis",
+    "team": false,
+    "matchup": false,
+    "kind": "context",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "Since entering the league in 2012-13, Davis owns the most blocks in the NBA.",
+   "meta": {
+    "player": "Anthony Davis",
+    "team": false,
+    "matchup": false,
+    "kind": "context",
+    "live": true
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "He ranks seventh among all rookies in Wizards history over eight career games.",
+   "meta": {
+    "player": "AJ Dybantsa",
+    "team": false,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 0,
+   "weight": 0.25,
+   "source": "same notes, not picked"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "Dybantsa posted 11 points, nine rebounds and four steals on 11/6 at Atlanta, making him the third Wizards rookie since 2000 to record 10+ points, 9+ rebounds and 4+ steals in a game.",
+   "meta": {
+    "player": "AJ Dybantsa",
+    "team": false,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 0,
+   "weight": 0.25,
+   "source": "same notes, not picked"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "Wizards guard Trae Young has been putting on a passing clinic, logging 100 assists over the first 12 games of the season, which leads the league.",
+   "meta": {
+    "player": "Trae Young",
+    "team": false,
+    "matchup": false,
+    "kind": "context",
+    "live": true
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "Since he joined the team during the 2025-26 season, Young has made creating a priority, totaling 131 assists over his first 17 games in Washington. That's the fifth-most over the first 17 games of a Wizards career in team history.",
+   "meta": {
+    "player": "Trae Young",
+    "team": false,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "Young dished out 13 assists in the 2026-27 season-opener on 10/21/26 vs. Milwaukee, tied for the fourth-most by a Wizards in a season opener since 1973-74.",
+   "meta": {
+    "player": "Trae Young",
+    "team": false,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 0,
+   "weight": 0.25,
+   "source": "same notes, not picked"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "Young holds a career average of 9.74 assists per game, good for the third-highest mark in NBA history among all qualified players.",
+   "meta": {
+    "player": "Trae Young",
+    "team": false,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "Since entering the league as the fifth overall selection in the 2018 NBA draft, only Denver's Nikola Jokic has recorded more total assists than Young.",
+   "meta": {
+    "player": "Trae Young",
+    "team": false,
+    "matchup": false,
+    "kind": "context",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "Young already ranks among the best assisters in league history and currently ranks among the leaders in total games with at least 10-plus, 20-plus, 30-plus and 40-plus points while dishing out 10-plus assists.",
+   "meta": {
+    "player": "Trae Young",
+    "team": false,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "He is the only third-year player in the league posting at least 18.0 points, 4.0 assists and 4.0 rebounds per game.",
+   "meta": {
+    "player": "Kyshawn George",
+    "team": false,
+    "matchup": false,
+    "kind": "context",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "George is currently first in the NBA among all third-year players in points per game.",
+   "meta": {
+    "player": "Kyshawn George",
+    "team": false,
+    "matchup": false,
+    "kind": "context",
+    "live": true
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "He is one of three Wizards under the age of 23 to put up at least 30 points, seven assists, four rebounds, two blocks and one steal in a game since 1973-74, and the only one of those three to hit five three-pointers in such an effort.",
+   "meta": {
+    "player": "Kyshawn George",
+    "team": false,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 0,
+   "weight": 0.25,
+   "source": "same notes, not picked"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "George is one of five players in the NBA this season to average 18.0+ points, 4.0+ rebounds, 4.0+ assists and 1.0+ block per game.",
+   "meta": {
+    "player": "Kyshawn George",
+    "team": false,
+    "matchup": false,
+    "kind": "context",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "He ranks fourth in the league in two-point percentage among all players with at least 30 two-point attempts. 2PT% LEADERS (MIN. 30 2PA) NBA, 2026-27 RK.",
+   "meta": {
+    "player": "Bilal Coulibaly",
+    "team": false,
+    "matchup": false,
+    "kind": "context",
+    "live": true
+   },
+   "label": 0,
+   "weight": 0.25,
+   "source": "same notes, not picked"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "He is only the second Wizard to do so in the opening game of the season since 1973-74, when steals and blocks began being tracked.",
+   "meta": {
+    "player": "Bilal Coulibaly",
+    "team": false,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 0,
+   "weight": 0.25,
+   "source": "same notes, not picked"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "He is the fastest player in Wizards history to reach 150+ steals and 150+ blocks to start their career.",
+   "meta": {
+    "player": "Bilal Coulibaly",
+    "team": false,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 0,
+   "weight": 0.25,
+   "source": "same notes, not picked"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "Carrington's 176 consecutive games played streak ranks as the third-longest active streak in the NBA.",
+   "meta": {
+    "player": "Bub Carrington",
+    "team": false,
+    "matchup": false,
+    "kind": "context",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 (Wizards notes for 11/12 vs. DET)"
+  },
+  {
+   "date": "2026-11-12",
+   "team": "WAS",
+   "text": "Additionally, Ayton is one of two players in NBA history with at least 400 games played to average 15.0+ points and 10.0+ rebounds while shooting at least .590-or-better from the floor for his career, joining Artis Gilmore.",
+   "meta": {
+    "player": "Deandre Ayton",
+    "team": false,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 0,
+   "weight": 0.25,
+   "source": "same notes, not picked"
+  }
+ ]
+}

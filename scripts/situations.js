@@ -369,6 +369,21 @@ for (const [tri, games] of Object.entries(perTeam)) {
     console.log(`injury report: none found for ${today}${old?.date === today ? " (kept the last one)" : ""}`);
   }
 }
+// Tonight's matchups (src/records/matchup.js, 0.48): what's active or lopsided between the two teams and for each regular
+// against tonight's opponent, from the 2016-17 to 2025-26 back-fill plus this season's box scores.
+{
+  const histFile = path.join(root, "src", "data", "nba-results-history.json");
+  const logFile = path.join(root, "src", "data", "player-logs-history.json.gz");
+  try {
+    const { matchups } = await import("../src/records/matchup.js");
+    const zlib = await import("node:zlib");
+    const history = fs.existsSync(histFile) ? JSON.parse(fs.readFileSync(histFile, "utf8")) : null;
+    const logs = fs.existsSync(logFile) ? JSON.parse(zlib.gunzipSync(fs.readFileSync(logFile))) : null;
+    const m = matchups({ history, logs, teamFiles, tonight, today });
+    fs.writeFileSync(path.join(root, "docs", "data", "matchups.json"), JSON.stringify({ generatedAt: out.generatedAt, today, window: history?.seasons || null, games: m.map((g) => ({ ...g, items: g.items.slice(0, 12) })) }));
+    console.log(`matchups: ${m.reduce((a, g) => a + g.items.length, 0)} items for ${m.length} games tonight${history ? "" : " (no results back-fill yet)"}${logs ? "" : " (no player logs back-fill yet)"}`);
+  } catch (e) { console.error(`matchups not written: ${e.message}`); }
+}
 // Tonight's storylines per game (the Watch List cards and NBA Live's pre-game cards read this),
 // from the published Watch List plus the trends and leaders data written above.
 {
@@ -379,7 +394,8 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const injuries = fs.existsSync(path.join(root, "docs", "data", "injuries.json")) ? rd("injuries.json") : null;
     const facts = fs.existsSync(path.join(root, "docs", "data", "notes-facts.json")) ? rd("notes-facts.json") : null;
     const records = fs.existsSync(path.join(root, "docs", "data", "records.json")) ? rd("records.json") : null;
-    const games = tonightStorylines({ watch, trends: rd("trends.json"), leaders: rd("leaders.json"), injuries, facts, records, maxLines: 8 })
+    const matchupData = fs.existsSync(path.join(root, "docs", "data", "matchups.json")) ? rd("matchups.json") : null;
+    const games = tonightStorylines({ watch, trends: rd("trends.json"), leaders: rd("leaders.json"), injuries, facts, records, matchups: matchupData, maxLines: 8 })
       .map((g) => ({ ...g, lines: g.lines.map(({ kind, team, text, score }) => ({ kind, team, text, score: Math.round(score * 100) / 100 })) }));
     fs.writeFileSync(path.join(root, "docs", "data", "tonight.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, games }));
   } catch (e) { console.error(`tonight's storylines not written: ${e.message}`); }

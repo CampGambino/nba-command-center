@@ -2,6 +2,81 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.48.0 (2026-11-13): notes read for meaning, and tonight's matchups
+
+The user sent 16 screenshots from the Wizards' 11/12 notes as examples of what's worth surfacing: league ranks, "one of N" clubs, active streaks, races on a list, the series with tonight's opponent. They also asked for matchup data against tonight's opponent when it's active or lopsided.
+
+### What changed
+- **The notes reader takes in league context, not just history** (`src/notes/narrative.js`). It now keeps:
+  - "leads all NBA third-years";
+  - "one of five players averaging…";
+  - "the third-longest active streak";
+  - "blocked the least of any team";
+  - "only Jokić has more assists than Young";
+  - the series note about tonight's opponent.
+
+  Fixes found along the way:
+  - The team counts as the subject mid-sentence ("Despite…, the Wizards have…").
+  - "They have…" and "That's the fifth-most…" are read with the sentence before. The earlier line is replaced only if the joined one is kept.
+  - A player's heading carries to his bullets that follow on the page.
+  - Infographic table text glued to a sentence is stripped.
+  - Series lines about a past opponent are dropped.
+  - Table rows read as prose are dropped.
+
+  Over the 30 teams' latest notes, lines kept went from 155 to 259, and no old line was lost.
+- **Each line is read for meaning** (`src/notes/facts.js`, new). Each line gets:
+  - a type: club, rank, streak, race, matchup, all-time or franchise;
+  - a tag: "1 of 2 this season", "Leads NBA", "Active streak · 176", "T-7th since 1973-74";
+  - a one-line "why";
+  - **what tonight can change**:
+    - **Clubs:** the minimum he needs tonight to stay in, from this season's box scores. Example: Davis needs 10+ rebounds and 23+ points tonight to stay "one of two" averaging 25/10/1/1. A club he has since left is marked no longer true and kept out of the storylines.
+    - **Races and ranks:** the gap, from the ranked table printed beside the line. The tables are read from the infographic pages, 46 in the Wizards' notes. Examples: Davis leads Gobert by 8 blocks since 2012-13; Young leads Davion Mitchell by 7 assists; the Wizards' 6 paint points behind Indiana. A link needs the line's own rank or number to match the table's row.
+    - **Streaks:** the next number if he plays.
+  - The same fact printed twice (player page and infographic) is kept once.
+- **A scorer that learns from the user's picks** (`tools/train-fact-model.js`, `src/data/fact-labels.json`, `src/data/fact-model.json`).
+  - It is a logistic model over about 25 features of a line: club, small club, #1 rank, active streak, race, live tonight, this season vs. all-time, bio/roster note, and so on.
+  - Labels: the 23 lines in the user's screenshots are picks. The other lines read from the same notes are weak negatives (weight 0.25).
+  - The fit is pulled toward a hand-set prior, and learned weights are used only when they rank held-out lines better than the prior.
+  - With 33 labels from one team's notes they don't yet (held-out AUC 0.75 vs. the prior's 0.78), so the prior is in use. The file records both.
+  - Even the prior puts 10 of the user's picks in the top 12 of the Wizards' 33 lines. The prior was written with these examples in view, so that is an optimistic measure.
+- **Matchup history back-fill** (`tools/backfill-matchups.js`, a `backfill-matchups` workflow, run once on GitHub Actions because ESPN isn't reachable from Claude's shell):
+  - every game 2016-17 to 2025-26: 12,815 games, 833 of them playoffs (`src/data/nba-results-history.json`);
+  - every game of the 425 current players who played in those seasons: 129,279 games (`src/data/player-logs-history.json.gz`, 1.6 MB).
+  
+  Checked against the Wizards' notes: 2025-26 vs. Detroit was L 135-137 OT, W 126-117, L, L.
+- **Tonight's matchups** (`src/records/matchup.js`, new; `docs/data/matchups.json` from the daily build).
+  - **Team side (regular season):** 3+ straight wins in the series, 8+ of the last 10, 4+ straight at tonight's arena, 3+ straight season series, this season's series so far, and last season's playoff series.
+  - **Player side (regulars, 18+ minutes):**
+    - his average against tonight's opponent when it is his best or worst against any team (4+ games, 8+ opponents to compare, well off his average);
+    - his teams' record in those games when 85%+ one way;
+    - a streak still going against them, counted only at a bar near his own average;
+    - this season's big game against them.
+  - A player's lines weigh with his role (6 to 24+ points a game).
+  - Each line says its window: "since 2016-17", or "in his career" when his first game is in it.
+  - Tonight's 11/13 slate gives 38 lines, for example:
+    - Thunder 9 straight over the Clippers;
+    - Rockets 5 straight at home against Utah;
+    - Wembanyama 25+ in 7 straight against Golden State;
+    - VanVleet's 20.8 against Utah, his best against any team.
+- **Where it shows:**
+  - The storylines (Tonight page, the 3 PM Discord digest, NBA Live's pre-game cards) carry up to 2 matchup lines and 2 notes lines a game. Notes lines now read "<tag> · <line> → <what tonight can change>".
+  - The Tonight page has a new **Matchups tonight** section, and the notes section shows the tag chip and the hook under each line (bold when in play tonight).
+
+### Tested
+- 600 checks pass. Added:
+  - the user's Wizards sentences: subject, tag, thresholds, tables, the club math, races, the scorer;
+  - matchups: series streak, best average, a streak still going, last meeting, at most two in the storylines.
+- The old and new notes readers were compared over all 30 teams' notes: 104 lines added, none lost (one was lost, then fixed: the joining above).
+- A regex that could take minutes on a long run of capitals was replaced; a 1,000-character worst case now runs in 0 ms.
+- check-pages OK.
+
+### Unproven
+- The scorer has 33 labels from one team's notes; it learns only as more picks come in (send screenshots like today's).
+- Player history starts in 2016-17, so a veteran's "best against any team" covers those seasons only (each line says so).
+- Play-in games aren't in the results; preseason and the All-Star Game are left out on purpose.
+- Only the Wizards print ranked tables, so the race math applies to their notes for now.
+- The page was checked by the page checker, not by eye.
+
 ## 0.47.5 (2026-11-13): the Seattle SuperSonics count in Thunder history
 
 ### What changed

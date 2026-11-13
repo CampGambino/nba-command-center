@@ -74,6 +74,9 @@
   .story li a { color: inherit; text-decoration: none; }
   .story li a:hover { text-decoration: underline; }
   .story .k { text-align: center; }
+  .story .tag { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 0 6px; margin-right: 4px; border-radius: 9px; background: var(--line); white-space: nowrap; }
+  .story .hook { display: block; margin-top: 2px; font-size: 12.5px; color: var(--muted); }
+  .story .hook.live { color: inherit; font-weight: 600; }
   .key { color: var(--muted); font-size: 12.5px; margin: -4px 4px 10px; }
   .stories { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); gap: 10px; }
 </style>
@@ -94,8 +97,12 @@
   <div class="key">What could happen or end tonight, per game: 📜 history from the teams' notes, 🩹 regulars on the injury report and what changes without them, milestones in reach, streaks on the line, runs leading the team, shooters a make or two from 50 / 40 / 90, and team streaks. The same lines go to Discord at 3 PM. Tap a line for the details.<span id="injAsOf"></span></div>
   <div class="stories" id="stories"><div class="empty">Loading…</div></div>
 
+  <h2 id="matchups">Matchups tonight</h2>
+  <div class="key">What's active or lopsided between tonight's opponents: series streaks, the last 10 meetings, streaks in tonight's arena, season series, and each regular against tonight's opponent (his best or worst average against any team, his teams' record, a streak still going). Regular season, 2016-17 on, plus this season's games.</div>
+  <div class="stories" id="matchupList"><div class="empty">Loading…</div></div>
+
   <h2 id="history">History in tonight's notes</h2>
-  <div class="key">Lines from each team's game notes about history made or in reach, word for word, as the team's PR staff wrote them. <b>New</b> = not in the team's earlier notes. A player is named only when the sentence names him.</div>
+  <div class="key">Lines from each team's game notes, word for word as the team's PR staff wrote them: history made or in reach, league ranks, "one of N" clubs, active streaks, races on a list, and the series. The tag says what kind of fact it is; the line under it is what tonight can change (<b>bold</b> = in play tonight), from the table printed beside it in the notes or this season's box scores. <b>New</b> = not in the team's earlier notes. A player is named only when the sentence names him.</div>
   <div class="controls" style="margin:0 0 8px"><select id="histTeam"><option value="">All of tonight's teams</option></select> <label style="font-size:13px"><input type="checkbox" id="histNew"> New today only</label></div>
   <div class="stories" id="historyList"><div class="empty">Loading…</div></div>
 
@@ -268,7 +275,7 @@ async function poll() {
 
 // Tonight's storylines: the shared builder (also used for the Discord digest), with the
 // season data it needs. A failure here never stops the rest of the page.
-const KIND = { history: ["📜", "#history"], injury: ["🩹", "players.html"], milestone: ["🎯", "#all"], streak: ["🔥", "trends.html"], lead: ["👑", "leaders.html"], shooting: ["🏹", "leaders.html"], team: ["📈", "trends.html"] };
+const KIND = { matchup: ["🆚", "#matchups"], history: ["📜", "#history"], injury: ["🩹", "players.html"], milestone: ["🎯", "#all"], streak: ["🔥", "trends.html"], lead: ["👑", "leaders.html"], shooting: ["🏹", "leaders.html"], team: ["📈", "trends.html"] };
 let FACTS = null;
 let INJ = null;
 function renderHistory(facts, injuries) {
@@ -286,16 +293,26 @@ function renderHistory(facts, injuries) {
     const list = all.filter((x) => !/^(?:Out|Doubtful)$/.test(status(t, x.player) || ""));
     const show = list.filter((x) => !newOnly || x.isNew).slice(0, only ? 60 : 6);
     if (!show.length && !out.length) return "";
-    return `<div class="story"><h3><span>${esc(t)} notes</span><span class="when">${list.filter((x) => x.isNew).length} new · ${list.length} lines</span></h3><ul>${show.map((x) => `<li><span class="k">${x.kind === "pass" || x.kind === "next" ? "🎯" : "📜"}</span><span>${x.isNew ? "<b>New:</b> " : ""}${x.player ? `<b>${esc(x.player)}</b>${status(t, x.player) === "Questionable" ? " <i>(Questionable)</i>" : ""} · ` : ""}${esc(x.text)}</span></li>`).join("")}</ul>${out.length ? `<div class="empty" style="padding:6px 0 0">Hidden, on tonight's injury report: ${esc(out.join(", "))}</div>` : ""}${!only && list.length > show.length ? `<div class="empty" style="padding:6px 0 0"><a href="#history" onclick="document.getElementById('histTeam').value='${esc(t)}';document.getElementById('histTeam').onchange();return false;">All ${list.length} lines</a></div>` : ""}</div>`;
+    return `<div class="story"><h3><span>${esc(t)} notes</span><span class="when">${list.filter((x) => x.isNew).length} new · ${list.length} lines</span></h3><ul>${show.map((x) => `<li><span class="k">${x.matchup ? "🆚" : x.kind === "pass" || x.kind === "next" || x.hook?.live ? "🎯" : "📜"}</span><span>${x.tag && x.tag !== "Notes" ? `<span class="tag">${esc(x.tag)}</span>` : ""}${x.isNew ? "<b>New:</b> " : ""}${x.player ? `<b>${esc(x.player)}</b>${status(t, x.player) === "Questionable" ? " <i>(Questionable)</i>" : ""} · ` : ""}${esc(x.text)}${x.hook?.text ? `<span class="hook${x.hook.live ? " live" : ""}">→ ${esc(x.hook.text)}</span>` : ""}</span></li>`).join("")}</ul>${out.length ? `<div class="empty" style="padding:6px 0 0">Hidden, on tonight's injury report: ${esc(out.join(", "))}</div>` : ""}${!only && list.length > show.length ? `<div class="empty" style="padding:6px 0 0"><a href="#history" onclick="document.getElementById('histTeam').value='${esc(t)}';document.getElementById('histTeam').onchange();return false;">All ${list.length} lines</a></div>` : ""}</div>`;
   }).join("");
   $("historyList").innerHTML = cards || `<div class="empty">Nothing ${newOnly ? "new " : ""}in tonight's notes.</div>`;
 }
 
+function renderMatchups(m, injuries) {
+  const status = injuryStatus(injuries, data.today);
+  if (!m || !m.games || (m.today && m.today !== data.today)) { $("matchupList").innerHTML = `<div class="empty">No matchups for tonight yet.</div>`; return; }
+  $("matchupList").innerHTML = m.games.map((g) => {
+    const items = (g.items || []).filter((i) => !i.player || !/^(?:Out|Doubtful)$/.test(status(i.team, i.player) || ""));
+    return `<div class="story"><h3><span>${esc(g.away)} @ ${esc(g.home)}</span><span class="when">${items.length} lines</span></h3>${items.length ? `<ul>${items.slice(0, 8).map((i) => `<li><span class="k">${i.active ? "🔥" : i.lopsided ? "⚖️" : "🆚"}</span><span><span class="tag">${esc(i.tag)}</span>${esc(i.text)}</span></li>`).join("")}</ul>` : `<div class="empty">Nothing active or lopsided.</div>`}</div>`;
+  }).join("") || `<div class="empty">No games tonight.</div>`;
+}
+
 async function renderStories() {
   try {
-    const [trends, leaders, injuries, facts] = await Promise.all(["data/trends.json", "data/leaders.json", "data/injuries.json", "data/notes-facts.json"].map((f) => fetch(f, { cache: "no-store" }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))));
-    const stories = tonightStorylines({ watch: data, trends, leaders, injuries, facts, maxLines: 8 });
+    const [trends, leaders, injuries, facts, matchups] = await Promise.all(["data/trends.json", "data/leaders.json", "data/injuries.json", "data/notes-facts.json", "data/matchups.json"].map((f) => fetch(f, { cache: "no-store" }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))));
+    const stories = tonightStorylines({ watch: data, trends, leaders, injuries, facts, matchups, maxLines: 8 });
     renderHistory(facts, injuries);
+    renderMatchups(matchups, injuries);
     $("injAsOf").textContent = injuries?.report?.asOf ? ` Injuries from the official NBA injury report of ${injuries.report.asOf} ET.` : "";
     const tip = (iso) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
     $("stories").innerHTML = stories.map((g) => `<div class="story"><h3><span>${esc(g.away)} @ ${esc(g.home)}</span><span class="when">${tip(g.start)}</span></h3>

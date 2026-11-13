@@ -134,6 +134,17 @@ function injuryLines(injuries, teams, today) {
   return (injuries.impact || []).filter((x) => teams.has(x.team)).map((x) => ({ team: x.team, kind: "injury", text: x.text, score: x.score }));
 }
 
+// Tonight's matchups (records/matchup.js via docs/data/matchups.json): the series, and players against tonight's opponent.
+function matchupLines(matchups, teams, today) {
+  if (!matchups || (matchups.today && today && matchups.today !== today)) return [];
+  const out = [];
+  for (const g of matchups.games || []) {
+    if (!teams.has(g.away) && !teams.has(g.home)) continue;
+    for (const i of (g.items || []).slice(0, 6)) out.push({ team: i.team, player: i.player || null, kind: "matchup", game: `${g.away}@${g.home}`, text: `${i.tag}: ${i.text}`, score: Math.min(4.2, (i.score || 1) + (i.active ? 0.3 : 0)) });
+  }
+  return out;
+}
+
 function historyLines(facts, teams, today) {
   if (!facts || (facts.today && today && facts.today !== today)) return [];
   const out = [];
@@ -145,7 +156,11 @@ function historyLines(facts, teams, today) {
       // A line that doesn't name its player ("He can become…", "Logged his 39th…") carries the name in front.
       const last = f.player ? f.player.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+(?:Jr\.?|Sr\.?|II|III|IV)$/, "").split(" ").pop() : null;
       const who = last && !f.text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(last) ? ` — ${f.player}:` : ":";
-      out.push({ team, player: f.player, kind: "history", text: `${team} notes${who} ${f.text.length > 260 ? f.text.slice(0, 257).replace(/\s+\S*$/, "") + "…" : f.text}`, score: Math.min(4.5, f.score), isNew: f.isNew });
+      if (f.hook?.stale) continue; // a club the box scores say he has left since the notes were written
+      const body = f.text.length > 240 ? f.text.slice(0, 237).replace(/\s+\S*$/, "") + "…" : f.text;
+      // The tag up front ("1 of 2 this season"), the hook behind ("Stays in it with 18+ points tonight").
+      const tag = f.tag && f.tag !== "Notes" ? `${f.tag} · ` : "";
+      out.push({ team, player: f.player, kind: "history", text: `${team} notes${who} ${tag}${body}${f.hook?.text ? ` → ${f.hook.text}` : ""}`, score: Math.min(4.8, f.score), isNew: f.isNew });
     }
   }
   return out;
@@ -203,7 +218,7 @@ export function injuryStatus(injuries, today) {
   return (team, player) => (player ? listed.get(`${team}|${nameKey(player)}`) : undefined);
 }
 
-export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries = null, facts = null, records = null, maxLines = MAX_LINES }) {
+export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries = null, facts = null, records = null, matchups = null, maxLines = MAX_LINES }) {
   const games = (watch.games || []).map((g) => ({ id: g.id, away: g.awayTri, home: g.homeTri, start: g.start }));
   const teams = new Set(games.flatMap((g) => [g.away, g.home]));
   // The injury report overrules the rest: a player listed Out or Doubtful loses his other lines
@@ -216,7 +231,7 @@ export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries =
   const hist = historyLines(facts, teams, watch.today).filter((h) => !recs.some((r) => r.player && r.passing && r.team === h.team
     && new RegExp(`\\b${surname(r.player)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
     && r.passing.split(" and ").some((n) => new RegExp(`\\b${surname(n)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, "")))));
-  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today)]
+  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today)]
     .flatMap((l) => {
       const st = l.player ? listed.get(`${l.team}|${nameKey(l.player)}`) : null;
       if (st === "Out" || st === "Doubtful") return [];
@@ -224,9 +239,9 @@ export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries =
     });
   const all = [...injuryLines(injuries, teams, watch.today), ...others];
   return games.map((g) => {
-    let inj = 0, hist = 0, ctx = 0;
-    const lines = all.filter((l) => l.team === g.away || l.team === g.home).sort((a, b) => b.score - a.score)
-      .filter((l) => (l.kind !== "injury" || ++inj <= 2) && (l.kind !== "history" || ++hist <= 2) && (l.kind !== "context" || ++ctx <= 1)).slice(0, maxLines);
+    let inj = 0, hist = 0, ctx = 0, mu = 0;
+    const lines = all.filter((l) => (l.team === g.away || l.team === g.home) && (l.kind !== "matchup" || l.game === `${g.away}@${g.home}`)).sort((a, b) => b.score - a.score)
+      .filter((l) => (l.kind !== "injury" || ++inj <= 2) && (l.kind !== "history" || ++hist <= 2) && (l.kind !== "context" || ++ctx <= 1) && (l.kind !== "matchup" || ++mu <= 2)).slice(0, maxLines);
     return { ...g, lines };
   });
 }

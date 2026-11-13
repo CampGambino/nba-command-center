@@ -44,7 +44,7 @@ for (const g of games) {
     const file = r.version ? versionPath(dataDir, team, r.version) : null;
     const buf = file && fs.existsSync(file) ? fs.readFileSync(file) : null;
     console.log(`  ${team.padEnd(3)} notes: ${r.status}${r.why ? ` (${r.why})` : ""}${r.error ? ` (${r.error})` : ""}`);
-    entries.push({ team, buf, notes: { status: r.status, why: r.why, error: r.error } });
+    entries.push({ team, opp, buf, notes: { status: r.status, why: r.why, error: r.error } });
   }
 }
 const { site } = await buildSite({ entries, games, uncounted, espn, nba, today, root });
@@ -58,6 +58,9 @@ console.log(`built: ${site.teams.length} teams, ${n} milestones -> docs/data/wat
 {
   const { readPdf } = await import("../src/notes/pdf-layout.js");
   const { readHistory } = await import("../src/notes/narrative.js");
+  const { annotate } = await import("../src/notes/facts.js");
+  const modelFile = path.join(root, "src", "data", "fact-model.json");
+  const model = fs.existsSync(modelFile) ? JSON.parse(fs.readFileSync(modelFile, "utf8")) : null;
   const { TEAMS } = await import("../src/teams.js");
   // How notes refer to a team besides city and nickname (a sentence that opens with one is about the team).
   const TEAM_ALIASES = { DAL: ["Mavs"], CLE: ["Cavs"], PHI: ["Sixers", "76ers"], MIN: ["Wolves", "Timberwolves"], POR: ["Blazers", "Trail Blazers"], MIA: ["HEAT"], LAC: ["LA Clippers"], GSW: ["Golden State"] };
@@ -74,7 +77,11 @@ console.log(`built: ${site.teams.length} teams, ${n} milestones -> docs/data/wat
       const seasonStart = `${Number(today.slice(0, 4)) - (Number(today.slice(5, 7)) < 8 ? 1 : 0)}-10-01`;
       const T = TEAMS[e.team] || {};
       const teamWords = [T.city, T.nick, T.city && T.nick ? `${T.city} ${T.nick}` : null, ...(T.alt || []), ...(TEAM_ALIASES[e.team] || [])].filter(Boolean);
-      const lines = readHistory(await readPdf(e.buf), players, { seasonStart, today, teamWords, box });
+      const O = TEAMS[e.opp] || {};
+      const oppWords = [O.city, O.nick, ...(O.alt || []), ...(TEAM_ALIASES[e.opp] || [])].filter(Boolean);
+      const doc = await readPdf(e.buf);
+      // 0.48: league context, clubs, races and the series too, each read for type, tag, the table beside it and what tonight can change.
+      const lines = annotate(readHistory(doc, players, { seasonStart, today, teamWords, oppWords, box }), { doc, box, model, teamNames: [T.city, T.nick, e.team].filter(Boolean) });
       const seenFile = path.join(factsDir, `${e.team}.json`);
       const seen = fs.existsSync(seenFile) ? JSON.parse(fs.readFileSync(seenFile, "utf8")) : {};
       const facts = lines.map((l) => {
@@ -82,8 +89,11 @@ console.log(`built: ${site.teams.length} teams, ${n} milestones -> docs/data/wat
         seen[k] ??= today;
         const isNew = seen[k] === today;
         const named = l.player && !l.guessed;
-        const score = l.score + (isNew ? 1.5 : 0) + (named ? 0.6 : 0) - (/^(?:He|His|She|They|It)\b/.test(l.text) ? 0.8 : 0);
-        return { text: l.text, kind: l.kind, player: named ? l.player : null, playerId: named ? l.playerId : null, how: l.how, game: l.boxGame ? { d: l.boxGame.d, opp: l.boxGame.opp } : undefined, when: l.when, isNew, firstSeen: seen[k], score: Math.round(score * 100) / 100 };
+        // The learned scorer (src/data/fact-model.json) weighs in: 0.5 is neutral; a live hook (a race, a club to stay in) adds.
+        const stale = l.hook?.stale;
+        const score = l.score + (isNew ? 1.5 : 0) + (named ? 0.6 : 0) - (/^(?:He|His|She|They|It)\b/.test(l.text) ? 0.8 : 0) + (l.model != null ? 3 * (l.model - 0.5) : 0) + (l.hook?.live ? 0.5 : 0) - (stale ? 3 : 0);
+        return { text: l.text, kind: l.kind, player: named ? l.player : null, playerId: named ? l.playerId : null, how: l.how, game: l.boxGame ? { d: l.boxGame.d, opp: l.boxGame.opp } : undefined, when: l.when, isNew, firstSeen: seen[k], score: Math.round(score * 100) / 100,
+          type: l.type, tag: l.tag, matchup: l.matchup || undefined, hook: l.hook ? { text: l.hook.text, live: !!l.hook.live, stale: !!stale } : undefined, model: l.model };
       }).sort((a, b) => b.score - a.score);
       // Keep 60 days of first-seen dates.
       const cut = new Date(Date.parse(`${today}T12:00:00Z`) - 60 * 864e5).toISOString().slice(0, 10);

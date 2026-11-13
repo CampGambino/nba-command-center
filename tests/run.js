@@ -1703,6 +1703,108 @@ await articlesChecks(ok);
   ok(![...t5.cards.keys()].some((k) => k.startsWith("cc-list-")), "bridge v3: a final game with nobody on a list gets no list card");
 }
 
+// ---------- Notes lines read for meaning, tables, hooks, the learned scorer (0.48; the user's Wizards picks, 11/13) ----------
+{
+  const F = await import("../src/notes/facts.js");
+  const L = (text) => ({ text, cells: [{ x0: 40, x1: 560, cx: 300, text }], charX: [] });
+  const doc = { pages: [
+    { page: 1, width: 612, lines: [
+      L("• KYSHAWN GEORGE Was selected to the 2026 Castrol Rising Stars roster as part of NBA All-Star Weekend 2026 in Los Angeles. • Leads all NBA third-years with 18.5 points per game this season. • Is one of five players averaging 18+ points, 4+ assists, 4+ rebounds and 1+ block per game this season."),
+      L("• ANTHONY DAVIS One of two players in the league averaging 25+ points, 10+ rebounds, 1+ steal and 1+ block per game this season."),
+      L("• BUB CARRINGTON Has appeared in 176 consecutive games, the third-longest active streak in the NBA."),
+    ] },
+    { page: 2, width: 612, lines: [
+      L("SERIES NOTES"),
+      L("• Detroit took the first game of this season's series on Nov. 9, and has won each of the past two season series between the teams."),
+    ] },
+    { page: 3, width: 612, lines: [
+      L("Since entering the league in 2012-13, Davis owns the most blocks in the NBA."),
+      L("MOST BLOCKS RECORDED PLAYER, NBA, SINCE 2012-13 RK. NAME BLOCKS TEAM 1 ANTHONY DAVIS 1,859 WAS 2 RUDY GOBERT 1,851 MIN 3 BROOK LOPEZ 1,742 LAC"),
+      L("Despite having the sixth-most points in the paint in the NBA according to Sportradar, the Wizards have been blocked the least of any team in the league this season."),
+      L("TEAM, MOST POINTS IN THE PAINT NBA, 2026-27 RANK TEAM PAINT POINTS 1 NEW ORLEANS 682 2 SAN ANTONIO 658 3 L.A. LAKERS 638 4 ATLANTA 632 5 INDIANA 602 6 WASHINGTON 596 @WIZPRSTATS"),
+      L("Davis is one of two players in the NBA this season to average 25.0+ points, 10.0+ rebounds , 1.0+ steal and 1.0+ block per game."),
+    ] },
+  ] };
+  const players = [{ id: "10", name: "Kyshawn George" }, { id: "11", name: "Anthony Davis" }, { id: "12", name: "Bub Carrington" }];
+  const h = readHistory(doc, players, { seasonStart: "2026-10-01", today: "2026-11-12", teamWords: ["Washington", "Wizards"], oppWords: ["Detroit", "Pistons"] });
+  const by = (re) => h.find((x) => re.test(x.text));
+  ok(by(/third-years/)?.player === "Kyshawn George" && by(/one of five/)?.player === "Kyshawn George" && by(/176 consecutive/)?.player === "Bub Carrington"
+    && by(/Detroit took/)?.matchup && by(/blocked the least/)?.team && by(/owns the most blocks/)?.player === "Anthony Davis",
+    "notes, league context (0.48): third-year lead, a 1-of-5 club, an active streak, the series, a team rank, a race — each with its subject", JSON.stringify(h.map((x) => [x.player || (x.matchup ? "series" : "team"), x.text.slice(0, 30)])));
+  const d = (t) => F.describe(t, {});
+  ok(d("One of two players in the league averaging 25+ points, 10+ rebounds, 1+ steal and 1+ block per game this season.").tag === "1 of 2 this season"
+    && d("Has appeared in 176 consecutive games, the third-longest active streak in the NBA.").tag === "Active streak · 176"
+    && d("Logged his 39th career 40-point double-double on 11/9 at Detroit, tying Michael Jordan for the seventh-most since 1973-74.").tag === "T-7th since 1973-74"
+    && F.thresholds("averaging 18+ points, 4+ assists, 4+ rebounds and 1+ block per game").map((x) => `${x.stat}${x.min}`).join() === "pts18,ast4,reb4,blk1",
+    "notes, describe: tags (1 of 2 this season; Active streak · 176; T-7th since 1973-74) and the club's thresholds");
+  const T = F.readTables(doc);
+  const blk = T.find((t) => /MOST BLOCKS/.test(t.title)), paint = T.find((t) => /POINTS IN THE PAINT/.test(t.title));
+  ok(blk?.rows.length === 3 && blk.rows[1].name === "RUDY GOBERT" && blk.rows[1].value === 1851 && paint?.rows[5]?.name === "WASHINGTON" && paint.rows[5]?.value === 596 && paint.title === "TEAM, MOST POINTS IN THE PAINT NBA, 2026-27",
+    "notes, tables: ranked infographic tables read (title, rank, name, value)", JSON.stringify(T.map((t) => [t.title, t.rows.length])));
+  // Box scores: Davis 10 games at 25.2 / 10.0 / 1.3 / 1.1.
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const Lb = (o) => keys.map((k) => o[k] ?? 0);
+  const games = Array.from({ length: 10 }, (_, i) => ({ d: `2026-10-${String(21 + i).padStart(2, "0")}`, opp: "BOS", home: true, pf: 1, pa: 0, pl: { 11: Lb({ min: 34, pts: i < 2 ? 26 : 25, reb: 10, stl: i < 3 ? 2 : 1, blk: i < 1 ? 2 : 1 }) } }));
+  const box = { keys, names: { 11: "Anthony Davis" }, games };
+  const ann = F.annotate(h, { doc, box, teamNames: ["Washington", "Wizards", "WAS"] });
+  const davis2 = ann.filter((x) => x.player === "Anthony Davis" && x.type === "club");
+  const race = ann.find((x) => /owns the most blocks/.test(x.text)), paintL = ann.find((x) => /sixth-most points in the paint/.test(x.text));
+  ok(davis2.length === 1 && davis2[0].hook?.text === "Stays in it with 10+ rebounds, 23+ points tonight." && davis2[0].hook.live,
+    "notes, one of two: the same club printed twice is one line; what he needs tonight to stay in it, from the box scores", JSON.stringify(davis2.map((x) => x.hook)));
+  ok(race?.hook?.text === "Leads Rudy Gobert by 8 (1,859 to 1,851)." && race.hook.live && paintL?.hook?.text === "6 behind Indiana (602) for 5th.",
+    "notes, races: the table beside the line gives the gap (Davis 8 blocks ahead of Gobert since 2012-13; Wizards 6 paint points from 5th)", JSON.stringify([race?.hook, paintL?.hook]));
+  const left = F.stayInClub([{ stat: "pts", min: 30 }, { stat: "reb", min: 10 }], box, "11");
+  ok(left && !left.ok && F.hookFor({ text: "x", facts: F.describe("One of two players averaging 30+ points and 10+ rebounds per game this season.", {}) }, { stay: left }).stale,
+    "notes, a club he has since left (the box scores say 25.2, not 30+): marked no longer true, and the storylines skip it");
+  const { train, auc, PRIOR } = await import("../tools/train-fact-model.js");
+  const labels = [{ text: "Leads all NBA third-years with 18.5 points per game this season.", label: 1 }, { text: "Was selected to the 2026 Castrol Rising Stars roster as part of NBA All-Star Weekend.", label: 0 },
+    { text: "Has appeared in 176 consecutive games, the third-longest active streak in the NBA.", label: 1 }, { text: "He ranks seventh among all rookies in Wizards history over eight career games.", label: 0 }];
+  const m = train(labels, { steps: 800 });
+  ok(auc(labels, labels.map((l) => F.score(F.features(l.text, {}), m))) === 1 && F.score(F.features(labels[1].text, {}), PRIOR) < 0.5,
+    "notes, the learned scorer: picks rank above the rest; a roster note (All-Star Weekend selection) scores low on the prior");
+  const fm = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "fact-model.json"), "utf8"));
+  ok(fm.labels >= 30 && fm.picks >= 22 && typeof fm.priorAuc === "number" && (fm.learned ? Object.values(fm.heldOutAuc).some((a) => a > fm.priorAuc) : fm.weights.club === PRIOR.weights.club),
+    "notes, fact-model.json: trained on the user's picks; learned weights only when they beat the prior on held-out lines", JSON.stringify({ labels: fm.labels, learned: fm.learned, priorAuc: fm.priorAuc, heldOutAuc: fm.heldOutAuc }));
+}
+
+// ---------- Tonight's matchups (src/records/matchup.js, 0.48) ----------
+{
+  const M = await import("../src/records/matchup.js");
+  // DET-WAS: Detroit won the last 3; Washington had won 9 straight before; 5 straight DET wins in Washington.
+  const G = [];
+  const add = (d, h, a, hs, as) => G.push([d, h, a, hs, as, 2]);
+  for (let i = 0; i < 9; i++) add(`20${17 + Math.floor(i / 2)}-0${i % 2 ? 3 : 1}-1${i}`, i % 2 ? "WAS" : "DET", i % 2 ? "DET" : "WAS", i % 2 ? 110 : 100, i % 2 ? 100 : 110);
+  add("2024-01-15", "WAS", "DET", 117, 129); add("2025-11-10", "DET", "WAS", 137, 135); add("2026-02-05", "DET", "WAS", 117, 126); add("2026-03-17", "WAS", "DET", 117, 130); add("2026-03-19", "WAS", "DET", 95, 117);
+  const history = { games: G.sort((a, b) => (a[0] < b[0] ? -1 : 1)) };
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const Lb = (o) => keys.map((k) => o[k] ?? 0);
+  const was = { team: "WAS", keys, names: { 11: "Anthony Davis" }, games: [
+    { d: "2026-11-09", opp: "DET", home: false, pf: 111, pa: 122, pl: { 11: Lb({ min: 38, pts: 44, reb: 13 }) } },
+    ...Array.from({ length: 4 }, (_, i) => ({ d: `2026-10-2${i + 1}`, opp: "BOS", home: true, pf: 100, pa: 90, pl: { 11: Lb({ min: 34, pts: 22, reb: 10 }) } })),
+  ] };
+  const det = { team: "DET", keys, names: {}, games: [{ d: "2026-11-09", opp: "WAS", home: true, pf: 122, pa: 111, pl: {} }] };
+  const teamFiles = { WAS: was, DET: det };
+  const t = M.teamItems(history, teamFiles, "DET", "WAS", "2026-11-12");
+  const tx = (re) => t.find((i) => re.test(i.text));
+  ok(tx(/^The Pistons have won 3 straight against the Wizards \(last: 122-111 on 11\/9\)\.$/) && !tx(/straight in Washington|at home/) && tx(/lead the season series 1-0/),
+    "matchups, series: the run of straight wins (3, counting this season's 11/9; Washington won 2/5/26) and this season's series", JSON.stringify(t.map((i) => i.text)));
+  // Davis: 12 past games vs DET at 31 a game, 24 against everyone else (9 other teams, 4+ games each); 30+ in his last 3 vs DET.
+  const rows = [];
+  const teamsList = ["BOS", "NYK", "MIA", "CHI", "ATL", "TOR", "PHI", "MIL", "IND"];
+  for (let i = 0; i < 12; i++) rows.push([`2018-0${(i % 9) + 1}-1${i % 10}`, "DET", 1, i < 11 ? "W" : "W", 2, 36, i >= 9 ? 33 : 30, 11, 3, 1, 2, 0]);
+  teamsList.forEach((o, k) => { for (let i = 0; i < 4; i++) rows.push([`2019-0${(i % 9) + 1}-${10 + k}`, o, 1, "L", 2, 36, 24, 10, 3, 1, 2, 0]); });
+  const logs = { players: { 11: rows.sort((a, b) => (a[0] < b[0] ? -1 : 1)) } };
+  const p = M.playerItems({ id: "11", name: "Anthony Davis", team: "WAS", opp: "DET", logs, teamFiles, today: "2026-11-12" });
+  const px = (re) => p.find((i) => re.test(i.text));
+  ok(px(/averaged 31\.8 points in 13 games against the Pistons in his career, his most against any team \(25\.8 overall\)/) && px(/30\+ points in 13 straight games against the Pistons, every game in his career/)
+    && px(/teams are 12-1 against the Pistons/) && px(/had 44 points, 13 rebounds against the Pistons on 11\/9 \(lost\)/),
+    "matchups, a player: his best average against any team, a streak still going against them, and this season's big game", JSON.stringify(p.map((i) => i.text)));
+  const st = (await import("../src/anticipate/tonight.js")).tonightStorylines({ watch: { today: "2026-11-12", games: [{ id: "1", awayTri: "DET", homeTri: "WAS" }] },
+    matchups: { today: "2026-11-12", games: [{ away: "DET", home: "WAS", items: [...t, ...p] }] } });
+  ok(st[0].lines.filter((l) => l.kind === "matchup").length === 2 && st[0].lines.every((l) => /^[^:]+: /.test(l.text)),
+    "matchups in tonight's storylines: at most two a game, tag first", JSON.stringify(st[0].lines.map((l) => l.text)));
+}
+
 // ---------- snapshot ----------
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });
