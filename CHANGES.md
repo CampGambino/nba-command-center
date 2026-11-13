@@ -15,6 +15,7 @@ Each entry: what changed, how it was tested, and what is still unproven.
   4. **A name alone on its line** with the numbers on the next (Jim Les, 1994-95 Hawks) is joined.
   5. **Two stints years apart were split** as if two players. Pippen (1987-98, 2003-04) now has 15,123 Bulls points, Willis 10,582 Hawks points, Kidd, Elvin Hayes and others are whole, as the team guides count them.
      - Names are split now only when first and last seasons are more than 22 years apart (Bobby Jones DEN 1976-77 and 2007-08, Nate Williams GSW, …) or when listed as two players (Mike James NOP, Charles Jones CHI).
+- **After the fixes:** 1,787 of the 2,100 top-10 totals are found exactly in the team guides (from about 1,550). Portland, Brooklyn, Dallas, the Lakers, Orlando and Toronto: all 70 of 70. Most of the rest are layout misses (below), not different numbers.
 - **Also fixed:**
   - **"Johnny Kerr"** (1957-58 page) is the same player as "Red Kerr": Kerr's 76ers rebounds are now 9,506, as in the 76ers guide.
   - **Team-total rows printed in mixed case** ("New York", "Opponents") are no longer counted as players.
