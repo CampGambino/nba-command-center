@@ -15,6 +15,7 @@
  */
 import os from "node:os";
 import fs from "node:fs";
+import zlib from "node:zlib";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseNotes } from "../src/notes/parse.js";
@@ -1975,6 +1976,31 @@ await articlesChecks(ok);
   ok(nextRound("gp", 99, { seasons: 2 }) === null && nextRound("gp", 899) === 900, "cadence: games played by 100 from 500");
   ok(nextRound("stl", 480, { seasons: 8 }) === 500 && nextRound("blk", 380, { seasons: 6 }) === 500 && onCadence("dd", 300, 296) && !onCadence("pts", 100, 96, { seasons: 1 }) && onCadence("pts", 600, 560, { seasons: 1 }) && !onCadence("reb", 100, 95, { seasons: 1 }),
     "cadence: a veteran's steals and blocks by 250 (Haliburton's 500 steals); double-doubles untouched; a rookie's 100s start at 500 points, 200 of anything else");
+}
+
+// ---------- Game Flow: the ESPN reader and its compact files (src/gameflow/feeds.js, 0.52) ----------
+{
+  const F = await import("../src/gameflow/feeds.js");
+  const fx = path.join(root, "tests", "fixtures", "espn-summary.json.gz");
+  if (!fs.existsSync(fx)) ok(false, "game flow: ESPN summary fixture missing (run the flow-sample workflow)");
+  else {
+    const sum = JSON.parse(zlib.gunzipSync(fs.readFileSync(fx)));
+    const orig = F.espnToFeeds(sum);
+    const c = F.compactFeeds(orig);
+    const back = F.expandFeeds(JSON.parse(JSON.stringify(c)));
+    // Every field the page reads, action by action; play text only as the two things read out of it.
+    const norm = (a) => ({ ...a, description: /(\d+)[-\s]foot/i.exec(a.description || "")?.[1] && (a.actionType === "2pt" || a.actionType === "3pt") ? `${/(\d+)[-\s]foot/i.exec(a.description)[1]}-foot`
+      : a.actionType === "foul" && /technical/i.test(a.description || "") ? "technical" : "" });
+    const A = orig.pbp.game.actions.map(norm), B = back.pbp.game.actions;
+    const diffs = [];
+    A.forEach((a, i) => { const b = B[i]; for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) if (JSON.stringify(a[k]) !== JSON.stringify(b[k])) diffs.push(`${i} ${k}: ${JSON.stringify(a[k])} vs ${JSON.stringify(b[k])}`); });
+    ok(A.length === B.length && A.length > 300 && !diffs.length, `game flow: the compact file gives back every action field the page reads (${A.length} actions)`, diffs.slice(0, 5).join("; "));
+    const sorted = (x) => (Array.isArray(x) ? x.map(sorted) : x && typeof x === "object" ? Object.fromEntries(Object.keys(x).sort().map((k) => [k, sorted(x[k])])) : x);
+    const box = (g) => JSON.stringify(sorted(g));
+    ok(box(orig.box.game) === box(back.box.game), "game flow: and the whole box score");
+    ok(JSON.stringify(c).length < JSON.stringify(sum).length / 8, "game flow: the compact file is under an eighth of ESPN's summary", `${JSON.stringify(c).length} vs ${JSON.stringify(sum).length}`);
+    ok(fs.readFileSync(path.join(root, "src", "gameflow", "feeds.js"), "utf8") === fs.readFileSync(path.join(root, "docs", "lib", "gameflow", "feeds.js"), "utf8"), "game flow: the page's copy of the reader is the build's");
+  }
 }
 
 // ---------- snapshot ----------

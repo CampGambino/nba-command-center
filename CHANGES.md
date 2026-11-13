@@ -2,14 +2,44 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
-## 0.52.0 (2026-11-13): GameFlow merge, stage 1 (in progress): the play-by-play reader
+## 0.52.0 (2026-11-13): GameFlow merge, stage 1: the play-by-play reader and the Game Flow page
 
-The user: "begin" (merging NBA GameFlow into the Command Center).
+The user: "begin" (merging NBA GameFlow into the Command Center, per the plan agreed in chat).
 
-### What changed (so far)
-- **`src/gameflow/feeds.js`:** GameFlow 6's ESPN reader (`espnToFeeds`), unchanged, plus a compact game format (`compactFeeds` / `expandFeeds`). The page will import it from `docs/lib/gameflow/feeds.js`.
-- **`scripts/flow.js`** (run by every build, never fatal): each finished regular-season game's ESPN summary is read once and kept as `docs/data/flow/<season>/<gameId>.json`, with an index at `docs/data/flow/index.json`. A game is kept only when ESPN calls it final and its box matches our final score.
-- **`flow-sample.yml`:** a one-off workflow that runs the reader and keeps one raw ESPN summary as a test fixture.
+### What changed
+- **New page `docs/gameflow.html` (Game Flow),** linked from every page's nav (10 tabs now):
+  - It is GameFlow 6's code, built by `tools/port-gameflow.py` with these changes only:
+    - Command Center title, header and nav;
+    - the script is a module, and its ESPN reader is imported from `lib/gameflow/feeds.js`, the same function the nightly build uses;
+    - ESPN only: the league-feed path through the PC helper is gone (the user's no-NBA.com rule);
+    - ESPN's minute tolerance (0.6) is set from the start, where GameFlow set it when the first game opened;
+    - the help text and footnote are rewritten to match.
+  - All 14 of GameFlow's views still work here. In later stages they move to the pages agreed in chat, and redundant ones go.
+  - Past seasons still load from ESPN in the browser, as in GameFlow.
+- **The nightly build reads every finished game's play-by-play once** (`scripts/flow.js`, run after situations, never fatal):
+  - it is kept compact as `docs/data/flow/<season>/<gameId>.json` (~27 KB a game, against ESPN's ~450 KB);
+  - for this season's finished games the page reads these files instead of ESPN, so the season and league views no longer download hundreds of ESPN summaries;
+  - a game is kept only when ESPN calls it final and its box matches our final score;
+  - tonight's games and older seasons come from ESPN as before.
+- **`src/gameflow/feeds.js`:** GameFlow's `espnToFeeds`, unchanged, plus `compactFeeds` / `expandFeeds`.
+- **`flow-sample.yml`:** one-off workflow that ran the reader (174 of 174 games so far) and saved one ESPN summary as the test fixture `tests/fixtures/espn-summary.json.gz`.
+
+### Tested
+- 632 checks pass. New ones:
+  - the compact file gives back every action field the page reads (all 400+ actions of the fixture game) and the whole box score;
+  - it is under an eighth of ESPN's size;
+  - the page's copy of the reader equals the build's.
+- **The page offline** (Playwright, ESPN's schedule served from our results, ESPN summaries blocked, so every game came from the compact files):
+  - Single game (CHA @ PHX 11/12) draws the rotation chart, runs, swings, score flow and period table;
+  - Season rotation (BOS, 12 games) draws the heatmap;
+  - 30-point games allowed reads all 174 games league-wide (116 such games);
+  - no script errors.
+- The page sweep passes at 1400 and 390 px, with 10 nav links on every page.
+
+### Unproven
+- The live ESPN path on the published page (older seasons, tonight's games). It is GameFlow's own code, but this cloud can't reach ESPN to try it.
+- The repository grows about 27 KB per game, about 33 MB a season. The files are written once and never change.
+- The Game Flow page keeps GameFlow's dark look; the other pages follow the system's light/dark setting.
 
 ## 0.51.0 (2026-11-13): round-number spacing, older playoffs, longer runs, career highs, out-tonight last
 

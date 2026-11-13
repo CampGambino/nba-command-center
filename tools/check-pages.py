@@ -1,6 +1,6 @@
 """
 Render every site page at desktop (1400 px) and phone (390 px) widths in headless Chrome and report problems:
-script errors, failed loads (except favicon), a "Couldn't load" message, a nav without all 9 tabs, or a page
+script errors, failed loads (except favicon), a "Couldn't load" message, a nav without all 10 tabs, or a page
 wider than the screen (anything not inside an area built to scroll sideways).
 
   python3 tools/check-pages.py            (serves docs/ itself on port 8794)
@@ -12,7 +12,7 @@ from playwright.async_api import async_playwright
 
 DOCS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "docs")
 PAGES = ["index.html", "situations.html", "clutch.html", "clutch.html?mode=q4", "players.html?team=SAS",
-         "trends.html", "leaders.html", "defenses.html", "defenses.html?by=defense", "national.html", "records.html",
+         "trends.html", "leaders.html", "defenses.html", "defenses.html?by=defense", "national.html", "gameflow.html", "records.html",
          "records.html#reach", "records.html#lists", "records.html#franchise", "records.html#season", "records.html#cup", "records.html#book", "records.html#checks"]
 CHROME = "/usr/bin/google-chrome"
 
@@ -38,7 +38,7 @@ async def check(browser, url, width):
     await pg.close()
     problems = errs[:3]
     if "Couldn't" in info["sub"]: problems.append(info["sub"][:80])
-    if info["nav"] != 9: problems.append(f"nav has {info['nav']} links")
+    if info["nav"] != 10: problems.append(f"nav has {info['nav']} links")
     if info["wide"]: problems.append("wider than the screen: " + ", ".join(info["wide"]))
     return problems, info
 
