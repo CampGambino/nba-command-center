@@ -2,6 +2,19 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.47.1 (2026-11-12): daily build's commit step fixed (a stale docs/ref copy)
+
+### What happened
+- **The 0.46.0 push build failed** at "Commit and push": "cannot pull with rebase: You have unstaged changes". The build copies `src/data` reference files to `docs/ref/`. Since 0.45.3 (All-Star active lists), `docs/ref/nba-postseason-careers.json` in the repo was out of date. The build rewrote it but only committed `docs/data`, `docs/lib` and `history`, leaving that one file unstaged.
+- **What it held back:** that build's data push, at 10:32 PM. The site kept the previous build's data until the next run.
+
+### What changed
+- **`docs/ref/nba-postseason-careers.json`** is brought up to date.
+- **`daily.yml`** now also commits `docs/ref`, so a reference file that changes can't block the push again.
+
+### Tested
+- 588 checks pass (including the workflow check).
+
 ## 0.47.0 (2026-11-12): Every franchise's single-game records, live in NBA Live (29 team media guides)
 
 ### Why

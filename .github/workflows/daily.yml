@@ -77,7 +77,7 @@ jobs:
         run: |
           git config user.name "ncc-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/data docs/lib history
+          git add docs/data docs/lib docs/ref history
           if git diff --cached --quiet; then echo "nothing changed"; exit 0; fi
           git commit -m "${{ steps.pick.outputs.job }}: $(TZ=America/New_York date +'%Y-%m-%d %H:%M') ET (automatic)"
           # Another run may have pushed meanwhile. Everything committed here is

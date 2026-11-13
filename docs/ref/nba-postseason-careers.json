@@ -1,5 +1,5 @@
 {
-"source": "NBA 2026-27 Guide: career leaders for the All-Star Game (pp. 158-159), Play-In (166-167), playoffs (175-176), Finals (185-186); All-Star selections by player (160-161); through 2025-26",
+"source": "NBA 2026-27 Guide: career leaders for the All-Star Game (pp. 158-159), Play-In (166-167), playoffs (175-176), Finals (185-186); All-Star active career leaders (34-35); All-Star selections by player (160-161); through 2025-26",
 "careers": {
 "allStar": {
 "gp": [
@@ -3092,6 +3092,762 @@
 {
 "name": "Dwyane Wade",
 "value": 53
+}
+]
+},
+"allStarActive": {
+"gp": [
+{
+"name": "LeBron James",
+"value": 23
+},
+{
+"name": "Kevin Durant",
+"value": 16
+},
+{
+"name": "Stephen Curry",
+"value": 11
+},
+{
+"name": "James Harden",
+"value": 11
+},
+{
+"name": "Chris Paul",
+"value": 11
+},
+{
+"name": "Kyrie Irving",
+"value": 10
+},
+{
+"name": "Paul George",
+"value": 9
+},
+{
+"name": "Nikola Jokic",
+"value": 9
+},
+{
+"name": "Kawhi Leonard",
+"value": 9
+},
+{
+"name": "Damian Lillard",
+"value": 9
+},
+{
+"name": "Donovan Mitchell",
+"value": 9
+},
+{
+"name": "Russell Westbrook",
+"value": 9
+}
+],
+"pts": [
+{
+"name": "LeBron James",
+"value": 449
+},
+{
+"name": "Kevin Durant",
+"value": 284
+},
+{
+"name": "Stephen Curry",
+"value": 216
+},
+{
+"name": "Giannis Antetokounmpo",
+"value": 199
+},
+{
+"name": "Russell Westbrook",
+"value": 194
+},
+{
+"name": "Kyrie Irving",
+"value": 172
+},
+{
+"name": "Damian Lillard",
+"value": 165
+},
+{
+"name": "Paul George",
+"value": 162
+},
+{
+"name": "James Harden",
+"value": 149
+},
+{
+"name": "Chris Paul",
+"value": 134
+}
+],
+"min": [
+{
+"name": "LeBron James",
+"value": 558
+},
+{
+"name": "Kevin Durant",
+"value": 339
+},
+{
+"name": "Stephen Curry",
+"value": 275
+},
+{
+"name": "Chris Paul",
+"value": 272
+},
+{
+"name": "James Harden",
+"value": 246
+},
+{
+"name": "Kyrie Irving",
+"value": 228
+},
+{
+"name": "Paul George",
+"value": 208
+},
+{
+"name": "Russell Westbrook",
+"value": 202
+},
+{
+"name": "Giannis Antetokounmpo",
+"value": 177
+},
+{
+"name": "Damian Lillard",
+"value": 154
+}
+],
+"fga": [
+{
+"name": "LeBron James",
+"value": 366
+},
+{
+"name": "Kevin Durant",
+"value": 217
+},
+{
+"name": "Stephen Curry",
+"value": 184
+},
+{
+"name": "Russell Westbrook",
+"value": 160
+},
+{
+"name": "Giannis Antetokounmpo",
+"value": 129
+},
+{
+"name": "Paul George",
+"value": 127
+},
+{
+"name": "Damian Lillard",
+"value": 124
+},
+{
+"name": "Kyrie Irving",
+"value": 122
+},
+{
+"name": "James Harden",
+"value": 117
+},
+{
+"name": "Chris Paul",
+"value": 101
+}
+],
+"reb": [
+{
+"name": "LeBron James",
+"value": 121
+},
+{
+"name": "Kevin Durant",
+"value": 75
+},
+{
+"name": "Giannis Antetokounmpo",
+"value": 61
+},
+{
+"name": "Stephen Curry",
+"value": 60
+},
+{
+"name": "Kyrie Irving",
+"value": 54
+},
+{
+"name": "Joel Embiid",
+"value": 47
+},
+{
+"name": "Russell Westbrook",
+"value": 47
+},
+{
+"name": "James Harden",
+"value": 45
+},
+{
+"name": "Nikola Jokic",
+"value": 43
+},
+{
+"name": "Chris Paul",
+"value": 43
+}
+],
+"tov": [
+{
+"name": "LeBron James",
+"value": 61
+},
+{
+"name": "James Harden",
+"value": 30
+},
+{
+"name": "Stephen Curry",
+"value": 28
+},
+{
+"name": "Chris Paul",
+"value": 25
+},
+{
+"name": "Kyrie Irving",
+"value": 19
+},
+{
+"name": "Kyle Lowry",
+"value": 15
+},
+{
+"name": "Kevin Durant",
+"value": 14
+},
+{
+"name": "Russell Westbrook",
+"value": 13
+},
+{
+"name": "Donovan Mitchell",
+"value": 13
+},
+{
+"name": "Nikola Jokic",
+"value": 10
+},
+{
+"name": "Devin Booker",
+"value": 10
+},
+{
+"name": "Damian Lillard",
+"value": 10
+},
+{
+"name": "Giannis Antetokounmpo",
+"value": 10
+}
+],
+"fgm": [
+{
+"name": "LeBron James",
+"value": 187
+},
+{
+"name": "Kevin Durant",
+"value": 111
+},
+{
+"name": "Giannis Antetokounmpo",
+"value": 92
+},
+{
+"name": "Russell Westbrook",
+"value": 81
+},
+{
+"name": "Stephen Curry",
+"value": 78
+},
+{
+"name": "Kyrie Irving",
+"value": 73
+},
+{
+"name": "Anthony Davis",
+"value": 63
+},
+{
+"name": "Paul George",
+"value": 63
+},
+{
+"name": "Damian Lillard",
+"value": 59
+},
+{
+"name": "Jayson Tatum",
+"value": 55
+}
+],
+"oreb": [
+{
+"name": "Giannis Antetokounmpo",
+"value": 27
+},
+{
+"name": "Russell Westbrook",
+"value": 23
+},
+{
+"name": "Kyrie Irving",
+"value": 20
+},
+{
+"name": "LeBron James",
+"value": 18
+},
+{
+"name": "Kevin Durant",
+"value": 17
+},
+{
+"name": "Stephen Curry",
+"value": 15
+},
+{
+"name": "Jaylen Brown",
+"value": 14
+},
+{
+"name": "Joel Embiid",
+"value": 14
+},
+{
+"name": "Nikola Jokic",
+"value": 14
+},
+{
+"name": "Karl-Anthony Towns",
+"value": 14
+}
+],
+"pf": [
+{
+"name": "Chris Paul",
+"value": 23
+},
+{
+"name": "LeBron James",
+"value": 22
+},
+{
+"name": "Kyrie Irving",
+"value": 16
+},
+{
+"name": "Giannis Antetokounmpo",
+"value": 13
+},
+{
+"name": "James Harden",
+"value": 13
+},
+{
+"name": "Kevin Durant",
+"value": 12
+},
+{
+"name": "Joel Embiid",
+"value": 10
+},
+{
+"name": "Kyle Lowry",
+"value": 9
+},
+{
+"name": "Russell Westbrook",
+"value": 9
+},
+{
+"name": "Stephen Curry",
+"value": 7
+},
+{
+"name": "Anthony Davis",
+"value": 7
+}
+],
+"fta": [
+{
+"name": "LeBron James",
+"value": 42
+},
+{
+"name": "Kevin Durant",
+"value": 29
+},
+{
+"name": "Russell Westbrook",
+"value": 17
+},
+{
+"name": "Joel Embiid",
+"value": 16
+},
+{
+"name": "Giannis Antetokounmpo",
+"value": 14
+},
+{
+"name": "DeMar DeRozan",
+"value": 10
+},
+{
+"name": "Victor Wembanyama",
+"value": 9
+},
+{
+"name": "Kevin Love",
+"value": 7
+},
+{
+"name": "Chris Paul",
+"value": 7
+},
+{
+"name": "Paul George",
+"value": 6
+}
+],
+"dreb": [
+{
+"name": "LeBron James",
+"value": 103
+},
+{
+"name": "Kevin Durant",
+"value": 58
+},
+{
+"name": "Stephen Curry",
+"value": 45
+},
+{
+"name": "James Harden",
+"value": 40
+},
+{
+"name": "Chris Paul",
+"value": 35
+},
+{
+"name": "Giannis Antetokounmpo",
+"value": 34
+},
+{
+"name": "Kyrie Irving",
+"value": 34
+},
+{
+"name": "Joel Embiid",
+"value": 33
+},
+{
+"name": "Kawhi Leonard",
+"value": 33
+},
+{
+"name": "Nikola Jokic",
+"value": 29
+}
+],
+"ftm": [
+{
+"name": "LeBron James",
+"value": 31
+},
+{
+"name": "Kevin Durant",
+"value": 26
+},
+{
+"name": "Joel Embiid",
+"value": 12
+},
+{
+"name": "Russell Westbrook",
+"value": 10
+},
+{
+"name": "Giannis Antetokounmpo",
+"value": 9
+},
+{
+"name": "Victor Wembanyama",
+"value": 9
+},
+{
+"name": "DeMar DeRozan",
+"value": 8
+},
+{
+"name": "Paul George",
+"value": 6
+},
+{
+"name": "Chris Paul",
+"value": 6
+},
+{
+"name": "Kawhi Leonard",
+"value": 4
+},
+{
+"name": "Kyle Lowry",
+"value": 4
+},
+{
+"name": "Karl-Anthony Towns",
+"value": 4
+}
+],
+"ast": [
+{
+"name": "Chris Paul",
+"value": 128
+},
+{
+"name": "LeBron James",
+"value": 118
+},
+{
+"name": "Kyrie Irving",
+"value": 83
+},
+{
+"name": "James Harden",
+"value": 58
+},
+{
+"name": "Stephen Curry",
+"value": 56
+},
+{
+"name": "Kevin Durant",
+"value": 47
+},
+{
+"name": "Kyle Lowry",
+"value": 40
+},
+{
+"name": "Nikola Jokic",
+"value": 34
+},
+{
+"name": "Russell Westbrook",
+"value": 34
+},
+{
+"name": "Trae Young",
+"value": 34
+}
+],
+"stl": [
+{
+"name": "Chris Paul",
+"value": 26
+},
+{
+"name": "Kevin Durant",
+"value": 23
+},
+{
+"name": "LeBron James",
+"value": 23
+},
+{
+"name": "Stephen Curry",
+"value": 14
+},
+{
+"name": "Kyle Lowry",
+"value": 14
+},
+{
+"name": "Russell Westbrook",
+"value": 13
+},
+{
+"name": "Paul George",
+"value": 12
+},
+{
+"name": "Kyrie Irving",
+"value": 11
+},
+{
+"name": "Kawhi Leonard",
+"value": 10
+},
+{
+"name": "Jayson Tatum",
+"value": 10
+}
+],
+"fg3a": [
+{
+"name": "Stephen Curry",
+"value": 145
+},
+{
+"name": "LeBron James",
+"value": 145
+},
+{
+"name": "Kevin Durant",
+"value": 105
+},
+{
+"name": "Damian Lillard",
+"value": 104
+},
+{
+"name": "James Harden",
+"value": 98
+},
+{
+"name": "Paul George",
+"value": 79
+},
+{
+"name": "Russell Westbrook",
+"value": 65
+},
+{
+"name": "Kawhi Leonard",
+"value": 55
+},
+{
+"name": "Kyrie Irving",
+"value": 50
+},
+{
+"name": "Donovan Mitchell",
+"value": 50
+}
+],
+"blk": [
+{
+"name": "LeBron James",
+"value": 8
+},
+{
+"name": "Giannis Antetokounmpo",
+"value": 6
+},
+{
+"name": "Kevin Durant",
+"value": 6
+},
+{
+"name": "Victor Wembanyama",
+"value": 5
+},
+{
+"name": "Anthony Davis",
+"value": 4
+},
+{
+"name": "Joel Embiid",
+"value": 4
+},
+{
+"name": "Jaylen Brown",
+"value": 3
+},
+{
+"name": "Cade Cunningham",
+"value": 3
+},
+{
+"name": "Stephen Curry",
+"value": 3
+},
+{
+"name": "James Harden",
+"value": 3
+},
+{
+"name": "Donovan Mitchell",
+"value": 3
+},
+{
+"name": "Jayson Tatum",
+"value": 3
+}
+],
+"fg3m": [
+{
+"name": "Stephen Curry",
+"value": 57
+},
+{
+"name": "Damian Lillard",
+"value": 45
+},
+{
+"name": "LeBron James",
+"value": 44
+},
+{
+"name": "James Harden",
+"value": 41
+},
+{
+"name": "Kevin Durant",
+"value": 36
+},
+{
+"name": "Paul George",
+"value": 30
+},
+{
+"name": "Kawhi Leonard",
+"value": 24
+},
+{
+"name": "Kyrie Irving",
+"value": 23
+},
+{
+"name": "Chris Paul",
+"value": 22
+},
+{
+"name": "Russell Westbrook",
+"value": 22
 }
 ]
 }
