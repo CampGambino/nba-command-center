@@ -29,7 +29,8 @@ The user asked for this ("make your changes but also run another diagnostic toni
   - the summary post, using 11/12's corrected numbers.
 
 ### Unproven
-- Whether every-minute checks cut the lag: on 11/12 the DAL-MIN pair confirmed inside the old burst and still posted 5.8 minutes after NBA.com's stamp, which suggests the file can trail its own stamp. Tonight's "seen" column will show it.
+- **Correction, the same day:** the saved 11/12 timing (read with the new workflow) shows when our checks first saw each lineup. Those times fall on our check marks: every 5 minutes for the 7 and 8 PM games (the first version of the timing was still live), every 3 minutes for the 9 PM game. For example, DAL-MIN was stamped 30.0 and seen 25. So the lag was nearly all our check interval, not NBA.com's file trailing its stamp.
+- Whether every-minute checks bring the lag to about a minute is for tonight's 9-game diagnostic (a check-in is set for 11:45 PM ET).
 
 ## 0.49.1 (2026-11-13): trimming, after its first build
 
