@@ -108,6 +108,8 @@
   .ochip.lo { border-color: color-mix(in srgb, var(--bad) 55%, transparent); }
   .ochip.lo b { color: var(--bad); }
   .ochip .sh { color: var(--warn); font-weight: 650; }
+  .ochip .ch { color: #c084fc; font-weight: 750; }
+  .ochip.career { border-color: color-mix(in srgb, #c084fc 70%, transparent); }
   #outliers .box { grid-column: 2; color: var(--faint); font-size: 12px; }
   @media (max-width: 600px) { #outliers li { grid-template-columns: 1fr; } #outliers .box { grid-column: 1; } }
   /* team streaks: compact cells, grouped header */
@@ -170,8 +172,11 @@ function renderOutliers() {
       if (n.stat === "fgp") return `<span class="ochip ${cls}"><b>${n.fgm}-${n.fga}</b> FG<small>${n.value}% · usually ${n.avg}%</small></span>`;
       if (n.stat === "fg3cold") return `<span class="ochip lo"><b>0-${n.fg3a}</b> 3PT<small>no threes made</small></span>`;
       const lbl = OLABEL[n.stat] || n.stat;
-      const extra = n.seasonHigh ? ` · <span class="sh">season high</span>${n.prevHigh != null ? ` (was ${n.prevHigh})` : ""}` : "";
-      return `<span class="ochip ${cls}"><b>${n.value}</b> ${lbl}<small>avg ${n.avg}${extra}</small></span>`;
+      // A career high supersedes a season high (and is the only high a rookie has).
+      const extra = n.careerHigh ? ` · <span class="ch">career high</span>${n.prevCareer ? ` (was ${n.prevCareer})` : ""}`
+        : n.tiesCareer ? ` · <span class="ch">ties career high</span>`
+        : n.seasonHigh ? ` · <span class="sh">season high</span>${n.prevHigh != null ? ` (was ${n.prevHigh})` : ""}` : "";
+      return `<span class="ochip ${cls}${n.careerHigh ? " career" : ""}"><b>${n.value}</b> ${lbl}<small>avg ${n.avg}${extra}</small></span>`;
     }).join("");
     const shortMin = a.notes.some((n) => n.stat === "min" && n.low);
     return `<li><div class="pl"><b>${esc(a.name)}</b><span class="team">${a.team} ${a.home ? "vs" : "@"} ${a.opp} · ${a.win ? "W" : "L"}</span></div>
@@ -230,7 +235,7 @@ fetch("data/trends.json", { cache: "no-store" }).then((r) => r.json()).then((d) 
   for (const id of ["date", "oteam"]) $(id).onchange = renderOutliers;
   for (const id of ["cat", "steam"]) $(id).onchange = renderStreaks;
   $("sub").textContent = `Through ${d.through} · from ESPN box scores`;
-  $("foot").innerHTML = `Outlier games compare a player's game with his other games this season (5+ needed): how far it is from his average, in units of how much his games usually vary (with a minimum, so a steady player's small change doesn't look huge). Listed when that "strength" is 2.5+; when a regular (15+ points or 20+ minutes a game) is 2.5 below; for a clear season high; for shooting 25 points off his usual FG% on 10+ shots; or 0-for-6+ from three. A low-minutes game often means injury, fouls or a blowout, so check the minutes. "Most notable" weights a streak's length by how hard it is (30+ points counts 3x a game, 10+ points 0.4x); "Longest" is plain length. Streaks count games played, this season only (a run from last season shows only its this-season part). Built ${new Date(d.generatedAt).toLocaleString()}.`;
+  $("foot").innerHTML = `Outlier games compare a player's game with his other games this season (5+ needed): how far it is from his average, in units of how much his games usually vary (with a minimum, so a steady player's small change doesn't look huge). Listed when that "strength" is 2.5+; when a regular (15+ points or 20+ minutes a game) is 2.5 below; for a clear season or career high ("career high" replaces "season high": his best in any regular-season game on file — points for everyone, other stats when his whole career is in the 2016-17 on game logs, so a rookie's first big game is a career high); for shooting 25 points off his usual FG% on 10+ shots; or 0-for-6+ from three. A low-minutes game often means injury, fouls or a blowout, so check the minutes. "Most notable" weights a streak's length by how hard it is (30+ points counts 3x a game, 10+ points 0.4x); "Longest" is plain length. Streaks count games played, this season only (a run from last season shows only its this-season part). Built ${new Date(d.generatedAt).toLocaleString()}.`;
   renderOutliers(); renderStreaks(); renderTeams();
 }).catch((e) => { $("sub").textContent = "Couldn't load the data: " + e.message; });
 </script>

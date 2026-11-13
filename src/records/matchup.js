@@ -7,7 +7,7 @@
  * logs      src/data/player-logs-history.json.gz, unzipped ({ players: { espnId: [[date, opp, home, W|L, type, min, pts, reb, ast, stl, blk, fg3m, …]] } })
  * teamFiles this season's box scores (docs/data/teams/*.json), which carry everything since the last back-fill.
  *
- * Team items (regular season): a run of 3+ straight wins in the series, 8+ of the last 10, 4+ straight at tonight's arena,
+ * Team items (regular season): a run of 3+ straight wins in the series, 8+ of the last 10 (stretched back while it stays 80%+), 4+ straight at tonight's arena,
  * 3+ straight season series, and this season's series so far. Player items (players averaging 18+ minutes this season):
  * his average against tonight's opponent when it is his best or worst against any team (4+ games, and far from his
  * average), his team's record in those games when lopsided, and a streak still going against this opponent.
@@ -66,14 +66,21 @@ export function teamItems(history, teamFiles, away, home, today) {
   if (n >= 3) {
     const l = w === away ? home : away;
     const every = n === reg.length ? `, every meeting${since}` : "";
-    items.push({ kind: "matchup", team: w, text: `The ${nick(w)} have won ${n} straight against the ${nick(l)}${every} (last: ${reg[reg.length - 1].hs > reg[reg.length - 1].as ? `${reg[reg.length - 1].hs}-${reg[reg.length - 1].as}` : `${reg[reg.length - 1].as}-${reg[reg.length - 1].hs}`} on ${md(reg[reg.length - 1].d)}${seasonOf(reg[reg.length - 1].d) !== seasonOf(today) ? `/${reg[reg.length - 1].d.slice(2, 4)}` : ""}).`, tag: `Series streak · ${n}`, score: 1.5 + 0.3 * Math.min(n, 10), active: true });
+    items.push({ kind: "matchup", team: w, text: `The ${nick(w)} have won ${n} straight against the ${nick(l)}${every} (last: ${reg[reg.length - 1].hs > reg[reg.length - 1].as ? `${reg[reg.length - 1].hs}-${reg[reg.length - 1].as}` : `${reg[reg.length - 1].as}-${reg[reg.length - 1].hs}`} on ${md(reg[reg.length - 1].d)}${seasonOf(reg[reg.length - 1].d) !== seasonOf(today) ? `/${reg[reg.length - 1].d.slice(2, 4)}` : ""}).`, tag: `Series streak · ${n}`, score: 1.5 + 0.3 * Math.min(n, 20), active: true });
   }
-  // The last 10 meetings, when one-sided.
+  // The recent meetings, when one-sided: at least the last 10, and further back for as long as it stays
+  // 80%+ (the user, 11/13: don't cut a longer run off at 10). "13-3 in the last 16 meetings".
   if (reg.length >= 10) {
-    const last = reg.slice(-10);
     for (const t of [away, home]) {
-      const k = last.filter((m) => m.winner === t).length;
-      if (k >= 8 && !(n >= 8 && w === t)) items.push({ kind: "matchup", team: t, text: `The ${nick(t)} are ${k}-${10 - k} in the last 10 meetings with the ${nick(t === away ? home : away)} (since ${md(last[0].d)}/${last[0].d.slice(2, 4)}).`, tag: `Last 10 · ${k}-${10 - k}`, score: 1.3 + 0.45 * (k - 7) });
+      let best = null;
+      for (let N = 10; N <= reg.length; N++) {
+        const last = reg.slice(-N), k = last.filter((m) => m.winner === t).length;
+        if (k >= 8 && k / N >= 0.8) best = { N, k, first: last[0] };
+      }
+      if (!best || (n >= 8 && w === t && n >= best.k)) continue;
+      const { N, k, first } = best;
+      const all = N === reg.length ? `, every meeting${since}` : "";
+      items.push({ kind: "matchup", team: t, text: `The ${nick(t)} are ${k}-${N - k} in the last ${N} meetings with the ${nick(t === away ? home : away)}${all} (since ${md(first.d)}/${first.d.slice(2, 4)}).`, tag: `Last ${N} · ${k}-${N - k}`, score: 1.3 + 0.45 * (Math.min(k, 16) - 7) * Math.min(1, k / N / 0.9) });
     }
   }
   // Tonight's arena.
@@ -97,8 +104,8 @@ export function teamItems(history, teamFiles, away, home, today) {
     const lastM = reg[reg.length - 1];
     items.push({ kind: "matchup", team: lead || home, text: lead ? `The ${nick(lead)} lead the season series ${now[lead]}-${now[lead === away ? home : away]} (${lastM.winner === away ? nick(away) : nick(home)} ${Math.max(lastM.hs, lastM.as)}-${Math.min(lastM.hs, lastM.as)} on ${md(lastM.d)}).` : `The season series is tied ${now[away]}-${now[home]}.`, tag: "Season series", score: 1.0 });
   }
-  // A playoff series in the last three seasons.
-  const po = all.filter((m) => m.type === 3 && seasonOf(m.d) >= seasonOf(`${Number(seasonOf(today).slice(0, 4)) - 2}-10-01`));
+  // Last season's playoff series only (the user, 11/13: two playoffs ago is too old to surface).
+  const po = all.filter((m) => m.type === 3 && seasonOf(m.d) === seasonOf(`${Number(seasonOf(today).slice(0, 4)) - 1}-10-01`));
   if (po.length >= 4) {
     const s = seasonOf(po[po.length - 1].d);
     const ser = po.filter((m) => seasonOf(m.d) === s);

@@ -1,5 +1,6 @@
 import { nameKey, sameName } from "../notes/names.js";
 import { statLabel } from "../notes/stats.js";
+import { nextRound } from "../anticipate/cadence.js";
 
 /**
  * Milestones found from ESPN alone, for teams whose notes can't be read (or
@@ -10,11 +11,10 @@ import { statLabel } from "../notes/stats.js";
  * the NBA's by a few for some players (9 of 39 Charlotte totals on
  * 2026-11-09), so a single-source count isn't publishable as fact.
  */
-// Rungs follow the user's own bar in NBA Live (MILESTONE_LADDERS: "a rung nobody celebrates
-// produces a card nobody wants"): points from 10,000, threes from 1,000 by 500, and so on.
-// Stats NBA Live doesn't ladder use comparable bars.
-const STEPS = { pts: 1000, fg3m: 500, reb: 1000, ast: 1000, stl: 500, blk: 500, gp: 100, dreb: 1000, ftm: 1000, fgm: 1000 };
-const MIN_TARGET = { pts: 10000, fg3m: 1000, reb: 5000, ast: 3000, stl: 1000, blk: 1000, gp: 1000, dreb: 5000, ftm: 3000, fgm: 5000 };
+// Round numbers on the user's spacing (src/anticipate/cadence.js, 11/13): every 100 for a young player until
+// 1,000, then every 1,000, closer for high totals and for steals, blocks and threes. Earlier rungs followed
+// NBA Live's MILESTONE_LADDERS (points from 10,000 only), which hid every young player's milestones.
+const STATS = ["pts", "fg3m", "reb", "ast", "stl", "blk", "gp", "dreb", "ftm", "fgm"];
 const GAMES = 3;
 
 export async function discoverMilestones({ team, espn, skip = [] }) {
@@ -36,11 +36,12 @@ export async function discoverMilestones({ team, espn, skip = [] }) {
     // Per-game pace: this season if 3+ games, else career.
     const latest = c.data.rows[c.data.rows.length - 1];
     const base = latest?.stats?.gp >= 3 ? latest.stats : car;
-    for (const [stat, step] of Object.entries(STEPS)) {
+    const seasons = new Set(c.data.rows.map((r) => r.season)).size;
+    for (const stat of STATS) {
       const cur = car[stat];
       if (!Number.isFinite(cur)) continue;
-      const target = Math.floor(cur / step) * step + step;
-      if (target < MIN_TARGET[stat]) continue;
+      const target = nextRound(stat, cur, { seasons });
+      if (!target) continue;
       const need = target - cur;
       const perGame = stat === "gp" ? 1 : base.gp ? (base[stat] ?? 0) / base.gp : 0;
       if (!(perGame > 0) || need > perGame * GAMES) continue;

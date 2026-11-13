@@ -2,6 +2,46 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.51.0 (2026-11-13): round-number spacing, older playoffs, longer runs, career highs, out-tonight last
+
+The user's five screenshots (11/13, 12:54 ET).
+
+### What changed
+- **Round numbers on the user's spacing** (new `src/anticipate/cadence.js`):
+  - Every 1,000, with exceptions:
+    - a young player (1st-3rd season) counts by 100 until 1,000, then by 500 in points (to 5,000) and in rebounds and assists (to 3,000);
+    - points past 20,000, and rebounds or assists past 10,000, go by 500;
+    - steals, blocks and 3-pointers go by 250 past 1,000;
+    - games played go by 100, from 500.
+  - Passing a player on a list is never filtered.
+  - Applied to the teams' notes (a 1,400-point card for a player at 1,352 is dropped; the build logs how many), to the ESPN round-number finder (which used to start points at 10,000), and to Records' career round numbers.
+  - The four cards in the screenshot (Fears 1,400, Watford 2,100, Mykhailiuk 2,700, Achiuwa 3,300) are all off the spacing.
+  - Judgment call: the user said "every 250 after like 3,000" for steals and blocks. That would leave 1,000-3,000 at one card per 1,000, years apart, so 250 starts at 1,000.
+- **Matchups:**
+  - Only last season's playoff series is shown; 2024-25 series are gone.
+  - The "last 10 meetings" line reaches further back while the record stays 80%+ ("13-3 in the last 16 meetings").
+  - Series streaks were never capped, and their weight now grows to 20 straight, not 10.
+- **Outlier games: career highs.**
+  - A career high replaces "season high" (purple, "career high (was 46)"), and a game that matches his best says "ties career high".
+  - The comparison uses regular-season games only, from the 2016-17-on game logs plus the NBA Guide's yearly points highs. Points are known for everyone the guide lists; other stats only when his whole career is in the logs.
+  - A rookie's high is a career high.
+  - Season highs now compare with his earlier games only (on an older date, a later game no longer counts).
+  - Cade Cunningham's 52 on 11/12 is a career high (was 46), and so are his 48 minutes (was 45).
+- **Out tonight goes last:** on the Watch List (tonight, the next 5 games and all milestones) and in Records → Within reach (cards and table). This covers Out and Doubtful.
+
+### Tested
+- 627 checks pass (618 before). New ones cover:
+  - the spacing rules, including the four cards from the screenshot, Wembanyama's blocks, LeBron's points and Curry's threes;
+  - the ESPN finder on the new spacing;
+  - a 13-3 run over 16 meetings, a 2024-25 series dropped, and a 2025-26 rematch kept;
+  - career highs: a 52 over a regular-season 46 when a playoff 60 doesn't count; a rookie; a veteran whose 44 predates the logs, so his 40 is only a season high.
+- Career highs on the real 11/12 games: Cunningham (points and minutes), Murray-Boyles (ties, 5 blocks), Sarr (minutes), Ausar Thompson (assists).
+- The page sweep passes.
+
+### Unproven
+- The first build with the spacing will show fewer Watch List round-number cards for veterans and more 100s for young players. The balance may need tuning.
+- Career highs depend on the ESPN game logs (2016-17 on) matching the guide's names. A player matched to no guide row, whose logs start in 2016-17, gets no career-high claim except in points.
+
 ## 0.50.0 (2026-11-13): the user's 17-image review (Basketball Reference checks, trends, Watch List, National TV, Records tabs)
 
 ### What changed

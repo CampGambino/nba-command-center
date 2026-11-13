@@ -50,6 +50,8 @@ for (const g of games) {
 const { site } = await buildSite({ entries, games, uncounted, espn, nba, today, root });
 const n = site.teams.reduce((a, t) => a + t.items.length, 0);
 console.log(`built: ${site.teams.length} teams, ${n} milestones -> docs/data/watch.json`);
+const off = site.teams.flatMap((t) => t.offCadence || []);
+if (off.length) console.log(`round numbers off the spacing (dropped): ${off.length}`);
 
 // History lines from tonight's notes (src/notes/narrative.js readHistory): verbatim sentences the
 // teams' PR staff wrote ("first rookie since...", "only player in NBA history...", "needs 816 to pass...").

@@ -3,6 +3,7 @@ import path from "node:path";
 import { parseNotes } from "../notes/parse.js";
 import { buildWatch } from "../anticipate/watch.js";
 import { discoverMilestones } from "../registry/discover.js";
+import { onCadence } from "../anticipate/cadence.js";
 
 /**
  * Build the website's data (docs/data/watch.json) from teams' notes.
@@ -48,6 +49,17 @@ export async function buildSite({ entries, games = [], uncounted = [], espn, nba
       watchItems = [...watchItems, ...w2.items];
       tonightGame = tonightGame || w2.tonightGame;
     }
+    // Round numbers on the user's spacing (src/anticipate/cadence.js): every 1,000 with exceptions. A notes
+    // line for 1,400 points for a 3rd-year player at 1,352 is dropped (1,500 is his next). Passes are untouched.
+    const seasonsOf = new Map();
+    for (const i of watchItems) {
+      if (i.kind !== "round" || !i.espnId || seasonsOf.has(i.espnId) || !espn?.career) continue;
+      const c = await espn.career(i.espnId).catch(() => null);
+      seasonsOf.set(i.espnId, c?.ok ? new Set(c.data.rows.map((r) => r.season)).size : null);
+    }
+    const offCadence = watchItems.filter((i) => i.kind === "round" && (i.scope === "career" || i.scope === "franchise" || i.scope === "nba" || i.scope == null)
+      && !onCadence(i.stat, i.target, i.current, { seasons: seasonsOf.get(i.espnId) ?? null }));
+    if (offCadence.length) watchItems = watchItems.filter((i) => !offCadence.includes(i));
     const items = watchItems.map((i) => {
       let publishable = i.publishable, review = i.checks;
       if (i.origin === "notes" && !base.verifiedFormat) {
@@ -71,7 +83,8 @@ export async function buildSite({ entries, games = [], uncounted = [], espn, nba
         reached: !!i.reached, stale: !!i.stale, note: i.note ?? null,
       };
     });
-    teams.push({ ...base, opponent: parsed?.meta.opponent ?? null, notesDate: parsed?.meta.gameDate ?? null, tonightGame, problems, items });
+    teams.push({ ...base, opponent: parsed?.meta.opponent ?? null, notesDate: parsed?.meta.gameDate ?? null, tonightGame, problems, items,
+      offCadence: offCadence.map((i) => `${i.player} ${Number(i.target).toLocaleString("en-US")} ${i.label || i.stat}`) });
   }
 
   const docs = path.join(root, "docs");

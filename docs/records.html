@@ -255,21 +255,23 @@ let rview = "who";
 const rivalNote = (i) => (i.rivals?.length ? `${i.rivals.map((r) => esc(r.name.split(" ").slice(-1)[0])).join(" and ")} ${i.rivals.length > 1 ? "are" : "is"} active too${i.rivals.some((r) => r.tonight) ? " and plays tonight" : ""}: his games count in the odds` : "");
 function reachRows() {
   const kind = $("kind").value, team = $("team").value, games = +$("games").value, q = $("q").value.trim().toLowerCase(), tonly = $("tonly").checked;
-  return D.items.filter((i) => (!kind || i.kind === kind) && (!team || i.team === team) && (i.gamesAway ?? 99) <= games && (!tonly || i.tonight) && (!q || `${i.who} ${i.team} ${i.text}`.toLowerCase().includes(q)));
+  return D.items.filter((i) => (!kind || i.kind === kind) && (!team || i.team === team) && (i.gamesAway ?? 99) <= games && (!tonly || i.tonight) && (!q || `${i.who} ${i.team} ${i.text}`.toLowerCase().includes(q)))
+    .map((i, k) => [i, k]).sort((a, b) => isOut(a[0]) - isOut(b[0]) || a[1] - b[1]).map(([i]) => i); // out tonight: last
 }
 // Playing tonight and not ruled out (Out / Doubtful on the report) sorts first.
-const playsTn = (i) => (i.tonight && !/Out|Doubtful/.test(INJ.get(`${i.team}|${nk(i.who)}`) || "") ? 1 : 0);
+const isOut = (i) => (/Out|Doubtful/.test(INJ.get(`${i.team}|${nk(i.who)}`) || "") ? 1 : 0);
+const playsTn = (i) => (i.tonight && !isOut(i) ? 1 : 0);
 function renderItems() {
   const rows = reachRows();
   document.querySelectorAll("#rview button").forEach((b) => b.classList.toggle("on", b.dataset.v === rview));
   $("who").style.display = rview === "who" ? "" : "none";
   $("items").parentElement.style.display = rview === "table" ? "" : "none";
-  $("reachkey").innerHTML = `${rows.length} marks for ${new Set(rows.map((i) => `${i.who}|${i.team}`)).size} players, coaches and teams. ${rview === "who" ? "One card per name (tonight\'s first), his 3 closest marks shown, the rest behind a button: what it is, then <b>needs</b> · ≈ games at his rate · chance in the next 5 games. Narrow it with <i>playing tonight</i> or <i>Within 3 games</i>." : ""} When the man being passed is still playing, his games count too (he can pull away), so the odds of passing an active player are lower than passing a retired one.`;
+  $("reachkey").innerHTML = `${rows.length} marks for ${new Set(rows.map((i) => `${i.who}|${i.team}`)).size} players, coaches and teams. ${rview === "who" ? "One card per name (tonight\'s first, anyone out tonight last), his 3 closest marks shown, the rest behind a button: what it is, then <b>needs</b> · ≈ games at his rate · chance in the next 5 games. Narrow it with <i>playing tonight</i> or <i>Within 3 games</i>." : ""} When the man being passed is still playing, his games count too (he can pull away), so the odds of passing an active player are lower than passing a retired one.`;
   if (rview === "who") {
     const by = new Map();
     for (const i of rows) { const k = `${i.who}|${i.team}`; if (!by.has(k)) by.set(k, []); by.get(k).push(i); }
     const cards = [...by.values()].map((L) => L.sort((a, b) => (a.gamesAway ?? 99) - (b.gamesAway ?? 99) || (b.pNext5 ?? 0) - (a.pNext5 ?? 0)))
-      .sort((a, b) => playsTn(b[0]) - playsTn(a[0]) || (a[0].gamesAway ?? 99) - (b[0].gamesAway ?? 99) || b.length - a.length);
+      .sort((a, b) => isOut(a[0]) - isOut(b[0]) || playsTn(b[0]) - playsTn(a[0]) || (a[0].gamesAway ?? 99) - (b[0].gamesAway ?? 99) || b.length - a.length);
     $("who").innerHTML = cards.length ? cards.map((L) => { const i = L[0];
       return `<div class="wc${i.tonight ? " tn" : ""}"><div class="h"><div><b>${esc(i.who)}</b> <span class="team">${esc(i.team)}</span>${aw(i.who)}</div><div>${i.tonight ? `<span class="tag tonight">tonight${i.opp ? ` vs ${esc(i.opp)}` : ""}</span>` : ""}${injTag(i)}</div></div>
         <ul>${L.map((x, k) => `<li${k >= 3 ? ' class="more" hidden' : ""}><span>${x.rank === 1 ? "🏆 " : ""}${esc(x.text.replace(/^[^:]+: /, ""))} <span class="small">${esc(KIND[x.kind])}</span>${x.rivals ? `<div class="small">${rivalNote(x)}</div>` : ""}</span><span class="p"><b>${fmt(x.need)}</b> · ≈${x.gamesAway ?? "–"} g · ${pc(x.pNext5)}</span></li>`).join("")}</ul>${L.length > 3 ? `<button class="mbtn" onclick="this.previousElementSibling.querySelectorAll('li.more').forEach((x) => (x.hidden = !x.hidden)); this.textContent = this.textContent.startsWith('+') ? 'show fewer' : '+ ${L.length - 3} more'">+ ${L.length - 3} more</button>` : ""}</div>`; }).join("")

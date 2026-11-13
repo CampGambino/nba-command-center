@@ -108,7 +108,41 @@ const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
 const sd = (a) => { const m = mean(a); return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / Math.max(1, a.length - 1)); };
 
 /** Unusual single games on the given dates (default: the latest date with games). */
-export function anomalies(pg, names = {}, { dates = null, minOther = 5, threshold = 2.5 } = {}) {
+/**
+ * Career highs before this season, for "career high" on outlier games (the user, 11/13: a career high supersedes
+ * a season high, and is the only one a rookie has).
+ *   logs     player-logs-history.json.gz ({ players: { espnId: [[date, opp, home, W|L, type, min, pts, reb, ast, stl, blk, fg3m, …]] } }), 2016-17 on
+ *   seasons  nba-career-seasons-<season>.json ({ keys, players: { name: [[season, …, hi]] } }): every season back to 1979-80; "hi" is his
+ *            high in points that season, so points are known for everyone it lists
+ *   names    { espnId: name }; season: this season ("2026-27")
+ * -> { espnId: { hi: { pts, reb, … }, known: Set(stats) } }. A stat is known when his whole career is on file:
+ *    points for anyone the guide lists (or a rookie), the rest when his first season is 2016-17 or later.
+ */
+export function careerHighs({ logs = null, seasons = null, names = {}, ids = [], season = null, nameKey = (n) => n }) {
+  const L = { min: 5, pts: 6, reb: 7, ast: 8, stl: 9, blk: 10, fg3m: 11 };
+  const S = Object.fromEntries((seasons?.keys || []).map((k, i) => [k, i]));
+  const byName = new Map(Object.entries(seasons?.players || {}).map(([n, rows]) => [nameKey(n), rows]));
+  const out = {};
+  for (const id of ids) {
+    const rows = (logs?.players?.[id] || []).filter((r) => r[4] === 2 && (!season || seasonOfDate(r[0]) !== season));
+    const sz = byName.get(nameKey(names[id] || "")) || null;
+    const past = sz ? sz.filter((r) => r[S.season] !== season) : null;
+    const first = past?.length ? past[0][S.season] : rows.length ? seasonOfDate(rows[0][0]) : null;
+    const rookie = !first && !rows.length;
+    const hi = {}, known = new Set();
+    // Whole career on file: a rookie; the guide's first season is 2016-17 or later; or (not in the guide) the logs begin after
+    // 2016-17 (logs that begin in 2016-17 may be the middle of a longer career).
+    const whole = rookie || (past?.length ? first >= "2016-17" && rows.length > 0 : first > "2016-17");
+    if (whole) for (const k of Object.keys(L)) known.add(k);
+    for (const [k, i] of Object.entries(L)) for (const r of rows) hi[k] = Math.max(hi[k] ?? 0, r[i] || 0);
+    if (past && S.hi != null) { known.add("pts"); for (const r of past) hi.pts = Math.max(hi.pts ?? 0, r[S.hi] || 0); }
+    out[id] = { hi, known };
+  }
+  return out;
+}
+const seasonOfDate = (d) => { const y = Number(d.slice(0, 4)) + (Number(d.slice(5, 7)) >= 8 && !(d >= "2020-07-01" && d <= "2020-10-31") ? 1 : 0); return `${y - 1}-${String(y).slice(2)}`; };
+
+export function anomalies(pg, names = {}, { dates = null, minOther = 5, threshold = 2.5, careers = null } = {}) {
   const all = Object.values(pg).flat().map((l) => l.d);
   const latest = all.length ? all.reduce((a, b) => (a > b ? a : b)) : null;
   const want = new Set(dates || (latest ? [latest] : []));
@@ -124,11 +158,18 @@ export function anomalies(pg, names = {}, { dates = null, minOther = 5, threshol
         const xs = other.map((o) => o[k]);
         const m = mean(xs), s = Math.max(sd(xs), FLOOR[k]);
         const z = (g[k] - m) / s;
-        const high = Math.max(...xs);
+        // Highs as of that night: his earlier games this season (not later ones), and his career before it.
+        const prior = games.slice(0, i).map((o) => o[k]);
+        const high = prior.length ? Math.max(...prior) : null;
         const regular = k === "pts" ? m >= 15 : k === "min" ? m >= 20 : false;
-        const seasonHigh = g[k] > high && g[k] - high >= FLOOR[k];
-        if (z >= threshold || (z <= -threshold && regular) || (seasonHigh && z >= 1.5)) {
-          notes.push({ stat: k, value: g[k], avg: Math.round(m * 10) / 10, z: Math.round(z * 100) / 100, seasonHigh, prevHigh: high, low: z < 0 });
+        const seasonHigh = high != null && g[k] > high && g[k] - high >= FLOOR[k];
+        const c = careers?.[id];
+        const cPrev = c?.known?.has(k) ? Math.max(c.hi?.[k] ?? 0, high ?? 0) : null;
+        const careerHigh = cPrev != null && (high != null || c.hi?.[k] != null) && g[k] > cPrev && g[k] > 0;
+        const tiesCareer = !careerHigh && cPrev != null && cPrev > 0 && g[k] === cPrev && (high == null || g[k] > high);
+        if (z >= threshold || (z <= -threshold && regular) || ((seasonHigh || careerHigh) && z >= 1.5)) {
+          notes.push({ stat: k, value: g[k], avg: Math.round(m * 10) / 10, z: Math.round(z * 100) / 100, seasonHigh: seasonHigh || careerHigh, prevHigh: high, low: z < 0,
+            ...(careerHigh ? { careerHigh: true, prevCareer: cPrev } : tiesCareer && z > 0 ? { tiesCareer: true } : {}) });
           best = Math.max(best, Math.abs(z));
         }
       }
@@ -150,7 +191,7 @@ function describe(g, notes) {
   return notes.map((n) => {
     if (n.stat === "fgp") return `shot ${n.fgm}-${n.fga} (${n.value}%; usually ${n.avg}%)`;
     if (n.stat === "fg3cold") return `0-${n.fg3a} from three`;
-    const hi = n.seasonHigh ? `, season high (previous ${n.prevHigh})` : "";
+    const hi = n.careerHigh ? `, career high (previous ${n.prevCareer})` : n.tiesCareer ? ", ties his career high" : n.seasonHigh ? `, season high (previous ${n.prevHigh})` : "";
     return `${n.value} ${LABEL[n.stat]} (averages ${n.avg}${hi})`;
   }).join("; ");
 }

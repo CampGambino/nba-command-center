@@ -22,7 +22,7 @@ const { createEspn } = await import("../src/espn/client.js");
 const { collectResults, allGames, loadStore, saveStore } = await import("../src/situations/results.js");
 const { computeSituations } = await import("../src/situations/records.js");
 const { clutchPlayerTotals, clutchTeamTotals } = await import("../src/situations/clutch.js");
-const { playerGames, activeStreaks, teamStreaks, anomalies } = await import("../src/situations/trends.js");
+const { playerGames, activeStreaks, teamStreaks, anomalies, careerHighs } = await import("../src/situations/trends.js");
 const { teamGames, gameLeaders, seasonLeaders, shooting, LEAD_STATS, LINES } = await import("../src/situations/leaders.js");
 
 const args = process.argv.slice(2);
@@ -314,7 +314,21 @@ for (const [tri, games] of Object.entries(perTeam)) {
 {
   const pg = playerGames(rows);
   const dates = [...new Set(rows.filter((g) => g.pl).map((g) => g.d))].sort().slice(-7);
-  const byDate = Object.fromEntries(dates.map((d) => [d, anomalies(pg, store.names || {}, { dates: [d] })]));
+  // Career highs before this season (the 2016-17 on back-fill, and the NBA Guide's yearly points highs).
+  let careers = null;
+  try {
+    const zlib = await import("node:zlib");
+    const { strictKey } = await import("../src/records/guide.js");
+    const ends = store.season || Number(today.slice(0, 4)) + (Number(today.slice(5, 7)) >= 8 ? 1 : 0);
+    const tag = `${ends - 1}-${String(ends).slice(2)}`;
+    const logFile = path.join(root, "src", "data", "player-logs-history.json.gz");
+    const csFile = path.join(root, "src", "data", `nba-career-seasons-${tag}.json`);
+    careers = careerHighs({ logs: fs.existsSync(logFile) ? JSON.parse(zlib.gunzipSync(fs.readFileSync(logFile))) : null,
+      seasons: fs.existsSync(csFile) ? JSON.parse(fs.readFileSync(csFile, "utf8")) : null, names: store.names || {}, ids: Object.keys(pg), season: tag, nameKey: strictKey });
+  } catch (e) { console.error(`career highs not read: ${e.message}`); }
+  const byDate = Object.fromEntries(dates.map((d) => [d, anomalies(pg, store.names || {}, { dates: [d], careers })]));
+  const ch = Object.values(byDate).flat().filter((a) => a.notes.some((n) => n.careerHigh)).length;
+  console.log(`outliers: ${Object.values(byDate).flat().length} over ${dates.length} dates, ${ch} with a career high`);
   fs.writeFileSync(path.join(root, "docs", "data", "trends.json"), JSON.stringify({ generatedAt: out.generatedAt, through, streaks: activeStreaks(pg, store.names || {}).map(nowTeam), teams: teamStreaks(rows), anomalies: byDate }));
 }
 // Team leaders: game-by-game leads, season-total leaders, and shooting lines (50 / 40 / 90).

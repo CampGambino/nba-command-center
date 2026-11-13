@@ -463,23 +463,23 @@ for (const [team, r] of Object.entries(results)) {
 
 // ---------- ESPN-only milestone discovery ----------
 {
-  const car = (id, career, season) => ({ ok: true, stale: false, warnings: [], data: { rows: [{ season: "2026-27", teamId: "1", stats: season }], career } });
+  const car = (id, career, season, years = 1) => ({ ok: true, stale: false, warnings: [], data: { rows: Array.from({ length: years }, (_, k) => ({ season: `${2026 - k}-${String(27 - k).padStart(2, "0")}`, teamId: "1", stats: season })), career } });
   const fake = {
     teams: async () => ({ ok: true, warnings: [], data: { ids: { LAL: "13" } } }),
     roster: async () => ({ ok: true, warnings: [], data: { players: [{ id: "a", name: "Big Scorer" }, { id: "b", name: "Young Guy" }, { id: "c", name: "Far Away" }, { id: "d", name: "Rookie" }] } }),
     career: async (id) => ({
-      a: car("a", { pts: 19985, fg3m: 1497, gp: 999, reb: 4990 }, { gp: 10, pts: 250, fg3m: 30, reb: 50 }),   // 15 pts from 20,000; 3 threes from 1,500; 1 game from 1,000
-      b: car("b", { pts: 1990, fg3m: 98, gp: 99 }, { gp: 10, pts: 200, fg3m: 20 }),                          // below every bar
-      c: car("c", { pts: 18500 }, { gp: 10, pts: 200 }),                                                     // 1,500 away: not within 3 games
+      a: car("a", { pts: 19985, fg3m: 1497, gp: 999, reb: 4990, ast: 2950 }, { gp: 10, pts: 250, fg3m: 30, reb: 50, ast: 60 }, 12), // a veteran: 15 pts from 20,000; 3 threes from 1,500 (by 250 past 1,000); 1 game from 1,000; 2,950 assists: 3,000 isn't a 1,000 step
+      b: car("b", { pts: 1990, fg3m: 98, gp: 99 }, { gp: 10, pts: 200, fg3m: 20 }),                          // a rookie: 2,000 points (by 500 until 5,000), 100 threes (by 100 until 1,000); 100 games is under 500
+      c: car("c", { pts: 18500 }, { gp: 10, pts: 200 }, 9),                                                  // 1,500 away: not within 3 games
       d: { ok: true, stale: false, warnings: [], data: { rows: [], career: null } },                          // no NBA games
     }[id]),
   };
   const r = await discoverMilestones({ team: "LAL", espn: fake });
   const got = r.milestones.map((m) => `${m.player}|${m.stat}|${m.target}|${m.need}`).sort();
-  ok(got.join(",") === ["Big Scorer|fg3m|1500|3", "Big Scorer|gp|1000|1", "Big Scorer|pts|20000|15", "Big Scorer|reb|5000|10"].join(","), "discover: only rungs at NBA Live's bar, within about 3 games", got.join(", "));
+  ok(got.join(",") === ["Big Scorer|fg3m|1500|3", "Big Scorer|gp|1000|1", "Big Scorer|pts|20000|15", "Big Scorer|reb|5000|10", "Young Guy|fg3m|100|2", "Young Guy|pts|2000|10"].join(","), "discover: round numbers on the user's spacing (11/13), within about 3 games", got.join(", "));
   ok(r.milestones.every((m) => m.origin === "espn" && m.status === "review"), "discover: ESPN-only finds are always held for review");
   const skip = await discoverMilestones({ team: "LAL", espn: fake, skip: [{ player: "Big Scorer", stat: "pts", target: 20000 }] });
-  ok(!skip.milestones.some((m) => m.stat === "pts"), "discover: a milestone the notes already have isn't repeated");
+  ok(!skip.milestones.some((m) => m.stat === "pts" && m.player === "Big Scorer") && skip.milestones.some((m) => m.player === "Young Guy" && m.stat === "pts"), "discover: a milestone the notes already have isn't repeated");
 }
 
 // ---------- NBA.com lineups and transactions (frozen 2026-11-10) ----------
@@ -1871,6 +1871,39 @@ await articlesChecks(ok);
     "matchups in tonight's storylines: at most two a game, tag first", JSON.stringify(st[0].lines.map((l) => l.text)));
 }
 
+// ---------- Outliers: a career high supersedes a season high (the user, 11/13) ----------
+{
+  const { careerHighs, anomalies: an2 } = await import("../src/situations/trends.js");
+  const line = (d, pts, min = 34) => ({ d, team: "DET", opp: "WAS", home: false, win: true, min, pts, reb: 5, ast: 6, fg3m: 1, stl: 1, blk: 0, fgm: 10, fga: 20, fg3a: 4 });
+  const pg = { 7: ["2026-10-22", "2026-10-24", "2026-10-26", "2026-10-28", "2026-10-30", "2026-11-01"].map((d, i) => line(d, [20, 25, 33, 18, 22, 21][i])).concat([line("2026-11-12", 52, 48)]),
+    8: ["2026-10-22", "2026-10-24", "2026-10-26", "2026-10-28", "2026-10-30"].map((d, i) => line(d, [8, 10, 6, 9, 7][i], 20)).concat([line("2026-11-12", 24, 30)]),
+    9: ["2026-10-22", "2026-10-24", "2026-10-26", "2026-10-28", "2026-10-30", "2026-11-01"].map((d, i) => line(d, [20, 22, 18, 19, 21, 20][i])).concat([line("2026-11-12", 40)]) };
+  const logs = { players: { 7: [["2024-01-10", "BOS", 1, "W", 2, 45, 46, 5, 6, 1, 0, 3], ["2024-05-01", "NYK", 1, "W", 3, 47, 60, 5, 6, 1, 0, 3]], 9: [["2017-01-10", "BOS", 1, "W", 2, 40, 41, 5, 6, 1, 0, 3]] } };
+  const seasons = { keys: ["season", "g", "hi"], players: { "Cade Guy": [["2021-22", 64, 34], ["2023-24", 62, 46]], "Old Vet": [["2012-13", 70, 44], ["2016-17", 70, 41]] } };
+  const careers = careerHighs({ logs, seasons, names: { 7: "Cade Guy", 8: "Rook Ie", 9: "Old Vet" }, ids: ["7", "8", "9"], season: "2026-27" });
+  const a = an2(pg, { 7: "Cade Guy", 8: "Rook Ie", 9: "Old Vet" }, { dates: ["2026-11-12"], careers });
+  const n = (name, stat) => a.find((x) => x.name === name)?.notes.find((x) => x.stat === stat);
+  ok(n("Cade Guy", "pts")?.careerHigh && n("Cade Guy", "pts").prevCareer === 46 && n("Cade Guy", "min")?.careerHigh && n("Cade Guy", "min").prevCareer === 45 && /52 points \(averages .*, career high \(previous 46\)\)/.test(a.find((x) => x.name === "Cade Guy").text),
+    "outliers: 52 beats his best of 46 (a 60 in the playoffs doesn't count): career high, not 'season high (was 33)'", JSON.stringify(a.map((x) => x.text)));
+  ok(n("Rook Ie", "pts")?.careerHigh && n("Rook Ie", "pts").prevCareer === 10, "outliers: a rookie's season high is his career high");
+  ok(n("Old Vet", "pts")?.seasonHigh && !n("Old Vet", "pts").careerHigh, "outliers: 40 for a veteran whose high is 44 (2012-13, before the game logs) is a season high, not a career high", JSON.stringify(n("Old Vet", "pts")));
+}
+
+// ---------- Matchups: a lopsided run past the last 10, and only last season's playoffs (the user, 11/13) ----------
+{
+  const M = await import("../src/records/matchup.js");
+  const G = [];
+  // 16 regular-season meetings, BOS 13-3 (losses at #2, #5, #9 counted oldest first), then 2024-25 and 2025-26 playoff series.
+  for (let i = 0; i < 16; i++) { const bw = ![1, 4, 8].includes(i); G.push([`20${18 + Math.floor(i / 2)}-0${(i % 2) + 1}-15`, "BOS", "NYK", bw ? 110 : 100, bw ? 100 : 110, 2]); }
+  for (let i = 0; i < 4; i++) G.push([`2025-05-0${i + 1}`, "NYK", "BOS", 101, 99, 3]);
+  const t1 = M.teamItems({ games: G.sort((a, b) => (a[0] < b[0] ? -1 : 1)) }, {}, "NYK", "BOS", "2026-11-13");
+  ok(t1.some((i) => /are 13-3 in the last 16 meetings/.test(i.text)) && !t1.some((i) => /in the last 10 meetings/.test(i.text)) && !t1.some((i) => /2024-25 playoffs/.test(i.text)),
+    "matchups: a one-sided run reaches back past 10 meetings (13-3 in the last 16); a series from two playoffs ago isn't shown", JSON.stringify(t1.map((i) => i.text)));
+  const G2 = G.concat(Array.from({ length: 4 }, (_, i) => [`2026-05-0${i + 1}`, "BOS", "NYK", 105, 95, 3]));
+  const t2 = M.teamItems({ games: G2.sort((a, b) => (a[0] < b[0] ? -1 : 1)) }, {}, "NYK", "BOS", "2026-11-13");
+  ok(t2.some((i) => /Playoff rematch: the Celtics beat the Knicks 4-0 in the 2025-26 playoffs/.test(i.text)), "matchups: last season's playoff series is still a rematch line", JSON.stringify(t2.map((i) => i.text)));
+}
+
 // ---------- Outside confirmations settle the Records checks (src/records/verified.js, 0.50) ----------
 {
   const V = await import("../src/records/verified.js");
@@ -1926,6 +1959,20 @@ await articlesChecks(ok);
   const busy = { ...watch, teams: [{ team: "AAA", items: Array.from({ length: 10 }, (_, k) => ({ player: `P${k}`, team: "AAA", stat: "pts", label: "points", kind: "round", scope: "career", target: 10000, need: 5, importance: 40, pTonight: 0.9, publishable: true })) }] };
   const crowded = tonightStorylines({ watch: busy, national, leaders, maxLines: 6 })[0].lines;
   ok(crowded.length === 6 && crowded.some((l) => l.kind === "tv") && crowded.some((l) => l.kind === "club"), "watch list: on a crowded night the best 50-40-90 and national-TV lines still get a place", JSON.stringify(crowded.map((l) => l.kind)));
+}
+
+// ---------- Round-number spacing (src/anticipate/cadence.js, the user 11/13) ----------
+{
+  const { roundStep, nextRound, onCadence } = await import("../src/anticipate/cadence.js");
+  // The four cards the user flagged: Fears (2nd season) 1,352 -> 1,400; Watford 2,094 -> 2,100; Mykhailiuk 2,681 -> 2,700; Achiuwa 3,270 -> 3,300.
+  ok(!onCadence("pts", 1400, 1352, { seasons: 2 }) && nextRound("pts", 1352, { seasons: 2 }) === 1500
+    && !onCadence("pts", 2100, 2094, { seasons: 6 }) && !onCadence("pts", 2700, 2681, { seasons: 10 }) && !onCadence("pts", 3300, 3270, { seasons: 7 })
+    && onCadence("pts", 3000, 2681, { seasons: 10 }), "cadence: 1,400 / 2,100 / 2,700 / 3,300 points are off the spacing; a young player past 1,000 goes by 500, a veteran by 1,000");
+  ok(nextRound("pts", 640, { seasons: 1 }) === 700 && nextRound("blk", 680, { seasons: 3 }) === 700 && nextRound("pts", 640, { seasons: 8 }) === 1000,
+    "cadence: a rookie or a 3rd-year player goes by 100 until 1,000 (Wembanyama's blocks); a veteran's next is 1,000");
+  ok(roundStep("pts", 43591) === 500 && roundStep("pts", 19000) === 1000 && roundStep("fg3m", 4100) === 250 && roundStep("stl", 1500) === 250 && roundStep("reb", 11000) === 500 && roundStep("ast", 6000) === 1000,
+    "cadence: points past 20,000 by 500 (LeBron); threes, steals and blocks past 1,000 by 250; rebounds past 10,000 by 500");
+  ok(nextRound("gp", 99, { seasons: 2 }) === null && nextRound("gp", 899) === 900, "cadence: games played by 100 from 500");
 }
 
 // ---------- snapshot ----------

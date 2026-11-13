@@ -21,6 +21,7 @@
  * can't be seen, so a rank is only as good as the guide's lists around it (top 10, plus the names
  * its milestone pages mention).
  */
+import { roundStep } from "../anticipate/cadence.js";
 import { nameKey } from "../notes/names.js";
 import { TEAMS } from "../teams.js";
 
@@ -36,6 +37,7 @@ const SINGULAR = { pts: "point", reb: "rebound", oreb: "offensive rebound", dreb
   fgm: "field goal", ftm: "free throw", fg3m: "3-pointer", gp: "game", min: "minute", td: "triple-double", wins: "win", fg2m: "2-point field goal" };
 export const statWord = (stat, n) => (n === 1 ? SINGULAR[stat] : LABEL[stat]) || stat;
 // Round numbers worth a post, past these floors (the guide's own "reach" marks are added on top).
+const CADENCE_STATS = new Set(["pts", "reb", "ast", "fgm", "ftm", "fg3m", "stl", "blk", "oreb", "dreb", "gp"]);
 export const STEPS = { pts: 1000, reb: 1000, ast: 1000, fgm: 1000, ftm: 1000, fg3m: 100, stl: 250, blk: 250, oreb: 500, dreb: 1000, gp: 100, td: 25, wins: 100 };
 export const FLOOR = { pts: 20000, reb: 10000, ast: 5000, fgm: 8000, ftm: 5000, fg3m: 2000, stl: 1500, blk: 1500, oreb: 3000, dreb: 7000, gp: 1200, td: 50, wins: 800 };
 const HORIZON = 15;        // games ahead worth listing
@@ -194,7 +196,10 @@ export function currentRecords({ guide, teamFiles, today = null, tonight = [], s
       }
       // Round numbers: the guide's own marks, and the usual steps past the floor.
       const marks = new Set((guide.rounds || []).filter((r) => r.scope === "nba" && r.stat === stat && r.player === p.name).map((r) => r.value));
-      if (rounds && STEPS[stat] && T.now >= FLOOR[stat] - STEPS[stat]) marks.add(Math.floor(T.now / STEPS[stat]) * STEPS[stat] + STEPS[stat]);
+      // The spacing is the user's (src/anticipate/cadence.js): points past 20,000 by 500, threes, steals and
+      // blocks past 1,000 by 250; stats it doesn't cover (triple-doubles, wins) keep STEPS.
+      const step = CADENCE_STATS.has(stat) ? roundStep(stat, T.now) : STEPS[stat];
+      if (rounds && step && T.now >= FLOOR[stat] - step) marks.add(Math.floor(T.now / step) * step + step);
       for (const v of marks) {
         if (v <= T.now || v < FLOOR[stat]) continue;
         const need = v - T.now;

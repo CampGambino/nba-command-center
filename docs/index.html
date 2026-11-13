@@ -99,7 +99,7 @@
   <div class="stories" id="stories"><div class="empty">Loading…</div></div>
 
   <h2 id="matchups">Matchups tonight</h2>
-  <div class="key">What's active or lopsided between tonight's opponents: series streaks, the last 10 meetings, streaks in tonight's arena, season series, and each regular against tonight's opponent (his best or worst average against any team, his teams' record, a streak still going). Regular season, 2016-17 on, plus this season's games.</div>
+  <div class="key">What's active or lopsided between tonight's opponents: series streaks (however long), the recent meetings when one-sided (the last 10, reaching further back while it stays 80%+), streaks in tonight's arena, season series, last season's playoff series, and each regular against tonight's opponent (his best or worst average against any team, his teams' record, a streak still going). Regular season, 2016-17 on, plus this season's games.</div>
   <div class="stories" id="matchupList"><div class="empty">Loading…</div></div>
 
   <h2 id="history">History in tonight's notes</h2>
@@ -228,15 +228,17 @@ function render() {
       if (v != null && i.need != null) { i.liveVal = v; i.needNow = Math.max(0, i.need - v); i.liveHit = v >= i.need; }
     }
   }
+  // Players out tonight (Out or Doubtful) go to the bottom of every list (the user, 11/13).
+  const isOut = (i) => (/^(out|doubtful)/i.test(String(i.injury?.status || "")) ? 1 : 0);
   const projected = items.filter((i) => i.publishable || $("showReview").checked);
   const tonight = items.filter((i) => (i.pTonight ?? 0) >= 0.05 || i.liveHit)
-    .sort((a, b) => (b.liveHit - a.liveHit) || (b.pTonight * b.importance - a.pTonight * a.importance));
+    .sort((a, b) => isOut(a) - isOut(b) || (b.liveHit - a.liveHit) || (b.pTonight * b.importance - a.pTonight * a.importance));
   $("tonight").innerHTML = tonight.length ? tonight.map(card).join("") : `<div class="empty">No milestone has a 5%+ chance tonight.</div>`;
-  const soon = items.filter((i) => i.eta && i.eta.game <= 5 && !tonight.includes(i)).sort((a, b) => a.eta.game - b.eta.game || b.importance - a.importance);
+  const soon = items.filter((i) => i.eta && i.eta.game <= 5 && !tonight.includes(i)).sort((a, b) => isOut(a) - isOut(b) || a.eta.game - b.eta.game || b.importance - a.importance);
   $("soon").innerHTML = table(soon);
   const team = $("teamFilter").value, q = $("q").value.trim().toLowerCase();
   const all = projected.filter((i) => (!team || i.team === team) && (!q || i.player.toLowerCase().includes(q)))
-    .sort((a, b) => (a.eta?.game ?? 99) - (b.eta?.game ?? 99) || b.importance - a.importance);
+    .sort((a, b) => isOut(a) - isOut(b) || (a.eta?.game ?? 99) - (b.eta?.game ?? 99) || b.importance - a.importance);
   const limit = showAll ? all.length : 40;
   $("all").innerHTML = table(all.slice(0, limit)) + (all.length > limit ? `<p><button id="more">Show all ${all.length}</button></p>` : "");
   $("more")?.addEventListener("click", () => { showAll = true; render(); });
