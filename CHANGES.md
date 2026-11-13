@@ -2,6 +2,26 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.48.1 (2026-11-13): tags and hooks fixed after the first real slate
+
+### What changed
+- The first daily build with 0.48 (11/13, 9 games) showed tags that claimed too much. These are now tagged as team history:
+  - "for eighth on the Magic's all-time free throws list" (was "NBA history", now "8th in team history");
+  - "fourth most by any player in franchise history" (was "4th in NBA");
+  - "second highest +/- this season by any Cavs player" (was "2nd in NBA").
+  
+  A rank read as "for seventh all-time since the 1968-69 season" is tagged "7th since 1968-69".
+- **Streak hooks fit the kind of streak:**
+  - games played: "177 if he plays tonight";
+  - a stat streak (a block and a steal in 10 straight): "11 if he does it again tonight";
+  - a team streak (the Warriors' sellouts): "614 with tonight's game", not "if he plays".
+
+### Tested
+- 601 checks pass. Added: one check with these six lines from the 11/13 slate.
+
+### Unproven
+- Other phrasings of team-only scope ("among Bucks players", "on the roster") may still read as league-wide. Each slate is worth a look.
+
 ## 0.48.0 (2026-11-13): notes read for meaning, and tonight's matchups
 
 The user sent 16 screenshots from the Wizards' 11/12 notes as examples of what's worth surfacing: league ranks, "one of N" clubs, active streaks, races on a list, the series with tonight's opponent. They also asked for matchup data against tonight's opponent when it's active or lopsided.

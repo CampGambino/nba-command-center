@@ -1737,6 +1737,15 @@ await articlesChecks(ok);
     && d("Logged his 39th career 40-point double-double on 11/9 at Detroit, tying Michael Jordan for the seventh-most since 1973-74.").tag === "T-7th since 1973-74"
     && F.thresholds("averaging 18+ points, 4+ assists, 4+ rebounds and 1+ block per game").map((x) => `${x.stat}${x.min}`).join() === "pts18,ast4,reb4,blk1",
     "notes, describe: tags (1 of 2 this season; Active streak · 176; T-7th since 1973-74) and the club's thresholds");
+  // From the 11/13 slate: team-history lines aren't tagged as league ones, and a streak's hook fits its kind.
+  const hk = (t, m = {}) => F.hookFor({ text: t, ...m, facts: F.describe(t, m) }, {})?.text;
+  ok(d("Passed Scott Skiles (1,176) for eighth on the Magic’s all-time free throws made list on Oct. 28 @ Toronto.").tag === "8th in team history"
+    && d("Mitchell’s +/- of +28 is the second highest +/- this season by any Cavs player.").tag === "2nd in team history"
+    && d("Jordan Clarkson has now scored 8,699 points off the bench in his career, passing Thurl Bailey for seventh all-time since the 1968-69 season.").tag === "7th since 1968-69"
+    && hk("Has appeared in 176 consecutive games, the third-longest active streak in the NBA.", { player: "Bub Carrington" }) === "177 if he plays tonight."
+    && hk("Victor Wembanyama has recorded a block and a steal in 10 consecutive games, the longest active streak in the NBA.", { player: "Victor Wembanyama" }) === "11 if he does it again tonight."
+    && hk("The Warriors' franchise-record home sellout streak is at 613 consecutive games.") === "614 with tonight's game.",
+    "notes, tags and hooks from the 11/13 slate: team history stays team history; games-played vs. do-it-again vs. team streaks");
   const T = F.readTables(doc);
   const blk = T.find((t) => /MOST BLOCKS/.test(t.title)), paint = T.find((t) => /POINTS IN THE PAINT/.test(t.title));
   ok(blk?.rows.length === 3 && blk.rows[1].name === "RUDY GOBERT" && blk.rows[1].value === 1851 && paint?.rows[5]?.name === "WASHINGTON" && paint.rows[5]?.value === 596 && paint.title === "TEAM, MOST POINTS IN THE PAINT NBA, 2026-27",

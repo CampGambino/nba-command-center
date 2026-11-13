@@ -45,7 +45,7 @@ function rankOf(t) {
   // "tying Michael Jordan for the seventh-most", "the third-longest active streak", "ranks 4th in the NBA", "T-3rd"
   let m = t.match(/\b(T-)?(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d{1,3}(?:st|nd|rd|th))[- ](?:most|highest|longest|best|fewest|lowest|least|largest|biggest|mark|in the (?:NBA|league)|among)\b/i);
   if (m) return { rank: ordNum(m[2]), tie: !!m[1] || /\btying\b|\btied for\b/i.test(t) };
-  m = t.match(/\branks?\s+(T-)?(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d{1,3}(?:st|nd|rd|th))\b/i);
+  m = t.match(/\b(?:ranks?\s+|for\s+|into\s+)(T-)?(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d{1,3}(?:st|nd|rd|th))\b(?:\s+(?:all-time|on the|in (?:NBA|franchise|team|league) history|place))?/i);
   if (m) return { rank: ordNum(m[2]), tie: !!m[1] };
   if (/\b(?:leads?|led|leading)\s+(?:all\s+|the\s+)?(?:NBA|league)\b|\blead(?:s)? the (?:NBA|league)\b|\b(?:owns|has|holds) the most\b|\bthe (?:most|highest|fewest|least|lowest|best)\b[^.;]{0,90}\b(?:in the (?:NBA|league)|of any (?:team|player))|\bblocked the least\b|\bwhich leads the league\b/i.test(t)) return { rank: 1, tie: false };
   return null;
@@ -67,7 +67,8 @@ export function features(text, meta = {}) {
   const club = clubOf(t), rk = rankOf(t), th = thresholds(t);
   const league = /\bin the (?:NBA|league)\b|\bleague-wide\b|\bof any (?:team|player)\b|\bby any (?:team|player)\b|\b(?:leads?|led) all NBA\b|\bamong (?:all )?(?:NBA|qualified|active)\b|\bin league history\b|\bin NBA history\b|\bthe NBA\b/i.test(t);
   const history = /\bin (?:NBA|league) history\b|\ball-time\b|\bsince (?:the )?(?:19[5-9]\d)\b|\bever\b|\bsince \w+ (?:began|were) (?:being )?(?:officially )?tracked\b/i.test(t);
-  const franchise = /\b(?:team|franchise|club) (?:history|annals|record)\b|\b[A-Z][a-z]+ (?:history|annals)\b(?<!NBA history)|\bof a [A-Z][a-z]+ career\b|\bby an? [A-Z][a-z]+(?: rookie)? (?:in|since)\b|\b(?:first|only|\w+) [A-Z][a-z]+s? (?:rookie|duo|trio|player)s? (?:to|since|in)\b/.test(t) && !/\bin (?:NBA|league) history\b/i.test(t);
+  const teamOnly = /\bby any [A-Z][a-z]+s? player\b|\bby a [A-Z][a-z]+s? player\b|\bon the team\b|\bamong (?:all )?(?:[A-Z][a-z]+s?|team) (?:players|rookies)\b/.test(t);
+  const franchise = /\b(?:in|on) (?:the )?[A-Z][a-z]+(?:['’]s?)? all-time\b|\b[A-Z][a-z]+['’]s? (?:all-time|career|franchise) (?:list|leaders?)\b|\b(?:franchise|team|club) (?:history|annals)\b/.test(t) || /\b(?:team|franchise|club) (?:history|annals|record)\b|\b[A-Z][a-z]+ (?:history|annals)\b(?<!NBA history)|\bof a [A-Z][a-z]+ career\b|\bby an? [A-Z][a-z]+(?: rookie)? (?:in|since)\b|\b(?:first|only|\w+) [A-Z][a-z]+s? (?:rookie|duo|trio|player)s? (?:to|since|in)\b/.test(t) && !/\bin (?:NBA|league) history\b/i.test(t);
   const season = /\bthis (?:season|year|campaign)\b|\bso far\b|\bcurrently\b|\b2026-27\b|\bover the first \d+ games of the season\b|\bwhich leads the league\b/i.test(t);
   const streak = /\b\d{2,} (?:consecutive|straight) (?:games|starts|contests)\b|\bactive streak\b|\blongest active\b/i.test(t);
   const race = /\bonly\b[^.;]{0,80}\bmore\b[^.;]{0,60}\bthan\b|\bsecond only to\b|\bbehind only\b|\b(?:owns|has|holds) the most\b[^.;]{0,40}\b(?:since|in the NBA)\b/i.test(t);
@@ -76,7 +77,7 @@ export function features(text, meta = {}) {
     clubSmall: club != null && club <= 3 ? 1 : 0,
     league: league ? 1 : 0,
     history: history ? 1 : 0,
-    franchise: franchise ? 1 : 0,
+    franchise: franchise || teamOnly ? 1 : 0,
     season: season ? 1 : 0,
     rank1: rk && rk.rank === 1 ? 1 : 0,
     rankTop3: rk && rk.rank >= 2 && rk.rank <= 3 ? 1 : 0,
@@ -117,7 +118,8 @@ export function describe(text, meta = {}) {
   const f = features(t, meta);
   const club = clubOf(t), rk = rankOf(t), th = thresholds(t);
   const streakN = t.match(/\b(\d{2,}) (?:consecutive|straight) (?:games|starts|contests)\b/i);
-  const scope = f.league ? (f.history || /since/i.test(t) && !f.season ? "nba-history" : "nba") : f.franchise ? "franchise" : null;
+  const teamScope = /\b(?:franchise|team|club) (?:history|annals)\b|\b[A-Z][a-z]+['’]s? (?:all-time|career|franchise)\b|\bby any [A-Z][a-z]+s? player\b/.test(t);
+  const scope = teamScope ? "franchise" : f.league ? (f.history || /since/i.test(t) && !f.season ? "nba-history" : "nba") : f.franchise ? "franchise" : null;
   let type = "other", tag = "Notes", why = "";
   if (f.matchup) { type = "matchup"; tag = "Series"; why = "The history with tonight's opponent."; }
   else if (f.race) { type = "race"; tag = "Race"; why = "A race on a leaderboard: both sides can move."; }
@@ -127,13 +129,15 @@ export function describe(text, meta = {}) {
     const where = scope === "franchise" ? " in team history" : f.season ? " this season" : f.history || scope === "nba-history" ? " in NBA history" : "";
     tag = club === 1 ? `Only one${where}` : `1 of ${club}${where}`;
     why = f.season ? "Rare company this season, and every game moves the averages." : scope === "franchise" ? "A first for the franchise." : "Rare company in league history.";
+  } else if (rk && scope === "franchise") {
+    type = "franchise"; tag = `${rk.tie ? "T-" : ""}${ordinal(rk.rank)} in team history`; why = "Team history.";
   } else if (rk && scope !== "franchise" && (f.league || f.season)) {
     type = "rank";
     tag = rk.rank === 1 ? (f.season || !f.history ? "Leads NBA" : "Most in NBA") : `${rk.tie ? "T-" : ""}${ordinal(rk.rank)} in NBA`;
     if (f.history || /since/i.test(t)) tag = rk.rank === 1 ? `Most since ${(t.match(/since (?:entering the league in )?((?:19|20)\d\d(?:-\d\d)?)/i) || [])[1] || "…"}`.replace(" since …", " in NBA") : `${rk.tie ? "T-" : ""}${ordinal(rk.rank)} ${/since 19|since 20/i.test(t) ? `since ${t.match(/since ((?:19|20)\d\d(?:-\d\d)?)/i)[1]}` : "all-time"}`;
     why = rk.rank === 1 ? "Best in the league right now." : rk.rank <= 3 ? "Top three in the league right now." : "Where he stands in the league.";
-  } else if (f.history || scope === "nba-history") {
-    const since = t.match(/\bsince ((?:19|20)\d\d(?:-\d\d)?)\b/i);
+  } else if (scope !== "franchise" && (f.history || scope === "nba-history")) {
+    const since = t.match(/\bsince (?:the )?((?:19|20)\d\d(?:-\d\d)?)\b/i);
     type = "alltime"; tag = rk ? `${rk.tie ? "T-" : ""}${ordinal(rk.rank)} ${since ? `since ${since[1]}` : "all-time"}` : since ? `Since ${since[1]}` : "NBA history"; why = "All-time company.";
   } else if (f.franchise) { type = "franchise"; tag = "Team history"; why = "Team history."; }
   return { type, tag, why, rank: rk?.rank ?? null, tie: rk?.tie ?? false, of: club, thresholds: th, streak: streakN ? Number(streakN[1]) : null, features: f };
@@ -315,7 +319,13 @@ export function hookFor(line, { race = null, stay = null } = {}) {
       : { text: `Leads ${race.below.name} by ${fmt(race.below.gap, race.valueText)} (${race.valueText} to ${race.below.text}).`, live: live(race.below.gap), race };
     if (race.above) return { text: race.above.gap === 0 ? `Tied with ${race.above.name} at ${race.valueText}.` : `${fmt(race.above.gap, race.valueText)} behind ${race.above.name} (${race.above.text}) for ${ordinal(race.rank - 1)}.`, live: live(race.above.gap), race };
   }
-  if (d.type === "streak" && d.streak) return { text: `${d.streak + 1} if he plays tonight.`, live: true };
+  if (d.type === "streak" && d.streak) {
+    const t = plain(line.text);
+    if (!line.player) return { text: `${d.streak + 1} with tonight's game.`, live: true };
+    // A games-played streak goes on if he plays; any other streak goes on only if he does it again.
+    return /\b(?:appeared|played|games? played|starts|started|consecutive (?:games|starts)(?: played)?\b(?! with| of| in which))/.test(t) && !/\b(?:with (?:at least|a|an|\d)|recorded|scored|made|posted|registered|tallied)\b[^.]{0,40}\b(?:consecutive|straight)\b|\b\d+(?:\+|-plus)\s/.test(t)
+      ? { text: `${d.streak + 1} if he plays tonight.`, live: true } : { text: `${d.streak + 1} if he does it again tonight.`, live: true };
+  }
   return null;
 }
 
