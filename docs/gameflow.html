@@ -2173,7 +2173,7 @@ const LAYOUTS={
   streaks:TABLE_OR_POSTER, rest:TABLE_OR_POSTER, form:TABLE_OR_POSTER, cup:TABLE_OR_POSTER,
   range:[["courts","shot charts"],["plot","distance on court"],["scatter","accuracy vs distance"]],
   allstars:[["summary","summary"],["grid","full grid"]],
-  splits:[["game","by game"],["court","on / off court"]],
+  splits:[["court","on / off court"],["game","by game"]],  // on/off first: the game-level split lives on the With / without page (0.58)
 };
 /* The rank control serves two views as well: it picks the unit for the assist board, and
    the size of the comparison group for records. Same rebuild-per-view treatment. */
@@ -5121,7 +5121,7 @@ function renderSplits(agg){
 
   const gh=el("div","gamehead");
   const sc=el("div","score"); const w=el("span","tri");
-  w.appendChild(el("span","","League — with and without a teammate"));
+  w.appendChild(el("span","","League — on / off court, with and without a teammate"));
   sc.appendChild(w); gh.appendChild(sc);
   const m=el("div","meta");
   m.innerHTML=(agg.window.limit>0? `<b>last ${agg.window.limit}</b> games per team`

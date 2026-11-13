@@ -14,7 +14,7 @@ The user: "the version from the gameflow offers more customizability since playe
     - The Command Center's rule applies too: B on the injury report counts as with the team, so "without" includes his injured games.
     - **Opponents (new):** A's games against B's team, split by whether B played.
     - Shows per-game averages, shooting, the without − with row, and every game on each side.
-- **Game Flow → "On / off court"** (was "With / without a teammate") keeps the within-game split by shared floor time, which needs the play-by-play. The With / without page links to it.
+- **Game Flow → "On / off court"** (was "With / without a teammate") keeps the within-game split by shared floor time, which needs the play-by-play. It opens on that layout now, and the With / without page links to it.
 
 ### Tested
 - 648 checks pass. New ones cover:
