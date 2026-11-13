@@ -27,7 +27,7 @@ jobs:
         run: |
           if [ -n "${{ github.event.inputs.date }}" ]; then
             # A past night's saved timing (team codes and minutes before tip only).
-            npx --yes wrangler@3 kv key get --remote --binding STATE "lineups-timing:${{ github.event.inputs.date }}" > /tmp/tm.json
+            npx --yes wrangler@3 kv key get --binding STATE "lineups-timing:${{ github.event.inputs.date }}" > /tmp/tm.json 2>/dev/null || npx --yes wrangler@3 kv:key get --binding STATE "lineups-timing:${{ github.event.inputs.date }}" > /tmp/tm.json
             node -e 'const t = JSON.parse(require("fs").readFileSync("/tmp/tm.json", "utf8")); console.log("timing", t.date); for (const r of t.teams || []) console.log(JSON.stringify({ team: r.team, tip: new Date(r.tip).toLocaleTimeString("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" }), feedMin: r.feedMin, seenMin: r.seenMin, postedMin: r.postedMin, lagSec: r.lagSec, changes: (r.changes || []).length, tipResult: r.tipResult }));'
             exit 0
           fi
