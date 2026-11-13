@@ -1623,14 +1623,15 @@ await articlesChecks(ok);
     { team: "SAS", items: [ item({ espnId: "20", player: "Final Reach", need: 6 }), item({ espnId: "21", player: "Final Miss", need: 30 }) ] },
   ] };
   const pl = (id, o) => ({ id, min: 20, pts: 12, tpm: 3, reb: 5, ast: 2, stl: 1, blk: 0, dreb: 4, oreb: 1, starter: true, ...o });
-  function run({ date = "20261109", hooks = true, games } = {}) {
+  let flowData = null;
+  function run({ date = "20261109", hooks = true, games, extra = {} } = {}) {
     const cards = new Map(); let original = 0;
     const el = { style: {}, textContent: "" };
     const ctx = {
       URLSearchParams, console, Promise, Object, Number, String, Math, Array, Date, JSON,
       location: { search: "?cc=" + encodeURIComponent("https://cc.example/data/watch.json") },
       document: { readyState: "complete", getElementById: (id) => (id === "cc-bridge-note" ? el : null), createElement: () => el, body: { appendChild() {} } },
-      fetch: async (u) => ({ ok: true, json: async () => (String(u).includes("tonight.json") ? tonightData : String(u).includes("records.json") ? recordsData : String(u).includes("single-game-bests") ? bestsData : watch) }),
+      fetch: async (u) => ({ ok: true, json: async () => (String(u).includes("flowstats.json") ? flowData : String(u).includes("tonight.json") ? tonightData : String(u).includes("records.json") ? recordsData : String(u).includes("single-game-bests") ? bestsData : watch) }),
       setInterval() {}, setTimeout() {}, clearTimeout() {}, addEventListener() {},
     };
     ctx.window = ctx;
@@ -1639,7 +1640,7 @@ await articlesChecks(ok);
         GAMES: games, MILESTONE_LADDERS: { pts: { step: 1000, from: 10000 }, tpm: { step: 500, from: 1000 } },
         fireStory: (k, c) => cards.set(k, c), runAlertChecks: () => { original++; }, activeDateYMD: () => date,
         fmtAlertStatLine: (rows) => rows.map((r) => r.join(" ")).join(" · "),
-      });
+      }, extra);
     }
     vm.createContext(ctx);
     vm.runInContext(code, ctx);
@@ -1720,6 +1721,50 @@ await articlesChecks(ok);
     "bridge v4: a franchise single-game record tied, one nearing it (52 of 58, window 8); 9 threes isn't near 12 (window 2)", [fgTie && fgTie.text, fgNear && fgNear.text].join(" | "));
   const t5 = run({ games: [{ ...games[1], status: "final" }] }); await flush(); t5.ctx.runAlertChecks(); await flush();
   ok(![...t5.cards.keys()].some((k) => k.startsWith("cc-list-")), "bridge v3: a final game with nobody on a list gets no list card");
+  // v5: this season's Game Flow facts (flowstats.json).
+  const q = (pts, name, gameId = "old") => ({ pts, id: "x" + pts + name, name, team: "NYK", opp: "CHI", q: 1, gameId, date: "2026-11-04" });
+  flowData = { games: 174, leadMin: 15,
+    quarters: [q(22, "Jalen Brunson"), q(21, "Franz Wagner"), q(20, "A"), q(18, "B"), q(18, "C"), q(17, "D"), q(17, "E"), q(16, "F"), q(16, "G"), q(16, "H"), q(16, "I"), q(30, "Tonight Itself", "g5")],
+    halves: [q(33, "Luka Doncic"), q(30, "Anthony Davis")], teamQuarters: [{ pts: 48, team: "CLE", opp: "MIL", q: 2, gameId: "o", date: "2026-10-31" }, { pts: 47, team: "UTA", opp: "LAL", q: 1, gameId: "o2", date: "2026-10-25" }],
+    rotation: { "50": { name: "Sits Long", team: "GSW", gp: 10, starts: 10, open3: 10, back: 720, n: { back: 9 } }, "51": { name: "Back Soon", team: "GSW", gp: 10, starts: 10, open3: 2, back: 1100, n: { back: 8 } },
+      "53": { name: "Half Out", team: "GSW", gp: 10, starts: 10, open3: 10, back: 720, n: { back: 9 } } },
+    fouls: { "52": { name: "Foul Guy", team: "GSW", gp: 13, trouble: 9, out: 1, troubleIn: ["a", "b", "c", "d", "e", "f", "g", "h", "g5"], outIn: ["a"] } },
+    leads: { GSW: { gp: 12, blown: [{ lead: 18, opp: "MIL", date: "2026-11-03", score: "108-112", gameId: "o3" }, { lead: 16, opp: "TOR", date: "2026-11-07", score: "99-101", gameId: "o4" }], comebacks: [] },
+      HOU: { gp: 12, blown: [], comebacks: [{ down: 17, opp: "BOS", date: "2026-11-01", score: "110-104", gameId: "o5" }] }, BOS: { gp: 12, blown: [{ lead: 15, opp: "X", date: "2026-11-01", score: "1-2", gameId: "o6" }], comebacks: [] } } };
+  const qp = (id, o) => pl(id, { name: "P" + id, ...o });
+  const g5 = { id: "g5", status: "live", period: 2, clock: "8:00", away: { tricode: "GS", score: 60, linescores: [45, 15] }, home: { tricode: "HOU", score: 40, linescores: [22, 18] },
+    plays: [{ badge: "sub", playerOutId: "50", qtr: "Q1", clock: "4:24" }],
+    boxscore: { away: [qp("40", { pts: 20, qtrPts: [19, 1] }), qp("41", { pts: 12, qtrPts: [3, 9] }), qp("50", { name: "Sits Long", min: 8 }), qp("51", { name: "Back Soon", min: 8 }),
+      qp("52", { name: "Foul Guy", pf: 3, pts: 4, min: 9 }), qp("54", { name: "Bench Foul", starter: false, min: 4, pf: 3 })], home: [qp("60", { pts: 30, qtrPts: [15, 15] })] } };
+  const court = { away: new Set(["40", "41", "52"]), home: new Set(["60"]) };
+  const t6 = run({ games: [g5], extra: { computeOnCourt: () => court } }); await flush(); t6.ctx.runAlertChecks(); await flush();
+  const c6 = (k) => t6.cards.get(k), k6 = [...t6.cards.keys()];
+  ok(c6("cc-sq-40-1") && c6("cc-sq-40-1").text === "P40 (GSW) — 19 points in the 1st quarter: the 4th-most in a quarter this season (most: 22, Jalen Brunson vs CHI 11/4)" && !c6("cc-sq-41-2") && !k6.some((k) => k.startsWith("cc-sq-60")),
+    "bridge v5: a quarter among the season's 10 best gets a card (tonight's own game left out of the list); 9 and 16-of-a-crowded-list don't", k6.filter((k) => /cc-s[qh]/.test(k)).map((k) => c6(k).text).join(" | "));
+  ok(c6("cc-sh-60-1") && /30 points in the 1st half so far: tied for the 2nd-most in a half this season \(most: 33, Luka Doncic/.test(c6("cc-sh-60-1").text),
+    "bridge v5: a half among the season's best ('so far' until it ends)", c6("cc-sh-60-1") && c6("cc-sh-60-1").text);
+  ok(c6("cc-tq-g5-GSW-1") && /45 points in the 1st quarter vs HOU: the 3rd-most by a team in a quarter this season/.test(c6("cc-tq-g5-GSW-1").text), "bridge v5: a team quarter among the season's 5 best", c6("cc-tq-g5-GSW-1") && c6("cc-tq-g5-GSW-1").text);
+  ok(c6("cc-ft-52-3") && c6("cc-ft-52-3").text === "Foul Guy (GSW) — 3rd foul, Q2 8:00 · in early foul trouble in 8 of 12 games this season, fouled out once" && !c6("cc-ft-54-3"),
+    "bridge v5: foul trouble (3 fouls in the 2nd) with his season record, tonight's game left out (a later build can hold it); a bench player with no rotation history doesn't get one", c6("cc-ft-52-3") && c6("cc-ft-52-3").text);
+  ok(c6("cc-ret-50-g5-h1") && c6("cc-ret-50-g5-h1").text === "Sits Long (GSW) hasn't come back in · usually returns to open the 2nd quarter (median of 9 starts) · out since Q1 4:24" && !c6("cc-ret-51-g5-h1"),
+    "bridge v5: a starter 4+ minutes past his usual return (to open Q2) gets a rotation card; one whose usual return is later doesn't", c6("cc-ret-50-g5-h1") && c6("cc-ret-50-g5-h1").text);
+  ok(c6("cc-lead-g5-GSW") && c6("cc-lead-g5-GSW").text === "GSW lead HOU by 20 · GSW have lost a 15-point lead 2 times this season (the most in the NBA) (last: 16-point lead vs TOR 11/7, 99-101) · HOU have come back from 15 down once this season (the most in the NBA) (last: 17 down vs BOS 11/1, 110-104)",
+    "bridge v5: a 15-point lead with both sides' season records", c6("cc-lead-g5-GSW") && c6("cc-lead-g5-GSW").text);
+  // The clock in a foul card is when it first fired; then the game goes final with GSW's lead lost.
+  Object.assign(g5, { clock: "2:00" }); t6.ctx.runAlertChecks(); await flush();
+  ok(/3rd foul, Q2 8:00/.test(c6("cc-ft-52-3").text), "bridge v5: a foul card keeps the time it fired", c6("cc-ft-52-3").text);
+  Object.assign(g5, { status: "final", period: 4, away: { ...g5.away, score: 100 }, home: { ...g5.home, score: 104 } });
+  g5.boxscore.home.push(qp("61", { name: "Third Half", pf: 6, pts: 8, min: 20 }));
+  t6.ctx.runAlertChecks(); await flush();
+  ok(c6("cc-blown-g5-GSW") && c6("cc-blown-g5-GSW").text === "GSW lost a 20-point lead to HOU · their 3rd lost lead of 15+ this season; HOU's 2nd comeback from 15+ down" && c6("cc-fo-61-g5") && /fouled out · his first foul-out this season/.test(c6("cc-fo-61-g5").text),
+    "bridge v5: at the final, a 15-point lead lost (from the biggest lead seen), and a foul-out", [c6("cc-blown-g5-GSW"), c6("cc-fo-61-g5")].map((c) => c && c.text).join(" | "));
+  // Not out for the 3rd: a starter who opens the 3rd in 10 of 10 starts, 1:00 into it.
+  const g6 = { id: "g6", status: "live", period: 3, clock: "11:00", away: { tricode: "GS", score: 50, linescores: [] }, home: { tricode: "HOU", score: 52, linescores: [] }, plays: [],
+    boxscore: { away: [qp("53", { name: "Half Out", min: 18 })], home: [] } };
+  const t7 = run({ games: [g6], date: "20261110", extra: { computeOnCourt: () => ({ away: new Set(), home: new Set() }) } }); await flush(); t7.ctx.runAlertChecks(); await flush();
+  ok(t7.cards.get("cc-ret-53-g6-h2") && /didn't start the 3rd quarter · he opened the 3rd in 10 of 10 starts this season/.test(t7.cards.get("cc-ret-53-g6-h2").text) && [...t7.cards.keys()].every((k) => /^cc-(ret|ft|fo|sq|sh|tq|lead|blown)-/.test(k)),
+    "bridge v5: a starter not out for the 3rd gets a card, even on another night than the Watch List's (only season facts then)", [...t7.cards.keys()].join(" "));
+  flowData = null;
 }
 
 // ---------- Notes lines read for meaning, tables, hooks, the learned scorer (0.48; the user's Wizards picks, 11/13) ----------
@@ -2000,6 +2045,26 @@ await articlesChecks(ok);
     ok(box(orig.box.game) === box(back.box.game), "game flow: and the whole box score");
     ok(JSON.stringify(c).length < JSON.stringify(sum).length / 8, "game flow: the compact file is under an eighth of ESPN's summary", `${JSON.stringify(c).length} vs ${JSON.stringify(sum).length}`);
     ok(fs.readFileSync(path.join(root, "src", "gameflow", "feeds.js"), "utf8") === fs.readFileSync(path.join(root, "docs", "lib", "gameflow", "feeds.js"), "utf8"), "game flow: the page's copy of the reader is the build's");
+    // 0.59: the model moved out of the page, and the season facts built on it (src/gameflow/model.js, stats.js).
+    ok(fs.readFileSync(path.join(root, "src", "gameflow", "model.js"), "utf8") === fs.readFileSync(path.join(root, "docs", "lib", "gameflow", "model.js"), "utf8")
+      && /from "\.\/lib\/gameflow\/model\.js"/.test(fs.readFileSync(path.join(root, "docs", "gameflow.html"), "utf8"))
+      && !/function buildStints\(/.test(fs.readFileSync(path.join(root, "docs", "gameflow.html"), "utf8")),
+      "game flow (0.59): the page imports the stint model the build runs (one copy, no second definition in the page)");
+    const S = await import("../src/gameflow/stats.js");
+    const row = { id: c.id, d: "2026-11-12" };
+    const Fg = S.gameFacts(row, JSON.parse(JSON.stringify(c)));
+    const Gm = (await import("../src/gameflow/model.js")).buildStints(back.pbp, back.box);
+    const qSumOk = Fg.players.every((p) => { const pl = Gm.players.find((x) => String(x.id) === p.id); return p.q.reduce((a, b) => a + b, 0) <= pl.boxPts && (Gm.maxP > 4 || p.q.reduce((a, b) => a + b, 0) === pl.boxPts); });
+    const st = Fg.players.filter((p) => p.starter);
+    ok(qSumOk && st.length === 10 && st.every((p) => p.full1 || (p.out1 > 0 && p.out1 < 720)) && Fg.players.filter((p) => !p.starter && p.in1 != null).every((p) => p.in1 >= 0)
+      && Fg.teams.length === 2 && Fg.teams.some((t) => t.won) && Fg.teams.every((t) => t.q.length === 4 && t.q.reduce((a, b) => a + b, 0) <= t.score),
+      "game flow stats: a real game's quarters add up to each player's points (regulation), ten starters each with a first check-out in Q1 or a full Q1, two teams' quarters",
+      JSON.stringify(st.map((p) => [p.name, p.out1, p.back, p.full1])));
+    const two = S.flowStats([{ row, c }, { row: { id: "x2", d: "2026-11-13" }, c: { ...JSON.parse(JSON.stringify(c)), id: "x2" } }]);
+    const r1 = Object.values(two.rotation).find((r) => r.starts === 2);
+    ok(two.games === 2 && two.quarters.length && two.quarters[0].pts >= two.quarters[two.quarters.length - 1].pts && r1 && r1.gp === 2
+      && two.leadTable.length === 2 && two.leadTable.every((t) => t.gp === 2 && t.neverTrailed + t.neverLed <= 2) && S.placeOn([{ pts: 20 }, { pts: 18 }, { pts: 18 }], 18) === 2,
+      "game flow stats: season lists best first, rotations over games, the Leads & comebacks table, places on a list (ties share)", JSON.stringify(two.leadTable));
   }
 }
 

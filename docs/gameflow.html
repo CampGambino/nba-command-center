@@ -11,6 +11,20 @@
     --pos:#2f9e6a; --neg:#d0453f; --accent:#7aa2f7;
     --rowh:26px; --namew:172px; --statw:52px;
   }
+  /* A light look to match the rest of the Command Center (0.59): the same palette the other pages switch to.
+     Team colours stay as they are; the posters were always white. */
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f5f6f8; --panel:#fff; --panel2:#f0f2f5; --line:#e1e4ea;
+      --text:#161a22; --dim:#5b6474; --dimmer:#8a93a3; --accent:#3b6fd8; }
+    .lane{background:#e9ecf1 !important}
+    .stint.hot,.cell:hover,.amx .acell:hover{outline-color:#161a22 !important}
+    .foul:not(.warn):not(.dq){background:rgba(22,26,34,.55) !important}
+    .pf.warn{border-color:#e3c77a !important;background:#fff6dc !important;color:#7a5a10 !important}
+    .pf.dq{border-color:#efb3ab !important;background:#fdecea !important;color:#9b2b22 !important}
+    table.per tr:nth-child(even) td{background:rgba(0,0,0,.025) !important}
+    #tip{background:#fff !important;box-shadow:0 10px 30px rgba(0,0,0,.18) !important}
+    .amx .acell{background:#eef1f5 !important}
+  }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
     font:13px/1.4 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -536,16 +550,14 @@
 <script type="module">
 "use strict";
 import { espnToFeeds, expandFeeds } from "./lib/gameflow/feeds.js";
+import { REG_LEN, OT_LEN, RUN_MIN, RUN_ALLOW, SWING_CAP, plen, clockSec, minVal, mmss,
+  HOOP_X, HOOP_Y, COURT_W, COURT_L, HOOP_INSET, SPOT_SX, SPOT_SY, ARC_R, CORNER_D, CORNER_Y,
+  onCourt, hasSpot, spotDist, canonSpot, statedDist, shotDist, boxLine, buildStints as buildStintsModel } from "./lib/gameflow/model.js";
+const buildStints = (pbp, box) => buildStintsModel(pbp, box, { minTol: MIN_TOL });
 /* ============================ config ============================ */
 const CDN = "https://cdn.nba.com/static/json";
 const SCHEDULE_PATHS = ["staticData/scheduleLeagueV2_1.json",
                         "staticData/scheduleLeagueV2.json"];
-const REG_LEN = 720, OT_LEN = 300;      // NBA: 12-min quarters (720s), 5-min OT (300s)
-/* A run has to clear this margin to be worth drawing. RUN_ALLOW is how many opposing
-   baskets the "near" definition tolerates; SWING_CAP bounds the capped-swing window,
-   which is the whole point of it. */
-const RUN_MIN = 8, RUN_ALLOW = 1, SWING_CAP = 240;          // NBA: 12-min quarters, 5-min OT
-const plen = p => p <= 4 ? REG_LEN : OT_LEN;
 
 const TEAM = {
   ATL:{n:"Hawks",         a:"#E03A3E", b:"#C1D32F"},
@@ -759,18 +771,6 @@ const ord = n => { const s=["th","st","nd","rd"], v=n%100;
                    return n + (s[(v-20)%10] || s[v] || s[0]); };
 
 // "PT10M00.00S" -> seconds remaining
-function clockSec(c){
-  if(!c) return 0;
-  const m = /PT(\d+)M([\d.]+)S/.exec(c);
-  return m ? (+m[1])*60 + parseFloat(m[2]) : 0;
-}
-// "PT28M29.00S" -> minutes (float)
-function minVal(s){
-  if(!s) return 0;
-  const m = /PT(\d+)M([\d.]+)S/.exec(s);
-  return m ? (+m[1]) + parseFloat(m[2])/60 : 0;
-}
-const mmss = s => Math.floor(s/60) + ":" + String(Math.round(s%60)).padStart(2,"0");
 
 // game-clock label for an absolute elapsed time
 function stamp(t, maxP){
@@ -810,107 +810,6 @@ async function feed(path){
  * both players ("A enters the game for B") with their ids attached, which is
  * split back into the league feed's separate "out" then "in" pair.
  */
-/* ==================== shot geometry ====================
- * Court space, verified against the feed rather than assumed. ESPN gives every shot
- * a coordinate {x,y}: x is feet across a 50-foot court, y is feet out from the
- * baseline, and both teams' shots are normalised to one attacking end. The hoop sits
- * at (25, 0) in that space — not at the physical 5.25ft from the baseline. Checked by
- * comparing hypot(x-25, y) against the distance ESPN states in its own play text:
- *
- *   22-foot corner three at (2,-1)  -> 23.0ft   (+1.0)
- *   4-foot turnaround    at (29,1)  ->  4.1ft   (+0.1)
- *   2-foot driving layup at (23,2)  ->  2.8ft   (+0.8)
- *   3-foot layup         at (27,2)  ->  2.8ft   (-0.2)
- *
- * Mean absolute error 0.54ft, which is what 1-foot integer rounding of both the
- * coordinate and the stated distance would produce. Assuming the physical hoop
- * position instead gives a uniform +1.8ft bias, so (25,0) is the right origin.
- *
- * That sample was pulled from ESPN's WNBA feed during the original build. ESPN
- * serves NBA and WNBA play-by-play through the same coordinate schema, so the
- * (25,0) origin should carry over unchanged — but it hasn't been re-measured
- * against real NBA play text, and this file (running offline) can't fetch a
- * live game to check. Worth re-running this same comparison — a handful of
- * "makes N-foot ___" plays against their coordinates — the first time this is
- * pointed at a real NBA game.
- *
- * Missing coordinates are the Int32 sentinel, not zero — a shot at (0,0) would
- * otherwise read as a 25-foot attempt from the corner.
- */
-const HOOP_X = 25, HOOP_Y = 0;
-const COURT_W = 50, COURT_L = 94, HOOP_INSET = 5.25;
-/* Canonical space, used everywhere downstream: sx feet across from the hoop
-   (negative left), sy feet out from the hoop's plane. A shot is believed only if it
-   lands on or near a half court — ESPN writes {x:-214748340,...} for "no location",
-   and validating against the court catches that plus any other garbage without
-   depending on one magic number. */
-const SPOT_SX = [-30, 30], SPOT_SY = [-8, 50];
-/* NBA line: 23'9" (23.75ft) arc, 22ft corners. The straight corner segment runs
-   from the baseline until it meets the arc, which is what fixes its length.
-   (Ported from a WNBA build, where this was 22.15ft / 21.67ft — the WNBA and NBA
-   arcs differ, so this is the one geometry constant that had to change on fact
-   rather than on a find-and-replace.) */
-const ARC_R = 23.75, CORNER_D = 22;
-const CORNER_Y = Math.sqrt(Math.max(0, ARC_R*ARC_R - CORNER_D*CORNER_D));
-
-const onCourt = (sx,sy) => sx>=SPOT_SX[0] && sx<=SPOT_SX[1]
-                        && sy>=SPOT_SY[0] && sy<=SPOT_SY[1];
-const hasSpot = a => Number.isFinite(a.sx) && Number.isFinite(a.sy) && onCourt(a.sx,a.sy);
-const spotDist = a => hasSpot(a) ? Math.hypot(a.sx, a.sy) : null;
-
-/* The two feeds mean different things by x and y, which is the whole reason this
-   exists. Measured against each feed's own stated distance:
- *
- * ESPN — x is feet across a 50ft court, y is feet out from the baseline, and both
- * teams are already folded onto one attacking end. The hoop sits at (25, 0), not at
- * its physical 5.25ft inset: assuming the physical spot leaves a uniform +1.8ft bias.
- *
- * League feed — x is percent along the 94ft length, y is percent across the 50ft
- * width, and shots are NOT folded; a shot at one basket reads y≈18 and at the other
- * y≈68. Checked against its own shotDistance field:
- *     Left Corner 3      (94.47, 4.14)  -> 22.93 vs stated 22.94
- *     Above the Break 3  (71.07, 17.80) -> 27.22 vs stated 27.67
- *     Above the Break 3  (29.11, 68.02) -> 23.88 vs stated 24.39
- * The corner shot lands exact and the two above-the-break shots fall ~0.5ft short,
- * so the published x/y are slightly coarser than the distance computed from them.
- * That is why shotDistance is preferred for the average and the coordinate is used
- * only to place the dot, where half a foot cannot be seen.
- *
- * (Those three rows are WNBA plays from the original build. The league feed's
- * percent-of-court convention is a schema fact, not a WNBA fact, so the conversion
- * math is unchanged — but re-run this same spot-check against a few real NBA plays
- * before trusting the "0.01ft" precision claim above for this league.)
- */
-function canonSpot(a){
-  if(!Number.isFinite(+a.x) || !Number.isFinite(+a.y)) return {};
-  const x=+a.x, y=+a.y;
-  // percent-of-court can exceed the ESPN range, which is what tells the two apart
-  const pct = Number.isFinite(a.shotDistance) || x>COURT_W || y>COURT_W;
-  let sx, sy;
-  if(pct){
-    const along=(x/100)*COURT_L, across=(y/100)*COURT_W;
-    const near = Math.abs(along-HOOP_INSET) <= Math.abs(along-(COURT_L-HOOP_INSET));
-    sy = Math.abs(along - (near? HOOP_INSET : COURT_L-HOOP_INSET));
-    sx = (across - COURT_W/2) * (near? 1 : -1);
-  }else{
-    sx = x - HOOP_X; sy = y - HOOP_Y;
-  }
-  return onCourt(sx,sy) ? {sx, sy} : {};
-}
-
-/** The distance the feed states in words: "makes 26-foot three point jumper". */
-function statedDist(a){
-  const m=/(\d+)[-\s]foot/i.exec(a.description||"");
-  return m ? +m[1] : null;
-}
-/** Explicit numeric field, stated text, then the coordinate — best signal first. */
-function shotDist(a){
-  if(Number.isFinite(a.shotDistance)) return {ft:a.shotDistance, from:"field"};
-  const s=statedDist(a);
-  if(s!=null) return {ft:s, from:"text"};
-  const c=spotDist(a);
-  return c!=null ? {ft:c, from:"spot"} : null;
-}
 function espnShotSpot(p){
   const c=p.coordinate;
   if(!c || !Number.isFinite(+c.x) || !Number.isFinite(+c.y)) return {};
@@ -924,476 +823,6 @@ window.__shot={hasSpot, spotDist, statedDist, shotDist, onCourt, canonSpot,
 
 /* One box line, read from whichever feed supplied it. Both now use the league feed's key
    names, so this needs no source flag. */
-function boxLine(st){
-  const g=k=>{ const v=(st||{})[k]; const n=typeof v==="string"? parseInt(v,10) : v;
-    return Number.isFinite(n)? n : 0; };
-  return {min:minVal((st||{}).minutes), pts:g("points"), reb:g("reboundsTotal"),
-          ast:g("assists"), stl:g("steals"), blk:g("blocks"), to:g("turnovers"),
-          fgm:g("fieldGoalsMade"), fga:g("fieldGoalsAttempted"),
-          tpm:g("threePointersMade"), tpa:g("threePointersAttempted"),
-          ftm:g("freeThrowsMade"), fta:g("freeThrowsAttempted"),
-          pf:g("foulsPersonal"), pm:g("plusMinusPoints")};
-}
-
-
-/* ==================== stint reconstruction ==================== */
-/**
- * Rebuilds who was on the floor at every moment from the substitution log.
- *
- * The feed logs SUB in/out but never states period-opening lineups, so for each
- * period we (1) mark players *proven* on-court at the tip (they act, or are subbed
- * out, before their first SUB in), (2) fill the remaining slots with players who
- * cannot be proven off-court, ranked so that nobody's running total overshoots
- * their box-score minutes, preferring whoever finished the prior period.
- */
-function buildStints(pbp, box){
-  const acts = pbp.game.actions.slice().sort((x,y)=>x.orderNumber-y.orderNumber);
-  /* Put every shot into one coordinate space before anything reads it. The two feeds
-     do not agree on what x and y mean — see canonSpot — and the ESPN path already
-     wrote its own, so this only has to handle actions that arrived raw from the
-     league feed. Without it, a league-feed percentage gets read as ESPN feet. */
-  for(const a of acts) if(a.sx===undefined) Object.assign(a, canonSpot(a));
-  acts.forEach((a,i)=>a._i=i);
-
-  const teams = [box.game.awayTeam, box.game.homeTeam];
-  const maxP  = Math.max(...acts.map(a=>a.period||1));
-  const scheduled = Array.from({length:maxP},(_,k)=>plen(k+1)).reduce((a,b)=>a+b,0);
-
-  // absolute elapsed time for every action
-  const off = {}; let acc=0;
-  for(let p=1;p<=maxP;p++){ off[p]=acc; acc+=plen(p); }
-  acts.forEach(a=>{ const p=a.period||1; a._t = off[p] + (plen(p) - clockSec(a.clock)); });
-
-  /* A game in progress must not be charted out to the end of the current quarter —
-     that would invent minutes for whoever happens to be on the floor. Everything
-     is clamped to the last play on record, and the chart simply stops there. */
-  const finalized = box.game.gameStatus===3;
-  const lastPlayT = acts.length ? Math.max(...acts.map(a=>a._t)) : 0;
-  const total = finalized ? scheduled : Math.min(scheduled, lastPlayT);
-  const endOf = p => Math.min(off[p]+plen(p), total);
-
-  // ---- players ----
-  const P = new Map();   // personId -> player record
-  teams.forEach((tm,ti)=>{
-    (tm.players||[]).forEach(pl=>{
-      P.set(pl.personId, {
-        id:pl.personId, tri:tm.teamTricode, teamId:tm.teamId, side:ti, // 0 away, 1 home
-        name:pl.name, nameI:pl.nameI, jersey:pl.jerseyNum,
-        starter:pl.starter==="1", played:pl.played==="1",
-        boxMin:minVal(pl.statistics && pl.statistics.minutes),
-        boxPts:(pl.statistics||{}).points||0,
-        line:boxLine(pl.statistics),
-        boxPM:(pl.statistics||{}).plusMinusPoints||0,
-        boxPF:(pl.statistics||{}).foulsPersonal,
-        boxAst:(pl.statistics||{}).assists,
-        dnp:pl.notPlayingReason||null,
-        stints:[], calcMin:0, calcPts:0, fouls:[],
-      });
-    });
-  });
-
-  // ---- running score by action index ----
-  let sh=0, sa=0;
-  const scoreAt = new Array(acts.length+1);
-  for(const a of acts){
-    scoreAt[a._i] = [sh,sa];                       // score *before* this action
-    if(a.scoreHome!=null) sh = +a.scoreHome;
-    if(a.scoreAway!=null) sa = +a.scoreAway;
-  }
-  scoreAt[acts.length] = [sh,sa];
-  const diff = i => { const s = scoreAt[Math.min(i,acts.length)]; return s[0]-s[1]; };
-
-  // ---- scoring events (for per-stint points and the flow line) ----
-  const madePts = a => {
-    if(a.shotResult!=="Made") return 0;
-    if(a.actionType==="2pt") return 2;
-    if(a.actionType==="3pt") return 3;
-    if(a.actionType==="freethrow") return 1;
-    return 0;
-  };
-
-  // ---- per-period action index ----
-  const byPeriod = Array.from({length:maxP+1},()=>[]);
-  acts.forEach(a=>byPeriod[a.period||1].push(a));
-
-  const isSub = a => a.actionType==="substitution";
-  // events that prove a player was physically on the floor
-  const onFloorEvt = a => !!a.personId && !isSub(a) &&
-        a.actionType!=="period" && a.actionType!=="game" && a.actionType!=="timeout";
-
-  let prevEnd = [new Set(), new Set()];
-  const openers = [];                 // per period, per side: array of ids
-
-  for(let p=1;p<=maxP;p++){
-    const A = byPeriod[p];
-    const pStartIdx = A.length ? A[0]._i : 0;
-    const pEndIdx   = A.length ? A[A.length-1]._i + 1 : 0;
-    const opener = [new Set(), new Set()];
-
-    for(let side=0; side<2; side++){
-      const tid = teams[side].teamId;
-      const roster = [...P.values()].filter(x=>x.side===side);
-      const firstIn={}, firstAny={}, outsAfterNoIn={};
-      for(const a of A){
-        const pl = P.get(a.personId); if(!pl || pl.side!==side) continue;
-        if(isSub(a)){
-          if(a.subType==="in"  && firstIn[pl.id]==null) firstIn[pl.id]=a._i;
-          if(a.subType==="out" && firstAny[pl.id]==null) firstAny[pl.id]=a._i;
-        }else if(onFloorEvt(a)){
-          if(firstAny[pl.id]==null) firstAny[pl.id]=a._i;
-        }
-      }
-      const proven=[], excluded=new Set();
-      for(const pl of roster){
-        const fi=firstIn[pl.id], fa=firstAny[pl.id];
-        if(fa!=null && (fi==null || fa<fi)) proven.push(pl.id);
-        else if(fi!=null) excluded.add(pl.id);
-        else if(!pl.played) excluded.add(pl.id);
-      }
-
-      if(p===1){
-        roster.filter(x=>x.starter).forEach(x=>opener[side].add(x.id));
-      }else{
-        proven.forEach(id=>opener[side].add(id));
-        const need = 5 - opener[side].size;
-        if(need>0){
-          // minutes each candidate would log if they opened this period
-          const contrib = id => {
-            const outIdx = (A.find(a=>a.personId===id && isSub(a) && a.subType==="out")||{})._i;
-            const endT = outIdx!=null ? acts[outIdx]._t : endOf(p);
-            return (endT - off[p])/60;
-          };
-          const cand = roster
-            .filter(x=>!opener[side].has(x.id) && !excluded.has(x.id))
-            .map(x=>{
-              const c = contrib(x.id);
-              const over = Math.max(0, (x.calcMin + c) - (x.boxMin + MIN_TOL));
-              return {id:x.id, over, prev:prevEnd[side].has(x.id)?0:1, m:-x.boxMin};
-            })
-            .sort((u,v)=> u.over-v.over || u.prev-v.prev || u.m-v.m);
-          cand.slice(0,need).forEach(c=>opener[side].add(c.id));
-        }
-      }
-      // open stints at the tip
-      opener[side].forEach(id=>{
-        const pl=P.get(id);
-        pl.stints.push({period:p, si:pStartIdx, st:off[p], ei:null, et:null});
-      });
-
-      // walk the period
-      for(const a of A){
-        if(!isSub(a)) continue;
-        const pl=P.get(a.personId); if(!pl || pl.side!==side) continue;
-        const open = pl.stints.length && pl.stints[pl.stints.length-1].ei==null
-                   ? pl.stints[pl.stints.length-1] : null;
-        if(a.subType==="out"){
-          if(open){ open.ei=a._i; open.et=a._t; }
-        }else{
-          if(!open) pl.stints.push({period:p, si:a._i, st:a._t, ei:null, et:null});
-        }
-      }
-      // close anything still open at the horn
-      for(const pl of roster){
-        const last = pl.stints[pl.stints.length-1];
-        if(last && last.ei==null){ last.ei=pEndIdx; last.et=endOf(p); }
-      }
-      // accumulate for the next period's overshoot test
-      roster.forEach(pl=>{
-        pl.calcMin = pl.stints.reduce((s,x)=>s+(x.et-x.st)/60, 0);
-      });
-      prevEnd[side] = new Set([...P.values()]
-        .filter(x=>x.side===side && x.stints.some(s=>s.period===p && s.et>=endOf(p)-1e-6))
-        .map(x=>x.id));
-    }
-    openers.push(opener);
-  }
-
-  /* ---- fouls, for reading why someone's minutes dried up ----
-     Six personal fouls disqualifies a player in the NBA. Technicals are counted
-     separately and don't move that total, so they're excluded here. The classic
-     coaching heuristic for "foul trouble" is fouls > period: two in the first,
-     three in the second and so on — early enough that a coach starts protecting
-     the player rather than waiting for the sixth. */
-  /* ---- assists as passer -> scorer pairs ----
-     Only field goals carry an assist; the value of the basket is kept so the same
-     matrix can be read as assists or as points created. */
-  const assists=[];
-  for(const a of acts){
-    if(a.actionType!=="2pt" && a.actionType!=="3pt") continue;
-    if(a.shotResult!=="Made" || !a.assistPersonId) continue;
-    const from=P.get(a.assistPersonId), to=P.get(a.personId);
-    if(!from || !to || from.side!==to.side || from.id===to.id) continue;
-    assists.push({from:from.id, to:to.id, side:from.side,
-                  pts:(a.actionType==="3pt"?3:2), t:a._t});
-  }
-  for(const pl of P.values()){
-    pl.calcAst = assists.filter(x=>x.from===pl.id).length;
-    pl.astPts  = assists.filter(x=>x.from===pl.id).reduce((s,x)=>s+x.pts,0);
-  }
-
-  const FOUL_LIMIT = 6;
-  const isTechnical = a => /technical/i.test((a.subType||"")+" "+(a.description||""));
-  for(const a of acts){
-    if(a.actionType!=="foul" || isTechnical(a)) continue;
-    const pl=P.get(a.personId); if(!pl) continue;
-    pl.fouls.push({n:pl.fouls.length+1, t:a._t, i:a._i, period:a.period,
-                   kind:(a.subType||"foul")});
-  }
-  for(const pl of P.values()){
-    pl.foulCount = pl.fouls.length;
-    pl.fouledOut = pl.foulCount >= FOUL_LIMIT;
-    // first moment the foul count ran ahead of the period
-    const early = pl.fouls.find(f=>f.n > f.period);
-    pl.troubleFrom = early ? early : null;
-  }
-
-  // merge zero-gap stints (sub out then straight back in, or period seams)
-  for(const pl of P.values()){
-    const m=[];
-    for(const s of pl.stints){
-      const last=m[m.length-1];
-      if(last && Math.abs(last.et - s.st)<1e-6) { last.et=s.et; last.ei=s.ei; }
-      else m.push({...s});
-    }
-    pl.stints=m;
-    pl.calcMin = m.reduce((a,s)=>a+(s.et-s.st)/60,0);
-  }
-
-  /* Official scoring credits free throws to whoever was on the floor when the foul
-     was called, but the feed logs the substitution *before* the free throws. So for
-     plus-minus we push a substitution boundary past any free throws (and the rebound
-     of a missed one) that still belong to the previous dead ball. In the original
-     WNBA build this was verified against every 2026 box score, lifting agreement
-     from 92% to 99.1% of player-games; the fix itself is source-agnostic, but that
-     figure hasn't been re-measured against NBA box scores. */
-  const SKIP = new Set(["substitution","freethrow","timeout"]);
-  function ftBoundary(i){
-    let j=i;
-    while(j<acts.length){
-      const a=acts[j];
-      if(SKIP.has(a.actionType)){ j++; continue; }
-      if(a.actionType==="rebound"){
-        let k=j+1;
-        while(k<acts.length && SKIP.has(acts[k].actionType) && acts[k].actionType!=="freethrow") k++;
-        if(k<acts.length && acts[k].actionType==="freethrow" && acts[k].period===a.period){ j++; continue; }
-      }
-      break;
-    }
-    return j;
-  }
-  const pmBound = i => (acts[i] && acts[i].actionType==="substitution") ? ftBoundary(i) : i;
-
-  // per-stint points & plus-minus
-  for(const pl of P.values()){
-    for(const s of pl.stints){
-      s.pm  = (diff(pmBound(s.ei)) - diff(pmBound(s.si))) * (pl.side===1 ? 1 : -1);
-      s.pts = 0;
-      for(let i=s.si;i<s.ei;i++){
-        const a=acts[i];
-        if(a.personId===pl.id) s.pts += madePts(a);
-      }
-    }
-    pl.calcPts = pl.stints.reduce((a,s)=>a+s.pts,0);
-    pl.calcPM  = pl.stints.reduce((a,s)=>a+s.pm, 0);
-  }
-
-  /* Points per period per player — free throws included, because a scoring burst
-     is points, not field goals. Across periods these must sum to his box-score
-     total, the same identity already checked for stint points. */
-  for(const pl of P.values()) pl.ptsByPeriod={};
-  for(const a of acts){
-    const v=madePts(a); if(!v) continue;
-    const pl=P.get(a.personId); if(!pl) continue;
-    const p=a.period||1;
-    pl.ptsByPeriod[p]=(pl.ptsByPeriod[p]||0)+v;
-  }
-
-  /* ---- lineup segments: every distinct 5 on the floor, per team ---- */
-  const lineups=[[],[]];
-  for(let side=0;side<2;side++){
-    const bounds=new Set([0,total]);
-    [...P.values()].filter(x=>x.side===side)
-      .forEach(x=>x.stints.forEach(s=>{bounds.add(s.st);bounds.add(s.et);}));
-    const B=[...bounds].sort((a,b)=>a-b);
-    const L=lineups[side];
-    const endIdx = t => { let i=acts.findIndex(a=>a._t>t+1e-9); return i<0?acts.length:i; };
-    for(let k=0;k<B.length-1;k++){
-      const t0=B[k], t1=B[k+1];
-      const mid=(t0+t1)/2;
-      const on=[...P.values()].filter(x=>x.side===side &&
-            x.stints.some(s=>s.st<=mid && s.et>=mid));
-      const i1=endIdx(t1);
-      const key=on.map(x=>x.id).sort().join(",");
-      const prev=L[L.length-1];
-      // absorb sub-second slivers (two teammates swapping a beat apart) and repeats
-      // into the previous segment so the strip always tiles the full game
-      if(prev && (prev.key===key || t1-t0<1.5 || on.length!==5)){
-        prev.t1=t1; prev.i1=i1;
-        prev.pm=(diff(i1)-diff(prev.i0))*(side===1?1:-1);
-        continue;
-      }
-      let i0=acts.findIndex(a=>a._t>=t0-1e-9); if(i0<0) i0=0;
-      L.push({t0,t1,i0,i1,pm:(diff(i1)-diff(i0))*(side===1?1:-1),on,key});
-    }
-  }
-
-  /* ---- score-flow polyline (home-minus-away over time) ---- */
-  const flow=[{t:0,d:0}];
-  for(const a of acts){
-    if(madePts(a)>0) flow.push({t:a._t, d:(+a.scoreHome)-(+a.scoreAway)});
-  }
-  flow.push({t:total, d:box.game.homeTeam.score - box.game.awayTeam.score});
-
-  /* ---- scoring runs ----
-   * The first version of this maximised the margin swing with no bound on how long the
-   * interval could be. For a team that leads wire to wire the largest swing in its favour
-   * IS the whole game, so it drew one bar across three quarters labelled with the final
-   * score. It also shared its "used" array between the two teams and computed the away
-   * side first, which handed the away team first pick of the game.
-   *
-   * Three definitions now, chosen in the toolbar, each computed per team independently:
-   *   unanswered — the opponent scores nothing at all. A true 10-0 run.
-   *   near       — at most RUN_ALLOW opposing baskets, so one free throw doesn't kill it.
-   *   swing      — margin swing inside a capped window, the old idea with a bound.
-   * The largest swing is still computed, but on its own row and called what it is.
-   */
-  const evts=[];
-  for(const a of acts){ const v=madePts(a); if(v>0)
-    evts.push({t:a._t, home:String(a.teamId)===String(box.game.homeTeam.teamId), v}); }
-  const cum=[0]; evts.forEach(e=>cum.push(cum[cum.length-1] + (e.home? e.v : -e.v)));
-
-  /* Who was ever in front. cum is home minus away and only moves when someone scores, so
-     every state the margin ever held is in this array. A tie is not a lead, which is why
-     these are strict comparisons and why cum[0] === 0 counts for neither side.
-     Two invariants fall out and are asserted in the tests: you cannot win without leading
-     at the final whistle, so never-led implies a loss; and never-trailed implies a win,
-     because a level finish is impossible. */
-  const everLed=[cum.some(v=>v<0), cum.some(v=>v>0)];   // [away, home]
-
-  /* Holding a lead is a separate question from never trailing: a team can fall behind early,
-     go ahead, and never be caught. So this walks the margin once per side and records when
-     the side first led and what happened after that.
-       held        — went ahead and was never behind again. "Never lost the lead."
-       heldStrict  — never even level again after going ahead, which is the literal reading
-                     of the phrase, since being tied means you are no longer leading.
-     Both are reported, because the two readings give different numbers and neither is wrong.
-     cum[0] is 0, the tip, and counts as a lead for nobody. */
-  function leadFacts(sign){
-    let first=-1, behindAfter=false, tiedAfter=false, everBehind=false;
-    for(let k=0;k<cum.length;k++){
-      const m=cum[k]*sign;
-      if(m<0) everBehind=true;
-      if(first<0 && m>0){ first=k; continue; }
-      if(first>=0){ if(m<0) behindAfter=true; else if(m===0) tiedAfter=true; }
-    }
-    return {led:first>=0,
-            held:first>=0 && !behindAfter,
-            heldStrict:first>=0 && !behindAfter && !tiedAfter,
-            everTrailed:everBehind};
-  }
-  const leadState=[leadFacts(-1), leadFacts(1)];   // [away, home]
-
-  /* Walk forwards taking maximal stretches. Each is trimmed to the team's own last score,
-     so a run never opens or closes on an opponent basket. */
-  function streaks(forHome, allow){
-    const out=[]; let i=0;
-    while(i<evts.length){
-      while(i<evts.length && evts[i].home!==forHome) i++;
-      if(i>=evts.length) break;
-      let oppSeen=0, j=i, lastMine=i;
-      while(j<evts.length){
-        const e=evts[j];
-        if(e.home===forHome) lastMine=j;
-        else { if(oppSeen+1>allow) break; oppSeen++; }
-        j++;
-      }
-      let mine=0, theirs=0;
-      for(let k=i;k<=lastMine;k++){ const e=evts[k]; if(e.home===forHome) mine+=e.v; else theirs+=e.v; }
-      if(mine-theirs>=RUN_MIN)
-        out.push({t0:evts[i].t, t1:evts[lastMine].t, mine, theirs});
-      i=lastMine+1;
-    }
-    return out;
-  }
-
-  /* The swing idea, but the window can't exceed SWING_CAP seconds, and `used` is local so
-     neither team gets first refusal on the game. */
-  function cappedSwings(forHome){
-    const out=[], used=new Array(evts.length).fill(false);
-    for(let guard=0; guard<8; guard++){
-      let best=null;
-      for(let i=0;i<evts.length;i++){
-        if(used[i]) continue;
-        for(let j=i;j<evts.length;j++){
-          if(used[j]) break;
-          if(evts[j].t-evts[i].t>SWING_CAP) break;
-          const d=(cum[j+1]-cum[i])*(forHome?1:-1);
-          if(d>=RUN_MIN && (!best || d>best.d || (d===best.d && j-i<best.j-best.i)))
-            best={i,j,d};
-        }
-      }
-      if(!best) break;
-      let mine=0, theirs=0;
-      for(let k=best.i;k<=best.j;k++){ const e=evts[k];
-        if(e.home===forHome) mine+=e.v; else theirs+=e.v; }
-      out.push({t0:evts[best.i].t, t1:evts[best.j].t, mine, theirs});
-      for(let k=best.i;k<=best.j;k++) used[k]=true;
-    }
-    return out.sort((a,b)=>a.t0-b.t0);
-  }
-
-  /** The single largest margin swing, unbounded — reported as a swing, never as a run. */
-  function biggestSwing(forHome){
-    let best=null;
-    for(let i=0;i<cum.length;i++)
-      for(let j=i+1;j<cum.length;j++){
-        const d=(cum[j]-cum[i])*(forHome?1:-1);
-        if(d>0 && (!best || d>best.d)) best={i,j,d};
-      }
-    if(!best) return null;
-    let mine=0, theirs=0;
-    for(let k=best.i;k<best.j;k++){ const e=evts[k];
-      if(e.home===forHome) mine+=e.v; else theirs+=e.v; }
-    return {t0:evts[best.i].t, t1:evts[best.j-1].t, mine, theirs, swing:best.d};
-  }
-
-  const runsBy={
-    unanswered:[streaks(false,0),          streaks(true,0)],
-    near:      [streaks(false,RUN_ALLOW),  streaks(true,RUN_ALLOW)],
-    swing:     [cappedSwings(false),       cappedSwings(true)],
-  };
-  const swings=[biggestSwing(false), biggestSwing(true)];
-
-  /* ---- per-period team stats ---- */
-  const per=[[],[]];
-  for(let p=1;p<=maxP;p++){
-    for(let side=0;side<2;side++){
-      const tid=teams[side].teamId;
-      const A=byPeriod[p].filter(a=>a.teamId===tid);
-      const fga=A.filter(a=>a.actionType==="2pt"||a.actionType==="3pt").length;
-      const fgm=A.filter(a=>(a.actionType==="2pt"||a.actionType==="3pt")&&a.shotResult==="Made").length;
-      const tpa=A.filter(a=>a.actionType==="3pt").length;
-      const tpm=A.filter(a=>a.actionType==="3pt"&&a.shotResult==="Made").length;
-      per[side].push({
-        p, pts:A.reduce((s,a)=>s+madePts(a),0),
-        fga,fgm,tpa,tpm,
-        reb:A.filter(a=>a.actionType==="rebound").length,
-        ast:byPeriod[p].filter(a=>a.teamId===tid && a.assistPersonId).length,
-        to: A.filter(a=>a.actionType==="turnover").length,
-      });
-    }
-  }
-
-  const players=[...P.values()];
-  const recon = players.filter(x=>x.played)
-    .map(x=>({name:x.name, d:x.calcMin - x.boxMin, dpm:x.calcPM - x.boxPM,
-              dast:(x.boxAst==null? 0 : x.calcAst - x.boxAst)}));
-
-  return {acts, players, teams, maxP, total, scheduled, live:!finalized, assists,
-          lineups, flow, runsBy, swings, everLed, leadState, per, openers, recon,
-          box:box.game, diff};
-}
-
 /* ============================ rendering ============================ */
 const tip=$("#tip");
 let showTip=(html,ev)=>{
@@ -2169,10 +1598,8 @@ const layoutMode   = () => ($("#layout") ? $("#layout").value : "table");
 const TABLE_OR_POSTER=[["table","table"],["poster","infographic"]];
 const LAYOUTS={
   board:TABLE_OR_POSTER,
-  highs:TABLE_OR_POSTER, thirty:TABLE_OR_POSTER, records:TABLE_OR_POSTER,
-  streaks:TABLE_OR_POSTER, rest:TABLE_OR_POSTER, form:TABLE_OR_POSTER, cup:TABLE_OR_POSTER,
-  range:[["courts","shot charts"],["plot","distance on court"],["scatter","accuracy vs distance"]],
-  allstars:[["summary","summary"],["grid","full grid"]],
+  highs:TABLE_OR_POSTER, streaks:TABLE_OR_POSTER,
+  range:[["profile","shot profile"],["courts","shot charts"],["plot","distance on court"],["scatter","accuracy vs distance"]],
   splits:[["court","on / off court"],["game","by game"]],  // on/off first: the game-level split lives on the With / without page (0.58)
 };
 /* The rank control serves two views as well: it picks the unit for the assist board, and
@@ -2498,7 +1925,7 @@ async function buildHighs(tris, limit, onProgress){
       if(onProgress) onProgress(done, slate.length);
     }
   };
-  await Promise.all(Array.from({length:Math.min(5,slate.length)},worker));
+  await Promise.all(Array.from({length:Math.min(10,slate.length)},worker));   // 10 at a time: files on this site are small
 
   const byPts=(a,b)=>b.pts-a.pts || new Date(a.date)-new Date(b.date);
   return {teams:tris, games:seen.size, failed,
@@ -2651,6 +2078,12 @@ async function buildRange(tris, limit, onProgress){
 
   const rows=new Map();          // "id||tri" -> shooter
   const seen=new Set();
+  /* The shot profile (0.59): games he played (a game with no three still counts against his rate), and every
+     team's threes by zone, taken and allowed, for tonight's matchups. */
+  const played=new Map();        // "id||tri" -> [{gameId, date}]
+  const zoneT=()=>({games:new Set(), att:0, made:0, corner:0, cornerMade:0, deep:0, deepMade:0, spotted:0});
+  const teamZ=new Map(), allowZ=new Map();
+  const zOf=(m,t)=>{ let z=m.get(t); if(!z){ z=zoneT(); m.set(t,z); } return z; };
   let done=0, failed=0;
   // how well the two signals agree, measured rather than assumed
   let bothN=0, bothErr=0, bothMax=0;
@@ -2666,10 +2099,20 @@ async function buildRange(tris, limit, onProgress){
         if(side>=0){
           seen.add(g.gameId);
           const byId=new Map(G.players.map(p=>[p.id,p]));
+          const oppTri=side? G.box.awayTeam.teamTricode : G.box.homeTeam.teamTricode;
+          const TZ=zOf(teamZ,tri), AZ=zOf(allowZ,oppTri);
+          TZ.games.add(g.gameId); AZ.games.add(g.gameId);
+          for(const pl of G.players){ if(pl.side!==side || !pl.played) continue;
+            const k=String(pl.id)+"||"+tri; if(!played.has(k)) played.set(k,[]); played.get(k).push({gameId:g.gameId, date:g.date}); }
           for(const a of G.acts){
             if(a.actionType!=="3pt") continue;
             const pl=byId.get(a.personId);
             if(!pl || pl.side!==side) continue;
+            { const made3=a.shotResult==="Made", d3=shotDist(a), zone=threeZone(a, d3);
+              for(const Z of [TZ,AZ]){ Z.att++; if(made3) Z.made++;
+                if(zone.spotted) Z.spotted++;
+                if(zone.corner){ Z.corner++; if(made3) Z.cornerMade++; }
+                if(zone.deep){ Z.deep++; if(made3) Z.deepMade++; } } }
             const k=String(pl.id)+"||"+tri;
             let r=rows.get(k);
             if(!r){ r={id:pl.id, name:pl.name, tri, seen:g.date,
@@ -2692,8 +2135,9 @@ async function buildRange(tris, limit, onProgress){
                    else r.fromSpot++; }
             else r.noDist++;
 
-            if(hasSpot(a)) r.shots.push({sx:a.sx, sy:a.sy, made, ft:d?d.ft:null});
+            if(hasSpot(a)) r.shots.push({sx:a.sx, sy:a.sy, made, ft:d?d.ft:null, gameId:g.gameId, date:g.date});
             else r.noSpot++;
+            (r.zshots||(r.zshots=[])).push({made, ft:d?d.ft:null, gameId:g.gameId, date:g.date, ...threeZone(a, d)});
           }
         }
       }catch(e){ failed++; }
@@ -2701,14 +2145,15 @@ async function buildRange(tris, limit, onProgress){
       if(onProgress) onProgress(done, slate.length);
     }
   };
-  await Promise.all(Array.from({length:Math.min(5,slate.length)},worker));
+  await Promise.all(Array.from({length:Math.min(10,slate.length)},worker));   // 10 at a time: files on this site are small
 
   const all=[...rows.values()].map(r=>({...r,
     avg: r.distN? r.distSum/r.distN : null,
     pct: r.att? 100*r.made/r.att : 0}));
   const eligible=all.filter(r=>r.att>=RANGE_MIN_3PA && r.avg!=null)
                     .sort((a,b)=>b.avg-a.avg || b.att-a.att);
-  return {teams:tris, games:seen.size, failed, all, eligible,
+  for(const r of all){ const pg=played.get(String(r.id)+"||"+r.tri)||[]; r.games=pg.slice().sort((a,b)=>new Date(a.date)-new Date(b.date)); }
+  return {teams:tris, games:seen.size, failed, all, eligible, teamZ, allowZ,
           window:{limit},
           agree: bothN? {n:bothN, mean:bothErr/bothN, max:bothMax} : null};
 }
@@ -3055,6 +2500,129 @@ function renderRangeScatter(card, agg){
   posterTools(card, p, "Does shooting deeper cost you?", "nba-3pt-accuracy.html");
 }
 
+/* ==================== the shot profile (0.59) ====================
+ * Where a shooter's threes come from, and whether that is changing: corner threes (the short 22-foot ones, read
+ * from the coordinate), deep ones (27+ feet, from the stated distance or the coordinate), his last five games
+ * against his season, and, on the league view, tonight's matchups: how often each team shoots from the corner
+ * and how often its opponent lets teams do it.
+ */
+const DEEP_FT = 27, PROFILE_MIN_3PA = 25, RECENT_N = 5;
+function threeZone(a, d){
+  const spotted=hasSpot(a);
+  const corner=spotted && Math.abs(a.sx)>=CORNER_D-1 && a.sy<=CORNER_Y;
+  const ft=d? d.ft : (spotted? Math.hypot(a.sx,a.sy) : null);
+  return {spotted, corner, deep: ft!=null && ft>=DEEP_FT && !corner};
+}
+const todayEastern = () => new Date().toLocaleDateString("en-CA",{timeZone:"America/New_York"});
+function tonightTeams(){
+  const t=todayEastern(), set=new Map();
+  for(const g of GAMES){ if(gameDay(g.date)!==t || !isFranchise(g.home) || !isFranchise(g.away)) continue;
+    set.set(g.home, g.away); set.set(g.away, g.home); }
+  return set;       // tri -> tonight's opponent
+}
+function profileRow(r){
+  const zs=r.zshots||[], gp=(r.games||[]).length;
+  const n=f=>zs.filter(f).length, pct=(m,a)=>a? 100*m/a : null;
+  const corner=n(z=>z.corner), cornerMade=n(z=>z.corner&&z.made), deep=n(z=>z.deep), deepMade=n(z=>z.deep&&z.made);
+  const above=r.att-corner, aboveMade=r.made-cornerMade;
+  const recentIds=new Set((r.games||[]).slice(-RECENT_N).map(g=>g.gameId));
+  const rz=zs.filter(z=>recentIds.has(z.gameId));
+  const avgFt=xs=>{ const f=xs.filter(z=>z.ft!=null); return f.length? f.reduce((s,z)=>s+z.ft,0)/f.length : null; };
+  const recentN=Math.min(RECENT_N, gp);
+  return {...r, gp, corner, cornerMade, deep, deepMade, above, aboveMade,
+    perG: gp? r.att/gp : null, cornerShare: r.att? 100*corner/r.att : null,
+    cornerPct: pct(cornerMade,corner), abovePct: pct(aboveMade,above), deepPct: pct(deepMade,deep),
+    recentPerG: recentN? rz.length/recentN : null, recentPct: pct(rz.filter(z=>z.made).length, rz.length),
+    recentFt: avgFt(rz), seasonFt: r.avg, recentN};
+}
+function renderRangeProfile(card, agg){
+  const league=agg.teams.length>1;
+  const tonight=tonightTeams();
+  const only = (window.__rangeTonight ??= tonight.size>0);
+  const sortKey = (window.__rangeSort ||= {k:"att", d:-1});
+  const f1=v=>v==null? "—" : v.toFixed(1), f0=v=>v==null? "—" : v.toFixed(0)+"%";
+  const sg=(v,d=1)=>v==null? "" : (v>0?"+":"")+v.toFixed(d);
+  let rows=agg.all.filter(r=>r.att>=PROFILE_MIN_3PA).map(profileRow);
+  if(only && tonight.size) rows=rows.filter(r=>tonight.has(r.tri));
+
+  const bar=el("div","legend");
+  if(tonight.size){
+    const lab=el("label","ck"); const cb=el("input"); cb.type="checkbox"; cb.checked=only;
+    cb.addEventListener("change",()=>{ window.__rangeTonight=cb.checked; renderRange(agg); });
+    lab.appendChild(cb); lab.appendChild(document.createTextNode(` tonight's teams only (${tonight.size})`)); bar.appendChild(lab);
+  }
+  bar.appendChild(el("span","",`${rows.length} shooters with ${PROFILE_MIN_3PA}+ three-point attempts · click a column to sort`));
+  card.appendChild(bar);
+
+  /* Tonight's matchups: each side's corner habit and accuracy against what the other side allows. League view
+     only, because the allowed side needs every team's games. */
+  if(league && tonight.size){
+    const lg={att:0, corner:0, made:0}; for(const z of agg.teamZ.values()){ lg.att+=z.att; lg.corner+=z.corner; lg.made+=z.made; }
+    const lgShare=lg.att? 100*lg.corner/lg.att : null, lgPct=lg.att? 100*lg.made/lg.att : null;
+    const pairs=[], done=new Set();
+    for(const [a,b] of tonight){ const k=[a,b].sort().join("-"); if(done.has(k)) continue; done.add(k); pairs.push([a,b]); }
+    card.appendChild(el("div","rule"));
+    const h=el("div","sect nm","Tonight's three-point matchups"); h.style.textAlign="left"; card.appendChild(h);
+    const tbl=el("table","per lb"); const th=el("tr");
+    ["team","3PA / game","from the corner","3P%","vs","3PA / game allowed","allowed from the corner","3P% allowed"].forEach(x=>th.appendChild(el("th","",x)));
+    tbl.appendChild(th);
+    const z=(m,t)=>m.get(t)||null;
+    const per=(Z)=>Z&&Z.games.size? Z.att/Z.games.size : null, share=Z=>Z&&Z.att? 100*Z.corner/Z.att : null, acc=Z=>Z&&Z.att? 100*Z.made/Z.att : null;
+    const mark=(v,ref,hi)=>v==null||ref==null? f0(v) : `${f0(v)}`+(Math.abs(v-ref)>=(hi||3)? ` <span style="color:var(--dim)">${v>ref?"▲":"▼"}</span>`:"");
+    for(const [a,b] of pairs) for(const [me,op] of [[a,b],[b,a]]){
+      const T=z(agg.teamZ,me), A=z(agg.allowZ,op);
+      const tr=el("tr");
+      const td=el("td"); td.style.textAlign="left";
+      td.innerHTML=`<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${tcol(me)};margin-right:5px"></span>${me}`;
+      tr.appendChild(td);
+      [f1(per(T)), mark(share(T),lgShare), mark(acc(T),lgPct,2), op, f1(per(A)), mark(share(A),lgShare), mark(acc(A),lgPct,2)]
+        .forEach(v=>{ const d=el("td"); d.innerHTML=v; tr.appendChild(d); });
+      tbl.appendChild(tr);
+    }
+    const mw=el("div"); mw.style.overflowX="auto"; mw.appendChild(tbl); card.appendChild(mw);
+    card.appendChild(noteEl(`League: ${f0(lgShare)} of threes from the corner, ${f0(lgPct)} made. ▲ ▼ mark 3+ points of corner share `+
+      `(2+ of accuracy) above or below the league. "Allowed" is what the opponent has given up: every three taken against it this season.`));
+  }
+
+  const COLS=[
+    ["att","3PA",r=>r.att,r=>String(r.att)],
+    ["perG","per game",r=>r.perG,r=>f1(r.perG)],
+    ["pct","3P%",r=>r.pct,r=>f0(r.pct)],
+    ["cornerShare","corner share",r=>r.cornerShare,r=>f0(r.cornerShare)],
+    ["cornerPct","corner 3P%",r=>r.cornerPct??-1,r=>r.corner? `${f0(r.cornerPct)} <span style="color:var(--dimmer)">${r.cornerMade}/${r.corner}</span>` : "—"],
+    ["abovePct","above the break",r=>r.abovePct??-1,r=>f0(r.abovePct)],
+    ["deep",`${DEEP_FT}+ ft`,r=>r.deep,r=>r.deep? `${r.deep} <span style="color:var(--dimmer)">${f0(r.deepPct)}</span>` : "0"],
+    ["avg","avg ft",r=>r.seasonFt??0,r=>f1(r.seasonFt)],
+    ["recentPerG",`last ${RECENT_N}: per game`,r=>(r.recentPerG??0)-(r.perG??0),r=>r.recentPerG==null? "—" : `${f1(r.recentPerG)} <span style="color:var(--dim)">${sg(r.recentPerG-r.perG)}</span>`],
+    ["recentPct",`last ${RECENT_N}: 3P%`,r=>(r.recentPct??0)-(r.pct??0),r=>r.recentPct==null? "—" : `${f0(r.recentPct)} <span style="color:var(--dim)">${sg(r.recentPct-r.pct,0)}</span>`],
+    ["recentFt",`last ${RECENT_N}: avg ft`,r=>(r.recentFt??0)-(r.seasonFt??0),r=>r.recentFt==null? "—" : `${f1(r.recentFt)} <span style="color:var(--dim)">${sg(r.recentFt-r.seasonFt)}</span>`],
+  ];
+  const col=COLS.find(c=>c[0]===sortKey.k)||COLS[0];
+  rows.sort((a,b)=>sortKey.d*(col[2](a)-col[2](b)) || b.att-a.att);
+  card.appendChild(el("div","rule"));
+  const wrap=el("div"); wrap.style.overflowX="auto";
+  const tbl=el("table","per lb"); const th=el("tr");
+  th.appendChild(el("th","","#")); th.appendChild(el("th","","shooter"));
+  COLS.forEach(c=>{ const h=el("th","",c[1]+(c[0]===sortKey.k?(sortKey.d<0?" ▾":" ▴"):"")); h.style.cursor="pointer";
+    h.title=c[0].startsWith("recent")? "Sorted by the change from his season" : "Click to sort";
+    h.addEventListener("click",()=>{ if(sortKey.k===c[0]) sortKey.d=-sortKey.d; else { sortKey.k=c[0]; sortKey.d=-1; } renderRange(agg); });
+    th.appendChild(h); });
+  tbl.appendChild(th);
+  rows.slice(0,60).forEach((r,i)=>{
+    const tr=el("tr"); tr.appendChild(el("td","",String(i+1)));
+    const td=el("td"); td.style.textAlign="left";
+    td.innerHTML=`<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${tcol(r.tri)};margin-right:5px"></span>${r.name} <span style="color:var(--dim)">${r.tri}${tonight.has(r.tri)? " · vs "+tonight.get(r.tri) : ""}</span>`;
+    tr.appendChild(td);
+    COLS.forEach(c=>{ const d=el("td"); d.innerHTML=c[3](r); if(c[0]===sortKey.k){ d.style.color="var(--text)"; d.style.fontWeight="500"; } tr.appendChild(d); });
+    tbl.appendChild(tr);
+  });
+  wrap.appendChild(tbl); card.appendChild(wrap);
+  card.appendChild(noteEl(`Corner threes are the short ones along the baseline (${CORNER_D} ft), read from the shot's coordinate; `+
+    `above the break is everything else. ${DEEP_FT}+ ft uses the distance ESPN states, or the coordinate. The last ${RECENT_N} are his `+
+    `last ${RECENT_N} games played, a game without a three included; the grey number is the change from his season. `+
+    `${rows.length>60? `Top 60 of ${rows.length} shown.` : ""}`));
+}
+
 function renderRange(agg){
   const out=$("#out"); out.innerHTML="";
   const card=el("div","card"); out.appendChild(card);
@@ -3070,12 +2638,13 @@ function renderRange(agg){
   m.innerHTML=(agg.window.limit>0? `<b>last ${agg.window.limit}</b> games per team`
                                  : `<b>full regular season</b>`)
     + ` · ${agg.games} games · all three-point attempts`
-    + ` · min. ${RANGE_MIN_3PA} attempts`
+    + ` · min. ${layoutMode()==="profile"? PROFILE_MIN_3PA : RANGE_MIN_3PA} attempts`
     + (agg.failed? ` · ${agg.failed} unavailable`:"");
   m.appendChild(el("span","badge ok",(SOURCE[ACTIVE]||{label:"?"}).label));
   gh.appendChild(m);
   card.appendChild(gh);
 
+  if(layoutMode()==="profile"){ renderRangeProfile(card, agg); finishRender(); return; }
   const top=topWithTies(agg.eligible, RANGE_N, r=>r.avg);
   if(!top.length){
     card.appendChild(noteEl(
@@ -3405,7 +2974,7 @@ async function buildLeague(limit, onProgress){
       if(onProgress) onProgress(done, slate.length);
     }
   };
-  await Promise.all(Array.from({length:Math.min(5,slate.length)},worker));
+  await Promise.all(Array.from({length:Math.min(10,slate.length)},worker));   // 10 at a time: files on this site are small
 
   const teams=[...team.values()].map(r=>({...r,
     poss:possOf({fga:r.fga, oreb:r.oreb, tov:r.tov, fta:r.fta}),
@@ -3479,101 +3048,7 @@ function rankPoster({kick, title, cols, rows, notes}){
   return p;
 }
 
-/* ==================== section: 30-point games allowed ==================== */
-function renderThirty(agg){
-  const out=$("#out"); out.innerHTML="";
-  const card=el("div","card"); out.appendChild(card);
-  const gh=el("div","gamehead");
-  const sc=el("div","score"); const w=el("span","tri");
-  w.appendChild(el("span","",`League — ${THIRTY_PT}-point games allowed`));
-  sc.appendChild(w); gh.appendChild(sc);
-  const m=el("div","meta");
-  m.innerHTML=(agg.window.limit>0? `<b>last ${agg.window.limit}</b> games per team`
-                                 : `<b>full regular season</b>`)
-    + ` · ${agg.games} games · ${agg.big.length} such games league-wide`
-    + (agg.failed? ` · ${agg.failed} unavailable`:"");
-  m.appendChild(el("span","badge ok",(SOURCE[ACTIVE]||{label:"?"}).label));
-  gh.appendChild(m); card.appendChild(gh);
 
-  const byTeam=agg.teams.slice().sort((a,b)=>b.allowed30-a.allowed30
-    || a.tri.localeCompare(b.tri));
-  const ranks=denseRanks(byTeam.map(t=>-t.allowed30));
-  const counts={}; ranks.forEach(r=>{counts[r]=(counts[r]||0)+1;});
-
-  if(layoutMode()==="poster"){
-    card.appendChild(rankPoster({
-      kick:`NBA ${seasonLabel()}`,
-      title:`${THIRTY_PT}-point games allowed`,
-      cols:["team","allowed"],
-      rows:byTeam.slice(0,RANK_POSTER_N).map((t,i)=>({
-        rank:(counts[ranks[i]]>1?"T":"")+ranks[i],
-        name:teamName(t.tri), tri:t.tri,
-        sub:`${t.gp? (t.allowed30/t.gp).toFixed(2):"—"} per game · `+
-            `${t.dre!=null? t.dre.toFixed(1):"—"} opp pts/100`,
-        value:String(t.allowed30), frac:t.allowed30,
-      })),
-      notes:[`One is credited for every opposing player who reached ${THIRTY_PT} against `+
-        `this team, so a single game can count twice.`,
-        `Opponent points per 100 possessions is estimated as FGA − OREB + TOV + 0.44 × FTA.`],
-    }));
-    finishRender(); return;
-  }
-
-  card.appendChild(el("div","rule"));
-  const h=el("div","sect nm","Who has allowed the most");
-  h.style.textAlign="left"; h.style.paddingRight="0"; card.appendChild(h);
-  const tbl=el("table","per lb"); const th=el("tr");
-  ["#","team","allowed","per game","opp pts/100","opp pts/game"]
-    .forEach(x=>th.appendChild(el("th","",x)));
-  tbl.appendChild(th);
-  byTeam.forEach((t,i)=>{
-    const tr=el("tr");
-    const cells=[(counts[ranks[i]]>1?"T":"")+ranks[i], t.tri, String(t.allowed30),
-      t.gp? (t.allowed30/t.gp).toFixed(2):"—",
-      t.dre!=null? t.dre.toFixed(1):"—", t.paPg!=null? t.paPg.toFixed(1):"—"];
-    cells.forEach((c,k)=>{
-      const td=el("td","",c);
-      if(k===1){ td.style.textAlign="left";
-        td.innerHTML=`<span style="display:inline-block;width:8px;height:8px;border-radius:2px;`+
-          `background:${tcol(t.tri)};margin-right:5px"></span>${t.tri}`; }
-      if(k===2){ td.style.color="var(--text)"; td.style.fontWeight="500"; }
-      tr.appendChild(td);
-    });
-    tbl.appendChild(tr);
-  });
-  card.appendChild(tbl);
-  card.appendChild(noteEl(
-    `A team is credited with one for every opposing player who reached ${THIRTY_PT} `+
-    `points against it, so a single game can count twice if two opponents both got there. `+
-    `Opponent points per 100 possessions is the same defensive efficiency used in the `+
-    `All-Star section, with possessions estimated as FGA − OREB + TOV + 0.44 × FTA.`));
-
-  card.appendChild(el("div","rule"));
-  const h2=el("div","sect nm","Every one of them");
-  h2.style.textAlign="left"; h2.style.paddingRight="0"; card.appendChild(h2);
-  const t2=el("table","per lb"); const th2=el("tr");
-  ["#","player","team","pts","against","date"].forEach(x=>th2.appendChild(el("th","",x)));
-  t2.appendChild(th2);
-  const rk=denseRanks(agg.big.map(b=>-b.pts));
-  const rc={}; rk.forEach(r=>{rc[r]=(rc[r]||0)+1;});
-  agg.big.forEach((b,i)=>{
-    const tr=el("tr");
-    const d=new Date(b.date).toLocaleDateString(undefined,{month:"short",day:"numeric"});
-    [(rc[rk[i]]>1?"T":"")+rk[i], b.name, b.tri, String(b.pts),
-     `${b.home?"vs":"at"} ${b.against}`, d].forEach((c,k)=>{
-      const td=el("td","",c);
-      if(k===1||k===2||k===4) td.style.textAlign="left";
-      if(k===1) td.style.color="var(--text)";
-      if(k===3){ td.style.color="var(--text)"; td.style.fontWeight="500"; }
-      tr.appendChild(td);
-    });
-    t2.appendChild(tr);
-  });
-  card.appendChild(t2);
-  if(!agg.big.length) card.appendChild(noteEl(
-    `No opposing player has reached ${THIRTY_PT} in this selection.`));
-  finishRender();
-}
 
 /* ============ section: scoring against the top defenses ============
  * Two pools: the All-Star roster, or every player with the games to support the split.
@@ -3775,94 +3250,7 @@ function defDefinition(agg, N){
         `${byGame.join(", ")} rather than ${byPoss.join(", ")}.`)+`<br>`;
 }
 
-function renderAllStars(agg){
-  const out=$("#out"); out.innerHTML="";
-  const card=el("div","card"); out.appendChild(card);
-  const everyone=poolMode()!=="stars";
-  const gh=el("div","gamehead");
-  const sc=el("div","score"); const w=el("span","tri");
-  /* Named for what it measures rather than for who it used to cover: the roster is one of
-     two pools now, and "All-Star splits" told you nothing about the split itself. */
-  w.appendChild(el("span","",everyone
-    ? "League — scoring vs top defenses, every qualified player"
-    : "League — scoring vs top defenses, All-Stars"));
-  sc.appendChild(w); gh.appendChild(sc);
-  const m=el("div","meta");
-  /* Each named team carries its own figure on hover. "Top defense" is a claim, and the
-     reader should be able to see the number behind it without leaving the section. */
-  const byTri=new Map(agg.teams.map(t=>[t.tri,t]));
-  m.innerHTML=(agg.window.limit>0? `<b>last ${agg.window.limit}</b> games per team`
-                                 : `<b>full regular season</b>`)
-    + ` · ${agg.games} games · top ${defTopN()} defenses by `
-    + `<b title="Points allowed per 100 of the opponent's estimated possessions: `
-    + `FGA - OREB + TOV + 0.44 x FTA. Not points per game.">points allowed per 100</b>: `
-    + topDefOf(agg, defTopN()).map(t=>{
-        const r=byTri.get(t)||{};
-        return `<span title="${t}: ${r.dre!=null? r.dre.toFixed(1):"—"} allowed per 100 `
-          + `possessions, ${r.paPg!=null? r.paPg.toFixed(1):"—"} per game">${t}</span>`;
-      }).join(", ");
-  m.appendChild(el("span","badge ok",(SOURCE[ACTIVE]||{label:"?"}).label));
-  gh.appendChild(m); card.appendChild(gh);
 
-  /* The roster can't update itself, but it can refuse to pretend. Shown in both pools,
-     because the star marker in the league pool is just as wrong when the list is a year
-     out of date. */
-  if(rosterStale()) card.appendChild(noteEl(
-    `<b>This roster is the ${ALL_STARS_SEASON} selections, and the schedule on screen is `+
-    `${seasonLabel()}.</b> The list is kept by hand in the <code>ALL_STARS</code> array — `+
-    `neither feed publishes selections — so it does not follow the season. Names that no `+
-    `longer match anyone playing are listed below; update the array to fix this section.`));
-
-  if(everyone){ renderPool(agg, card); return; }
-
-  if(!ALL_STARS.length){
-    card.appendChild(noteEl(
-      "No All-Star roster is set. The list is kept by hand in the ALL_STARS array near "+
-      "the top of the All-Star section, because neither feed publishes selections — and "+
-      "deriving it from whoever played the All-Star Game would quietly drop anyone picked "+
-      "who sat out. Add the names and this section fills in."));
-    finishRender(); return;
-  }
-
-  const N=defTopN(), topDef=topDefOf(agg, N);
-  const {rows, missing}=allStarRows(agg, topDef);
-  const grid=layoutMode()==="grid";
-
-  card.appendChild(el("div","rule"));
-  const h=el("div","sect nm", grid ? "Every All-Star against every team"
-    : `Season, the top ${N} defenses, and everyone else`);
-  h.style.textAlign="left"; h.style.paddingRight="0"; card.appendChild(h);
-
-  if(!grid){
-    splitTable(card, rows, N, agg.teams.length);
-    card.appendChild(noteEl(
-      `Three columns: his <b>season</b> average, his average against the <b>top ${N} `+
-      `defenses</b>, and his average against the <b>other ${agg.teams.length-N} teams</b>. `+
-      `The last two partition his games — "the rest" is the complement of the group, not the `+
-      `season — so <b>gap</b> is a like-for-like difference. Against the season average `+
-      `instead, the group's own games would sit on both sides of the subtraction and shrink `+
-      `the difference.<br>`+
-      `<b>fg%</b> is made over attempted across the games in that column, not an average of `+
-      `per-game percentages — a 1-of-1 night and a 2-of-12 night are not equal evidence. `+
-      `Hover a percentage for the makes and attempts behind it.<br>`+
-      `Ranked by points gap, so whoever falls off most against the best sits at the top. The `+
-      `<b>rank</b> dropdown moves the boundary between top ${N} and the rest.<br>`+
-      defDefinition(agg, N)+
-      `<b>These are small samples</b> — a player meets any one team two or three times a `+
-      `season, so the top-${N} column typically rests on `+
-      `${rows.length? Math.round(rows.reduce((a,r)=>a+r.vsGp,0)/rows.length) : 0} games and `+
-      `a single big night moves it several points. Switch the layout to the grid to see the `+
-      `game counts behind every cell.<br>`+
-      `This is the 23-name All-Star roster. The <b>pool</b> dropdown widens it to every `+
-      `player in the league with the games to support the comparison.`));
-  }else{
-    gridTable(card, rows, agg, topDef, N);
-  }
-  if(missing.length) card.appendChild(noteEl(
-    `<b>Not found in the season data:</b> ${missing.join(", ")}. Check the spelling `+
-    `against the name the feed uses, or he may not have played a regular-season game.`));
-  finishRender();
-}
 
 /* Player × team points per game. Shared by both pools for the same reason as splitTable. */
 function gridTable(card, rows, agg, topDef, N){
@@ -3965,104 +3353,7 @@ function renderPool(agg, card){
   finishRender();
 }
 
-/* ==================== section: records against the best ==================== */
-function renderRecords(agg){
-  const out=$("#out"); out.innerHTML="";
-  const card=el("div","card"); out.appendChild(card);
-  const st=buildStandings();
-  const mode=rankMode();
-  const n=/^top(\d+)$/.exec(mode);
-  const group = n ? st.rows.slice(0, +n[1]).map(r=>r.tri)
-                  : st.rows.filter(r=>r.w>r.l).map(r=>r.tri);
-  const label = n ? `top ${n[1]} by record` : "teams with winning records";
 
-  const gh=el("div","gamehead");
-  const sc=el("div","score"); const w=el("span","tri");
-  w.appendChild(el("span","",`League — records against ${label}`));
-  sc.appendChild(w); gh.appendChild(sc);
-  const m=el("div","meta");
-  m.innerHTML=`<b>full regular season</b> · ${st.games} games decided · `
-    + `group: ${group.join(", ")||"none"}`;
-  m.appendChild(el("span","badge ok",(SOURCE[ACTIVE]||{label:"?"}).label));
-  gh.appendChild(m); card.appendChild(gh);
-
-  const set=new Set(group);
-  const rows=st.rows.map(r=>{
-    let w2=0,l2=0;
-    /* No self-check is needed: vs is keyed by opponent, and a team never plays itself,
-       so its own tricode can never appear. A team inside the group is therefore measured
-       against the rest of the group automatically. */
-    for(const [opp,m2] of r.vs){ if(!set.has(opp)) continue; w2+=m2.w; l2+=m2.l; }
-    return {...r, gw:w2, gl:l2, gpct:(w2+l2)? w2/(w2+l2) : null,
-            inGroup:set.has(r.tri)};
-  }).sort((a,b)=>(b.gpct??-1)-(a.gpct??-1) || b.gw-a.gw || a.tri.localeCompare(b.tri));
-  const ranks=denseRanks(rows.map(r=>-(r.gpct??-1)));
-  const counts={}; ranks.forEach(r=>{counts[r]=(counts[r]||0)+1;});
-
-  if(layoutMode()==="poster"){
-    /* Ranked on the group record, and the bar is win percentage against the group — a
-       record is two numbers, and a bar can only carry one of them honestly. */
-    const shown=rows.filter(r=>r.gpct!=null).slice(0,RANK_POSTER_N);
-    card.appendChild(rankPoster({
-      kick:`NBA ${seasonLabel()}`,
-      title:`Records against ${label}`,
-      cols:["team","vs the group"],
-      rows:shown.map((r,i)=>({
-        rank:(counts[ranks[i]]>1?"T":"")+ranks[i],
-        name:teamName(r.tri), tri:r.tri,
-        sub:`${r.w}-${r.l} overall · ${r.pct.toFixed(3).replace(/^0/,"")}`
-            + (r.inGroup? " · in the group":""),
-        value:`${r.gw}-${r.gl}`,
-        unit:r.gpct.toFixed(3).replace(/^0/,""),
-        frac:r.gpct,
-      })),
-      notes:[`From the schedule's final scores, so this needs no play-by-play and is exact.`,
-        `A team inside the group is measured against the others in it, never itself.`,
-        `The bar is win percentage against the group; the record beside it is the games.`],
-    }));
-    finishRender(); return;
-  }
-
-  card.appendChild(el("div","rule"));
-  const tbl=el("table","per lb"); const th=el("tr");
-  ["#","team","overall","pct",`vs ${label}`,"pct","gap"]
-    .forEach(x=>th.appendChild(el("th","",x)));
-  tbl.appendChild(th);
-  rows.forEach((r,i)=>{
-    const tr=el("tr");
-    const gap=(r.gpct!=null)? r.gpct-r.pct : null;
-    const cells=[(counts[ranks[i]]>1?"T":"")+ranks[i], r.tri, `${r.w}-${r.l}`,
-      r.pct.toFixed(3).replace(/^0/,""),
-      r.gpct!=null? `${r.gw}-${r.gl}` : "—",
-      r.gpct!=null? r.gpct.toFixed(3).replace(/^0/,"") : "—",
-      gap!=null? (gap>0?"+":"")+gap.toFixed(3).replace(/^(-?)0/,"$1") : "—"];
-    cells.forEach((c,k)=>{
-      const td=el("td","",c);
-      if(k===1){ td.style.textAlign="left";
-        td.innerHTML=`<span style="display:inline-block;width:8px;height:8px;border-radius:2px;`+
-          `background:${tcol(r.tri)};margin-right:5px"></span>${r.tri}`
-          + (r.inGroup? ` <span style="color:var(--dim);font-size:10px">in group</span>`:""); }
-      if(k===4){ td.style.color="var(--text)"; td.style.fontWeight="500"; }
-      if(k===6 && gap!=null){ td.style.fontWeight="600";
-        td.style.color = gap<0 ? "var(--bad,#e0603a)" : "var(--good,#3aa76d)"; }
-      tr.appendChild(td);
-    });
-    tbl.appendChild(tr);
-  });
-  card.appendChild(tbl);
-  card.appendChild(noteEl(
-    `Records come from the schedule's final scores, not from box scores, so this section `+
-    `needs no game reads and is exact. <b>A team in the group is measured against the `+
-    `others in it, never itself</b>, which is why the leaders show fewer games here than `+
-    `the group size implies. The <b>rank</b> dropdown shrinks the group from every winning `+
-    `team down to the single best team.`
-    + (n? ` The top ${n[1]} are taken by win percentage, ties broken on points difference.`
-        : "")
-    + (group.length===1? ` With a group of one, <b>${group[0]} has no opponent in it</b>, so `+
-        `its own row is blank rather than zero — there is nothing to measure it against.`
-        : "")));
-  finishRender();
-}
 
 /* ==================== section: rest and back-to-backs ====================
  * Two questions, and they are not the same one: how a team plays on no rest, and how it
@@ -4096,223 +3387,7 @@ function restStats(list){
     pct:(a.w+a.l)? a.w/(a.w+a.l) : null};
 }
 
-function renderRest(agg){
-  const out=$("#out"); out.innerHTML="";
-  const card=el("div","card"); out.appendChild(card);
-  const rows=restRows(agg);
-  const openers=rows.filter(r=>r.ob==null).length;
-  /* Both rows of a game are pushed together, so halving the count is exact rather than a
-     rounding. */
-  const bothTired=rows.filter(r=>r.ob===0 && r.pb===0).length/2;
 
-  const gh=el("div","gamehead");
-  const sc=el("div","score"); const w=el("span","tri");
-  w.appendChild(el("span","","League — rest and back-to-backs"));
-  sc.appendChild(w); gh.appendChild(sc);
-  const m=el("div","meta");
-  m.innerHTML=(agg.window.limit>0? `<b>last ${agg.window.limit}</b> games per team`
-                                 : `<b>full regular season</b>`)
-    + ` · ${agg.games} games · ${rows.filter(r=>r.ob===0).length} team-games on zero rest`
-    + (agg.failed? ` · ${agg.failed} unavailable`:"");
-  m.appendChild(el("span","badge ok",(SOURCE[ACTIVE]||{label:"?"}).label));
-  gh.appendChild(m); card.appendChild(gh);
-
-  const pc=x=>x!=null? x.toFixed(1)+"%":"—";
-  const f1=x=>x!=null? x.toFixed(1):"—";
-  const sgn=x=>x!=null? (x>0?"+":"")+x.toFixed(1):"—";
-  const wl=s=>(s.w+s.l)? `${s.w}-${s.l}` : "—";
-  const p3=x=>x!=null? x.toFixed(3).replace(/^(-?)0/,"$1") : "—";
-
-  /* Both ladders have the same columns on purpose: the only difference between them is
-     whose rest the rows are keyed on, and matching shapes make that comparable at a glance. */
-  const ladder=(title, key, lead)=>{
-    card.appendChild(el("div","rule"));
-    const h=el("div","sect nm",title);
-    h.style.textAlign="left"; h.style.paddingRight="0"; card.appendChild(h);
-    const tbl=el("table","per lb"); const th=el("tr");
-    ["days of rest","team-games","record","win%","pts","opp pts","margin","fg%","3p%",
-     "tov","poss/gm"].forEach(x=>th.appendChild(el("th","",x)));
-    tbl.appendChild(th);
-    /* Keyed on one side's measurement only. A team playing its own season opener against a
-       tired opponent is a perfectly good data point for "facing a tired team", so filtering
-       these rows on the other side's rest as well would throw it away. */
-    const seen=rows.filter(r=>r[key]!=null);
-    const base=restStats(seen.filter(r=>r[key]>0));
-    REST_BUCKETS.forEach(b=>{
-      const s=restStats(seen.filter(r=>r[key]===b));
-      const tr=el("tr");
-      [REST_LABEL[b], String(s.n), wl(s), p3(s.pct), f1(s.ppg), f1(s.oppg), sgn(s.marg),
-       pc(s.fg), pc(s.tp), f1(s.topg), f1(s.pace)].forEach((c,k)=>{
-        const td=el("td","",c);
-        if(k===0){ td.style.textAlign="left";
-          if(b===0){ td.style.color="var(--text)"; td.style.fontWeight="600"; } }
-        if(k===2||k===6){ td.style.color="var(--text)"; }
-        if(k===6 && s.marg!=null)
-          td.style.color = s.marg<0 ? "var(--bad,#e0603a)" : "var(--good,#3aa76d)";
-        tr.appendChild(td);
-      });
-      tbl.appendChild(tr);
-    });
-    /* A one-line comparison against every other bucket pooled, because the interesting
-       number is the difference and eyeballing it across four rows is where mistakes live. */
-    const zero=restStats(seen.filter(r=>r[key]===0));
-    const dtr=el("tr");
-    ["zero minus the rest", "", wl(zero)+" vs "+wl(base),
-     zero.pct!=null&&base.pct!=null? p3(zero.pct-base.pct):"—",
-     sgn(zero.ppg!=null&&base.ppg!=null? zero.ppg-base.ppg:null),
-     sgn(zero.oppg!=null&&base.oppg!=null? zero.oppg-base.oppg:null),
-     sgn(zero.marg!=null&&base.marg!=null? zero.marg-base.marg:null),
-     sgn(zero.fg!=null&&base.fg!=null? zero.fg-base.fg:null),
-     sgn(zero.tp!=null&&base.tp!=null? zero.tp-base.tp:null),
-     sgn(zero.topg!=null&&base.topg!=null? zero.topg-base.topg:null),
-     sgn(zero.pace!=null&&base.pace!=null? zero.pace-base.pace:null)]
-      .forEach((c,k)=>{
-        const td=el("td","",c);
-        td.style.borderTop="1px solid var(--line,#2a2f3a)";
-        if(k===0){ td.style.textAlign="left"; td.style.color="var(--dim)"; }
-        else td.style.color="var(--text)";
-        dtr.appendChild(td);
-      });
-    tbl.appendChild(dtr);
-    card.appendChild(tbl);
-    card.appendChild(noteEl(lead));
-  };
-
-  ladder("How teams play on their own rest", "ob",
-    `Every team-game in the season grouped by <b>how many days that team had off</b>. `+
-    `Zero days rest is the second game of a back-to-back. The last row is the zero-rest `+
-    `bucket minus <b>every other bucket pooled</b>, which is the comparison worth reading — `+
-    `against the season average the back-to-backs would sit on both sides of the `+
-    `subtraction.<br>`+
-    `<b>fg%</b> and <b>3p%</b> are pooled makes over pooled attempts. <b>poss/gm</b> is `+
-    `possessions estimated as FGA − OREB + TOV + 0.44 × FTA, the same estimate the `+
-    `defensive-efficiency columns use elsewhere.`);
-
-  ladder("How teams play against an opponent's rest", "pb",
-    `The same games grouped by <b>the opponent's</b> days off instead. A row here is "how `+
-    `teams did when facing a team on this much rest", so the zero-rest row is the `+
-    `rest-advantage case — playing a team on the back half of a back-to-back.<br>`+
-    `It is not the mirror image of the table above: the two sides of one game can sit in `+
-    `different buckets, and ${bothTired} game${bothTired===1?"":"s"} had `+
-    `<b>both</b> teams on zero rest, where neither has the advantage.`);
-
-  // ---- per team, own rest ----
-  const tris=[...new Set(rows.map(r=>r.tri))].sort();
-  const perTeam=tris.map(t=>{
-    const mine=rows.filter(r=>r.tri===t && r.ob!=null);
-    const by={}; REST_BUCKETS.forEach(b=>{ by[b]=restStats(mine.filter(r=>r.ob===b)); });
-    const zero=by[0], rest=restStats(mine.filter(r=>r.ob>0));
-    return {tri:t, by, zero, rest,
-            gap:(zero.marg!=null && rest.marg!=null)? zero.marg-rest.marg : null};
-  });
-
-  if(layoutMode()==="poster"){
-    /* The league ladders are a table by nature — four buckets by ten stats — so the poster
-       takes the one ranking in this section: what a back-to-back costs each team. The
-       league's own zero-rest margin sits in the footnote as the baseline. */
-    const zero=restStats(rows.filter(r=>r.ob===0));
-    const other=restStats(rows.filter(r=>r.ob!=null && r.ob>0));
-    const ranked=perTeam.filter(r=>r.gap!=null)
-      .sort((a,b)=>a.gap-b.gap).slice(0,RANK_POSTER_N);
-    const worst=ranked.length? Math.abs(ranked[0].gap) : 1;
-    card.appendChild(rankPoster({
-      kick:`NBA ${seasonLabel()}`,
-      title:"What a back-to-back costs",
-      cols:["team","points of margin"],
-      rows:ranked.map((r,i)=>({
-        rank:i+1, name:teamName(r.tri), tri:r.tri,
-        sub:`${wl(r.zero)} on no rest (${sgn(r.zero.marg)}) · `+
-            `${wl(r.rest)} rested (${sgn(r.rest.marg)})`,
-        value:sgn(r.gap), unit:`${r.zero.n} game${r.zero.n===1?"":"s"}`,
-        frac:Math.abs(r.gap)/worst,
-      })),
-      notes:[`Margin on zero days rest minus margin on every other amount of rest, so the `+
-        `teams a back-to-back costs most are at the top.`,
-        `League-wide, zero rest runs at ${sgn(zero.marg)} a game against `+
-        `${sgn(other.marg)} rested, over ${zero.n} team-games.`,
-        `<b>These are small samples</b> — a handful of back-to-backs each — so read the `+
-        `league line for the trend and these for who it happened to.`],
-    }));
-    finishRender(); return;
-  }
-
-  card.appendChild(el("div","rule"));
-  const h3=el("div","sect nm","Each team, by its own days of rest");
-  h3.style.textAlign="left"; h3.style.paddingRight="0"; card.appendChild(h3);
-  const t3=el("table","per lb"); const th3=el("tr");
-  ["team"].concat(REST_BUCKETS.flatMap(b=>[REST_LABEL[b].replace(" (back-to-back)","")+
-    " record", "margin"])).concat(["b2b − rest"])
-    .forEach(x=>th3.appendChild(el("th","",x)));
-  t3.appendChild(th3);
-  perTeam.slice().sort((a,b)=>(a.gap??1e9)-(b.gap??1e9)).forEach(r=>{
-    const tr=el("tr");
-    const cells=[r.tri].concat(REST_BUCKETS.flatMap(b=>[wl(r.by[b]), sgn(r.by[b].marg)]))
-      .concat([sgn(r.gap)]);
-    cells.forEach((c,k)=>{
-      const td=el("td","",c);
-      if(k===0){ td.style.textAlign="left";
-        td.innerHTML=`<span style="display:inline-block;width:8px;height:8px;`+
-          `border-radius:2px;background:${tcol(r.tri)};margin-right:5px"></span>${r.tri}`; }
-      if(k===1||k===2){ td.style.color="var(--text)"; }
-      if(k===cells.length-1 && r.gap!=null){ td.style.fontWeight="600";
-        td.style.color = r.gap<0 ? "var(--bad,#e0603a)" : "var(--good,#3aa76d)"; }
-      tr.appendChild(td);
-    });
-    t3.appendChild(tr);
-  });
-  card.appendChild(t3);
-  card.appendChild(noteEl(
-    `Ranked by the last column: point margin on zero rest minus point margin on every `+
-    `other amount of rest, so the teams a back-to-back costs most sit at the top. `+
-    `<b>A team plays only a handful of back-to-backs a season</b>, so a single blowout `+
-    `moves a row several points — read the league rows above for the trend and these for who `+
-    `it happened to.`));
-
-  // ---- per team, facing a tired opponent ----
-  card.appendChild(el("div","rule"));
-  const h4=el("div","sect nm","Each team against an opponent on zero rest");
-  h4.style.textAlign="left"; h4.style.paddingRight="0"; card.appendChild(h4);
-  const t4=el("table","per lb"); const th4=el("tr");
-  ["team","games","record","win%","pts","opp pts","margin","fg%",
-   "margin, other games","advantage"].forEach(x=>th4.appendChild(el("th","",x)));
-  t4.appendChild(th4);
-  const facing=tris.map(t=>{
-    // keyed on the opponent's rest, so a team's own opener still counts here
-    const mine=rows.filter(r=>r.tri===t && r.pb!=null);
-    const vs=restStats(mine.filter(r=>r.pb===0));
-    const other=restStats(mine.filter(r=>r.pb>0));
-    return {tri:t, vs, other,
-            gap:(vs.marg!=null && other.marg!=null)? vs.marg-other.marg : null};
-  }).sort((a,b)=>(b.gap??-1e9)-(a.gap??-1e9));
-  facing.forEach(r=>{
-    const tr=el("tr");
-    const cells=[r.tri, String(r.vs.n), wl(r.vs), p3(r.vs.pct), f1(r.vs.ppg),
-      f1(r.vs.oppg), sgn(r.vs.marg), pc(r.vs.fg), sgn(r.other.marg), sgn(r.gap)];
-    cells.forEach((c,k)=>{
-      const td=el("td","",c);
-      if(k===0){ td.style.textAlign="left";
-        td.innerHTML=`<span style="display:inline-block;width:8px;height:8px;`+
-          `border-radius:2px;background:${tcol(r.tri)};margin-right:5px"></span>${r.tri}`; }
-      if(k===2||k===6){ td.style.color="var(--text)"; }
-      if(k===9 && r.gap!=null){ td.style.fontWeight="600";
-        td.style.color = r.gap<0 ? "var(--bad,#e0603a)" : "var(--good,#3aa76d)"; }
-      tr.appendChild(td);
-    });
-    t4.appendChild(tr);
-  });
-  card.appendChild(t4);
-  card.appendChild(noteEl(
-    `<b>Advantage</b> is its margin against tired opponents minus its margin in every other `+
-    `game — how much a team has actually made of the rest edge, not how often it got one. `+
-    `Ranked by that, best first. These are the smallest samples on the page: a team catches `+
-    `an opponent on no rest a handful of times a year.<br>`+
-    `Rest itself comes from the <b>schedule</b>, counted in Eastern dates because that is the `+
-    `league's own scheduling day and a late tip is already tomorrow in UTC. It looks at each `+
-    `team's whole season even when a window is selected — the previous game happened whether `+
-    `or not it is on screen. Season openers have no previous game and sit in no bucket: `+
-    `${openers} team-game${openers===1?"":"s"} here.`));
-  finishRender();
-}
 
 /* ==================== section: the hot hand ====================
  * Whether a player's last few games are above his own normal, in his own units. A 20-point
@@ -4545,232 +3620,7 @@ function logPoster({kick, title, cards, notes}){
   return p;
 }
 
-function renderForm(agg, host){
-  /* host is for tests: the same render, into a detached card. */
-  const out=host || $("#out");
-  if(!host) out.innerHTML="";
-  const card=el("div","card"); out.appendChild(card);
-  const len=formLen(), key=formStat(), k=formSd(), dir=formDir();
-  const floor=formFloor(), bar=formMins();
-  const down=dir==="down", dirWord=FORM_DIR_WORD[dir];
-  const label=FORM_STATS[key], one=label.replace(/s$/,"");
-  /* Which way is bad depends on the stat, and only the wording depends on it: fewer points
-     is a slump, more turnovers is a slump. The screen says which it is looking at instead of
-     calling either one "hot". */
-  const badWay = FORM_HIGH_GOOD[key]===false ? "up" : "down";
-  const all=formRows(agg, len, key, dir, floor, bar);
-  /* Without the qualifiers, so the screen can say how many they removed rather than just
-     showing a shorter list. */
-  const raw=formRows(agg, len, key, dir, 0, 0);
-  const rawHot=raw.filter(r=>(down? r.z<=-k : r.z>=k) && r.real).length;
-  const overSd=all.filter(r=>down? r.z<=-k : r.z>=k);
-  const hot=overSd.filter(r=>r.real);
-  const dropped=overSd.length-hot.length;
-  const runs=formStreaks(agg, key, dir);
 
-  const gh=el("div","gamehead");
-  const sc=el("div","score"); const w=el("span","tri");
-  w.appendChild(el("span","",
-    `League - ${dir===badWay? "cold" : "hot"} runs, ${label}`));
-  sc.appendChild(w); gh.appendChild(sc);
-  const m=el("div","meta");
-  m.innerHTML=(agg.window.limit>0? `<b>last ${agg.window.limit}</b> games per team`
-                                 : `<b>full regular season</b>`)
-    + ` · ${agg.games} games · his last <b>${len}</b> games played against his others`
-    + ` · flagging <b>${down?"−":"+"}${k.toFixed(1)} SD</b> or more, `
-    + `<b>${dirWord}</b> his normal`;
-  m.appendChild(el("span","badge ok",(SOURCE[ACTIVE]||{label:"?"}).label));
-  gh.appendChild(m); card.appendChild(gh);
-
-  /* Two team games missed is a rest day or a knock; four is a different situation, and the
-     stretch on screen is no longer this week's form. */
-  const STALE_GAMES = 4;
-  const f1=x=>x==null? "—" : x.toFixed(1);
-  const sgn=x=>x==null? "—" : (x>0?"+":"")+x.toFixed(1);
-  const dt=d=>new Date(d).toLocaleDateString(undefined,{month:"short",day:"numeric"});
-
-  if(layoutMode()==="poster"){
-    /* The log, not a bar chart: every game of the stretch on its own line, oldest first,
-       which is how a run of games is read out. */
-    card.appendChild(logPoster({
-      kick:`NBA ${seasonLabel()}`,
-      title:down? `Cold: ${label}` : `Running hot: ${label}`,
-      cards:hot.slice(0,LOG_CARDS_N).map(r=>({
-        name:r.name, id:r.id, tri:r.tri,
-        when:`${r.tri} · last ${len} games played`,
-        lines:r.recent.map(g=>slashLine(g)),
-        foot:`<b>${f1(r.recentAvg)} ${label}</b> over the ${len}, median `+
-             `<b>${f1(r.med)}</b> · his normal is <b>${f1(r.baseAvg)}</b> across his other `+
-             `${r.bv.length} games · <b>${sgn(r.z)} SD</b>`
-             + ((r.teamGamesSince||0)>=STALE_GAMES
-                ? ` · <b>last played ${dt(r.lastDate)}</b>, ${r.tri} have played `
-                  + `${r.teamGamesSince} since`
-                : ``),
-      })),
-      notes:[`His last ${len} games played, oldest first. Every line is that game's box `+
-        `score, not a rolling average.`,
-        `Flagged because the stretch is ${k.toFixed(1)} standard deviations or more `+
-        `${dirWord} his normal <i>and</i> its median is on the same side — one outlying game `+
-        `can carry a mean, but not the middle game.`,
-        `His normal is every other game he has played, the stretch excluded.`,
-        `A screen, not a significance test: with a few hundred players, some will clear this `+
-        `by chance alone.`],
-    }));
-    finishRender(host? host : undefined); return;
-  }
-
-  card.appendChild(el("div","rule"));
-  const h=el("div","sect nm",
-    `${down?"Below":"Above"} their own normal — last ${len} games played, `+
-    `${down?"−":"+"}${k.toFixed(1)} SD or more`);
-  h.style.textAlign="left"; h.style.paddingRight="0"; card.appendChild(h);
-
-  const tbl=el("table","per lb"); const th=el("tr");
-  ["#","player","team",`last ${len}`,"median",dirWord,"the games","min","pts/reb/ast",
-   "last game","other games","normal","his sd","gap",`sd ${dirWord}`]
-    .forEach(x=>th.appendChild(el("th","",x)));
-  tbl.appendChild(th);
-  hot.forEach((r,i)=>{
-    const tr=el("tr");
-    const stale=(r.teamGamesSince||0)>=STALE_GAMES;
-    const moved=r.cats.filter(c=>c.moved).length;
-    const cells=[String(i+1), r.name, r.tri, f1(r.recentAvg), f1(r.med),
-      `${down? r.below : r.above} of ${len}`, r.rv.join(", "),
-      f1(r.minAvg), `${moved} of ${r.cats.length}`,
-      (stale? "⚠ " : "") + dt(r.lastDate),
-      String(r.bv.length), f1(r.baseAvg), f1(r.sd), sgn(r.gap), sgn(r.z)];
-    cells.forEach((c,j)=>{
-      const td=el("td","",c);
-      if(j===1||j===2||j===6) td.style.textAlign="left";
-      if(j===1) td.style.color="var(--text)";
-      if(j===2) td.innerHTML=`<span style="display:inline-block;width:8px;height:8px;`+
-        `border-radius:2px;background:${tcol(r.tri)};margin-right:5px"></span>${r.tri}`;
-      if(j===3||j===4){ td.style.color="var(--text)"; td.style.fontWeight="500"; }
-      if(j===8) td.title=r.cats.map(c=>`${FORM_STATS[c.cat]}: `
-        +`${c.recent.toFixed(1)} vs ${c.base.toFixed(1)}`).join(" · ");
-      if(j===9 && stale){ td.style.color="var(--bad,#e0603a)"; td.style.fontWeight="600";
-        td.title=`${r.name} has not played since ${dt(r.lastDate)} — `
-          +`${r.tri} has played ${r.teamGamesSince} games since`; }
-      if(j===14){ td.style.fontWeight="600";
-        /* Coloured by whether it is good for the player, not by the sign: more turnovers is
-           the bad direction even though the number goes up. */
-        td.style.color = (dir===badWay)? "var(--bad,#e0603a)" : "var(--good,#3aa76d)"; }
-      tr.appendChild(td);
-    });
-    tr.title=`${r.name}: `+r.recent.map(g=>`${statOf(g,key)} ${g.home?"vs":"at"} ${g.opp} `
-      +`(${dt(g.date)})`).join(" · ");
-    tbl.appendChild(tr);
-  });
-  card.appendChild(tbl);
-
-  if(!hot.length) card.appendChild(noteEl(
-    `<b>Nobody clears ${down?"−":"+"}${k.toFixed(1)} SD over their last ${len} games `+
-    `played with a median ${dirWord} their normal.</b> That is an answer, not a gap — try 0.5 SD from the <b>rank</b> `+
-    `dropdown, or a shorter stretch, which is easier to spike.`
-    + (dropped? ` ${dropped} player${dropped===1?"":"s"} cleared the standard deviation on `+
-        `the average alone and were dropped by the median test.` : "")));
-
-  card.appendChild(noteEl(
-    `<b>His last ${len} games played</b>, not his team's last ${len}: a player who sat some `+
-    `of them has a stretch that reaches further back, and those are the games that describe `+
-    `his form. The stretch is taken in date order.<br>`+
-    `<b>Normal</b> is every <i>other</i> game he has played, and <b>his sd</b> is the `+
-    `standard deviation of those single games (sample, n−1). Leaving the stretch in the `+
-    `baseline would drag it toward the very games being tested and shrink the gap.<br>`+
-    `<b>median</b> is the middle game of the stretch, and a stretch only counts if that `+
-    `middle game is <b>${dirWord} his normal</b>. A mean is one big night away from lying: `+
-    `20, 2, 4, 2, 0 averages 5.6 against a normal of 2.5 and clears a standard deviation, `+
-    `while four of the five games are at or below normal. The median cannot be carried that `+
-    `way, so it decides whether a stretch is real; the mean still does the ranking, because `+
-    `the size of the jump is what you want to sort by. <b>above</b> counts how many of the `+
-    `stretch fell ${dirWord} his normal individually.`+
-    (dropped? ` <b>${dropped} player${dropped===1?"":"s"} cleared the standard deviation on the `+
-       `average and ${dropped===1?"was":"were"} dropped here</b>, which is the whole point `+
-       `of the test.` : ` Nobody cleared the standard deviation on the average alone this `+
-       `time, so the median test removed nothing.`)+`<br>`+
-    `<b>sd ${dirWord}</b> is the gap divided by that spread, so it is in his own units: a `+
-    `20-${one} scorer at 26 and an 8-${one} scorer at 14 are different events, and this is `+
-    `what separates them. Measured in <i>single-game</i> standard deviations, which is the `+
-    `intuitive reading — the standard error of a ${len}-game mean is smaller by a factor `+
-    `of √${len}, so using it would flag far more players. Read a ${len}-game stretch at `+
-    `+1 SD as a stronger signal than a 2-game one at +1 SD.<br>`+
-    `Needs at least ${FORM_MIN_BASE} other games for a spread to mean anything, and a spread `+
-    `above zero — a player who scores the same every night has no normal to exceed.<br>`+
-    (floor>0 || bar>0
-      ? `<b>Qualifiers.</b> `+
-        (floor>0? `${down? "His normal" : "The stretch"} must reach <b>${floor} `+
-          `${key==="min"?"minutes":FORM_STATS[key].split(" ")[0]}</b> — a standard deviation `+
-          `is a relative measure and small numbers have small spreads, so `+
-          `2, 5, 2, 5, 4 points against a normal of 1.3 clears +2 SD without being a scoring `+
-          `run. On a slump the floor sits on his normal instead, because what makes a slump `+
-          `worth reading is that he is usually better than this. ` : ``)+
-        (bar>0? `Every game of the stretch must clear <b>${bar} minutes</b>: a four-minute `+
-          `appearance in a blowout is not a performance, and letting one in is how a player `+
-          `outside the rotation lands on a list about form. ` : ``)+
-        `Together they take this list from ${rawHot} to ${hot.length}.<br>` : ``)+
-    `<b>pts/reb/ast</b> counts how many of the three moved the same way, so a player who is `+
-    `up across the board is distinguishable from one who is up in a single column — hover it `+
-    `for each. The <b>pts + reb + ast</b> stat tests the three as one number.<br>`+
-    `<b>last game</b> is when he last played, marked <b>⚠</b> when his team has played `+
-    `${STALE_GAMES} or more games since. A stretch that ended weeks ago is not current form, `+
-    `and nothing in the numbers themselves says so.<br>`+
-    (FORM_HIGH_GOOD[key]===false
-      ? `<b>More turnovers is the bad direction</b>, so "above his normal" is the slump here `+
-        `and "below" is the improvement. The control asks which side of normal, not which is `+
-        `good, because that answer changes with the stat.<br>` : ``)+
-    `<b>This is a screen, not a significance test.</b> ${all.length} players qualify and `+
-    `${hot.length} clear it; with that many looks some will clear it by `+
-    `chance alone. Multiple comparisons apply, and nothing here says the form will continue.`));
-  // ---- current runs: the question a two-game sample can already answer ----
-  card.appendChild(el("div","rule"));
-  const h2=el("div","sect nm",`Current runs ${dirWord} their own normal`);
-  h2.style.textAlign="left"; h2.style.paddingRight="0"; card.appendChild(h2);
-
-  const t2=el("table","per lb"); const th2=el("tr");
-  ["#","player","team","run","the run","run avg","normal","other games","gap"]
-    .forEach(x=>th2.appendChild(el("th","",x)));
-  t2.appendChild(th2);
-  const rk=denseRanks(runs.map(r=>-r.run));
-  const rc={}; rk.forEach(r=>{rc[r]=(rc[r]||0)+1;});
-  runs.slice(0,RUN_LIST_N).forEach((r,i)=>{
-    const tr=el("tr");
-    const cells=[(rc[rk[i]]>1?"T":"")+rk[i], r.name, r.tri, String(r.run),
-      r.runVals.join(", "), f1(r.runAvg), f1(r.baseAvg), String(r.baseN),
-      sgn(r.runAvg-r.baseAvg)];
-    cells.forEach((c,j)=>{
-      const td=el("td","",c);
-      if(j===1||j===2||j===4) td.style.textAlign="left";
-      if(j===1) td.style.color="var(--text)";
-      if(j===2) td.innerHTML=`<span style="display:inline-block;width:8px;height:8px;`+
-        `border-radius:2px;background:${tcol(r.tri)};margin-right:5px"></span>${r.tri}`;
-      if(j===3){ td.style.color="var(--text)"; td.style.fontWeight="600"; }
-      tr.appendChild(td);
-    });
-    tr.title=`${r.name}: `+r.runGames.map(g=>`${statOf(g,key)} ${g.home?"vs":"at"} ${g.opp} `
-      +`(${dt(g.date)})`).join(" · ");
-    t2.appendChild(tr);
-  });
-  card.appendChild(t2);
-  if(!runs.length) card.appendChild(noteEl(
-    `<b>Nobody is on a run of ${FORM_MIN_RUN} or more games ${dirWord} their own `+
-    `normal.</b>`));
-  card.appendChild(noteEl(
-    `<b>Consecutive games, ending with his most recent one</b>, each ${dirWord} his `+
-    `normal — `+
-    `which is what a two-game sample can already answer, where a ${len}-game average has to `+
-    `wait for ${len} games. The run ends at the first game that is not ${dirWord} normal, `+
-    `so `+
-    `every run here is live.<br>`+
-    `<b>Normal excludes the run</b>, so it is recomputed as the run grows: a run of length L `+
-    `holds when all L games are ${dirWord} the average of everything before them, and the `+
-    `run is how `+
-    `far that keeps being true walking back from his last game. Taking the longest stretch `+
-    `that holds anywhere instead would report a run his recent games do not support.<br>`+
-    `Runs of ${FORM_MIN_RUN} and up, longest first, then by how far above. A run needs at `+
-    `least ${FORM_MIN_BASE} earlier games to measure against. <b>One game above normal is `+
-    `not a run</b>, which is why the list starts at ${FORM_MIN_RUN}.`));
-  finishRender();
-}
 
 /* ==================== section: holding the lead ====================
  * Two counts of games, not streaks:
@@ -5389,196 +4239,22 @@ function cupTeams(scope){
     .sort((a,b)=>b.gap-a.gap);
 }
 
-async function renderCup(agg, host){
-  const out=host || $("#out");
-  if(!cupExtra || cupExtra.season!==seasonYear()) cupExtra=await cupFinals();
-  if(!host) out.innerHTML="";
-  const card=el("div","card"); out.appendChild(card);
-  const key=formStat(), scope=cupScope(), {k, dir}=cupRank();
-  const floor=formFloor(), bar=formMins();
-  const label=FORM_STATS[key];
-  const goodUp=FORM_HIGH_GOOD[key]!==false;
-  const f1=x=>x==null? "—" : x.toFixed(1);
-  const sg=x=>x==null? "—" : (x>0?"+":x<0?"−":"")+Math.abs(x).toFixed(1);
-  const dt=d=>new Date(d).toLocaleDateString(undefined,{month:"short",day:"numeric"});
-  const pc=x=>x? x.pct.toFixed(1)+"%" : "—";
 
-  const cupAll=GAMES.filter(g=>isCupGame(g) && inCupScope(g, scope));
-  const played=cupAll.filter(g=>g.status===3);
-  const grp=played.filter(isCupGroup).length;
 
-  const gh=el("div","gamehead");
-  const sc=el("div","score"); const w=el("span","tri");
-  w.appendChild(el("span","",`League - NBA Cup against the rest of the season, ${label}`));
-  sc.appendChild(w); gh.appendChild(sc);
-  const m=el("div","meta");
-  m.innerHTML=`<b>${CUP_SCOPES[scope]}</b> · ${played.length} played`
-    + (scope==="all"? ` (${grp} group, ${played.length-grp} knockout)` : ``)
-    + (cupAll.length>played.length? ` · ${cupAll.length-played.length} still to come` : ``)
-    + ` · each player's Cup games against every other game he has played`
-    + (k? ` · flagging <b>${dir==="dn"?"z ≤ −":dir==="up"?"z ≥ +":"|z| ≥ "}${k.toFixed(1)}</b>`
-        : ` · <b>every qualified player</b>`);
-  m.appendChild(el("span","badge ok",(SOURCE[ACTIVE]||{label:"?"}).label));
-  gh.appendChild(m); card.appendChild(gh);
-
-  if(!played.length){
-    card.appendChild(noteEl(
-      cupAll.length
-        ? `<b>No ${CUP_SCOPES[scope]} have been played yet in ${seasonLabel()}.</b> `+
-          `${cupAll.length} are on the schedule; this fills in as they finish.`
-        : `<b>There are no NBA Cup games in the ${seasonLabel()} season.</b> The Cup began `+
-          `in 2023-24, when it was called the In-Season Tournament — pick that season or a `+
-          `later one from the season dropdown.`));
-    finishRender(host? host : undefined); return;
-  }
-
-  const {rows, considered, thinCup, thinBase, flat}=cupRows(agg, cupExtra, key, scope, bar);
-  const pass=r=> dir==="up"? r.z>=k : dir==="dn"? r.z<=-k : Math.abs(r.z)>=k;
-  /* The median has to agree with the mean, as in the Hot hand: one huge night can carry a
-     four-game average past the line, but it cannot move the middle game. */
-  const real=r=> r.z>0? r.med>r.baseAvg : r.med<r.baseAvg;
-  /* The floor sits on the better side: the Cup average when he was better in the Cup, his
-     normal when he was worse, because a drop only matters from a level worth reporting. */
-  const floorOk=r=> !floor || (r.z>0? r.cupAvg : r.baseAvg)>=floor;
-  const over=rows.filter(r=>pass(r) && floorOk(r));
-  const shown=over.filter(r=>!k || real(r))
-    .sort((a,b)=> dir==="dn"? a.z-b.z : dir==="up"? b.z-a.z : Math.abs(b.z)-Math.abs(a.z));
-  const medDropped=over.length-shown.length;
-  const colourOf=z=> (z>0)===goodUp ? "var(--good,#3aa76d)" : "var(--bad,#e0603a)";
-
-  const notes=[
-    `<b>Cup</b> is his average across the Cup games in scope; <b>normal</b> is every other `+
-    `regular-season game he has played. The two never share a game.`,
-    `<b>z</b> is the gap divided by how much an average of that many of his games moves by `+
-    `chance: his single-game standard deviation ÷ √(Cup games). Four games at a 6-point `+
-    `spread wobble about 3 points, so a 6-point jump is z ≈ +2.`+
-    (k? ` A player is listed only when the Cup <i>median</i> sits on the same side of his `+
-        `normal as the average, so one huge night cannot carry him in alone.` : ``),
-    `A screen, not proof: with several hundred players, roughly 1 in 20 clears |z| ≥ 2 by `+
-    `chance alone. Check the <b>min</b> column first — a Cup jump that comes with a jump in `+
-    `minutes is a role change, not a hot hand.`,
-  ];
-
-  if(layoutMode()==="poster"){
-    card.appendChild(logPoster({
-      kick:`NBA ${seasonLabel()} · ${CUP_SCOPES[scope]}`,
-      title:`NBA Cup outliers: ${label}`,
-      cards:shown.slice(0,LOG_CARDS_N).map(r=>({
-        name:r.name, id:r.id, tri:r.tri,
-        when:`${r.tri} · ${r.cup.length} Cup game${r.cup.length===1?"":"s"}`,
-        lines:r.cup.map(g=>`${dt(g.date)} ${g.home?"vs":"@"} ${g.opp}: ${cupLine(g)}`),
-        foot:`<b>${f1(r.cupAvg)} ${label}</b> in the Cup, median <b>${f1(r.med)}</b> · `+
-             `his normal is <b>${f1(r.baseAvg)}</b> across ${r.bv.length} other games · `+
-             `<b>z ${sg(r.z)}</b> · ${f1(r.side.min[0])} min vs ${f1(r.side.min[1])}`,
-      })),
-      notes:[`Every line is one Cup game's box score, oldest first.`].concat(
-        notes),
-    }));
-    if(!shown.length) card.appendChild(noteEl(`<b>Nobody clears this threshold.</b> Try a `+
-      `lower one from the dropdown.`));
-    finishRender(host? host : undefined); return;
-  }
-
-  card.appendChild(el("div","rule"));
-  const h=el("div","sect nm", k
-    ? `${dir==="up"?"Better":dir==="dn"?"Worse":"Different"} in the Cup — ${label}, `+
-      `${dir==="dn"?"z ≤ −":dir==="up"?"z ≥ +":"|z| ≥ "}${k.toFixed(1)}`
-    : `Every qualified player, ${label}, ranked by z`);
-  h.style.textAlign="left"; h.style.paddingRight="0"; card.appendChild(h);
-
-  const tbl=el("table","per lb"); const th=el("tr");
-  ["#","player","team","cup gp","cup","median","beat normal","normal","other gp","gap","z",
-   "min cup / normal","fg% cup / normal","3pm cup / normal","pts / reb / ast in the cup"]
-    .forEach(x=>th.appendChild(el("th","",x)));
-  tbl.appendChild(th);
-  shown.forEach((r,i)=>{
-    const tr=el("tr");
-    const beat=r.z>0? r.above : r.below;
-    const pr=["pts","reb","ast"].map(s=>sg(r.side[s][0]-r.side[s][1])).join(" / ");
-    const cells=[String(i+1), r.name, r.tri, String(r.cup.length), f1(r.cupAvg), f1(r.med),
-      `${beat} of ${r.cup.length} ${r.z>0?"above":"below"}`, f1(r.baseAvg), String(r.bv.length),
-      sg(r.gap), sg(r.z),
-      `${f1(r.side.min[0])} / ${f1(r.side.min[1])}`,
-      `${pc(r.fg[0])} / ${pc(r.fg[1])}`,
-      `${f1(r.side.tpm[0])} / ${f1(r.side.tpm[1])}`, pr];
-    cells.forEach((c,j)=>{
-      const td=el("td","",c);
-      if(j===1||j===2||j===6) td.style.textAlign="left";
-      if(j===1) td.style.color="var(--text)";
-      if(j===2) td.innerHTML=`<span style="display:inline-block;width:8px;height:8px;`+
-        `border-radius:2px;background:${tcol(r.tri)};margin-right:5px"></span>${r.tri}`;
-      if(j===4||j===7){ td.style.color="var(--text)"; td.style.fontWeight="500"; }
-      if(j===9||j===10){ td.style.fontWeight="600"; td.style.color=colourOf(r.z); }
-      if(j===11){ const dm=r.side.min[0]-r.side.min[1];
-        // a minutes swing of four or more is flagged: the likeliest reason for the gap
-        if(Math.abs(dm)>=4){ td.style.color="var(--text)"; td.style.fontWeight="600";
-          td.title=`${sg(dm)} minutes a game in the Cup — check for a role change`; } }
-      if(j===12) td.title=[0,1].map(s=>r.fg[s]? `${s?"normal":"Cup"}: ${r.fg[s].m}-`+
-        `${r.fg[s].a}` : "").filter(Boolean).join(" · ");
-      if(j===13) td.title=[0,1].map(s=>r.tp[s]? `${s?"normal":"Cup"}: ${r.tp[s].m}-`+
-        `${r.tp[s].a} from three (${r.tp[s].pct.toFixed(1)}%)` : "").filter(Boolean).join(" · ");
-      if(j===14) td.title="Cup average minus normal, for each of the three";
-      tr.appendChild(td);
-    });
-    tr.title=`${r.name} in the Cup: `+r.cup.map(g=>`${statOf(g,key)} ${g.home?"vs":"at"} `+
-      `${g.opp} (${dt(g.date)})`).join(" · ");
-    tbl.appendChild(tr);
-  });
-  card.appendChild(tbl);
-
-  if(!shown.length) card.appendChild(noteEl(
-    `<b>Nobody clears this threshold for ${label}.</b> That is an answer, not a gap — try a `+
-    `lower z or "either way" from the dropdown.`
-    + (medDropped? ` ${medDropped} player${medDropped===1?"":"s"} cleared it on the `+
-        `average alone and were dropped by the median test.` : "")));
-  card.appendChild(noteEl(notes.join("<br>")
-    + `<br><b>Who qualifies:</b> at least ${CUP_MIN_GAMES(scope)} Cup game`
-    + `${CUP_MIN_GAMES(scope)===1?"":"s"} in scope and ${CUP_MIN_BASE} other games`
-    + (bar? `, counting only games of ${bar}+ minutes on both sides` : ``)
-    + (floor? `, and a ${label} level of ${floor}+ on the better side` : ``)
-    + `. ${rows.length} of ${considered} players who appeared in the Cup clear it`
-    + (thinCup? `; ${thinCup} have too few Cup games` : ``)
-    + (thinBase? `; ${thinBase} have too few other games` : ``)
-    + (flat? `; ${flat} have no spread at all in ${label}` : ``) + `.`
-    + (medDropped && shown.length? ` ${medDropped} more cleared the threshold on the average `+
-        `alone and were dropped by the median test.` : ``)
-    + (cupExtra.games && scope!=="group"
-        ? (cupExtra.failed
-           ? ` <b>The Cup final could not be read</b>, so it is missing from these numbers.`
-           : ` The Cup final is included here even though it does not count in the `+
-             `regular-season standings.`)
-        : ``)));
-
-  /* Teams, from the schedule's scores alone. */
-  const teams=cupTeams(scope);
-  if(teams.length){
-    card.appendChild(el("div","rule"));
-    const h2=el("div","sect nm","Teams — scoring margin in the Cup against the rest of the season");
-    h2.style.textAlign="left"; h2.style.paddingRight="0"; card.appendChild(h2);
-    const t2=el("table","per lb"); const r0=el("tr");
-    ["#","team","cup record","pts / opp","margin","rest record","pts / opp","margin","gap"]
-      .forEach(x=>r0.appendChild(el("th","",x)));
-    t2.appendChild(r0);
-    teams.forEach((r,i)=>{
-      const tr=el("tr");
-      [String(i+1), r.tri, `${r.c.w}-${r.c.l}`, `${f1(r.cs.pf)} / ${f1(r.cs.pa)}`, sg(r.cs.mg),
-       `${r.r.w}-${r.r.l}`, `${f1(r.rs.pf)} / ${f1(r.rs.pa)}`, sg(r.rs.mg), sg(r.gap)]
-      .forEach((c,j)=>{
-        const td=el("td","",c);
-        if(j===1){ td.style.textAlign="left";
-          td.innerHTML=`<span style="display:inline-block;width:8px;height:8px;`+
-            `border-radius:2px;background:${tcol(r.tri)};margin-right:5px"></span>${r.tri}`; }
-        if(j===8){ td.style.fontWeight="600";
-          td.style.color=r.gap>=0? "var(--good,#3aa76d)" : "var(--bad,#e0603a)"; }
-        tr.appendChild(td);
-      });
-      t2.appendChild(tr);
-    });
-    card.appendChild(t2);
-    card.appendChild(noteEl(`Margin is points scored minus allowed per game. The Cup side `+
-      `is a handful of games, so a single blowout moves it several points.`));
-  }
-  finishRender(host? host : undefined);
+/* Leads & comebacks for the full season straight from the nightly build (data/flowstats.json, src/gameflow/stats.js):
+   the same counts from the same model, without reading every game in the browser. Only when every finished game
+   on the schedule is on file and the build counted all of them; otherwise the page reads the games as before. */
+async function nightlyLeads(limit){
+  if(limit>0 || !FLOW || seasonYear()!==FLOW.season) return null;
+  const slate=new Set();
+  for(const t of franchises()) teamGamesFor(t).forEach(g=>slate.add(String(g.gameId)));
+  if(!slate.size || [...slate].some(id=>!FLOW.ids.has(id))) return null;
+  try{
+    const r=await fetch("data/flowstats.json",{cache:"no-store"}); if(!r.ok) return null;
+    const S=await r.json();
+    if(String(S.season)!==FLOW.season || S.games!==slate.size || !Array.isArray(S.leadTable)) return null;
+    return {teams:S.leadTable, games:S.games, failed:0, window:{limit:0}, nightly:true};
+  }catch(e){ return null; }
 }
 
 async function showLeague(which){
@@ -5589,6 +4265,10 @@ async function showLeague(which){
   setStatus(`<span class="spin"></span>Reading the league…`);
   $("#status").appendChild(bar);
   try{
+    if(which==="streaks" && !(leagueAgg && leagueAgg.window.limit===limit)){
+      const N=await nightlyLeads(limit);
+      if(N){ renderStreaks(N); hideStatus(); return; }
+    }
     if(!leagueAgg || leagueAgg.window.limit!==limit){
       leagueAgg=await buildLeague(limit,(done,total)=>{
         fill.style.width=(100*done/total)+"%";
@@ -5598,8 +4278,7 @@ async function showLeague(which){
       window.__LEAGUE=leagueAgg;
     }
     if(allReadsFailed(leagueAgg.games, leagueAgg.failed)){ reportNoPbp(); return; }
-    await ({thirty:renderThirty, allstars:renderAllStars, streaks:renderStreaks,
-      splits:renderSplits, rest:renderRest, form:renderForm, cup:renderCup}[which])(leagueAgg);
+    await ({streaks:renderStreaks, splits:renderSplits}[which])(leagueAgg);
     hideStatus();
   }catch(e){
     $("#out").innerHTML="";
@@ -5607,14 +4286,7 @@ async function showLeague(which){
   }
 }
 
-/* Records need no game reads at all, so this one is synchronous. */
-function showRecords(){
-  try{ renderRecords(); hideStatus(); }
-  catch(e){
-    $("#out").innerHTML="";
-    setStatus(`<b>Couldn't build the records table.</b><br>${String(e.message||e)}`,true);
-  }
-}
+
 
 /* ==================== assist leaderboard ==================== */
 /**
@@ -5699,7 +4371,7 @@ async function buildBoard(tris, limit, onProgress){
       if(onProgress) onProgress(done, slate.length);
     }
   };
-  await Promise.all(Array.from({length:Math.min(5,slate.length)},worker));
+  await Promise.all(Array.from({length:Math.min(10,slate.length)},worker));   // 10 at a time: files on this site are small
 
   return {rows:[...rows.values()].filter(r=>r.given>0||r.got>0),
           pairs:[...pairs.values()],
@@ -6497,14 +5169,8 @@ const VIEW_CONTROLS = {
   board:    ["season","team","span","rank","layout","metric","shot","reload"],
   highs:    ["season","team","span","layout","reload"],
   range:    ["season","team","span","layout","reload"],
-  thirty:   ["season","span","layout","reload"],
-  allstars: ["season","span","rank","layout","pool","reload"],
-  records:  ["season","rank","layout","reload"],
   streaks:  ["season","span","layout","reload"],
   splits:   ["season","team","span","who1","who2","layout","reload"],
-  rest:     ["season","span","layout","reload"],
-  form:     ["season","span","form","stat","rank","floor","mins","layout","reload"],
-  cup:      ["season","cupscope","stat","rank","floor","mins","layout","reload"],
 };
 const ALL_CONTROLS = ["season","team","span","norm","metric","rank","layout","pool","shot",
                       "form","stat","floor","mins","cupscope",
@@ -6570,7 +5236,7 @@ function applyControlVisibility(){
 }
 
 // exposed after the definitions above, not before: a const cannot be read early
-window.__form = {formRows, formStreaks, renderForm, avgOf, sdOf, medOf, statOf, slashLine,
+window.__form = {formRows, formStreaks, avgOf, sdOf, medOf, statOf, slashLine,
                  catMoves, staleness, setFloorOptions,
                  FORM_HIGH_GOOD, FORM_THRESHOLDS, FORM_FLOORS, FORM_MIN_MINUTES,
                  FORM_CATS, LOG_CARDS_N,
@@ -6651,10 +5317,9 @@ function refreshView(){
   if(v==="board"){ showBoard(); return; }
   if(v==="highs"){ showHighs(); return; }
   if(v==="range"){ showRange(); return; }
-  if(v==="thirty" || v==="allstars" || v==="streaks" || v==="splits" || v==="rest"
-     || v==="form" || v==="cup"){
-    showLeague(v); return; }
-  if(v==="records"){ showRecords(); return; }
+  // 30-point games allowed, All-Stars, records vs top teams, rest, hot hand and the Cup live on the Command
+  // Center's own pages since the merge (0.53-0.58); Game Flow keeps the two league views only it can draw.
+  if(v==="streaks" || v==="splits"){ showLeague(v); return; }
   if(v==="season" || v==="assists"){
     let t=$("#team").value;
     if(!t){ // these views are per-team, so land on one rather than showing nothing
@@ -6900,12 +5565,6 @@ $("#metric").addEventListener("change",redrawAst);
 $("#shot").addEventListener("change",redrawAst);
 $("#rank").addEventListener("change",()=>{
   syncControls();
-  // records only re-reads the schedule, which is already in memory
-  if(viewMode()==="records"){ renderRecords(); return; }
-  // changing the group only re-splits numbers already in memory
-  if(viewMode()==="allstars"){ if(leagueAgg) renderAllStars(leagueAgg); return; }
-  if(viewMode()==="form"){ if(leagueAgg) renderForm(leagueAgg); return; }
-  if(viewMode()==="cup"){ if(leagueAgg) renderCup(leagueAgg); return; }
   redrawAst();
 });
 /* A layout change never needs new data — the aggregate is already in memory, so this
@@ -6914,30 +5573,20 @@ $("#layout").addEventListener("change",()=>{
   const v=viewMode();
   if(v==="range"){ if(rangeAgg) renderRange(rangeAgg); return; }
   if(v==="highs"){ if(highsAgg) renderHighs(highsAgg); return; }
-  if(v==="allstars"){ if(leagueAgg) renderAllStars(leagueAgg); return; }
   if(v==="splits"){ if(leagueAgg) renderSplits(leagueAgg); return; }
-  if(v==="thirty"){ if(leagueAgg) renderThirty(leagueAgg); return; }
   if(v==="streaks"){ if(leagueAgg) renderStreaks(leagueAgg); return; }
-  if(v==="rest"){ if(leagueAgg) renderRest(leagueAgg); return; }
-  if(v==="form"){ if(leagueAgg) renderForm(leagueAgg); return; }
-  if(v==="cup"){ if(leagueAgg) renderCup(leagueAgg); return; }
-  if(v==="records"){ renderRecords(); return; }
   redrawAst();
 });
 /* Widening the roster to the league is a filter change, not new data: everything the pool
    needs was already read for the aggregate. */
 $("#pool").addEventListener("change",()=>{
-  if(viewMode()==="allstars" && leagueAgg) renderAllStars(leagueAgg);
+  if(viewMode()==="splits" && leagueAgg) renderSplits(leagueAgg);
 });
 /* Stretch length and stat only re-split what is already in memory. */
 [$("#form"),$("#stat"),$("#floor"),$("#mins"),$("#cupscope")].forEach(sel=>
   sel.addEventListener("change",()=>{
     const v=viewMode();
-    if(v!=="form" && v!=="cup") return;
-    /* Changing the stat changes what a floor means, so the options are rebuilt before the
-       section is redrawn rather than after. */
-    if(sel.id==="stat") setFloorOptions();
-    if(leagueAgg) (v==="cup"? renderCup : renderForm)(leagueAgg);
+    if(v!=="form" && v!=="cup") return;     // no view uses these since the merge; kept inert
   }));
 $("#team").addEventListener("change",refreshView);
 $("#game").addEventListener("change",e=>load(+e.target.value));

@@ -1,5 +1,5 @@
 /*
- * NBA Command Center -> NBA Live bridge.                                  version 3
+ * NBA Command Center -> NBA Live bridge.                                  version 5
  *
  * Add ONE line to NBA Live, just before </body>:
  *   <script src="https://campgambino.github.io/nba-command-center/bridge/cc-bridge.js"></script>
@@ -25,6 +25,14 @@
  *       are left to NBA Live;
  *     - (v4) each franchise's single-game records from its media guide (records.json franchiseGame):
  *       "6 from the Suns record (70, Devin Booker at Boston 3/24/17)", "ties/breaks the Suns record".
+ *     - (v5) this season, from the Game Flow files (data/flowstats.json):
+ *       a quarter or half among the season's 10 best by a player ("19 in the 3rd: the 4th-most in a quarter
+ *       this season"), a team quarter among the 5 best;
+ *       foul trouble (more fouls than the period number: 2 in the 1st, 3 by the half ...) and foul-outs, with
+ *       how often it has happened to him this season;
+ *       a starter still on the bench 3+ minutes after his usual return, or not out for the 3rd quarter when he
+ *       nearly always is (worth a look for an injury);
+ *       a 15-point lead with the season's record of leads lost and comebacks, and a 15-point lead lost.
  *
  * What it never does
  *   - change NBA Live's own checks, data or cards;
@@ -35,7 +43,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 4;
+  var VERSION = 5;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -54,7 +62,7 @@
   // NBA Live's own ladders (MILESTONE_LADDERS): those round numbers are already its cards.
   var NBA_LIVE_STAT = { pts: "pts", fg3m: "tpm", reb: "reb", ast: "ast", stl: "stl", blk: "blk" };
 
-  var state = { data: null, items: [], tonight: null, records: null, recItems: [], bests: null, loadedAt: 0, error: null, connected: false, fired: 0, keys: {} };
+  var state = { data: null, items: [], tonight: null, records: null, recItems: [], bests: null, flow: null, maxLead: {}, firstAt: {}, loadedAt: 0, error: null, connected: false, fired: 0, keys: {} };
   window.CC_BRIDGE = { version: VERSION, state: state };
 
   function param(name) { try { return new URLSearchParams(location.search).get(name); } catch (e) { return null; } }
@@ -62,6 +70,7 @@
   if (url === "off") return;
   var tonightUrl = url.replace(/watch\.json(\?.*)?$/, "tonight.json");
   var recordsUrl = url.replace(/watch\.json(\?.*)?$/, "records.json");
+  var flowUrl = url.replace(/watch\.json(\?.*)?$/, "flowstats.json");
   var bestsUrl = /watch\.json(\?.*)?$/.test(url) ? url.replace(/watch\.json(\?.*)?$/, "").replace(/data\/$/, "") + "ref/nba-single-game-bests.json" : url;
 
   function has(name) { try { return typeof eval(name) !== "undefined"; } catch (e) { return false; } }
@@ -96,6 +105,9 @@
       .catch(function (e) { state.records = null; state.recItems = []; state.recordsError = String(e && e.message || e); });
     if (bestsUrl !== url && !state.bests) fetch(bestsUrl, { cache: "force-cache" }).then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) { state.bests = d; }).catch(function (e) { state.bestsError = String(e && e.message || e); });
+    // v5: this season's Game Flow facts. Optional.
+    if (flowUrl !== url) fetch(flowUrl, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { state.flow = d && Array.isArray(d.quarters) ? d : null; }).catch(function (e) { state.flowError = String(e && e.message || e); });
     return fetch(url, { cache: "no-store" }).then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
@@ -167,20 +179,22 @@
 
   function checks() {
     var G = games();
-    if (!G || !state.items.length) return;
+    if (!G || (!state.items.length && !state.flow)) return;
     var night = nbaLiveNight();
-    if (night && state.data && state.data.today && night !== state.data.today) {
-      state.wrongNight = night;
-      return note("Command Center: Watch List is for " + state.data.today + ", NBA Live shows " + night + " (rebuild the Watch List)", true);
-    }
-    state.wrongNight = null;
+    var otherNight = !!(night && state.data && state.data.today && night !== state.data.today);
+    state.wrongNight = otherNight ? night : null;
     G.forEach(function (game) {
       if (!game) return;
       var sides = { away: tri(game.away && game.away.tricode), home: tri(game.home && game.home.tricode) };
       var tag = (game.away && game.away.tricode) + " @ " + (game.home && game.home.tricode);
-      if (game.status !== "live" && game.status !== "final") return pregame(game, sides, tag);
       var box = (game.boxscore || {});
-      var scr = game.status === "final" ? "Final" : (game.away.score + "–" + game.home.score);
+      var scr = game.status === "final" ? "Final" : ((game.away && game.away.score) + "–" + (game.home && game.home.score));
+      // Another night than the Watch List's: only the season facts (v5) still apply.
+      if (otherNight) {
+        if (game.status === "live" || game.status === "final") try { flowChecks(game, sides, box, tag, scr); } catch (e) { state.flowCheckError = String(e && e.message || e); }
+        return;
+      }
+      if (game.status !== "live" && game.status !== "final") return pregame(game, sides, tag);
       var picks = [];
       state.items.forEach(function (i) {
         if (i.team !== sides.away && i.team !== sides.home) return;
@@ -217,7 +231,9 @@
       try { recordChecks(game, sides, box, tag, scr); } catch (e) { state.recError = String(e && e.message || e); }
       try { listChecks(game, sides, box, tag, scr); } catch (e) { state.listError = String(e && e.message || e); }
       try { franchiseGameChecks(game, sides, box, tag, scr); } catch (e) { state.fgError = String(e && e.message || e); }
+      try { flowChecks(game, sides, box, tag, scr); } catch (e) { state.flowCheckError = String(e && e.message || e); }
     });
+    if (otherNight) return note("Command Center: Watch List is for " + state.data.today + ", NBA Live shows " + night + " (rebuild the Watch List; season facts still on)", true);
     status();
   }
 
@@ -365,6 +381,165 @@
       });
     });
   }
+
+  // ---- v5: this season, from the Game Flow files (data/flowstats.json) ----
+  var QTR = 720;
+  var SEASON_TOP = 10, TEAM_TOP = 5;         // a place on the season's lists worth a card
+  var Q_MIN = 15, H_MIN = 22, TQ_MIN = 40;    // and the least that can make one
+  var LATE_RETURN = 180;                      // seconds past his usual return
+  var LEAD = 15;
+  var qName = function (q) { return ["1st", "2nd", "3rd", "4th"][q - 1] + " quarter"; };
+  function elapsedNow(game) {
+    var per = Number(game.period) || 1, c = String(game.clock || "").trim();
+    var m = /^(\d+):(\d+)/.exec(c), left = m ? Number(m[1]) * 60 + Number(m[2]) : Math.round(parseFloat(c) || 0);
+    return per <= 4 ? (per - 1) * QTR + (QTR - left) : 4 * QTR + (per - 5) * 300 + (300 - left);
+  }
+  function clockAt(t) {
+    if (t == null) return "";
+    var q = Math.min(4, Math.floor(t / QTR) + 1), left = q * QTR - t;
+    if (left === QTR) return "to open the " + qName(q);
+    if (t >= 4 * QTR) return "in overtime";
+    return "Q" + q + " " + Math.floor(left / 60) + ":" + String(Math.round(left % 60)).padStart(2, "0");
+  }
+  var md = function (d) { return d ? Number(d.slice(5, 7)) + "/" + Number(d.slice(8, 10)) : ""; };
+  function placeText(list, v, what) {
+    var better = list.filter(function (x) { return x.pts > v; }).length;
+    var tied = list.filter(function (x) { return x.pts === v; }).length;
+    var best = list[0];
+    if (!better) return (tied ? "ties the most " : "the most ") + what + " this season" + (tied && best ? " (" + (best.name || best.team) + (best.opp ? " vs " + best.opp : "") + " " + md(best.date) + ")" : "");
+    return (tied ? "tied for the " : "the ") + ord(better + 1) + "-most " + what + " this season (most: " + best.pts + ", " + (best.name || best.team) + (best.opp ? " vs " + best.opp : "") + " " + md(best.date) + ")";
+  }
+  function onCourtNow(game) { try { return typeof computeOnCourt === "function" ? computeOnCourt(game) : null; } catch (e) { return null; } }
+  function lastOut(game, id) {
+    var P = game.plays || [];
+    for (var k = 0; k < P.length; k++) if (P[k] && P[k].badge === "sub" && String(P[k].playerOutId) === String(id)) return P[k];
+    return null;
+  }
+  function flowChecks(game, sides, box, tag, scr) {
+    var F0 = state.flow;
+    if (!F0) return;
+    // A later build can already hold tonight's game: never measure it against itself.
+    var mine = function (x) { return String(x.gameId) !== String(game.id); };
+    var mine2 = function (id) { return String(id) !== String(game.id); };
+    var F = Object.assign({}, F0, { quarters: (F0.quarters || []).filter(mine), halves: (F0.halves || []).filter(mine), teamQuarters: (F0.teamQuarters || []).filter(mine), leads: {} });
+    Object.keys(F0.leads || {}).forEach(function (t) { var x = F0.leads[t]; F.leads[t] = { gp: x.gp, blown: (x.blown || []).filter(mine), comebacks: (x.comebacks || []).filter(mine) }; });
+    // The moment a card first fired, so its clock doesn't run on as NBA Live refreshes it.
+    var at = function (key) { return state.firstAt[key] || (state.firstAt[key] = live ? clockAt(now) : ""); };
+    var live = game.status === "live", per = Number(game.period) || 0;
+    var now = live ? elapsedNow(game) : null;
+    var court = live ? onCourtNow(game) : null;
+    var stl = function (pairs) { return typeof fmtAlertStatLine === "function" ? fmtAlertStatLine(pairs) : ""; };
+    var base = function (extra) { return Object.assign({ type: "milestone", live: live, gameId: game.id, gameTag: tag, gameScore: scr }, extra); };
+    var through = F.games ? " (" + F.games + " games through last night)" : "";
+    ["away", "home"].forEach(function (side) {
+      var team = side === "away" ? sides.away : sides.home, opp = side === "away" ? sides.home : sides.away;
+      // 1. Quarters and halves among the season's best.
+      var lastQ = game.status === "final" ? 4 : Math.min(per, 4);
+      (box[side] || []).forEach(function (p) {
+        if (!p || !p.id || (p.min || 0) < 1) return;
+        var name = p.name || ("#" + p.id);
+        var q = (p.qtrPts || []).slice(0, 4).map(function (v) { return Math.min(Number(v) || 0, Number(p.pts) || 0); });
+        for (var k = 1; k <= lastQ; k++) {
+          var v = q[k - 1] || 0;
+          if (v < Q_MIN || placeOnList(F.quarters, v) > SEASON_TOP) continue;
+          fire("cc-sq-" + p.id + "-" + k, base({ icon: "📅 SEASON-BEST QUARTER",
+            text: name + " (" + team + ") — " + v + " points in the " + qName(k) + ": " + placeText(F.quarters, v, "in a quarter"),
+            statLine: stl([[v, "PTS IN Q" + k]]), sub: "Command Center · Game Flow files" + through }));
+        }
+        [[1, 2], [3, 4]].forEach(function (h, j) {
+          if (lastQ < h[0]) return;
+          var v = (q[h[0] - 1] || 0) + (q[h[1] - 1] || 0);
+          if (v < H_MIN || placeOnList(F.halves, v) > SEASON_TOP) return;
+          fire("cc-sh-" + p.id + "-" + (j + 1), base({ icon: "📅 SEASON-BEST HALF",
+            text: name + " (" + team + ") — " + v + " points in the " + (j ? "2nd" : "1st") + " half" + (live && per <= h[1] ? " so far" : "") + ": " + placeText(F.halves, v, "in a half"),
+            statLine: stl([[v, "PTS IN " + (j ? "2ND" : "1ST") + " HALF"]]), sub: "Command Center · Game Flow files" + through }));
+        });
+      });
+      var ls = (game[side] && game[side].linescores) || [];
+      for (var k = 1; k <= lastQ; k++) {
+        var tv = Number(ls[k - 1]) || 0;
+        if (tv < TQ_MIN || placeOnList(F.teamQuarters, tv) > TEAM_TOP) continue;
+        fire("cc-tq-" + game.id + "-" + team + "-" + k, base({ icon: "📅 SEASON-BEST TEAM QUARTER",
+          text: team + " — " + tv + " points in the " + qName(k) + " vs " + opp + ": " + placeText(F.teamQuarters, tv, "by a team in a quarter"),
+          statLine: stl([[tv, "TEAM PTS IN Q" + k]]), sub: "Command Center · Game Flow files" + through }));
+      }
+      // 2. Foul trouble (live): more fouls than the period number, the coaching rule of thumb Game Flow uses.
+      (box[side] || []).forEach(function (p) {
+        if (!p || !p.id || (!live && !(Number(p.pf) >= 6))) return;
+        var pf = Number(p.pf) || 0, name = p.name || ("#" + p.id);
+        var R = (F.rotation || {})[p.id], Fo0 = (F.fouls || {})[p.id];
+        var Fo = !Fo0 ? { trouble: 0, out: 0, gp: R ? R.gp : 0 } : !Fo0.outIn ? Fo0 : {   // tonight's own game, if a later build has it, comes out
+          gp: Fo0.gp - ((Fo0.troubleIn || []).concat(Fo0.outIn).some(function (x) { return String(x) === String(game.id); }) ? 1 : 0),
+          trouble: (Fo0.troubleIn || []).filter(mine2).length, out: Fo0.outIn.filter(mine2).length };
+        var regular = p.starter || (R && R.gp >= 3 && (R.starts || 0) >= 1) || (p.min || 0) >= 15;
+        if (pf >= 6) {
+          fire("cc-fo-" + p.id + "-" + game.id, base({ icon: "🚫 FOULED OUT",
+            text: name + " (" + team + ") — fouled out" + (at("cc-fo-" + p.id + "-" + game.id) ? " " + at("cc-fo-" + p.id + "-" + game.id) : "") + " · " + (Fo.out ? "his " + ord(Fo.out + 1) + " foul-out this season" : "his first foul-out this season") + " · " + (p.pts || 0) + " pts in " + Math.round(p.min || 0) + " min",
+            statLine: stl([[pf, "FOULS"]]), sub: "Command Center · Game Flow files" + through }));
+          return;
+        }
+        if (!live || !regular || per < 1 || pf <= Math.min(per, 4)) return;
+        fire("cc-ft-" + p.id + "-" + pf, base({ icon: "⚠️ FOUL TROUBLE",
+          text: name + " (" + team + ") — " + ord(pf) + " foul, " + at("cc-ft-" + p.id + "-" + pf) + " · " + (Fo.trouble ? "in early foul trouble in " + Fo.trouble + " of " + (Fo.gp || "?") + " games this season" + (Fo.out ? ", fouled out " + (Fo.out === 1 ? "once" : Fo.out + " times") : "") : "first time in early foul trouble this season"),
+          statLine: stl([[pf, "FOULS"], [p.pts || 0, "PTS"], [Math.round(p.min || 0), "MIN"]]), sub: "Command Center · fouls above the period number (2 in the 1st, 3 by the half, 4 in the 3rd, 5 in the 4th)" }));
+      });
+      // 3. Rotation watch (live): a starter still out well past his usual return, or not out for the 3rd.
+      if (live && court && court[side]) (box[side] || []).forEach(function (p) {
+        if (!p || !p.id || !p.starter || (p.min || 0) < 1) return;
+        if (court[side].has(p.id) || court[side].has(String(p.id))) return;
+        var R = (F.rotation || {})[p.id];
+        if (!R || (R.starts || 0) < 5) return;
+        var name = p.name || ("#" + p.id), pf = Number(p.pf) || 0;
+        var why = pf > Math.min(per, 4) ? " (" + pf + " fouls)" : "";
+        var out = lastOut(game, p.id), outText = out ? " · out since " + (out.qtr || "") + " " + (out.clock || "") : "";
+        if (per <= 2 && R.back != null && R.n && R.n.back >= 5 && R.n.back >= 0.6 * R.starts && now >= R.back + LATE_RETURN && now < 2 * QTR) {
+          fire("cc-ret-" + p.id + "-" + game.id + "-h1", base({ icon: "🔄 STILL ON THE BENCH",
+            text: name + " (" + team + ") hasn't come back in" + why + " · usually returns " + (R.back % QTR === 0 ? clockAt(R.back) : "by " + clockAt(R.back)) + " (median of " + R.n.back + " starts)" + outText,
+            statLine: stl([[Math.round(p.min || 0), "MIN"], [p.pts || 0, "PTS"]]), sub: "Command Center · usual rotation from the Game Flow files · worth a look for an injury" }));
+        }
+        if (per === 3 && now >= 2 * QTR + 30 && now < 2 * QTR + 360 && (R.open3 || 0) >= 0.8 * R.starts && R.starts >= 5) {
+          fire("cc-ret-" + p.id + "-" + game.id + "-h2", base({ icon: "🔄 NOT OUT FOR THE 3RD",
+            text: name + " (" + team + ") didn't start the 3rd quarter" + why + " · he opened the 3rd in " + R.open3 + " of " + R.starts + " starts this season" + outText,
+            statLine: stl([[Math.round(p.min || 0), "MIN"], [p.pts || 0, "PTS"]]), sub: "Command Center · usual rotation from the Game Flow files · worth a look for an injury" }));
+        }
+      });
+    });
+    // 4. Leads: a 15-point lead with each side's season record, and a 15-point lead lost.
+    var L = F.leads || {};
+    var a = Number(game.away && game.away.score) || 0, h = Number(game.home && game.home.score) || 0;
+    var M = state.maxLead[game.id] || (state.maxLead[game.id] = { away: 0, home: 0 });
+    M.away = Math.max(M.away, a - h, Number(game.away && game.away.biggestLead) || 0);
+    M.home = Math.max(M.home, h - a, Number(game.home && game.home.biggestLead) || 0);
+    var rankOf = function (key, tri) {
+      var n = (L[tri] && L[tri][key] || []).length;
+      var more = Object.keys(L).filter(function (t) { return (L[t][key] || []).length > n; }).length;
+      return n && !more ? (Object.keys(L).some(function (t) { return t !== tri && (L[t][key] || []).length === n; }) ? " (tied for the most in the NBA)" : " (the most in the NBA)") : "";
+    };
+    var record = function (tri, key, word) {
+      var xs = (L[tri] && L[tri][key]) || [];
+      if (!xs.length) return "";
+      var x = xs[xs.length - 1];
+      return tri + " have " + word + " " + (xs.length === 1 ? "once" : xs.length + " times") + " this season" + rankOf(key, tri) + " (last: " + (key === "blown" ? x.lead + "-point lead" : x.down + " down") + " vs " + x.opp + " " + md(x.date) + ", " + x.score + ")";
+    };
+    ["away", "home"].forEach(function (side) {
+      var team = side === "away" ? sides.away : sides.home, other = side === "away" ? sides.home : sides.away;
+      var lead = side === "away" ? a - h : h - a;
+      if (live && lead >= LEAD) {
+        var bits = [record(team, "blown", "lost a " + LEAD + "-point lead"), record(other, "comebacks", "come back from " + LEAD + " down")].filter(Boolean);
+        if (bits.length) fire("cc-lead-" + game.id + "-" + team, base({ icon: "📊 LEAD CONTEXT",
+          text: team + " lead " + other + " by " + lead + " · " + bits.join(" · "), statLine: stl([[lead, "LEAD"]]),
+          sub: "Command Center · leads of " + LEAD + "+ lost and won back this season, from the Game Flow files" }));
+      }
+      var won = side === "away" ? a > h : h > a;
+      if (game.status === "final" && !won && M[side] >= LEAD) {
+        var n = ((L[team] && L[team].blown) || []).length + 1;
+        fire("cc-blown-" + game.id + "-" + team, base({ icon: "📉 LEAD LOST",
+          text: team + " lost a " + M[side] + "-point lead to " + other + " · their " + ord(n) + " lost lead of " + LEAD + "+ this season" + "; " + other + "'s " + ord((((L[other] && L[other].comebacks) || []).length) + 1) + " comeback from " + LEAD + "+ down",
+          statLine: stl([[M[side], "LEAD LOST"]]), sub: "Command Center · Game Flow files" + through }));
+      }
+    });
+  }
+  function placeOnList(list, v) { return (list || []).filter(function (x) { return x.pts > v; }).length + 1; }
 
   // NBA Live updates a card in place when its key repeats; count distinct cards, not calls.
   function fire(key, card) { fireStory(key, card); state.keys[key] = 1; state.fired = Object.keys(state.keys).length; }

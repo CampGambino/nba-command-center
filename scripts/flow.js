@@ -5,6 +5,9 @@
  *
  *   docs/data/flow/<season>/<gameId>.json   one per game (src/gameflow/feeds.js compactFeeds), written once
  *   docs/data/flow/index.json               { season, v, ids: [gameId], missing: [gameId], updated }
+ *   docs/data/flowstats.json                season facts from those files (src/gameflow/stats.js, 0.59.0): best quarters and
+ *                                           halves, usual check-in/out times, foul trouble, leads lost and comebacks; read by
+ *                                           NBA Live's bridge (v5)
  *
  * Games come from the results store (history/results, kept by scripts/situations.js). A game whose summary has
  * no play-by-play yet is listed as missing and asked for again next run. At most --max games a run (default 400).
@@ -62,4 +65,13 @@ if (process.env.FLOW_SAMPLE && rows.length) {
 }
 const ids = rows.map((r) => String(r.id)).filter((id) => have.has(id));
 fs.writeFileSync(path.join(root, "docs", "data", "flow", "index.json"), JSON.stringify({ season, v: FLOW_VERSION, ids, missing, updated: new Date().toISOString() }));
+// Season facts for the bridge. Never fatal: the flow files above are already written.
+try {
+  const { flowStats } = await import("../src/gameflow/stats.js");
+  const byId = new Map(rows.map((r) => [String(r.id), r]));
+  const entries = ids.map((id) => ({ row: byId.get(id), c: JSON.parse(fs.readFileSync(path.join(dir, `${id}.json`), "utf8")) }));
+  const S = flowStats(entries);
+  fs.writeFileSync(path.join(root, "docs", "data", "flowstats.json"), JSON.stringify({ season, updated: new Date().toISOString(), ...S }));
+  console.log(`flow stats: ${S.games} games, ${Object.keys(S.rotation).length} players' rotations, best quarter ${S.quarters[0] ? S.quarters[0].pts + " (" + S.quarters[0].name + ")" : "none"}`);
+} catch (e) { console.error("flow stats failed:", e.message); }
 console.log(`game flow: ${wrote} games read, ${ids.length} of ${rows.length} on file${missing.length ? `, ${missing.length} not yet (no play-by-play or not final)` : ""}${rows.length - ids.length - missing.length > 0 ? `; ${rows.length - ids.length - missing.length} left for the next run` : ""}`);

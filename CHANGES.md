@@ -2,6 +2,43 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.59.0 (2026-11-13): GameFlow merge, stage 3: NBA Live alerts from the Game Flow files, one shared model, a reshaped 3PT range, dead code out, a light look
+
+The user's merge list: scoring highs into NBA Live, "link to the game tracker for alerts that could be useful", rest/rotation outliers, "3PT range isn't a must… sprucing it up", and "reduce redundancy".
+
+### What changed
+- **One model.** Game Flow's stint reconstruction (`buildStints`), clock and shot-geometry helpers moved from `docs/gameflow.html` to `src/gameflow/model.js` (copied to `docs/lib/gameflow/model.js`). The page imports it; the nightly build runs the same code.
+- **Season facts every night** (`src/gameflow/stats.js` → `docs/data/flowstats.json`, written by `scripts/flow.js`):
+  - the season's 30 best single quarters and halves by a player, and best team quarters;
+  - each player's usual rotation: a starter's first check-out in Q1, his return, how often he opens the 3rd; a reserve's first check-in (medians);
+  - early foul trouble (more fouls than the period number) and foul-outs, by game;
+  - leads of 15+ lost and comebacks from 15+ down, by team;
+  - Game Flow's Leads & comebacks table for the full season.
+- **NBA Live bridge v5** (`docs/bridge/cc-bridge.js`), new cards during games:
+  - 📅 a quarter or half among the season's 10 best ("19 points in the 1st quarter: the 4th-most in a quarter this season (most: 22, Jalen Brunson vs CHI 11/4)"); a team quarter among the 5 best;
+  - ⚠️ foul trouble (2 in the 1st, 3 by the half, 4 in the 3rd, 5 in the 4th) with how often it has happened to him this season; 🚫 a foul-out ("his 2nd this season");
+  - 🔄 a starter still on the bench 3+ minutes past his usual return, or not out for the 3rd when he nearly always is: worth a look for an injury (Curry on 11/11 would have fired: out at Q1 6:25, usually back to open Q2);
+  - 📊 a 15-point lead with both sides' season records; 📉 a 15-point lead lost, at the final.
+  - Tonight's own game is left out of every list and count, so a later build can't make a card compare a game with itself. On a night other than the Watch List's, only these season cards run (they don't depend on the Watch List).
+- **Game Flow → Leads & comebacks** reads the nightly table for the full season instead of every game (falls back to reading games when the window is shorter or a game is missing). League reads run 10 at a time instead of 5.
+- **3PT range, reshaped:** a new first layout, **shot profile**: per shooter 3PA, per game, 3P%, corner share and corner 3P%, above-the-break 3P%, 27+ ft attempts, average distance, and his last 5 games against his season (sortable; tonight's teams only by default). On the league view, **tonight's three-point matchups**: each team's corner habit and accuracy beside what its opponent allows. The shot charts and the two range posters stay as the other layouts.
+- **Dead code out of Game Flow:** the sections that moved to Command Center pages in 0.53–0.58 (30-point games allowed, All-Stars, records vs top teams, rest, hot hand, NBA Cup) are gone from the page: about 940 lines.
+- **Light look:** Game Flow follows the system light/dark setting like every other page.
+
+### Tested
+- 660 checks pass. New ones cover:
+  - every v5 card against a stand-in NBA Live (quarter/half/team-quarter places, tonight's game excluded, foul trouble and its frozen clock, rotation and 3rd-quarter cards, lead context, lead lost, foul-out, another night);
+  - the model and stats on a real ESPN game (quarters add up to points, ten starters' check-outs, lists best first, the leads table).
+- The real NBA Live (nba-live_14) with the bridge, 11/12 DET @ WAS replayed as live: v5 connected, 174 games of season facts loaded, foul-out and foul-trouble cards fired correctly, no bridge errors.
+- Game Flow before and after: every view's text is identical after moving the model and after removing the dead code. Leads & comebacks from the nightly table matches the in-browser read except which game is named when two leads tie for a team's biggest (the page's pick depended on download order; the nightly one takes the earliest).
+- The page sweep: all 44 page/width checks OK. Screenshots of the shot profile (desktop and phone) and of light mode.
+
+### Unproven
+- The rotation cards haven't fired in a real live game yet; the thresholds (3 minutes late, 5+ starts, 80% open the 3rd) are first guesses.
+- Usual check-in times rest on the opening-lineup inference, which ESPN's whole minutes make approximate.
+- The corner/above-the-break split uses ESPN's integer coordinates; it hasn't been checked against an official zone breakdown.
+- Team colours in light mode are still the ones lifted for the dark background.
+
 ## 0.58.0 (2026-11-13): GameFlow merge, stage 2f: one player with or without another, on the With / without page
 
 The user: "the version from the gameflow offers more customizability since players from other teams can be measured… re-evaluate which on/off to use or if both have their place."
