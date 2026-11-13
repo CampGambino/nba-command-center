@@ -1,0 +1,39 @@
+# One-off: reads the season's play-by-play into docs/data/flow (as the daily build does) and keeps one raw ESPN
+# summary, gzipped, as the test fixture for the Game Flow reader (tests/fixtures/espn-summary.json.gz).
+name: flow sample
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: daily
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Read the play-by-play
+        run: |
+          mkdir -p tests/fixtures
+          FLOW_SAMPLE=tests/fixtures/espn-summary.json node scripts/flow.js --max 600
+          gzip -9 -f tests/fixtures/espn-summary.json
+      - name: Commit
+        run: |
+          git config user.name "ncc-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/data/flow tests/fixtures/espn-summary.json.gz
+          if git diff --cached --quiet; then echo "nothing changed"; exit 0; fi
+          git commit -m "flow sample: play-by-play files and a test fixture (automatic)"
+          for i in 1 2 3; do
+            git pull --rebase -X theirs --quiet origin main && git push --quiet origin HEAD:main && exit 0
+            git rebase --abort 2>/dev/null || true
+            sleep 10
+          done
+          echo "push failed"; exit 1

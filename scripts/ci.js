@@ -75,6 +75,11 @@ function situations(today) {
   process.stdout.write(r.stdout || "");
   process.stderr.write(r.stderr || "");
   if (r.status !== 0) console.error(`team situations not updated (exit ${r.status}); the last published ones stay`);
+  // Game Flow: each finished game's play-by-play, read once and kept (scripts/flow.js). Never fatal.
+  const f = run(["scripts/flow.js"]);
+  process.stdout.write(f.stdout || "");
+  process.stderr.write(f.stderr || "");
+  if (f.status !== 0) console.error(`game flow not updated (exit ${f.status})`);
 }
 
 function score() {

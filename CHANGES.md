@@ -2,6 +2,15 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.52.0 (2026-11-13): GameFlow merge, stage 1 (in progress): the play-by-play reader
+
+The user: "begin" (merging NBA GameFlow into the Command Center).
+
+### What changed (so far)
+- **`src/gameflow/feeds.js`:** GameFlow 6's ESPN reader (`espnToFeeds`), unchanged, plus a compact game format (`compactFeeds` / `expandFeeds`). The page will import it from `docs/lib/gameflow/feeds.js`.
+- **`scripts/flow.js`** (run by every build, never fatal): each finished regular-season game's ESPN summary is read once and kept as `docs/data/flow/<season>/<gameId>.json`, with an index at `docs/data/flow/index.json`. A game is kept only when ESPN calls it final and its box matches our final score.
+- **`flow-sample.yml`:** a one-off workflow that runs the reader and keeps one raw ESPN summary as a test fixture.
+
 ## 0.51.0 (2026-11-13): round-number spacing, older playoffs, longer runs, career highs, out-tonight last
 
 The user's five screenshots (11/13, 12:54 ET).
