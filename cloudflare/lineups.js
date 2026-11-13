@@ -181,25 +181,26 @@ export function readSchedule(board) {
     .filter((g) => g.teams.length === 2 && !Number.isNaN(g.tip));
 }
 
-// The timing the user set (11/12, second version), by minutes before each game's scheduled tip:
+// The timing the user set (11/13, third version, after the first night's diagnostic: 3 of 4 games confirmed 22-27
+// minutes before tip, after the old 31-29 burst), by minutes before each game's scheduled tip:
 //   90 → 35: NBA.com's file every 5 minutes (90, 85, … 35);
-//   31 → 29: every 20 seconds (starting lineups usually land about 30 minutes before tip);
-//   29 → 2:  every 3 minutes (29, 26, … 2);
+//   35 → 15: every minute (34, 33, … 15), where 11/12's confirmations landed (22-30 out);
+//   15 → 2:  every 3 minutes (12, 9, 6, 3);
 //   from tip: ESPN's box every minute until it shows who started (giving up 45 minutes after).
-// Cloudflare's cron runs at most once a minute, so the 20-second checks are three reads inside one run
-// (at :00, :20 and :40).
-export const WINDOW_MIN = 90, BURST_FROM = 31, BURST_TO = 29, TIP_GIVE_UP_MIN = 45;
+// (Until 11/13: every 20 seconds from 31 to 29 out, then every 3 minutes from 29.) The run still offers checks at :00,
+// :20 and :40 of each minute; only whole minutes are due now.
+export const WINDOW_MIN = 90, FAST_FROM = 35, FAST_TO = 15, TIP_GIVE_UP_MIN = 45;
 export const BURST_EVERY_S = 20;
 
 /** Is NBA.com's file due at time t (ms) for a game tipping at tip (ms)? */
 export function feedDue(tip, t) {
-  const m = (tip - t) / 60e3; // minutes before tip (may be fractional inside the burst)
+  const m = (tip - t) / 60e3; // minutes before tip
   if (m <= 0 || m > WINDOW_MIN) return false;
-  if (m <= BURST_FROM && m > BURST_TO) return true; // the burst: every check offered (every 20 s)
   const whole = Math.round(m);
-  if (Math.abs(m - whole) > 1 / 120) return false; // other checks are on whole minutes only
-  if (whole > BURST_FROM) return (WINDOW_MIN - whole) % 5 === 0; // 90, 85, … 35
-  return whole <= BURST_TO && (BURST_TO - whole) % 3 === 0; // 29, 26, … 2
+  if (Math.abs(m - whole) > 1 / 120) return false; // whole minutes only
+  if (whole >= FAST_FROM) return (WINDOW_MIN - whole) % 5 === 0; // 90, 85, … 35
+  if (whole > FAST_TO) return true; // 34 … 16: every minute
+  return (FAST_TO - whole) % 3 === 0 && whole > 0; // 15, 12, 9, 6, 3
 }
 
 /** What a team needs at time t: null (nothing), "pregame" (within 90 minutes of tip), or "tip". */
@@ -352,17 +353,22 @@ export function nightTiming(st) {
 /** One Discord embed summing up the night's timing. */
 export function timingEmbed(timing) {
   const fmt = (m) => (m == null ? "—" : `${m.toFixed(1)} min`);
+  // Diagnostic (11/13): "seen" is our first read that had it; NBA.com stamp → seen is their publishing delay plus our
+  // check interval; seen → posted is ours.
   const lines = timing.teams.map((r) => {
     const tip = r.tipResult === "posted" ? " · 🚨 started differently" : r.tipResult === "gave up" ? " · box never checked" : "";
     if (r.postedMin == null) return `**${r.team}** (${etClock(r.tip)}): not confirmed before tip${tip}`;
-    return `**${r.team}** (${etClock(r.tip)}): NBA.com ${fmt(r.feedMin)} before tip · posted ${fmt(r.postedMin)} before${r.lagSec != null ? ` (+${r.lagSec}s)` : ""}${r.changes.length ? ` · ${r.changes.length} change${r.changes.length > 1 ? "s" : ""}` : ""}${tip}`;
+    const toSeen = r.feedMin != null && r.seenMin != null ? Math.round((r.feedMin - r.seenMin) * 60) : null;
+    return `**${r.team}** (${etClock(r.tip)}): NBA.com ${fmt(r.feedMin)} · seen ${fmt(r.seenMin)} · posted ${fmt(r.postedMin)} before tip${r.lagSec != null ? ` (+${r.lagSec}s${toSeen != null ? `; ${toSeen}s to see it` : ""})` : ""}${r.changes.length ? ` · ${r.changes.length} change${r.changes.length > 1 ? "s" : ""}` : ""}${tip}`;
   });
   const conf = timing.teams.filter((r) => r.feedMin != null).map((r) => r.feedMin).sort((a, b) => a - b);
-  const median = conf.length ? conf[Math.floor(conf.length / 2)] : null;
-  const inBurst = conf.filter((m) => m <= 31 && m > 29).length;
+  const mid = conf.length ? (conf.length % 2 ? conf[(conf.length - 1) / 2] : (conf[conf.length / 2 - 1] + conf[conf.length / 2]) / 2) : null;
+  const inFast = conf.filter((m) => m <= FAST_FROM && m > FAST_TO).length;
+  const lags = timing.teams.filter((r) => r.lagSec != null).map((r) => r.lagSec).sort((a, b) => a - b);
+  const lagMid = lags.length ? (lags.length % 2 ? lags[(lags.length - 1) / 2] : (lags[lags.length / 2 - 1] + lags[lags.length / 2]) / 2) : null;
   return {
     author: { name: "Lineup timing · tonight" },
-    title: `${timing.date}: median confirmation ${median == null ? "—" : `${median.toFixed(1)} min`} before tip · ${inBurst} of ${conf.length} in the 31-29 window`,
+    title: `${timing.date}: median confirmation ${mid == null ? "—" : `${mid.toFixed(1)} min`} before tip (range ${conf.length ? `${conf[0].toFixed(1)}-${conf[conf.length - 1].toFixed(1)}` : "—"}) · ${inFast} of ${conf.length} in the ${FAST_FROM}-${FAST_TO} window · median lag ${lagMid == null ? "—" : `${Math.round(lagMid)}s`}`,
     description: lines.join("\n").slice(0, 4000),
     color: 0x64748b,
   };

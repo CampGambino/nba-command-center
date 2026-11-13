@@ -2,6 +2,35 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.49.2 (2026-11-13): #lineups timing, from the first night's diagnostic
+
+The user asked for this ("make your changes but also run another diagnostic tonight with 9 games for larger sample").
+
+### What changed
+- **The 11/12 diagnostic, corrected:** the night's summary read NBA.com's Eastern stamps as UTC (fixed in 0.47.x after it ran), so every minute figure was 300 too high and every lag 18,000 s too high. Corrected:
+  - median confirmation 26.5 min before tip (range 22.1-30.0);
+  - 2 of 8 in the 31-29 burst window;
+  - lag from NBA.com's stamp to our post: 95-345 s.
+  
+  Three of the four games confirmed 22-27 minutes out, after the 20-second burst and inside the every-3-minutes stretch.
+- **New timing** (`feedDue` in `cloudflare/lineups.js`):
+  - NBA.com's file every 5 minutes from 90 to 35 out (unchanged);
+  - **every minute from 34 to 16 out**;
+  - every 3 minutes from 15 out (15, 12, 9, 6, 3).
+  
+  The 31-29 burst of 20-second reads is gone. One read still covers every game on the slate.
+- **Tonight's diagnostic (9 games):** the nightly "Lineup timing · tonight" post now shows, per team, NBA.com's stamp, our first read that had it ("seen") and our post, plus the seconds from stamp to seen. That splits NBA.com's publishing delay from our checking. Its title shows the true median (it took the upper middle before), the range, how many fell in the 35-15 window, and the median lag.
+- **`lineup timing (read only)` workflow:** it takes a `date` and prints that night's saved timing (team codes and minutes only; kept 8 days), so Claude can read a night without the review key.
+
+### Tested
+- 60 watcher checks pass. Changed or added:
+  - the schedule of reads for a 7:30 tip (18:00…18:55 every 5 min, 18:56…19:14 every minute, 19:15…19:27 every 3);
+  - one read a run in the fast window;
+  - the summary post, using 11/12's corrected numbers.
+
+### Unproven
+- Whether every-minute checks cut the lag: on 11/12 the DAL-MIN pair confirmed inside the old burst and still posted 5.8 minutes after NBA.com's stamp, which suggests the file can trail its own stamp. Tonight's "seen" column will show it.
+
 ## 0.49.1 (2026-11-13): trimming, after its first build
 
 ### What changed
