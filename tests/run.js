@@ -2069,6 +2069,20 @@ await articlesChecks(ok);
   ok(st.length === 1 && /^Heater is hot: 26\.6 points over his last 5 vs 12\.0/.test(st[0].text), "hot hand on the Watch List: only the real heater", JSON.stringify(st.map((l) => l.text)));
 }
 
+// ---------- NBA Cup vs the rest of the season (src/records/cupform.js, moved from GameFlow, 0.57) ----------
+{
+  const { cupVsSeason } = await import("../src/records/cupform.js");
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const L = (pts) => keys.map((k) => ({ min: 32, pts, fgm: 8, fga: 16 }[k] ?? 0));
+  const days = ["2026-10-22", "2026-10-24", "2026-10-26", "2026-10-28", "2026-10-30", "2026-11-01", "2026-11-03", "2026-11-06"];
+  const cupDays = new Set(["2026-10-30", "2026-11-06"]);
+  const files = { AAA: { team: "AAA", keys, names: { 1: "Cup Star" }, games: days.map((d, i) => ({ d, opp: "BBB", home: true, pf: cupDays.has(d) ? 120 : 100, pa: 100 - i, pl: { 1: L(cupDays.has(d) ? 30 : [18, 20, 22, 19, 21, 20][i > 4 ? i - 2 : i] ?? 20) } })) } };
+  const r = cupVsSeason({ teamFiles: files, cup: { group: [{ d: "2026-10-30", away: "BBB", home: "AAA" }, { d: "2026-11-06", away: "BBB", home: "AAA" }], knockout: {} } });
+  const p = r.players[0];
+  ok(p && p.cupGp === 2 && p.baseGp === 6 && p.cup.pts === 30 && Math.abs(p.base.pts - 119 / 6) < 1e-9 && p.z.pts > 5 && r.teams[0].cup.n === 2,
+    "Cup vs season: Cup games against every other game (a partition), z on the spread of a 2-game average", JSON.stringify([p?.cup, p?.base, p?.z, r.teams[0]]));
+}
+
 // ---------- snapshot ----------
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });

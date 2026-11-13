@@ -206,7 +206,11 @@ for (const [tri, games] of Object.entries(perTeam)) {
       // Chances from his games this season (all of them: a Cup game is a regular game).
       addChances(c.items, teamFiles, { makeSampler, simulate, tonightTeams: new Set(c.tonight.flatMap((g) => [g.home, g.away])) });
       rec.items.push(...c.items);
-      cupOut = { played: c.cupGamesPlayed, tonight: c.tonight, boards: Object.fromEntries(Object.entries(c.boards).map(([k, rows]) => [k, rows.slice(0, 25).map(({ name, team, live, now, base, rank, preRank }) => ({ name, team, live, now, base, rank: rank ?? null, preRank: preRank ?? null }))])),
+      // Cup games vs the rest of the season, per player and team (src/records/cupform.js, moved from GameFlow in 0.57).
+      const { cupVsSeason } = await import("../src/records/cupform.js");
+      const vsSeason = cupVsSeason({ teamFiles, cup });
+      console.log(`NBA Cup vs season: ${vsSeason.players.length} players with 2+ Cup games, ${vsSeason.teams.length} teams`);
+      cupOut = { vsSeason, played: c.cupGamesPlayed, tonight: c.tonight, boards: Object.fromEntries(Object.entries(c.boards).map(([k, rows]) => [k, rows.slice(0, 25).map(({ name, team, live, now, base, rank, preRank }) => ({ name, team, live, now, base, rank: rank ?? null, preRank: preRank ?? null }))])),
         schedule: cup.group.filter((g) => g.d >= today).slice(0, 15), standings: c.standings, problems: c.problems };
       console.log(`NBA Cup: ${c.cupGamesPlayed} Cup games played this season, ${c.items.length} Cup marks within reach, ${c.tonight.length} Cup games tonight`);
     }

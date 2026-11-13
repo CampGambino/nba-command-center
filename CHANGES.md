@@ -2,6 +2,27 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.57.0 (2026-11-13): GameFlow merge, stage 2e: NBA Cup vs season, on Records → NBA Cup
+
+### What changed
+- **Records → NBA Cup → "Cup games vs the rest of the season"** (`src/records/cupform.js`, in `records.json` as `cup.vsSeason`). It is GameFlow's NBA Cup vs season, with its rules:
+  - Cup games against every other game he played;
+  - 2+ Cup games and 5+ others;
+  - **z** = gap ÷ (his spread ÷ √games), the spread an average of that many games shows by chance;
+  - makes over attempts.
+  - Choose the stat (points, rebounds, assists, threes, minutes) and the cut (|z| 2+, better, worse, |z| 1+, everyone).
+  - Each player's Cup games are listed, plus each team's Cup record and margin against its other games.
+- Cup games are the Cup media guide's group schedule plus the knockout dates, the same set the Cup leaderboards use. The championship doesn't count in season stats and isn't in the box scores, so it isn't here.
+- On this season's data: 19 Cup games, 69 players with 2+ Cup games. McDaniels 23.0 in the Cup vs 15.7 (z +4.9); Embiid 8.0 vs 20.1 (−3.3).
+- **Game Flow page:** "NBA Cup vs season" is gone from its tabs.
+
+### Tested
+- 645 checks pass (new: the partition and z on a 2-game average).
+- Section screenshot on this season's data.
+
+### Unproven
+- The first build writes `cup.vsSeason`. Until then the section says it comes with the next build.
+
 ## 0.56.0 (2026-11-13): GameFlow merge, stage 2d: hot hand, on Streaks & outliers and the Watch List
 
 ### What changed

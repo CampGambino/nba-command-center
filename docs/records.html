@@ -216,6 +216,12 @@
   <h2>NBA Cup all-time standings</h2>
   <div class="scroll"><table id="cupst"></table></div>
   <div class="key" id="cupkey"></div>
+  <h2>Cup games vs the rest of the season</h2>
+  <div class="controls"><select id="cvstat"><option value="pts">points</option><option value="reb">rebounds</option><option value="ast">assists</option><option value="fg3m">3-pointers</option><option value="min">minutes</option></select>
+    <select id="cvz"><option value="2b">|z| 2+, either way</option><option value="2up">z +2, better in the Cup</option><option value="2dn">z −2, worse in the Cup</option><option value="1b">|z| 1+, either way</option><option value="0b">every qualified player</option></select></div>
+  <div class="key" id="cvkey"></div>
+  <div class="scroll"><table id="cvtab"></table></div>
+  <div class="scroll" style="margin-top:12px"><table id="cvteams"></table></div>
   <div class="key">Cup career lists: <a href="#lists" data-goto="lists" data-stat="cup:pts">All-time lists → NBA Cup</a> · Cup marks within reach: <a href="#reach" data-goto="reach" data-kind="cup">Within reach → NBA Cup career</a>.</div>
   </section>
   <section data-tab="book">
@@ -390,6 +396,21 @@ Promise.all([fetch("data/records.json", { cache: "no-store" }).then((r) => r.jso
     st.map((r) => { const g = nextCup.find((x) => x.away === r.team || x.home === r.team);
       return `<tr><td><b>${r.team}</b></td><td class="num">${wl(r.overall)}</td><td class="num">${pct(r.overall)}</td><td class="num">${wl(r.home)}</td><td class="num">${wl(r.road)}</td><td class="num">${wl(r.season)}</td><td class="small">${g ? `${md(g.d)} ${g.away === r.team ? `at ${g.home}` : `vs ${g.away}`} (${esc(g.group)})` : r.cupGamesLeft ? "" : "group play done"}</td></tr>`; }).join("")
     : `<tr><td class="empty">No Cup standings.</td></tr>`;
+  // Cup vs season (GameFlow's NBA Cup vs season, 0.57): records.json cup.vsSeason from src/records/cupform.js
+  const renderCupVs = () => {
+    const V = d.cup?.vsSeason; if (!V) { $("cvkey").textContent = "Comes with the next build."; return; }
+    const k = $("cvstat").value, m = /^(\d)(b|up|dn)$/.exec($("cvz").value), zk = +m[1], dirz = m[2];
+    const word = { pts: "points", reb: "rebounds", ast: "assists", fg3m: "3-pointers", min: "minutes" }[k];
+    const rows = V.players.filter((p) => p.z[k] != null && (dirz === "b" ? Math.abs(p.z[k]) >= zk : dirz === "up" ? p.z[k] >= zk : p.z[k] <= -zk)).sort((a, b) => Math.abs(b.z[k]) - Math.abs(a.z[k]));
+    const f = (x) => (x == null ? "–" : x.toFixed(1)), sg = (x) => (x == null ? "–" : `${x > 0 ? "+" : ""}${x.toFixed(1)}`);
+    $("cvkey").innerHTML = `Each player's ${word} a game in his NBA Cup games against every other game he played (the two never share a game). <b>z</b> is the gap divided by how much an average of that many of his games moves by chance (his spread ÷ √games), so a 4-game group run and a 7-game finalist are measured alike. 2+ Cup games and 5+ others needed (${V.thinCup} have one Cup game so far). The championship doesn't count in season stats and isn't here.`;
+    $("cvtab").innerHTML = `<tr><th>Player</th><th>Team</th><th class="num">Cup GP</th><th class="num">Cup</th><th class="num">Rest of season</th><th class="num">Gap</th><th class="num">z</th><th class="num">FG% Cup / rest</th><th>Cup games</th></tr>` +
+      (rows.map((p) => `<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.tri)}</td><td class="num">${p.cupGp}</td><td class="num"><b>${f(p.cup[k])}</b></td><td class="num">${f(p.base[k])} <span class="small">${p.baseGp} g</span></td><td class="num ${p.gap[k] > 0 ? "hi" : "lo"}">${sg(p.gap[k])}</td><td class="num">${sg(p.z[k])}</td><td class="num">${f(p.fg[0])} / ${f(p.fg[1])}</td><td class="small">${p.games.map((g) => `${md(g.d)} vs ${esc(g.opp)}: ${g.pts}-${g.reb}-${g.ast}`).join("; ")}</td></tr>`).join("") || `<tr><td class="empty" colspan="9">Nobody clears this filter yet.</td></tr>`);
+    $("cvteams").innerHTML = `<tr><th>Team</th><th class="num">Cup W-L</th><th class="num">Cup margin</th><th class="num">Other games</th><th class="num">Other margin</th><th class="num">Gap</th></tr>` +
+      V.teams.map((t) => `<tr><td><b>${t.tri}</b></td><td class="num">${t.cup.w}-${t.cup.l}</td><td class="num">${sg(t.cup.mg)}</td><td class="num">${t.rest.w}-${t.rest.l}</td><td class="num">${sg(t.rest.mg)}</td><td class="num ${t.gap > 0 ? "hi" : "lo"}">${sg(t.gap)}</td></tr>`).join("");
+  };
+  ["cvstat", "cvz"].forEach((id) => $(id).addEventListener("input", renderCupVs));
+  renderCupVs();
   $("cupkey").textContent = "All-time: the Cup media guide's 2023-2025 records (knockout rounds and Championship games included) plus this season's Cup games. Neutral-site games count in all-time only.";
   ["book", "scope", "side", "rq"].forEach((id) => $(id).addEventListener("input", renderBook));
   fetch("ref/nba-postseason-careers.json").then((r) => r.json()).then((ps) => {
