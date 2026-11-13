@@ -4,7 +4,7 @@
  * deploy (tests/articles-only.js); tests/run.js runs them as part of the full suite.
  */
 import fs from "node:fs";
-import { parseLineups, diff as lineupDiff, lastStarters, lineupEmbed, lineupCheck, feedTime, espnStarters, feedDue } from "../cloudflare/lineups.js";
+import { parseLineups, diff as lineupDiff, lastStarters, lineupEmbed, lineupCheck, feedTime, espnStarters, feedDue, suspicion } from "../cloudflare/lineups.js";
 import { dueAt, dueNow, digestCheck } from "../cloudflare/digest.js";
 import { TEAM_FEEDS, teamFeedGroup, findLiveBlog, parseLiveBlog, LIVE_FEED } from "../cloudflare/articles-worker.js";
 import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey, tagOf as articleTag } from "../cloudflare/articles-worker.js";
@@ -153,6 +153,17 @@ export async function articlesChecks(ok) {
     const g = parseLineups(feed("Confirmed"))[0];
     ok(g.teams[0].tri === "NYK" && g.teams[0].opp === "IND" && g.teams[0].status === "Confirmed" && g.teams[1].status === "Expected" && g.teams[0].starters.map((p) => p.pos).join() === "PG,SG,SF,PF,C" && g.teams[0].inactive.join() === "Miles McBride",
       "lineups: starters are the players with a position, PG to C; a five is Confirmed only when all five are; inactives listed", JSON.stringify(g.teams[0]));
+    {
+      // 11/12/26: NBA.com briefly had Justin Edwards (0 starts) in for Jaylen Brown (11 of 11, not on the injury report).
+      const R = (st, min) => [st, min];
+      const games = Array.from({ length: 11 }, (_, i) => ({ d: `2026-11-${String(i + 1).padStart(2, "0")}`, pl: { 1: R(1, 34), ...(i < 5 ? { 2: R(0, 8) } : {}), 3: R(1, 30) } }));
+      const file = { names: { 1: "Jaylen Brown", 2: "Justin Edwards", 3: "Joel Embiid" }, games };
+      const inj = { date: "2026-11-12", players: [{ team: "PHI", name: "Joel Embiid", status: "Questionable" }] };
+      const w = suspicion(file, inj, ["Jaylen Brown"], ["Justin Edwards"], "PHI", "2026-11-12");
+      ok(/Check before using:\*\* Jaylen Brown has started all 11 games he's played and isn't on the injury report \(Justin Edwards 0 starts in 5 games\)/.test(w || "")
+        && suspicion(file, inj, ["Joel Embiid"], ["Justin Edwards"], "PHI", "2026-11-12") === null && suspicion(file, { date: "2026-11-11", players: [] }, ["Joel Embiid"], [], "PHI", "2026-11-12") !== null,
+        "lineups: a swap is flagged when the player out has started every game he's played and isn't on tonight's injury report (Brown); not when he's listed (Embiid); an old report doesn't count", w);
+    }
     ok(feedTime("2026-11-12T18:34:00") === Date.parse("2026-11-12T23:34:00Z") && feedTime("2026-07-01T18:34:00") === Date.parse("2026-07-01T22:34:00Z") && feedTime("2026-11-12T18:34:00Z") === Date.parse("2026-11-12T18:34:00Z"),
       "lineups: feed times are Eastern clock time (11/12: DET/WAS stamped 18:34, seen 6:35 PM ET); EST and EDT; a zone given is kept");
     ok(JSON.stringify(lineupDiff(["A B", "C D"], ["A B", "E F"])) === JSON.stringify({ in: ["E F"], out: ["C D"] }), "lineups: who's in and out");
@@ -212,6 +223,12 @@ export async function articlesChecks(ok) {
       ok(edits.length === 1 && edits[0].id === "m1" && /REPLACED \(changed at .* ET\) · see the newer post/.test(edits[0].embeds[0].author.name) && edits[0].embeds[0].color === 0x6b7280,
         "lineups: the earlier card is greyed and marked REPLACED when a change posts", JSON.stringify(edits));
       ok(r5.posted === 1 && /LINEUP CHANGE/.test(posts[1].embeds[0].author.name) && /Changed after it was confirmed:\*\* in Mitchell Robinson · out Josh Hart/.test(posts[1].embeds[0].description), "lineups: a change after it was confirmed posts on the next 3-minute check", JSON.stringify(posts[1]?.embeds?.[0]));
+      { // A flagged swap: NBA.com is read every minute until tip (19:05 isn't a 3-minute mark).
+        const st = JSON.parse(kv.get("lineups")); st.teams.NYK.suspect = true; kv.set("lineups", JSON.stringify(st));
+        reads = 0; await lineupCheck(env, T("19:05"), noSleep);
+        ok(reads === 1, "lineups: after a flagged swap, NBA.com is read every minute until tip", String(reads));
+        const st2 = JSON.parse(kv.get("lineups")); st2.teams.NYK.suspect = false; kv.set("lineups", JSON.stringify(st2));
+      }
       reads = 0;
       const r6 = await lineupCheck(env, T("19:30"), noSleep);
       const tipPosts = posts.slice(2).map((p) => p.embeds[0]);

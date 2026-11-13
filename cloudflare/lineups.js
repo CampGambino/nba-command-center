@@ -23,6 +23,7 @@ export const ESPN_SUMMARY = (id) => `https://site.api.espn.com/apis/site/v2/spor
 export const ESPN_TRI = { GS: "GSW", NY: "NYK", SA: "SAS", NO: "NOP", UTAH: "UTA", WSH: "WAS" };
 const triOf = (a) => ESPN_TRI[a] || a;
 export const TEAM_FILE = (tri) => `https://raw.githubusercontent.com/CampGambino/nba-command-center/main/docs/data/teams/${tri}.json`;
+export const INJURIES_FILE = "https://raw.githubusercontent.com/CampGambino/nba-command-center/main/docs/data/injuries.json";
 const POS_ORDER = { PG: 0, SG: 1, G: 1.5, SF: 2, F: 2.5, PF: 3, C: 4 };
 
 export const etParts = (ms) => {
@@ -85,11 +86,33 @@ export function lastStarters(file, beforeYmd) {
   return names.length === 5 ? { d: g.d, opp: g.opp, names } : null;
 }
 
+/**
+ * A swap that doesn't fit the season so far: a player going OUT who has started every game he has played (3+)
+ * and isn't on tonight's injury report. 11/12/26: NBA.com briefly had Justin Edwards (0 starts) in for Jaylen
+ * Brown (11 of 11, not on the report); a different five, with Brown, started. Returns a note or null.
+ */
+export function suspicion(file, injuries, out, inn, tri, ymd) {
+  if (!file || !out?.length) return null;
+  const ids = Object.fromEntries(Object.entries(file.names || {}).map(([id, n]) => [nameKey(n), id]));
+  const games = (file.games || []).filter((g) => !ymd || g.d < ymd);
+  const count = (name) => {
+    const id = ids[nameKey(name)]; let gp = 0, gs = 0;
+    if (id) for (const g of games) { const r = g.pl?.[id]; if (r && (r[1] > 0 || r[0] === 1)) { gp++; if (r[0] === 1) gs++; } }
+    return { gp, gs };
+  };
+  const listed = new Set((injuries && (!ymd || injuries.date === ymd) ? injuries.players || [] : []).filter((p) => p.team === tri).map((p) => nameKey(p.name)));
+  const odd = out.filter((n) => { const c = count(n); return c.gp >= 3 && c.gs === c.gp && !listed.has(nameKey(n)); });
+  if (!odd.length) return null;
+  const who = odd.map((n) => { const c = count(n); return `${n} has started all ${c.gp} games he's played and isn't on the injury report`; }).join("; ");
+  const subs = (inn || []).map((n) => { const c = count(n); return `${n} ${c.gs} start${c.gs === 1 ? "" : "s"} in ${c.gp} game${c.gp === 1 ? "" : "s"}`; }).join(", ");
+  return `⚠️ **Check before using:** ${who}${subs ? ` (${subs})` : ""}. Could be an NBA.com entry error; rechecking every minute until tip.`;
+}
+
 const md = (ymd) => `${Number(ymd.slice(5, 7))}/${Number(ymd.slice(8, 10))}`;
 const list = (xs) => xs.join(", ");
 
 /** The Discord embed for a team's confirmed five (or a change to it). */
-export function lineupEmbed(game, team, { expected = null, last = null, previous = null, test = false, kind = null } = {}) {
+export function lineupEmbed(game, team, { expected = null, last = null, previous = null, test = false, kind = null, warn = null } = {}) {
   const lines = team.starters.map((p) => p.name); // in position order, PG to C (the user: no labels)
   const notes = [];
   if (previous) { const d = diff(previous, team.starters.map((p) => p.name)); if (d.in.length) notes.push(`🔄 **${kind === "tip" ? "Started differently than confirmed" : "Changed after it was confirmed"}:** in ${list(d.in)} · out ${list(d.out)}`); }
@@ -98,6 +121,7 @@ export function lineupEmbed(game, team, { expected = null, last = null, previous
     notes.push(d.in.length ? `**vs last game** (${md(last.d)} vs ${last.opp}): in **${list(d.in)}** · out ${list(d.out)}` : `Same five as last game (${md(last.d)} vs ${last.opp}).`);
   }
   if (expected) { const d = diff(expected, team.starters.map((p) => p.name)); if (d.in.length) notes.push(`**vs expected earlier today:** in ${list(d.in)} · out ${list(d.out)}`); }
+  if (warn) notes.push(warn);
   if (team.inactive.length) notes.push(`Inactive: ${list(team.inactive)}`);
   const changed = notes.some((n) => /^\*\*vs|^🔄/.test(n) && /in \*\*|in [A-Z]/.test(n));
   return {
@@ -216,7 +240,8 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
   const minute0 = Math.floor(now / 60e3) * 60e3;
   for (const off of [0, BURST_EVERY_S, 2 * BURST_EVERY_S]) {
     const t = minute0 + off * 1000;
-    const due = st.sched.some((g) => g.teams.some((tri) => phaseOf(st.teams[tri], g.tip, t) === "pregame") && feedDue(g.tip, t));
+    const due = st.sched.some((g) => g.teams.some((tri) => phaseOf(st.teams[tri], g.tip, t) === "pregame")
+      && (feedDue(g.tip, t) || (off === 0 && g.teams.some((tri) => st.teams[tri]?.suspect))));
     if (!due && !(dry && off === 0)) continue;
     if (t > Date.now()) await sleep(t - Date.now());
     const feed = await readFeed(compact);
@@ -235,13 +260,19 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
         const again = s.posted && diff(s.posted, names).in.length > 0;
         if (s.posted && !again) continue;
         if (dry) { (report.wouldPost ??= []).push(`${tm.tri} ${again ? "change" : "confirmed"}`); continue; }
-        let last = null;
-        if (!again) { try { const r = await fetch(TEAM_FILE(tm.tri)); if (r.ok) last = lastStarters(await r.json(), ymd); } catch {} }
-        const embed = lineupEmbed({ ...g, statusText: g.statusText || etClock(sg.tip) + " ET" }, tm, { expected: again ? null : s.expected, last, previous: again ? s.posted : null });
+        let last = null, file = null, injuries = null;
+        try { const r = await fetch(TEAM_FILE(tm.tri)); if (r.ok) { file = await r.json(); if (!again) last = lastStarters(file, ymd); } } catch {}
+        try { const r = await fetch(INJURIES_FILE); if (r.ok) injuries = await r.json(); } catch {}
+        // Who left the five: since the last post (a change), or since the team's last game (a first post).
+        const base = again ? s.posted : last?.names;
+        const d = base ? diff(base, names) : null;
+        const warn = d ? suspicion(file, injuries, d.out, d.in, tm.tri, ymd) : null;
+        const embed = lineupEmbed({ ...g, statusText: g.statusText || etClock(sg.tip) + " ET" }, tm, { expected: again ? null : s.expected, last, previous: again ? s.posted : null, warn });
         const id = await postDiscord(env.LINEUPS_WEBHOOK, { embeds: [embed] });
         if (id) {
           if (again && s.card) await editDiscord(env.LINEUPS_WEBHOOK, s.card.id, { embeds: [supersededEmbed(s.card.embed, `changed at ${etClock(Date.now())} ET`)] });
           s.card = { id, embed };
+          s.suspect = !!warn; // read every minute until tip, to catch a correction fast
           s.posted = names; s.postedTeam = { starters: tm.starters }; changed = true; report.posted++;
           const w = (s.when ??= {});
           if (again) (w.changes ??= []).push({ seen: t, feed: tm.at, posted: Date.now() }); else w.posted = Date.now();

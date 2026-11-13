@@ -2,6 +2,34 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.45.2 (2026-11-12): #lineups flags a swap that doesn't fit the season, and rechecks every minute
+
+### Why
+- **The user:** the Sixers' 6:50 PM "LINEUP CHANGE" (Justin Edwards in, Jaylen Brown out) "definitely raises suspicions since Jaylen Brown has started every game he has played."
+- **The facts:**
+  - Brown: 11 starts in 11 games, and not on the 11/12 injury report. Edwards: 0 starts in 5 games.
+  - Brown started (ESPN's box score), and NBA.com's file now shows him too.
+  - The file still had Edwards at our last read, 2 minutes before tip, so it was likely an entry slip on NBA.com's side, corrected at or after tip.
+
+### What changed
+- **New `suspicion()` in `cloudflare/lineups.js`:** flags a player going OUT who has started every game he has played (3+) this season and isn't on tonight's injury report (`docs/data/injuries.json`, today's only). "Out" means:
+  - for a change card, compared with the five we last posted;
+  - for a first card, compared with the team's last game.
+- **The flag on the card:** "⚠️ Check before using: Jaylen Brown has started all 11 games he's played and isn't on the injury report (Justin Edwards 0 starts in 5 games). Could be an NBA.com entry error; rechecking every minute until tip."
+- **After a flagged card,** NBA.com's file is read every minute (not every 3) until tip. A correction then posts as its own change within a minute, and the flagged card is marked REPLACED (0.45.1).
+
+### Tested
+- **Watcher checks:** 59 pass, including:
+  - the Brown/Edwards case flagged;
+  - no flag when the player out is on the injury report (Embiid, questionable);
+  - an old injury report doesn't count;
+  - a flagged team read every minute until tip.
+- **Full suite:** 584 pass.
+
+### Still unproven
+- **Live:** not seen yet; it needs a night with such a swap.
+- **The injury report** comes from our site (updated by the daily builds). A player added to the report in the last hour can be flagged wrongly; the card says "check", it doesn't block the post.
+
 ## 0.45.1 (2026-11-12): #lineups: confirmed times in Eastern; a replaced card is marked REPLACED
 
 ### Why
