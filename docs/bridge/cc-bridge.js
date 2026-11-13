@@ -22,7 +22,9 @@
  *     - the NBA's all-time single-game lists (ref/nba-single-game-bests.json): a player nearing or
  *       making a list (57+ points, 11+ threes, 38+ rebounds, ...), with his place among every game
  *       on it; on Cup nights also the Cup's own lists. NBA Live's own record cards (the top mark)
- *       are left to NBA Live.
+ *       are left to NBA Live;
+ *     - (v4) each franchise's single-game records from its media guide (records.json franchiseGame):
+ *       "6 from the Suns record (70, Devin Booker at Boston 3/24/17)", "ties/breaks the Suns record".
  *
  * What it never does
  *   - change NBA Live's own checks, data or cards;
@@ -33,7 +35,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 3;
+  var VERSION = 4;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -214,6 +216,7 @@
       picks.filter(function (x, k) { return x.reached || k < MAX_PER_GAME; }).forEach(function (x) { card(game, x.i, x.v, tag, scr); });
       try { recordChecks(game, sides, box, tag, scr); } catch (e) { state.recError = String(e && e.message || e); }
       try { listChecks(game, sides, box, tag, scr); } catch (e) { state.listError = String(e && e.message || e); }
+      try { franchiseGameChecks(game, sides, box, tag, scr); } catch (e) { state.fgError = String(e && e.message || e); }
     });
     status();
   }
@@ -318,6 +321,45 @@
               sub: "Command Center · the NBA Guide's single-game lists (through 2025-26)" + (made && better < 3 ? " · NBA Live's record card covers the record itself" : ""),
               live: game.status === "live", gameId: game.id, gameTag: tag, gameScore: scr,
             });
+          });
+        });
+      });
+    });
+  }
+
+  // ---- v4: each franchise's single-game records (the 29 team media guides; records.json franchiseGame) ----
+  var FG_GAP = { pts: 8, reb: 5, ast: 4, stl: 2, blk: 2, fg3m: 2 }; // "nearing the team record" window, live only
+  function franchiseGameChecks(game, sides, box, tag, scr) {
+    var R = state.records;
+    var F = R && R.franchiseGame;
+    if (!F || !F.teams) return;
+    var post = false;
+    try { post = typeof isPlayoffSlate === "function" && !!isPlayoffSlate(); } catch (e) { post = false; }
+    if (post) return; // the guides' records here are regular season
+    ["away", "home"].forEach(function (side) {
+      var team = side === "away" ? sides.away : sides.home;
+      var T = F.teams[team];
+      if (!T) return;
+      (box[side] || []).forEach(function (p) {
+        if (!p || (p.min || 0) < 1) return;
+        Object.keys(FG_GAP).forEach(function (stat) {
+          var rec = T[stat];
+          if (!rec || !rec.value) return;
+          var v = Number(p[LIST_FIELD[stat]]) || 0;
+          var made = v >= rec.value;
+          if (!made && (game.status !== "live" || v < rec.value - FG_GAP[stat] || v < 0.75 * rec.value)) return;
+          var name = p.name || p.displayName || p.shortName || ("#" + p.id);
+          var holder = (rec.holders || [])[0] || "";
+          var whose = T.name + (T.era ? " (" + T.era + ")" : "") + " record";
+          var text = made
+            ? name + " (" + team + ") — " + v + " " + LIST_WORD[stat] + ": " + (v > rec.value ? "breaks the " + whose + " (" + rec.value + ", " + holder + ")" : "ties the " + whose + " (" + rec.value + ", " + holder + (rec.holders.length > 1 ? " and " + (rec.holders.length - 1) + " more" : "") + ")")
+            : name + " (" + team + ") — " + v + " " + LIST_WORD[stat] + ", " + (rec.value - v) + " from the " + whose + " (" + rec.value + ", " + holder + ")";
+          fire("cc-fg-" + p.id + "-" + stat + (made ? (v > rec.value ? "-broke" : "-tied") : "-near"), {
+            type: "milestone", icon: made ? (v > rec.value ? "🏛️ TEAM RECORD" : "🏛️ TIES TEAM RECORD") : "👀 " + (rec.value - v) + " FROM TEAM RECORD",
+            text: text,
+            statLine: typeof fmtAlertStatLine === "function" ? fmtAlertStatLine([[v, LIST_WORD[stat].toUpperCase()]]) : "",
+            sub: "Command Center · " + (T.src || "team media guide") + " (through 2025-26)",
+            live: game.status === "live", gameId: game.id, gameTag: tag, gameScore: scr,
           });
         });
       });

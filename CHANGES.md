@@ -2,6 +2,42 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.47.0 (2026-11-12): Every franchise's single-game records, live in NBA Live (29 team media guides)
+
+### Why
+- **The user:** single-game franchise records from the 30 team media guides, so NBA Live can flag "most points in a game in Grizzlies history" before it happens.
+
+### What changed
+- **New `src/data/nba-franchise-single-game-2026-27.json`:** each franchise's regular-season single-game record in points, rebounds, assists, steals, blocks and 3-pointers, through 2025-26: the number and every holder, with date and opponent, as printed. Each team's entry names the guide page it came from.
+  - **How it was read:** every guide lays its records out differently and the text is out of order, so each records page was turned into an image and read by hand.
+  - **Examples:** Kobe 81, Wilt 100, Bam Adebayo 83 (3/10/26), Booker 70, Embiid 70, Elmore Smith 17 blocks, Scott Skiles 30 assists, Klay 14 threes.
+  - **Ties:** all holders are kept (Boston's 60 points: Tatum and Bird; Atlanta's 57: Wilkins twice, Hudson and Pettit).
+  - **Gaps:**
+    - Utah's guide has no single-game records pages, so the Jazz are left out.
+    - The Thunder's guide gives Oklahoma City-era records only, not Seattle's; the card says "(Oklahoma City era)".
+    - Denver's are NBA seasons; the Nuggets list their ABA records apart.
+    - Records set in overtime games are included, as the guides list them.
+- **NBA Live bridge v4 (`docs/bridge/cc-bridge.js`), in regular-season games:**
+  - **Nearing a record (live only):** within 8 points, 5 rebounds, 4 assists, or 2 steals, blocks or threes, and at least 75% of the record. Example: "6 from the Lakers record (81, Kobe Bryant vs. Toronto 1/22/06)".
+  - **Ties or breaks it:** "ties/breaks the Lakers record".
+  - **Each card** names the guide page it came from.
+- **`records.json`** gains `franchiseGame`.
+- **Records tab:** a "Franchise single-game records" table (pick the stat; all 29 teams, sorted).
+
+### Tested
+- **Checks** (588 pass):
+  - 29 teams with all six stats and holders;
+  - known records (Wilt 100, Kobe 81, Adebayo 83, Booker 70, Elmore Smith 17, Skiles 30; Thunder OKC-era);
+  - bridge v4 against the stand-in NBA Live: a tie card ("58 points: ties the Lakers record (58, …)"), a near card (52 of 58: "6 from the Lakers record"), and no card for 9 threes against a 12 record.
+- **The real NBA Live** (`live/nba-live_14.html`, 11/12's games) loads bridge v4: connected, no errors, 9 Command Center cards. Nobody came near a team record, so there was no team-record card.
+- **Page sweep:** OK.
+
+### Still unproven
+- **Live:** a team-record card in a real game hasn't been seen yet.
+- **Hand reading:** the records were read by eye from images; a misread digit is possible. Each card names its guide page, so it can be checked.
+- **NBA Live may have its own franchise-record cards;** if so, the two may overlap.
+- **Not included:** playoff single-game franchise records and half/quarter records.
+
 ## 0.46.0 (2026-11-12): Franchise totals checked against all 30 team media guides; 5 reading errors fixed
 
 ### Why

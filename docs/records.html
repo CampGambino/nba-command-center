@@ -144,6 +144,10 @@
     <span class="key">Bold: played for them this season, totals current. Steals, blocks and offensive/defensive rebounds since 1973-74; 3-pointers since 1979-80.</span>
   </div>
   <div class="scroll"><table id="fboard"></table></div>
+  <h2>Franchise single-game records</h2>
+  <div class="controls"><select id="gstat"><option value="pts">Points</option><option value="reb">Rebounds</option><option value="ast">Assists</option><option value="stl">Steals</option><option value="blk">Blocks</option><option value="fg3m">3-pointers</option></select>
+    <span class="key">Regular season, from each team's 2026-27 media guide (through 2025-26). NBA Live gets a card when a player nears, ties or breaks one. Utah's guide has none; the Thunder's are Oklahoma City-era only.</span></div>
+  <div class="scroll"><table id="fgame"></table></div>
   <h2>Franchise season records, on pace</h2>
   <div class="controls">
     <select id="pkind"><option value="">Totals and per game</option><option value="total">Season totals (pace)</option><option value="perGame">Per game</option></select>
@@ -204,6 +208,12 @@ function renderItems() {
       : `<tr><td colspan=6 class="empty">Nothing matches.</td></tr>`);
 }
 let RB = [], SG = null, PS = null;
+function renderFgame() {
+  const st = $("gstat").value, T = D.franchiseGame?.teams || {};
+  const rows = Object.entries(T).filter(([, t]) => t[st]).sort((a, b) => b[1][st].value - a[1][st].value);
+  $("fgame").innerHTML = `<tr><th>Team</th><th class="num">Record</th><th>Held by</th></tr>` + (rows.length ? rows.map(([tri, t]) => `<tr><td><b>${esc(tri)}</b>${t.era ? ` <span class="small">(${esc(t.era)})</span>` : ""}</td><td class="num">${t[st].value}</td><td class="small">${t[st].holders.map(esc).join("; ")}</td></tr>`).join("")
+    : `<tr><td colspan=3 class="empty">No team records loaded.</td></tr>`);
+}
 function renderPace() {
   const k = $("pkind").value, st = $("pstat").value, tm = $("pteam").value;
   const rows = (D.seasonPace || []).filter((x) => (!k || x.kind === k) && (!st || x.stat === st) && (!tm || x.team === tm));
@@ -263,6 +273,7 @@ Promise.all([fetch("data/records.json", { cache: "no-store" }).then((r) => r.jso
   $("fteam").innerHTML = Object.keys(d.franchise || {}).sort().map((t) => `<option>${t}</option>`).join("");
   ["fteam", "fstat"].forEach((id) => $(id).addEventListener("input", renderFranchise));
   renderFranchise();
+  $("gstat").addEventListener("input", renderFgame); renderFgame();
   $("pteam").innerHTML += [...new Set((d.seasonPace || []).map((x) => x.team))].sort().map((t) => `<option>${t}</option>`).join("");
   ["pkind", "pstat", "pteam"].forEach((id) => $(id).addEventListener("input", renderPace));
   renderPace();

@@ -1,0 +1,1242 @@
+{
+ "source": "The 30 teams' 2026-27 media guides: each franchise's individual single-game regular-season records (points, rebounds, assists, steals, blocks, 3-pointers), through 2025-26. Read from the guides' pages by hand.",
+ "stats": [
+  "pts",
+  "reb",
+  "ast",
+  "stl",
+  "blk",
+  "fg3m"
+ ],
+ "notes": {
+  "UTA": "The Jazz guide has no single-game individual records pages.",
+  "OKC": "The Thunder guide gives Oklahoma City-era records only (2008-09 on), not Seattle's.",
+  "DEN": "NBA seasons only; the Nuggets' ABA records are listed separately in their guide.",
+  "steals_blocks": "Steals and blocks were first kept in 1973-74; 3-pointers in 1979-80.",
+  "overtime": "Records set in overtime games are included, as the guides list them (marked OT)."
+ },
+ "teams": {
+  "ATL": {
+   "name": "Hawks",
+   "src": "Hawks guide pp. 119-120",
+   "pts": {
+    "value": 57,
+    "holders": [
+     "Dominique Wilkins vs. Chicago 12/10/86",
+     "Dominique Wilkins vs. New Jersey 4/10/86",
+     "Lou Hudson vs. Chicago (at Auburn, AL) 11/10/69",
+     "Bob Pettit at Detroit 2/18/61"
+    ]
+   },
+   "reb": {
+    "value": 35,
+    "holders": [
+     "Bob Pettit vs. Cincinnati 3/2/58",
+     "Bob Pettit vs. Minneapolis (at New York) 1/4/56"
+    ]
+   },
+   "ast": {
+    "value": 23,
+    "holders": [
+     "Mookie Blaylock vs. Utah 3/6/93"
+    ]
+   },
+   "stl": {
+    "value": 10,
+    "holders": [
+     "Mookie Blaylock vs. Philadelphia 4/14/98"
+    ]
+   },
+   "blk": {
+    "value": 12,
+    "holders": [
+     "Wayne Rollins vs. Portland 2/21/79"
+    ]
+   },
+   "fg3m": {
+    "value": 10,
+    "holders": [
+     "Danilo Gallinari vs. Boston 2/24/21",
+     "Bogdan Bogdanovic vs. Denver 12/11/23"
+    ]
+   }
+  },
+  "BKN": {
+   "name": "Nets",
+   "src": "Nets guide p. 112",
+   "pts": {
+    "value": 60,
+    "holders": [
+     "Kyrie Irving at Orlando 3/15/22"
+    ]
+   },
+   "reb": {
+    "value": 27,
+    "holders": [
+     "Buck Williams at Golden State (4OT) 2/1/87"
+    ]
+   },
+   "ast": {
+    "value": 29,
+    "holders": [
+     "Kevin Porter vs. Houston 2/24/78"
+    ]
+   },
+   "stl": {
+    "value": 11,
+    "holders": [
+     "Kendall Gill vs. Miami 4/3/99"
+    ]
+   },
+   "blk": {
+    "value": 13,
+    "holders": [
+     "Darryl Dawkins vs. Philadelphia 11/5/83"
+    ]
+   },
+   "fg3m": {
+    "value": 11,
+    "holders": [
+     "Deron Williams vs. Washington 3/8/13"
+    ]
+   }
+  },
+  "BOS": {
+   "name": "Celtics",
+   "src": "Celtics guide pp. 203-204",
+   "pts": {
+    "value": 60,
+    "holders": [
+     "Jayson Tatum at San Antonio 4/30/21",
+     "Larry Bird vs. Atlanta (at New Orleans) 3/12/85"
+    ]
+   },
+   "reb": {
+    "value": 51,
+    "holders": [
+     "Bill Russell vs. Syracuse 2/5/60"
+    ]
+   },
+   "ast": {
+    "value": 28,
+    "holders": [
+     "Bob Cousy vs. Minneapolis 2/27/59"
+    ]
+   },
+   "stl": {
+    "value": 9,
+    "holders": [
+     "Paul Pierce vs. Miami 12/3/99",
+     "Larry Bird at Utah 2/18/85"
+    ]
+   },
+   "blk": {
+    "value": 9,
+    "holders": [
+     "Kevin McHale at Chicago 1/21/83",
+     "Kevin McHale at New Jersey 4/16/82",
+     "Robert Parish vs. Atlanta 3/17/82"
+    ]
+   },
+   "fg3m": {
+    "value": 11,
+    "holders": [
+     "Marcus Smart 1/18/20"
+    ]
+   }
+  },
+  "CHA": {
+   "name": "Hornets",
+   "src": "Hornets guide p. 223",
+   "pts": {
+    "value": 60,
+    "holders": [
+     "Kemba Walker vs. Philadelphia 11/17/18"
+    ]
+   },
+   "reb": {
+    "value": 30,
+    "holders": [
+     "Dwight Howard at Brooklyn 3/21/18"
+    ]
+   },
+   "ast": {
+    "value": 20,
+    "holders": [
+     "Brevin Knight at Cleveland (OT) 11/1/05"
+    ]
+   },
+   "stl": {
+    "value": 9,
+    "holders": [
+     "Eddie Jones vs. Indiana 11/4/99"
+    ]
+   },
+   "blk": {
+    "value": 12,
+    "holders": [
+     "Vlade Divac vs. New Jersey 2/12/97"
+    ]
+   },
+   "fg3m": {
+    "value": 10,
+    "holders": [
+     "five times"
+    ]
+   }
+  },
+  "CHI": {
+   "name": "Bulls",
+   "src": "Bulls guide pp. 112-113",
+   "pts": {
+    "value": 69,
+    "holders": [
+     "Michael Jordan at Cleveland (OT) 3/28/90"
+    ]
+   },
+   "reb": {
+    "value": 37,
+    "holders": [
+     "Tom Boerwinkle vs. Phoenix 1/8/70"
+    ]
+   },
+   "ast": {
+    "value": 24,
+    "holders": [
+     "Guy Rodgers vs. New York 12/21/66"
+    ]
+   },
+   "stl": {
+    "value": 10,
+    "holders": [
+     "Michael Jordan vs. New Jersey 1/29/88"
+    ]
+   },
+   "blk": {
+    "value": 12,
+    "holders": [
+     "Nate Thurmond vs. Atlanta (OT) 10/18/74"
+    ]
+   },
+   "fg3m": {
+    "value": 13,
+    "holders": [
+     "Zach LaVine at Charlotte 11/23/19"
+    ]
+   }
+  },
+  "CLE": {
+   "name": "Cavaliers",
+   "src": "Cavaliers guide pp. 170-171",
+   "pts": {
+    "value": 71,
+    "holders": [
+     "Donovan Mitchell vs. Chicago (OT) 1/2/23"
+    ]
+   },
+   "reb": {
+    "value": 25,
+    "holders": [
+     "Rick Roberson at Houston 3/4/72",
+     "Anderson Varejao vs. Orlando (OT) 1/2/14"
+    ]
+   },
+   "ast": {
+    "value": 27,
+    "holders": [
+     "Geoff Huston vs. Golden State 1/27/82"
+    ]
+   },
+   "stl": {
+    "value": 10,
+    "holders": [
+     "Ron Harper vs. Philadelphia 3/10/87"
+    ]
+   },
+   "blk": {
+    "value": 11,
+    "holders": [
+     "Larry Nance vs. New York 1/7/89"
+    ]
+   },
+   "fg3m": {
+    "value": 11,
+    "holders": [
+     "Kyrie Irving vs. Portland 1/28/15"
+    ]
+   }
+  },
+  "DAL": {
+   "name": "Mavericks",
+   "src": "Mavericks guide p. 365",
+   "pts": {
+    "value": 73,
+    "holders": [
+     "Luka Doncic at Atlanta 1/26/24"
+    ]
+   },
+   "reb": {
+    "value": 28,
+    "holders": [
+     "Popeye Jones vs. Indiana 1/9/96"
+    ]
+   },
+   "ast": {
+    "value": 25,
+    "holders": [
+     "Jason Kidd vs. Utah (2OT) 2/8/96"
+    ]
+   },
+   "stl": {
+    "value": 10,
+    "holders": [
+     "Michael Finley vs. Philadelphia 1/23/01"
+    ]
+   },
+   "blk": {
+    "value": 13,
+    "holders": [
+     "Shawn Bradley vs. Portland 4/7/98"
+    ]
+   },
+   "fg3m": {
+    "value": 10,
+    "holders": [
+     "Tim Hardaway Jr. at Miami 5/4/21",
+     "Wesley Matthews at Washington 12/6/15",
+     "George McCloud vs. Phoenix (OT) 12/16/95"
+    ]
+   }
+  },
+  "DEN": {
+   "name": "Nuggets",
+   "src": "Nuggets guide pp. 340-344 (NBA seasons; ABA records separate)",
+   "pts": {
+    "value": 73,
+    "holders": [
+     "David Thompson at Detroit 4/9/78"
+    ]
+   },
+   "reb": {
+    "value": 31,
+    "holders": [
+     "Dikembe Mutombo vs. Charlotte (2OT) 3/26/96"
+    ]
+   },
+   "ast": {
+    "value": 23,
+    "holders": [
+     "Fat Lever at Golden State 4/21/89"
+    ]
+   },
+   "stl": {
+    "value": 10,
+    "holders": [
+     "Fat Lever vs. Indiana 3/9/85"
+    ]
+   },
+   "blk": {
+    "value": 12,
+    "holders": [
+     "Dikembe Mutombo vs. LA Clippers 4/18/93"
+    ]
+   },
+   "fg3m": {
+    "value": 11,
+    "holders": [
+     "J.R. Smith vs. Sacramento 4/13/09"
+    ]
+   }
+  },
+  "DET": {
+   "name": "Pistons",
+   "src": "Pistons guide pp. 87-90",
+   "pts": {
+    "value": 57,
+    "holders": [
+     "Jerry Stackhouse at Chicago 4/3/2001"
+    ]
+   },
+   "reb": {
+    "value": 34,
+    "holders": [
+     "Dennis Rodman vs. Indiana 3/4/1992"
+    ]
+   },
+   "ast": {
+    "value": 25,
+    "holders": [
+     "Kevin Porter vs. Boston 3/9/1979",
+     "Kevin Porter at Phoenix 4/1/1979",
+     "Isiah Thomas vs. Dallas 2/13/1985"
+    ]
+   },
+   "stl": {
+    "value": 9,
+    "holders": [
+     "Earl Tatum at L.A. Lakers 11/28/1978",
+     "Ron Lee vs. Houston 3/16/1980"
+    ]
+   },
+   "blk": {
+    "value": 10,
+    "holders": [
+     "Edgar Jones vs. Indiana 12/17/1981",
+     "Ben Wallace at Milwaukee 2/24/2002",
+     "Ben Wallace vs. Miami 11/20/2002"
+    ]
+   },
+   "fg3m": {
+    "value": 10,
+    "holders": [
+     "Joe Dumars vs. Minnesota 11/8/1994",
+     "Saddiq Bey at Orlando 3/17/2022"
+    ]
+   }
+  },
+  "GSW": {
+   "name": "Warriors",
+   "src": "Warriors guide pp. 123-125",
+   "pts": {
+    "value": 100,
+    "holders": [
+     "Wilt Chamberlain vs. New York (at Hershey) 3/2/62"
+    ]
+   },
+   "reb": {
+    "value": 55,
+    "holders": [
+     "Wilt Chamberlain vs. Boston 11/24/60"
+    ]
+   },
+   "ast": {
+    "value": 28,
+    "holders": [
+     "Guy Rodgers vs. St. Louis 3/14/63"
+    ]
+   },
+   "stl": {
+    "value": 10,
+    "holders": [
+     "Draymond Green at Memphis 2/10/17"
+    ]
+   },
+   "blk": {
+    "value": 13,
+    "holders": [
+     "Manute Bol vs. New Jersey 2/2/90"
+    ]
+   },
+   "fg3m": {
+    "value": 14,
+    "holders": [
+     "Klay Thompson at Chicago 10/29/18"
+    ]
+   }
+  },
+  "HOU": {
+   "name": "Rockets",
+   "src": "Rockets guide pp. 122-125",
+   "pts": {
+    "value": 61,
+    "holders": [
+     "James Harden vs. San Antonio 3/22/19",
+     "James Harden at New York 1/23/19"
+    ]
+   },
+   "reb": {
+    "value": 37,
+    "holders": [
+     "Moses Malone at New Orleans 2/9/79"
+    ]
+   },
+   "ast": {
+    "value": 22,
+    "holders": [
+     "Art Williams at Phoenix 12/28/68",
+     "Art Williams vs. San Francisco 2/14/70",
+     "Allen Leavell vs. New Jersey 1/25/83"
+    ]
+   },
+   "stl": {
+    "value": 10,
+    "holders": [
+     "Clyde Drexler vs. Sacramento 11/1/96"
+    ]
+   },
+   "blk": {
+    "value": 13,
+    "holders": [
+     "Elvin Hayes vs. Milwaukee 3/19/71",
+     "Elvin Hayes vs. Phoenix 3/21/71",
+     "Ralph Sampson at Chicago 12/9/83"
+    ]
+   },
+   "fg3m": {
+    "value": 10,
+    "holders": [
+     "Dillon Brooks at Toronto 12/22/24",
+     "Fred VanVleet vs. Utah 3/23/24",
+     "James Harden (3 times, last at Orlando 12/13/19)",
+     "Chandler Parsons vs. Memphis 1/24/14"
+    ]
+   }
+  },
+  "IND": {
+   "name": "Pacers",
+   "src": "Pacers guide pp. 181-182",
+   "pts": {
+    "value": 57,
+    "holders": [
+     "Reggie Miller at Charlotte 11/28/92"
+    ]
+   },
+   "reb": {
+    "value": 29,
+    "holders": [
+     "Herb Williams vs. Denver 1/23/89"
+    ]
+   },
+   "ast": {
+    "value": 23,
+    "holders": [
+     "Jamaal Tinsley vs. Washington 11/22/01",
+     "Tyrese Haliburton vs. New York 12/30/23"
+    ]
+   },
+   "stl": {
+    "value": 10,
+    "holders": [
+     "T.J. McConnell at Cleveland 3/3/21"
+    ]
+   },
+   "blk": {
+    "value": 11,
+    "holders": [
+     "Roy Hibbert vs. New Orleans (OT) 11/21/12"
+    ]
+   },
+   "fg3m": {
+    "value": 10,
+    "holders": [
+     "Tyrese Haliburton at Miami 12/23/22"
+    ]
+   }
+  },
+  "LAC": {
+   "name": "Clippers",
+   "src": "Clippers guide pp. 128-131",
+   "pts": {
+    "value": 55,
+    "holders": [
+     "Kawhi Leonard vs. Detroit 12/28/25 (2 times)"
+    ]
+   },
+   "reb": {
+    "value": 32,
+    "holders": [
+     "Swen Nater vs. Denver 12/14/79"
+    ]
+   },
+   "ast": {
+    "value": 25,
+    "holders": [
+     "Ernie DiGregorio at Portland 1/1/74"
+    ]
+   },
+   "stl": {
+    "value": 10,
+    "holders": [
+     "Lou Williams at Utah 1/20/18"
+    ]
+   },
+   "blk": {
+    "value": 10,
+    "holders": [
+     "Benoit Benjamin vs. San Antonio 3/31/89 (3 times)"
+    ]
+   },
+   "fg3m": {
+    "value": 11,
+    "holders": [
+     "Robert Covington at Milwaukee 4/1/22"
+    ]
+   }
+  },
+  "LAL": {
+   "name": "Lakers",
+   "src": "Lakers guide p. 99",
+   "pts": {
+    "value": 81,
+    "holders": [
+     "Kobe Bryant vs. Toronto 1/22/06"
+    ]
+   },
+   "reb": {
+    "value": 42,
+    "holders": [
+     "Wilt Chamberlain vs. Boston 3/7/69"
+    ]
+   },
+   "ast": {
+    "value": 24,
+    "holders": [
+     "Earvin Johnson vs. Denver 11/17/89",
+     "Earvin Johnson at Phoenix 1/9/90"
+    ]
+   },
+   "stl": {
+    "value": 10,
+    "holders": [
+     "Jerry West vs. Seattle 12/7/73"
+    ]
+   },
+   "blk": {
+    "value": 17,
+    "holders": [
+     "Elmore Smith vs. Portland 10/28/73"
+    ]
+   },
+   "fg3m": {
+    "value": 12,
+    "holders": [
+     "Kobe Bryant vs. Seattle 1/7/03"
+    ]
+   }
+  },
+  "MEM": {
+   "name": "Grizzlies",
+   "src": "Grizzlies guide pp. 106-107",
+   "pts": {
+    "value": 52,
+    "holders": [
+     "Ja Morant vs. San Antonio 2/28/22"
+    ]
+   },
+   "reb": {
+    "value": 26,
+    "holders": [
+     "Lorenzen Wright at Dallas 11/4/01"
+    ]
+   },
+   "ast": {
+    "value": 19,
+    "holders": [
+     "Jason Williams vs. Golden State 3/30/02"
+    ]
+   },
+   "stl": {
+    "value": 8,
+    "holders": [
+     "Tony Allen vs. Cleveland 4/23/12"
+    ]
+   },
+   "blk": {
+    "value": 8,
+    "holders": [
+     "Jaren Jackson Jr. vs. Atlanta 12/12/22 (5 times)"
+    ]
+   },
+   "fg3m": {
+    "value": 10,
+    "holders": [
+     "Luke Kennard vs. Houston 3/24/23"
+    ]
+   }
+  },
+  "MIA": {
+   "name": "Heat",
+   "src": "Heat guide pp. 145-154",
+   "pts": {
+    "value": 83,
+    "holders": [
+     "Bam Adebayo vs. Washington 3/10/26"
+    ]
+   },
+   "reb": {
+    "value": 34,
+    "holders": [
+     "Rony Seikaly vs. Washington 3/3/93"
+    ]
+   },
+   "ast": {
+    "value": 19,
+    "holders": [
+     "Tim Hardaway at Milwaukee 4/19/96"
+    ]
+   },
+   "stl": {
+    "value": 9,
+    "holders": [
+     "Mario Chalmers vs. Philadelphia 11/5/08"
+    ]
+   },
+   "blk": {
+    "value": 12,
+    "holders": [
+     "Hassan Whiteside at Chicago 1/25/15"
+    ]
+   },
+   "fg3m": {
+    "value": 10,
+    "holders": [
+     "Tyler Herro at Detroit 11/12/24",
+     "Tyler Herro at Houston 12/15/22",
+     "Duncan Robinson vs. Atlanta 12/10/19",
+     "Mario Chalmers at Sacramento 1/13/13",
+     "Brian Shaw at Milwaukee 4/8/93"
+    ]
+   }
+  },
+  "MIL": {
+   "name": "Bucks",
+   "src": "Bucks guide p. 84",
+   "pts": {
+    "value": 64,
+    "holders": [
+     "Giannis Antetokounmpo vs. Indiana 12/13/23"
+    ]
+   },
+   "reb": {
+    "value": 33,
+    "holders": [
+     "Swen Nater vs. Atlanta 12/19/76"
+    ]
+   },
+   "ast": {
+    "value": 24,
+    "holders": [
+     "Ramon Sessions vs. Chicago 4/14/08"
+    ]
+   },
+   "stl": {
+    "value": 10,
+    "holders": [
+     "Alvin Robertson vs. Utah 11/19/90"
+    ]
+   },
+   "blk": {
+    "value": 10,
+    "holders": [
+     "Larry Sanders at Minnesota 11/30/12",
+     "Kareem Abdul-Jabbar vs. Detroit 11/3/73"
+    ]
+   },
+   "fg3m": {
+    "value": 11,
+    "holders": [
+     "AJ Green vs. Brooklyn 4/10/26"
+    ]
+   }
+  },
+  "MIN": {
+   "name": "Timberwolves",
+   "src": "Timberwolves guide pp. 269-270",
+   "pts": {
+    "value": 62,
+    "holders": [
+     "Karl-Anthony Towns vs. Charlotte 1/22/24"
+    ]
+   },
+   "reb": {
+    "value": 31,
+    "holders": [
+     "Kevin Love vs. New York 11/12/10"
+    ]
+   },
+   "ast": {
+    "value": 19,
+    "holders": [
+     "Ricky Rubio vs. Washington 3/13/17"
+    ]
+   },
+   "stl": {
+    "value": 8,
+    "holders": [
+     "most recently Ricky Rubio at New York 12/16/15"
+    ]
+   },
+   "blk": {
+    "value": 9,
+    "holders": [
+     "Randy Breuer vs. Orlando 4/13/90",
+     "Rasho Nesterovic at Dallas 3/10/03"
+    ]
+   },
+   "fg3m": {
+    "value": 11,
+    "holders": [
+     "Malik Beasley vs. Oklahoma City 3/9/22"
+    ]
+   }
+  },
+  "NOP": {
+   "name": "Pelicans",
+   "src": "Pelicans guide p. 190",
+   "pts": {
+    "value": 59,
+    "holders": [
+     "Anthony Davis at Detroit 2/21/16"
+    ]
+   },
+   "reb": {
+    "value": 26,
+    "holders": [
+     "Anthony Davis at Brooklyn 1/2/19"
+    ]
+   },
+   "ast": {
+    "value": 25,
+    "holders": [
+     "Rajon Rondo vs. Brooklyn 12/27/17"
+    ]
+   },
+   "stl": {
+    "value": 9,
+    "holders": [
+     "Chris Paul at Dallas 2/20/08"
+    ]
+   },
+   "blk": {
+    "value": 10,
+    "holders": [
+     "Anthony Davis vs. Utah 3/11/18"
+    ]
+   },
+   "fg3m": {
+    "value": 12,
+    "holders": [
+     "Trey Murphy III at Milwaukee 2/4/26"
+    ]
+   }
+  },
+  "NYK": {
+   "name": "Knicks",
+   "src": "Knicks guide p. 102",
+   "pts": {
+    "value": 62,
+    "holders": [
+     "Carmelo Anthony vs. Charlotte 1/24/14"
+    ]
+   },
+   "reb": {
+    "value": 33,
+    "holders": [
+     "Willis Reed vs. Cincinnati 2/2/71"
+    ]
+   },
+   "ast": {
+    "value": 22,
+    "holders": [
+     "Chris Duhon vs. Golden State 11/29/08"
+    ]
+   },
+   "stl": {
+    "value": 9,
+    "holders": [
+     "Michael Ray Richardson at Chicago 12/23/80"
+    ]
+   },
+   "blk": {
+    "value": 10,
+    "holders": [
+     "Dikembe Mutombo vs. New Jersey 1/4/04",
+     "Joe C. Meriweather at Atlanta 12/12/79"
+    ]
+   },
+   "fg3m": {
+    "value": 11,
+    "holders": [
+     "Donte DiVincenzo vs. Detroit 3/25/24"
+    ]
+   }
+  },
+  "OKC": {
+   "name": "Thunder",
+   "src": "Thunder guide p. 146 (Oklahoma City era only; the guide gives no Seattle single-game records)",
+   "era": "Oklahoma City era",
+   "pts": {
+    "value": 58,
+    "holders": [
+     "Russell Westbrook vs. Portland 3/7/2017"
+    ]
+   },
+   "reb": {
+    "value": 23,
+    "holders": [
+     "Moses Brown vs. Boston 3/27/2021",
+     "Steven Adams at Sacramento 12/19/2018"
+    ]
+   },
+   "ast": {
+    "value": 24,
+    "holders": [
+     "Russell Westbrook at San Antonio 1/10/2019"
+    ]
+   },
+   "stl": {
+    "value": 8,
+    "holders": [
+     "Russell Westbrook at Golden State 2/6/2010"
+    ]
+   },
+   "blk": {
+    "value": 11,
+    "holders": [
+     "Serge Ibaka vs. Denver 2/19/2012"
+    ]
+   },
+   "fg3m": {
+    "value": 10,
+    "holders": [
+     "Paul George at Miami 2/1/2019"
+    ]
+   }
+  },
+  "ORL": {
+   "name": "Magic",
+   "src": "Magic guide pp. 310-312",
+   "pts": {
+    "value": 62,
+    "holders": [
+     "Tracy McGrady vs. Washington 3/10/04"
+    ]
+   },
+   "reb": {
+    "value": 29,
+    "holders": [
+     "Nikola Vucevic vs. Miami 12/31/12"
+    ]
+   },
+   "ast": {
+    "value": 30,
+    "holders": [
+     "Scott Skiles vs. Denver 12/30/90"
+    ]
+   },
+   "stl": {
+    "value": 8,
+    "holders": [
+     "Nick Anderson at Washington 11/12/91"
+    ]
+   },
+   "blk": {
+    "value": 15,
+    "holders": [
+     "Shaquille O'Neal at New Jersey 11/20/93"
+    ]
+   },
+   "fg3m": {
+    "value": 11,
+    "holders": [
+     "Dennis Scott vs. Atlanta 4/18/96"
+    ]
+   }
+  },
+  "PHI": {
+   "name": "76ers",
+   "src": "76ers guide pp. 247-248",
+   "pts": {
+    "value": 70,
+    "holders": [
+     "Joel Embiid vs. San Antonio 1/22/24"
+    ]
+   },
+   "reb": {
+    "value": 43,
+    "holders": [
+     "Wilt Chamberlain vs. Boston 3/6/65"
+    ]
+   },
+   "ast": {
+    "value": 21,
+    "holders": [
+     "Wilt Chamberlain at Detroit 2/2/68",
+     "Maurice Cheeks vs. New Jersey 10/30/82",
+     "James Harden vs. LA Clippers 12/12/22"
+    ]
+   },
+   "stl": {
+    "value": 9,
+    "holders": [
+     "Maurice Cheeks vs. LA Clippers 1/5/87",
+     "Hersey Hawkins vs. Boston 1/25/91",
+     "Allen Iverson vs. Orlando 3/19/00",
+     "Allen Iverson vs. L.A. Lakers (OT) 12/20/02",
+     "Michael Carter-Williams vs. Miami 10/30/14"
+    ]
+   },
+   "blk": {
+    "value": 10,
+    "holders": [
+     "Harvey Catchings vs. Atlanta 3/21/75",
+     "Manute Bol at Sacramento 2/14/91",
+     "Dikembe Mutombo at Chicago 12/1/02"
+    ]
+   },
+   "fg3m": {
+    "value": 9,
+    "holders": [
+     "Dana Barros vs. Phoenix 1/27/95",
+     "Danny Green vs. Miami 1/12/21",
+     "Tyrese Maxey at Toronto 10/28/22",
+     "Paul George vs. Milwaukee 1/27/26"
+    ]
+   }
+  },
+  "PHX": {
+   "name": "Suns",
+   "src": "Suns guide pp. 145-146",
+   "pts": {
+    "value": 70,
+    "holders": [
+     "Devin Booker at Boston 3/24/17"
+    ]
+   },
+   "reb": {
+    "value": 31,
+    "holders": [
+     "Jusuf Nurkic vs. Oklahoma City 3/3/24"
+    ]
+   },
+   "ast": {
+    "value": 25,
+    "holders": [
+     "Kevin Johnson vs. San Antonio 4/6/94"
+    ]
+   },
+   "stl": {
+    "value": 10,
+    "holders": [
+     "Kevin Johnson vs. Washington 12/9/93"
+    ]
+   },
+   "blk": {
+    "value": 10,
+    "holders": [
+     "Amar'e Stoudemire vs. Utah 2/7/04",
+     "Larry Nance at Philadelphia 1/4/88"
+    ]
+   },
+   "fg3m": {
+    "value": 10,
+    "holders": [
+     "Grayson Allen vs. New Orleans 11/10/25"
+    ]
+   }
+  },
+  "POR": {
+   "name": "Trail Blazers",
+   "src": "Trail Blazers guide pp. 101-102",
+   "pts": {
+    "value": 71,
+    "holders": [
+     "Damian Lillard vs. Houston 2/26/23"
+    ]
+   },
+   "reb": {
+    "value": 30,
+    "holders": [
+     "Enes Kanter vs. Detroit 4/10/21"
+    ]
+   },
+   "ast": {
+    "value": 20,
+    "holders": [
+     "Rod Strickland vs. Phoenix 4/5/94",
+     "Rod Strickland at Houston 3/30/96"
+    ]
+   },
+   "stl": {
+    "value": 10,
+    "holders": [
+     "Brandon Roy vs. Washington 1/24/09",
+     "Clyde Drexler at Milwaukee 1/10/86",
+     "Larry Steele vs. Los Angeles Lakers 11/16/74"
+    ]
+   },
+   "blk": {
+    "value": 10,
+    "holders": [
+     "Hassan Whiteside vs. Chicago 11/29/19"
+    ]
+   },
+   "fg3m": {
+    "value": 13,
+    "holders": [
+     "Damian Lillard vs. Houston 2/26/23"
+    ]
+   }
+  },
+  "SAC": {
+   "name": "Kings",
+   "src": "Kings guide p. 118 (Kings-Royals franchise)",
+   "pts": {
+    "value": 59,
+    "holders": [
+     "Jack Twyman vs. Minneapolis 1/15/60"
+    ]
+   },
+   "reb": {
+    "value": 40,
+    "holders": [
+     "Jerry Lucas at Philadelphia 2/29/64"
+    ]
+   },
+   "ast": {
+    "value": 22,
+    "holders": [
+     "Oscar Robertson vs. New York (OT) 3/5/66",
+     "Phil Ford vs. Milwaukee 2/21/79",
+     "Oscar Robertson vs. Syracuse 10/29/61"
+    ]
+   },
+   "stl": {
+    "value": 8,
+    "holders": [
+     "four times"
+    ]
+   },
+   "blk": {
+    "value": 9,
+    "holders": [
+     "three times"
+    ]
+   },
+   "fg3m": {
+    "value": 12,
+    "holders": [
+     "Keegan Murray vs. Utah 12/16/23"
+    ]
+   }
+  },
+  "SAS": {
+   "name": "Spurs",
+   "src": "Spurs guide pp. 353-354",
+   "pts": {
+    "value": 71,
+    "holders": [
+     "David Robinson at L.A. Clippers 4/24/94"
+    ]
+   },
+   "reb": {
+    "value": 32,
+    "holders": [
+     "Dennis Rodman vs. Dallas 1/22/94"
+    ]
+   },
+   "ast": {
+    "value": 24,
+    "holders": [
+     "John Lucas vs. Denver 4/15/84"
+    ]
+   },
+   "stl": {
+    "value": 11,
+    "holders": [
+     "Larry Kenon at Kansas City 12/26/76"
+    ]
+   },
+   "blk": {
+    "value": 13,
+    "holders": [
+     "George Johnson vs. Golden State 2/24/81"
+    ]
+   },
+   "fg3m": {
+    "value": 11,
+    "holders": [
+     "Julian Champagnie vs. New York 12/31/25"
+    ]
+   }
+  },
+  "TOR": {
+   "name": "Raptors",
+   "src": "Raptors guide p. 273",
+   "pts": {
+    "value": 54,
+    "holders": [
+     "Fred VanVleet at Orlando 2/2/21"
+    ]
+   },
+   "reb": {
+    "value": 25,
+    "holders": [
+     "Scottie Barnes vs. Golden State (OT) 12/28/25",
+     "Bismack Biyombo at Indiana 3/17/16",
+     "Donyell Marshall at Chicago 2/27/04"
+    ]
+   },
+   "ast": {
+    "value": 20,
+    "holders": [
+     "Fred VanVleet at Charlotte 4/2/23"
+    ]
+   },
+   "stl": {
+    "value": 9,
+    "holders": [
+     "Doug Christie at Denver (OT) 2/25/97"
+    ]
+   },
+   "blk": {
+    "value": 12,
+    "holders": [
+     "Keon Clark vs. Atlanta 3/23/01"
+    ]
+   },
+   "fg3m": {
+    "value": 12,
+    "holders": [
+     "Donyell Marshall vs. Philadelphia 3/13/05"
+    ]
+   }
+  },
+  "WAS": {
+   "name": "Wizards",
+   "src": "Wizards guide p. 126",
+   "pts": {
+    "value": 60,
+    "holders": [
+     "Bradley Beal at Philadelphia 1/6/21",
+     "Gilbert Arenas at LA Lakers (OT) 12/17/06"
+    ]
+   },
+   "reb": {
+    "value": 37,
+    "holders": [
+     "Walt Bellamy vs. St. Louis 12/4/64"
+    ]
+   },
+   "ast": {
+    "value": 24,
+    "holders": [
+     "Russell Westbrook vs. Indiana 5/3/21",
+     "Kevin Porter vs. Detroit 3/23/80"
+    ]
+   },
+   "stl": {
+    "value": 9,
+    "holders": [
+     "Gus Williams vs. Atlanta 10/30/84",
+     "Michael Adams vs. Indiana 11/1/91",
+     "John Wall vs. Philadelphia 11/2/10"
+    ]
+   },
+   "blk": {
+    "value": 15,
+    "holders": [
+     "Manute Bol vs. Atlanta 1/25/86",
+     "Manute Bol vs. Indiana 2/26/87"
+    ]
+   },
+   "fg3m": {
+    "value": 10,
+    "holders": [
+     "Trevor Ariza at Houston 2/12/14",
+     "CJ McCollum vs. Atlanta 11/25/25"
+    ]
+   }
+  }
+ }
+}

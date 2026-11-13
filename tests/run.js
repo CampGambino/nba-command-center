@@ -1482,6 +1482,16 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     "franchise seasons: pace = total + rate per team game over the games left; per game only at 70% of team games (6 of 10 doesn't qualify; 150 + 15/game pace stays below 3rd)", JSON.stringify(r));
 }
 
+// ---------- Franchise single-game records (29 team media guides) ----------
+{
+  const fg = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-franchise-single-game-2026-27.json"), "utf8")).teams;
+  const st = ["pts", "reb", "ast", "stl", "blk", "fg3m"];
+  ok(Object.keys(fg).length === 29 && !fg.UTA && Object.values(fg).every((t) => st.every((s) => t[s] && t[s].value > 0 && t[s].holders.length)),
+    "franchise single-game records: 29 teams (Utah's guide has none), all six stats with holders");
+  ok(fg.GSW.pts.value === 100 && fg.LAL.pts.value === 81 && fg.MIA.pts.value === 83 && fg.PHX.pts.value === 70 && fg.LAL.blk.value === 17 && fg.ORL.ast.value === 30 && fg.OKC.era,
+    "franchise single-game records: Wilt 100, Kobe 81, Adebayo 83, Booker 70, Elmore Smith 17 blocks, Skiles 30 assists; the Thunder's are OKC-era");
+}
+
 // ---------- NBA Cup final: counts in neither standings nor stats ----------
 {
   // Shapes as ESPN gave them for the 12/13/25 semifinals and 12/16/25 final (scoreboard and team schedule).
@@ -1611,7 +1621,8 @@ await articlesChecks(ok);
   // v3: career records and the single-game lists.
   const rec = (o) => ({ id: "30", who: "Rec Man", team: "LAL", stat: "ast", label: "assists", kind: "pass", need: 3, target: 101, rank: 26, score: 3, pTonight: 0.6,
     passing: { name: "Old Passer", value: 100, rank: 26 }, text: "Man: 3 assists from passing Old Passer (100) for 26th all-time", ...o });
-  const recordsData = { today: "2026-11-09", cup: { tonight: [{ away: "LAL", home: "ATL" }] }, items: [
+  const recordsData = { today: "2026-11-09", cup: { tonight: [{ away: "LAL", home: "ATL" }] },
+    franchiseGame: { teams: { LAL: { name: "Lakers", src: "Lakers guide p. 99", pts: { value: 58, holders: ["Old Laker vs. Boston 1/1/60"] }, fg3m: { value: 12, holders: ["Kobe Bryant vs. Seattle 1/7/03"] } } } }, items: [
     rec({}),                                                                                      // reached tonight (5 assists): card
     rec({ id: "31", who: "Cup Man", kind: "cup", stat: "fg3m", label: "3-pointers", need: 2, rank: 1, passing: { name: "Cup King", value: 64, rank: 1 }, text: "Man: 2 3-pointers from passing Cup King (64) for the NBA Cup record; 1 ties him" }), // Cup game: card
     rec({ id: "32", who: "Far Man", need: 40, pTonight: 0.05 }),                                   // long shot, not reached: none
@@ -1671,6 +1682,9 @@ await articlesChecks(ok);
   ok(made && made.text === "Big Night (LAL) — 58 points: tied for the 4th-most in a game on the NBA's all-time list (6 games of 57+)" && near && /5 from the NBA's all-time single-game list \(57\+, 6 games\)/.test(near.text) && cupMade && /CUP/.test(cupMade.icon),
     "bridge v3: making the all-time single-game list (with his place), nearing it, and the Cup's list on a Cup night", [made && made.text, near && near.text].join(" | "));
   ok(has("cc-list-40-fg3m-near") && !has("cc-list-1-fg3m"), "bridge v3: 9 threes is 2 from the 11+ list (window 2): a card; 3 threes: none");
+  const fgTie = t.cards.get("cc-fg-40-pts-tied"), fgNear = t.cards.get("cc-fg-41-pts-near");
+  ok(fgTie && fgTie.text === "Big Night (LAL) — 58 points: ties the Lakers record (58, Old Laker vs. Boston 1/1/60)" && fgNear && /6 from the Lakers record \(58, Old Laker/.test(fgNear.text) && !has("cc-fg-40-fg3m") && /Lakers guide p\. 99/.test(fgTie.sub),
+    "bridge v4: a franchise single-game record tied, one nearing it (52 of 58, window 8); 9 threes isn't near 12 (window 2)", [fgTie && fgTie.text, fgNear && fgNear.text].join(" | "));
   const t5 = run({ games: [{ ...games[1], status: "final" }] }); await flush(); t5.ctx.runAlertChecks(); await flush();
   ok(![...t5.cards.keys()].some((k) => k.startsWith("cc-list-")), "bridge v3: a final game with nobody on a list gets no list card");
 }

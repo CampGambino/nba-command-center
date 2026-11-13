@@ -225,6 +225,10 @@ for (const [tri, games] of Object.entries(perTeam)) {
       franchiseOut = f.boards;
       console.log(`franchise history: ${f.items.length} franchise marks within reach (${f.items.filter((i) => i.tonight).length} playing tonight)`);
     }
+    // Each franchise's single-game records (29 team media guides), for NBA Live's live checks and the Records tab.
+    let franchiseGameOut = null;
+    const fgFile = path.join(root, "src", "data", `nba-franchise-single-game-${season - 1}-${String(season).slice(2)}.json`);
+    if (fs.existsSync(fgFile)) franchiseGameOut = JSON.parse(fs.readFileSync(fgFile, "utf8"));
     // Franchise single-season records on pace (src/records/franchiseSeason.js).
     let seasonPaceOut = null;
     const fsFile = path.join(root, "src", "data", `nba-franchise-seasons-${season - 1}-${String(season).slice(2)}.json`);
@@ -290,7 +294,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     }
     fs.writeFileSync(path.join(root, "docs", "data", "records.json"), JSON.stringify({ titles, awards, context,
       generatedAt: out.generatedAt, through: rec.through, today, source: guide.source, items: rec.items, boards, checks, problems: rec.problems, errata: guide.errata || [],
-      coaches: coachTeams, teamRecords: guide.teamRecords, cup: cupOut, franchise: franchiseOut, seasonPace: seasonPaceOut,
+      coaches: coachTeams, teamRecords: guide.teamRecords, cup: cupOut, franchise: franchiseOut, seasonPace: seasonPaceOut, franchiseGame: franchiseGameOut,
     }));
     console.log(`records: ${rec.players.filter((p) => p.id).length} guide players playing this season, ${rec.items.length} within reach (${rec.items.filter((i) => i.tonight).length} playing tonight); vs notes/ESPN: ${checks.same} agree, ${checks.differ.length} differ${rec.problems.length ? `; ${rec.problems.length} problems` : ""}`);
   } else console.log(`records: no Tip-Off Guide file for ${season - 1}-${String(season).slice(2)} (src/data/)`);
