@@ -5,6 +5,7 @@ playoffs (175-176), Finals (185-186).
   python3 tools/parse-career-lists-bbox.py guide.pdf "allStar:158:159,playIn:166:167,playoffs:175:176,finals:185:186" out.json
 Titles are centred over their column: an entry belongs to the lowest title above it within 55 points of its x.
 """
+import sys, re, html, json, subprocess
 # "MOST <STAT>" career lists from word positions. Every "MOST ..." title opens a list at its x; an entry
 # ("Name......value") belongs to the title above it whose x is nearest (column), the lowest such title.
 pdf, ranges, out_path = sys.argv[1], sys.argv[2], sys.argv[3]

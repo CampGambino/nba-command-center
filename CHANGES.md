@@ -2,6 +2,21 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.45.3 (2026-11-12): All-Star Game career leaders among active players (NBA Guide pp. 34-35)
+
+### What changed
+- **The 17 "MOST" lists on pp. 34-35** are now read: active players' All-Star Game career totals through the 2026 game, top 10 or more each. Examples: LeBron 23 games and 449 points; Durant 284; Curry 216; Giannis 199; Chris Paul 128 assists.
+  - **Where:** `src/data/nba-postseason-careers-2026-27.json` `careers.allStarActive`, and on the Records tab as "All-Star Game, active players: …" lists.
+  - **How:** `tools/parse-postseason-careers.py` takes more list files. The rebuilt file is identical otherwise.
+- **`tools/parse-career-lists-bbox.py`:** its imports were missing in the committed copy (it ran on the PC from an older copy). Restored.
+- **Not read:** pp. 34-35's per-game average tables (with minimums). They're reference only.
+
+### Tested
+- 584 checks pass; the page sweep is OK; the rebuilt postseason file matches the old one in every list it had.
+
+### Still unproven
+- **No All-Star alerts yet:** the All-Star Game is in February, and NBA Live's bridge doesn't watch All-Star games.
+
 ## 0.45.2 (2026-11-12): #lineups flags a swap that doesn't fit the season, and rechecks every minute
 
 ### Why

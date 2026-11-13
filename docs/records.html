@@ -222,7 +222,7 @@ function renderCtx() {
     (rows.length ? rows.slice(0, 150).map((c) => `<tr><td><b>${esc(c.name)}</b> <span class="team">${esc(c.team)}</span>${aw(c.name)}</td><td>${esc(c.text.replace(/^[^:]+: /, ""))}</td><td class="num">${c.now}</td><td class="num">${c.last}</td><td class="num ${c.delta > 0 ? "hi" : c.delta < 0 ? "lo" : ""}">${c.delta > 0 ? "+" : ""}${c.delta}</td><td class="num">${c.games}</td></tr>`).join("")
       : `<tr><td colspan=6 class="empty">Nothing matches.</td></tr>`);
 }
-const PS_BOOK = { playoffs: "Playoffs", finals: "Finals", playIn: "Play-In", allStar: "All-Star Game" };
+const PS_BOOK = { playoffs: "Playoffs", finals: "Finals", playIn: "Play-In", allStar: "All-Star Game", allStarActive: "All-Star Game, active players" };
 function renderBook() {
   const book = $("book").value, scope = $("scope").value, side = $("side").value, q = $("rq").value.trim().toLowerCase();
   const rows = RB.filter((r) => r.book === book && (book === "All-Star" || !scope || r.scope === scope) && r.side === side && (!q || `${r.title} ${r.entries.map((e) => e.holder).join(" ")}`.toLowerCase().includes(q)));
@@ -236,7 +236,7 @@ function renderBook() {
 function renderBoard() {
   const stat = $("stat").value;
   // Postseason and All-Star career lists (the NBA Guide, through 2025-26; not updated during the season).
-  const ps = /^(allStar|playIn|playoffs|finals):/.exec(stat);
+  const ps = /^(allStarActive|allStar|playIn|playoffs|finals):/.exec(stat);
   const rows = (ps ? (PS?.careers?.[ps[1]]?.[stat.slice(ps[0].length)] || []).map((r, i, a) => ({ name: r.name, now: r.value, rank: 1 + a.filter((q) => q.value > r.value).length, live: false }))
     : stat.startsWith("cup:") ? D.cup?.boards?.[stat.slice(4)] : D.boards[stat]) || [];
   $("board").innerHTML = `<tr><th class="num">Rank</th><th>Player</th><th class="num">Now</th><th class="num">Start of season</th><th class="num">This season</th></tr>` +
