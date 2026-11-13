@@ -441,7 +441,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const facts = fs.existsSync(path.join(root, "docs", "data", "notes-facts.json")) ? rd("notes-facts.json") : null;
     const records = fs.existsSync(path.join(root, "docs", "data", "records.json")) ? rd("records.json") : null;
     const matchupData = fs.existsSync(path.join(root, "docs", "data", "matchups.json")) ? rd("matchups.json") : null;
-    const games = tonightStorylines({ watch, trends: rd("trends.json"), leaders: rd("leaders.json"), injuries, facts, records, matchups: matchupData, national: (() => { try { return rd("national.json"); } catch { return null; } })(), rest: (() => { try { return rd("rest.json"); } catch { return null; } })(), form: (() => { try { return rd("form.json"); } catch { return null; } })(), maxLines: 8 })
+    const games = tonightStorylines({ watch, trends: rd("trends.json"), leaders: rd("leaders.json"), injuries, facts, records, matchups: matchupData, national: (() => { try { return rd("national.json"); } catch { return null; } })(), rest: (() => { try { return rd("rest.json"); } catch { return null; } })(), form: (() => { try { return rd("form.json"); } catch { return null; } })(), fouls: (() => { try { return rd("flowstats.json"); } catch { return null; } })(), maxLines: 8 })
       .map((g) => ({ ...g, lines: g.lines.map(({ kind, team, text, score }) => ({ kind, team, text, score: Math.round(score * 100) / 100 })) }));
     fs.writeFileSync(path.join(root, "docs", "data", "tonight.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, games }));
   } catch (e) { console.error(`tonight's storylines not written: ${e.message}`); }

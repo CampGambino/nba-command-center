@@ -278,7 +278,7 @@ async function poll() {
 
 // Tonight's storylines: the shared builder (also used for the Discord digest), with the
 // season data it needs. A failure here never stops the rest of the page.
-const KIND = { matchup: ["🆚", "#matchups"], history: ["📜", "#history"], injury: ["🩹", "players.html"], milestone: ["🎯", "#all"], streak: ["🔥", "trends.html"], lead: ["👑", "leaders.html"], shooting: ["🏹", "leaders.html"], club: ["💯", "leaders.html#club"], tv: ["📺", "national.html"], rest: ["😴", "situations.html#rest"], form: ["♨️", "trends.html#form"], team: ["📈", "trends.html"] };
+const KIND = { matchup: ["🆚", "#matchups"], history: ["📜", "#history"], injury: ["🩹", "players.html"], milestone: ["🎯", "#all"], streak: ["🔥", "trends.html"], lead: ["👑", "leaders.html"], shooting: ["🏹", "leaders.html"], club: ["💯", "leaders.html#club"], tv: ["📺", "national.html"], rest: ["😴", "situations.html#rest"], form: ["♨️", "trends.html#form"], foul: ["⚠️", "gameflow.html"], team: ["📈", "trends.html"] };
 let FACTS = null;
 let INJ = null;
 function renderHistory(facts, injuries) {

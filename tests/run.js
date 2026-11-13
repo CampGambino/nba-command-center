@@ -1007,6 +1007,13 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     shooting: [["6", "DDD", 10, 10, 49, 100, 1, 37, 20, 50, 1, 10, 9, 10, 0, 16]] };
   const st = tonightStorylines({ watch, trends, leaders });
   const g1 = st[0].lines.map((l) => l.text).join(" | "), g2 = st[1].lines.map((l) => l.text).join(" | ");
+  {
+    const fl = { fouls: { "70": { name: "Hack A", team: "BBB", gp: 10, trouble: 6, out: 1 }, "71": { name: "Bench Hack", team: "BBB", gp: 10, trouble: 9, out: 0 }, "72": { name: "Clean", team: "BBB", gp: 10, trouble: 3, out: 0 } },
+      rotation: { "70": { starts: 10 }, "71": { starts: 1 }, "72": { starts: 10 } } };
+    const sf = tonightStorylines({ watch, trends, leaders, fouls: fl }).flatMap((g) => g.lines).filter((l) => l.kind === "foul");
+    ok(sf.length === 1 && sf[0].text === "Hack A: in early foul trouble in 6 of 10 games this season, fouled out once (2 fouls in the 1st, 3 by the half…)",
+      "tonight (0.59.1): foul watch for a starter in early foul trouble in half his games; not a reserve, not 3 of 10", JSON.stringify(sf));
+  }
   ok(/Big One: 5 points from 10,000 career points \(90% tonight\)/.test(g1) && /Passer: 2 3-pointers from passing Old Guy \(No\. 40\) in NBA history/.test(g1), "tonight: publishable milestones worded per kind", g1);
   ok(!/Unverified|Long Shot|Minor|Average|Not Tonight/.test(g1 + g2), "tonight: unverified, under 25%, below importance 20, other kinds and other games' teams are left out", g1);
   ok(/Scorer: 30\+ points in 6 straight games/.test(g1) && !/20\+ points/.test(g1) && !/Short/.test(g1), "tonight: only the biggest streak of a family per player; under 5 games left out", g1);
@@ -1727,7 +1734,9 @@ await articlesChecks(ok);
     quarters: [q(22, "Jalen Brunson"), q(21, "Franz Wagner"), q(20, "A"), q(18, "B"), q(18, "C"), q(17, "D"), q(17, "E"), q(16, "F"), q(16, "G"), q(16, "H"), q(16, "I"), q(30, "Tonight Itself", "g5")],
     halves: [q(33, "Luka Doncic"), q(30, "Anthony Davis")], teamQuarters: [{ pts: 48, team: "CLE", opp: "MIL", q: 2, gameId: "o", date: "2026-10-31" }, { pts: 47, team: "UTA", opp: "LAL", q: 1, gameId: "o2", date: "2026-10-25" }],
     rotation: { "50": { name: "Sits Long", team: "GSW", gp: 10, starts: 10, open3: 10, back: 720, n: { back: 9 } }, "51": { name: "Back Soon", team: "GSW", gp: 10, starts: 10, open3: 2, back: 1100, n: { back: 8 } },
-      "53": { name: "Half Out", team: "GSW", gp: 10, starts: 10, open3: 10, back: 720, n: { back: 9 } } },
+      "53": { name: "Half Out", team: "GSW", gp: 10, starts: 10, open3: 10, back: 720, n: { back: 9 } },
+      "52": { name: "Foul Guy", team: "GSW", gp: 13, starts: 13, open3: 2, back: 2000, n: { back: 1 } }, "55": { name: "Sixth Man", team: "GSW", gp: 10, starts: 0, in1: 300, n: { in1: 9 } },
+      "56": { name: "Rare Sub", team: "GSW", gp: 10, starts: 0, in1: 300, n: { in1: 3 } } },
     fouls: { "52": { name: "Foul Guy", team: "GSW", gp: 13, trouble: 9, out: 1, troubleIn: ["a", "b", "c", "d", "e", "f", "g", "h", "g5"], outIn: ["a"] } },
     leads: { GSW: { gp: 12, blown: [{ lead: 18, opp: "MIL", date: "2026-11-03", score: "108-112", gameId: "o3" }, { lead: 16, opp: "TOR", date: "2026-11-07", score: "99-101", gameId: "o4" }], comebacks: [] },
       HOU: { gp: 12, blown: [], comebacks: [{ down: 17, opp: "BOS", date: "2026-11-01", score: "110-104", gameId: "o5" }] }, BOS: { gp: 12, blown: [{ lead: 15, opp: "X", date: "2026-11-01", score: "1-2", gameId: "o6" }], comebacks: [] } } };
@@ -1735,7 +1744,7 @@ await articlesChecks(ok);
   const g5 = { id: "g5", status: "live", period: 2, clock: "8:00", away: { tricode: "GS", score: 60, linescores: [45, 15] }, home: { tricode: "HOU", score: 40, linescores: [22, 18] },
     plays: [{ badge: "sub", playerOutId: "50", qtr: "Q1", clock: "4:24" }],
     boxscore: { away: [qp("40", { pts: 20, qtrPts: [19, 1] }), qp("41", { pts: 12, qtrPts: [3, 9] }), qp("50", { name: "Sits Long", min: 8 }), qp("51", { name: "Back Soon", min: 8 }),
-      qp("52", { name: "Foul Guy", pf: 3, pts: 4, min: 9 }), qp("54", { name: "Bench Foul", starter: false, min: 4, pf: 3 })], home: [qp("60", { pts: 30, qtrPts: [15, 15] })] } };
+      qp("52", { name: "Foul Guy", pf: 3, pts: 4, min: 9 }), qp("54", { name: "Bench Foul", starter: false, min: 4, pf: 3 }), qp("55", { name: "Sixth Man", starter: false, min: 0, pts: 0 }), qp("56", { name: "Rare Sub", starter: false, min: 0, pts: 0 })], home: [qp("60", { pts: 30, qtrPts: [15, 15] })] } };
   const court = { away: new Set(["40", "41", "52"]), home: new Set(["60"]) };
   const t6 = run({ games: [g5], extra: { computeOnCourt: () => court } }); await flush(); t6.ctx.runAlertChecks(); await flush();
   const c6 = (k) => t6.cards.get(k), k6 = [...t6.cards.keys()];
@@ -1750,6 +1759,11 @@ await articlesChecks(ok);
     "bridge v5: a starter 4+ minutes past his usual return (to open Q2) gets a rotation card; one whose usual return is later doesn't", c6("cc-ret-50-g5-h1") && c6("cc-ret-50-g5-h1").text);
   ok(c6("cc-lead-g5-GSW") && c6("cc-lead-g5-GSW").text === "GSW lead HOU by 20 · GSW have lost a 15-point lead 2 times this season (the most in the NBA) (last: 16-point lead vs TOR 11/7, 99-101) · HOU have come back from 15 down once this season (the most in the NBA) (last: 17 down vs BOS 11/1, 110-104)",
     "bridge v5: a 15-point lead with both sides' season records", c6("cc-lead-g5-GSW") && c6("cc-lead-g5-GSW").text);
+  ok(c6("cc-in-55-g5") && c6("cc-in-55-g5").text === "Sixth Man (GSW) hasn't played yet · usually checks in by Q1 7:00 (median of 9 games off the bench)" && !c6("cc-in-56-g5"),
+    "bridge 0.59.1: a regular reserve 3+ minutes past his usual first check-in gets a card; one who rarely plays doesn't", c6("cc-in-55-g5") && c6("cc-in-55-g5").text);
+  const t8 = run({ games: [{ id: "g8", status: "pre", away: { tricode: "GS", score: 0 }, home: { tricode: "HOU", score: 0 }, boxscore: { away: [], home: [] } }] }); await flush(); t8.ctx.runAlertChecks(); await flush();
+  ok(t8.cards.get("cc-foulwatch-g8") && t8.cards.get("cc-foulwatch-g8").text === "Foul Guy (GSW) early foul trouble in 9 of 13, fouled out 1x",
+    "bridge 0.59.1: before tip-off, a foul-watch card for a regular in early foul trouble in half his games", t8.cards.get("cc-foulwatch-g8") && t8.cards.get("cc-foulwatch-g8").text);
   // The clock in a foul card is when it first fired; then the game goes final with GSW's lead lost.
   Object.assign(g5, { clock: "2:00" }); t6.ctx.runAlertChecks(); await flush();
   ok(/3rd foul, Q2 8:00/.test(c6("cc-ft-52-3").text), "bridge v5: a foul card keeps the time it fired", c6("cc-ft-52-3").text);

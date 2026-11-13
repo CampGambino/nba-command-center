@@ -2,6 +2,23 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.59.1 (2026-11-13): reserves who haven't checked in; foul watch before tip-off
+
+The user picked these two from the follow-up list.
+
+### What changed
+- **NBA Live bridge, 🔄 HASN'T CHECKED IN:** a regular reserve (his usual first check-in known from 5+ games off the bench, at least 70% of them) still waiting 3+ minutes past it in the first half: "Sixth Man (GSW) hasn't played yet · usually checks in by Q1 7:00". A DNP or injury news often follows.
+- **Foul watch** (starters with 5+ games in early foul trouble, more fouls than the period number, in half their games or more):
+  - Watch List storyline, kind `foul` (⚠️, at most 2 a game), also in the Discord digest: "Josh Hart: in early foul trouble in 5 of 8 games this season, fouled out once". Read from the previous build's `flowstats.json` (season data through last night).
+  - NBA Live bridge: one ⚠️ FOUL WATCH card a game before tip-off listing them; the same storyline isn't repeated among the pre-game cards.
+- On today's data: 10 players league-wide qualify; 4 games tonight get a line.
+
+### Tested
+- 663 checks pass (new: the reserve card and a rare sub who doesn't get one; the pre-game foul-watch card; the storyline rule: a starter at 6 of 10 in, a reserve and 3 of 10 out). Page sweep OK.
+
+### Unproven
+- Thresholds are first guesses (3 minutes, 70%, half his games).
+
 ## 0.59.0 (2026-11-13): GameFlow merge, stage 3: NBA Live alerts from the Game Flow files, one shared model, a reshaped 3PT range, dead code out, a light look
 
 The user's merge list: scoring highs into NBA Live, "link to the game tracker for alerts that could be useful", rest/rotation outliers, "3PT range isn't a must… sprucing it up", and "reduce redundancy".

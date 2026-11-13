@@ -32,7 +32,9 @@
  *       how often it has happened to him this season;
  *       a starter still on the bench 3+ minutes after his usual return, or not out for the 3rd quarter when he
  *       nearly always is (worth a look for an injury);
- *       a 15-point lead with the season's record of leads lost and comebacks, and a 15-point lead lost.
+ *       a 15-point lead with the season's record of leads lost and comebacks, and a 15-point lead lost;
+ *       (0.59.1) a regular reserve 3+ minutes past his usual first check-in, and before tip-off a "foul watch" card for
+ *       starters in early foul trouble in half their games or more.
  *
  * What it never does
  *   - change NBA Live's own checks, data or cards;
@@ -51,7 +53,7 @@
   var MIN_IMPORTANCE = 15;    // round numbers below this never get a card (passes always can). Was 20 until 0.15.2; tune from use
   var MAX_PER_GAME = 6;       // in-play cards per game, best first (reached ones always show)
   var PRE_PER_GAME = 3;       // pre-game storyline cards per game
-  var ICON = { history: "📜 FROM THE NOTES", injury: "🩹 INJURY", milestone: "🎯 IN REACH", streak: "🔥 STREAK", lead: "👑 TEAM LEADER", shooting: "🏹 50/40/90", team: "📈 TEAM STREAK", record: "🏛️ RECORD WATCH", context: "📊 CAREER CONTEXT" };
+  var ICON = { history: "📜 FROM THE NOTES", injury: "🩹 INJURY", milestone: "🎯 IN REACH", streak: "🔥 STREAK", lead: "👑 TEAM LEADER", shooting: "🏹 50/40/90", team: "📈 TEAM STREAK", record: "🏛️ RECORD WATCH", context: "📊 CAREER CONTEXT", foul: "⚠️ FOUL WATCH" };
 
   // ESPN abbreviations NBA Live shows -> Command Center tricodes.
   var TRI = { GS: "GSW", NO: "NOP", NY: "NYK", SA: "SAS", UTAH: "UTA", WSH: "WAS", PHO: "PHX", BRK: "BKN", CHO: "CHA" };
@@ -132,7 +134,7 @@
     if (!T || (state.data && T.today !== state.data.today)) return;
     var g = T.games.find(function (x) { return x.away === sides.away && x.home === sides.home; });
     if (!g) return;
-    g.lines.slice(0, PRE_PER_GAME).forEach(function (l, n) {
+    g.lines.filter(function (l) { return l.kind !== "foul" || !state.flow; }).slice(0, PRE_PER_GAME).forEach(function (l, n) {
       fire("cc-pre-" + T.today + "-" + sides.away + "-" + sides.home + "-" + n, {
         type: "milestone", icon: ICON[l.kind] || "📌 STORYLINE", text: l.text,
         sub: "Command Center · tonight's storyline (pre-game)",
@@ -194,7 +196,7 @@
         if (game.status === "live" || game.status === "final") try { flowChecks(game, sides, box, tag, scr); } catch (e) { state.flowCheckError = String(e && e.message || e); }
         return;
       }
-      if (game.status !== "live" && game.status !== "final") return pregame(game, sides, tag);
+      if (game.status !== "live" && game.status !== "final") { try { foulWatch(game, sides, tag); } catch (e) { state.flowCheckError = String(e && e.message || e); } return pregame(game, sides, tag); }
       var picks = [];
       state.items.forEach(function (i) {
         if (i.team !== sides.away && i.team !== sides.home) return;
@@ -484,6 +486,18 @@
           statLine: stl([[pf, "FOULS"], [p.pts || 0, "PTS"], [Math.round(p.min || 0), "MIN"]]), sub: "Command Center · fouls above the period number (2 in the 1st, 3 by the half, 4 in the 3rd, 5 in the 4th)" }));
       });
       // 3. Rotation watch (live): a starter still out well past his usual return, or not out for the 3rd.
+      // A regular reserve still waiting 3+ minutes past his usual first check-in (DNP or injury news often follows).
+      if (live && court && court[side]) (box[side] || []).forEach(function (p) {
+        if (!p || !p.id || p.starter || (p.min || 0) >= 1) return;
+        if (court[side].has(p.id) || court[side].has(String(p.id))) return;
+        var R = (F.rotation || {})[p.id];
+        if (!R || R.in1 == null || !R.n || R.n.in1 < 5 || R.n.in1 < 0.7 * (R.gp - (R.starts || 0))) return;
+        if (now < R.in1 + LATE_RETURN || now >= 2 * QTR) return;
+        var name = p.name || ("#" + p.id);
+        fire("cc-in-" + p.id + "-" + game.id, base({ icon: "🔄 HASN'T CHECKED IN",
+          text: name + " (" + team + ") hasn't played yet · usually checks in by " + clockAt(R.in1) + " (median of " + R.n.in1 + " games off the bench)",
+          statLine: stl([[0, "MIN"]]), sub: "Command Center · usual rotation from the Game Flow files · a DNP or injury may follow" }));
+      });
       if (live && court && court[side]) (box[side] || []).forEach(function (p) {
         if (!p || !p.id || !p.starter || (p.min || 0) < 1) return;
         if (court[side].has(p.id) || court[side].has(String(p.id))) return;
@@ -538,6 +552,23 @@
           statLine: stl([[M[side], "LEAD LOST"]]), sub: "Command Center · Game Flow files" + through }));
       }
     });
+  }
+  // Pre-game: tonight's foul-prone regulars (early foul trouble in half their games or more), one card a game.
+  function foulWatch(game, sides, tag) {
+    var F = state.flow;
+    if (!F || !F.fouls) return;
+    var who = [];
+    Object.keys(F.fouls).forEach(function (id) {
+      var f = F.fouls[id], r = (F.rotation || {})[id];
+      if ((f.team !== sides.away && f.team !== sides.home) || !r || f.gp < 5 || (r.starts || 0) < f.gp / 2 || f.trouble < 0.5 * f.gp) return;
+      who.push(f);
+    });
+    if (!who.length) return;
+    who.sort(function (a, b) { return b.trouble / b.gp - a.trouble / a.gp; });
+    fire("cc-foulwatch-" + game.id, { type: "milestone", icon: "⚠️ FOUL WATCH",
+      text: who.map(function (f) { return f.name + " (" + f.team + ") early foul trouble in " + f.trouble + " of " + f.gp + (f.out ? ", fouled out " + f.out + "x" : ""); }).join(" · "),
+      sub: "Command Center · fouls above the period number (2 in the 1st, 3 by the half…) this season, from the Game Flow files",
+      live: false, gameId: game.id, gameTag: tag, gameScore: "Pre-game" });
   }
   function placeOnList(list, v) { return (list || []).filter(function (x) { return x.pts > v; }).length + 1; }
 

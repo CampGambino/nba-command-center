@@ -226,6 +226,24 @@ function formLines(form, teams, today) {
   return out;
 }
 
+/**
+ * Foul watch (docs/data/flowstats.json fouls + rotation, src/gameflow/stats.js; the user's pick, 11/13): a regular playing tonight
+ * (5+ games, starts at least half) who has been in early foul trouble (more fouls than the period number) in half his games or
+ * more. At most 2 a game.
+ */
+export const FOUL_SHARE = 0.5, FOUL_MIN_GP = 5;
+function foulLines(flow, teams) {
+  if (!flow?.fouls) return [];
+  const out = [];
+  for (const [id, f] of Object.entries(flow.fouls)) {
+    const r = flow.rotation?.[id];
+    if (!teams.has(f.team) || !r || f.gp < FOUL_MIN_GP || (r.starts || 0) < f.gp / 2 || f.trouble < FOUL_SHARE * f.gp) continue;
+    out.push({ team: f.team, player: f.name, kind: "foul", score: 1.1 + Math.min(0.8, (f.trouble / f.gp - FOUL_SHARE) * 2),
+      text: `${f.name}: in early foul trouble in ${f.trouble} of ${f.gp} games this season${f.out ? `, fouled out ${f.out === 1 ? "once" : `${f.out} times`}` : ""} (2 fouls in the 1st, 3 by the half…)` });
+  }
+  return out;
+}
+
 function teamLines(trends, teams) {
   const out = [];
   for (const [team, t] of Object.entries(trends.teams || {})) {
@@ -327,7 +345,7 @@ export function injuryStatus(injuries, today) {
   return (team, player) => (player ? listed.get(`${team}|${nameKey(player)}`) : undefined);
 }
 
-export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries = null, facts = null, records = null, matchups = null, national = null, rest = null, form = null, maxLines = MAX_LINES }) {
+export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries = null, facts = null, records = null, matchups = null, national = null, rest = null, form = null, fouls = null, maxLines = MAX_LINES }) {
   const games = (watch.games || []).map((g) => ({ id: g.id, away: g.awayTri, home: g.homeTri, start: g.start }));
   const teams = new Set(games.flatMap((g) => [g.away, g.home]));
   // The injury report overrules the rest: a player listed Out or Doubtful loses his other lines
@@ -340,7 +358,7 @@ export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries =
   const hist = historyLines(facts, teams, watch.today).filter((h) => !recs.some((r) => r.player && r.passing && r.team === h.team
     && new RegExp(`\\b${surname(r.player)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
     && r.passing.split(" and ").some((n) => new RegExp(`\\b${surname(n)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, "")))));
-  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams).filter((l) => !clubLines(leaders, teams).some((c) => c.player === l.player)), ...clubLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today), ...tvLines(national, teams, watch.today), ...restLines(rest, teams, watch.today), ...formLines(form, teams, watch.today)]
+  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams).filter((l) => !clubLines(leaders, teams).some((c) => c.player === l.player)), ...clubLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today), ...tvLines(national, teams, watch.today), ...restLines(rest, teams, watch.today), ...formLines(form, teams, watch.today), ...foulLines(fouls, teams)]
     .flatMap((l) => {
       const st = l.player ? listed.get(`${l.team}|${nameKey(l.player)}`) : null;
       if (st === "Out" || st === "Doubtful") return [];
@@ -348,9 +366,9 @@ export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries =
     });
   const all = [...injuryLines(injuries, teams, watch.today), ...others];
   return games.map((g) => {
-    let inj = 0, hist = 0, ctx = 0, mu = 0, tv = 0, rs = 0, fm = 0;
+    let inj = 0, hist = 0, ctx = 0, mu = 0, tv = 0, rs = 0, fm = 0, fo = 0;
     const ranked = all.filter((l) => (l.team === g.away || l.team === g.home) && (l.kind !== "matchup" || l.game === `${g.away}@${g.home}`)).sort((a, b) => b.score - a.score)
-      .filter((l) => (l.kind !== "injury" || ++inj <= 2) && (l.kind !== "history" || ++hist <= 2) && (l.kind !== "context" || ++ctx <= 1) && (l.kind !== "matchup" || ++mu <= 2) && (l.kind !== "tv" || ++tv <= 2) && (l.kind !== "rest" || ++rs <= 2) && (l.kind !== "form" || ++fm <= 2));
+      .filter((l) => (l.kind !== "injury" || ++inj <= 2) && (l.kind !== "history" || ++hist <= 2) && (l.kind !== "context" || ++ctx <= 1) && (l.kind !== "matchup" || ++mu <= 2) && (l.kind !== "tv" || ++tv <= 2) && (l.kind !== "rest" || ++rs <= 2) && (l.kind !== "form" || ++fm <= 2) && (l.kind !== "foul" || ++fo <= 2));
     // The user asked for these two on the Watch List: the best of each keeps a place even on a crowded night.
     const lines = ranked.slice(0, maxLines);
     for (const k of ["club", "tv"]) {
