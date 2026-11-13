@@ -304,8 +304,14 @@ export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries =
   const all = [...injuryLines(injuries, teams, watch.today), ...others];
   return games.map((g) => {
     let inj = 0, hist = 0, ctx = 0, mu = 0, tv = 0;
-    const lines = all.filter((l) => (l.team === g.away || l.team === g.home) && (l.kind !== "matchup" || l.game === `${g.away}@${g.home}`)).sort((a, b) => b.score - a.score)
-      .filter((l) => (l.kind !== "injury" || ++inj <= 2) && (l.kind !== "history" || ++hist <= 2) && (l.kind !== "context" || ++ctx <= 1) && (l.kind !== "matchup" || ++mu <= 2) && (l.kind !== "tv" || ++tv <= 2)).slice(0, maxLines);
+    const ranked = all.filter((l) => (l.team === g.away || l.team === g.home) && (l.kind !== "matchup" || l.game === `${g.away}@${g.home}`)).sort((a, b) => b.score - a.score)
+      .filter((l) => (l.kind !== "injury" || ++inj <= 2) && (l.kind !== "history" || ++hist <= 2) && (l.kind !== "context" || ++ctx <= 1) && (l.kind !== "matchup" || ++mu <= 2) && (l.kind !== "tv" || ++tv <= 2));
+    // The user asked for these two on the Watch List: the best of each keeps a place even on a crowded night.
+    const lines = ranked.slice(0, maxLines);
+    for (const k of ["club", "tv"]) {
+      const best = ranked.find((l) => l.kind === k);
+      if (best && !lines.includes(best) && lines.length) lines[lines.length - 1 - (k === "tv" && lines[lines.length - 1].kind === "club" ? 1 : 0)] = best;
+    }
     return { ...g, lines };
   });
 }

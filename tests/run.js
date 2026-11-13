@@ -1923,6 +1923,9 @@ await articlesChecks(ok);
     "watch list: national TV tonight flags a clear split (3+ games each, 20+ minutes, 4+ points and 20%+); not 2 games, a 3-point gap or a bench player", JSON.stringify(T.map((l) => l.text)));
   const out = tonightStorylines({ watch, national, injuries: { date: "2026-11-13", players: [{ team: "AAA", name: "Spot Light", status: "Out" }] }, maxLines: 20 }).flatMap((g) => g.lines);
   ok(!out.some((l) => l.kind === "tv" && l.player === "Spot Light"), "watch list: the injury report removes a national-TV line for a player listed out");
+  const busy = { ...watch, teams: [{ team: "AAA", items: Array.from({ length: 10 }, (_, k) => ({ player: `P${k}`, team: "AAA", stat: "pts", label: "points", kind: "round", scope: "career", target: 10000, need: 5, importance: 40, pTonight: 0.9, publishable: true })) }] };
+  const crowded = tonightStorylines({ watch: busy, national, leaders, maxLines: 6 })[0].lines;
+  ok(crowded.length === 6 && crowded.some((l) => l.kind === "tv") && crowded.some((l) => l.kind === "club"), "watch list: on a crowded night the best 50-40-90 and national-TV lines still get a place", JSON.stringify(crowded.map((l) => l.kind)));
 }
 
 // ---------- snapshot ----------

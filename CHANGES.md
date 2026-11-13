@@ -28,6 +28,7 @@ Each entry: what changed, how it was tested, and what is still unproven.
 - **Watch List:**
   - 50-40-90 watch: a qualified player at all three lines, or within 1 point of them added up, gets his own line on game night. Example: "Ayo Dosunmu: 0.3 short of 50-40-90 … 1 make from the line gets him there".
   - National TV tonight: a player in tonight's national game who is clearly better or worse on national TV gets a line, at most 2 a game. The cutoff is 3+ national and 3+ other games, 20+ minutes in both, and a gap of 4+ points that is also 20%+. The injury report removes him like any line.
+  - The best of each of these two keeps a place in a game's lines even on a crowded night. The first live build showed tonight's national-TV lines (Brunson, Anunoby, Castle, Champagnie) ranked just below 8 notes and record lines.
 - **National TV page:**
   - The other games are named League Pass (LP); "chg" is national minus LP.
   - The toggle reads "Better / Worse on national TV first". Clicking a stat sorts by it, and clicking again flips the order.
@@ -44,17 +45,22 @@ Each entry: what changed, how it was tested, and what is still unproven.
 - **Watch List (phone):** a long trimmed-line reason no longer runs off a 390 px screen.
 
 ### Tested
-- 617 checks pass (604 before). New ones cover:
+- 618 checks pass (604 before). New ones cover:
   - B-Ref settling a check, a same-day disagreement, a stale confirmation, and Horford's erratum;
   - the Sabonis rebound relabel;
   - the new team streak columns;
   - per-network records with simulcasts;
   - the 50-40-90 line and that the single-line note gives way;
-  - the national-TV cutoff (2 games, a 3-point gap and a bench player are all excluded) and the injury report;
+  - the national-TV cutoff (2 games, a 3-point gap and a bench player are all excluded), the injury report, and a place kept on a crowded night;
   - passing an active 30-a-game player: 15 points is likely against a frozen total and unlikely when he plays tonight too.
 - The 60 watcher checks pass.
 - The page sweep (`tools/check-pages.py`, now also every Records sub-tab) passes at 1400 and 390 px.
 - Screenshots checked: outliers, team streaks (rebuilt from the team files), the team snapshot, the per-network table and Within reach.
+
+### Live build (11:59 ET)
+- Checks: Mitchell, Merrill, Allen and Wembanyama are settled by B-Ref; Sabonis's 3,599 no longer shows as offensive rebounds; Horford is listed under errata.
+- 124 Within reach items carry an active rival in their odds.
+- The team streak and network fields are present.
 
 ### Unproven
 - Tonight's build is the first with the new team streak fields, network records, rival-aware odds and the B-Ref settlement. The pages were checked with locally rebuilt data, not a live build.
