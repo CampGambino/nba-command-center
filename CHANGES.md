@@ -2,6 +2,34 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.46.0 (2026-11-12): Franchise totals checked against all 30 team media guides; 5 reading errors fixed
+
+### Why
+- **The user** asked whether each team PDF had been checked. Only the Lakers, Raptors, Heat and Hawks lists had been, and some of the "45 of 45" figures had been checked from memory. Each team guide's franchise leader numbers are now matched against ours, for all 30.
+
+### What we found and fixed
+- **First pass:** by searching each guide's text for our top-10 franchise totals (points, rebounds, assists, steals, blocks, 3s, games), about 1,550 of 2,100 matched exactly. The misses showed real errors in our reading of the NBA Guide's team pages:
+  1. **Names ending in "Jr."/"Sr." were dropped** (Otto Porter Jr., Kelly Oubre Jr., Troy Brown Jr., Jaren Jackson Jr., …): 2,000+ player-seasons. `tools/parse-team-rows.py` now reads them.
+  2. **A header spread over 7 lines** (1991-92 Trail Blazers) was skipped. Drexler's 1,903-point season was missing, so he showed 16,137 Portland points instead of the guide's 18,040. Headers spread over several lines are now read both line by line and by column; the reading the first player's numbers agree with is kept (points = 2×FGM + 3PM + FTM, rebounds = offensive + defensive).
+  3. **A missing stat printed ". ."** (two dots) dropped the row: Rudy Tomjanovich's 1976-77 (1,753 points; Rockets total now 13,383, as in the guide).
+  4. **A name alone on its line** with the numbers on the next (Jim Les, 1994-95 Hawks) is joined.
+  5. **Two stints years apart were split** as if two players. Pippen (1987-98, 2003-04) now has 15,123 Bulls points, Willis 10,582 Hawks points, Kidd, Elvin Hayes and others are whole, as the team guides count them.
+     - Names are split now only when first and last seasons are more than 22 years apart (Bobby Jones DEN 1976-77 and 2007-08, Nate Williams GSW, …) or when listed as two players (Mike James NOP, Charles Jones CHI).
+- **Also fixed:**
+  - **"Johnny Kerr"** (1957-58 page) is the same player as "Red Kerr": Kerr's 76ers rebounds are now 9,506, as in the 76ers guide.
+  - **Team-total rows printed in mixed case** ("New York", "Opponents") are no longer counted as players.
+  - **Karl Malone's missing 2001-02 row** is now the Jazz's totals row minus every other player. That gives all his stats, not just five. Its G, FGM, FTM, PTS, STL and REB (686) match the guide's leader lines and the Jazz guide.
+- **New check, `tools/check-team-rows-totals.py`:** every team-season with a totals row (1979-80 to 2025-26: 1,312 of them) must equal the sum of its printed players, in every stat. All 1,312 match in every stat except turnovers (team turnovers) and minutes (rounding). The one exception, 2001-02 Utah, is the Malone row above. Before these fixes, 182 didn't.
+
+### Still differing from a team guide
+- **Pre-1979 seasons have no totals rows to check.** A few old totals differ slightly from a team's own guide: Arizin's rebounds 6,120 vs 6,129, Naulls 4,982 vs 5,015, Guerin 10,366 vs 10,392, Seymour's assists 2,299 vs 2,335. Kerr's points are 11,699 here vs 11,059 in the 76ers guide; his rebounds match exactly, so that one looks like a slip in the 76ers guide. For players retired that long, this only moves when a pass is flagged.
+- **Some guides didn't match well by text search** (Cleveland, Denver, New Orleans, Thunder, Phoenix). Their leader pages lay out names and numbers apart, so they're unconfirmed by this method rather than wrong. Their seasons from 1979-80 on pass the totals check.
+- **No overrides from the team guides yet:** our totals stay as the NBA Guide's rows add up.
+
+### Tested
+- 585 checks pass, with 8 more known totals (Drexler 18,040; Pippen 15,123; Willis 10,582 points and 7,332 rebounds; Tomjanovich 13,383; Kerr 9,506 rebounds; Malone 14,601 rebounds; Unseld 10,624).
+- The franchise items rebuild: 85 within reach, 56 season paces.
+
 ## 0.45.3 (2026-11-12): All-Star Game career leaders among active players (NBA Guide pp. 34-35)
 
 ### What changed

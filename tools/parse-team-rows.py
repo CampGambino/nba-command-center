@@ -19,7 +19,7 @@ def header(line):
     toks = [t.rstrip(".").upper() for t in s.split()[1 if s.startswith("Player") else 0:]]
     cols = [TOK.get(t) for t in toks]
     return cols if "g" in cols and "pts" in cols else None
-ROW = re.compile(r"^\s*([A-Z][A-Za-zÀ-ž.’'\- ]*?[A-Za-z])\s*(\(.\)|[†‡*#^@]+)?\s*(?:\.{2,}\s*|\s+)((?:(?:\d[\d.,]*|\.\d+|---|\.\.\.)\s+)*(?:\d[\d.,]*|\.\d+|---|\.\.\.))\s*$")
+ROW = re.compile(r"^\s*((?:[A-Z][A-Za-zÀ-ž.’'\- ]*?(?:[A-Za-z]|\b(?:Jr|Sr)\.))|76ERS)\s*(\(.\)|[†‡*#^@]+)?\s*(?:\.{2,}\s*|\s+)((?:(?:\d[\d.,]*|\.\d+|---|\.\.\.?)\s+)*(?:\d[\d.,]*|\.\d+|---|\.\.\.?))\s*$")
 out, unknown = [], collections.Counter()
 for path in sys.argv[1:-1]:
     pages = open(path, encoding="utf-8").read().split("\f")
@@ -30,6 +30,10 @@ for path in sys.argv[1:-1]:
             season = h.group(1) if h.group(2).strip().startswith("Regular Season") else None
         if not season: continue
         lines = p.splitlines()
+        # A name printed alone with its numbers on the next line ("Jim Les" / "<tab> 24 188 ..."): join them.
+        for k in range(len(lines) - 1):
+            if re.fullmatch(r"[A-Z][A-Za-z.’'\-]+(?: [A-Z][A-Za-z.’'\-]+){1,3}\s*", lines[k]) and re.match(r"^\s+\d", lines[k + 1]) and not lines[k].isupper():
+                lines[k], lines[k + 1] = lines[k].rstrip() + " " + lines[k + 1].strip(), ""
         cols = None
         carry = ""
         k = 0
@@ -39,19 +43,38 @@ for path in sys.argv[1:-1]:
             if re.match(r"^(Player\b|G\s+Min)", re.sub(r"\.{2,}", " ", s)):
                 # a header can be broken over several lines (1990-91, 2018-19) or glued to the next name ("Pts.Avg.Bob")
                 toks, caps, j = [], [], k
-                while j < len(lines) and j < k + 6:
-                    t = re.sub(r"%(?=[0-9A-Z])", "% ", re.sub(r"\.(?=[A-Z])", ". ", re.sub(r"\.{2,}", " ", lines[j]))).strip()
+                while j < len(lines) and j < k + 9:
                     if j > k and ROW.match(re.sub(r"\.\s\.\s\.", "...", lines[j])): break
-                    t = " ".join(" ".join(split_glued(w) or [w]) if not re.fullmatch(r"[A-Z][a-z]+", w) else w for w in t.split())
-                    lt = [TOK.get(w.rstrip(".").upper()) for w in t.split()]
+                    # words with their column, so labels spread over several lines (1991-92 Portland) go in page order
+                    words = []
+                    for m in re.finditer(r"\S+", lines[j]):
+                        t = re.sub(r"%(?=[0-9A-Z])", "% ", re.sub(r"\.(?=[A-Z])", ". ", re.sub(r"\.{2,}", " ", m.group(0)))).strip()
+                        for i, w in enumerate(t.split()):
+                            for i2, w2 in enumerate(split_glued(w) or [w] if not re.fullmatch(r"[A-Z][a-z]+", w) else [w]):
+                                words.append((m.start() + i * 0.1 + i2 * 0.01, w2))
+                    lt = [TOK.get(w.rstrip(".").upper()) for _, w in words]
                     if j > k and "g" in lt and "pts" in lt: j += 1; continue   # a second copy of the header
-                    for w in t.split():
+                    for pos, w in words:
                         if w == "Player": continue
                         key = w.rstrip(".").upper()
-                        if key in TOK: toks.append(TOK[key])
+                        if key in TOK: toks.append((pos, j, TOK[key]))
                         elif re.fullmatch(r"[A-Z][A-Z.'&/-]*|76ERS", w): caps.append(w)
                         elif re.fullmatch(r"[A-Z][a-z]+", w) and j == k: carry = w
                     j += 1
+                # Two readings of a header spread over lines: line by line, or by column. Keep the one the first
+                # player's numbers agree with (points = 2 FGM + 3PM + FTM; rebounds = offensive + defensive).
+                by_line = [c for _, _, c in sorted(toks, key=lambda x: (x[1], x[0]))]
+                by_col = [c for _, _, c in sorted(toks)]
+                toks = by_line
+                if j - k > 2 and by_col != by_line and j < len(lines):
+                    m0 = ROW.match(re.sub(r"\.\s\.\s\.", "...", lines[j]))
+                    def fits(cs):
+                        if not m0: return False
+                        v = {c: int(x.replace(",", "")) for c, x in zip(cs, m0.group(3).split()) if c and re.fullmatch(r"[\d,]+", x)}
+                        okp = all(c in v for c in ("fgm", "ftm", "pts")) and v["pts"] == 2 * v["fgm"] + v["ftm"] + v.get("fg3m", 0)
+                        okr = not all(c in v for c in ("oreb", "dreb", "reb")) or v["reb"] == v["oreb"] + v["dreb"]
+                        return okp and okr
+                    if not fits(by_line) and fits(by_col): toks = by_col
                 if "g" in toks and "pts" in toks:
                     cols = toks
                     if caps: team = " ".join(caps)

@@ -1439,9 +1439,12 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   const known = [["LAL", "pts", "Kobe Bryant", 33643], ["LAL", "ast", "Magic Johnson", 10141], ["LAL", "blk", "Kareem Abdul-Jabbar", 2694], ["LAL", "pts", "Jerry West", 25192],
     ["TOR", "pts", "DeMar DeRozan", 13296], ["TOR", "pts", "Kyle Lowry", 10540], ["MIA", "reb", "Udonis Haslem", 5791], ["MIA", "dreb", "Bam Adebayo", 4341], ["PHX", "fgm", "Walter Davis", 6497],
     ["BOS", "fg3m", "Paul Pierce", 1823], ["ATL", "fgm", "Dominique Wilkins", 8752], ["ATL", "fgm", "Bob Pettit", 7349], ["ATL", "g", "Tree Rollins", 814], ["HOU", "pts", "Hakeem Olajuwon", 26511],
-    ["UTA", "pts", "Karl Malone", 36374], ["NYK", "pts", "Patrick Ewing", 23665], ["UTA", "ast", "John Stockton", 15806], ["DAL", "pts", "Dirk Nowitzki", 31560]];
+    ["UTA", "pts", "Karl Malone", 36374], ["NYK", "pts", "Patrick Ewing", 23665], ["UTA", "ast", "John Stockton", 15806], ["DAL", "pts", "Dirk Nowitzki", 31560],
+    // Found checking the team media guides (0.46): "Jr." rows, a header over 7 lines, ". ." blanks, stints years apart, a second name.
+    ["POR", "pts", "Clyde Drexler", 18040], ["CHI", "pts", "Scottie Pippen", 15123], ["ATL", "pts", "Kevin Willis", 10582], ["ATL", "reb", "Kevin Willis", 7332],
+    ["HOU", "pts", "Rudy Tomjanovich", 13383], ["PHI", "reb", "Red Kerr", 9506], ["UTA", "reb", "Karl Malone", 14601], ["WAS", "pts", "Wes Unseld", 10624]];
   const bad = known.filter(([t, s, n, x]) => v(t, s, n) !== x);
-  ok(Object.keys(fc).length === 30 && !bad.length, "franchise history: 30 franchises; totals match the team guides (Kareem's Lakers blocks with his 'K. Abdul-Jabbar' rows, Pettit's 1954-55 Milwaukee season, Hakeem's 1991-92 broken header, Malone's missing 2001-02 row)", JSON.stringify(bad.map(([t, s, n, x]) => [t, s, n, x, v(t, s, n)])));
+  ok(Object.keys(fc).length === 30 && !bad.length, "franchise history: 30 franchises; totals match the team guides (Kareem's 'K. Abdul-Jabbar' rows, Pettit's 1954-55, Hakeem's 1991-92 broken header, Malone's missing 2001-02 row from the Jazz totals, Drexler's 1991-92, Pippen's and Willis's returns, Rudy T's 1976-77, Red/Johnny Kerr)", JSON.stringify(bad.map(([t, s, n, x]) => [t, s, n, x, v(t, s, n)])));
   ok(!fc.LAL.top.pts.some((r) => /^[A-Z ]+$/.test(r[0])) && fc.CLE.active["LeBron James"]?.pts === 23119, "franchise history: no team or opponents total rows; a player active now keeps his totals with old teams (LeBron, Cleveland)");
   const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
   const L = (o) => keys.map((k) => o[k] ?? 0);

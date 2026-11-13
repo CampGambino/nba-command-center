@@ -31,12 +31,22 @@ def clean_rows(rows):
     left out, the Guide's two known slips mended, short and squashed names joined to the full name.
     Each row gains "player" (the name to count it under). Returns (rows, fix)."""
     # Rows the Guide's team pages leave out, taken from the Guide's own league-leader lines for that season.
-    OMITTED = [{"season": "2001-02", "team": "UTAH JAZZ", "name": "Karl Malone", "mark": "", "g": 80, "fgm": 635, "ftm": 509, "pts": 1788, "stl": 152,
-                "note": "p. 597 (2001-02 Jazz) has no Karl Malone row; G/FGM/FTM/PTS/STL from that season's leader lines; his MIN/REB/AST/BLK that season are not counted"}]
+    # Rows the Guide's team pages leave out: everything the team's totals row has that its printed players don't
+    # (checked: G, FGM, FTM, PTS, STL agree with that season's league-leader lines on p. 597).
+    OMITTED = [{"season": "2001-02", "team": "UTAH JAZZ", "name": "Karl Malone", "mark": "", "g": 80,
+                "note": "p. 597 (2001-02 Jazz) has no Karl Malone row: his line is the Jazz totals minus the other players"}]
+    for o in OMITTED:
+        k = (o["season"], o["team"])
+        tot = next((r for r in rows if (r["season"], r["team"]) == k and r["name"].isupper() and r["name"] != "OPPONENTS"), None)
+        if tot:
+            for st in ("min", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "oreb", "dreb", "reb", "ast", "pf", "dq", "stl", "tov", "blk", "pts"):
+                if st in tot: o[st] = tot[st] - sum(r.get(st, 0) for r in rows if (r["season"], r["team"]) == k and not r["name"].isupper() and r["mark"] not in ("(!)", "‡"))
     rows = rows + [dict(o) for o in OMITTED]
     for r in rows:   # one misprinted row (1977-78 Maravich prints a stray "8" before PTS): points from the made shots when they disagree
         if "note" not in r and all(k in r for k in ("fgm", "ftm", "pts")) and r["pts"] != 2 * r["fgm"] + r["ftm"] + r.get("fg3m", 0): r["pts"] = 2 * r["fgm"] + r["ftm"] + r.get("fg3m", 0)
-    rows = [r for r in rows if not r["name"].isupper() and r["mark"] not in ("(!)", "‡")]   # team and opponents totals; a player's totals across teams
+    # Team and opponents totals (some pages print them in mixed case: "New York", "Opponents"); a player's totals across teams.
+    TEAMWORDS = {w.lower() for n in TEAM for w in [n, n.split()[-1], " ".join(n.split()[:-1])]} | {"opponents", "totals", "team", "team totals"}
+    rows = [r for r in rows if not r["name"].isupper() and r["name"].lower() not in TEAMWORDS and r["mark"] not in ("(!)", "‡")]   # team and opponents totals; a player's totals across teams
     # The same (season, team, player) twice with no mark read: one is his totals; keep the smaller (with this team).
     seen = {}
     for r in rows:
@@ -61,5 +71,9 @@ def clean_rows(rows):
             c = [f for f in squash.get(n, ()) if " " in f]
             if len(c) == 1: return c[0]
         return n
-    for r in rows: r["player"] = fix(r)
+    # One player printed under two names in different seasons (checked against the team guides).
+    ALIASES = {("PHI", "Johnny Kerr"): "Red Kerr"}   # 1957-58 Syracuse page; the 76ers guide: "John (Red) Kerr"
+    for r in rows:
+        r["player"] = fix(r)
+        r["player"] = ALIASES.get((franchise(r["team"], r["season"]), r["player"]), r["player"])
     return rows, fix
