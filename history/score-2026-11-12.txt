@@ -1,0 +1,11 @@
+HIT    0%  PHI Jabari Walker: 1500 points (needed 9, got 9)
+HIT    0%  WAS Deandre Ayton: 7500 points (needed 2, got 2)
+HIT    0%  WAS Bilal Coulibaly: 2000 points (needed 3, got 4)
+HIT    0%  WAS Alex Sarr: 1800 points (needed 14, got 30)
+HIT    0%  WAS Alex Sarr: 700 field goals (needed 5, got 12)
+HIT    0%  DAL Max Christie: pass Harrison Barnes (needed 1, got 1)
+HIT    0%  MIN Bones Hyland: 2500 points (needed 16, got 24)
+HIT    0%  MIN Jaden McDaniels: 2000 field goals (needed 5, got 7)
+
+185 calls scored, Brier 0.043 (lower is better; always guessing 50% scores 0.250)
+  0-5%     n=185  predicted 0%  happened 4%
