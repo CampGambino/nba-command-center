@@ -2003,6 +2003,28 @@ await articlesChecks(ok);
   }
 }
 
+// ---------- vs top teams: players vs top defenses and 30-point games allowed (moved from GameFlow, 0.54) ----------
+{
+  const V = await import("../src/situations/vsplayers.js");
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const L = (min, pts, fgm, fga) => keys.map((k) => ({ min, pts, fgm, fga }[k] ?? 0));
+  const opp = ["TOP", "TOP", "TOP", "BBB", "CCC", "DDD"];
+  const files = {
+    AAA: { team: "AAA", keys, names: { 1: "Star", 2: "Bench", 3: "Rarely" }, games: opp.map((o, i) => ({ d: `2026-11-0${i + 1}`, opp: o, home: true, pf: 100, pa: 90,
+      pl: { 1: L(36, o === "TOP" ? 18 : 30, o === "TOP" ? 6 : 11, 18), 2: L(10, 3, 1, 3), ...(i === 0 ? { 3: L(30, 20, 8, 15) } : {}) } })) },
+  };
+  const pg = V.playerGames(files);
+  const res = V.vsDefenses(pg, new Set(["TOP"]));
+  const star = res.rows.find((r) => r.name === "Star");
+  ok(res.rows.length === 1 && star.vsAvg === 18 && star.restAvg === 30 && star.gap === -12 && star.vsFg.m === 18 && star.vsFg.t === 54 && Math.abs(star.fgGap - (100 * 18 / 54 - 100 * 33 / 54)) < 1e-9
+    && res.quiet === 1 && res.thin === 1, "vs top defenses: the gap is top group vs the rest (they partition his games); FG% pooled; a 3-point scorer and a 1-game player left out and counted", JSON.stringify(res));
+  const t = V.thirtyAllowed(pg, { BBB: { games: 1, drtg: 110 } });
+  ok(t.games.length === 3 && t.teams.find((x) => x.tri === "BBB").allowed === 1 && t.teams.find((x) => x.tri === "TOP").allowed === 0, "30-point games allowed: credited to the defense they were scored against", JSON.stringify(t.teams.slice(0, 3)));
+  const { topSet } = await import("../src/situations/ratings.js");
+  ok([...topSet({ A: { w: 5, l: 2 }, B: { w: 3, l: 3 }, C: { w: 1, l: 4 } }, "winning", "record")].join() === "A", "vs top teams: 'all winning teams' is every team over .500");
+  ok(fs.readFileSync(path.join(root, "src", "situations", "vsplayers.js"), "utf8") === fs.readFileSync(path.join(root, "docs", "lib", "situations", "vsplayers.js"), "utf8"), "vs top teams: the page's copy of vsplayers.js is the build's");
+}
+
 // ---------- snapshot ----------
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });

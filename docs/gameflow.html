@@ -440,9 +440,6 @@
         <option value="board">Assist leaderboard</option>
         <option value="highs">Scoring highs</option>
         <option value="range">3PT range</option>
-        <option value="thirty">30-point games allowed</option>
-        <option value="allstars">Scoring vs top defenses</option>
-        <option value="records">Records vs top teams</option>
         <option value="streaks">Leads &amp; comebacks</option>
         <option value="rest">Rest &amp; back-to-backs</option>
         <option value="form">Hot hand</option>
@@ -6519,7 +6516,7 @@ const ALL_CONTROLS = ["season","team","span","norm","metric","rank","layout","po
 /* A section per tab, built from the select's own options so the two lists cannot drift.
    The separators mark where one kind of question ends and the next begins: one game, then
    one team, then the league. */
-const TAB_SEPARATE_BEFORE = new Set(["season","thirty"]);
+const TAB_SEPARATE_BEFORE = new Set(["season","streaks"]);  // thirty, allstars and records moved to "vs top teams" (0.54)
 function buildTabs(){
   const strip=$("#tabs"), sel=$("#view");
   if(!strip || !sel || strip.children.length) return;

@@ -2,6 +2,35 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.54.0 (2026-11-13): GameFlow merge, stage 2b: "vs top teams" takes GameFlow's three league views
+
+### What changed
+- **vs top teams** now has three views: Teams vs the top (as before), **Players vs top defenses** and **30-point games allowed**. The address keeps the view (`defenses.html?view=players`).
+- **Players vs top defenses** is GameFlow's "Scoring vs top defenses", whole-league pool, now from the Command Center's box scores (`src/situations/vsplayers.js`, copied to `docs/lib/situations/`).
+  - Each qualified player's average against the top N defenses (defensive rating), against the rest, and the gaps in points and FG%.
+  - Toggles: falls off most / holds up best; filter by team.
+  - GameFlow's rules are kept:
+    - the two columns partition his games;
+    - FG% is makes over attempts;
+    - qualified = 5+ points a game, half his team's games, 2+ games on each side, and everyone left out is counted.
+  - Dropped: the hand-kept 2026 All-Star list, which is last season's and can't follow this one, and the player-by-team grid.
+- **30-point games allowed:** each defense's count, per game and defensive rating, who did it, and every 30-point game.
+- **Records vs the top:** GameFlow's widest group is now an option, "all winning teams" (`topSet(..., "winning")`).
+- **Game Flow page:** those three views are gone from its tabs (the code stays until the merge is done).
+
+### Tested
+- 636 checks pass. New ones cover:
+  - the split and pooled FG%;
+  - who is left out and why;
+  - 30-point games credited to the defense;
+  - "all winning teams";
+  - the page's copy of the module matching the build's.
+- On this season's data the 30-point table matches GameFlow's own offline run on the same 174 games: 116 games, DET 9, and CHA/NOP/ORL/POR 6.
+- The page sweep (two new page views) passes.
+
+### Unproven
+- Defensive rank uses the Command Center's possessions (averaged over both teams). GameFlow counted each side's own possessions from the play-by-play, so the order of two close defenses can differ.
+
 ## 0.53.0 (2026-11-13): GameFlow merge, stage 2a: leads and comebacks
 
 The user: "continue" (stage 2), and earlier: "Holding leads is a good one to carry over. I may need to make it make more sense because some of the titles are confusing."

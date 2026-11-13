@@ -69,6 +69,8 @@ export function ratings(lines) {
 
 /** The top N teams by "record" or "defense". Record: teams tied with the Nth are all in. */
 export function topSet(r, n, by = "defense") {
+  // "winning": every team with a winning record (GameFlow's widest group, 11/13).
+  if (n === "winning") return new Set(Object.keys(r).filter((t) => r[t].w > r[t].l));
   if (by === "record") return new Set(Object.keys(r).filter((t) => r[t].rrank <= n));
   return new Set(Object.keys(r).filter((t) => r[t].drank <= n));
 }
