@@ -146,14 +146,15 @@ export async function articlesChecks(ok) {
   }
   // Lineups (cloudflare/lineups.js): confirmed fives to the private #lineups channel, once, with what changed.
   {
-    const P = (name, pos, status = "Confirmed", roster = "Active") => ({ playerName: name, position: pos, lineupStatus: status, rosterStatus: roster, timestamp: "2026-11-12T23:30:00" });
+    const P = (name, pos, status = "Confirmed", roster = "Active") => ({ playerName: name, position: pos, lineupStatus: status, rosterStatus: roster, timestamp: "2026-11-12T18:30:00" }); // Eastern clock (23:30 UTC)
     const feed = (st, swap = false) => ({ games: [{ gameId: "0022600300", gameStatus: 1, gameStatusText: "7:30 pm ET",
       homeTeam: { teamAbbreviation: "NYK", players: [P("Mikal Bridges", "SG", st), P("OG Anunoby", "SF", st), P("Jalen Brunson", "PG", st), P(swap ? "Mitchell Robinson" : "Josh Hart", "PF", st), P("Karl-Anthony Towns", "C", st), P(swap ? "Josh Hart" : "Mitchell Robinson", ""), P("Miles McBride", "", "Confirmed", "Inactive")] },
       awayTeam: { teamAbbreviation: "IND", players: [P("Aaron Nesmith", "SG", "Expected"), P("Kelly Oubre Jr.", "SF", "Expected"), P("Andrew Nembhard", "PG", "Expected"), P("Pascal Siakam", "PF", "Expected"), P("Ivica Zubac", "C", "Expected")] } }] });
     const g = parseLineups(feed("Confirmed"))[0];
     ok(g.teams[0].tri === "NYK" && g.teams[0].opp === "IND" && g.teams[0].status === "Confirmed" && g.teams[1].status === "Expected" && g.teams[0].starters.map((p) => p.pos).join() === "PG,SG,SF,PF,C" && g.teams[0].inactive.join() === "Miles McBride",
       "lineups: starters are the players with a position, PG to C; a five is Confirmed only when all five are; inactives listed", JSON.stringify(g.teams[0]));
-    ok(feedTime("2026-11-11T22:49:00") === Date.parse("2026-11-11T22:49:00Z"), "lineups: feed times are UTC");
+    ok(feedTime("2026-11-12T18:34:00") === Date.parse("2026-11-12T23:34:00Z") && feedTime("2026-07-01T18:34:00") === Date.parse("2026-07-01T22:34:00Z") && feedTime("2026-11-12T18:34:00Z") === Date.parse("2026-11-12T18:34:00Z"),
+      "lineups: feed times are Eastern clock time (11/12: DET/WAS stamped 18:34, seen 6:35 PM ET); EST and EDT; a zone given is kept");
     ok(JSON.stringify(lineupDiff(["A B", "C D"], ["A B", "E F"])) === JSON.stringify({ in: ["E F"], out: ["C D"] }), "lineups: who's in and out");
     const file = { names: { 1: "Jalen Brunson", 2: "Mikal Bridges", 3: "OG Anunoby", 4: "Mitchell Robinson", 5: "Karl-Anthony Towns", 6: "Josh Hart" },
       games: [{ d: "2026-11-10", opp: "BOS", pl: { 1: [1], 2: [1], 3: [1], 4: [1], 5: [1], 6: [0] } }, { d: "2026-11-12", opp: "IND", pl: {} }] };
@@ -163,7 +164,7 @@ export async function articlesChecks(ok) {
     ok(/in \*\*Josh Hart\*\* · out Mitchell Robinson/.test(e.description) && /vs expected earlier today/.test(e.description) && /Inactive: Miles McBride/.test(e.description)  && e.title === "NYK vs IND · 7:30 pm ET" && e.description.startsWith("Jalen Brunson\nMikal Bridges\nOG Anunoby\nJosh Hart\nKarl-Anthony Towns\n"),
       "lineups: the post lists the five PG to C with no position labels (user, 11/12), and says what changed from the last game and the expected five", e.description);
     // A run: posts once per confirmed five; a later change posts again; dry runs post nothing.
-    const kv = new Map(), posts = [];
+    const kv = new Map(), posts = [], edits = [];
     const env = { LINEUPS_WEBHOOK: "https://discord.com/api/webhooks/3/test-z", STATE: { get: async (k) => (kv.has(k) ? JSON.parse(kv.get(k)) : null), put: async (k, v) => kv.set(k, v) } };
     const realFetch = globalThis.fetch;
     let current = feed("Confirmed");
@@ -178,7 +179,8 @@ export async function articlesChecks(ok) {
       u = String(u);
       if (u.includes("daily_lineups_20261112")) { reads++; return new Response(JSON.stringify(current), { status: 200 }); }
       if (u.includes("raw.githubusercontent.com")) return new Response(JSON.stringify(file), { status: 200 });
-      if (u.startsWith("https://discord.com/")) { posts.push(JSON.parse(o.body)); return new Response("{}", { status: 200 }); }
+      if (u.startsWith("https://discord.com/") && o.method === "PATCH") { edits.push({ id: u.split("/messages/")[1], ...JSON.parse(o.body) }); return new Response("{}", { status: 200 }); }
+      if (u.startsWith("https://discord.com/")) { posts.push(JSON.parse(o.body)); return new Response(JSON.stringify({ id: `m${posts.length}` }), { status: 200 }); }
       if (u.includes("/scoreboard?dates=20261112")) return new Response(JSON.stringify({ events: [{ id: "401", date: "2026-11-13T00:30Z", competitions: [{ competitors: [{ team: { abbreviation: "NY" } }, { team: { abbreviation: "IND" } }] }] }] }), { status: 200 });
       if (u.includes("/summary?event=401")) return new Response(JSON.stringify(espn), { status: 200 });
       return new Response("", { status: 404 });
@@ -207,6 +209,8 @@ export async function articlesChecks(ok) {
         "lineups: three reads a run (:00, :20, :40) in the 31-29 minute window, then every 3 minutes; no repeat post", JSON.stringify([b1.read, b2.read, b3.read, b4.read]));
       current = feed("Confirmed", true);
       const r5 = await lineupCheck(env, T("19:04"), noSleep);
+      ok(edits.length === 1 && edits[0].id === "m1" && /REPLACED \(changed at .* ET\) · see the newer post/.test(edits[0].embeds[0].author.name) && edits[0].embeds[0].color === 0x6b7280,
+        "lineups: the earlier card is greyed and marked REPLACED when a change posts", JSON.stringify(edits));
       ok(r5.posted === 1 && /LINEUP CHANGE/.test(posts[1].embeds[0].author.name) && /Changed after it was confirmed:\*\* in Mitchell Robinson · out Josh Hart/.test(posts[1].embeds[0].description), "lineups: a change after it was confirmed posts on the next 3-minute check", JSON.stringify(posts[1]?.embeds?.[0]));
       reads = 0;
       const r6 = await lineupCheck(env, T("19:30"), noSleep);
@@ -215,6 +219,8 @@ export async function articlesChecks(ok) {
         && !/Inactive/.test(tipPosts[0].description) && tipPosts[0].description.startsWith("Jalen Brunson\nMiles McBride\nOG Anunoby\nJosh Hart\nKarl-Anthony Towns")
         && /Starters at tip \(none confirmed before\)/.test(tipPosts[1].author.name) && tipPosts[1].title.startsWith("IND @ NYK"),
         "lineups: at tip, ESPN's box (not NBA.com): a late swap vs the confirmed five posts 'started differently'; a team never confirmed gets its starters", JSON.stringify(tipPosts.map((e) => [e.author.name, e.title, e.description])));
+      ok(edits.length === 2 && edits[1].id === "m2" && /REPLACED \(a different five started\)/.test(edits[1].embeds[0].author.name),
+        "lineups: at tip, the last card before tip (the change) is marked REPLACED when a different five started", JSON.stringify(edits));
       const r7 = await lineupCheck(env, T("19:31"), noSleep);
       // The night's timing: kept (times only) and summed up in one #lineups post when the day is done.
       const timing = JSON.parse(kv.get("lineups-timing:2026-11-12") || "null");

@@ -2,6 +2,42 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.45.1 (2026-11-12): #lineups: confirmed times in Eastern; a replaced card is marked REPLACED
+
+### Why
+- **The user (11/12, 9:34 PM):**
+  - Why did "Confirmed" say early afternoon?
+  - Why was the Hornets post formatted differently?
+  - Did the Sixers start a different five than confirmed? If so, that should be announced or carried over.
+
+### What we found (the Worker's stored times, read through a new read-only workflow; times only)
+- **The confirmed times were 5 hours early:**
+  - NBA.com stamps its lineup times in Eastern clock time with no zone; we read them as UTC.
+  - DET/WAS was stamped 18:34 and first seen by us at 6:35 PM. It showed as "Confirmed 1:34 PM".
+  - Tonight's real confirmations were 22-30 minutes before tip. The summary said 322-330 minutes; its "+18095s" lags were the same 5 hours.
+  - Every card was posted within 35-45 seconds of our first sight of it.
+- **Hornets:** the Worker posted CHA's card at 8:37:34 PM, the same second as PHX's, as a normal card. The night's summary followed after the last tip check. Discord itself drew the 9:29 PM text block in the screenshot (both posts' text under one header, no card). Nothing we send is plain text, so no code change.
+- **Sixers:**
+  - **6:40 PM:** confirmed and posted.
+  - **6:50 PM:** NBA.com changed the five. A "LINEUP CHANGE" card was posted.
+  - **7:12 PM:** ESPN's box showed a third five had started (Edgecombe, Brown, Maxey, Wade, Embiid; NBA.com's file shows that five now). A red "STARTED DIFFERENTLY" card with those five was posted.
+  - So the change was announced; the earlier cards were left as they were.
+
+### What changed
+- **`cloudflare/lineups.js` `feedTime`:** reads NBA.com's stamps as Eastern time (EST or EDT, right on the night the clocks change). A stamp with a zone is kept as given. Card footers and the nightly summary's "minutes before tip" are right from tomorrow.
+- **A replaced card is marked:** when a change posts before tip, or a different five starts, the previous card is edited in place. It turns grey and its header reads "⚠️ REPLACED (changed at 6:50 PM ET / a different five started) · see the newer post". Nobody reads an old five as current. The Worker now keeps each team's last card id for the night.
+- **New `.github/workflows/lineup-timing` reader** (run by hand): prints the night's timing from the Worker's storage. It prints times and results only, with no names, because the repository's logs are public.
+
+### Tested
+- **Watcher checks:** 57 pass, including:
+  - feed times as Eastern (EST and EDT; a zone given is kept);
+  - the earlier card greyed and marked REPLACED when a change posts, and again when a different five starts at tip.
+- **Full suite:** 583 pass.
+
+### Still unproven
+- **Editing cards in Discord:** a webhook can edit its own messages, but this hasn't been seen in the channel yet. It needs a night with a change.
+- **Tonight's cards and summary** keep the wrong times; Discord posts aren't re-edited after the fact.
+
 ## 0.45.0 (2026-11-12): Franchise single-season records, on pace
 
 ### Why

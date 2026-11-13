@@ -31,8 +31,22 @@ export const etParts = (ms) => {
 };
 export const etClock = (ms) => new Date(ms).toLocaleTimeString("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" });
 export const nameKey = (n) => String(n || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[.'’]/g, "").replace(/-/g, " ").replace(/\b(jr|sr|ii|iii|iv|v)\b/g, " ").replace(/\s+/g, " ").trim();
-/** The feed's timestamps ("2026-11-11T22:49:00") are UTC without a zone. */
-export const feedTime = (t) => (t ? Date.parse(/Z|[+-]\d\d:?\d\d$/.test(t) ? t : `${t}Z`) : null);
+/**
+ * The feed's timestamps ("2026-11-12T18:34:00") are Eastern clock time without a zone. 11/12/26 showed it: DET/WAS
+ * stamped 18:34 were first seen by us at 6:35 PM ET; read as UTC they had shown as 1:34 PM, 5 hours early.
+ */
+export const etOffsetMs = (ms) => {
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).formatToParts(new Date(ms)).map((x) => [x.type, x.value]));
+  return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - Math.floor(ms / 1000) * 1000; // ET clock minus UTC: -5 h (EST) or -4 h (EDT)
+};
+export const feedTime = (t) => {
+  if (!t) return null;
+  if (/Z|[+-]\d\d:?\d\d$/.test(t)) return Date.parse(t);
+  const wall = Date.parse(`${t}Z`); // the clock reading, as if it were UTC
+  if (Number.isNaN(wall)) return null;
+  const guess = wall - etOffsetMs(wall);
+  return wall - etOffsetMs(guess); // second pass gets the offset right on the night the clocks change
+};
 
 /**
  * The feed -> [{ gameId, gameStatus, statusText, teams: [{ tri, opp, home, status, at, starters: [{ name, pos }], inactive: [name] }] }]
@@ -95,6 +109,18 @@ export function lineupEmbed(game, team, { expected = null, last = null, previous
   };
 }
 
+/**
+ * An earlier card once a newer one replaces it (a change before tip, or different starters at tip): greyed,
+ * and its header says so, so nobody reads the old five as the current one.
+ */
+export function supersededEmbed(embed, why) {
+  return { ...embed, color: 0x6b7280, author: { name: `⚠️ REPLACED (${why}) · see the newer post`.slice(0, 256) } };
+}
+async function editDiscord(url, id, payload) {
+  if (!id || id === true) return false;
+  try { const res = await fetch(`${url}/messages/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ allowed_mentions: { parse: [] }, ...payload }) }); return res.ok; } catch { return false; }
+}
+
 /** Who started, by team, from an ESPN game summary -> { TRI: [{ name, pos }] } (only teams with five starters). */
 export function espnStarters(summary) {
   const out = {};
@@ -106,10 +132,11 @@ export function espnStarters(summary) {
   return out;
 }
 
+/** Posts; returns the message id (or true if Discord gave none), false on failure. */
 async function postDiscord(url, payload) {
   for (let attempt = 0; attempt < 3; attempt++) {
     const res = await fetch(`${url}?wait=true`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: "NBA Command Center · Lineups", allowed_mentions: { parse: [] }, ...payload }) });
-    if (res.ok) return true;
+    if (res.ok) { const m = await res.json().catch(() => null); return m?.id || true; }
     if (res.status === 429) { const b = await res.json().catch(() => ({})); await new Promise((r) => setTimeout(r, Math.ceil((b.retry_after || 1) * 1000) + 200)); continue; }
     return false;
   }
@@ -211,7 +238,10 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
         let last = null;
         if (!again) { try { const r = await fetch(TEAM_FILE(tm.tri)); if (r.ok) last = lastStarters(await r.json(), ymd); } catch {} }
         const embed = lineupEmbed({ ...g, statusText: g.statusText || etClock(sg.tip) + " ET" }, tm, { expected: again ? null : s.expected, last, previous: again ? s.posted : null });
-        if (await postDiscord(env.LINEUPS_WEBHOOK, { embeds: [embed] })) {
+        const id = await postDiscord(env.LINEUPS_WEBHOOK, { embeds: [embed] });
+        if (id) {
+          if (again && s.card) await editDiscord(env.LINEUPS_WEBHOOK, s.card.id, { embeds: [supersededEmbed(s.card.embed, `changed at ${etClock(Date.now())} ET`)] });
+          s.card = { id, embed };
           s.posted = names; s.postedTeam = { starters: tm.starters }; changed = true; report.posted++;
           const w = (s.when ??= {});
           if (again) (w.changes ??= []).push({ seen: t, feed: tm.at, posted: Date.now() }); else w.posted = Date.now();
@@ -245,7 +275,10 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
         if (!s.posted) { try { const r = await fetch(TEAM_FILE(tri)); if (r.ok) last = lastStarters(await r.json(), ymd); } catch {} }
         const home = g.teams[0] === tri; // ESPN lists home first
         const embed = lineupEmbed({ statusText: "" }, { tri, opp, home, starters, inactive: [] }, { previous: s.posted, last, kind: "tip" });
-        if (!(await postDiscord(env.LINEUPS_WEBHOOK, { embeds: [embed] }))) continue;
+        const id = await postDiscord(env.LINEUPS_WEBHOOK, { embeds: [embed] });
+        if (!id) continue;
+        if (s.card) await editDiscord(env.LINEUPS_WEBHOOK, s.card.id, { embeds: [supersededEmbed(s.card.embed, "a different five started")] });
+        s.card = { id, embed };
         report.posted++;
       }
       s.tip = same ? "same" : "posted"; changed = true;
