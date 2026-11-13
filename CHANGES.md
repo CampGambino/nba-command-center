@@ -35,9 +35,12 @@ The user: "begin" (merging NBA GameFlow into the Command Center, per the plan ag
   - 30-point games allowed reads all 174 games league-wide (116 such games);
   - no script errors.
 - The page sweep passes at 1400 and 390 px, with 10 nav links on every page.
+- **The published page, in the user's built-in browser:**
+  - it opened on CHA @ PHX from the nightly file (174 games on file);
+  - switching to 2025-26 loaded the 2026 Finals Game 5 straight from ESPN;
+  - for the last 5 games on file, ESPN's live summary run through the same reader gives byte-for-byte the file the build wrote.
 
 ### Unproven
-- The live ESPN path on the published page (older seasons, tonight's games). It is GameFlow's own code, but this cloud can't reach ESPN to try it.
 - The repository grows about 27 KB per game, about 33 MB a season. The files are written once and never change.
 - The Game Flow page keeps GameFlow's dark look; the other pages follow the system's light/dark setting.
 
