@@ -469,14 +469,14 @@ for (const [team, r] of Object.entries(results)) {
     roster: async () => ({ ok: true, warnings: [], data: { players: [{ id: "a", name: "Big Scorer" }, { id: "b", name: "Young Guy" }, { id: "c", name: "Far Away" }, { id: "d", name: "Rookie" }] } }),
     career: async (id) => ({
       a: car("a", { pts: 19985, fg3m: 1497, gp: 999, reb: 4990, ast: 2950 }, { gp: 10, pts: 250, fg3m: 30, reb: 50, ast: 60 }, 12), // a veteran: 15 pts from 20,000; 3 threes from 1,500 (by 250 past 1,000); 1 game from 1,000; 2,950 assists: 3,000 isn't a 1,000 step
-      b: car("b", { pts: 1990, fg3m: 98, gp: 99 }, { gp: 10, pts: 200, fg3m: 20 }),                          // a rookie: 2,000 points (by 500 until 5,000), 100 threes (by 100 until 1,000); 100 games is under 500
+      b: car("b", { pts: 1990, fg3m: 98, gp: 99 }, { gp: 10, pts: 200, fg3m: 20 }),                          // a rookie: 2,000 points (by 500 until 5,000); 100 threes and 100 games are too few
       c: car("c", { pts: 18500 }, { gp: 10, pts: 200 }, 9),                                                  // 1,500 away: not within 3 games
       d: { ok: true, stale: false, warnings: [], data: { rows: [], career: null } },                          // no NBA games
     }[id]),
   };
   const r = await discoverMilestones({ team: "LAL", espn: fake });
   const got = r.milestones.map((m) => `${m.player}|${m.stat}|${m.target}|${m.need}`).sort();
-  ok(got.join(",") === ["Big Scorer|fg3m|1500|3", "Big Scorer|gp|1000|1", "Big Scorer|pts|20000|15", "Big Scorer|reb|5000|10", "Young Guy|fg3m|100|2", "Young Guy|pts|2000|10"].join(","), "discover: round numbers on the user's spacing (11/13), within about 3 games", got.join(", "));
+  ok(got.join(",") === ["Big Scorer|fg3m|1500|3", "Big Scorer|gp|1000|1", "Big Scorer|pts|20000|15", "Big Scorer|reb|5000|10", "Young Guy|pts|2000|10"].join(","), "discover: round numbers on the user's spacing (11/13), within about 3 games", got.join(", "));
   ok(r.milestones.every((m) => m.origin === "espn" && m.status === "review"), "discover: ESPN-only finds are always held for review");
   const skip = await discoverMilestones({ team: "LAL", espn: fake, skip: [{ player: "Big Scorer", stat: "pts", target: 20000 }] });
   ok(!skip.milestones.some((m) => m.stat === "pts" && m.player === "Big Scorer") && skip.milestones.some((m) => m.player === "Young Guy" && m.stat === "pts"), "discover: a milestone the notes already have isn't repeated");
@@ -1973,6 +1973,8 @@ await articlesChecks(ok);
   ok(roundStep("pts", 43591) === 500 && roundStep("pts", 19000) === 1000 && roundStep("fg3m", 4100) === 250 && roundStep("stl", 1500) === 250 && roundStep("reb", 11000) === 500 && roundStep("ast", 6000) === 1000,
     "cadence: points past 20,000 by 500 (LeBron); threes, steals and blocks past 1,000 by 250; rebounds past 10,000 by 500");
   ok(nextRound("gp", 99, { seasons: 2 }) === null && nextRound("gp", 899) === 900, "cadence: games played by 100 from 500");
+  ok(nextRound("stl", 480, { seasons: 8 }) === 500 && nextRound("blk", 380, { seasons: 6 }) === 500 && onCadence("dd", 300, 296) && !onCadence("pts", 100, 96, { seasons: 1 }) && onCadence("pts", 600, 560, { seasons: 1 }) && !onCadence("reb", 100, 95, { seasons: 1 }),
+    "cadence: a veteran's steals and blocks by 250 (Haliburton's 500 steals); double-doubles untouched; a rookie's 100s start at 500 points, 200 of anything else");
 }
 
 // ---------- snapshot ----------

@@ -11,12 +11,18 @@ The user's five screenshots (11/13, 12:54 ET).
   - Every 1,000, with exceptions:
     - a young player (1st-3rd season) counts by 100 until 1,000, then by 500 in points (to 5,000) and in rebounds and assists (to 3,000);
     - points past 20,000, and rebounds or assists past 10,000, go by 500;
-    - steals, blocks and 3-pointers go by 250 past 1,000;
-    - games played go by 100, from 500.
+    - steals, blocks and 3-pointers go by 250 (250, 500, 750, 1,000 …);
+    - games played go by 100, from 500;
+    - a young player's 100s start at 500 points (200 of other stats);
+    - stats outside the list (double-doubles, games started) are untouched.
   - Passing a player on a list is never filtered.
   - Applied to the teams' notes (a 1,400-point card for a player at 1,352 is dropped; the build logs how many), to the ESPN round-number finder (which used to start points at 10,000), and to Records' career round numbers.
   - The four cards in the screenshot (Fears 1,400, Watford 2,100, Mykhailiuk 2,700, Achiuwa 3,300) are all off the spacing.
-  - Judgment call: the user said "every 250 after like 3,000" for steals and blocks. That would leave 1,000-3,000 at one card per 1,000, years apart, so 250 starts at 1,000.
+  - Judgment call: the user said "every 250 after like 3,000" for steals and blocks. Steals, blocks and threes go by 250 from the start, because they come slowly.
+  - The first cut (live build 13:09 ET) dropped 433 of 649 round-number cards: every veteran's steals, blocks and threes under 1,000, every double-double count, and young players' 100-point cards. It was loosened the same afternoon:
+    - rare stats by 250;
+    - stats it doesn't know left alone;
+    - young players' 100s from 500 points or 200 of anything else.
 - **Matchups:**
   - Only last season's playoff series is shown; 2024-25 series are gone.
   - The "last 10 meetings" line reaches further back while the record stays 80%+ ("13-3 in the last 16 meetings").
@@ -30,8 +36,8 @@ The user's five screenshots (11/13, 12:54 ET).
 - **Out tonight goes last:** on the Watch List (tonight, the next 5 games and all milestones) and in Records → Within reach (cards and table). This covers Out and Doubtful.
 
 ### Tested
-- 627 checks pass (618 before). New ones cover:
-  - the spacing rules, including the four cards from the screenshot, Wembanyama's blocks, LeBron's points and Curry's threes;
+- 628 checks pass (618 before). New ones cover:
+  - the spacing rules (with Haliburton's 500 steals and an untouched double-double count), including the four cards from the screenshot, Wembanyama's blocks, LeBron's points and Curry's threes;
   - the ESPN finder on the new spacing;
   - a 13-3 run over 16 meetings, a 2024-25 series dropped, and a 2025-26 rematch kept;
   - career highs: a 52 over a regular-season 46 when a playoff 60 doesn't count; a rookie; a veteran whose 44 predates the logs, so his 40 is only a season high.
