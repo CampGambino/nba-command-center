@@ -853,44 +853,51 @@
   },
   "OKC": {
    "name": "Thunder",
-   "src": "Thunder guide p. 146 (Oklahoma City era only; the guide gives no Seattle single-game records)",
-   "era": "Oklahoma City era",
+   "src": "Thunder guide p. 146 (Oklahoma City era) and Seattle SuperSonics games: the NBA Guide's single-game lists (pp. 128-135) for points, assists and steals; Jim Fox's 30 rebounds (the Sonics record)",
+   "era": "Seattle and Oklahoma City",
    "pts": {
     "value": 58,
     "holders": [
-     "Russell Westbrook vs. Portland 3/7/2017"
+     "Fred Brown (Seattle) at Golden State 3/23/74",
+     "Russell Westbrook vs. Portland 3/7/17"
     ]
    },
    "reb": {
-    "value": 23,
+    "value": 30,
     "holders": [
-     "Moses Brown vs. Boston 3/27/2021",
-     "Steven Adams at Sacramento 12/19/2018"
-    ]
+     "Jim Fox (Seattle) vs. L.A. Lakers 12/26/73"
+    ],
+    "note": "The Sonics record (Wikipedia, citing the team's 40th-anniversary book); the NBA Guide's list starts at 38. Oklahoma City era: 23, Moses Brown and Steven Adams."
    },
    "ast": {
-    "value": 24,
+    "value": 25,
     "holders": [
-     "Russell Westbrook at San Antonio 1/10/2019"
-    ]
+     "Nate McMillan (Seattle) vs. L.A. Clippers 2/23/87"
+    ],
+    "note": "Oklahoma City era: 24, Russell Westbrook at San Antonio 1/10/19."
    },
    "stl": {
-    "value": 8,
+    "value": 10,
     "holders": [
-     "Russell Westbrook at Golden State 2/6/2010"
-    ]
+     "Fred Brown (Seattle) at Philadelphia 12/3/76",
+     "Gus Williams (Seattle) at New Jersey 2/22/78"
+    ],
+    "note": "Oklahoma City era: 8, Russell Westbrook at Golden State 2/6/10."
    },
    "blk": {
     "value": 11,
     "holders": [
-     "Serge Ibaka vs. Denver 2/19/2012"
-    ]
+     "Serge Ibaka vs. Denver 2/19/12"
+    ],
+    "note": "No Sonic is on the NBA Guide's 12+ list; the most found for Seattle is 10 (Shawn Kemp 1/18/91, Calvin Booth 1/13/04)."
    },
    "fg3m": {
     "value": 10,
     "holders": [
-     "Paul George at Miami 2/1/2019"
-    ]
+     "Paul George at Miami 2/1/19",
+     "Isaiah Joe at Utah 4/11/25"
+    ],
+    "note": "The Thunder guide's records page (p. 146) lists only George; its 2024-25 highs (p. 122) show Joe's 10 at Utah. No Sonic is on the NBA Guide's 11+ list; the most found for Seattle is 9 (Dale Ellis 4/20/90)."
    }
   },
   "ORL": {

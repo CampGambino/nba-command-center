@@ -1355,6 +1355,14 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   const games = Array.from({ length: 6 }, (_, i) => ({ d: `2026-11-0${i + 1}`, opp: "BOS", home: true, pf: 1, pa: 0, pl: { 7: L({ min: 36, pts: 40 }) } }));
   const t = titleRace({ history: h, teamFiles: { LAL: { team: "LAL", keys, names: { 7: "Luka Dončić" }, games } } });
   ok(t[0].rows[0].note === "would be his 3rd scoring title (last 2025-26)", "title races: the leader's Nth title from the guide's history (accents ignored)", t[0].rows[0]?.note);
+  // Seattle counts as Thunder history (user, 11/13/26).
+  const og = games.map((g) => ({ ...g, pl: { 9: L({ min: 36, reb: 15, stl: 4 }) } }));
+  const o = titleRace({ history: h, teamFiles: { OKC: { team: "OKC", keys, names: { 9: "Okc Big" }, games: og } } });
+  const sea = titleRace({ history: { leaders: { ...h.leaders, stl: [...h.leaders.stl.filter((e) => e.team !== "Oklahoma City")] } }, teamFiles: { OKC: { team: "OKC", keys, names: { 9: "Okc Big" }, games: og } } });
+  ok(o[1].rows[0].note === "would be his first rebounding title; no Oklahoma City or Seattle player has led the league"
+    && o[3].rows[0].note === "would be his first steals title; Oklahoma City's last: Paul George, 2018-19"
+    && sea[3].rows[0].note === "would be his first steals title; Oklahoma City's last: Gary Payton (Seattle), 1995-96",
+    "title races: Seattle's leaders count as Thunder history", JSON.stringify([o[1].rows[0]?.note, o[3].rows[0]?.note, sea[3].rows[0]?.note]));
 }
 
 // ---------- Award résumés (NBA Guide award history) ----------
@@ -1493,8 +1501,9 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   const st = ["pts", "reb", "ast", "stl", "blk", "fg3m"];
   ok(Object.keys(fg).length === 30 && fg.UTA.pts.value === 68 && Object.values(fg).every((t) => st.every((s) => t[s] && t[s].value > 0 && t[s].holders.length)),
     "franchise single-game records: all 30 teams (Utah from its 'top individual' lists, Maravich 68), all six stats with holders");
-  ok(fg.GSW.pts.value === 100 && fg.LAL.pts.value === 81 && fg.MIA.pts.value === 83 && fg.PHX.pts.value === 70 && fg.LAL.blk.value === 17 && fg.ORL.ast.value === 30 && fg.OKC.era,
-    "franchise single-game records: Wilt 100, Kobe 81, Adebayo 83, Booker 70, Elmore Smith 17 blocks, Skiles 30 assists; the Thunder's are OKC-era");
+  ok(fg.GSW.pts.value === 100 && fg.LAL.pts.value === 81 && fg.MIA.pts.value === 83 && fg.PHX.pts.value === 70 && fg.LAL.blk.value === 17 && fg.ORL.ast.value === 30
+    && fg.OKC.pts.value === 58 && fg.OKC.pts.holders.length === 2 && fg.OKC.reb.value === 30 && fg.OKC.ast.value === 25 && fg.OKC.stl.value === 10 && fg.OKC.fg3m.holders.length === 2,
+    "franchise single-game records: Wilt 100, Kobe 81, Adebayo 83, Booker 70, Elmore Smith 17 blocks, Skiles 30 assists; the Thunder's include Seattle (Fred Brown's 58, Fox's 30, McMillan's 25; Joe ties George's 10 threes)");
 }
 
 // ---------- NBA Cup final: counts in neither standings nor stats ----------

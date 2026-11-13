@@ -6,7 +6,8 @@
  *   titleRace({ history, teamFiles, top = 3 }) -> [{ stat, label, rows: [{ name, team, perGame, gp, titles, lastTitle, teamLast, note }] }]
  *
  * Qualified: played 70% of his team's games (and 5+). Franchise history is by the guide's team names, so
- * a moved franchise's earlier city (Seattle for OKC) isn't counted as the same team.
+ * a moved franchise's earlier city isn't counted as the same team, except Seattle for OKC (the user's call,
+ * 11/13/26: the Sonics count in Thunder history).
  */
 import { nameKey } from "../notes/names.js";
 import { seasonLines } from "./guide.js";
@@ -16,6 +17,7 @@ const CITY = { LAL: "LA Lakers", LAC: "LA Clippers", GSW: "Golden State", OKC: "
   ATL: "Atlanta", BOS: "Boston", CHA: "Charlotte", CHI: "Chicago", CLE: "Cleveland", DAL: "Dallas", DEN: "Denver", DET: "Detroit", HOU: "Houston", IND: "Indiana",
   MEM: "Memphis", MIA: "Miami", MIL: "Milwaukee", MIN: "Minnesota", ORL: "Orlando", PHI: "Philadelphia", PHX: "Phoenix", POR: "Portland", SAC: "Sacramento",
   TOR: "Toronto", UTA: "Utah", WAS: "Washington" };
+const ALSO = { OKC: ["Seattle"] };   // earlier cities counted as the same franchise
 const poss = (s) => (s.endsWith("s") ? `${s}'` : `${s}'s`);
 const ORD = (n) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th"}`;
 
@@ -31,12 +33,15 @@ export function titleRace({ history, teamFiles, top = 3 }) {
     for (const r of rows) {
       const mine = past.filter((e) => nameKey(e.player) === nameKey(r.name));
       const city = CITY[r.team];
-      const teamPast = city ? past.filter((e) => e.team.split("/").includes(city)) : [];
+      const cities = city ? [city, ...(ALSO[r.team] || [])] : [];
+      const teamPast = past.filter((e) => e.team.split("/").some((c) => cities.includes(c)));
       r.titles = mine.length;
       r.lastTitle = mine.length ? mine[mine.length - 1].season : null;
-      r.teamLast = teamPast.length ? { season: teamPast[teamPast.length - 1].season, player: teamPast[teamPast.length - 1].player } : null;
+      const tl = teamPast[teamPast.length - 1];
+      r.teamLast = tl ? { season: tl.season, player: tl.player, ...(tl.team.split("/").includes(city) ? {} : { city: tl.team }) } : null;
       r.note = `would be his ${mine.length ? `${ORD(mine.length + 1)} ${word} title (last ${r.lastTitle})` : `first ${word} title`}`
-        + (r.teamLast ? (r.teamLast.player && nameKey(r.teamLast.player) === nameKey(r.name) ? "" : `; ${poss(city)} last: ${r.teamLast.player}, ${r.teamLast.season}`) : city ? `; no ${city} player has led the league` : "");
+        + (r.teamLast ? (r.teamLast.player && nameKey(r.teamLast.player) === nameKey(r.name) ? "" : `; ${poss(city)} last: ${r.teamLast.player}${r.teamLast.city ? ` (${r.teamLast.city})` : ""}, ${r.teamLast.season}`)
+          : city ? `; no ${city}${ALSO[r.team] ? ` or ${ALSO[r.team].join(" or ")}` : ""} player has led the league` : "");
     }
     out.push({ stat, label: word, rows });
   }

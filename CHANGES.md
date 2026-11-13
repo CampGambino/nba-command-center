@@ -2,6 +2,30 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.47.5 (2026-11-13): the Seattle SuperSonics count in Thunder history
+
+### What changed
+- **The user's call:** "use sonics with thunder in history stats". The Thunder's career lists and best seasons already counted the Seattle years (Payton, Sikma, Durant's 17,566 points), so they're unchanged.
+- **Thunder single-game records now include Seattle:**
+  - **points:** 58, a tie between Fred Brown (at Golden State 3/23/74) and Russell Westbrook (3/7/17);
+  - **rebounds:** 30, Jim Fox vs. the Lakers 12/26/73 (was 23);
+  - **assists:** 25, Nate McMillan vs. the Clippers 2/23/87 (was Westbrook's 24);
+  - **steals:** 10, Fred Brown (12/3/76) and Gus Williams (2/22/78) (was 8);
+  - **blocks:** still Ibaka's 11. No Sonic is on the NBA Guide's 12+ list, and the most found is 10 (Kemp, Calvin Booth);
+  - **3-pointers:** 10, now **Paul George and Isaiah Joe** (at Utah 4/11/25). The Thunder guide's records page lists only George, but its own 2024-25 highs show Joe's 10. No Sonic is on the 11+ list; the most found is 9 (Dale Ellis).
+  
+  The Oklahoma City-era marks are kept in each record's note. Sources: points, assists and steals come from the NBA Guide's complete lists (pp. 128-135); Fox's 30 is the Sonics record per Wikipedia.
+- **Stat-title races (Records tab)** count Seattle's league leaders as the Thunder's. "No Oklahoma City player has led the league" now says "no Oklahoma City or Seattle player…". When the franchise's last leader was a Sonic, the note reads "Oklahoma City's last: Gary Payton (Seattle), 1995-96". Seattle led in assists (Wilkens, Watts) and steals (Watts, McMillan, Payton).
+- **The Records tab note** now says the Thunder's records include the Sonics years.
+
+### Tested
+- 589 checks pass. Two were added or changed: the Thunder's records with Seattle, and Seattle counted in the title races.
+- check-pages OK.
+
+### Unproven
+- The blocks and 3-pointer checks for Seattle rest on lists found on the web: Sonics blocks game logs from 1983 on, and per-season 3-point highs. A Sonic with 11 blocks before 1983 would tie Ibaka and isn't ruled out.
+- Other moved franchises are not counted with their old cities in the title races, which is unchanged. Only Seattle/OKC was asked for.
+
 ## 0.47.4 (2026-11-13): Cavaliers guide checked from the user's screenshots; one player under two names fixed in 9 franchises
 
 ### What changed
