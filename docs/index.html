@@ -27,6 +27,8 @@
   .game .state { font-size: 12px; color: var(--muted); margin-top: 2px; }
   .game.live { border-color: var(--live); }
   .game.live .state { color: var(--live); font-weight: 600; }
+  .game .state a { color: var(--muted); text-decoration: none; font-size: 12px; }
+  .game .state a:hover { color: var(--text); text-decoration: underline; }
   .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: grid; grid-template-columns: 58px 1fr; gap: 12px; }
   .card.hit { border-color: var(--good); }
@@ -248,7 +250,7 @@ function render() {
     const tip = new Date(g.start).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
     const state = L?.state === "in" ? `LIVE · ${esc(L.detail)}` : L?.state === "post" ? `Final` : `Tip ${tip}`;
     const noteFlags = [g.awayTri, g.homeTri].map((t) => data.teams.find((x) => x.team === t)).filter((t) => t && t.notesStatus && !["current", "local"].includes(t.notesStatus)).map((t) => `${esc(t.team)} notes ${esc(t.notesStatus)}`);
-    return `<div class="game${L?.state === "in" ? " live" : ""}"><div class="teams">${esc(nick(g.away))} @ ${esc(nick(g.home))}</div><div class="state">${state}${L?.score ? ` · ${esc(L.score)}` : ""}</div>${noteFlags.length ? `<div class="state" style="color:var(--warn)">${noteFlags.join(" · ")}</div>` : ""}</div>`;
+    return `<div class="game${L?.state === "in" ? " live" : ""}"><div class="teams">${esc(nick(g.away))} @ ${esc(nick(g.home))}</div><div class="state">${state}${L?.score ? ` · ${esc(L.score)}` : ""}</div><div class="state"><a href="${L?.state === "in" || L?.state === "post" ? `gameflow.html?game=${encodeURIComponent(g.id)}">Game Flow ›` : `gameflow.html?view=range">3PT matchups ›`}</a></div>${noteFlags.length ? `<div class="state" style="color:var(--warn)">${noteFlags.join(" · ")}</div>` : ""}</div>`;
   }).join("") || `<div class="empty">No games tonight.</div>`;
   const issues = data.teams.filter((t) => t.notesStatus && !["current", "local"].includes(t.notesStatus));
   $("notesIssues").innerHTML = issues.length ? `<div class="warn-banner">${issues.map((t) => `<b>${esc(t.team)}</b>: ${esc(t.notesWhy || t.notesStatus)}`).join("<br>")}<br>Stale notes are still used: their totals are brought up to date from the games played since.</div>` : "";
@@ -278,7 +280,7 @@ async function poll() {
 
 // Tonight's storylines: the shared builder (also used for the Discord digest), with the
 // season data it needs. A failure here never stops the rest of the page.
-const KIND = { matchup: ["🆚", "#matchups"], history: ["📜", "#history"], injury: ["🩹", "players.html"], milestone: ["🎯", "#all"], streak: ["🔥", "trends.html"], lead: ["👑", "leaders.html"], shooting: ["🏹", "leaders.html"], club: ["💯", "leaders.html#club"], tv: ["📺", "national.html"], rest: ["😴", "situations.html#rest"], form: ["♨️", "trends.html#form"], foul: ["⚠️", "gameflow.html"], team: ["📈", "trends.html"] };
+const KIND = { matchup: ["🆚", "#matchups"], history: ["📜", "#history"], injury: ["🩹", "players.html"], milestone: ["🎯", "#all"], streak: ["🔥", "trends.html"], lead: ["👑", "leaders.html"], shooting: ["🏹", "leaders.html"], club: ["💯", "leaders.html#club"], tv: ["📺", "national.html"], rest: ["😴", "situations.html#rest"], form: ["♨️", "trends.html#form"], foul: ["⚠️", "gameflow.html"], early: ["🔄", "gameflow.html"], team: ["📈", "trends.html"] };
 let FACTS = null;
 let INJ = null;
 function renderHistory(facts, injuries) {

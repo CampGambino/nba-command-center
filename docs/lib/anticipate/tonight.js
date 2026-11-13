@@ -244,6 +244,21 @@ function foulLines(flow, teams) {
   return out;
 }
 
+/**
+ * Left early (docs/data/flowstats.json leftEarly; 0.60): a starter on tonight's teams who left a game in the last 3 days
+ * in the first half and never came back (not a foul-out), when he usually plays the second half. Status news more often
+ * than not.
+ */
+export const EARLY_DAYS = 3;
+function earlyLines(flow, teams, today) {
+  if (!flow?.leftEarly) return [];
+  const at = (t) => { const q = Math.floor(t / 720) + 1, left = q * 720 - t; return `Q${q} ${Math.floor(left / 60)}:${String(Math.round(left % 60)).padStart(2, "0")}`; };
+  const md = (d) => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
+  return flow.leftEarly.filter((e) => teams.has(e.team) && e.date && (!today || ((Date.parse(today) - Date.parse(e.date)) / 864e5 <= EARLY_DAYS && e.date < today)))
+    .map((e) => ({ team: e.team, player: e.name, kind: "early", score: 2.6,
+      text: `${e.name} left ${md(e.date)} vs ${e.opp} at ${at(e.out)} and didn't return (${e.min} min, ${e.pts} pts); he usually plays the second half` }));
+}
+
 function teamLines(trends, teams) {
   const out = [];
   for (const [team, t] of Object.entries(trends.teams || {})) {
@@ -358,7 +373,7 @@ export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries =
   const hist = historyLines(facts, teams, watch.today).filter((h) => !recs.some((r) => r.player && r.passing && r.team === h.team
     && new RegExp(`\\b${surname(r.player)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
     && r.passing.split(" and ").some((n) => new RegExp(`\\b${surname(n)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, "")))));
-  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams).filter((l) => !clubLines(leaders, teams).some((c) => c.player === l.player)), ...clubLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today), ...tvLines(national, teams, watch.today), ...restLines(rest, teams, watch.today), ...formLines(form, teams, watch.today), ...foulLines(fouls, teams)]
+  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams).filter((l) => !clubLines(leaders, teams).some((c) => c.player === l.player)), ...clubLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today), ...tvLines(national, teams, watch.today), ...restLines(rest, teams, watch.today), ...formLines(form, teams, watch.today), ...foulLines(fouls, teams), ...earlyLines(fouls, teams, watch.today)]
     .flatMap((l) => {
       const st = l.player ? listed.get(`${l.team}|${nameKey(l.player)}`) : null;
       if (st === "Out" || st === "Doubtful") return [];

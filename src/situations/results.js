@@ -16,7 +16,12 @@
  * A date is complete once every regular-season game on it is final (or it is
  * 3+ days old: a game still not final then was postponed). A date ESPN
  * can't answer is left out (not marked complete), so the next run asks again.
+ *
+ * Stat corrections (the user, 11/13: the league posts them within a day or two): a game's summary is read
+ * again once a day for RECHECK_DAYS days after it was played (row.xd = the day it was last read). A failed
+ * re-read keeps what we had. Changed games are listed in store.corrected (this run only).
  */
+export const RECHECK_DAYS = 3;
 export function rowFromGame(g) {
   if (!g.final || g.seasonType !== 2 || !g.homeTri || !g.awayTri) return null;
   if (g.homeScore == null || g.awayScore == null || g.homeScore === g.awayScore) return null;
@@ -42,10 +47,13 @@ export async function collectResults({ espn, store, through, warnings = [] }) {
     const old = Date.parse(through) - Date.parse(d) >= 3 * 864e5;
     out.dates[d] = { complete: reg.every((g) => g.final) || old, games: rows };
   }
-  // Fill in box totals and clutch scoring for games that don't have them yet.
+  // Fill in box totals and clutch scoring for games that don't have them yet, and re-read recent ones.
+  out.corrected = [];
   for (const d of Object.keys(out.dates).sort()) {
     for (const row of out.dates[d].games) {
-      if (row.x) continue;
+      const recheck = row.x && row.d < through && Date.parse(through) - Date.parse(row.d) <= RECHECK_DAYS * 864e5 && row.xd !== through;
+      if (row.x && !recheck) continue;
+      const before = recheck ? JSON.stringify([row.hb, row.ab, row.pl]) : null;
       const r = await espn.detail(row.id);
       if (!r.ok) { warnings.push(r.error); continue; }
       const g = r.data;
@@ -79,6 +87,8 @@ export async function collectResults({ espn, store, through, warnings = [] }) {
         }
       }
       row.x = 1;
+      if (recheck) { row.xd = through; if (JSON.stringify([row.hb, row.ab, row.pl]) !== before) out.corrected.push(row.id); }
+      else row.xd = through;
     }
   }
   return out;

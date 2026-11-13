@@ -706,6 +706,25 @@ const more = {};
   asked.length = 0;
   store = await collectResults({ espn: fakeSb, store, through: "2026-10-25" });
   ok(asked.join() === "2026-10-25", "results: a second run asks ESPN only for dates not yet complete", asked.join());
+  // Stat corrections (0.60): a game's summary is read again once a day for 3 days; a change is noted, a failed re-read keeps the old.
+  {
+    let pts = 20, fail = false, reads = 0;
+    const det = { scoreboard: async (d) => day(d, true), detail: async (id) => { if (id === "2026-10-20") reads++; return fail ? { ok: false, error: "x" } : { ok: true, data: { final: true, plays: [1], scoreOk: true,
+      home: [40, 80, 10, 30, 10, 12, 0], away: [40, 80, 9, 30, 10, 12, 0], players: { 7: { side: "home", starter: true, min: 30, s: [pts], name: "P7" } } } }; } };
+    let st = await collectResults({ espn: det, store: null, through: "2026-10-20" });
+    const r0 = st.dates["2026-10-20"].games[0];
+    const once = reads; st = await collectResults({ espn: det, store: st, through: "2026-10-20" });
+    const same = reads === once;
+    pts = 22; st = await collectResults({ espn: det, store: st, through: "2026-10-21" });
+    const fixed = st.corrected.join() === "2026-10-20" && r0.pl[7][3] === 22;
+    const again = reads; st = await collectResults({ espn: det, store: st, through: "2026-10-21" });
+    const oncePerDay = reads === again;
+    fail = true; st = await collectResults({ espn: det, store: st, through: "2026-10-22" });
+    const kept = r0.pl[7][3] === 22 && !st.corrected.length;
+    fail = false; const r4 = reads; await collectResults({ espn: det, store: st, through: "2026-10-24" });
+    ok(r0.x && same && fixed && oncePerDay && kept && reads === r4,
+      "results (0.60): stat corrections: a recent game is re-read once a day (changes noted, a failed read keeps the old line), not past 3 days", JSON.stringify({ same, fixed, oncePerDay, kept, reads, r4 }));
+  }
 
   // Records. Four teams; A beats everyone; quarters set so each situation is exercised.
   const g = (id, d, h, a, hq, aq, extra = {}) => ({ id, d, h, a, hs: hq.reduce((x, y) => x + y), as: aq.reduce((x, y) => x + y), hq, aq, ot: hq.length - 4, ...extra });
@@ -1013,6 +1032,10 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     const sf = tonightStorylines({ watch, trends, leaders, fouls: fl }).flatMap((g) => g.lines).filter((l) => l.kind === "foul");
     ok(sf.length === 1 && sf[0].text === "Hack A: in early foul trouble in 6 of 10 games this season, fouled out once (2 fouls in the 1st, 3 by the half…)",
       "tonight (0.59.1): foul watch for a starter in early foul trouble in half his games; not a reserve, not 3 of 10", JSON.stringify(sf));
+    const le = { leftEarly: [{ id: "80", name: "Hurt Guy", team: "BBB", opp: "ZZZ", out: 335, min: 6, pts: 3, date: "2026-11-09", gameId: "g" }, { id: "81", name: "Old News", team: "BBB", opp: "ZZZ", out: 900, min: 15, pts: 9, date: "2026-11-01", gameId: "h" }] };
+    const se = tonightStorylines({ watch: { ...watch, today: "2026-11-11" }, trends, leaders, fouls: le }).flatMap((g) => g.lines).filter((l) => l.kind === "early");
+    ok(se.length === 1 && se[0].text === "Hurt Guy left 11/9 vs ZZZ at Q1 6:25 and didn't return (6 min, 3 pts); he usually plays the second half",
+      "tonight (0.60): a starter who left a game in the last 3 days in the first half and didn't return; an older one isn't news", JSON.stringify(se));
   }
   ok(/Big One: 5 points from 10,000 career points \(90% tonight\)/.test(g1) && /Passer: 2 3-pointers from passing Old Guy \(No\. 40\) in NBA history/.test(g1), "tonight: publishable milestones worded per kind", g1);
   ok(!/Unverified|Long Shot|Minor|Average|Not Tonight/.test(g1 + g2), "tonight: unverified, under 25%, below importance 20, other kinds and other games' teams are left out", g1);
@@ -2079,6 +2102,11 @@ await articlesChecks(ok);
     ok(two.games === 2 && two.quarters.length && two.quarters[0].pts >= two.quarters[two.quarters.length - 1].pts && r1 && r1.gp === 2
       && two.leadTable.length === 2 && two.leadTable.every((t) => t.gp === 2 && t.neverTrailed + t.neverLed <= 2) && S.placeOn([{ pts: 20 }, { pts: 18 }, { pts: 18 }], 18) === 2,
       "game flow stats: season lists best first, rotations over games, the Leads & comebacks table, places on a list (ties share)", JSON.stringify(two.leadTable));
+    const lite = {}; S.flowStats([{ row, c }], lite);
+    const Lm = lite[String(c.id)], Gp = Gm.players.filter((p) => p.played);
+    ok(Lm && Lm.players.length === Gp.length && Lm.assists.length === Gm.assists.length && Lm.box.homeTeam.teamTricode === Gm.box.homeTeam.teamTricode
+      && Lm.players.every((p) => JSON.stringify(p.ptsByPeriod) === JSON.stringify(Gp.find((x) => x.id === p.id).ptsByPeriod)),
+      "game flow (0.60): the season's lite file carries the same players, points by period and assists the page's model has");
   }
 }
 

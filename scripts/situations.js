@@ -43,6 +43,8 @@ if (seasonBefore && store.season && seasonBefore !== store.season) {
   // A new season: start the store over rather than mixing seasons.
   store = await collectResults({ espn, store: { season: store.season, dates: {} }, through, warnings });
 }
+// Stat corrections: recent games are re-read for a few days (src/situations/results.js RECHECK_DAYS).
+if (store.corrected?.length) console.log(`stat corrections: ${store.corrected.length} recent game(s) changed on a re-read: ${store.corrected.join(", ")}`);
 const rows = allGames(store);
 if (!rows.length) { console.error(`no results collected${warnings.length ? `: ${warnings[0]}` : ""}`); process.exit(1); }
 

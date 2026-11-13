@@ -15,6 +15,7 @@
  *     fouls:        { personId: { name, team, gp, trouble, out, troubleIn, outIn } }  games in early foul trouble
  *                   (fouls > period) and foul-outs, with their game ids (so a card never counts tonight's game twice)
  *     leads:        { tri: { gp, blown: [..], comebacks: [..] } } leads of LEAD_MIN+ lost / deficits of LEAD_MIN+ won
+ *     leftEarly:    starters who left in the first half and never returned (not foul-outs), who usually play the 2nd half
  *     leadTable:    Game Flow's "Leads & comebacks" rows for the full season (so the page needn't read every game)
  *   }
  *
@@ -32,9 +33,18 @@ const median = (xs) => {
   return Math.round(s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2);
 };
 
-export function gameFacts(row, c) {
+/* The slice of a game's model that Game Flow's Scoring highs and Assist leaderboard read (0.60): one season file of
+   these instead of every game file. Same fields, same values, as buildStints gives the page. */
+export function liteModel(G) {
+  return { box: { homeTeam: { teamTricode: G.box.homeTeam.teamTricode }, awayTeam: { teamTricode: G.box.awayTeam.teamTricode } }, maxP: G.maxP,
+    players: G.players.filter((p) => p.played).map((p) => ({ id: p.id, name: p.name, tri: p.tri, side: p.side, played: p.played, jersey: p.jersey, ptsByPeriod: p.ptsByPeriod })),
+    assists: G.assists.map((a) => ({ from: a.from, to: a.to, side: a.side, pts: a.pts })) };
+}
+
+export function gameFacts(row, c, lite) {
   const { pbp, box } = expandFeeds(c);
   const G = buildStints(pbp, box);
+  if (lite) lite[String(row.id || c.id)] = liteModel(G);
   const tri = [G.teams[0].teamTricode, G.teams[1].teamTricode];
   const base = { gameId: String(row.id || c.id), date: row.d || null };
   const players = G.players.filter((p) => p.played).map((p) => {
@@ -54,6 +64,7 @@ export function gameFacts(row, c) {
     const pp = p.ptsByPeriod || {};
     return { id: String(p.id), name: p.name, team: tri[p.side], opp: tri[1 - p.side], starter: !!p.starter,
       q: [1, 2, 3, 4].map((k) => pp[k] || 0), out1, back, in1, out3, full1, open3, q1n: q1.length,
+      lastOut: st.length ? st[st.length - 1].et : null, min: Math.round(p.calcMin || 0), pts: p.boxPts || 0,
       trouble: !!p.troubleFrom, fouledOut: !!p.fouledOut };
   });
   // Biggest lead each side held, from the score flow (home minus away), and who won.
@@ -68,15 +79,18 @@ export function gameFacts(row, c) {
   return { ...base, players, teams };
 }
 
-export function flowStats(entries) {
-  const quarters = [], halves = [], teamQuarters = [], rot = {}, fouls = {}, leads = {}, table = {};
+export function flowStats(entries, lite = null) {
+  const quarters = [], halves = [], teamQuarters = [], rot = {}, fouls = {}, leads = {}, table = {}, early = [];
   let games = 0;
   for (const { row, c } of entries) {
     let F;
-    try { F = gameFacts(row, c); } catch { continue; }
+    try { F = gameFacts(row, c, lite); } catch { continue; }
     games++;
     const at = { gameId: F.gameId, date: F.date };
     for (const p of F.players) {
+      // A starter who left in the first half and never came back (not a foul-out): injury news, more often than not.
+      if (p.starter && p.lastOut != null && p.lastOut < 2 * REG_LEN - 1e-6 && !p.fouledOut)
+        early.push({ id: p.id, name: p.name, team: p.team, opp: p.opp, out: p.lastOut, min: p.min, pts: p.pts, ...at });
       p.q.forEach((pts, k) => { if (pts >= 10) quarters.push({ pts, id: p.id, name: p.name, team: p.team, opp: p.opp, q: k + 1, ...at }); });
       [[0, 1], [2, 3]].forEach(([a, b], h) => { const pts = p.q[a] + p.q[b]; if (pts >= 15) halves.push({ pts, id: p.id, name: p.name, team: p.team, opp: p.opp, h: h + 1, ...at }); });
       const R = rot[p.id] || (rot[p.id] = { name: p.name, team: p.team, gp: 0, starts: 0, full1: 0, open3: 0, _o1: [], _b: [], _i1: [], _o3: [] });
@@ -120,7 +134,10 @@ export function flowStats(entries) {
       n: { out1: R._o1.length, back: R._b.length, in1: R._i1.length, out3: R._o3.length } };
   }
   for (const id of Object.keys(fouls)) if (!fouls[id].trouble && !fouls[id].out) delete fouls[id];
-  return { games, leadMin: LEAD_MIN, leadTable: Object.values(table), quarters: top(quarters), halves: top(halves), teamQuarters: top(teamQuarters), rotation, fouls, leads };
+  // Only those who usually play the second half: a rest-day starter pulled at the half is no story.
+  const leftEarly = early.filter((e) => { const r = rotation[e.id]; return r && r.starts >= 3 && (r.open3 || 0) >= 0.7 * r.starts; })
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  return { games, leadMin: LEAD_MIN, leadTable: Object.values(table), leftEarly, quarters: top(quarters), halves: top(halves), teamQuarters: top(teamQuarters), rotation, fouls, leads };
 }
 
 /* The place a value would take on a best-first list: 1 = the best. Ties share the place. */

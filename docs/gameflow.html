@@ -12,7 +12,7 @@
     --rowh:26px; --namew:172px; --statw:52px;
   }
   /* A light look to match the rest of the Command Center (0.59): the same palette the other pages switch to.
-     Team colours stay as they are; the posters were always white. */
+     Pale team colours are darkened in script (lowerForLight); the posters were always white. */
   @media (prefers-color-scheme: light){
     :root{ --bg:#f5f6f8; --panel:#fff; --panel2:#f0f2f5; --line:#e1e4ea;
       --text:#161a22; --dim:#5b6474; --dimmer:#8a93a3; --accent:#3b6fd8; }
@@ -653,9 +653,23 @@ function liftForDark(hex){
   }
   return rgbHex(out);
 }
+/* Light look (0.60): the page follows the system setting, and on a white panel the problem is the reverse:
+   pale brand colours (gold, white) vanish. Those are darkened toward black until they clear the same bar. */
+const LIGHT_UI = (()=>{ try{ return matchMedia("(prefers-color-scheme: light)").matches; }catch(e){ return false; } })();
+const LIGHT_BG=[255,255,255], MIN_LIGHT_CONTRAST=2.2;
+function lowerForLight(hex){
+  const c=hexRgb(hex);
+  if(contrastOf(c,LIGHT_BG)>=MIN_LIGHT_CONTRAST) return String(hex).toUpperCase();
+  const snap = v => hexRgb(rgbHex(v));
+  for(let m=0.02;m<=1;m+=0.02){
+    const d=c.map(v=>v*(1-m));
+    if(contrastOf(snap(d),LIGHT_BG)>=MIN_LIGHT_CONTRAST) return rgbHex(d);
+  }
+  return rgbHex(c.map(v=>v*0.4));
+}
 const _darkCache=new Map();
 const darkOf = hex => {
-  if(!_darkCache.has(hex)) _darkCache.set(hex, liftForDark(hex));
+  if(!_darkCache.has(hex)) _darkCache.set(hex, LIGHT_UI ? lowerForLight(hex) : liftForDark(hex));
   return _darkCache.get(hex);
 };
 /** The colour to draw a team in on the dark interface. */
@@ -837,8 +851,9 @@ addEventListener("scroll",hideTip,{passive:true});
 const pmColor = pm => {
   const k = clamp(Math.abs(pm)/14, 0, 1);
   const mix=(a,b)=>Math.round(a+(b-a)*k);
-  return pm>=0 ? `rgb(${mix(58,47)},${mix(66,158)},${mix(80,106)})`
-               : `rgb(${mix(58,208)},${mix(66,69)},${mix(80,63)})`;
+  const [r0,g0,b0] = LIGHT_UI ? [205,210,218] : [58,66,80];   // the neutral end: a light grey on the light look
+  return pm>=0 ? `rgb(${mix(r0,47)},${mix(g0,158)},${mix(b0,106)})`
+               : `rgb(${mix(r0,208)},${mix(g0,69)},${mix(b0,63)})`;
 };
 
 function render(G, gameInfo){
@@ -1234,7 +1249,20 @@ async function compactFor(g){
   try{ const r=await fetch(`data/flow/${FLOW.season}/${g.gameId}.json`); return r.ok? await r.json() : null; }
   catch(e){ return null; }
 }
-window.__flow = { index:()=>FLOW, compactFor };
+/* Scoring highs and the Assist leaderboard read one season file of per-game slices (data/flow/<season>-lite.json,
+   built nightly from the same model, 0.60) instead of every game's file. A game not in it is read in full. */
+let LITE=null;
+function liteFile(){
+  if(!FLOW || seasonYear()!==FLOW.season) return Promise.resolve(null);
+  if(!LITE) LITE=fetch(`data/flow/${FLOW.season}-lite.json`,{cache:"no-store"}).then(r=>r.ok? r.json() : null).then(j=>j && j.games || null).catch(()=>null);
+  return LITE;
+}
+async function liteOrModel(g){
+  const L=await liteFile();
+  const m=L && L[String(g.gameId)];
+  return m || modelFor(g);
+}
+window.__flow = { index:()=>FLOW, compactFor, liteOrModel };
 
 async function modelFor(g){
   if(modelCache.has(g.gameId)) return modelCache.get(g.gameId);
@@ -1891,7 +1919,7 @@ async function buildHighs(tris, limit, onProgress){
     while(queue.length){
       const {tri,g}=queue.shift();
       try{
-        const G=await modelFor(g);
+        const G=await liteOrModel(g);
         const side = G.box.homeTeam.teamTricode===tri ? 1
                    : G.box.awayTeam.teamTricode===tri ? 0 : -1;
         if(side>=0){
@@ -4327,7 +4355,7 @@ async function buildBoard(tris, limit, onProgress){
     while(queue.length){
       const {tri,g}=queue.shift();
       try{
-        const G=await modelFor(g);
+        const G=await liteOrModel(g);
         const side = G.box.homeTeam.teamTricode===tri ? 1
                    : G.box.awayTeam.teamTricode===tri ? 0 : -1;
         if(side>=0){
@@ -5119,6 +5147,9 @@ const seasonName = y => { const n=parseInt(y,10);
 /* null means "whatever is current", which is the only value that can use the exact league
    feed: its schedule file is the current season and its game ids are its own. */
 let WANT_SEASON = null;
+/* Links in (0.60): the Watch List opens a game with ?game=<ESPN id> and the three-point matchups with ?view=range. */
+const URLP = (()=>{ try{ return new URLSearchParams(location.search); }catch(e){ return new URLSearchParams(); } })();
+let WANT_GAME = URLP.get("game");
 /** The season as ESPN numbers it ("2026"), for comparisons. */
 const seasonYear = () => String((SCHED && SCHED.season) || thisYear());
 /** The season as a reader writes it ("2025-26"), for anything on screen. */
@@ -5349,6 +5380,11 @@ function fillGameOptions(){
 }
 function fillGameList(){
   if(!fillGameOptions()){ setStatus("No played games match that filter yet.",false); return; }
+  if(WANT_GAME){
+    const k=filtered.findIndex(g=>String(g.gameId)===String(WANT_GAME));
+    WANT_GAME=null;
+    if(k>=0){ load(k); return; }
+  }
   load(filtered.length-1);
 }
 
@@ -5439,6 +5475,7 @@ async function espnSeason(yr){
 function clearCaches(){
   modelCache.clear();
   seasonAgg=assistAgg=boardAgg=highsAgg=rangeAgg=leagueAgg=null;
+  LITE=null;
   cupExtra=null;
   PBP_TRIED=PBP_MISSING=0; NO_PBP=false;
   const np=$("#nopbp"); if(np){ np.hidden=true; np.innerHTML=""; }
@@ -5611,6 +5648,7 @@ addEventListener("keydown",e=>{
   if(e.key==="ArrowRight"&&curIdx<filtered.length-1) load(curIdx+1);
 });
 
+{ const v=URLP.get("view"); if(v && [...$("#view").options].some(o=>o.value===v)) $("#view").value=v; }
 boot();
 </script>
 </body>

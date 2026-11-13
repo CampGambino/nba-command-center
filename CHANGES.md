@@ -2,6 +2,32 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.60.0 (2026-11-13): stat corrections re-read; the "Building" list: light-mode team colours, Watch List → Game Flow links, bridge status, play-by-play season lists on Records, "left early" storylines, one-file Scoring highs and Assist leaderboard
+
+The user: "Start working the bullets in the Building section… the league posts stat corrections within a day or two so some of this information may need to be rechecked."
+
+### What changed
+- **Stat corrections.** Box scores and play-by-play were read once and kept. Now:
+  - the results store (`src/situations/results.js`) re-reads each game's summary once a day for 3 days after it's played (`row.xd` = day last read); a failed re-read keeps what we had; changed games are logged ("stat corrections: N recent game(s) changed");
+  - Game Flow files (`scripts/flow.js`) do the same (`index.json checked`), rewriting a file only if it changed;
+  - everything built from them (situations, leaders, trends, rest, form, records, flowstats, the lite file) is rebuilt every run, so a correction reaches every page within a day. Older games are not re-read.
+- **Game Flow light look:** pale team colours are darkened on a white panel (`lowerForLight`, the mirror of the dark look's lift), and the +/− shading's neutral end is a light grey.
+- **Watch List → Game Flow:** each game card links to its Game Flow chart once it tips off (`gameflow.html?game=<id>`, live games included), and to the three-point matchups before (`?view=range`). Game Flow now opens a game or a tab from the address.
+- **NBA Live bridge status note:** "· season facts: 174 games" (or "season facts not loaded").
+- **Records → This season:** the season's best quarters and halves by a player and best team quarters, and each team's 15-point leads lost and comebacks, with links to the games in Game Flow.
+- **"Left early" storylines (🔄, kind `early`):** a starter on tonight's teams who left a game in the last 3 days in the first half and never came back (not a foul-out), when he usually plays the second half: "Stephen Curry left 11/11 vs HOU at Q1 6:25 and didn't return (6 min, 3 pts)". On the Watch List, in the Discord digest and in NBA Live's pre-game cards. From `flowstats.json leftEarly` (11 so far this season).
+- **Scoring highs and the Assist leaderboard read one file** (`docs/data/flow/<season>-lite.json`, ~5 KB a game, the slice of the model they use) instead of every game file; a game missing from it is read in full.
+
+### Tested
+- 666 checks pass. New: the re-read (once a day, changes noted, failed read keeps the old line, nothing after 3 days); the left-early storyline (recent yes, old no); the lite file carries the same players, points by period and assists as the page's model.
+- Game Flow: Scoring highs (league) identical before and after; the Assist leaderboard identical except the order of tied pairs (download order before, file order now). `?game=401909977` opens DET @ WAS; `?view=range` opens the shot profile.
+- Records → This season and the Watch List links checked in headless Chrome; the page sweep (now with the two Game Flow links) all OK.
+
+### Unproven
+- The re-reads haven't caught a real correction yet; the build log will say when they do.
+- The lite file grows to ~6-7 MB by April (about 1 MB gzipped).
+- "Left early" can't tell an injury from an ejection or a coach's decision; the line says what happened, not why.
+
 ## 0.59.1 (2026-11-13): reserves who haven't checked in; foul watch before tip-off
 
 The user picked these two from the follow-up list.

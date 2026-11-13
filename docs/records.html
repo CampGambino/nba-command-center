@@ -211,6 +211,12 @@
   <h2>Stat title races, in history</h2>
   <div class="scroll"><table id="titles"></table></div>
   <div class="key">Per game, qualified at 70% of his team's games. History: the NBA Guide's yearly leaders, 1946-47 to 2025-26 (by totals through 1968-69). A team's past leaders are matched by the guide's team names, so a franchise's earlier city doesn't count.</div>
+  <h2 id="pbp">Best quarters and halves, this season</h2>
+  <div class="controls"><select id="pbpk"><option value="quarters">Player: points in a quarter</option><option value="halves">Player: points in a half</option><option value="teamQuarters">Team: points in a quarter</option></select></div>
+  <div class="scroll"><table id="pbpt"></table></div>
+  <h2>Leads lost and comebacks (15+), this season</h2>
+  <div class="scroll"><table id="leadt"></table></div>
+  <div class="key" id="pbpkey">From every game's play-by-play (the Game Flow files), through last night. Stat corrections: recent games are re-read for three days, so a total can still move. NBA Live's bridge uses the same lists for its in-game cards. Full breakdowns: <a href="gameflow.html?view=highs">Game Flow → Scoring highs</a>, <a href="gameflow.html?view=streaks">Leads &amp; comebacks</a>.</div>
   </section>
   <section data-tab="cup">
   <h2>NBA Cup all-time standings</h2>
@@ -435,6 +441,28 @@ Promise.all([fetch("data/records.json", { cache: "no-store" }).then((r) => r.jso
   $("foot").innerHTML = `Record book and single-game lists: the NBA's 2026-27 Guide (Elias Sports Bureau), pp. 128-135, 149 and 198-268, through 2025-26; points ranks to 68th from its career scorers (p. 136). Leaderboards: ${esc(d.source)}, pages 76-83 (milestone watch), 90 (franchise records), 92-97 (career leaders) and 100-103 (streaks and best starts), plus this season's box scores. Franchise history: every player's totals with each franchise from the 2026-27 NBA Guide's team-by-team year-by-year pages (1946-47 to 2025-26), plus his games for that team this season. Ranks move as listed players pass each other; players the guide doesn't list can't be seen, so a rank is only as good as the guide's lists around it. Odds: from each player's games this season and how often he has played lately, before the injury report (players on tonight's report are marked). Coaches' totals assume the coach has run every game this season.`;
   renderItems(); renderBoard();
 }).catch((e) => { $("sub").textContent = `Couldn't load the data: ${e.message}`; });
+
+// This season from the play-by-play (data/flowstats.json, src/gameflow/stats.js; 0.60).
+fetch("data/flowstats.json", { cache: "no-store" }).then((r) => r.json()).then((F) => {
+  const md2 = (d) => (d ? `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}` : "");
+  const gf = (id, txt) => `<a href="gameflow.html?game=${encodeURIComponent(id)}">${txt}</a>`;
+  const draw = () => {
+    const k = $("pbpk").value, L = (F[k] || []).slice(0, k === "teamQuarters" ? 15 : 25);
+    const team = k === "teamQuarters", unit = k === "halves" ? "Half" : "Quarter";
+    let rank = 0, prev = null;
+    $("pbpt").innerHTML = `<tr><th class="num">#</th><th>${team ? "Team" : "Player"}</th>${team ? "" : "<th>Team</th>"}<th class="num">Points</th><th>${unit}</th><th>Game</th></tr>` +
+      (L.map((x, i) => { if (x.pts !== prev) { rank = i + 1; prev = x.pts; }
+        return `<tr><td class="num">${rank}</td><td><b>${esc(team ? x.team : x.name)}</b></td>${team ? "" : `<td>${esc(x.team)}</td>`}<td class="num"><b>${x.pts}</b></td><td>${k === "halves" ? (x.h === 1 ? "1st half" : "2nd half") : `Q${x.q}`}</td><td>${gf(x.gameId, `vs ${esc(x.opp)}, ${md2(x.date)}`)}</td></tr>`; }).join("") || `<tr><td class="empty">Nothing yet.</td></tr>`);
+  };
+  $("pbpk").addEventListener("input", draw);
+  draw();
+  const T = Object.entries(F.leads || {}).map(([tri, x]) => ({ tri, ...x })).filter((t) => t.blown.length || t.comebacks.length)
+    .sort((a, b) => b.blown.length - a.blown.length || b.comebacks.length - a.comebacks.length || a.tri.localeCompare(b.tri));
+  const big = (xs, k) => { const x = xs.slice().sort((a, b) => b[k] - a[k])[0]; return x ? `${x[k]} ${gf(x.gameId, `vs ${esc(x.opp)}, ${md2(x.date)}`)} (${esc(x.score)})` : "–"; };
+  $("leadt").innerHTML = `<tr><th>Team</th><th class="num">Games</th><th class="num">Lost a 15+ lead</th><th>Biggest lost</th><th class="num">Came back from 15+</th><th>Biggest comeback</th></tr>` +
+    (T.map((t) => `<tr><td><b>${t.tri}</b></td><td class="num">${t.gp}</td><td class="num">${t.blown.length || ""}</td><td class="small">${big(t.blown, "lead")}</td><td class="num">${t.comebacks.length || ""}</td><td class="small">${big(t.comebacks, "down")}</td></tr>`).join("") || `<tr><td class="empty">No 15-point lead lost yet.</td></tr>`);
+  $("pbpkey").innerHTML = `${F.games} games ` + $("pbpkey").innerHTML;
+}).catch(() => { $("pbpt").innerHTML = `<tr><td class="empty">Play-by-play facts not loaded.</td></tr>`; });
 </script>
 </body>
 </html>
