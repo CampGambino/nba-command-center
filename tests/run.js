@@ -1786,7 +1786,7 @@ await articlesChecks(ok);
   const cut = [
     [T("The Warriors’ franchise-record home sellout streak, the fifth-longest in NBA history, is at 613 consecutive games (7 sellouts in 2026-27).", {}, false), /home stat, on a road night/],
     [T("Passed Scott Skiles (1,176) for eighth on the Magic’s all-time free throws made list on Oct. 28 @ Toronto.", { player: "Franz Wagner" }), /past one-off/],
-    [T("The Indiana Pacers traveled to Mexico City for the first time in team history to face the Denver Nuggets as part of the NBA Mexico City Game 2026 on November 7."), /past one-off/],
+    [T("The Indiana Pacers traveled to Mexico City for the first time in team history to face the Denver Nuggets as part of the NBA Mexico City Game 2026 on November 7."), /past event/],
     [T("Giannis Antetokounmpo scored at least 35 points in each of the first two games this season, becoming just the third player in NBA history to score at least 35 points in his first two games with a new team.", { player: "Giannis Antetokounmpo" }), /past one-off/],
     [T("Giannis Antetokounmpo scored a team-high 35 points vs. Minnesota in the season opener on October 21, the second-most in a HEAT season opener in franchise history.", { player: "Giannis Antetokounmpo" }), /past one-off \(season opener/],
     [T("The HEAT are currently in their 39th season in franchise history."), /filler/],
@@ -1807,6 +1807,12 @@ await articlesChecks(ok);
   const few = F.trimLines([{ text: "Chicago recorded 57 rebounds in the season opener at TOR (10/21), which marked the third-highest rebound total in a season opener in franchise history.", score: 2 }, { text: "The HEAT are currently in their 39th season in franchise history.", score: 3 }], { box, today: "2026-11-13", home: true });
   ok(few.keep.length === 1 && few.keep[0].kept === "few lines tonight" && few.trimmed.length === 1 && few.trimmed[0].trimmed === "filler",
     "notes, trimming isn't too strict: a team with few lines keeps its best past one-offs (never filler)");
+  const twin = F.trimLines([{ text: "Caleb Wilson became the first rookie in Bulls history to tally at least four steals and four 3FGM in a single game after tallying 24 points vs. PHI (11/2).", player: "Caleb Wilson" },
+    { text: "Wilson is the first rookie in Bulls history to tally four-plus steals and four-plus 3FGM in a single game.", player: "Caleb Wilson" },
+    { text: "Powell is the first player in the NBA this season to score 30-plus points without missing from inside the arc.", player: "Norman Powell" }], { box, today: "2026-11-13", home: true, floor: 0 });
+  const trip = F.trimLines([{ text: "The Indiana Pacers traveled to Mexico City for the first time in team history to face the Denver Nuggets as part of the NBA Mexico City Game 2026 on November 7.", score: 5 }], { box, today: "2026-11-13", home: false });
+  ok(twin.keep.length === 1 && /Powell/.test(twin.keep[0].text) && twin.trimmed.some((x) => /told again/.test(x.trimmed)) && trip.keep.length === 0,
+    "notes, trimming: the same past fact told without its date goes too; a past trip never comes back for a team with few lines");
 }
 
 // ---------- Tonight's matchups (src/records/matchup.js, 0.48) ----------

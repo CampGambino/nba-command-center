@@ -239,6 +239,8 @@ const stem = (w) => w.replace(/(?:ies)$/, "y").replace(/(?:ing|ed|es|s)$/, "");
 const SYN = [[/\bopp(?:onents?|\.)?(?=\s|$)/g, "opponent"], [/\b(?:3pt%?|3-?pt|three-point|3-point|threes|3pm|3fg%?)/g, "3p"], [/\b(?:2pt%?|two-point|twopointers?|two-pointers?|2pa)/g, "2p"],
   [/\bppg\b/g, "point"], [/\brpg\b/g, "rebound"], [/\bapg\b/g, "assist"], [/\bfgs?\b/g, "field goal"], [/\bslams?\b/g, "dunk"], [/\bba\b/g, "blocks against"]];
 const bag = (t) => { let x = plain(t).toLowerCase(); for (const [re, w] of SYN) x = x.replace(re, w); return new Set(x.replace(/[^a-z0-9.%+ -]/g, " ").split(/\s+/).filter((w) => w && !STOP.has(w)).map(stem)); };
+// Most of the shorter line's words are in the longer one (5+ shared): the same fact, told at two lengths.
+const contained = (a, b) => { let i = 0; for (const x of a) if (b.has(x)) i++; return i >= 5 && i / Math.min(a.size, b.size) >= 0.7; };
 const jaccard = (a, b) => { let i = 0; for (const x of a) if (b.has(x)) i++; return i / (a.size + b.size - i || 1); };
 const sig = (th) => th.map((x) => `${x.stat}${x.min}`).sort().join(",");
 
@@ -376,7 +378,10 @@ export function eventDate(text, { today, firstGame = null } = {}) {
     if (m[3] && !(Number(m[3].slice(-2)) === y % 100 || Number(m[3].slice(-2)) === (y - 1) % 100)) continue;
     if (Number(m[1]) <= 12 && Number(m[2]) <= 31) out.push(iso(Number(m[1]), Number(m[2])));
   }
-  for (const m of t.matchAll(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b(?!,?\s*(?:19|20)\d\d)/gi)) out.push(iso(MON[m[1].toLowerCase()], Number(m[2])));
+  for (const m of t.matchAll(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b(?:,?\s*((?:19|20)\d\d))?/gi)) {
+    if (m[3] && !(Number(m[3]) === y || Number(m[3]) === y - 1)) continue; // another season's date
+    out.push(iso(MON[m[1].toLowerCase()], Number(m[2])));
+  }
   if (firstGame && (OPENER.test(t) || FIXED_WINDOW.test(t))) out.push(firstGame);
   const ok = out.filter((d) => d <= today).sort();
   return ok.length ? ok[ok.length - 1] : null;
@@ -417,6 +422,8 @@ export function trimReason(line, { box = null, today, home = null } = {}) {
   if (longSpan(t, today)) return null; // rare over a long span: the user keeps these
   const age = Math.round((Date.parse(today) - Date.parse(when)) / 864e5);
   const since = games.filter((g) => g > when).length;
+  // An event, not a stat (a trip, a first visit): over once it's past, and not brought back for a team with few lines.
+  if (/\btraveled to\b|\bfor the first time in (?:team|franchise) history to (?:face|play|visit|travel)\b/i.test(t) && (since >= 1 || age > 3)) return `past event (${age} days ago)`;
   if (since >= 2 || age > 7) return `past one-off (${OPENER.test(t) ? "season opener, " : ""}${age} days ago, ${since} games since)`;
   return null;
 }
@@ -426,8 +433,16 @@ export function trimReason(line, { box = null, today, home = null } = {}) {
  * past one-offs back (never garbled, filler or wrong-venue ones).
  */
 export function trimLines(lines, { box = null, today, home = null, floor = 4 } = {}) {
-  const keep = [], trimmed = [];
+  let keep = [], trimmed = [];
   for (const l of lines) { const why = trimReason(l, { box, today, home }); (why ? trimmed : keep).push(why ? { ...l, trimmed: why } : l); }
+  // The same fact told twice, once with its date and once without ("Wilson is the first rookie in Bulls history to…"):
+  // when the dated telling is a past one-off, so is the other.
+  const firstName = (l) => (l.player || "").split(" ").slice(-1)[0];
+  keep = keep.filter((l) => {
+    const twin = trimmed.find((x) => /^past/.test(x.trimmed) && (x.player && l.player ? firstName(x) === firstName(l) : !x.player && !l.player) && contained(bag(l.text), bag(x.text)));
+    if (twin) trimmed.push({ ...l, trimmed: `${twin.trimmed.replace(/ \(.*$/, "")} (told again)` });
+    return !twin;
+  });
   if (keep.length < floor) {
     const back = trimmed.filter((l) => /^past one-off/.test(l.trimmed)).sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, floor - keep.length);
     for (const b of back) { keep.push({ ...b, trimmed: undefined, kept: "few lines tonight" }); trimmed.splice(trimmed.indexOf(b), 1); }

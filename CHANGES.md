@@ -2,6 +2,20 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.49.1 (2026-11-13): trimming, after its first build
+
+### What changed
+The first build with 0.49 trimmed 24 lines across 18 teams' notes. It showed three gaps, now fixed:
+- **The Mexico City trip came back** through the few-lines floor (Indiana had 2 lines). An event that isn't a stat (a trip, a first visit) is now "past event" once a game has been played since or 3+ days have passed, and the floor never brings it back.
+- **The same fact told twice:** a dated telling was trimmed while a shorter, undated one stayed ("Wilson is the first rookie in Bulls history to…"). The undated one now goes too ("told again") when most of its words are in a trimmed line about the same player.
+- **A date with its year** ("Oct. 31, 2026") is read when the year is this season's.
+
+### Tested
+- 604 checks pass. Added: the told-twice pair and the trip with the floor.
+
+### Unproven
+- The told-twice test is word overlap (5+ shared words, 70% of the shorter line). Two different facts about one player that share most words could be taken as one.
+
 ## 0.49.0 (2026-11-13): trimming the notes by the user's review
 
 The user reviewed 13 lines from the 11/13 slate. Their rule: keep what can still move (a streak, a club, a race, a count that grows, the series) and what is rare over a long span ("the most FTA in a regulation game since Dec. 12, 2014", "most in over 10 years"). Cut what is a closed, past one-off that "can't be added to or expanded on". Their caution: "don't be too strict … for fear of missing something that might spark an idea".
