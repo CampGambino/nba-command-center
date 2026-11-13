@@ -2,6 +2,38 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.47.4 (2026-11-13): Cavaliers guide checked from the user's screenshots; one player under two names fixed in 9 franchises
+
+### What changed
+- **Bingo Smith is one Cavalier again.** The NBA Guide lists him as "Bobby Smith" in 1970-71 to 1978-79 and "Bingo Smith" in 1979-80 (8 games before his trade), so his last Cavs games were missing. He now shows as Bingo Smith with 720 games, 9,513 points and 4,182 FGM, the same as the Cavs guide.
+- **A scan for the same slip elsewhere** looked at same-surname names in back-to-back seasons with one franchise. It merged these, which `tools/franchise_names.py` now lists as aliases:
+  - Moe/Moritz Wagner (ORL, still active, so his Orlando totals for franchise alerts were split; now 277 games);
+  - Cliff/Clifford Ray (CHI);
+  - Sidney/Sonny Hertzberg (BOS);
+  - Marko/Mike Todorovich, Thomas/Dike Eddleman and Warren/Red Perkins (ATL);
+  - Paul/Curly Armstrong (DET);
+  - Frank/Pep Saul (SAC).
+  
+  The scan's other pairs are different people (Lou/Marvin Williams and so on).
+- **Where the Cavs guide and our data differ, the guide's own numbers favor ours:**
+  - **Tristan Thompson's rebounds** (guide: 2,188 offensive, 3,379 defensive, 5,567 total; ours 2,220 / 3,481 / 5,701). The guide's games (708) include his 2024-25 Cavs season but its rebounds don't (32 + 102 = 134).
+  - **Jarrett Allen's defensive rebounds** (guide 2,750; ours 2,685). The guide's 2,750 is Jim Chones's number on the line above, and its own totals give 3,859 − 1,174 = 2,685.
+  - **Jim Chones's offensive rebounds** (guide 1,034; ours 1,040). The guide's own totals give 3,790 − 2,750 = 1,040.
+- **Best single seasons (Cavs guide pp. "Best Individual Cavaliers Season"):** 95 of 102 values match. The others are:
+  - the NBA Guide's "Cliff T. Robinson" name;
+  - ties at 10th that the Cavs guide prints and ours cuts;
+  - two seasons the Cavs guide leaves out: Allen's 811 rebounds in 2023-24 and J.R. Smith's 204 3-pointers in 2015-16.
+  
+  The per-game lists differ only by qualifier (guide: 800 rebounds or 70 games; ours: 70% of team games).
+- **Single-game records agree** (71 Mitchell, 25 Varejao, 27 Huston). The Cavs "high games" rebound list leaves out Rick Roberson's 25 (1972), but the records page we use lists both.
+
+### Tested
+- 588 checks pass. The franchise-history check gains 10 Cavs totals from the screenshots: Bingo Smith's three, Allen's, Chones's, Thompson's games, Foots Walker and Larry Nance.
+- `nba-franchise-seasons` is byte-for-byte unchanged. In the careers file, the changes are only the merged names above.
+
+### Unproven
+- The alias scan only finds a second name in adjacent seasons. A renamed player whose two names are years apart at one franchise would still be split.
+
 ## 0.47.3 (2026-11-12): team single-game records cross-checked with the NBA Guide's all-time lists
 
 ### What changed

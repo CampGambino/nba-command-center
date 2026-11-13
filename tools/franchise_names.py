@@ -72,7 +72,17 @@ def clean_rows(rows):
             if len(c) == 1: return c[0]
         return n
     # One player printed under two names in different seasons (checked against the team guides).
-    ALIASES = {("PHI", "Johnny Kerr"): "Red Kerr"}   # 1957-58 Syracuse page; the 76ers guide: "John (Red) Kerr"
+    ALIASES = {("PHI", "Johnny Kerr"): "Red Kerr",   # 1957-58 Syracuse page; the 76ers guide: "John (Red) Kerr"
+               # one player under two names in the same franchise (found by a same-surname, adjacent-season scan)
+               ("CLE", "Bobby Smith"): "Bingo Smith",   # the Cavs guide's name; his 1979-80 Cavs rows already say "Bingo"
+               ("ORL", "Moe Wagner"): "Moritz Wagner",  # 2020-23 rows say "Moe"; box scores say "Moritz"
+               ("CHI", "Cliff Ray"): "Clifford Ray",
+               ("BOS", "Sidney Hertzberg"): "Sonny Hertzberg",
+               ("ATL", "Marko Todorovich"): "Mike Todorovich",
+               ("ATL", "Thomas Eddleman"): "Dike Eddleman",
+               ("ATL", "Warren Perkins"): "Red Perkins",
+               ("DET", "Paul Armstrong"): "Curly Armstrong",
+               ("SAC", "Frank Saul"): "Pep Saul"}
     for r in rows:
         r["player"] = fix(r)
         r["player"] = ALIASES.get((franchise(r["team"], r["season"]), r["player"]), r["player"])

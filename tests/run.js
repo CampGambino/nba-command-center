@@ -1442,9 +1442,14 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     ["UTA", "pts", "Karl Malone", 36374], ["NYK", "pts", "Patrick Ewing", 23665], ["UTA", "ast", "John Stockton", 15806], ["DAL", "pts", "Dirk Nowitzki", 31560],
     // Found checking the team media guides (0.46): "Jr." rows, a header over 7 lines, ". ." blanks, stints years apart, a second name.
     ["POR", "pts", "Clyde Drexler", 18040], ["CHI", "pts", "Scottie Pippen", 15123], ["ATL", "pts", "Kevin Willis", 10582], ["ATL", "reb", "Kevin Willis", 7332],
-    ["HOU", "pts", "Rudy Tomjanovich", 13383], ["PHI", "reb", "Red Kerr", 9506], ["UTA", "reb", "Karl Malone", 14601], ["WAS", "pts", "Wes Unseld", 10624]];
+    ["HOU", "pts", "Rudy Tomjanovich", 13383], ["PHI", "reb", "Red Kerr", 9506], ["UTA", "reb", "Karl Malone", 14601], ["WAS", "pts", "Wes Unseld", 10624],
+    // The Cavs guide's leaders, from the user's screenshots (0.47.4): Bingo/Bobby Smith one player. Thompson, Allen and Chones are
+    // checked against the guide's own totals, which disagree with its oreb/dreb lines (see CHANGES 0.47.4).
+    ["CLE", "pts", "Bingo Smith", 9513], ["CLE", "g", "Bingo Smith", 720], ["CLE", "fgm", "Bingo Smith", 4182], ["CLE", "reb", "Jarrett Allen", 3859],
+    ["CLE", "oreb", "Jarrett Allen", 1174], ["CLE", "reb", "Jim Chones", 3790], ["CLE", "dreb", "Jim Chones", 2750], ["CLE", "g", "Tristan Thompson", 708],
+    ["CLE", "ast", "Foots Walker", 2115], ["CLE", "blk", "Larry Nance", 1087]];
   const bad = known.filter(([t, s, n, x]) => v(t, s, n) !== x);
-  ok(Object.keys(fc).length === 30 && !bad.length, "franchise history: 30 franchises; totals match the team guides (Kareem's 'K. Abdul-Jabbar' rows, Pettit's 1954-55, Hakeem's 1991-92 broken header, Malone's missing 2001-02 row from the Jazz totals, Drexler's 1991-92, Pippen's and Willis's returns, Rudy T's 1976-77, Red/Johnny Kerr)", JSON.stringify(bad.map(([t, s, n, x]) => [t, s, n, x, v(t, s, n)])));
+  ok(Object.keys(fc).length === 30 && !bad.length, "franchise history: 30 franchises; totals match the team guides (Kareem's 'K. Abdul-Jabbar' rows, Pettit's 1954-55, Hakeem's 1991-92 broken header, Malone's missing 2001-02 row from the Jazz totals, Drexler's 1991-92, Pippen's and Willis's returns, Rudy T's 1976-77, Red/Johnny Kerr, Bingo/Bobby Smith)", JSON.stringify(bad.map(([t, s, n, x]) => [t, s, n, x, v(t, s, n)])));
   ok(!fc.LAL.top.pts.some((r) => /^[A-Z ]+$/.test(r[0])) && fc.CLE.active["LeBron James"]?.pts === 23119, "franchise history: no team or opponents total rows; a player active now keeps his totals with old teams (LeBron, Cleveland)");
   const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
   const L = (o) => keys.map((k) => o[k] ?? 0);
