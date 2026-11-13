@@ -2025,6 +2025,30 @@ await articlesChecks(ok);
   ok(fs.readFileSync(path.join(root, "src", "situations", "vsplayers.js"), "utf8") === fs.readFileSync(path.join(root, "docs", "lib", "situations", "vsplayers.js"), "utf8"), "vs top teams: the page's copy of vsplayers.js is the build's");
 }
 
+// ---------- Rest & back-to-backs (src/situations/rest.js, moved from GameFlow, 0.55) ----------
+{
+  const R = await import("../src/situations/rest.js");
+  const hb = [40, 85, 12, 34, 15, 20, 10, 33, 25, 8, 5, 13, 20];
+  const G = (d, h, a, hs, as) => ({ d, h, a, hs, as, hb, ab: hb });
+  const games = [G("2026-11-01", "AAA", "BBB", 110, 100), G("2026-11-02", "CCC", "AAA", 120, 100), G("2026-11-04", "AAA", "CCC", 105, 95), G("2026-11-08", "BBB", "AAA", 90, 100), G("2026-11-09", "AAA", "BBB", 99, 101)];
+  const idx = R.restIndex(games);
+  ok(idx["AAA|2026-11-01"] === null && idx["AAA|2026-11-02"] === 0 && idx["AAA|2026-11-04"] === 1 && idx["AAA|2026-11-08"] === 3 && idx["AAA|2026-11-09"] === 0 && idx["CCC|2026-11-04"] === 1,
+    "rest: days off between games (0 = back-to-back), none for the opener", JSON.stringify(idx));
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const L = (pts) => keys.map((k) => ({ min: 34, pts, fgm: 8, fga: 18 }[k] ?? 0));
+  const dates = ["2026-11-01", "2026-11-02", "2026-11-04", "2026-11-06", "2026-11-08", "2026-11-09", "2026-11-11", "2026-11-13"];
+  const g2 = dates.map((d) => G(d, "AAA", "CCC", 100, 90));
+  const files = { AAA: { team: "AAA", keys, names: { 1: "Tired Guy" }, games: dates.map((d) => ({ d, opp: "BBB", home: true, pf: 100, pa: 90, pl: { 1: L(["2026-11-02", "2026-11-09"].includes(d) ? 12 : 24) } })) } };
+  const out = R.restData({ games: g2, teamFiles: files, tonight: [{ home: "AAA", away: "BBB" }], today: "2026-11-14" });
+  const p = out.players.find((x) => x.name === "Tired Guy");
+  ok(p && p.b2bGp === 2 && p.restGp === 5 && p.gap === -12 && p.flag, "rest, players: 12 points on the two back-to-backs against 24 otherwise is a clear split", JSON.stringify(p));
+  ok(out.tonight[0].homeRest === 0 && out.teams.find((t) => t.tri === "AAA").by[0].n === 2, "rest: tonight's rest from the last game (11/13 then 11/14 = back-to-back)", JSON.stringify(out.tonight));
+  const { tonightStorylines: TS } = await import("../src/anticipate/tonight.js");
+  const st = TS({ watch: { today: "2026-11-14", games: [{ id: "1", awayTri: "BBB", homeTri: "AAA" }], teams: [] }, rest: out, maxLines: 10 })[0].lines.filter((l) => l.kind === "rest");
+  ok(st.length === 2 && st.some((l) => /^AAA: second night of a back-to-back.*2-0 on no rest/.test(l.text)) && st.some((l) => /Tired Guy on no rest: 12\.0 points in 2 back-to-back games vs 24\.0/.test(l.text)),
+    "rest on the Watch List: the team on a back-to-back and its regular with a clear split", JSON.stringify(st.map((l) => l.text)));
+}
+
 // ---------- snapshot ----------
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });

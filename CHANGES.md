@@ -2,6 +2,45 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.55.0 (2026-11-13): GameFlow merge, stage 2c: rest and back-to-backs, for teams and players
+
+The user: "Rest and back-to-backs is a good one to bring over, and I also want to extend that to player performance to catch any outliers."
+
+### What changed
+- **`src/situations/rest.js`** (new) is GameFlow's rest logic, unchanged in its rules:
+  - Eastern dates;
+  - 0 = second night of a back-to-back, 3+ is one bucket;
+  - the opener is in no bucket;
+  - "zero minus the rest" compares with every other bucket pooled;
+  - pooled shooting.
+  
+  The build writes it to `docs/data/rest.json`.
+- **Team situations → "Rest & back-to-backs"** (`situations.html#rest`) has three views:
+  - **Teams:** each team by its own days off, and B2B − rest margin, worst first. Below it, each team against an opponent on no rest, with the advantage it made of it.
+  - **Players** (new): regulars (20+ minutes rested) with 2+ back-to-back games and 4+ others; points, minutes and FG% on no rest vs his other games.
+    - A clear split is 4+ points and 20%+. By default only those show; a box shows every regular.
+    - On this season's data: 61 team-games on zero rest so far. Antetokounmpo (−12.5 in 2), Ball (−9.6), Pritchard, Porter Jr. (−7.8 in 3) are among the clear drops.
+  - **League:** GameFlow's two ladders, own rest and opponent's rest.
+- **Watch List (new line kind `rest`, at most 2 a game):**
+  - a team on the second night of a back-to-back, with its record and margin on no rest this season (and the opponent's days off if it is rested);
+  - its regulars with a clear no-rest split.
+  
+  Players listed Out or Doubtful drop off as usual.
+- **Game Flow page:** "Rest & back-to-backs" is gone from its tabs.
+
+### Tested
+- 640 checks pass. New ones cover:
+  - days of rest, and none for the opener;
+  - a player's 12 vs 24 split flagged;
+  - tonight's rest from the last game;
+  - the Watch List team and player lines.
+- On this season's data, the League view gives 61 zero-rest team-games: 29-32, margin −1.8 against +0.5 rested. This is the same ladder GameFlow drew.
+- The pages were checked with a locally built `rest.json`.
+
+### Unproven
+- The first build writes `rest.json`. Until then the Watch List and Team situations ask for it and get a 404, which the pages handle.
+- No team is on a back-to-back tonight (11/13), so the Watch List lines haven't been seen on a real slate.
+
 ## 0.54.0 (2026-11-13): GameFlow merge, stage 2b: "vs top teams" takes GameFlow's three league views
 
 ### What changed

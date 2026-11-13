@@ -120,6 +120,12 @@
     <label>Sorted by <b id="sortName">Overall</b>. Click a column to sort by it.</label>
   </div>
   <div class="scroll"><table id="all"></table></div>
+
+  <h2 id="rest">Rest &amp; back-to-backs</h2>
+  <div class="controls"><span class="toggle" id="rview"><button data-v="teams" class="on">Teams</button><button data-v="players">Players</button><button data-v="league">League</button></span><label id="rallw" hidden><input type="checkbox" id="rall"> every regular</label><label id="rtonight"></label></div>
+  <div class="key" id="rkey"></div>
+  <div class="scroll"><table id="rtab"></table></div>
+  <div class="scroll" id="rtab2wrap" style="margin-top:12px"><table id="rtab2"></table></div>
 </main>
 <footer id="foot"></footer>
 <script>
@@ -227,6 +233,42 @@ document.querySelectorAll("#oppMode button").forEach((b) => b.onclick = () => {
   render();
 });
 
+// ---- Rest & back-to-backs (moved from GameFlow, 0.55): docs/data/rest.json from src/situations/rest.js ----
+let R = null, rview = "teams";
+const sg1 = (x) => (x == null ? "–" : `${x > 0 ? "+" : ""}${x.toFixed(1)}`);
+const wl2 = (s) => (s && s.w + s.l ? `${s.w}-${s.l}` : "–");
+const f1r = (x) => (x == null ? "–" : x.toFixed(1));
+function renderRest() {
+  if (!R) return;
+  document.querySelectorAll("#rview button").forEach((b) => b.classList.toggle("on", b.dataset.v === rview));
+  const b2b = R.tonight.flatMap((g) => [g.awayRest === 0 ? g.away : null, g.homeRest === 0 ? g.home : null]).filter(Boolean);
+  $("rtonight").innerHTML = b2b.length ? `On a back-to-back tonight: <b>${b2b.join(", ")}</b>` : "Nobody plays on a back-to-back tonight.";
+  $("rtab2wrap").hidden = rview !== "teams";
+  $("rallw").hidden = rview !== "players";
+  if (rview === "teams") {
+    $("rkey").innerHTML = `Each team by its own days of rest (0 = second night of a back-to-back). <b>B2B − rest</b> is its margin on no rest minus its margin on every other amount of rest, so the teams a back-to-back costs most are first. A team plays only a handful of back-to-backs, so one blowout moves a row. Below: how each team does against an opponent on no rest.`;
+    const rows = R.teams.slice().sort((a, b) => (a.gap ?? 1e9) - (b.gap ?? 1e9));
+    $("rtab").innerHTML = `<tr><th>Team</th>${R.buckets.map((b) => `<th class="num">${R.labels[b].replace(" (back-to-back)", " (B2B)")}</th><th class="num">margin</th>`).join("")}<th class="num">B2B − rest</th></tr>` +
+      rows.map((t) => `<tr><td><b>${t.tri}</b>${b2b.includes(t.tri) ? ` <span class="team">B2B tonight</span>` : ""}</td>${R.buckets.map((b) => `<td class="num">${wl2(t.by[b])}</td><td class="num">${sg1(t.by[b].marg)}</td>`).join("")}<td class="num ${t.gap == null ? "" : t.gap <= -5 ? "lo" : t.gap >= 5 ? "hi" : ""}"><b>${sg1(t.gap)}</b></td></tr>`).join("");
+    const fc = R.facing.slice().sort((a, b) => (b.gap ?? -1e9) - (a.gap ?? -1e9));
+    $("rtab2").innerHTML = `<tr><th>Team vs a tired opponent</th><th class="num">Games</th><th class="num">Record</th><th class="num">Margin</th><th class="num">Margin, other games</th><th class="num">Advantage</th></tr>` +
+      fc.map((t) => `<tr><td><b>${t.tri}</b></td><td class="num">${t.vs.n}</td><td class="num">${wl2(t.vs)}</td><td class="num">${sg1(t.vs.marg)}</td><td class="num">${sg1(t.other.marg)}</td><td class="num ${t.gap == null ? "" : t.gap >= 5 ? "hi" : t.gap <= -5 ? "lo" : ""}">${sg1(t.gap)}</td></tr>`).join("");
+  } else if (rview === "players") {
+    const all = $("rall").checked, rows = R.players.filter((p) => p.rest.min >= 20 && (all || p.flag));
+    $("rkey").innerHTML = `Regulars (20+ minutes on rest) with 2+ games on the second night of a back-to-back and 4+ otherwise: points, minutes and FG% on no rest against his other games. <b>Bold</b>: a clear split (4+ points and 20%+), which also goes on the Watch List when his team is on a back-to-back. Showing ${all ? "every regular" : "the clear splits only"}; biggest drop first; small samples.`;
+    $("rtab").innerHTML = `<tr><th>Player</th><th>Team</th><th class="num">B2B games</th><th class="num">Pts B2B</th><th class="num">Pts rested</th><th class="num">Gap</th><th class="num">Min B2B</th><th class="num">Min rested</th><th class="num">FG% B2B</th><th class="num">FG% rested</th></tr>` +
+      (rows.map((p) => `<tr><td>${p.flag ? "<b>" : ""}${p.name}${p.flag ? "</b>" : ""}</td><td>${p.tri}${b2b.includes(p.tri) ? ` <span class="team">B2B tonight</span>` : ""}</td><td class="num">${p.b2bGp} <span class="team">of ${p.b2bGp + p.restGp}</span></td><td class="num">${f1r(p.b2b.pts)}</td><td class="num">${f1r(p.rest.pts)}</td><td class="num ${p.flag ? (p.gap < 0 ? "lo" : "hi") : ""}">${sg1(p.gap)}</td><td class="num">${f1r(p.b2b.min)}</td><td class="num">${f1r(p.rest.min)}</td><td class="num">${f1r(p.b2b.fg)}</td><td class="num">${f1r(p.rest.fg)}</td></tr>`).join("") || `<tr><td class="empty" colspan="10">Not enough back-to-backs yet.</td></tr>`);
+  } else {
+    $("rkey").innerHTML = `Every team-game grouped by the team's own days off, then by the opponent's. The last row of each is zero rest minus every other bucket pooled. ${R.bothTired} game(s) had both teams on no rest; ${R.openers} season openers have no previous game and sit in no bucket. FG% and 3P% are pooled makes over attempts; possessions FGA − OREB + TOV + 0.44 × FTA.`;
+    const head = `<th class="num">Team-games</th><th class="num">Record</th><th class="num">Pts</th><th class="num">Opp pts</th><th class="num">Margin</th><th class="num">FG%</th><th class="num">3P%</th><th class="num">TOV</th><th class="num">Poss</th>`;
+    const row = (lab, s) => `<tr><td>${lab}</td><td class="num">${s.n}</td><td class="num">${wl2(s)}</td><td class="num">${f1r(s.ppg)}</td><td class="num">${f1r(s.oppg)}</td><td class="num ${s.marg < 0 ? "lo" : "hi"}">${sg1(s.marg)}</td><td class="num">${f1r(s.fg)}</td><td class="num">${f1r(s.tp)}</td><td class="num">${f1r(s.topg)}</td><td class="num">${f1r(s.pace)}</td></tr>`;
+    const lad = (L, who) => R.buckets.map((b) => row(`${who} ${R.labels[b]}`, L.by[b])).join("") + `<tr><td class="team">zero minus the rest</td><td></td><td class="num">${wl2(L.zero)} vs ${wl2(L.rest)}</td><td class="num">${sg1(L.delta.ppg)}</td><td class="num">${sg1(L.delta.oppg)}</td><td class="num">${sg1(L.delta.marg)}</td><td class="num">${sg1(L.delta.fg)}</td><td class="num">${sg1(L.delta.tp)}</td><td class="num">${sg1(L.delta.topg)}</td><td class="num">${sg1(L.delta.pace)}</td></tr>`;
+    $("rtab").innerHTML = `<tr><th>Own rest</th>${head}</tr>` + lad(R.league.own, "") + `<tr><th>Opponent's rest</th>${head}</tr>` + lad(R.league.opp, "opp.");
+  }
+}
+document.querySelectorAll("#rview button").forEach((b) => b.onclick = () => { rview = b.dataset.v; renderRest(); });
+$("rall").onchange = renderRest;
+fetch("data/rest.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => { R = d; if (R) renderRest(); else $("rkey").textContent = "Rest data comes with the next build."; }).catch(() => {});
 fetch("data/situations.json", { cache: "no-store" }).then((r) => r.json()).then((d) => { S = d; render(); })
   .catch((e) => { $("sub").textContent = "Couldn't load the data: " + e.message; });
 </script>
