@@ -2,6 +2,20 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.63.1 (2026-11-14): franchise leaders: one player with and without his suffix
+
+The user asked which pages of the Nuggets', Pelicans' and Suns' guides were still needed to confirm the franchise leaders. None: the guides on the PC read cleanly (DEN pp. 339-345, NOP p. 201, PHX p. 161).
+
+### What changed
+- **tools/franchise_names.py:** a player listed both with and without "Jr./Sr./II/III/IV" in the same franchise, with seasons that run on (within 3 years), is one player. Trey Murphy III was two Pelicans ("Trey Murphy" 2021-24, "Trey Murphy III" 2024-26), so the Pelicans guide's 3-point leader (814) and No. 5 in games (317) were missing. The same fix joins P.J. Washington Jr. (CHA), Bobby Portis Jr. (MIL), Xavier Tillman Sr. (MEM), Kira Lewis Jr. (NOP) and Jeff Dowtin Jr. (PHI). Fathers and sons with the same name (Nance, Hardaway, Payton, Trent, Robinson, Dunleavy, Lucas) are decades apart and stay two.
+- Rebuilt src/data/nba-franchise-careers-2026-27.json and nba-franchise-seasons-2026-27.json from team-rows-v4.json.
+
+### Tested
+- 681 checks pass. NOP 3PM leader is Trey Murphy III, 814 (the guide's figure). Top-5 career lists vs the guides: DEN 40/60, NOP 56/60 → now including Murphy, PHX 49/60; most misses are stats the guides don't list (offensive/defensive rebounds).
+
+### Unproven
+- One- or two-unit differences remain (DEN: English 3,677 vs our 3,679 assists, Lever 3,558 vs 3,566 (the guide's own average uses 3,566); Jokić and Murray minutes; NOP: Davis rebounds 4,906 vs 4,905; PHX: Booker minutes 25,295 vs 25,296). Left as they are: likely the guides' typos or rounding.
+
 ## 0.63.0 (2026-11-14): #lineups every 30 seconds from 35 to 10 out; NBA Live: live boards, record countdowns instead of "near the list", one card per player
 
 The user: "confirm your suggestions on the starting lineup timing. Would it be fine to change the checking in the heavy period to every 30 seconds instead of every minute?"; "I don't need an alert for when players are close to joining a list. let me know when tracking on breaking the record"; "try to merge alerts for the same player when possible"; "SGA alert cards are confusing… Daniels played a game earlier in the night".

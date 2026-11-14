@@ -86,4 +86,22 @@ def clean_rows(rows):
     for r in rows:
         r["player"] = fix(r)
         r["player"] = ALIASES.get((franchise(r["team"], r["season"]), r["player"]), r["player"])
+    # One player with and without his suffix in the same franchise (11/14: "Trey Murphy" 2021-24 and "Trey Murphy III"
+    # 2024-26 were two Pelicans, so the Pelicans guide's 3-point leader, 814, was missing). Only when the seasons run on
+    # (within 3 years): a father and son with the same name (Larry Nance, Tim Hardaway, Gary Payton, Gary Trent, Glenn
+    # Robinson, Mike Dunleavy, John Lucas) are decades apart and stay two players.
+    SUF = _re.compile(r"\s+(?:Jr\.?|Sr\.?|II|III|IV)$")
+    span = collections.defaultdict(lambda: [9999, 0])
+    for r in rows:
+        t = franchise(r["team"], r["season"])
+        if not t: continue
+        s0 = span[(t, r["player"])]; y = year(r["season"]); s0[0] = min(s0[0], y); s0[1] = max(s0[1], y)
+    merge = {}
+    for (t, n), (a0, a1) in span.items():
+        b = SUF.sub("", n)
+        if b != n and (t, b) in span:
+            b0, b1 = span[(t, b)]
+            if b0 <= a1 + 3 and a0 <= b1 + 3: merge[(t, b)] = n
+    for r in rows:
+        r["player"] = merge.get((franchise(r["team"], r["season"]), r["player"]), r["player"])
     return rows, fix
