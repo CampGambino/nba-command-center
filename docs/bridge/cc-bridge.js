@@ -64,7 +64,7 @@
   // NBA Live's own ladders (MILESTONE_LADDERS): those round numbers are already its cards.
   var NBA_LIVE_STAT = { pts: "pts", fg3m: "tpm", reb: "reb", ast: "ast", stl: "stl", blk: "blk" };
 
-  var state = { data: null, items: [], tonight: null, records: null, recItems: [], bests: null, flow: null, maxLead: {}, firstAt: {}, loadedAt: 0, error: null, connected: false, fired: 0, keys: {} };
+  var state = { data: null, items: [], tonight: null, records: null, recItems: [], bests: null, flow: null, maxLead: {}, firstAt: {}, done: {}, loadedAt: 0, error: null, connected: false, fired: 0, keys: {} };
   window.CC_BRIDGE = { version: VERSION, state: state };
 
   function param(name) { try { return new URLSearchParams(location.search).get(name); } catch (e) { return null; } }
@@ -129,7 +129,19 @@
   }
 
   // Pre-game: the top storylines for a game that hasn't tipped off, once per night.
+  // 0.61 (the user, 11/13): once the night's first game tips, the pre-game cards are done: removed, and no more fire.
+  function slateStarted(G) { return (G || []).some(function (g) { return g && (g.status === "live" || g.status === "final"); }); }
+  function clearPregame() {
+    if (state.pregameCleared || typeof ALERT_STORIES === "undefined") return;
+    state.pregameCleared = true;
+    Object.keys(state.keys).forEach(function (k) {
+      if (!/^cc-(pre|foulwatch)-/.test(k)) return;
+      var ex = ALERT_STORIES.get(k);
+      if (ex) { if (ex.el) ex.el.remove(); ALERT_STORIES.delete(k); }
+    });
+  }
   function pregame(game, sides, tag) {
+    if (state.pregameCleared) return;
     var T = state.tonight;
     if (!T || (state.data && T.today !== state.data.today)) return;
     var g = T.games.find(function (x) { return x.away === sides.away && x.home === sides.home; });
@@ -185,6 +197,7 @@
     var night = nbaLiveNight();
     var otherNight = !!(night && state.data && state.data.today && night !== state.data.today);
     state.wrongNight = otherNight ? night : null;
+    if (slateStarted(G)) clearPregame();
     G.forEach(function (game) {
       if (!game) return;
       var sides = { away: tri(game.away && game.away.tricode), home: tri(game.home && game.home.tricode) };
@@ -196,7 +209,7 @@
         if (game.status === "live" || game.status === "final") try { flowChecks(game, sides, box, tag, scr); } catch (e) { state.flowCheckError = String(e && e.message || e); }
         return;
       }
-      if (game.status !== "live" && game.status !== "final") { try { foulWatch(game, sides, tag); } catch (e) { state.flowCheckError = String(e && e.message || e); } return pregame(game, sides, tag); }
+      if (game.status !== "live" && game.status !== "final") { if (state.pregameCleared) return; try { foulWatch(game, sides, tag); } catch (e) { state.flowCheckError = String(e && e.message || e); } return pregame(game, sides, tag); }
       var picks = [];
       state.items.forEach(function (i) {
         if (i.team !== sides.away && i.team !== sides.home) return;
@@ -221,6 +234,7 @@
         if (!p) return;
         var reachedTonight = i.need > 0 && v >= i.need;
         if (i.kind !== "pass" && i.importance < MIN_IMPORTANCE) return;   // a rung nobody celebrates, reached or not
+        if (i.kind === "pass" && !worthPlace(i.scope, i.stat, i.passing && i.passing.rank)) return;   // 0.61: a place worth saying
         if (game.status === "final" && !reachedTonight) return;          // a final game: only what fell in it
         if (!reachedTonight) {
           if ((p.min || 0) < 1) return;                                  // not a story until he plays
@@ -258,6 +272,44 @@
         || (i.passing && r.passing && String(r.passing.name).split(" and ").some(function (n) { return surname(n) === surname(i.passing.player); })));
     });
   }
+  /* 0.61 (the user, 11/13: "consider player, team, new placement, and stat… scale back"): a pass gets a card only for a
+     place worth saying. NBA Cup: top 2. Franchise: top 3 in points, rebounds, assists, steals, blocks, threes; top 2 in
+     anything else. All-time: top 25 in those six, top 10 in anything else. Round numbers are left to the cadence. */
+  var MAJOR = { pts: 1, reb: 1, ast: 1, stl: 1, blk: 1, fg3m: 1 };
+  function worthPlace(scope, stat, place) {
+    if (!place) return true;
+    var major = !!MAJOR[stat];
+    if (scope === "cup") return place <= 2;
+    if (scope === "franchise") return place <= (major ? 3 : 2);
+    if (scope === "nba") return place <= (major ? 25 : 10);
+    return true;
+  }
+  var escH = function (x) { return String(x == null ? "" : x).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
+  // The card's back (tap to flip): the list's top 5 with him at tonight's total, and his place if lower.
+  function boardBack(title, rows, who, total) {
+    if (!Array.isArray(rows) || !rows.length) return null;
+    var me = surname(who);
+    var L = rows.filter(function (r) { return !(surname(r.name) === me && String(r.name).split(" ")[0] === String(who).split(" ")[0]); })
+      .map(function (r) { return { name: r.name, v: Number(r.now != null ? r.now : r.value) || 0 }; });
+    L.push({ name: who, v: total, me: true });
+    L.sort(function (a, b) { return b.v - a.v || (a.me ? -1 : 0); });
+    var mine = L.findIndex(function (r) { return r.me; });
+    var place = function (k) { return L.filter(function (r) { return r.v > L[k].v; }).length + 1; };
+    var line = function (k) { var r = L[k]; return '<div class="alert-back-play"' + (r.me ? ' style="font-weight:700"' : "") + '><span class="abp-time">' + place(k) + ".</span> " + escH(r.name) + " · <strong>" + r.v.toLocaleString() + "</strong></div>"; };
+    var html = '<div class="alert-back-title">' + escH(title) + "</div>";
+    for (var k = 0; k < Math.min(5, L.length); k++) html += line(k);
+    if (mine >= 5) html += '<div class="alert-back-play" style="opacity:.6">…</div>' + line(mine);
+    return html;
+  }
+  function recBoard(r) {
+    var R = state.records || {};
+    if (r.kind === "cup") return R.cup && R.cup.boards && R.cup.boards[r.stat];
+    if (r.kind === "franchise") return R.franchise && R.franchise[r.team] && R.franchise[r.team][r.stat];
+    if (r.kind === "pass") return R.boards && R.boards[r.stat];
+    return null;
+  }
+  var SCOPE_OF = { cup: "cup", franchise: "franchise", pass: "nba" };
+
   function recordChecks(game, sides, box, tag, scr) {
     var R = state.records;
     if (!R || !state.recItems.length) return;
@@ -277,18 +329,40 @@
       if (!reached && ((p.min || 0) < 1 || (r.pTonight || 0) < MIN_CHANCE)) return;
       picks.push({ r: r, v: v, reached: reached, rank: reached ? 1e9 : (r.pTonight || 0) * (r.score || 1) });
     });
-    picks.sort(function (a, b) { return b.rank - a.rank; });
-    picks.filter(function (x, k) { return x.reached || k < MAX_PER_GAME; }).forEach(function (x) {
+    // One tile per player, stat and list (the user, 11/13): passing two names tonight reads "passes A and B for 8th".
+    var groups = {};
+    picks.forEach(function (x) {
+      var k = x.r.id + "-" + x.r.stat + "-" + x.r.kind;
+      var G0 = groups[k] || (groups[k] = { rank: 0, done: [], next: null });
+      G0.rank = Math.max(G0.rank, x.rank);
+      if (x.reached) G0.done.push(x);
+      else if ((!SCOPE_OF[x.r.kind] || worthPlace(SCOPE_OF[x.r.kind], x.r.stat, x.r.rank)) && (!G0.next || x.r.need < G0.next.r.need)) G0.next = x;
+    });
+    var merged = Object.keys(groups).map(function (k) {
+      var G0 = groups[k];
+      if (!G0.done.length) return G0.next;   // may be null: nothing worth saying in reach
+      G0.done.sort(function (a, b) { return (a.r.rank || 99) - (b.r.rank || 99); });
+      var best = G0.done[0];
+      return { r: best.r, v: best.v, reached: true, rank: G0.rank, also: G0.done.slice(1).map(function (x) { return x.r.passing && x.r.passing.name; }).filter(Boolean) };
+    }).filter(function (x) { return x && (!SCOPE_OF[x.r.kind] || worthPlace(SCOPE_OF[x.r.kind], x.r.stat, x.r.rank)); });   // judged by the place he ends on
+    merged.sort(function (a, b) { return b.rank - a.rank; });
+    merged.filter(function (x, k) { return x.reached || k < MAX_PER_GAME; }).forEach(function (x) {
       var r = x.r, left = r.need - x.v, label = r.label || r.stat;
       // The item's text is pre-game ("Curry: 2 3-pointers from passing ..."): re-say it for now.
       var what = String(r.text || "").split(" from ").slice(1).join(" from ").replace(/;\s*[\d,]+ ties him$/, "");
+      if (left <= 0 && x.also && x.also.length && r.passing && r.passing.name) {
+        var names = [r.passing.name].concat(x.also.filter(function (n) { return n !== r.passing.name; }));
+        what = what.replace(r.passing.name, names.length === 2 ? names[1] + " and " + names[0] : names.slice(1).join(", ") + " and " + names[0]);
+      }
       var text = left <= 0
         ? r.who + " (" + r.team + ") — " + (r.kind === "round" ? "reaches " + what : what.replace(/^passing /, "passes "))
         : r.who + " (" + r.team + ") — " + left + " " + plural(left, label) + " from " + what;
       var stat = [[x.v, String(label).toUpperCase() + " TONIGHT"]];
       if (left > 0) stat.push([left, "TO GO"]);
-      fire("cc-rec-" + r.id + "-" + r.stat + "-" + r.kind + "-" + r.target, {
-        type: "milestone",
+      var board = recBoard(r);
+      var back = board ? boardBack((r.kind === "cup" ? "🏆 NBA Cup" : r.kind === "franchise" ? "🏛️ " + r.team + " history" : "📜 All-time") + " · " + label, board, r.who, (Number(r.now) || 0) + x.v) : null;
+      fire("cc-rec-" + r.id + "-" + r.stat + "-" + r.kind, {
+        type: "milestone", backHtml: back,
         icon: left <= 0 ? (r.rank === 1 ? "🏆 RECORD" : "🎉 " + (r.kind === "cup" ? "CUP HISTORY" : r.kind === "franchise" ? "FRANCHISE HISTORY" : r.kind === "round" ? Number(r.target).toLocaleString() : "PASSED")) : "📈 " + left + " TO GO",
         text: text,
         statLine: typeof fmtAlertStatLine === "function" ? fmtAlertStatLine(stat) : "",
@@ -332,8 +406,12 @@
             var text = made
               ? name + " (" + team + ") — " + v + " " + LIST_WORD[stat] + ": " + (v > top ? "the most in a game in " + bk[1].replace(/'s$/, "") + " history" : (tied ? "tied for " : "") + "the " + ord(better + 1) + "-most in a game on the " + bk[1] + " list") + " (" + L.games.length + " games of " + L.floor + "+)"
               : name + " (" + team + ") — " + v + " " + LIST_WORD[stat] + ", " + (L.floor - v) + " from the " + bk[1] + " single-game list (" + L.floor + "+, " + L.games.length + " games)";
+            var top5 = L.games.slice().sort(function (a, b) { return b.value - a.value; }).slice(0, 5);
+            var back = '<div class="alert-back-title">' + escH(bk[1].replace(/'s$/, "")) + " single-game list · " + LIST_WORD[stat] + " (" + L.floor + "+, " + L.games.length + " games)</div>"
+              + top5.map(function (g) { return '<div class="alert-back-play"><span class="abp-time">' + g.value + "</span> · <strong>" + escH(g.player) + "</strong> · " + escH(g.team) + (g.opp ? " vs " + escH(g.opp) : "") + (g.date ? ", " + escH(g.date) : "") + "</div>"; }).join("")
+              + '<div class="alert-back-play" style="font-weight:700"><span class="abp-time">' + v + "</span> · " + escH(name) + " tonight" + (made ? "" : " · " + (L.floor - v) + " to make it") + "</div>";
             fire("cc-list-" + (bk[0] === "NBA Cup" ? "cup-" : bk[0] === "Playoffs" ? "po-" : "") + p.id + "-" + stat + (made ? "-made" : "-near"), {
-              type: "milestone", icon: made ? (bk[0] === "NBA Cup" ? "🏆 CUP LIST" : "📜 ALL-TIME LIST") : "👀 " + (L.floor - v) + " FROM THE LIST",
+              type: "milestone", backHtml: back, icon: made ? (bk[0] === "NBA Cup" ? "🏆 CUP LIST" : "📜 ALL-TIME LIST") : "👀 " + (L.floor - v) + " FROM THE LIST",
               text: text,
               statLine: typeof fmtAlertStatLine === "function" ? fmtAlertStatLine([[v, LIST_WORD[stat].toUpperCase()]]) : "",
               sub: "Command Center · the NBA Guide's single-game lists (through 2025-26)" + (made && better < 3 ? " · NBA Live's record card covers the record itself" : ""),
@@ -426,7 +504,12 @@
     var F = Object.assign({}, F0, { quarters: (F0.quarters || []).filter(mine), halves: (F0.halves || []).filter(mine), teamQuarters: (F0.teamQuarters || []).filter(mine), leads: {} });
     Object.keys(F0.leads || {}).forEach(function (t) { var x = F0.leads[t]; F.leads[t] = { gp: x.gp, blown: (x.blown || []).filter(mine), comebacks: (x.comebacks || []).filter(mine) }; });
     // The moment a card first fired, so its clock doesn't run on as NBA Live refreshes it.
-    var at = function (key) { return state.firstAt[key] || (state.firstAt[key] = live ? clockAt(now) : ""); };
+    // A foul's time: a break between periods reads "at halftime" / "end of the 1st", not "to open".
+    var foulClock = function (t) { var q = t / QTR; return t > 0 && t <= 4 * QTR && q === Math.round(q) ? (q === 2 ? "at halftime" : "end of the " + ["1st", "2nd", "3rd", "4th"][q - 1]) : clockAt(t); };
+    var at = function (key) { return state.firstAt[key] || (state.firstAt[key] = live ? foulClock(now) : ""); };
+    // In a blowout starters sit by design: no rotation cards then.
+    var margin = Math.abs((Number(game.away && game.away.score) || 0) - (Number(game.home && game.home.score) || 0));
+    var BLOWOUT = 25;
     var live = game.status === "live", per = Number(game.period) || 0;
     var now = live ? elapsedNow(game) : null;
     var court = live ? onCourtNow(game) : null;
@@ -481,13 +564,25 @@
           return;
         }
         if (!live || !regular || per < 1 || pf <= Math.min(per, 4)) return;
-        fire("cc-ft-" + p.id + "-" + pf, base({ icon: "⚠️ FOUL TROUBLE",
+        fire("cc-ft-" + p.id + "-" + game.id, base({ icon: "⚠️ FOUL TROUBLE",
           text: name + " (" + team + ") — " + ord(pf) + " foul, " + at("cc-ft-" + p.id + "-" + pf) + " · " + (Fo.trouble ? "in early foul trouble in " + Fo.trouble + " of " + (Fo.gp || "?") + " games this season" + (Fo.out ? ", fouled out " + (Fo.out === 1 ? "once" : Fo.out + " times") : "") : "first time in early foul trouble this season"),
           statLine: stl([[pf, "FOULS"], [p.pts || 0, "PTS"], [Math.round(p.min || 0), "MIN"]]), sub: "Command Center · fouls above the period number (2 in the 1st, 3 by the half, 4 in the 3rd, 5 in the 4th)" }));
       });
       // 3. Rotation watch (live): a starter still out well past his usual return, or not out for the 3rd.
       // A regular reserve still waiting 3+ minutes past his usual first check-in (DNP or injury news often follows).
+      // 0.61 (the user, 11/13: "the alert should go inactive once he returns"): a rotation card ends when he checks in.
       if (live && court && court[side]) (box[side] || []).forEach(function (p) {
+        if (!p || !p.id) return;
+        var onNow = court[side].has(p.id) || court[side].has(String(p.id));
+        if (!onNow) return;
+        ["cc-in-" + p.id + "-" + game.id, "cc-ret-" + p.id + "-" + game.id + "-h1", "cc-ret-" + p.id + "-" + game.id + "-h2"].forEach(function (k) {
+          var ex = typeof ALERT_STORIES !== "undefined" && ALERT_STORIES.get(k);
+          if (!ex || ex.ended || typeof endStory !== "function") return;
+          state.done[k] = 1;
+          endStory(k, (p.name || ("#" + p.id)) + " (" + team + ") is back in, " + clockAt(now) + " · " + String(ex.text).replace(/^.*?\) /, "").replace(/ · out since.*$/, ""));
+        });
+      });
+      if (live && court && court[side] && margin < BLOWOUT) (box[side] || []).forEach(function (p) {
         if (!p || !p.id || p.starter || (p.min || 0) >= 1) return;
         if (court[side].has(p.id) || court[side].has(String(p.id))) return;
         var R = (F.rotation || {})[p.id];
@@ -498,7 +593,7 @@
           text: name + " (" + team + ") hasn't played yet · usually checks in by " + clockAt(R.in1) + " (median of " + R.n.in1 + " games off the bench)",
           statLine: stl([[0, "MIN"]]), sub: "Command Center · usual rotation from the Game Flow files · a DNP or injury may follow" }));
       });
-      if (live && court && court[side]) (box[side] || []).forEach(function (p) {
+      if (live && court && court[side] && margin < BLOWOUT) (box[side] || []).forEach(function (p) {
         if (!p || !p.id || !p.starter || (p.min || 0) < 1) return;
         if (court[side].has(p.id) || court[side].has(String(p.id))) return;
         var R = (F.rotation || {})[p.id];
@@ -573,7 +668,10 @@
   function placeOnList(list, v) { return (list || []).filter(function (x) { return x.pts > v; }).length + 1; }
 
   // NBA Live updates a card in place when its key repeats; count distinct cards, not calls.
-  function fire(key, card) { fireStory(key, card); state.keys[key] = 1; state.fired = Object.keys(state.keys).length; }
+  function fire(key, card) {
+    if (state.done[key]) return;            // a card ended for good (a rotation card once he came back)
+    fireStory(key, card); state.keys[key] = 1; state.fired = Object.keys(state.keys).length;
+  }
 
   var plural = function (n, label) { return n === 1 ? String(label).replace(/s\b(?=[^s]*$)/, "") : label; };
 
@@ -590,8 +688,10 @@
     var flag = i.publishable ? "verified" : "review" + (i.review && i.review[0] ? ": " + i.review[0] : "");
     var stat = [[v, String(label).toUpperCase() + " TONIGHT"]];
     if (need > 0) stat.push([need, "TO GO"]);
+    var board = i.kind === "pass" && i.scope === "franchise" ? recBoard({ kind: "franchise", team: i.team, stat: i.stat })
+      : i.kind === "pass" && i.scope === "nba" ? recBoard({ kind: "pass", stat: i.stat }) : null;
     fire("cc-" + i.espnId + "-" + i.stat + "-" + i.kind + "-" + i.target, {
-      type: "milestone",
+      type: "milestone", backHtml: board ? boardBack((i.scope === "franchise" ? "🏛️ " + i.team + " history" : "📜 All-time") + " · " + label, board, i.player, (Number(i.current) || 0) + v) : null,
       icon: need <= 0 ? (i.kind === "pass" ? "🎉 PASSED" : "🎉 " + goal) : "🎯 " + need + " FROM " + (i.kind === "pass" ? "PASSING" : goal),
       text: text,
       statLine: typeof fmtAlertStatLine === "function" ? fmtAlertStatLine(stat) : "",

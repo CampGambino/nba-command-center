@@ -1644,7 +1644,7 @@ await articlesChecks(ok);
       item({ espnId: "3", player: "Minor Mark", importance: 9 }),                // importance < 15: no card
       item({ espnId: "10", player: "Allen Like", importance: 18 }),              // 15-19 (like Allen's 4,000 defensive rebounds): card since 0.15.2
       item({ espnId: "11", player: "Just Under", importance: 14 }),              // just under the cutoff: no card
-      item({ espnId: "4", player: "Pass Man", kind: "pass", scope: "nba", importance: 15, passing: { player: "Old Guy", rank: 40 }, need: 2, stat: "fg3m", label: "3-pointers" }), // pass: card even below 20
+      item({ espnId: "4", player: "Pass Man", kind: "pass", scope: "nba", importance: 15, passing: { player: "Old Guy", rank: 20 }, need: 2, stat: "fg3m", label: "3-pointers" }), // pass: card even below 20
       item({ espnId: "5", player: "Ladder Guy", target: 20000, need: 5 }),        // NBA Live's own ladder: skipped
       item({ espnId: "6", player: "Count Guy", target: 15000, need: 50, tracking: "disagrees", review: ["notes say 14950, ESPN says 14946"] }), // ladder + disagreement: count note
       item({ espnId: "7", player: "Bench Guy" }),                                // hasn't played: no card
@@ -1670,6 +1670,8 @@ await articlesChecks(ok);
         GAMES: games, MILESTONE_LADDERS: { pts: { step: 1000, from: 10000 }, tpm: { step: 500, from: 1000 } },
         fireStory: (k, c) => cards.set(k, c), runAlertChecks: () => { original++; }, activeDateYMD: () => date,
         fmtAlertStatLine: (rows) => rows.map((r) => r.join(" ")).join(" · "),
+        ALERT_STORIES: { get: (k) => (cards.has(k) ? { ...cards.get(k), el: { remove() {} } } : undefined), delete: (k) => cards.delete(k) },
+        endStory: (k, text) => cards.set(k, { ...cards.get(k), text: text || cards.get(k).text, ended: true }),
       }, extra);
     }
     vm.createContext(ctx);
@@ -1683,8 +1685,8 @@ await articlesChecks(ok);
     { away: "MIA", home: "BOS", lines: [L("streak", "Pre one: 30+ points in 8 straight"), L("lead", "Pre two"), L("shooting", "Pre three"), L("team", "Pre four")] },
   ] };
   // v3: career records and the single-game lists.
-  const rec = (o) => ({ id: "30", who: "Rec Man", team: "LAL", stat: "ast", label: "assists", kind: "pass", need: 3, target: 101, rank: 26, score: 3, pTonight: 0.6,
-    passing: { name: "Old Passer", value: 100, rank: 26 }, text: "Man: 3 assists from passing Old Passer (100) for 26th all-time", ...o });
+  const rec = (o) => ({ id: "30", who: "Rec Man", team: "LAL", stat: "ast", label: "assists", kind: "pass", need: 3, target: 101, rank: 21, score: 3, pTonight: 0.6,
+    passing: { name: "Old Passer", value: 100, rank: 21 }, text: "Man: 3 assists from passing Old Passer (100) for 21st all-time", ...o });
   const recordsData = { today: "2026-11-09", cup: { tonight: [{ away: "LAL", home: "ATL" }] },
     franchiseGame: { teams: { LAL: { name: "Lakers", src: "Lakers guide p. 99", pts: { value: 58, holders: ["Old Laker vs. Boston 1/1/60"] }, fg3m: { value: 12, holders: ["Kobe Bryant vs. Seattle 1/7/03"] } } } }, items: [
     rec({}),                                                                                      // reached tonight (5 assists): card
@@ -1706,11 +1708,16 @@ await articlesChecks(ok);
   const keys = [...t.cards.keys()];
   const has = (frag) => keys.some((k) => k.includes(frag));
   ok(t.orig() === 1, "bridge: NBA Live's own checks still run, once");
+  ok(!keys.some((k) => k.startsWith("cc-pre-")), "bridge 0.61: once the night's first game has tipped, no pre-game cards");
   {
-    const pre = keys.filter((k) => k.startsWith("cc-pre-"));
-    const c0 = t.cards.get(pre[0]);
+    const tp = run({ games: games.filter((g) => g.status !== "live" && g.status !== "final") }); await flush(); tp.ctx.runAlertChecks(); await flush();
+    const pre = [...tp.cards.keys()].filter((k) => k.startsWith("cc-pre-"));
+    const c0 = tp.cards.get(pre[0]);
+    const tg = games.find((g) => g.status !== "live" && g.status !== "final"); const st0 = tg.status;
+    tg.status = "live"; tp.ctx.runAlertChecks(); await flush(); tg.status = st0;
+    ok(pre.length === 3 && ![...tp.cards.keys()].some((k) => k.startsWith("cc-pre-")), "bridge 0.61: pre-game cards are removed when the first game tips", [...tp.cards.keys()].join(" "));
     ok(pre.length === 3 && pre.every((k) => k.includes("MIA-BOS")) && c0.text === "Pre one: 30+ points in 8 straight" && /STREAK/.test(c0.icon) && c0.live === false && c0.gameScore === "Pre-game",
-      "bridge v2: a game before tip-off gets its top 3 storylines as cards; a live game gets none of them", pre.join(" ") + " | " + keys.join(" ") + " | tonight=" + JSON.stringify(t.ctx.CC_BRIDGE.state.tonightError));
+      "bridge v2: a game before tip-off gets its top 3 storylines as cards; a live game gets none of them", pre.join(" ") + " | tonight=" + JSON.stringify(tp.ctx.CC_BRIDGE.state.tonightError));
   }
   ok(has("cc-1-"), "bridge: an in-play milestone gets a card");
   ok(!has("cc-2-"), "bridge: under 10% tonight and not reached: no card", keys.join(" "));
@@ -1736,10 +1743,35 @@ await articlesChecks(ok);
   ok(!threw, "bridge: missing hooks never throw", String(threw));
   // v3
   const recCard = t.cards.get(keys.find((k) => k.startsWith("cc-rec-30-")) || "");
-  ok(recCard && recCard.text === "Rec Man (LAL) — passes Old Passer (100) for 26th all-time" && /all-time/.test(recCard.sub),
+  ok(recCard && recCard.text === "Rec Man (LAL) — passes Old Passer (100) for 21st all-time" && /all-time/.test(recCard.sub),
     "bridge v3: a career-list pass reached tonight gets a card, re-worded for now", recCard && recCard.text);
   const cupCard = t.cards.get(keys.find((k) => k.startsWith("cc-rec-31-")) || "");
   ok(cupCard && cupCard.text === "Cup Man (LAL) — 1 3-pointer from passing Cup King (64) for the NBA Cup record", "bridge v3: an NBA Cup mark in a Cup game, counting down live", cupCard && cupCard.text);
+  // 0.61: only places worth saying; two names passed tonight make one tile; the list on the card's back.
+  {
+    const keep = recordsData.items;
+    recordsData.cup.boards = { reb: [{ name: "Top Reb", now: 200 }, { name: "Two Reb", now: 173 }, { name: "Three Reb", now: 160 }] };
+    recordsData.franchise = { LAL: { pts: [{ name: "Laker One", now: 30000 }, { name: "Laker Two", now: 25000 }, { name: "Laker Three", now: 20000 }, { name: "Laker Four", now: 19990 }] } };
+    const cr = (o) => rec({ kind: "cup", stat: "reb", label: "rebounds", pTonight: 0.9, ...o });
+    recordsData.items = [
+      cr({ id: "50", who: "Cup Eighth", need: 1, rank: 8, passing: { name: "Somebody", value: 81, rank: 8 }, text: "Man: 1 rebound from passing Somebody (81) for 8th in NBA Cup history" }),
+      cr({ id: "51", who: "Cup Big", now: 170, need: 4, target: 174, rank: 2, passing: { name: "Two Reb", value: 173, rank: 2 }, text: "Man: 4 rebounds from passing Two Reb (173) for 2nd in NBA Cup history" }),
+      rec({ id: "52", who: "Fr Dreb", kind: "franchise", stat: "dreb", label: "defensive rebounds", need: 1, rank: 8, pTonight: 0.9, passing: { name: "J. Chones", value: 3000, rank: 8 }, text: "Man: 1 defensive rebound from passing J. Chones (3,000) for 8th in Lakers history" }),
+      rec({ id: "53", who: "Fr Scorer", kind: "franchise", stat: "pts", label: "points", now: 19985, need: 6, target: 19991, rank: 4, pTonight: 0.9, passing: { name: "Laker Four", value: 19990, rank: 4 }, text: "Man: 6 points from passing Laker Four (19,990) for 4th in Lakers history" }),
+      rec({ id: "53", who: "Fr Scorer", kind: "franchise", stat: "pts", label: "points", now: 19985, need: 16, target: 20001, rank: 3, pTonight: 0.9, passing: { name: "Laker Three", value: 20000, rank: 3 }, text: "Man: 16 points from passing Laker Three (20,000) for 3rd in Lakers history" }),
+    ];
+    const g9 = { id: "g9", status: "live", away: { tricode: "LAL", score: 50 }, home: { tricode: "ATL", score: 48 },
+      boxscore: { away: [pl("50", { name: "Cup Eighth", reb: 3 }), pl("51", { name: "Cup Big", reb: 5 }), pl("52", { name: "Fr Dreb", dreb: 4, reb: 4 }), pl("53", { name: "Fr Scorer", pts: 20 })], home: [] } };
+    const tr = run({ games: [g9] }); await flush(); tr.ctx.runAlertChecks(); await flush();
+    const ks = [...tr.cards.keys()], cb = tr.cards.get("cc-rec-51-reb-cup"), fs3 = tr.cards.get("cc-rec-53-pts-franchise");
+    ok(!ks.some((k) => /cc-rec-5[02]-/.test(k)) && cb && /passes Two Reb \(173\) for 2nd in NBA Cup history/.test(cb.text),
+      "bridge 0.61: an NBA Cup pass for 8th and a franchise defensive-rebound pass for 8th get no card; 2nd in the Cup does", ks.join(" "));
+    ok(cb && /NBA Cup · rebounds/.test(cb.backHtml) && /2\.<\/span> Cup Big · <strong>175/.test(cb.backHtml) && /1\.<\/span> Top Reb/.test(cb.backHtml),
+      "bridge 0.61: the pass card's back lists the top of the board with him at tonight's total", cb && cb.backHtml);
+    ok(fs3 && fs3.text === "Fr Scorer (LAL) — passes Laker Four and Laker Three (20,000) for 3rd in Lakers history" && ks.filter((k) => k.startsWith("cc-rec-53-")).length === 1,
+      "bridge 0.61: two names passed tonight in one tile", fs3 && fs3.text);
+    recordsData.items = keep;
+  }
   ok(!has("cc-rec-32-") && !has("cc-rec-1-"), "bridge v3: a long shot not reached, and a milestone the notes already carry: no record card", keys.filter((k) => k.startsWith("cc-rec")).join(" "));
   if (!t.cards.get("cc-list-cup-40-pts-made")) console.log("DEBUG keys", [...t.cards.keys()].filter((k) => k.includes("list")).join(" "), JSON.stringify(t.ctx.CC_BRIDGE.state.listError));
   const made = t.cards.get("cc-list-40-pts-made"), near = t.cards.get("cc-list-41-pts-near"), cupMade = t.cards.get("cc-list-cup-40-pts-made");
@@ -1776,8 +1808,8 @@ await articlesChecks(ok);
   ok(c6("cc-sh-60-1") && /30 points in the 1st half so far: tied for the 2nd-most in a half this season \(most: 33, Luka Doncic/.test(c6("cc-sh-60-1").text),
     "bridge v5: a half among the season's best ('so far' until it ends)", c6("cc-sh-60-1") && c6("cc-sh-60-1").text);
   ok(c6("cc-tq-g5-GSW-1") && /45 points in the 1st quarter vs HOU: the 3rd-most by a team in a quarter this season/.test(c6("cc-tq-g5-GSW-1").text), "bridge v5: a team quarter among the season's 5 best", c6("cc-tq-g5-GSW-1") && c6("cc-tq-g5-GSW-1").text);
-  ok(c6("cc-ft-52-3") && c6("cc-ft-52-3").text === "Foul Guy (GSW) — 3rd foul, Q2 8:00 · in early foul trouble in 8 of 12 games this season, fouled out once" && !c6("cc-ft-54-3"),
-    "bridge v5: foul trouble (3 fouls in the 2nd) with his season record, tonight's game left out (a later build can hold it); a bench player with no rotation history doesn't get one", c6("cc-ft-52-3") && c6("cc-ft-52-3").text);
+  ok(c6("cc-ft-52-g5") && c6("cc-ft-52-g5").text === "Foul Guy (GSW) — 3rd foul, Q2 8:00 · in early foul trouble in 8 of 12 games this season, fouled out once" && !c6("cc-ft-54-g5"),
+    "bridge v5: foul trouble (3 fouls in the 2nd) with his season record, tonight's game left out (a later build can hold it); a bench player with no rotation history doesn't get one", c6("cc-ft-52-g5") && c6("cc-ft-52-g5").text);
   ok(c6("cc-ret-50-g5-h1") && c6("cc-ret-50-g5-h1").text === "Sits Long (GSW) hasn't come back in · usually returns to open the 2nd quarter (median of 9 starts) · out since Q1 4:24" && !c6("cc-ret-51-g5-h1"),
     "bridge v5: a starter 4+ minutes past his usual return (to open Q2) gets a rotation card; one whose usual return is later doesn't", c6("cc-ret-50-g5-h1") && c6("cc-ret-50-g5-h1").text);
   ok(c6("cc-lead-g5-GSW") && c6("cc-lead-g5-GSW").text === "GSW lead HOU by 20 · GSW have lost a 15-point lead 2 times this season (the most in the NBA) (last: 16-point lead vs TOR 11/7, 99-101) · HOU have come back from 15 down once this season (the most in the NBA) (last: 17 down vs BOS 11/1, 110-104)",
@@ -1789,7 +1821,7 @@ await articlesChecks(ok);
     "bridge 0.59.1: before tip-off, a foul-watch card for a regular in early foul trouble in half his games", t8.cards.get("cc-foulwatch-g8") && t8.cards.get("cc-foulwatch-g8").text);
   // The clock in a foul card is when it first fired; then the game goes final with GSW's lead lost.
   Object.assign(g5, { clock: "2:00" }); t6.ctx.runAlertChecks(); await flush();
-  ok(/3rd foul, Q2 8:00/.test(c6("cc-ft-52-3").text), "bridge v5: a foul card keeps the time it fired", c6("cc-ft-52-3").text);
+  ok(/3rd foul, Q2 8:00/.test(c6("cc-ft-52-g5").text), "bridge v5: a foul card keeps the time it fired", c6("cc-ft-52-g5").text);
   Object.assign(g5, { status: "final", period: 4, away: { ...g5.away, score: 100 }, home: { ...g5.home, score: 104 } });
   g5.boxscore.home.push(qp("61", { name: "Third Half", pf: 6, pts: 8, min: 20 }));
   t6.ctx.runAlertChecks(); await flush();
@@ -1801,6 +1833,11 @@ await articlesChecks(ok);
   const t7 = run({ games: [g6], date: "20261110", extra: { computeOnCourt: () => ({ away: new Set(), home: new Set() }) } }); await flush(); t7.ctx.runAlertChecks(); await flush();
   ok(t7.cards.get("cc-ret-53-g6-h2") && /didn't start the 3rd quarter · he opened the 3rd in 10 of 10 starts this season/.test(t7.cards.get("cc-ret-53-g6-h2").text) && [...t7.cards.keys()].every((k) => /^cc-(ret|ft|fo|sq|sh|tq|lead|blown)-/.test(k)),
     "bridge v5: a starter not out for the 3rd gets a card, even on another night than the Watch List's (only season facts then)", [...t7.cards.keys()].join(" "));
+  t7.ctx.computeOnCourt = () => ({ away: new Set(["53"]), home: new Set() }); g6.clock = "9:30"; t7.ctx.runAlertChecks(); await flush();
+  const back7 = t7.cards.get("cc-ret-53-g6-h2");
+  t7.ctx.computeOnCourt = () => ({ away: new Set(), home: new Set() }); g6.clock = "9:00"; t7.ctx.runAlertChecks(); await flush();
+  ok(back7 && back7.ended && /^Half Out \(GSW\) is back in, Q3 9:30 · didn't start the 3rd quarter/.test(back7.text) && t7.cards.get("cc-ret-53-g6-h2").ended,
+    "bridge 0.61: a rotation card ends when he checks back in, and doesn't come back", back7 && back7.text);
   flowData = null;
 }
 

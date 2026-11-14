@@ -2,6 +2,33 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.61.0 (2026-11-13): fewer, better NBA Live cards (the user's review of the first live night)
+
+The user, after the first night with the bridge in NBA Live: "I think we need to scale back the alerts because there have to be around 100 in the live game tracker."
+
+### What changed (docs/bridge/cc-bridge.js)
+- **Only places worth saying** ("consider player, team, new placement, and stat"). A pass gets a card only if the place he reaches is:
+  - NBA Cup: top 2 ("focus on two top in a stat");
+  - franchise: top 3 in points, rebounds, assists, steals, blocks or threes; top 2 in anything else (T.J. McConnell 8th in Pacers steals and Jarrett Allen 8th in Cavaliers defensive rebounds are out);
+  - all-time: top 25 in those six, top 10 in anything else.
+  - Applies to the career-record cards and to the Watch List's pass cards. On tonight's data that drops 58 of 81 all-time, 86 of 90 franchise and 83 of 117 NBA Cup items, and 62 of 105 Watch List passes. Round numbers keep the existing cadence.
+- **One tile per player, stat and list:** passing two names tonight reads "passes Devin Booker and De'Aaron Fox (82) for 8th"; the countdown card turns into the passed card in place. Judged by the place he ends on.
+- **The list on the back (tap to flip),** like NBA Live's "best ever vs" card: career-record and Watch List pass cards show the top 5 of that board with him at tonight's total (and his place if lower); single-game list cards ("2 from the list") show the list's top 5 and his line tonight.
+- **Rotation cards end when he's back:** "still on the bench", "not out for the 3rd" and "hasn't checked in" turn into "X is back in, Q3 7:12 · …" and end (greyed), and don't fire again that game. No rotation cards in a 25+ point game.
+- **Pre-game cards go once the night's first game tips:** the storyline and foul-watch cards are removed from the panel and no more fire.
+- **Foul trouble is one tile per player per game,** updated with each foul (it was a new card per foul); a foul at a break reads "at halftime" / "end of the 1st", not "to open the 3rd".
+
+### Not in the bridge
+- The duplicated "Career high" text (image 3) is NBA Live's own card: its sub-line repeats the header ("Career high — prev best 4 vs CLE"). The fix belongs in NBA Live: drop the `${hiWord} high — ` prefix from that sub-line (nba-live_14 line ~5038).
+
+### Tested
+- 672 checks pass. New: the place rule (Cup 8th and franchise defensive-rebound 8th dropped, Cup 2nd kept), two passes in one tile, the card back (top of the board with him at tonight's total), a rotation card ending when he returns and staying ended, pre-game cards removed at the first tip and none with a game already on.
+- The real NBA Live (nba-live_14) on 11/13 with NYK @ IND replayed live: 32 bridge cards on the night's state (many fewer pass cards), merged "passes Luka Dončić and Giannis Antetokounmpo (115) for the NBA Cup record", flip hints present, no bridge errors.
+
+### Unproven
+- The place thresholds are a first cut from the user's examples; a "name recognition" weight isn't attempted.
+- NBA Live's flip hint always reads "tap for all-time", even on an NBA Cup or franchise list (its wording).
+
 ## 0.60.0 (2026-11-13): stat corrections re-read; the "Building" list: light-mode team colours, Watch List → Game Flow links, bridge status, play-by-play season lists on Records, "left early" storylines, one-file Scoring highs and Assist leaderboard
 
 The user: "Start working the bullets in the Building section… the league posts stat corrections within a day or two so some of this information may need to be rechecked."
