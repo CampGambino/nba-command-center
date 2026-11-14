@@ -2,6 +2,23 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.64.0 (2026-11-14): the notability rule on the Watch List, the Records "Tonight" tab and the storylines
+
+The user approved #9: NBA Live's rule for which passes are worth a card (0.61) also applies to the Watch List and the Records "Tonight" tab, which showed every pass.
+
+### What changed
+- **src/records/notable.js (new):** worthPlace(scope, stat, place) and isMinorPass(item), the same rule as the bridge. NBA Cup: top 2. Franchise: top 3 in points, rebounds, assists, steals, blocks and threes, top 2 otherwise. All-time: top 25 in those six, top 10 otherwise. The place is the one he reaches. A list of unproven scope gets the franchise rule. Round numbers and coaches are untouched.
+- **records.json (src/records/guide.js)** and **watch.json (src/anticipate/watch.js):** such a pass carries `minor: true`. It stays in the data (and the predictions history).
+- **Records "Tonight" tab:** minor passes are left out. **Watch List (index.html):** left out of Tonight and Coming up, even when reached live (as NBA Live); in the full list only with "include review / not live / minor places" checked. **Storylines and the Discord digest (tonight.js):** skipped.
+- **NBA Live bridge:** a Watch List pass with `minor` gets no card (it covers the unproven-scope lists the bridge's own check let through).
+
+### Tested
+- 684 checks pass (3 new: the rule's thresholds; Records and Watch List items judged by the place reached; the storylines skip a minor pass and keep the others). Page sweep OK.
+- On this morning's data: the Records "Tonight" tab goes from 8 to 1 (DeRozan passing Curry for 16th all-time); 16 of 31 Watch List passes are minor.
+
+### Unproven
+- Tonight's build is the first with the flag; the pages need tonight's records.json and watch.json to show the change.
+
 ## 0.63.1 (2026-11-14): franchise leaders: one player with and without his suffix
 
 The user asked which pages of the Nuggets', Pelicans' and Suns' guides were still needed to confirm the franchise leaders. None: the guides on the PC read cleanly (DEN pp. 339-345, NOP p. 201, PHX p. 161).

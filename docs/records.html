@@ -372,7 +372,7 @@ Promise.all([fetch("data/records.json", { cache: "no-store" }).then((r) => r.jso
   if (inj && inj.date === d.today) for (const p of inj.players || []) INJ.set(`${p.team}|${nk(p.name)}`, p.status);
   for (const rows of Object.values(d.boards)) for (const r of rows) r.season = r.live && r.base != null ? r.now - r.base : r.season;
   $("sub").textContent = `Career leaderboards and records, kept current: the NBA's Tip-Off Guide totals (through 2025-26) plus this season's games through ${md(d.through)}${d.cup ? ` · NBA Cup: ${d.cup.played} of 60 Group Play games played${d.cup.schedule?.[0] ? `, next Cup night ${md(d.cup.schedule[0].d)}` : ""}` : ""}`;
-  const tn = d.items.filter((i) => i.tonight && ((i.pTonight ?? 0) >= 0.05 || i.need === 1) && !/Out|Doubtful/.test(INJ.get(`${i.team}|${nk(i.who)}`) || ""));
+  const tn = d.items.filter((i) => i.tonight && !i.minor && ((i.pTonight ?? 0) >= 0.05 || i.need === 1) && !/Out|Doubtful/.test(INJ.get(`${i.team}|${nk(i.who)}`) || ""));
   $("n-tonight").textContent = tn.length;
   $("tonight").innerHTML = tn.length ? `<div class="scroll"><table><tr><th>Who</th><th class="what">What</th><th class="num">Tonight</th></tr>${tn.sort((a, b) => (b.pTonight ?? 1) - (a.pTonight ?? 1)).map((i) => `<tr><td><b>${esc(i.who)}</b> <span class="team">${esc(i.team)}${i.opp ? ` vs ${esc(i.opp)}` : ""}</span>${injTag(i)}</td><td class="what">${esc(i.text.replace(/^[^:]+: /, ""))}${i.rivals ? `<div class="small">${rivalNote(i)}</div>` : ""}</td><td class="num">${i.pTonight != null ? bar(i.pTonight) : "if it happens"}</td></tr>`).join("")}</table></div>`
     : `<div class="empty">Nothing on these lists is likely to fall tonight.</div>`;

@@ -54,7 +54,7 @@ function milestoneLines(watch, teams) {
   for (const t of watch.teams || []) {
     if (!teams.has(t.team)) continue;
     for (const i of t.items || []) {
-      if (!i.publishable || (i.kind !== "round" && i.kind !== "pass") || i.reached || i.stale) continue;
+      if (!i.publishable || (i.kind !== "round" && i.kind !== "pass") || i.reached || i.stale || i.minor) continue;
       const p = i.pTonight || 0;
       if (p < 0.25 || (i.importance || 0) < MIN_IMPORTANCE) continue;
       if (i.injury && /out/i.test(String(i.injury.status || i.injury))) continue;
@@ -320,7 +320,7 @@ function recordLines(records, teams, today, milestones) {
   if (!records || (records.today && today && records.today !== today)) return [];
   const out = [];
   for (const i of records.items || []) {
-    if (!i.tonight || !teams.has(i.team)) continue;
+    if (!i.tonight || !teams.has(i.team) || i.minor) continue;   // 0.64: a place not worth saying
     if (i.kind === "pass" || i.kind === "round" || i.kind === "franchise" || i.kind === "cup") {
       const p = i.pTonight || 0;
       if (p < 0.25) continue;

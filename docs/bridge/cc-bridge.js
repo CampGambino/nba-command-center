@@ -235,7 +235,7 @@
         if (!p) return;
         var reachedTonight = i.need > 0 && v >= i.need;
         if (i.kind !== "pass" && i.importance < MIN_IMPORTANCE) return;   // a rung nobody celebrates, reached or not
-        if (i.kind === "pass" && !worthPlace(i.scope, i.stat, i.passing && i.passing.rank)) return;   // 0.61: a place worth saying
+        if (i.kind === "pass" && (i.minor || !worthPlace(i.scope, i.stat, i.passing && i.passing.rank))) return;   // 0.61: a place worth saying (0.64: i.minor also covers lists of unproven scope)
         if (game.status === "final" && !reachedTonight) return;          // a final game: only what fell in it
         if (!reachedTonight) {
           if ((p.min || 0) < 1) return;                                  // not a story until he plays

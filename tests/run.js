@@ -1312,6 +1312,30 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   ok(!lines3.includes("history") && lines3.includes("record"), "records: a notes history line about the same pass gives way to the record line", JSON.stringify(lines3));
 }
 
+// ---------- 0.64: the notability rule on the Watch List, the Records "Tonight" tab and the storylines ----------
+{
+  const { worthPlace, isMinorPass } = await import("../src/records/notable.js");
+  ok(worthPlace("cup", "pts", 2) && !worthPlace("cup", "pts", 3) && worthPlace("franchise", "reb", 3) && !worthPlace("franchise", "dreb", 3)
+    && worthPlace("franchise", "dreb", 2) && worthPlace("nba", "ast", 25) && !worthPlace("nba", "ast", 26) && !worthPlace("nba", "gp", 11) && worthPlace("nba", "gp", 10) && worthPlace("nba", "pts", null),
+    "notable: Cup top 2; franchise top 3 (six main stats) / top 2; all-time top 25 / top 10; no known place is kept");
+  // Records items (kind + rank) and Watch List items (kind pass + scope + passing.rank).
+  ok(isMinorPass({ kind: "franchise", stat: "ast", rank: 8 }) && !isMinorPass({ kind: "franchise", stat: "ast", rank: 3 })
+    && isMinorPass({ kind: "pass", stat: "blk", rank: 37 }) && !isMinorPass({ kind: "pass", stat: "pts", rank: 16 })
+    && isMinorPass({ kind: "cup", stat: "stl", rank: 5 }) && !isMinorPass({ kind: "round", stat: "pts", rank: 40 }) && !isMinorPass({ kind: "coach", stat: "wins", rank: 30 })
+    && isMinorPass({ kind: "pass", scope: "franchise", stat: "dreb", passing: { rank: 8 } }) && !isMinorPass({ kind: "pass", scope: "nba", stat: "fg3m", passing: { rank: 1 } })
+    && isMinorPass({ kind: "pass", scope: "unknown", stat: "fg3m", passing: { rank: 4 } }) && !isMinorPass({ kind: "round", scope: "career", stat: "pts" }),
+    "notable: Records and Watch List passes judged by the place reached; round numbers and coaches untouched; an unproven list gets the franchise rule");
+  const watch = { today: "2026-11-09", games: [{ id: "1", awayTri: "BBB", homeTri: "AAA" }], teams: [{ team: "AAA", items: [
+    { player: "Bench Guy", stat: "dreb", kind: "pass", scope: "franchise", target: 900, need: 2, passing: { player: "Old Big", rank: 8 }, publishable: true, importance: 50, pTonight: 0.8, minor: true },
+    { player: "Star Guy", stat: "pts", kind: "pass", scope: "franchise", target: 20000, need: 5, passing: { player: "Legend", rank: 2 }, publishable: true, importance: 60, pTonight: 0.8 }] }] };
+  const recs = { today: "2026-11-09", items: [
+    { kind: "franchise", who: "Bench Guy", team: "AAA", stat: "reb", rank: 17, tonight: true, pTonight: 0.9, need: 1, minor: true, text: "Guy: 1 rebound from passing Someone (1,200) for 17th in AAA history", score: 2.5 },
+    { kind: "pass", who: "Star Guy", team: "AAA", stat: "pts", rank: 16, tonight: true, pTonight: 0.7, need: 6, text: "Guy: 6 points from passing Great (26,806) for 16th all-time", score: 2.8 }] };
+  const texts = tonightStorylines({ watch, records: recs })[0].lines.map((l) => l.text).join(" | ");
+  ok(!/Bench Guy|Old Big|17th in AAA/.test(texts) && /Legend/.test(texts) && /16th all-time/.test(texts),
+    "notable: the storylines skip a minor pass (Watch List and Records) and keep the ones worth saying", texts);
+}
+
 // ---------- The NBA Guide: career scorers, record book, single-game lists (the user, 11/12) ----------
 {
   const { currentRecords } = await import("../src/records/guide.js");

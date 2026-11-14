@@ -1,3 +1,4 @@
+import { isMinorPass } from "../records/notable.js";
 import { trackMilestones } from "../registry/track.js";
 import { makeSampler, simulate } from "./model.js";
 import { importance } from "./importance.js";
@@ -160,6 +161,7 @@ export async function buildWatch({ team, notesDate, milestones, espn, today, sim
       status: m.status, checks: m.checks || [], tracking: t.status || null,
       publishable: live && m.status === "ok" && t.status !== "disagrees",
       source: m.sources?.[0]?.text || null,
+      ...(isMinorPass({ kind: m.kind, scope: m.scope, stat: m.stat, passing: m.passing }) ? { minor: true } : {}),   // 0.64
     };
   }
 }

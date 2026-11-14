@@ -24,6 +24,7 @@
 import { roundStep, CADENCE_STATS } from "../anticipate/cadence.js";
 import { nameKey } from "../notes/names.js";
 import { TEAMS } from "../teams.js";
+import { isMinorPass } from "./notable.js";
 
 /** Name match that keeps suffixes: the guide's Gary Payton is not this season's Gary Payton II. */
 export const strictKey = (n) => {
@@ -169,7 +170,9 @@ export function currentRecords({ guide, teamFiles, today = null, tonight = [], s
     // An NBA record chase stays listed however far off; the rest only within HORIZON games.
     if (it.need <= 0 || gamesAway == null || (gamesAway > horizon && !(it.kind === "pass" && it.rank === 1 && gamesAway <= RECORD_HORIZON))) return;
     const t = playing.get(it.team);
-    items.push({ ...it, ...(kind ? { kind } : {}), gamesAway, tonight: !!t, opp: t?.opp || null });
+    const row = { ...it, ...(kind ? { kind } : {}), gamesAway, tonight: !!t, opp: t?.opp || null };
+    if (isMinorPass(row)) row.minor = true;   // 0.64: a place not worth saying stays off the Tonight tab and the storylines
+    items.push(row);
   };
   for (const p of players) {
     if (!p.id) continue;
