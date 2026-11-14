@@ -35,12 +35,32 @@ export function blocks(doc) {
         .replace(/(\w)-\n(\w)/g, "$1$2") // word broken across lines
         .replace(/\s*\n\s*/g, " ")
         .replace(/\s+/g, " ");
-      for (const bullet of text.split(/\s*[•▪●]\s*/)) {
-        if (bullet.trim()) out.push({ page: page.page, text: bullet.trim() });
+      for (const bullet of cleanSidebar(text).split(/\s*[•▪●]\s*/)) {
+        // A bullet is a full note even without a final stop ("Has started 97 consecutive regular season games").
+        let t = bullet.trim();
+        if (t.length >= 40 && /[\p{L}\d%)]$/u.test(t) && !/\b(?:to|the|a|an|of|and|at|in|with|as|by|for|or|his|their|from|on|was|were|who|that|is|are|which)$/i.test(t)) t += ".";
+        if (t) out.push({ page: page.page, text: t });
       }
     }
   }
   return out;
+}
+
+/* A player box with a stats sidebar read into the prose (Houston's "Notes/Trends" boxes, 11/13): "…once prior this
+   GP 12 PPG 20.9 RPG 6.1 APG 3.6 season; back to…". The sidebar's rows start with GP, GS or MPG and run on in
+   label-value pairs; they are taken out, with the box's header ("20th season (2nd w/HOU) Notes/Trends [2026-27
+   Video Highlights] 2026-27 Season Stats"), so the sentences read whole. */
+const SIDEBAR_ROW = /\b(?:GP|GS|MPG)\s+\d[\d.]*(?:\s+(?:PPG|RPG|APG|SPG|BPG|TPG|FG%|3PT%|FT%|MPG|GS|GP)\s+\.?\d[\d.]*)+(?:\s+bla\b)?/g;
+export function cleanSidebar(text) {
+  return text
+    .replace(SIDEBAR_ROW, " ")
+    // Portland's player boxes: the season line's header and values read into the bullets ("GP/GS PPG RPG APG SPG BPG MPG", "11/2 8.3 3.5 2.0 0.5 0.3 23.1").
+    .replace(/\bGP\/GS PPG RPG APG SPG BPG MPG\b/g, " ")
+    .replace(/\b\d{1,2}\/\d{1,2}(?:\s+\d{1,2}\.\d){6}\b/g, " ")
+    .replace(/\b\d{1,2}(?:st|nd|rd|th) season \(\d{1,2}(?:st|nd|rd|th) w\/[A-Z]{2,3}\)\s*/g, " ")
+    .replace(/Notes\/Trends\s*\[[^\]]{0,60}\]\s*/g, " ")
+    .replace(/\b(?:19|20)\d\d-\d\d Season Stats\b\s*/g, " ")
+    .replace(/\s+/g, " ").trim();
 }
 
 export function readAwayFrom(doc) {
@@ -153,7 +173,7 @@ function sentences(text) {
   const re = /([.!?…])\s+(?=["“(]?[A-Z])/g;
   for (const m of text.matchAll(re)) {
     const before = text.slice(Math.max(0, m.index - 4), m.index + 1);
-    if (/\b(?:[A-Z]|Jr|Sr|No|vs|St|Mt|Dr|Jan|Feb|Mar|Apr|Aug|Sept?|Oct|Nov|Dec)\.$/.test(before)) continue;
+    if (/\b(?:[A-Z]|Jr|Sr|No|vs|St|Mt|Dr|Jan|Feb|Mar|Apr|Aug|Sept?|Oct|Nov|Dec|Def|Off|Pct|Reb|Opp)\.$/.test(before)) continue;
     parts.push(text.slice(last, m.index + 1).trim());
     last = m.index + m[0].length;
   }
@@ -174,12 +194,19 @@ function sentences(text) {
 const HISTORY = /\b(?:in (?:NBA|league|franchise|team|club|[A-Z][a-z]+) history|all-time|(?:first|only|second|third|fourth|fifth|\d+(?:st|nd|rd|th)) (?:player|rookie|team|teenager|guard|center|forward|duo|trio|pair|teammates?|players|teams|coach|starter|reserve|\w+ to)\b|since (?:the )?(?:19|20)\d\d|(?:most|fewest|longest|highest|lowest|best|worst)\b[^.]{0,60}\b(?:since|ever|in (?:NBA|franchise|team|league|club) history|by any|of any)|youngest|oldest|fastest|quickest|(?:NBA|franchise|team|league|club|single-game|season|career|rookie|all-time)[- ]records?\b|record for (?:the )?most)/i;
 // League context (0.48, from the user's picks in the Wizards' 11/12 notes): ranks in the league this season, exclusive
 // clubs, active streaks, races on a list, and the series with tonight's opponent. Not history, but what the user flags.
-const CONTEXT = /\b(?:leads?|led|leading)\s+(?:all\s+|the\s+)?(?:NBA|league)\b|\blead(?:s|ing)? the (?:NBA|league)\b|\b(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d+(?:st|nd|rd|th))\s+in the (?:NBA|league)\b|\b(?:(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d+(?:st|nd|rd|th))[- ])?(?:most|highest|lowest|fewest|least|best|longest)\b[^.;]{0,90}?\b(?:in the (?:NBA|league)|of any (?:team|player)|by any (?:team|player)|league-wide|among (?:all )?(?:NBA|qualified|active))|\bone of the top\b[^.;]{0,40}\bin the (?:NBA|league)\b|\bone of (?:two|three|four|five|six|seven|eight|nine|ten|\d+) (?:players|teams|guards|forwards|centers|rookies|duos|trios)\b|\b(?:the )?only (?:[\w-]+ )?(?:player|team|rookie|duo|trio)s? in the (?:NBA|league)\b|\bas the only\b|\b\d{2,} (?:consecutive|straight) (?:games|starts|contests)\b|\b(?:longest|current) active\b|\bactive streak\b|\bonly\b[^.;]{0,80}\bmore\b[^.;]{0,60}\bthan\b|\bsecond only to\b|\bbehind only\b|\bowns the most\b|\bseason series\b|\bseries (?:history|between)\b|\bthis season['’]s series\b|\b(?:last|past) (?:\w+ )?meetings\b/i;
+const CONTEXT = /\b(?:leads?|led|leading)\s+(?:all\s+|the\s+)?(?:NBA|league)\b|\blead(?:s|ing)? the (?:NBA|league)\b|\b(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d+(?:st|nd|rd|th))\s+in (?:the )?(?:NBA|league)\b|\b(?:(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d+(?:st|nd|rd|th))[- ])?(?:most|highest|lowest|fewest|least|best|longest)\b[^.;]{0,90}?\b(?:in the (?:NBA|league)|of any (?:team|player)|by any (?:team|player)|league-wide|among (?:all )?(?:NBA|qualified|active))|\bone of the top\b[^.;]{0,40}\bin the (?:NBA|league)\b|\bone of (?:two|three|four|five|six|seven|eight|nine|ten|\d+) (?:players|teams|guards|forwards|centers|rookies|duos|trios)\b|\b(?:the )?only (?:[\w-]+ )?(?:player|team|rookie|duo|trio)s? in the (?:NBA|league)\b|\bas the only\b|\b\d{2,} (?:consecutive|straight) (?:[\w-]+ ){0,2}(?:games|starts|contests)\b|\b(?:longest|current) active\b|\bactive streak\b|\bonly\b[^.;]{0,80}\bmore\b[^.;]{0,60}\bthan\b|\bsecond only to\b|\bbehind only\b|\bowns the most\b|\bseason series\b|\bseries (?:history|between)\b|\bthis season['’]s series\b|\b(?:last|past) (?:\w+ )?meetings\b/i;
+// Trends (11/13, from the user's picks in the Rockets' and Blazers' notes: "interesting tidbits… that didn't appear"):
+// records when something happens ("Rockets are 30-12 when he has 5+ assists", "3-0 when having 15+ 3FGM"), stretches
+// ("in each of the past 2 games", "4 straight games", "over the past 5 games after averaging…"), career highs over a span,
+// league ranks written without "the" ("Ranks 10th in NBA in 3FG%"), percentiles, "since entering the starting lineup".
+// Not schedule stretches ("will play 20 of 32 games on the road"): those say nothing about tonight.
+const TREND = /\b\d{1,3}-\d{1,3} when\b|\bwhen (?:he|they|having|scoring|holding|shooting|outrebounding)\b[^.;…]{0,50}\b\d{1,3}-\d{1,3}\b|\b(?:in|over) (?:each of )?(?:the |his |their )?(?:past|last|first) \d{1,2} (?:games|GP|contests|starts)\b|\b\d{1,3} (?:straight|consecutive) (?:\w+ ){0,2}(?:games|GP|contests|starts)\b|\bcareer[- ]high\b|\bpercentile\b|\branks? (?:t-)?\w+ (?:in|among) (?:the )?(?:NBA|league)\b|\bsince (?:entering|joining|moving into|returning to) (?:the |his )?starting lineup\b|\bmost such\b|\bthrough (?:the season['’]s )?first \d+ games\b|\brank(?:s|ing)? (?:highly|top \d+)\b|\b(?:tied for )?(?:\w+(?:st|nd|rd|th)|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)[- ](?:most|fewest|highest|lowest|best)\b[^.;…]{0,40}\bin (?:the )?(?:NBA|league)\b/i;
+const SCHEDULE = /\bwill play\b|\b(?:homestand|road trip) (?:post|after|before)\b|\bthrough (?:the )?All-Star break\b|\bof (?:their|its|our) (?:first|final|last|next) \d+ games at\b/i;
 const SERIES = /\bseason series\b|\bseries (?:history|between)\b|\bthis season['’]s series\b|\b(?:last|past) (?:\w+ )?meetings\b|\bmeetings? (?:with|against|between)\b|\bhead-to-head\b/i;
 // "Since entering the league in 2012-13, Davis owns…": a timeframe, not when it happened, and not background.
 const SINCE_CLAUSE = /^Since (?:entering|joining|being drafted|he (?:joined|entered|arrived)|his (?:arrival|debut|rookie))[^,]{0,140},\s*/i;
 const PASSY = /\b(?:pass|passing|tie|tying|surpass|move (?:up|into|past)|jump)\b/i;
-const NOT_NBA = /\b(?:high school|school history|program(?:'s)? (?:history|all-time)|NCAA|college|freshman|sophomore|junior|senior year|AAU|conference tournament|EuroLeague|Olympic|FIBA|national team|G League|summer league|preseason)\b/i;
+const NOT_NBA = /\b(?:program record|against No\. \d+|high school|school history|program(?:'s)? (?:history|all-time)|NCAA|college|freshman|sophomore|junior|senior year|AAU|conference tournament|EuroLeague|Olympic|FIBA|national team|G League|summer league|preseason)\b/i;
 const CURRENT = /\b(?:active streak|longest active|this season|this year|2026-27|26-27|tonight|last game|last night|his last|over (?:his|the) (?:past|last) \d+|in (?:each of )?the first \d+ games|through \d+ games|to (?:begin|start|open) (?:the|his|their) (?:season|campaign|year)|for the \w+ (?:straight|consecutive) game|season opener|today|so far|is now|currently|this campaign|in (?:his|their) (?:\w+ )?debut with|(?:has|have) (?:now )?(?:recorded|scored|made|posted|had|tallied|grabbed|dished|hit|logged|notched) [^.]{0,60}\b(?:straight|consecutive) games)\b|\b(?:Oct|Nov|Dec)\.? \d{1,2}\b|\b1[0-2]\/\d{1,2}\b/i;
 const OLDER = /\b(?:last season|in 20(?:0\d|1\d|2[0-5])-\d\d|20(?:0\d|1\d|2[0-5])-\d\d:|during (?:the )?20(?:0\d|1\d|2[0-5])|previous (?:season|\d+ seasons)|career-long|as a rookie in)\b/i;
 
@@ -189,7 +216,34 @@ const ABBR = "NBA|ABA|MVP|ESPN|TNT|ABC|NBC|USA|FGM|FTM|FTA|FGA|PPG|RPG|APG|SPG|B
 const CAPS_PAIR = new RegExp(`\\b(?!(?:${ABBR})\\b)[A-Z][A-Z’'&\\-]{2,}\\s+(?!(?:${ABBR})\\b)[A-Z][A-Z’'&\\-]{2,}\\b`);
 const OBJECT_BEFORE = /\b(?:passed|passing|passes|surpass\w*|eclips\w*|tied|ties|tying|joined|joins|joining|behind|than|over|past|ahead of|trailing|with|and|after|by|of|from|vs\.?|against)\s+$/i;
 
-export function readHistory(doc, players = [], { seasonStart = null, today = null, teamWords = [], oppWords = [], box = null, dropped = null } = {}) {
+/* A feature box's lead sentence and its table ("…in several categories: Category Value NBA Rank Total Bench Points 147 pts
+   4th Points Per 36 Minutes (min. 250 MP) 18.4 4th…"; Portland, 11/13): the lead, then the table's rows in a line
+   ("Total Bench Points 147 pts (4th); Points Per 36 Minutes 18.4 (4th)…"). Three layouts: value and rank; this season
+   against last ("Offensive Rating 113.1 (21st) 118.5 (4th)"); a ranked list (only our own team's rows). */
+export function summarizeTable(s, teamTris = []) {
+  const at = s.search(/:\s+(?:Category|Offensive Category|Defensive Category|Rank Player|[A-Z][a-z]+ [A-Z][a-z]+ Value)\b/);
+  if (at < 40) return null;
+  const intro = s.slice(0, at).trim();
+  let body = s.slice(at + 1).replace(/\s+(?:[\p{Lu}0-9’'&,\-]{2,}\s+){1,}[\p{Lu}0-9’'&,\-]{2,}\.?\s*$/u, "").replace(/\s+PAGE \d+\.?\s*$/, "");
+  body = body.replace(/\((?:min\.|minimum)[^)]*\)\s*/g, "")
+    .replace(/(?:^|\s)(?:Offensive |Defensive )?Category\s+(?:Value\s+NBA\s+(?:Bench\s+)?Rank|(?:19|20)\d\d-\d\d \(rank\)\s+(?:19|20)\d\d-\d\d \(rank\))\s*/g, " ")
+    .replace(/(\p{Lu}[\p{L}.’'\-]+ \p{Lu}[\p{L}.’'\-]+) Value NBA (?:Bench )?Rank\s*/gu, "$1: ");
+  const rows = [];
+  // This season against last: "Label v1 (r1) v2 (r2)".
+  for (const m of body.matchAll(/([A-Z][A-Za-z.&’' -]{3,40}?)\s+(-?[\d.]+%?(?: [A-Za-z%]{2,4})?)\s+\(((?:t-)?\d{1,2}(?:st|nd|rd|th))\)\s+(-?[\d.]+%?(?: [A-Za-z%]{2,4})?)\s+\(((?:t-)?\d{1,2}(?:st|nd|rd|th))\)/g))
+    if (!/rank|Category/i.test(m[1])) rows.push(`${m[1].trim()} ${m[4]} (${m[5]}), from ${m[2]} (${m[3]})`);
+  // Value and rank: "Label value rank".
+  if (!rows.length) for (const m of body.matchAll(/([A-Z][A-Za-z0-9.&’'\/ -]{3,45}?)\s+((?:\.\d+|\d+(?:\.\d+)?)%?(?: ?[A-Za-z]{2,4})?)\s+((?:t-)?\d{1,2}(?:st|nd|rd|th))\b/g))
+    if (!/^(?:Value|Rank|Category|NBA)\b/.test(m[1].trim())) rows.push(`${m[1].replace(/^(?:Value NBA (?:Bench )?Rank|Category Value NBA (?:Bench )?Rank)\s*/, "").trim()} ${m[2]} (${m[3]})`);
+  // A ranked list: our own team's rows.
+  if (!rows.length && teamTris.length) for (const m of body.matchAll(/\b(\d{1,2})\s+(\p{Lu}[\p{L}.’'\-]+(?:\s+\p{Lu}[\p{L}.’'\-]+){1,2})\s+([A-Z]{3})\s+(\.?\d[\d.]*)/gu))
+    if (teamTris.includes(m[3])) rows.push(`${m[2]} ${m[4]} (${m[1]})`);
+  // A table we can't read: the lead sentence alone ("…the most such games by a forward in team history").
+  if (!rows.length) return /[\p{L}\d)]$/u.test(intro) ? `${intro}.` : null;
+  return `${intro}: ${rows.slice(0, 6).join("; ")}.`;
+}
+
+export function readHistory(doc, players = [], { seasonStart = null, today = null, teamWords = [], oppWords = [], box = null, dropped = null, tris = [] } = {}) {
   const drop = (reason, text) => { if (dropped) dropped.push({ reason, text }); };
   // STRICT (11/12, after the user's review): a line is kept only if it says WHO (a player on the team as
   // the subject, or the team itself) and it is CURRENT (dated this season, says "this season", or looks
@@ -265,13 +319,15 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       const p = full.find((q) => { const n = caps(q.name).trim().toUpperCase().replace(/ (JR|SR|II|III|IV)$/, ""); return n.length > 4 && caps(words).toUpperCase().startsWith(n); });
       if (p) bios.push({ at: m.index, p });
     }
+    const blockBio = bios.length ? bios[bios.length - 1].p : null; // the last player header in this block
     let cursor = 0, bioWho = null;
     let prevRaw = null; // the sentence before, for "That's the fifth-most…" and "They have…"
     let paraWho = null, sinceWho = 0, lastWhen = null;
     let paraHead = false; // paraWho came from a capitals heading (a player's list of bullets), not from a sentence naming him
-    if (carry && carry.page === b.page && carry.dist <= 700) { paraWho = carry.who; sinceWho = carry.dist; paraHead = true; }
-    const keep = () => { carry = paraWho && paraHead ? { who: paraWho, page: b.page, dist: sinceWho } : null; }; // lastWhen: "old" / "current" for the paragraph's last dated sentence // chars of text since paraWho was named // the player this paragraph is about, for its "He..." sentences
-    for (let s of sentences(b.text).flatMap((x) => x.split(/\s+(?=(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s+\p{Lu}|#\s?\d{1,2}\s+\p{Lu})/u).flatMap((y) => y.split(/\s*(?:…|\.{3}|[▪●•]|\s[o◦▫]\s(?=[A-Z]))\s*/))).map((x) => x.replace(/\s*\*{2,}.*$/, "").trim())) {
+    if (carry && carry.page === b.page && carry.bio) { bioWho = paraWho = sectionWho = carry.who; sinceWho = 0; paraHead = true; }
+    else if (carry && carry.page === b.page && carry.dist <= 700) { paraWho = carry.who; sinceWho = carry.dist; paraHead = true; }
+    const keep = () => { carry = paraWho && paraHead ? { who: paraWho, page: b.page, dist: sinceWho, bio: !!(bioWho && paraWho === bioWho) } : null; }; // lastWhen: "old" / "current" for the paragraph's last dated sentence // chars of text since paraWho was named // the player this paragraph is about, for its "He..." sentences
+    for (let s of sentences(b.text).flatMap((x) => x.split(/\s+(?=(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s+\p{Lu}|#\s?\d{1,2}\s+\p{Lu})/u).flatMap((y) => y.split(/\s*(?:…|\.{3}|[▪●•]|\s[o◦▫]\s(?=[A-Z]))\s*/).map((z, k, all) => { let w = k > 0 && /^[a-z]/.test(z) ? z[0].toUpperCase() + z.slice(1) : z; if (k < all.length - 1 && /[\p{L}\d%)]$/u.test(w) && !/\b(?:to|the|a|an|of|and|at|in|with|as|by|for|or|his|their|from|on|was|were|who|that|is|are|which)$/i.test(w)) w += "."; return w; }))).map((x) => x.replace(/\s*\*{2,}.*$/, "").trim())) {
       sinceWho += s.length + 1;
       { const at = b.text.indexOf(s.slice(0, 25), cursor); if (at >= 0) cursor = at; }
       while (bios.length && bios[0].at <= cursor + 5) { bioWho = paraWho = sectionWho = bios.shift().p; sinceWho = 0; lastWhen = null; }
@@ -282,6 +338,9 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
         if (m && s.length - m[0].length >= 40 && /\d|(?:\S+\s+){3}/.test(m[0])) s = s.slice(m[0].length);
       }
       s = s.replace(/(?:\s+[@#][A-Za-z0-9_]{3,})+$/, ""); // the PR account's handle at the end of an infographic page
+      // A feature box's table, read into one line (0.62).
+      let tableLine = false;
+      { const t = summarizeTable(s, tris); if (t) { s = t; tableLine = true; } }
       // The next table's title after the sentence: three or more capitals words, no brackets ("…vs. CHA (5-9 3FG))." stays).
       // (One space between words: an optional one lets a long run of capitals split many ways, which never finishes.)
       s = s.replace(/(?<!\bvs)([.!?])\s+(?:\p{Lu}[\p{Lu}0-9.,%\/’'&#+:\-]+\s+){2,}\p{Lu}[\p{Lu}0-9.,%\/’'&#+:\-]+\s*$/u, "$1");
@@ -317,23 +376,28 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       const prevWhen = lastWhen;
       if (ownDates.length) lastWhen = ownDates.some((d) => d >= seasonStart) ? "current" : "old";
       // A capitals heading starting the next item mid-sentence: cut there.
-      s = s.replace(/\s+(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s.*$/u, "").trim();
+      if (!tableLine) s = s.replace(/\s+(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s.*$/u, "").trim();
       if (s.length < 40) continue;
       // Splices and table fragments: stat-table labels with numbers, stat lines, runs of capitals,
       // a start that isn't a capitalised word, unbalanced brackets, a sentence that stops mid-thought.
-      if (!/^[\p{Lu}"“]/u.test(s) || /^\d|^[A-Z][a-z]{2}\.? \d/.test(s)) continue;
-      if (TABLEY.test(s)) continue;
+      if (!/^[\p{Lu}"“]/u.test(s) || /^\d|^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.? \d/.test(s)) { drop("start", s); continue; }
+      if (TABLEY.test(s) && !tableLine) { drop("tabley", s); continue; }
       // Two capitals words in a row that aren't common abbreviations: a table or heading spliced in ("his seventh MOST DOUBLE-DOUBLES double-double").
-      if (CAPS_PAIR.test(s)) continue;
+      if (CAPS_PAIR.test(s) && !tableLine) { drop("caps-pair", s); continue; }
+      // A stat sidebar's cells read into the line ("FTA 12 at HOU 22 at PHI 11/30/25", "OREB 2 11/9 @ TOR (3x)", "…Career vs. New York Knicks record…").
+      if (!tableLine && (/\b(?:FTA|FGA|OREB|DREB|REB|AST|PTS|STL|BLK|3PM|FGM|FTM)\s+\d+\s+(?:at|vs\.?|@|\d)/.test(s) || /\d\s+\(\d+x\)|\(\d+x\)\s+\d/.test(s) || /\bCareer vs\. \p{Lu}/u.test(s.slice(1)))) { drop("splice", s); continue; }
+      // Two columns read into one line ("…in NBA history. offensive rebounding (3.5 per).", "…game on 11/6. with at least…").
+      if (/(?:\p{L}{5,}|\d|\)|%)\. (?!(?:\d|vs\b|[A-Z]))\p{Ll}/u.test(s.replace(/\b(?:vs|No|Jr|Sr|St|approx|per|pts|reb|ast)\. /g, "$&").replace(/\b(?:[A-Z]|vs|No|Jr|Sr|St)\. \p{Ll}/gu, ""))) { drop("splice", s); continue; }
       // A table cell read twice ("Luka DoncicLuka Doncic 5252").
       if (/(\p{Lu}[\p{L}'’\-]+ \p{Lu}[\p{L}'’\-]+)\1/u.test(s) || /\b(\d{2,3})\1\b/.test(s)) continue;
       const open = (s.match(/\(/g) || []).length, close = (s.match(/\)/g) || []).length;
-      if (open !== close || !/[.!?)"”]$/.test(s) || /\b(?:to|the|a|of|and|at|in|with|as|by|for)\s*$/i.test(s) || (s.match(/\(\d{1,3}\)/g) || []).length >= 2) continue;
-      if (/Notes\/Trends|Video Highlights|Season Stats|\bGP \d|PPG \d|\(cont\.?\)/i.test(s)) continue;
-      if (s.replace(/[^0-9]/g, "").length / s.length > 0.22) continue;
+      if (open !== close || !/[.!?)"”]$/.test(s) || /\b(?:to|the|a|of|and|at|in|with|as|by|for)\s*$/i.test(s) || (!tableLine && (s.match(/\(\d{1,3}\)/g) || []).length >= 2)) { drop("unfinished", s); continue; }
+      if (/Notes\/Trends|Video Highlights|Season Stats|\bGP \d|PPG \d|\(cont\.?\)/i.test(s)) { drop("box-header", s); continue; }
+      if (s.replace(/[^0-9]/g, "").length / s.length > (tableLine ? 0.5 : /\b\d{1,3}-\d{1,3} when\b/.test(s) ? 0.32 : 0.22)) { drop("numbers", s); continue; }
       // Past tense isn't a look ahead ("was the first ... with 200 3PM within 60 games").
-      const fwd = FORWARD.test(s) && !/^(?:\S+\s+){0,4}?(?:was|were|became|had)\b/.test(s), hist = HISTORY.test(s), ctxHit = CONTEXT.test(s);
-      if (!fwd && !hist && !ctxHit) continue;
+      const fwd = FORWARD.test(s) && !/^(?:\S+\s+){0,4}?(?:was|were|became|had)\b/.test(s), hist = HISTORY.test(s), ctxHit = CONTEXT.test(s), trendHit = TREND.test(s);
+      if (SCHEDULE.test(s)) { drop("schedule", s); continue; }
+      if (!fwd && !hist && !ctxHit && !trendHit && !tableLine) { drop("no-signal", s); continue; }
       if (NOT_NBA.test(core) || /\b(?:drafted|draft pick|overall pick|picked \w+(?: overall)?|NBA Draft|Draft Lottery|transferr|left the [A-Z]\w+|(?:with|for) the [A-Z][a-z]+ (?:from|in) (?:19|20)\d\d|All-(?:Big|ACC|SEC|Pac|American)|Ignite|Jayhawks|collegiate)\b/i.test(core)) { drop("background", s); continue; } // background
       const key = plain(s).toLowerCase().replace(/[^a-z0-9]+/g, ""); // "150-plus" and "150plus" are the same line
       if (seen.has(key)) continue;
@@ -342,6 +406,7 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       // The sentence's own subject outranks the heading above it; a heading's player is not credited with a
       // sentence that opens with someone else's name ("TOLU SMITH Ron Holland became...").
       let own = subjectOf(s) || subjectOf(s.replace(SINCE_CLAUSE, ""));
+      if (!own && tableLine) { const lead = plain(s.split(":")[0]); own = full.find((p) => p.re.test(lead) && !OBJECT_BEFORE.test(lead.slice(0, lead.search(p.re)))) || null; }
       if (!own) {
         const th = plain(s).match(/\bthan\s+(\p{Lu}[\p{L}'’.\-]+(?:\s+\p{Lu}[\p{L}'’.\-]+)?)\s*[.!]?$/u);
         const nm = th && th[1].replace(/\.$/, "");
@@ -354,9 +419,9 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       // A sentence that opens with "He…" or a bare verb ("Became…", "Passed Nikola Vučević…") is about the
       // player of its paragraph, or failing that of its part of the page.
       const pronoun = /^(?:He|His|The \d{2}-year-old|The rookie|The (?:guard|forward|center|big man|veteran|sophomore))\b/.test(s);
-      const verbLed = /^(?:Became|Becomes|Recorded|Records|Logged|Set|Sets|Tied|Ties|Joined|Joins|Passed|Scored|Posted|Notched|Tallied|Grabbed|Dished|Made|Hit|Owns|Holds|Ranks|Leads|Led|Moved|Reached|Surpassed|Eclipsed|Needs|Is|Has|Was|Averag\w+|Finished|Registered|Matched|Broke|Earned|Collected|Totaled|Pulled down|Handed out|Knocked down|Connected)\b/.test(s);
+      const verbLed = /^(?:Had|Hit|Shooting|Shot|Along with|Since|Became|Becomes|Recorded|Records|Logged|Set|Sets|Tied|Ties|Joined|Joins|Passed|Scored|Posted|Notched|Tallied|Grabbed|Dished|Made|Hit|Owns|Holds|Ranks|Leads|Led|Moved|Reached|Surpassed|Eclipsed|Needs|Is|Has|Was|Averag\w+|Finished|Registered|Matched|Broke|Earned|Collected|Totaled|Pulled down|Handed out|Knocked down|Connected)\b/.test(s);
       let who = subj, how = own ? "named" : headWho ? "heading" : null;
-      if (!who && (pronoun || verbLed)) {
+      if (!who && (pronoun || verbLed || (bioWho && paraWho === bioWho))) {
         // Close to the sentence that named him (a player-info page can hold two players' columns).
         if (bioWho && paraWho === bioWho) { who = bioWho; how = "bio"; }
         else if (paraWho && sinceWho <= 700) { who = paraWho; how = "paragraph"; }
@@ -370,7 +435,8 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       const thisSeason = seasonStart ? dates.some((d) => d >= seasonStart) : false;
       // A real day this season ("10/21", "Nov. 6"), not just a season label like "2026-27" spliced in from a table.
       const dayThisSeason = seasonStart ? undated(s).concat([...s.matchAll(/\b(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})\b/g)].map((m) => `${m[3].length === 2 ? 2000 + +m[3] : +m[3]}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}`)).some((d) => d >= seasonStart) : false;
-      const datedOld = dates.length && seasonStart && !thisSeason;
+      // "(12.8 per overall; 25th w/11.5 in 2025-26)": last season as the comparison for a stretch this season, not the line's date.
+      const datedOld = dates.length && seasonStart && !thisSeason && !(trendHit && /\b(?:past|last|first) \d+ (?:games|GP)\b|\bthis season\b/i.test(s));
       if (datedOld) { drop("dated-old", s); continue; }
       // "On Dec. 23, 2025… He is now the first rookie…": an undated follow-on sentence belongs to the date before it.
       if (!dates.length && how && how !== "named" && how !== "heading" && prevWhen === "old" && !/\b(?:this season|active streak|longest active)\b/i.test(s)) { drop("follows-old", s); continue; }
@@ -393,9 +459,11 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       // A table row read into prose ("Domantas Sabonis 413 which ranks sixth…").
       if (/^\p{Lu}[\p{L}'’.\-]+(?:\s+\p{Lu}[\p{L}'’.\-]+){1,2}\s+\d[\d,]*\s+(?:which|that|is|ranks)\b/u.test(s)) { drop("table-row", s); continue; }
       const matchup = SERIES.test(s) || (!!oppRe && oppRe.test(plain(s)) && ctxHit);
-      const team = !who && ((teamRe && teamRe.test(plain(s))) || (ctxHit && teamMid && teamMid.test(plain(s))) || they || (matchup && SERIES.test(s)));
+      // A team-stats box: "Rockets Offense ➢ Averaging 108.0 ppg over the past 5 games…" (the team named in the heading just above).
+      const teamHead = !who && verbLed && teamWords.length && new RegExp(`\\b(?:${teamWords.map(esc).join("|")})\\b`).test(plain(b.text.slice(Math.max(0, cursor - 120), cursor)));
+      const team = !who && (teamHead || (teamRe && teamRe.test(plain(s))) || ((ctxHit || trendHit || tableLine) && teamMid && teamMid.test(plain(s))) || they || (matchup && SERIES.test(s)));
       if (!who && !team) { drop("no-who", s); continue; }
-      const kind = fwd ? (PASSY.test(s) ? "pass" : "next") : hist ? "record" : "context";
+      const kind = fwd ? (PASSY.test(s) ? "pass" : "next") : hist ? "record" : ctxHit ? "context" : "trend";
       if (boxOld && !thisSeason && !CURRENT.test(s)) { drop("box-not-this-season", s); continue; }
       // "the first … to record at least 40 PTS and 15 REB in a game": if he had such a game this season, it's this season's.
       if (!boxCurrent && !thisSeason && who && box) {
@@ -407,18 +475,30 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       }
       // A standing fact in the present tense ("Giddey has recorded six games of 15-plus assists…, tied for fourth-most in
       // team history", "Duren has the 4th-highest field goal percentage…"): true as of tonight, whoever's notes say it.
-      const standing = !!who && /^(?:[\p{Lu}][\p{L}'’.\-]*\s+){0,3}(?:\([^)]*\)\s+)?(?:also\s+|now\s+|currently\s+|still\s+)?(?:is|ranks|has|holds|owns|sits|leads|remains|stands|extends|trails)\b/u.test(core.replace(/^(?:He|She)\s+/, "X "));
+      const standing = !!who && /^(?:[\p{Lu}][\p{L}'’.\-]*\s+){0,3}(?:\([^)]*\)\s+)?(?:also\s+|now\s+|currently\s+|still\s+)?(?:is|ranks|has|holds|owns|sits|leads|remains|stands|extends|trails)\b/u.test(core.replace(/^(?:He|She)\s+/, "X "))
+        || (!!who && /^(?:Is|Ranks|Has|Holds|Owns|Sits|Leads|Remains|Stands|Extends|Trails)\b/.test(core));   // a box's bullet with no name: "Ranks 10th in NBA in 3FG%"
       // A series run still going ("has won each of the past two season series", "won eight of the last 12 meetings") is current.
       const seriesRun = matchup && /\b(?:each of the (?:past|last)|(?:past|last) (?:\w+ )?(?:season series|meetings)|straight (?:meetings|games against))\b/i.test(s);
       // League context in the present tense ("They have the highest rate…", "Davis owns the most blocks…") is as of tonight.
-      const presentCtx = (kind === "context" || ctxHit) && /\b(?:is|are|has|have|leads?|ranks?|owns?|sits?|remains?|holds?|joins?)\b/.test(core);
+      const presentCtx = (kind === "context" || kind === "trend" || ctxHit) && /\b(?:is|are|has|have|leads?|ranks?|owns?|sits?|remains?|holds?|joins?)\b/.test(core);
       const current = thisSeason || boxCurrent || standing || seriesRun || presentCtx || CURRENT.test(s) || (kind !== "record" && kind !== "context");
       if (!current) { drop("not-current", s); continue; }
-      if (OLDER.test(core) && !dayThisSeason) { drop("older", s); continue; }
-      const score = (kind === "pass" ? 3 : kind === "next" ? 2.4 : 2) + (thisSeason || CURRENT.test(s) ? 1 : 0) + (/in NBA history|all-time|since 19\d\d|first (?:player|rookie|team)/i.test(s) ? 0.8 : 0) - (how === "section" ? 0.3 : 0);
+      // In the regular season before April, a postseason, an All-Star break or a games count past tonight's is last season's.
+      if (today && !dayThisSeason && !thisSeason) {
+        const mo = +today.slice(5, 7), gp = box && Array.isArray(box.games) ? box.games.length : null;
+        const past = (mo >= 10 || mo <= 3) && /\b(?:postseason|playoffs?|play-in|(?:Western|Eastern) Conference (?:Semifinals|Finals)|Conference (?:Semi)?[Ff]inals|WCF|ECF|NBA Finals|First Round|Game [1-7] (?:at|vs\.?|of)|post All-Star break|(?:after|before|since) the All-Star break|all 82)\b/.test(s) && !/\b(?:appearances|titles|championships|series wins)\b/i.test(s);
+        const nOver = gp != null && [...s.matchAll(/\b(?:through|first|in(?: his| their)? first|over (?:his|their) first) (\d{2,3}) games\b/gi)].some((m) => +m[1] > gp + 2 && !/career|history|with the team|with (?:the )?\p{Lu}\w+|as a \p{Lu}|uniform/u.test(s.slice(Math.max(0, m.index - 20), m.index + m[0].length + 30)));
+        if (past || nOver) { drop("last-season", s); continue; }
+      }
+      const stretchNow = trendHit && /\b(?:past|last|first) \d+ (?:games|GP)\b|\bthis season\b/i.test(s);   // last season only as the comparison
+      if (!stretchNow && OLDER.test(core.replace(/\b(?:back to|dating back to|going back to|since|including|over) last season\b/gi, "these seasons")) && !dayThisSeason) { drop("older", s); continue; }
+      const score = (kind === "pass" ? 3 : kind === "next" ? 2.4 : kind === "trend" ? 1.8 : 2) + (thisSeason || CURRENT.test(s) ? 1 : 0) + (/in NBA history|all-time|since 19\d\d|first (?:player|rookie|team)/i.test(s) ? 0.8 : 0) - (how === "section" ? 0.3 : 0);
       if (joinedFrom && out.length && out[out.length - 1].text === joinedFrom) out.pop();
       out.push({ page: b.page, text: s, kind, player: who?.name || null, playerId: who?.id || null, team: !!team, matchup, how: who ? how : matchup && !team ? "series" : "team", resolved: !subj && !!who, boxGame: chk.game || null, when: "season", score: Math.round(score * 100) / 100 });
     }
+    // A player's box header printed at the end of the block before his notes ("…W115-108 Center #28 Alperen Sengun 6-11/255"):
+    // his notes are the next block, after the header's "•" (Houston, 11/13).
+    if (blockBio) carry = { who: blockBio, page: b.page, dist: 0, bio: true };
   }
   // The same forward fact printed twice ("needs 816 points to pass Kobe Bryant"): keep one.
   const fwdKey = (t) => { const m = t.match(/needs?\s+([\d,]+)\s+([a-z-]+(?:\s+[a-z-]+)?)\s+to\s+(?:pass|tie|surpass)\s+([A-Z][^.,]{2,40}?)(?=\s+for|[.,]|$)/i); return m ? m.slice(1).join('|').toLowerCase() : null; };

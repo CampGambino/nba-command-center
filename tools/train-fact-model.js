@@ -25,7 +25,9 @@ export const PRIOR = {
     team: 0.1, player: 0.2, forward: 0.5, live: 0.6, long: -0.2,
     // From the user's review of 11/13: a closed one-off (opener, debut, "first two games", a pass made weeks ago, a trip,
     // the franchise's age) gives little to build on; rarity over 10+ years does.
-    opener: -0.9, pastPass: -0.8, oneOff: -1.0, longSpan: 0.8 },
+    opener: -0.9, pastPass: -0.8, oneOff: -1.0, longSpan: 0.8,
+    // From the user's picks of 11/13 (Rockets, Blazers, Jazz notes): stretches and records-when are worth a line.
+    stretch: 0.5, whenRecord: 0.6 },
 };
 
 export function train(labels, { prior = PRIOR, sigma = 1, steps = 4000, lr = 0.05 } = {}) {

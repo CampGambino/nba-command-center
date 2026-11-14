@@ -660,6 +660,336 @@
    "label": 1,
    "weight": 0.5,
    "source": "user's review of the 11/13 slate: comfortable including (few lines for the team)"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "HOU",
+   "text": "Had 5+ assists in each of the past 2 games after doing so once prior this season; back to last season, Rockets are 30-12 when he has 5+ assists.",
+   "meta": {
+    "player": "Kevin Durant",
+    "team": false,
+    "matchup": false,
+    "kind": "trend",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 ('interesting tidbits… that didn't appear in the watch list')"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "HOU",
+   "text": "Has scored 20+ points in 4 straight games for the 2nd time this season (first 4 games).",
+   "meta": {
+    "player": "Kevin Durant",
+    "team": false,
+    "matchup": false,
+    "kind": "trend",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 ('interesting tidbits… that didn't appear in the watch list')"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "HOU",
+   "text": "Along with Jokić, on pace to become first players in NBA history to have averaged at least 21.0 ppg, 9.0 rpg, 7.0 apg, 1.00 spg and 1.00 bpg in a season.",
+   "meta": {
+    "player": "Alperen Sengun",
+    "team": false,
+    "matchup": false,
+    "kind": "next",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 ('interesting tidbits… that didn't appear in the watch list')"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "HOU",
+   "text": "Averaging 108.0 ppg over the past 5 games after averaging 120.7 the first 7 games (115.4 per overall).",
+   "meta": {
+    "player": null,
+    "team": true,
+    "matchup": false,
+    "kind": "trend",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 ('interesting tidbits… that didn't appear in the watch list')"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "HOU",
+   "text": "Since allowing 110+ points in each of the first 4 games (111.0 per) have done so twice over the past 8 games (104.3 per; 106.5 per overall; 4th-fewest allowed at 110.0 in 2025-26).",
+   "meta": {
+    "player": null,
+    "team": true,
+    "matchup": false,
+    "kind": "trend",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 ('interesting tidbits… that didn't appear in the watch list')"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "HOU",
+   "text": "Averaging 13.7 3FGM over the past 6 games, up from 12.0 the first 6 games (12.8 per overall; 25th w/11.5 in 2025-26)... 3-0 when having 15+ 3FGM (14-2 in 2025-26).",
+   "meta": {
+    "player": null,
+    "team": true,
+    "matchup": false,
+    "kind": "trend",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 ('interesting tidbits… that didn't appear in the watch list')"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "POR",
+   "text": "Since entering starting lineup (2 games): 18.0 ppg / .478 FG% / .412 3FG%; 36 pts over last two games mark his career high for any two-game span.",
+   "meta": {
+    "player": "Sidy Cissoko",
+    "team": false,
+    "matchup": false,
+    "kind": "trend",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 ('interesting tidbits… that didn't appear in the watch list')"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "POR",
+   "text": "Ranks 10th in NBA in 3FG% (.432, 32-74), fourth in eFG% (.667) and second in catch and shoot 3FG% (.450).",
+   "meta": {
+    "player": "Toumani Camara",
+    "team": false,
+    "matchup": false,
+    "kind": "context",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 ('interesting tidbits… that didn't appear in the watch list')"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "POR",
+   "text": "Has started 97 consecutive regular season games.",
+   "meta": {
+    "player": "Toumani Camara",
+    "team": false,
+    "matchup": false,
+    "kind": "context",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 ('interesting tidbits… that didn't appear in the watch list')"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "POR",
+   "text": "Ranks fourth in NBA in ORPG (3.6), fourth in BPG (2.2), third in contested shots/game (10.4) and eighth in RPG (10.5).",
+   "meta": {
+    "player": "Donovan Clingan",
+    "team": false,
+    "matchup": false,
+    "kind": "context",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 ('interesting tidbits… that didn't appear in the watch list')"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "POR",
+   "text": "Shooting .462 3FG%—outpacing his career high of .341 (2025-26).",
+   "meta": {
+    "player": "Donovan Clingan",
+    "team": false,
+    "matchup": false,
+    "kind": "trend",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 ('interesting tidbits… that didn't appear in the watch list')"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "POR",
+   "text": "Has five games this season of 20+ pts, 5+ asts and 5+ rebs—tied for fifth most in NBA.",
+   "meta": {
+    "player": "Deni Avdija",
+    "team": false,
+    "matchup": false,
+    "kind": "trend",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 ('interesting tidbits… that didn't appear in the watch list')"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "POR",
+   "text": "Recorded his 15th game of 20+ pts and 10+ asts as a Trail Blazer @ LAL—most such games by a forward in team history.",
+   "meta": {
+    "player": "Deni Avdija",
+    "team": false,
+    "matchup": false,
+    "kind": "record",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 ('interesting tidbits… that didn't appear in the watch list')"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "POR",
+   "text": "One of six players in NBA currently averaging 23+ ppg, 6+ apg and 6+ rpg (min. 5 GP).",
+   "meta": {
+    "player": "Deni Avdija",
+    "team": false,
+    "matchup": false,
+    "kind": "context",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 ('interesting tidbits… that didn't appear in the watch list')"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "POR",
+   "text": "Through the season’s first 11 games, Portland’s offensive output is outperforming last season’s production in several categories: Offensive Rating 118.5 (4th), from 113.1 (21st); Points Per Game 119.5 ppg (2nd), from 115.5 ppg (17th); Field Goal Percentage .469 FG% (8th), from .453 FG% (29th); Effective FG Percentage .561 EFG% (4th), from .534 EFG% (22nd).",
+   "meta": {
+    "player": null,
+    "team": true,
+    "matchup": false,
+    "kind": "trend",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 ('interesting tidbits… that didn't appear in the watch list')"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "POR",
+   "text": "Though early in the season, Jrue Holiday and Toumani Camara has been efficient from beyond the arc—ranking highly in 3-point percentage and catch and shoot 3-point percentage: Toumani Camara: 3-Point Percentage 43.2% (10th); C&S 3-Point Percentage 45.0% (2nd); Jrue Holiday: 3-Point Percentage 44.4% (4th); C&S 3-Point Percentage 46.9% (14th).",
+   "meta": {
+    "player": "Jrue Holiday",
+    "team": false,
+    "matchup": false,
+    "kind": "trend",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 ('interesting tidbits… that didn't appear in the watch list')"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "POR",
+   "text": "Camara and Holiday also currently rank top 10 in effective field goal percentage, as does Donovan Clingan (min. 80 FGA): Toumani Camara .660 (4); Donovan Clingan .646 (7); Jrue Holiday .646 (8).",
+   "meta": {
+    "player": "Toumani Camara",
+    "team": false,
+    "matchup": false,
+    "kind": "trend",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 ('interesting tidbits… that didn't appear in the watch list')"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "POR",
+   "text": "Coming off the bench in every game so far this season, Jrue Holiday ranks highly in several bench offensive categories: Total Bench Points 147 pts (4th); Points Per 36 Minutes 18.4 (4th); Assists Per 36 Minutes 5.4 (2nd); Field Goals Made 48 FGM (5th); 3-Pointers Made 28 3PM (t-4th).",
+   "meta": {
+    "player": "Jrue Holiday",
+    "team": false,
+    "matchup": false,
+    "kind": "trend",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 ('interesting tidbits… that didn't appear in the watch list')"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "UTA",
+   "text": "His 0.8 blocks per game rank in the 95th percentile among NBA guards, while his 20 combined steals and blocks highlight his defensive activity early in his rookie campaign.",
+   "meta": {
+    "player": "Darryn Peterson",
+    "team": false,
+    "matchup": false,
+    "kind": "trend",
+    "live": false
+   },
+   "label": 1,
+   "weight": 1,
+   "source": "user's screenshots, 11/13 ('interesting tidbits… that didn't appear in the watch list')"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "HOU",
+   "text": "Pending the outcome of Emirates NBA Cup Group Play, the Rockets currently have 15 of their first 25 games at Toyota Center through 12/16.",
+   "meta": {
+    "player": null,
+    "team": true,
+    "matchup": false,
+    "kind": "context",
+    "live": false
+   },
+   "label": 0,
+   "weight": 1,
+   "source": "user's screenshots, 11/13: schedule stretches ('I wouldn't want to know the stretches from december and february today')"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "HOU",
+   "text": "From 12/18 through All-Star break, Houston will play 20 of 32 games of the road.",
+   "meta": {
+    "player": null,
+    "team": true,
+    "matchup": false,
+    "kind": "context",
+    "live": false
+   },
+   "label": 0,
+   "weight": 1,
+   "source": "user's screenshots, 11/13: schedule stretches ('I wouldn't want to know the stretches from december and february today')"
+  },
+  {
+   "date": "2026-11-13",
+   "team": "HOU",
+   "text": "Following a 5-game homestand post All-Star break, the Rockets will play 9 of 13 on the road from 3/7-3/31 before finishing with 4 of their final 5 games at home.",
+   "meta": {
+    "player": null,
+    "team": true,
+    "matchup": false,
+    "kind": "context",
+    "live": false
+   },
+   "label": 0,
+   "weight": 1,
+   "source": "user's screenshots, 11/13: schedule stretches ('I wouldn't want to know the stretches from december and february today')"
   }
  ]
 }

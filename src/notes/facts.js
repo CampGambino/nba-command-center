@@ -65,12 +65,12 @@ function clubOf(t) {
 export function features(text, meta = {}) {
   const t = plain(text);
   const club = clubOf(t), rk = rankOf(t), th = thresholds(t);
-  const league = /\bin the (?:NBA|league)\b|\bleague-wide\b|\bof any (?:team|player)\b|\bby any (?:team|player)\b|\b(?:leads?|led) all NBA\b|\bamong (?:all )?(?:NBA|qualified|active)\b|\bin league history\b|\bin NBA history\b|\bthe NBA\b/i.test(t);
+  const league = /\bin (?:the )?(?:NBA|league)\b|\bleague-wide\b|\bof any (?:team|player)\b|\bby any (?:team|player)\b|\b(?:leads?|led) all NBA\b|\bamong (?:all )?(?:NBA|qualified|active)\b|\bin league history\b|\bin NBA history\b|\bthe NBA\b/i.test(t);
   const history = /\bin (?:NBA|league) history\b|\ball-time\b|\bsince (?:the )?(?:19[5-9]\d)\b|\bever\b|\bsince \w+ (?:began|were) (?:being )?(?:officially )?tracked\b/i.test(t);
   const teamOnly = /\bby any [A-Z][a-z]+s? player\b|\bby a [A-Z][a-z]+s? player\b|\bon the team\b|\bamong (?:all )?(?:[A-Z][a-z]+s?|team) (?:players|rookies)\b/.test(t);
   const franchise = /\b(?:in|on) (?:the )?[A-Z][a-z]+(?:['’]s?)? all-time\b|\b[A-Z][a-z]+['’]s? (?:all-time|career|franchise) (?:list|leaders?)\b|\b(?:franchise|team|club) (?:history|annals)\b/.test(t) || /\b(?:team|franchise|club) (?:history|annals|record)\b|\b[A-Z][a-z]+ (?:history|annals)\b(?<!NBA history)|\bof a [A-Z][a-z]+ career\b|\bby an? [A-Z][a-z]+(?: rookie)? (?:in|since)\b|\b(?:first|only|\w+) [A-Z][a-z]+s? (?:rookie|duo|trio|player)s? (?:to|since|in)\b/.test(t) && !/\bin (?:NBA|league) history\b/i.test(t);
   const season = /\bthis (?:season|year|campaign)\b|\bso far\b|\bcurrently\b|\b2026-27\b|\bover the first \d+ games of the season\b|\bwhich leads the league\b/i.test(t);
-  const streak = /\b\d{2,} (?:consecutive|straight) (?:games|starts|contests)\b|\bactive streak\b|\blongest active\b/i.test(t);
+  const streak = /\b\d{2,} (?:consecutive|straight) (?:[\w-]+ ){0,2}(?:games|starts|contests)\b|\bactive streak\b|\blongest active\b/i.test(t);
   const race = /\bonly\b[^.;]{0,80}\bmore\b[^.;]{0,60}\bthan\b|\bsecond only to\b|\bbehind only\b|\b(?:owns|has|holds) the most\b[^.;]{0,40}\b(?:since|in the NBA)\b/i.test(t);
   const f = {
     club: club != null ? 1 : 0,
@@ -102,6 +102,9 @@ export function features(text, meta = {}) {
     opener: /\bseason[- ]opener\b|\bopening night\b|\bin (?:his|their|the) opener\b|\b(?:NBA|career) debut\b|\b(?:first|opening) (?:two|three|four|five|six|\d) (?:career )?games\b|\beach of the first\b/i.test(t) ? 1 : 0,
     pastPass: /\b(?:passed|surpassed|moved past|eclipsed|overtook)\b[^.]{0,80}\bon (?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)[a-z]*\.? \d|\d{1,2}\/\d)/i.test(t) ? 1 : 0,
     oneOff: /\btraveled to\b|\bfor the first time in (?:team|franchise) history to (?:face|play|visit|travel)\b|\b\d{1,3}(?:st|nd|rd|th) season in (?:franchise|team) history\b/i.test(t) ? 1 : 0,
+    // 0.62, from the user's picks in the Rockets' and Blazers' notes (11/13): a stretch against the season, and a record when.
+    stretch: /\b(?:past|last) (?:\d{1,2}|two|three|four|five|six) (?:games|GP|contests)\b|\bsince entering\b|\b\d{1,2} (?:straight|consecutive) games\b|\bin each of the (?:past|last)\b/i.test(t) ? 1 : 0,
+    whenRecord: /\b\d{1,3}-\d{1,3} when\b|\bwhen (?:he|they|having|scoring|holding)\b[^.;]{0,50}\b\d{1,3}-\d{1,3}\b/i.test(t) ? 1 : 0,
     longSpan: (() => { const m = t.match(/\bsince\s+(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},\s+)?((?:19|20)\d\d)/i); return m && new Date().getUTCFullYear() - Number(m[1]) >= 10 ? 1 : 0; })(),
   };
   return f;
@@ -416,8 +419,10 @@ export function trimReason(line, { box = null, today, home = null } = {}) {
   // Closed, past one-offs.
   const games = (box?.games || []).filter((g) => g.d < today).map((g) => g.d).sort();
   const when = eventDate(line.text, { today, firstGame: games[0] || null });
-  const singleGame = OPENER.test(t) || DEBUT.test(t) || FIXED_WINDOW.test(t) || /\bin a (?:single )?game\b|\btraveled to\b|\b(?:passed|surpassed|moved past|eclipsed|overtook)\b[^.]{0,80}\bon (?:\w+\.? \d|\d)/i.test(t);
-  const open = !singleGame && (OPEN.test(t) || d.type === "club" || d.type === "race" || d.type === "streak" || !!line.matchup || line.kind === "pass" || line.kind === "next" || !!line.hook?.live);
+  // A stretch against the start of the season ("averaging 108.0 over the past 5 games after averaging 120.7 the first 7") is now.
+  const stretch = /\b(?:past|last) (?:\d{1,2}|two|three|four|five|six|seven|eight|nine|ten) (?:games|GP|contests)\b|\bsince entering\b|\bper overall\b|\boverall this season\b|\b\d+ (?:straight|consecutive) games\b[^.]{0,40}\bthis season\b/i.test(t);
+  const singleGame = OPENER.test(t) || DEBUT.test(t) || (FIXED_WINDOW.test(t) && !stretch) || /\bin a (?:single )?game\b|\btraveled to\b|\b(?:passed|surpassed|moved past|eclipsed|overtook)\b[^.]{0,80}\bon (?:\w+\.? \d|\d)/i.test(t);
+  const open = !singleGame && (stretch || OPEN.test(t) || /\branks? (?:t-)?\w+ in (?:the )?(?:NBA|league)\b/i.test(t) || d.type === "club" || d.type === "race" || d.type === "streak" || !!line.matchup || line.kind === "pass" || line.kind === "next" || !!line.hook?.live);
   if (open || !when) return null;
   if (longSpan(t, today)) return null; // rare over a long span: the user keeps these
   const age = Math.round((Date.parse(today) - Date.parse(when)) / 864e5);

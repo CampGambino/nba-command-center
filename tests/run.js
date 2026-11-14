@@ -1841,6 +1841,48 @@ await articlesChecks(ok);
   flowData = null;
 }
 
+// ---------- Trends, sidebars and feature tables in the notes (0.62; the user's Rockets / Blazers / Jazz picks, 11/13) ----------
+{
+  const N2 = await import("../src/notes/narrative.js");
+  const F = await import("../src/notes/facts.js");
+  const L = (text) => ({ text, cells: [{ x0: 40, x1: 560, cx: 300, text }], charX: [] });
+  const doc = { pages: [
+    { page: 1, width: 612, lines: [
+      L("KBME 790/KTRH 740 • SOL 101.7 FM (Spanish) Forward #7 Kevin Durant 6-10/240 • 9/29/88 • Texas/USA • 20th season (2nd w/HOU) Notes/Trends [2026-27 Video Highlights] 2026-27 Season Stats Had 5+ assists in each of the past 2 games after doing so once prior this GP 12 PPG 20.9 RPG 6.1 APG 3.6 season; back to last season, Rockets are 30-12 when he has 5+ assists… GS 12 SPG 0.58 BPG 1.25 TPG 3.3 bla has scored 20+ points in 4 straight games for the 2nd time this season (first 4 games)… Center #28 Alperen Sengun 6-11/255 • 7/25/02 • Besiktas (TBSL)/Türkiye • 6th season (6th w/HOU) Notes/Trends [2026-27 Video Highlights] Along with Jokić, on pace to become first players in NBA history to have GP 10 PPG 21.1 RPG 9.4 APG 7.9 averaged at least 21.0 ppg, 9.0 rpg, 7.0 apg, 1.00 spg and 1.00 bpg in a season."),
+    ] },
+    { page: 4, width: 612, lines: [
+      L("Rockets Offense ➢ Averaging 108.0 ppg over the past 5 games after averaging 120.7 the first 7 games (115.4 per overall)."),
+      L("SCHEDULE NOTES Here are some notes from the Rockets schedule this season: • From 12/18 through All-Star break, Houston will play 20 of 32 games of the road. • Following a 5-game homestand post All-Star break, the Rockets will play 9 of 13 on the road from 3/7-3/31 before finishing with 4 of their final 5 games at home."),
+    ] },
+    { page: 2, width: 612, lines: [
+      L("#33 Toumani Camara F • 6-7 • 230 • Dayton/Belgium • 4th Season LAST GAME: 14 pts / 5 rebs / 3 asts / 2 blks / 38 mins • Ranks 10th in NBA in 3FG% (.432, 32-74), fourth in eFG% (.667) GP/GS PPG RPG APG SPG BPG MPG and second in catch and shoot 3FG% (.450) 11/11 13.1 3.5 1.5 0.7 0.4 28.5 • Has started 97 consecutive regular season games"),
+    ] },
+    { page: 3, width: 612, lines: [
+      L("Coming off the bench in every game so far this season, Jrue Holiday ranks highly in several bench offensive categories: Category Value NBA Bench Rank Total Bench Points 147 pts 4th Points Per 36 Minutes (min. 250 MP) 18.4 4th Assists Per 36 Minutes (min. 250 MP) 5.4 2nd HOLIDAY JOINS LILLARD IN TOP 100"),
+    ] },
+  ] };
+  const players = [{ id: "1", name: "Kevin Durant" }, { id: "2", name: "Alperen Sengun" }, { id: "3", name: "Toumani Camara" }, { id: "4", name: "Jrue Holiday" }];
+  const dropped = [];
+  const h = readHistory(doc, players, { seasonStart: "2026-10-01", today: "2026-11-13", teamWords: ["Houston", "Rockets", "Portland", "Trail Blazers"], dropped, tris: ["POR"] });
+  const by = (re) => h.find((x) => re.test(x.text));
+  ok(by(/^Had 5\+ assists in each of the past 2 games after doing so once prior this season; back to last season, Rockets are 30-12/)?.player === "Kevin Durant"
+    && by(/^Has scored 20\+ points in 4 straight games/)?.player === "Kevin Durant" && by(/^Along with Jokić, on pace/)?.player === "Alperen Sengun",
+    "notes (0.62): a player box with its stats sidebar read into the prose reads whole, and each note is his (the header before the box)", JSON.stringify(h.map((x) => [x.player, x.text.slice(0, 60)])));
+  ok(by(/Averaging 108\.0 ppg over the past 5 games/)?.team && !h.some((x) => /will play/.test(x.text)) && dropped.filter((d) => d.reason === "schedule").length === 2,
+    "notes (0.62): a team-stats box's stretch is the team's; schedule stretches ('will play 20 of 32…') are left out", JSON.stringify(dropped.filter((d) => d.reason === "schedule")));
+  ok(by(/^Ranks 10th in NBA in 3FG% \(\.432, 32-74\), fourth in eFG% \(\.667\) and second in catch and shoot/)?.player === "Toumani Camara" && by(/^Has started 97 consecutive regular season games\.$/)?.player === "Toumani Camara",
+    "notes (0.62): bullets without a final stop and a season line read into them; league ranks written without 'the'", JSON.stringify(h.map((x) => x.text.slice(0, 70))));
+  ok(by(/Jrue Holiday ranks highly in several bench offensive categories: Total Bench Points 147 pts \(4th\); Points Per 36 Minutes 18\.4 \(4th\); Assists Per 36 Minutes 5\.4 \(2nd\)\.$/)?.player === "Jrue Holiday",
+    "notes (0.62): a feature box's table read into one line with its ranks", JSON.stringify(h.map((x) => x.text)));
+  ok(N2.summarizeTable("Through the season’s first 11 games, Portland’s offensive output is outperforming last season’s production in several categories: Offensive Category 2025-26 (rank) 2026-27 (rank) Offensive Rating 113.1 (21st) 118.5 (4th) Points Per Game 115.5 ppg (17th) 119.5 ppg (2nd) BLAZERS IMPROVING UP")
+    === "Through the season’s first 11 games, Portland’s offensive output is outperforming last season’s production in several categories: Offensive Rating 118.5 (4th), from 113.1 (21st); Points Per Game 119.5 ppg (2nd), from 115.5 ppg (17th).",
+    "notes (0.62): a this-season-against-last table reads 'now, from then'");
+  const kd = { text: "Averaging 108.0 ppg over the past 5 games after averaging 120.7 the first 7 games (115.4 per overall).", kind: "trend" };
+  const bx = { games: ["2026-10-21", "2026-10-23", "2026-11-11"].map((d) => ({ d })) };
+  ok(F.trimReason(kd, { box: bx, today: "2026-11-13" }) === null && F.features(kd.text, kd).stretch === 1 && F.features("Rockets are 30-12 when he has 5+ assists.", {}).whenRecord === 1,
+    "notes (0.62): a stretch against the season's first games isn't a past one-off; the scorer sees stretches and records-when");
+}
+
 // ---------- Notes lines read for meaning, tables, hooks, the learned scorer (0.48; the user's Wizards picks, 11/13) ----------
 {
   const F = await import("../src/notes/facts.js");

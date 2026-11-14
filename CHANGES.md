@@ -2,6 +2,37 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.62.0 (2026-11-13): the notes' trends, player boxes and feature tables (the user's picks from the Rockets', Blazers' and Jazz notes)
+
+The user: "here are some interesting tidbits I pulled from the game notes that didn't appear in the watch list" (Durant 30-12 when 5+ assists, Sengun on pace with Jokić, Rockets offense/defense/3PM stretches, Cissoko's two-game high, Camara's ranks and 97 straight starts, Clingan's ranks, Avdija's 20-5-5 games and 23/6/6 club, the Blazers' improvement table, Holiday/Camara efficiency and bench ranks, Peterson's 95th percentile) and "these are somewhat time related. I wouldn't want to know the stretches from december and february today" (the Rockets' schedule notes).
+
+### Why they were missing
+- Houston's player boxes print a stats sidebar beside the prose; read across, it splices into the sentences ("…once prior this GP 12 PPG 20.9 RPG 6.1 APG 3.6 season; back to…"), so every line failed the layout checks. Portland's do the same with "GP/GS PPG RPG… 11/2 8.3 3.5…".
+- The player's name is the box header, printed at the end of the block before his notes, so his notes had no subject.
+- Trends weren't a kind of line at all: only history, league context and look-aheads were read. "Ranks 10th in NBA" (no "the") and "97 consecutive regular season games" (words between) slipped past the context rules.
+- Bullets without a final stop, and notes split by "…" that start lower-case, were taken for broken lines.
+- Feature boxes end in a table ("…in several bench offensive categories: Category Value NBA Bench Rank Total Bench Points 147 pts 4th…") and were dropped as tables.
+- The trimmer took "the first 7 games" in "over the past 5 games after averaging 120.7 the first 7 games" for a past one-off.
+
+### What changed (src/notes/narrative.js, src/notes/facts.js)
+- The stats sidebars and box headers are taken out of the text before it's read (`cleanSidebar`).
+- A player header at the end of a block makes the next blocks on the page his until the next header; a sentence in his box is his whatever its first word.
+- **New kind `trend`:** records when ("30-12 when he has 5+ assists"), stretches ("in each of the past 2 games", "4 straight games", "over the past 5 games after…"), career highs over a span, "since entering the starting lineup", league ranks without "the", percentiles, "most such games". A team-stats box's stretch is the team's (the team named in the heading just above). Last season as the comparison ("(…25th w/11.5 in 2025-26)") no longer makes a stretch "old".
+- **Schedule stretches are left out** ("will play 20 of 32 games on the road", "through the All-Star break", "15 of their first 25 games at…").
+- **Feature tables are read into one line:** the lead sentence, then the rows with their ranks ("Total Bench Points 147 pts (4th); Points Per 36 Minutes 18.4 (4th)…"), this season against last ("Offensive Rating 118.5 (4th), from 113.1 (21st)"), or our own rows of a ranked list ("Toumani Camara .660 (4)…"). A table that can't be read keeps its lead sentence.
+- New guards for what the wider net brings in: two columns read into one line ("…NBA history. offensive rebounding…"), sidebar cells in a line ("FTA 12 at HOU…", "(3x)", "Career vs. New York Knicks"), college lines ("program record", "against No. 4"), and last season's lines in the bios (the postseason, the All-Star break, "all 82", "through 50 games" when 12 are played).
+- The trimmer treats a stretch against the season ("past N games", "since entering", "per overall", "N straight games … this season") as current.
+- The scorer has two new signals, `stretch` and `whenRecord` (prior +0.5, +0.6); league ranks now count without "the" and streaks with words between. 22 new labels from the user's picks (19 interesting, 3 schedule lines not wanted) in `src/data/fact-labels.json`; the model retrained (66 labels, held-out AUC 0.74).
+
+### Tested
+- 678 checks pass (new: the Houston sidebar box read whole and credited, the team box, schedule lines left out, Portland's bullets and ranks, a feature table in one line, this-season-against-last, the trimmer and scorer signals). 60 articles checks pass.
+- All 18 of tonight's teams' notes (11/13), read before and after: 118 → 228 lines. Every one of the user's picks is read (Peterson's from Utah's notes). 3 lines from before were lost, each replaced by the same line with a full stop; one (Orlando's rebounding percentages) was caught by the splice check and fixed ("off. reb %").
+
+### Unproven
+- More lines means more to sift: Houston now has 17 kept, Portland 12. The Watch List still shows each team's top 6, the rest behind "All N lines".
+- The new last-season guards are rules of thumb for November-March; the bios' old lines in April will need another look.
+- The model's new weights rest on one evening's picks.
+
 ## 0.61.0 (2026-11-13): fewer, better NBA Live cards (the user's review of the first live night)
 
 The user, after the first night with the bridge in NBA Live: "I think we need to scale back the alerts because there have to be around 100 in the live game tracker."
