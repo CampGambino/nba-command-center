@@ -8,7 +8,7 @@ The user approved #9: NBA Live's rule for which passes are worth a card (0.61) a
 
 ### What changed
 - **src/records/notable.js (new):** worthPlace(scope, stat, place) and isMinorPass(item), the same rule as the bridge. NBA Cup: top 2. Franchise: top 3 in points, rebounds, assists, steals, blocks and threes, top 2 otherwise. All-time: top 25 in those six, top 10 otherwise. The place is the one he reaches. A list of unproven scope gets the franchise rule. Round numbers and coaches are untouched.
-- **records.json (src/records/guide.js)** and **watch.json (src/anticipate/watch.js):** such a pass carries `minor: true`. It stays in the data (and the predictions history).
+- **records.json** (scripts/situations.js flags every all-time, franchise-history and NBA Cup pass before writing; src/records/guide.js too) and **watch.json** (src/anticipate/watch.js, carried by src/site/build.js): such a pass carries `minor: true`. It stays in the data (and the predictions history). The first push flagged only the guide's passes, and watch.json dropped the flag; the follow-up commit fixed both after the morning build showed 6 of 8 still on the Tonight tab and 0 minor on the Watch List.
 - **Records "Tonight" tab:** minor passes are left out. **Watch List (index.html):** left out of Tonight and Coming up, even when reached live (as NBA Live); in the full list only with "include review / not live / minor places" checked. **Storylines and the Discord digest (tonight.js):** skipped.
 - **NBA Live bridge:** a Watch List pass with `minor` gets no card (it covers the unproven-scope lists the bridge's own check let through).
 

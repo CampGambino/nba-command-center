@@ -309,6 +309,8 @@ for (const [tri, games] of Object.entries(perTeam)) {
       const s = settleProblems(rec.problems, rec.players, verified);
       rec.problems = s.problems; settledErrata = s.errata;
     }
+    // 0.64: every pass (all-time, franchise history, NBA Cup) to a place not worth saying is flagged for the pages.
+    { const { isMinorPass } = await import("../src/records/notable.js"); for (const i of rec.items) if (isMinorPass(i)) i.minor = true; }
     fs.writeFileSync(path.join(root, "docs", "data", "records.json"), JSON.stringify({ titles, awards, context,
       generatedAt: out.generatedAt, through: rec.through, today, source: guide.source, items: rec.items, boards, checks, problems: rec.problems, errata: [...(guide.errata || []), ...settledErrata],
       coaches: coachTeams, teamRecords: guide.teamRecords, cup: cupOut, franchise: franchiseOut, seasonPace: seasonPaceOut, franchiseGame: franchiseGameOut,
