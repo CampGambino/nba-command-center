@@ -148,6 +148,10 @@ export function describe(text, meta = {}) {
     const since = t.match(/\bsince (?:the )?((?:19|20)\d\d(?:-\d\d)?)\b/i);
     type = "alltime"; tag = rk ? `${rk.tie ? "T-" : ""}${ordinal(rk.rank)} ${since ? `since ${since[1]}` : "all-time"}` : since ? `Since ${since[1]}` : "NBA history"; why = "All-time company.";
   } else if (f.franchise) { type = "franchise"; tag = "Team history"; why = "Team history."; }
+  // A ranking within a subset says so ("Amongst all NBA centers, Sharpe ranks fifth…" is "5th among centers", 0.65).
+  const subset = t.match(/\bamong(?:st)? (?:all )?(?:NBA |qualified )?(centers|rookies|guards|forwards|reserves|bench players|point guards|power forwards|sophomores|teenagers)\b/i);
+  if (subset && rk && rk.rank === 1 && /^(?:Leads NBA|Most in NBA)$/.test(tag)) tag = `Leads ${subset[1].toLowerCase()}`;
+  if (subset && rk && / in (?:NBA|team history)$| all-time$/.test(tag)) tag = tag.replace(/ in NBA$| in team history$| all-time$/, (m) => ` among ${subset[1].toLowerCase().replace(/([^s])$/, "$1s")}${/team/.test(m) ? " (team)" : ""}`);
   return { type, tag, why, rank: rk?.rank ?? null, tie: rk?.tie ?? false, of: club, thresholds: th, streak: streakN ? Number(streakN[1]) : null, features: f };
 }
 
@@ -369,7 +373,7 @@ const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, se
 const OPENER = /\b(?:season[- ]opener|season opener|opening night|opener)\b/i;
 const DEBUT = /\b(?:NBA|career|team|Bulls|[A-Z][a-z]+) debut\b/;
 const FIXED_WINDOW = /\b(?:first|opening) (?:two|three|four|five|six|seven|eight|nine|ten|\d{1,2}) (?:career )?games\b|\beach of the first (?:two|three|four|five|six|\d) games\b/i;
-const OPEN = /\b(?:active streak|consecutive|straight|in a row|has now|now has|now ranks|is now|career-best|this season|is averaging|averaging|leads? (?:the|all)|ranks? \w+ in the (?:NBA|league)|needs?|within|away from|on pace|on track|has recorded|has registered|has posted|has made|has scored|has appeared|has played|games? with)\b/i;
+const OPEN = /\b(?:active streak|consecutive|straight|in a row|has now|now has|now ranks|is now|career-best|this season|is averaging|averaging|leads? (?:the|all)|ranks? \w+ in the (?:NBA|league)|needs?|within|away from(?!\s+(?:the\s+)?(?:game|court|action|basketball|home))|on pace|on track|has recorded|has registered|has posted|has made|has scored|has appeared|has played|games? with)\b/i;
 
 /** The latest date a line is about, ignoring a "since …" span and dates from other seasons ("most: 64 vs. PHI, 10/10/72"). */
 export function eventDate(text, { today, firstGame = null } = {}) {
@@ -421,7 +425,7 @@ export function trimReason(line, { box = null, today, home = null } = {}) {
   const when = eventDate(line.text, { today, firstGame: games[0] || null });
   // A stretch against the start of the season ("averaging 108.0 over the past 5 games after averaging 120.7 the first 7") is now.
   const stretch = /\b(?:past|last) (?:\d{1,2}|two|three|four|five|six|seven|eight|nine|ten) (?:games|GP|contests)\b|\bsince entering\b|\bper overall\b|\boverall this season\b|\b\d+ (?:straight|consecutive) games\b[^.]{0,40}\bthis season\b/i.test(t);
-  const singleGame = OPENER.test(t) || DEBUT.test(t) || (FIXED_WINDOW.test(t) && !stretch) || /\bin a (?:single )?game\b|\btraveled to\b|\b(?:passed|surpassed|moved past|eclipsed|overtook)\b[^.]{0,80}\bon (?:\w+\.? \d|\d)/i.test(t);
+  const singleGame = OPENER.test(t) || DEBUT.test(t) || /\bin (?:his|her|their) return\b|\breturn to play\b/i.test(t) || (FIXED_WINDOW.test(t) && !stretch) || /\bin a (?:single )?game\b|\btraveled to\b|\b(?:passed|surpassed|moved past|eclipsed|overtook)\b[^.]{0,80}\bon (?:\w+\.? \d|\d)/i.test(t);
   const open = !singleGame && (stretch || OPEN.test(t) || /\branks? (?:t-)?\w+ in (?:the )?(?:NBA|league)\b/i.test(t) || d.type === "club" || d.type === "race" || d.type === "streak" || !!line.matchup || line.kind === "pass" || line.kind === "next" || !!line.hook?.live);
   if (open || !when) return null;
   if (longSpan(t, today)) return null; // rare over a long span: the user keeps these

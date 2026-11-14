@@ -337,7 +337,15 @@ for (const [tri, games] of Object.entries(perTeam)) {
   const byDate = Object.fromEntries(dates.map((d) => [d, anomalies(pg, store.names || {}, { dates: [d], careers })]));
   const ch = Object.values(byDate).flat().filter((a) => a.notes.some((n) => n.careerHigh)).length;
   console.log(`outliers: ${Object.values(byDate).flat().length} over ${dates.length} dates, ${ch} with a career high`);
-  fs.writeFileSync(path.join(root, "docs", "data", "trends.json"), JSON.stringify({ generatedAt: out.generatedAt, through, streaks: activeStreaks(pg, store.names || {}).map(nowTeam), teams: teamStreaks(rows), anomalies: byDate }));
+  // Team streak watch (0.65): what tonight would make of each team's run, against the 2016-17 on history.
+  let watchLines = [];
+  try {
+    const { streakWatch } = await import("../src/situations/streakwatch.js");
+    const hf = path.join(root, "src", "data", "nba-results-history.json");
+    watchLines = streakWatch({ history: fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null, rows, today });
+    console.log(`team streak watch: ${watchLines.length} lines`);
+  } catch (e) { console.error(`team streak watch: ${e.message}`); }
+  fs.writeFileSync(path.join(root, "docs", "data", "trends.json"), JSON.stringify({ generatedAt: out.generatedAt, through, streaks: activeStreaks(pg, store.names || {}).map(nowTeam), teams: teamStreaks(rows), watch: watchLines, anomalies: byDate }));
   // Hot hand (src/situations/form.js, moved from GameFlow in 0.56): each player's game lines for the form section.
   try {
     const { formData } = await import("../src/situations/form.js");

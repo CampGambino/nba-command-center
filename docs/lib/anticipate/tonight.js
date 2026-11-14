@@ -260,9 +260,12 @@ function earlyLines(flow, teams, today) {
 }
 
 function teamLines(trends, teams) {
-  const out = [];
+  // 0.65: the streak watch says what tonight would make of a run ("a loss tonight would be OKC's first 3-game losing
+  // streak since 2023-24", "NOP has allowed 135+ in 4 straight…"); it replaces the bare "lost N straight".
+  const out = (trends.watch || []).filter((w) => teams.has(w.team)).map((w) => ({ team: w.team, kind: "team", text: w.text, score: w.score }));
+  const wl = new Set((trends.watch || []).filter((w) => w.stat === "W" || w.stat === "L").map((w) => w.team));
   for (const [team, t] of Object.entries(trends.teams || {})) {
-    if (!teams.has(team) || !t.streak || t.streak.n < 4) continue;
+    if (!teams.has(team) || !t.streak || t.streak.n < 4 || wl.has(team)) continue;
     out.push({ team, kind: "team", text: `${team}: ${t.streak.type === "W" ? "won" : "lost"} ${t.streak.n} straight`, score: t.streak.n / 3 });
   }
   return out;

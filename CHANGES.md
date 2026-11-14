@@ -2,6 +2,33 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.65.0 (2026-11-14): the notes reader fixes from the user's 11/14 review; team streak watch
+
+The user's review (15 screenshots): Kyrie's 10/21 return ("outdated"); Sharpe "on pace to average the most assists per game in franchise history" ("it's for a center"); Sharpe's sentence "scrambled and merged" with a game log; Porter Jr.'s line twice, once "a jumbled mess"; "His 3.5 th th triples"; two Cavs team stats "appended to Jarrett Allen"; the "th" of "9th" displaced; Jenkins' career-high 31 "doesn't tell me when"; Memphis's All-Rookie players "currently on the team". And two stats other accounts flagged after the fact: "OKC loses 3-straight games for the first time since the 2023-24 season" ("this is the type of stuff the command center should be flagging ahead of time"), and the Pelicans allowing 135+ in four straight ("after two or three games, the system should be… flagging it with additional context").
+
+### What changed
+- **Notes reader (src/notes/narrative.js, facts.js):**
+  - `repairLayout`: a game-log row spliced into a sentence is cut out ("…the highest11/2 at NYK L 21:51 1-5 0-0… offensive rebound percentage…" reads "…the highest offensive rebound percentage…"; Porter Jr.'s line loses its three log rows and dedupes with its twin). Superscript suffixes printed apart go back on their number ("3.5 th th triples… rank T-11" → "3.5 triples… rank T-11th"; "th the 9 -best mark" → "the 9th-best mark"). The "2026-27 Game Notes." footer is dropped.
+  - Control-character bullets split items (Brooklyn's "(3.7). \u0017 Amongst all NBA centers…" was one line).
+  - A subset in the sentence before carries to an unqualified record about the same stat right after it: "on pace to average the most assists per game **by a center** in franchise history (4.1), previously set by Claxton (3.7)". A rank within a group is tagged so ("5th among centers", "Leads rookies").
+  - A sentence that opens with the team ("Cleveland is averaging…", "The Cavs 201 made triples…") is the team's, even inside a player's box.
+  - "597 days away from the game" isn't a milestone countdown; "in his return" is a single game. Kyrie's 10/21 line is now a past one-off (trimmed).
+  - A single game told without its date gets the box score's date ("…tied a career-high 13 points (11/6 vs. UTA)", so it can be trimmed as past); an undated recap that can't be placed ("led the charge… and Kevin Huerter added 24") is dropped.
+  - Roster lines ("…are currently on the team") are dropped.
+- **Team streak watch (new, src/situations/streakwatch.js → trends.json `watch`):** for every team, what its next game would make of its current run, against every regular-season game since 2016-17 (ESPN back-fill + this season):
+  - win/loss: "OKC has lost 2 straight: a loss tonight would be its first 3-game losing streak since 2023-24 (April 2024)" when the team hasn't had that long a run in 82+ games;
+  - scoring/allowing runs (130-150+, under 85-95), the bar rarest one game further: "NOP has allowed 135+ in 3 straight: 10 other teams since 2016-17; only DAL 2025-26 went 4+".
+  - Storylines (Watch List, NBA Live's 📈 TEAM STREAK pre-game card, Discord digest) carry it in place of the bare "lost N straight"; Streaks & outliers has a **Streak watch** list.
+
+### Tested
+- 691 checks pass (new: the layout repairs, Kyrie's line trimmed, the group tags, the streak watch for OKC and NOP, the storylines). Page sweep OK.
+- Today's 12 teams' notes re-read before/after: every line from the review is fixed or gone; Cade's 52 now carries "(11/12 vs. WAS)"; no other line changed meaning.
+- Replayed on the mornings of 11/12 and 11/13: OKC (2 straight losses) and NOP (135+ three straight) were both flagged before the games the tweets were about.
+
+### Unproven
+- "Since 2016-17" is the window of our history; the NBA-history claims those accounts make need older seasons.
+- The subset carry needs the same stat in both sentences; a different layout could still drop a group.
+
 ## 0.64.0 (2026-11-14): the notability rule on the Watch List, the Records "Tonight" tab and the storylines
 
 The user approved #9: NBA Live's rule for which passes are worth a card (0.61) also applies to the Watch List and the Records "Tonight" tab, which showed every pass.

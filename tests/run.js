@@ -1933,6 +1933,52 @@ await articlesChecks(ok);
     "notes (0.62): a stretch against the season's first games isn't a past one-off; the scorer sees stretches and records-when");
 }
 
+// ---------- 0.65: team streak watch (OKC's first 3-game losing streak since 2023-24; NOP allowing 135+ four straight) ----------
+{
+  const { streakWatch } = await import("../src/situations/streakwatch.js");
+  // History: OKC lost 3 straight in Feb. 2024, then 100 games of win-loss-win…; this season: lost the last 2.
+  const H = { games: [] };
+  const day = (n) => new Date(Date.UTC(2023, 9, 25) + n * 864e5).toISOString().slice(0, 10);
+  let k = 0;
+  for (let i = 0; i < 3; i++) H.games.push([day(k++), "OKC", "AAA", 100, 110, 2]);
+  for (let i = 0; i < 100; i++) H.games.push([day(k++), "OKC", "AAA", i % 2 ? 120 : 100, 110, 2]);
+  // DAL allowed 135+ four straight once; nobody else.
+  for (let i = 0; i < 4; i++) H.games.push([day(k++), "DAL", "BBB", 120, 140, 2]);
+  H.games.push([day(k++), "DAL", "BBB", 120, 100, 2]);
+  const rows = [{ d: "2026-11-10", h: "OKC", a: "AAA", hs: 100, as: 110 }, { d: "2026-11-12", h: "OKC", a: "AAA", hs: 99, as: 104 },
+    ...[0, 1, 2, 3].map((i) => ({ d: `2026-11-0${i + 2}`, h: "NOP", a: "CCC", hs: 110, as: 136 + i }))];
+  const W = streakWatch({ history: H, rows, today: "2026-11-14" });
+  const okc = W.find((w) => w.team === "OKC" && w.stat === "L"), nop = W.find((w) => w.team === "NOP" && w.stat === "pa135");
+  ok(okc && /a loss tonight would be its first 3-game losing streak since 2023-24/.test(okc.text), "streak watch (0.65): a loss tonight would be OKC's first 3-game losing streak since 2023-24", JSON.stringify(W.map((w) => w.text)));
+  ok(nop && /allowed 135\+ in 4 straight: one other team since 2016-17 \(DAL 2023-24\); none went 5/.test(nop.text), "streak watch (0.65): allowing 135+ four straight, with the one other team since 2016-17", nop?.text);
+  const st = tonightStorylines({ watch: { today: "2026-11-14", games: [{ id: "1", awayTri: "OKC", homeTri: "NOP" }], teams: [] }, trends: { teams: { OKC: { streak: { type: "L", n: 4 } } }, watch: W } });
+  const texts = st[0].lines.filter((l) => l.kind === "team").map((l) => l.text);
+  ok(texts.some((t) => /first 3-game losing streak/.test(t)) && !texts.some((t) => /^OKC: lost/.test(t)) && texts.some((t) => /^NOP has allowed 135\+/.test(t)), "streak watch (0.65): the storylines carry it in place of the bare 'lost N straight'", JSON.stringify(texts));
+}
+
+// ---------- 0.65: the user's 11/14 notes review (Sharpe, Porter Jr., Mobley, the Cavs, Kyrie, Coward, Jenkins) ----------
+{
+  const N = await import("../src/notes/narrative.js");
+  const F = await import("../src/notes/facts.js");
+  const R = N.repairLayout;
+  ok(R("An elite offensive rebounder as well, Sharpe holds the highest11/2 at NYK L 21:51 1-5 0-0 2-2 3 3 6 3 5 0 3 1 4 offensive rebound percentage by any player in NBA history, minimum 200 games played.")
+      === "An elite offensive rebounder as well, Sharpe holds the highest offensive rebound percentage by any player in NBA history, minimum 200 games played."
+    && R("Joins 10/30 vs. Pistons 94-110 L 0-5 11/1 @ Pacers 98-90 W 1-5 Luka Dončić as the only players averaging 7.0 REB and 3.0 3PM 11/2 @ Knicks 90-103 L 1-6 this season.")
+      === "Joins Luka Dončić as the only players averaging 7.0 REB and 3.0 3PM this season.",
+    "notes (0.65): game-log rows spliced into a sentence are cut out");
+  ok(R("His 3.5 th th triples per game rank T-11 in the NBA.") === "His 3.5 triples per game rank T-11th in the NBA."
+    && R("Mobley is shooting a career-high .479 from beyond the arc this season, th the 9 -best mark in the NBA.") === "Mobley is shooting a career-high .479 from beyond the arc this season, the 9th-best mark in the NBA."
+    && R("He scored 30 points vs. Boston on 11/2, the most this season.") === "He scored 30 points vs. Boston on 11/2, the most this season."
+    && R("Cedric Coward (2025-26 First Team) and Zach Edey are on the team. 2026-27 Game Notes.") === "Cedric Coward (2025-26 First Team) and Zach Edey are on the team.",
+    "notes (0.65): superscript suffixes printed apart go back on their number; a page footer is dropped; ordinary text is untouched");
+  const kyrie = { text: "Recorded 15 points at HOU (10/21/26) in his return to play after 597 days away from the game.", kind: "trend", player: "Kyrie Irving" };
+  const bx = { games: ["2026-10-21", "2026-10-23", "2026-11-11"].map((d) => ({ d })) };
+  ok(/^past one-off/.test(F.trimReason(kyrie, { box: bx, today: "2026-11-14" }) || ""), "notes (0.65): a return game three weeks ago is a past one-off ('597 days away from the game' isn't a milestone countdown)");
+  const d1 = F.describe("Amongst all NBA centers, Sharpe currently ranks fifth in APG (4.1) and total assists (45).", {});
+  const d2 = F.describe("Thomas is shooting 26-55 (.473) from beyond the arc on the year, which ranks 1st in 3FG% among all NBA rookies.", {});
+  ok(d1.tag === "5th among centers" && d2.tag === "Leads rookies", "notes (0.65): a rank within a group says the group in its tag", JSON.stringify([d1.tag, d2.tag]));
+}
+
 // ---------- Notes lines read for meaning, tables, hooks, the learned scorer (0.48; the user's Wizards picks, 11/13) ----------
 {
   const F = await import("../src/notes/facts.js");

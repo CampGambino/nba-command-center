@@ -114,6 +114,8 @@
   @media (max-width: 600px) { #outliers li { grid-template-columns: 1fr; } #outliers .box { grid-column: 1; } }
   /* team streaks: compact cells, grouped header */
   #teams th, #teams td { padding: 6px 8px; }
+  ul.watch { margin: 6px 0 14px; padding-left: 18px; line-height: 1.55; }
+  ul.watch li { margin: 3px 0; }
   #teams th.grp { text-align: center; color: var(--text); font-size: 11.5px; letter-spacing: .5px; text-transform: uppercase; border-left: 1px solid var(--line); }
   #teams .gl { border-left: 1px solid var(--line); }
   #tscroll table { min-width: 760px; }
@@ -155,6 +157,10 @@
   </div>
   <div class="key" id="fkey"></div>
   <div class="scroll"><table id="ftab"></table></div>
+
+  <h2 id="watch">Streak watch</h2>
+  <div class="key">What the next game would make of a team's current run, against every regular-season game since 2016-17: a win or loss streak a team hasn't had in a season's worth of games, and scoring or allowing runs few teams have matched.</div>
+  <div id="watchlist"></div>
 
   <h2>Team streaks</h2>
   <div class="controls"><span class="toggle" id="tdir"><button data-d="best" class="on">Best first</button><button data-d="worst">Worst first</button></span><label>Click a column to sort; click again to flip.</label></div>
@@ -217,6 +223,10 @@ const TCOLS = [
   ["held100", "Held opp. under 100", (t) => t.held100, (t) => t.held100 || "–", "d"],
   ["allowed120", "Allowed 120+", (t) => t.allowed120, (t) => (t.allowed120 ? `<span class="lo">${t.allowed120}</span>` : "–"), "d"],
 ];
+function renderWatch() {
+  const W = (T.watch || []).slice().sort((a, b) => b.score - a.score);
+  $("watchlist").innerHTML = W.length ? `<ul class="watch">${W.map((w) => `<li><b>${esc(w.team)}</b> ${esc(w.text.replace(new RegExp(`^${w.team} `), ""))}</li>`).join("")}</ul>` : `<div class="empty">No run worth watching tonight.</div>`;
+}
 function renderTeams() {
   const col = TCOLS.find((c) => c[0] === tkey), sign = tdir === "best" ? 1 : -1;
   const list = Object.entries(T.teams).map(([code, t]) => ({ code, ...t })).sort((x, y) => { const a = col[2](x), b = col[2](y); if (a == null) return 1; if (b == null) return -1; return sign * (b - a) || x.code.localeCompare(y.code); });
@@ -283,7 +293,7 @@ fetch("data/trends.json", { cache: "no-store" }).then((r) => r.json()).then((d) 
   for (const id of ["cat", "steam"]) $(id).onchange = renderStreaks;
   $("sub").textContent = `Through ${d.through} · from ESPN box scores`;
   $("foot").innerHTML = `Outlier games compare a player's game with his other games this season (5+ needed): how far it is from his average, in units of how much his games usually vary (with a minimum, so a steady player's small change doesn't look huge). Listed when that "strength" is 2.5+; when a regular (15+ points or 20+ minutes a game) is 2.5 below; for a clear season or career high ("career high" replaces "season high": his best in any regular-season game on file — points for everyone, other stats when his whole career is in the 2016-17 on game logs, so a rookie's first big game is a career high); for shooting 25 points off his usual FG% on 10+ shots; or 0-for-6+ from three. A low-minutes game often means injury, fouls or a blowout, so check the minutes. "Most notable" weights a streak's length by how hard it is (30+ points counts 3x a game, 10+ points 0.4x); "Longest" is plain length. Streaks count games played, this season only (a run from last season shows only its this-season part). Built ${new Date(d.generatedAt).toLocaleString()}.`;
-  renderOutliers(); renderStreaks(); renderTeams();
+  renderOutliers(); renderStreaks(); renderWatch(); renderTeams();
 }).catch((e) => { $("sub").textContent = "Couldn't load the data: " + e.message; });
 </script>
 </body>
