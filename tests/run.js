@@ -1768,16 +1768,42 @@ await articlesChecks(ok);
       "bridge 0.61: an NBA Cup pass for 8th and a franchise defensive-rebound pass for 8th get no card; 2nd in the Cup does", ks.join(" "));
     ok(cb && /NBA Cup · rebounds/.test(cb.backHtml) && /2\.<\/span> Cup Big · <strong>175/.test(cb.backHtml) && /1\.<\/span> Top Reb/.test(cb.backHtml),
       "bridge 0.61: the pass card's back lists the top of the board with him at tonight's total", cb && cb.backHtml);
-    ok(fs3 && fs3.text === "Fr Scorer (LAL) — passes Laker Four and Laker Three (20,000) for 3rd in Lakers history" && ks.filter((k) => k.startsWith("cc-rec-53-")).length === 1,
+    ok(fs3 && fs3.text === "Fr Scorer (LAL) — passes Laker Four and Laker Three (20,000) for 3rd in Lakers history · 20,005 points" && ks.filter((k) => k.startsWith("cc-rec-53-")).length === 1,
       "bridge 0.61: two names passed tonight in one tile", fs3 && fs3.text);
+    // 0.63: SGA and Daniels (the user's 11/13 cards). Daniels played earlier tonight (2 steals, final); SGA has 1: no "passes",
+    // the countdown is to Daniels' live total, and the back shows it.
+    recordsData.cup.boards = { stl: [{ name: "Dyson Daniels", now: 40 }, { name: "Shai Gilgeous-Alexander", now: 40 }, { name: "Josh Hart", now: 32 }] };
+    recordsData.cup.tonight = [{ away: "ATL", home: "CHI" }, { away: "OKC", home: "LAC" }];
+    recordsData.items = [rec({ id: "70", who: "Shai Gilgeous-Alexander", team: "OKC", kind: "cup", stat: "stl", label: "steals", now: 40, need: 1, target: 41, rank: 1, pTonight: 0.7,
+      passing: { name: "Dyson Daniels", value: 40, rank: 1 }, text: "Gilgeous-Alexander: 1 steal from passing Dyson Daniels (40) for the NBA Cup record" })];
+    const gA = { id: "gA", status: "final", away: { tricode: "ATL", score: 110 }, home: { tricode: "CHI", score: 100 }, boxscore: { away: [pl("71", { name: "Dyson Daniels", stl: 2 })], home: [] } };
+    const gO = { id: "gO", status: "live", away: { tricode: "OKC", score: 50 }, home: { tricode: "LAC", score: 48 }, boxscore: { away: [pl("70", { name: "Shai Gilgeous-Alexander", stl: 1 })], home: [] } };
+    const ts = run({ games: [gA, gO] }); await flush(); ts.ctx.runAlertChecks(); await flush();
+    const sga = ts.cards.get("cc-rec-70-stl-cup");
+    ok(sga && sga.text === "Shai Gilgeous-Alexander (OKC) — 2 steals from passing Dyson Daniels (42, 2 tonight) for the NBA Cup record" && /1\.<\/span> Dyson Daniels · <strong>42/.test(sga.backHtml) && /2\.<\/span> Shai Gilgeous-Alexander · <strong>41/.test(sga.backHtml),
+      "bridge 0.63: a pass is judged on everyone's live totals tonight (a rival's earlier game counts): no false 'passes', the countdown and the back agree", sga && [sga.text, sga.backHtml].join(" | "));
+    gO.boxscore.away[0].stl = 3; ts.ctx.runAlertChecks(); await flush();
+    ok(/— passes Dyson Daniels \(42\) for the NBA Cup record · 43 steals$/.test(ts.cards.get("cc-rec-70-stl-cup").text), "bridge 0.63: …and the pass when it really happens", ts.cards.get("cc-rec-70-stl-cup").text);
     recordsData.items = keep;
+  }
+  // 0.63: one card per player: two milestones reached in the same game read as one.
+  {
+    const two = [item({ espnId: "80", player: "Two Marks", target: 2500, need: 3, stat: "pts", label: "points" }), item({ espnId: "80", player: "Two Marks", target: 900, need: 2, stat: "ast", label: "assists" })];
+    watch.teams[0].items.push(...two);
+    const g80 = { id: "g80", status: "live", away: { tricode: "LAL", score: 50 }, home: { tricode: "ATL", score: 48 }, boxscore: { away: [pl("80", { name: "Two Marks", pts: 20, ast: 6 })], home: [] } };
+    const tm = run({ games: [g80] }); await flush(); tm.ctx.runAlertChecks(); await flush();
+    const k80 = [...tm.cards.keys()].filter((k) => k.startsWith("cc-80-"));
+    ok(k80.length === 1 && tm.cards.get(k80[0]).text === "Two Marks (LAL) — reaches 2,500 points and 900 assists career" && /MILESTONES/.test(tm.cards.get(k80[0]).icon),
+      "bridge 0.63: two milestones for one player in one game make one card", k80.map((k) => tm.cards.get(k).text).join(" | "));
+    watch.teams[0].items.splice(-2, 2);
   }
   ok(!has("cc-rec-32-") && !has("cc-rec-1-"), "bridge v3: a long shot not reached, and a milestone the notes already carry: no record card", keys.filter((k) => k.startsWith("cc-rec")).join(" "));
   if (!t.cards.get("cc-list-cup-40-pts-made")) console.log("DEBUG keys", [...t.cards.keys()].filter((k) => k.includes("list")).join(" "), JSON.stringify(t.ctx.CC_BRIDGE.state.listError));
   const made = t.cards.get("cc-list-40-pts-made"), near = t.cards.get("cc-list-41-pts-near"), cupMade = t.cards.get("cc-list-cup-40-pts-made");
-  ok(made && made.text === "Big Night (LAL) — 58 points: tied for the 4th-most in a game on the NBA's all-time list (6 games of 57+)" && near && /5 from the NBA's all-time single-game list \(57\+, 6 games\)/.test(near.text) && cupMade && /CUP/.test(cupMade.icon),
-    "bridge v3: making the all-time single-game list (with his place), nearing it, and the Cup's list on a Cup night", [made && made.text, near && near.text].join(" | "));
-  ok(has("cc-list-40-fg3m-near") && !has("cc-list-1-fg3m"), "bridge v3: 9 threes is 2 from the 11+ list (window 2): a card; 3 threes: none");
+  ok(made && made.text === "Big Night (LAL) — 58 points: tied for the 4th-most in a game on the NBA's all-time list (6 games of 57+)" && !near && cupMade && /CUP/.test(cupMade.icon)
+    && /^Big Night \(LAL\) — 58 points, 2 from the NBA Cup single-game record \(60/.test((t.cards.get("cc-list-cup-40-pts-record") || {}).text || "") && !t.cards.get("cc-list-40-pts-record"),
+    "bridge v3/0.63: making the all-time single-game list (with his place) and the Cup's list on a Cup night; no 'nearing the list' card; a countdown to the Cup record (the regular season's is NBA Live's own)", [made && made.text, near && near.text, (t.cards.get("cc-list-cup-40-pts-record") || {}).text].join(" | "));
+  ok(!has("cc-list-40-fg3m-near") && !has("cc-list-1-fg3m"), "bridge 0.63: no card for nearing a single-game list");
   const fgTie = t.cards.get("cc-fg-40-pts-tied"), fgNear = t.cards.get("cc-fg-41-pts-near");
   ok(fgTie && fgTie.text === "Big Night (LAL) — 58 points: ties the Lakers record (58, Old Laker vs. Boston 1/1/60)" && fgNear && /6 from the Lakers record \(58, Old Laker/.test(fgNear.text) && !has("cc-fg-40-fg3m") && /Lakers guide p\. 99/.test(fgTie.sub),
     "bridge v4: a franchise single-game record tied, one nearing it (52 of 58, window 8); 9 threes isn't near 12 (window 2)", [fgTie && fgTie.text, fgNear && fgNear.text].join(" | "));

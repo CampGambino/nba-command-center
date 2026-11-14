@@ -2,6 +2,23 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.63.0 (2026-11-14): #lineups every 30 seconds from 35 to 10 out; NBA Live: live boards, record countdowns instead of "near the list", one card per player
+
+The user: "confirm your suggestions on the starting lineup timing. Would it be fine to change the checking in the heavy period to every 30 seconds instead of every minute?"; "I don't need an alert for when players are close to joining a list. let me know when tracking on breaking the record"; "try to merge alerts for the same player when possible"; "SGA alert cards are confusing… Daniels played a game earlier in the night".
+
+### What changed
+- **#lineups (cloudflare/lineups.js):** NBA.com's file is read every 30 seconds from 35 to 10 minutes before each tip (was every minute from 34 to 16), then at 9, 6 and 3 out. The 1-minute cron run reads at :00 and :30. The nightly timing post's window reads "35-10".
+- **NBA Live bridge, live boards:** a career pass on the NBA Cup, franchise or all-time board is now decided on everyone's totals tonight: the morning's total plus tonight's box line for every listed player in any game NBA Live shows, live or final. SGA's 1 steal no longer "passes" Dyson Daniels when Daniels added 2 in an earlier game; the card reads "2 steals from passing Dyson Daniels (42, 2 tonight) for the NBA Cup record", and the card's back lists the same live totals. The place he reaches decides whether it's worth a card (the 0.61 rule).
+- **No more "N from the list" cards** for the single-game lists. In NBA Cup and playoff games, a countdown to the record itself ("2 from the NBA Cup single-game record (9, Brook Lopez, Nov. 3, 2023)"), live; NBA Live's own cards cover the regular season's records. Making a list still gets a card; tying or breaking a Cup or playoff record says so in the header.
+- **One Watch List card per player per game:** "Stephon Castle (SAS) — reaches 2,500 points and 900 assists career" (🎉 MILESTONES) instead of two cards; a pending mark rides along ("… · 2 assists from 900").
+
+### Tested
+- 681 checks, 60 articles/lineups checks pass. New: the 30-second schedule (every read from 90 out to tip), two reads a minute in the window and one after it, SGA/Daniels on live totals (no false pass, the countdown, then the real pass), the Cup record countdown and no near-list cards, two milestones in one card.
+
+### Unproven
+- 30-second reads save ~15 seconds on average; most of the delay is NBA.com's (2-4 minutes after its stamp). The next diagnostic will show it.
+- A board name that doesn't match NBA Live's box name (accents and suffixes are handled) gets no tonight's line.
+
 ## 0.62.0 (2026-11-13): the notes' trends, player boxes and feature tables (the user's picks from the Rockets', Blazers' and Jazz notes)
 
 The user: "here are some interesting tidbits I pulled from the game notes that didn't appear in the watch list" (Durant 30-12 when 5+ assists, Sengun on pace with Jokić, Rockets offense/defense/3PM stretches, Cissoko's two-game high, Camara's ranks and 97 straight starts, Clingan's ranks, Avdija's 20-5-5 games and 23/6/6 club, the Blazers' improvement table, Holiday/Camara efficiency and bench ranks, Peterson's 95th percentile) and "these are somewhat time related. I wouldn't want to know the stretches from december and february today" (the Rockets' schedule notes).

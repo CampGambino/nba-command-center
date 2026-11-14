@@ -13,7 +13,7 @@
  * For the user's personal use only (their decision, 11/12; NBA.com terms: personal, non-commercial).
  * So: the channel is private; nothing is published on the public site; no lineup history is kept
  * (KV holds only today's state, for spotting changes); NBA.com's file is read only from 90 minutes before
- * each scheduled tip (every 5 minutes; every 20 seconds from 31 to 29 minutes out; every 3 minutes after that),
+ * each scheduled tip (every 5 minutes; every 30 seconds from 35 to 10 minutes out; every 3 minutes after that),
  * then ESPN's box every minute after tip.
  */
 export const FEED = (yyyymmdd) => `https://stats.nba.com/js/data/leaders/00_daily_lineups_${yyyymmdd}.json`;
@@ -181,26 +181,27 @@ export function readSchedule(board) {
     .filter((g) => g.teams.length === 2 && !Number.isNaN(g.tip));
 }
 
-// The timing the user set (11/13, third version, after the first night's diagnostic: 3 of 4 games confirmed 22-27
-// minutes before tip, after the old 31-29 burst), by minutes before each game's scheduled tip:
+// The timing the user set (11/14, fourth version, after two nights' diagnostics: 13 games' NBA.com stamps 19-30 minutes
+// before tip, four teams first seen at the old window's last minute), by minutes before each game's scheduled tip:
 //   90 → 35: NBA.com's file every 5 minutes (90, 85, … 35);
-//   35 → 15: every minute (34, 33, … 15), where 11/12's confirmations landed (22-30 out);
-//   15 → 2:  every 3 minutes (12, 9, 6, 3);
+//   35 → 10: every 30 seconds (34:30, 34, 33:30, … 10);
+//   10 → 2:  every 3 minutes (9, 6, 3);
 //   from tip: ESPN's box every minute until it shows who started (giving up 45 minutes after).
-// (Until 11/13: every 20 seconds from 31 to 29 out, then every 3 minutes from 29.) The run still offers checks at :00,
-// :20 and :40 of each minute; only whole minutes are due now.
-export const WINDOW_MIN = 90, FAST_FROM = 35, FAST_TO = 15, TIP_GIVE_UP_MIN = 45;
-export const BURST_EVERY_S = 20;
+// (11/13: every minute from 34 to 16. Until 11/13: every 20 seconds from 31 to 29 out, then every 3 minutes from 29.)
+// The 1-minute cron run reads at :00 and :30 of its minute when a game is due.
+export const WINDOW_MIN = 90, FAST_FROM = 35, FAST_TO = 10, TIP_GIVE_UP_MIN = 45;
+export const BURST_EVERY_S = 30;
 
 /** Is NBA.com's file due at time t (ms) for a game tipping at tip (ms)? */
 export function feedDue(tip, t) {
   const m = (tip - t) / 60e3; // minutes before tip
   if (m <= 0 || m > WINDOW_MIN) return false;
-  const whole = Math.round(m);
-  if (Math.abs(m - whole) > 1 / 120) return false; // whole minutes only
-  if (whole >= FAST_FROM) return (WINDOW_MIN - whole) % 5 === 0; // 90, 85, … 35
-  if (whole > FAST_TO) return true; // 34 … 16: every minute
-  return (FAST_TO - whole) % 3 === 0 && whole > 0; // 15, 12, 9, 6, 3
+  const half = Math.round(m * 2) / 2;
+  if (Math.abs(m - half) > 1 / 120) return false; // whole and half minutes only
+  if (half < FAST_FROM && half >= FAST_TO) return true; // 34:30 … 10: every 30 seconds
+  if (half !== Math.round(half)) return false;
+  if (half >= FAST_FROM) return (WINDOW_MIN - half) % 5 === 0; // 90, 85, … 35
+  return half % 3 === 0 && half > 0; // 9, 6, 3
 }
 
 /** What a team needs at time t: null (nothing), "pregame" (within 90 minutes of tip), or "tip". */
@@ -239,7 +240,7 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
   }
   // NBA.com's file at :00, :20 and :40 of this minute, whenever any game is due then (one read covers every game).
   const minute0 = Math.floor(now / 60e3) * 60e3;
-  for (const off of [0, BURST_EVERY_S, 2 * BURST_EVERY_S]) {
+  for (const off of [0, BURST_EVERY_S]) {
     const t = minute0 + off * 1000;
     const due = st.sched.some((g) => g.teams.some((tri) => phaseOf(st.teams[tri], g.tip, t) === "pregame")
       && (feedDue(g.tip, t) || (off === 0 && g.teams.some((tri) => st.teams[tri]?.suspect))));

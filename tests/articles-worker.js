@@ -197,18 +197,18 @@ export async function articlesChecks(ok) {
       return new Response("", { status: 404 });
     };
     // Tip 7:30 PM ET (00:30 UTC). The user's timing (11/13): NBA.com every 5 minutes from 6:00 (90 out) to 6:55 (35 out);
-    // every minute from 6:56 (34 out) to 7:14 (16 out); every 3 minutes from 7:15 (15 out) to 7:27; ESPN every minute from 7:30.
+    // every 30 seconds from 6:55:30 (34:30 out) to 7:20 (10 out); every 3 minutes after (7:21, 7:24, 7:27); ESPN every minute from 7:30.
     const T = (hhmm, sec = 0) => Date.parse(`2026-11-12T${hhmm}:${String(sec).padStart(2, "0")}-05:00`);
     const tip = T("19:30");
     const dueAt = [];
-    for (let t = T("17:55"); t < tip + 60e3; t += 20e3) if (feedDue(tip, t)) dueAt.push(new Date(t - 5 * 3600e3).toISOString().slice(11, 19));
-    ok(dueAt.join() === "18:00:00,18:05:00,18:10:00,18:15:00,18:20:00,18:25:00,18:30:00,18:35:00,18:40:00,18:45:00,18:50:00,18:55:00,18:56:00,18:57:00,18:58:00,18:59:00,19:00:00,19:01:00,19:02:00,19:03:00,19:04:00,19:05:00,19:06:00,19:07:00,19:08:00,19:09:00,19:10:00,19:11:00,19:12:00,19:13:00,19:14:00,19:15:00,19:18:00,19:21:00,19:24:00,19:27:00",
-      "lineups: NBA.com read every 5 min from 90 to 35 out, every minute from 34 to 16 out, every 3 min from 15 out, never at or after tip", dueAt.join());
+    for (let t = T("17:55"); t < tip + 60e3; t += 10e3) if (feedDue(tip, t)) dueAt.push(new Date(t - 5 * 3600e3).toISOString().slice(11, 19));
+    ok(dueAt.join() === "18:00:00,18:05:00,18:10:00,18:15:00,18:20:00,18:25:00,18:30:00,18:35:00,18:40:00,18:45:00,18:50:00,18:55:00,18:55:30,18:56:00,18:56:30,18:57:00,18:57:30,18:58:00,18:58:30,18:59:00,18:59:30,19:00:00,19:00:30,19:01:00,19:01:30,19:02:00,19:02:30,19:03:00,19:03:30,19:04:00,19:04:30,19:05:00,19:05:30,19:06:00,19:06:30,19:07:00,19:07:30,19:08:00,19:08:30,19:09:00,19:09:30,19:10:00,19:10:30,19:11:00,19:11:30,19:12:00,19:12:30,19:13:00,19:13:30,19:14:00,19:14:30,19:15:00,19:15:30,19:16:00,19:16:30,19:17:00,19:17:30,19:18:00,19:18:30,19:19:00,19:19:30,19:20:00,19:21:00,19:24:00,19:27:00",
+      "lineups: NBA.com read every 5 min from 90 to 35 out, every 30 seconds from 34:30 to 10 out (11/14), every 3 min after, never at or after tip", dueAt.join());
     // The night's summary (11/13 diagnostic): NBA.com's stamp, our first read, our post; the median; the 35-15 window.
     const tip7 = T("19:00");
     const row = (team, feedMin, seenMin, postedMin) => ({ team, tip: tip7, feedMin, seenMin, postedMin, lagSec: Math.round((feedMin - postedMin) * 60), changes: [], tipResult: "matched" });
     const emb = timingEmbed({ date: "2026-11-12", teams: [row("DET", 26.0, 25.0, 24.4), row("PHI", 22.1, 20.0, 19.4), row("DAL", 30.0, 25.0, 24.2), row("CHA", 27.0, 23.0, 22.4)] });
-    ok(/median confirmation 26\.5 min before tip \(range 22\.1-30\.0\) · 4 of 4 in the 35-15 window · median lag \d+s/.test(emb.title) && /\*\*DET\*\* \(7:00 PM\): NBA\.com 26\.0 min · seen 25\.0 min · posted 24\.4 min before tip \(\+96s; 60s to see it\)/.test(emb.description),
+    ok(/median confirmation 26\.5 min before tip \(range 22\.1-30\.0\) · 4 of 4 in the 35-10 window · median lag \d+s/.test(emb.title) && /\*\*DET\*\* \(7:00 PM\): NBA\.com 26\.0 min · seen 25\.0 min · posted 24\.4 min before tip \(\+96s; 60s to see it\)/.test(emb.description),
       "lineups: the night's timing post shows NBA.com's stamp, when we first saw it and posted, the true median and the 35-15 window", JSON.stringify(emb));
     const noSleep = { sleep: async () => {} };
     try {
@@ -221,17 +221,17 @@ export async function articlesChecks(ok) {
       ok(r1.posted === 1 && r2.posted === 0 && r2.read.length === 0 && posts.length === 1 && posts[0].username === "NBA Command Center · Lineups" && reads === 1,
         "lineups: from 90 minutes out, read on the 5-minute marks only; a confirmed five posted once", JSON.stringify({ reads, r2 }));
       reads = 0;
-      const b1 = await lineupCheck(env, T("18:59"), noSleep), b2 = await lineupCheck(env, T("19:14"), noSleep), b3 = await lineupCheck(env, T("19:15"), noSleep), b4 = await lineupCheck(env, T("19:16"), noSleep);
-      ok(reads === 3 && b1.read.length === 1 && b2.read.length === 1 && b3.read.length === 1 && b4.read.length === 0 && posts.length === 1,
-        "lineups: one read a minute from 34 to 16 out (11/13 timing), then every 3 minutes (15 out read, 14 not); no repeat post", JSON.stringify([b1.read, b2.read, b3.read, b4.read]));
+      const b1 = await lineupCheck(env, T("18:59"), noSleep), b2 = await lineupCheck(env, T("19:20"), noSleep), b3 = await lineupCheck(env, T("19:21"), noSleep), b4 = await lineupCheck(env, T("19:22"), noSleep);
+      ok(reads === 4 && b1.read.length === 2 && b2.read.length === 1 && b3.read.length === 1 && b4.read.length === 0 && posts.length === 1,
+        "lineups: two reads a minute (:00 and :30) from 34:30 to 10 out (11/14 timing), then every 3 minutes (9 out read, 8 not); no repeat post", JSON.stringify([b1.read, b2.read, b3.read, b4.read]));
       current = feed("Confirmed", true);
       const r5 = await lineupCheck(env, T("19:04"), noSleep);
       ok(edits.length === 1 && edits[0].id === "m1" && /REPLACED \(changed at .* ET\) · see the newer post/.test(edits[0].embeds[0].author.name) && edits[0].embeds[0].color === 0x6b7280,
         "lineups: the earlier card is greyed and marked REPLACED when a change posts", JSON.stringify(edits));
-      ok(r5.posted === 1 && /LINEUP CHANGE/.test(posts[1].embeds[0].author.name) && /Changed after it was confirmed:\*\* in Mitchell Robinson · out Josh Hart/.test(posts[1].embeds[0].description), "lineups: a change after it was confirmed posts on the next 3-minute check", JSON.stringify(posts[1]?.embeds?.[0]));
-      { // A flagged swap: NBA.com is read every minute until tip (19:05 isn't a 3-minute mark).
+      ok(r5.posted === 1 && /LINEUP CHANGE/.test(posts[1].embeds[0].author.name) && /Changed after it was confirmed:\*\* in Mitchell Robinson · out Josh Hart/.test(posts[1].embeds[0].description), "lineups: a change after it was confirmed posts on the next check", JSON.stringify(posts[1]?.embeds?.[0]));
+      { // A flagged swap: NBA.com is read every minute until tip (19:23 isn't a 3-minute mark).
         const st = JSON.parse(kv.get("lineups")); st.teams.NYK.suspect = true; kv.set("lineups", JSON.stringify(st));
-        reads = 0; await lineupCheck(env, T("19:05"), noSleep);
+        reads = 0; await lineupCheck(env, T("19:23"), noSleep);
         ok(reads === 1, "lineups: after a flagged swap, NBA.com is read every minute until tip", String(reads));
         const st2 = JSON.parse(kv.get("lineups")); st2.teams.NYK.suspect = false; kv.set("lineups", JSON.stringify(st2));
       }
