@@ -1936,6 +1936,49 @@ await articlesChecks(ok);
     "notes (0.62): a stretch against the season's first games isn't a past one-off; the scorer sees stretches and records-when");
 }
 
+// ---------- 0.66: prep stats and the briefing (the user's 11/14 tweets: Curry, Durant, Dosunmu, Dončić, Jokić) ----------
+{
+  const P = await import("../src/anticipate/prep.js");
+  const { briefing } = await import("../src/anticipate/briefing.js");
+  const day = (n) => new Date(Date.UTC(2026, 9, 21) + n * 864e5).toISOString().slice(0, 10);
+  const line = (d, team, opp, o) => ({ d, gameId: `${d}${team}`, team, opp, home: true, win: true, min: 34, pts: 20, reb: 5, ast: 5, stl: 1, blk: 0, fgm: 7, fga: 15, fg3m: 2, fg3a: 6, ftm: 4, fta: 5, tov: 2, ...o });
+  // Season vs career: a scorer at 31 PPG and 50% FG this season; his past seasons top out at 29.4 PPG (2022-23) and 32 (2020-21).
+  const seasons = { keys: ["season", "g", "min", "pts", "reb", "ast", "stl", "blk", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "tov", "hi"], players: { "Star Guy": [
+    ["2014-15", 80, 2700, 1900, 300, 600, 100, 20, 650, 1340, 280, 640, 300, 330, 200, 50], ["2015-16", 79, 2700, 2375, 430, 525, 170, 15, 805, 1600, 400, 885, 360, 400, 260, 53],
+    ["2018-19", 69, 2300, 1880, 370, 360, 90, 25, 630, 1340, 350, 810, 290, 320, 190, 51], ["2019-20", 70, 2300, 1750, 350, 350, 80, 20, 600, 1330, 300, 760, 250, 280, 180, 45],
+    ["2020-21", 63, 2150, 2015, 345, 365, 75, 10, 660, 1365, 337, 801, 362, 395, 213, 62], ["2021-22", 64, 2210, 1630, 335, 405, 85, 20, 535, 1225, 285, 750, 270, 290, 205, 50],
+    ["2022-23", 56, 1940, 1645, 345, 355, 50, 20, 560, 1135, 275, 645, 255, 280, 175, 50], ["2023-24", 74, 2420, 1950, 330, 375, 55, 30, 650, 1450, 355, 870, 290, 315, 210, 46],
+    ["2024-25", 70, 2280, 1680, 310, 420, 80, 25, 580, 1290, 310, 780, 250, 270, 200, 50], ["2025-26", 72, 2300, 1900, 320, 400, 80, 20, 640, 1390, 330, 820, 270, 290, 205, 49]] } };
+  const pg = { s1: Array.from({ length: 8 }, (_, i) => line(day(i), "GSW", "AAA", { pts: 31, fgm: 11, fga: 22, fg3m: 5, fg3a: 11 })) };
+  const S = P.seasonLines({ pg, seasons, names: { s1: "Star Guy" }, season: "2026-27" });
+  ok(S[0] && /31\.0 PPG \(highest since '20-21\)/.test(S[0].text) && /50\.0% FG \(highest since '15-16\)/.test(S[0].text), "prep (0.66): this season against his career seasons: 'highest since' and career highs", S[0]?.text);
+  // Since a teammate went out: ESTAR (25 PPG) plays 3, then misses 4; the guard goes from 12 to 21.
+  const rows = [], pg2 = { e: [], g: [] };
+  for (let i = 0; i < 7; i++) { const d = day(i), id = `x${i}`; rows.push({ id, d, h: "MIN", a: "OPP", hs: i % 3 ? 110 : 100, as: 105 });
+    if (i < 3) pg2.e.push({ ...line(d, "MIN", "OPP", { pts: 25 }), gameId: id });
+    pg2.g.push({ ...line(d, "MIN", "OPP", { pts: i < 3 ? 12 : 21 }), gameId: id }); }
+  const A = P.absenceLines({ pg: pg2, rows, names: { e: "Edwards Star", g: "Guard Guy" } });
+  ok(A[0] && /^Guard Guy since Edwards Star last played \(\d+\/\d+\), 4 games: 21\.0 PPG.*\(12\.0 PPG before\); MIN's leading scorer, \d-\d in that span/.test(A[0].text), "prep (0.66): since a teammate last played: who stepped up, before and after, the record", A[0]?.text);
+  // Player streak watch: 40+ in 4 straight now; in history one player did 5.
+  const logs = { columns: ["date", "opp", "home", "result", "type", "min", "pts", "reb", "ast", "stl", "blk", "fg3m", "fgm", "fga", "fg3a", "ftm", "fta"], players: {
+    h1: [40, 41, 44, 50, 42, 20].map((p, i) => [`2018-11-0${i + 1}`, "BBB", 1, "W", 2, 36, p, 5, 5, 1, 0, 3, 12, 25, 8, 10, 12]) } };
+  const pg3 = { l1: [28, 45, 42, 40, 53].map((p, i) => line(day(i), "LAL", "CCC", { pts: p })) };
+  const T = P.streakLines({ pg: pg3, logs, names: { l1: "Luka Guy", h1: "James Harden" } });
+  ok(T[0] && /40\+ points in 4 straight games: one more tonight would put him with James Harden '18-19/.test(T[0].text), "prep (0.66): a 5th straight 40-point game tonight, with who else did it since 2016-17", T[0]?.text);
+  // Vs tonight's opponent: triple-doubles in 6 of 8 against NOP, 2 of 20 against everyone else.
+  const L4 = { columns: logs.columns, players: { j1: [...Array.from({ length: 8 }, (_, i) => [`2019-0${(i % 9) + 1}-10`, "NOP", 1, "W", 2, 34, 27, i < 6 ? 12 : 8, i < 6 ? 11 : 7, 1, 1, 1, 10, 18, 3, 4, 5]),
+    ...Array.from({ length: 20 }, (_, i) => [`2020-0${(i % 9) + 1}-${10 + (i % 15)}`, "XXX", 1, "W", 2, 34, 24, i < 2 ? 12 : 9, i < 2 ? 10 : 6, 1, 1, 1, 9, 17, 3, 4, 5])] } };
+  const V = P.vsOppLines({ pg: { j1: [line(day(0), "DEN", "QQQ", {})] }, logs: L4, names: { j1: "Joker Guy" }, games: [{ away: "DEN", home: "NOP" }] });
+  ok(V[0] && /a triple-double in 6 of his last 8 games vs\. NOP/.test(V[0].text), "prep (0.66): a feat far more common against tonight's opponent", V[0]?.text);
+  // The briefing: one per player, injuries kept out, a new rare line beats a stale big one, deep cuts are lesser-known players.
+  const all = [{ kind: "injury", team: "AAA", text: "X out", score: 9 }, { kind: "pstreak", team: "AAA", player: "Star", text: "Star 40+ in 4 straight", score: 3.6, rare: true },
+    { kind: "season", team: "AAA", player: "Star", text: "Star this season…", score: 3 }, { kind: "history", team: "BBB", player: "Old News", text: "a stale line", score: 3.8, key: "old" },
+    { kind: "pace", team: "BBB", player: "Bench Guy", text: "Bench Guy most threes through 9", score: 3.4, rare: true }];
+  const B = briefing({ all, games: [{ away: "AAA", home: "BBB" }], stars: { Star: 0.9, "Old News": 0.5, "Bench Guy": 0.2 }, seen: { old: "2026-11-01" }, today: "2026-11-14", topN: 1, deepN: 2 });
+  ok(B.top[0].text === "Star 40+ in 4 straight" && !B.top.some((l) => l.kind === "injury") && B.top.filter((l) => l.player === "Star").length === 1 && B.deep.some((l) => l.player === "Bench Guy") && B.seen.old === "2026-11-01",
+    "briefing (0.66): ranked across the slate, one line per player, no injury lines, a line seen for days fades, lesser-known rare lines as deep cuts", JSON.stringify({ top: B.top.map((l) => l.text), deep: B.deep.map((l) => l.text) }));
+}
+
 // ---------- 0.65: career highs allowed (this season's, rookies apart) ----------
 {
   const { careerHighsAllowed } = await import("../src/situations/trends.js");

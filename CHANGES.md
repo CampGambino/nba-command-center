@@ -2,6 +2,34 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.66.0 (2026-11-14): the briefing (one ranking for the slate) and prep stats from the user's tweets
+
+The user: "With all the information in the command center, how do I extract the pertinent and relevant information to display on the main page to prepare me for the evening slates… how can we highlight the obscure", then "Start with that" with nine tweets to find ahead of time: Dosunmu since Edwards' injury; Jokić's career-worst 22.9% from three; Curry over the Warriors' 7-game winning streak; 40+ in 5 straight (Dončić can join tonight); most points through 10 games (Dončić 393); Wemby over the Spurs' 9 straight; Curry's and Durant's seasons ("highest since '20-21", "career-low"); Franz Wagner's 30+ in four straight; Jokić's triple-double in 14 of 17 vs. the Pelicans.
+
+### What changed
+- **Prep stats (new, src/anticipate/prep.js → docs/data/prep.json, every build):**
+  - `seasonLines`: this season against each of his past seasons (NBA Guide, 1979-80 on): PPG, RPG, APG, FG%, 3PT, TS%, FGA/G; career-high/low, or "highest/lowest since '20-21" (4+ seasons back) or "since his rookie year". Lows only for scorers; FGA/G only beside a scoring low; at most three numbers; a lone shooting number isn't a line.
+  - `absenceLines`: a 18+ PPG player out for his team's last 3+ games: the teammate who scores most since (2+ games), his line, before and after, whether he leads the team, and the record in that span.
+  - `runLines`: over a team's current 5+ game winning streak, its top scorer's line with TS% (and "after an 0-2 start").
+  - `streakLines`: a player's current run (30/35/40/50+ points, 15/20+ rebounds, 12/15+ assists, 5/7+ threes, 5+ blocks, triple-doubles) and how many current players went one game further since 2016-17 (logs + this season); the rarest one is said.
+  - `vsOppLines`: a feat (triple-double, double-double, 30+, 40+) he does far more often against tonight's opponent (last 20 meetings since 2016-17 vs. all his games).
+  - `paceLines`: the most points, threes, rebounds or assists by any current player through the same number of games of a season since 2016-17 (top 3).
+  - `prominence`: each player's 0-1 weight from this season's points and minutes.
+- **Storylines:** kinds season 📊, span 🧩, pstreak 🔥, vsopp 🆚 (the right game only), pace ⏱️; at most 2 / 2 / 2 / 1 / 1 a game. NBA Live shows them as pre-game cards (📊 THIS SEASON, 🧩 IN THAT SPAN, 🔥 STREAK WATCH, 🆚 VS TONIGHT'S OPPONENT, ⏱️ PACE). `tonightCandidates` (new) gives every candidate line; the Discord digest gets the prep lines too.
+- **The briefing (new, src/anticipate/briefing.js → docs/data/briefing.json; Watch List, top):** every candidate line ranked together: its detector's score + 0.9 × prominence + national TV + new today (+0.35; seen 3+ days −0.5, 7+ −1, from `history/briefing-seen.json`) + rare. Top 10 mixed (≤3 a game, ≤3 a kind, 1 a player; injuries, rest, TV and context stay in the game cards). **Deep cuts:** up to 5 rare or big lines about lesser-known players (prominence < 0.45). The first build marks nothing "new".
+
+### Tested
+- 700 checks pass (new: season vs career, since a teammate went out, a 5th straight 40-point game, a feat vs. tonight's opponent, the briefing's rules). Page sweep: index.html waits on tonight's build for prep.json and briefing.json (404 until then, handled).
+- **Replayed on past mornings from this season's results store:**
+  - 11/8: "Stephen Curry over GSW's 7-game winning streak: 6 GP, 33.8 PPG, 4.7 RPG, 5.3 APG… 73.3 TS%" (the tweet, exactly); "Luka Doncic has 40+ points in 4 straight games: one more tonight would put him with James Harden '18-19…"; Dosunmu since Edwards (20.8 PPG, 5.7 RPG, 4.5 APG, 1.7 SPG, 53% FG, 42% 3PT, 4-2; the tweet: 20.6, same otherwise); Jokić 22.9% 3PT (career-low).
+  - 11/10: Dončić's 393 points through 10 games, the most since 2016-17 (next: Harden 373); Wembanyama over the 9 straight (32.7 PPG, 11.7 RPG, 3.1 APG, 4.4 BPG, 57% FG: the tweet); Curry 30.6 PPG (highest since '20-21), 50.3% FG (highest since '15-16), 45.7% 3PT (career-high); Durant 21.0 PPG (lowest since his rookie year), 12.8 FGA/G (career-low).
+  - Tonight: Jokić's triple-double in 15 of his last 20 vs. NOP (the tweet: 14 of 17). The briefing ranked 247 candidates: NOP's 135+ run, Dosunmu, Jokić vs. NOP, MIN's streak among the ten.
+- Prep stats take about a second in the build.
+
+### Unproven
+- **Not found:** Franz Wagner as "the fifth player in Magic history with 30+ in four straight": our game logs have no team per game and only current players, so franchise-history streaks aren't possible yet (the team's notes often carry them). "In NBA history" claims (Wilt, Kobe) are beyond our 2016-17 window: our lines say "since 2016-17" and "current players". Usage rate (Durant's 24.5% USG) isn't in our data.
+- The ranking weights are first guesses; the user's verdicts would tune them.
+
 ## 0.65.1 (2026-11-14): pages from the 11/14 review (unusual records, clutch players, National TV, Within reach); career highs allowed
 
 The user: "group the same teams when possible and remove the context after the stat about a team this good… incorporate the actual games… whether a dropdown or open click"; "the clutch player table could use pages… highlight any outliers"; "I want to be able to filter this table. also, I don't understand the National Left column… the national tv games that are set at the beginning of the season are subject to change as the league flexes games in and out… there has to be a way to confirm ahead of time"; Within reach: "this is all way too sanitary. I don't know where to look or which ones are important"; "track which teams have allowed opposing players to score their career-highs this season… rookies would have to be differentiated".

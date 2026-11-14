@@ -1,0 +1,339 @@
+/**
+ * Prep stats (0.66): the kinds of line other accounts post before and after games, worked out ahead of time.
+ * The user's examples (11/14), one detector each:
+ *
+ *   seasonLines  "Curry this season: 30.6 PPG (highest since '20-21), 50.3% FG (highest since '15-16), 45.7% 3PT (career-high)";
+ *                "Durant: 21.0 PPG (lowest since his rookie year), 12.8 FGA/G (career-low)"; Jokić's career-worst 22.9% from three.
+ *   absenceLines "Ayo Dosunmu since Anthony Edwards' injury: 20.6 PPG, 5.7 RPG… Wolves' leading scorer, 4-2 in that span."
+ *   runLines     "Curry over the Warriors' 7-game winning streak: 6 GP, 33.8 PPG… 73.3 TS%"; Wemby over the Spurs' 9 straight.
+ *   streakLines  "Players with 40+ in 5 straight games… Luka can join tonight"; Franz Wagner's 30+ in four straight.
+ *   vsOppLines   "Jokić has a triple-double in 14 of his last 17 games vs. the Pelicans."
+ *   paceLines    "Most points through the first 10 games of a season: … Luka Dončić 393 (this season)."
+ *
+ * History: the ESPN game logs of current players (2016-17 on) and the NBA Guide's year-by-year seasons (1979-80 on, active
+ * players). The logs hold only current players, so every count from them says "since 2016-17" and is among current players.
+ */
+const STATS = ["min", "pts", "reb", "ast", "stl", "blk", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "tov"];
+const r1 = (x) => (Math.round(x * 10) / 10).toFixed(1);
+const pct = (m, a) => (a ? (100 * m) / a : null);
+const ts = (t) => (t.fga + 0.44 * t.fta ? (100 * t.pts) / (2 * (t.fga + 0.44 * t.fta)) : null);
+const short = (season) => `'${season.slice(2, 4)}-${season.slice(5, 7)}`;
+const surname = (n) => n.replace(/\s+(?:Jr\.?|Sr\.?|II|III|IV)$/, "").split(" ").slice(-1)[0];
+const md = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}`;
+
+function sum(games) {
+  const t = { g: games.length };
+  for (const k of STATS) t[k] = games.reduce((s, g) => s + (g[k] || 0), 0);
+  return t;
+}
+
+/** A game's line in the logs' column order -> { d, opp, home, win, type, min, pts, … }. */
+function logRows(logs) {
+  const C = logs?.columns || [];
+  const ix = Object.fromEntries(C.map((c, i) => [c, i]));
+  const out = {};
+  for (const [id, rows] of Object.entries(logs?.players || {})) {
+    out[id] = rows.map((r) => ({ d: r[ix.date], opp: r[ix.opp], home: !!r[ix.home], win: r[ix.result] === "W", type: r[ix.type],
+      ...Object.fromEntries(STATS.filter((k) => ix[k] != null).map((k) => [k, r[ix[k]] ?? 0])) }));
+  }
+  return out;
+}
+const seasonOfDate = (d) => { const y = +d.slice(0, 4), m = +d.slice(5, 7); return m >= 8 ? `${y}-${String((y + 1) % 100).padStart(2, "0")}` : `${y - 1}-${String(y % 100).padStart(2, "0")}`; };
+const td = (g) => [g.pts, g.reb, g.ast, g.stl, g.blk].filter((x) => x >= 10).length >= 3;
+const dd = (g) => [g.pts, g.reb, g.ast, g.stl, g.blk].filter((x) => x >= 10).length >= 2;
+
+// ---------------------------------------------------------------------------------------------------------------
+// 1. This season against his career seasons.
+const METRICS = [
+  // key, label, value(t), worth saying this season (t, high?), qualifies a past season (t), lows worth saying (career)
+  ["ppg", "PPG", (t) => t.pts / t.g, (t, hi) => t.min / t.g >= 20 && (!hi || t.pts / t.g >= 15), (t) => t.g >= 20, (c) => c.bestPpg >= 15],
+  ["rpg", "RPG", (t) => t.reb / t.g, (t, hi) => t.min / t.g >= 20 && hi && t.reb / t.g >= 8, (t) => t.g >= 20, () => false],
+  ["apg", "APG", (t) => t.ast / t.g, (t, hi) => t.min / t.g >= 20 && hi && t.ast / t.g >= 6, (t) => t.g >= 20, () => false],
+  ["fgp", "FG", (t) => pct(t.fgm, t.fga), (t) => t.fga / t.g >= 9, (t) => t.fga >= 300, (c) => c.bestPpg >= 15],
+  ["fg3p", "3PT", (t) => pct(t.fg3m, t.fg3a), (t) => t.fg3a / t.g >= 4, (t) => t.fg3a >= 120, (c) => c.bestPpg >= 15],
+  ["fga", "FGA/G", (t) => t.fga / t.g, (t, hi) => t.min / t.g >= 20 && !hi, (t) => t.g >= 20, (c) => c.bestPpg >= 20],
+  ["ts", "TS%", ts, (t) => t.fga / t.g >= 12, (t) => t.fga >= 500, (c) => c.bestPpg >= 18],
+];
+// What a line keeps: the order a reader wants, at most three.
+const ORDER = ["ppg", "rpg", "apg", "fgp", "fg3p", "ts", "fga"];
+const fmtM = (k, v) => (["fgp", "fg3p", "ftp"].includes(k) ? `${r1(v)}%` : r1(v));
+
+export function seasonLines({ pg, seasons, names, nameKey = (n) => n, season, minGames = 6 }) {
+  const K = seasons?.keys || [];
+  const ix = Object.fromEntries(K.map((k, i) => [k, i]));
+  const byName = new Map(Object.entries(seasons?.players || {}).map(([n, rows]) => [nameKey(n), rows]));
+  const out = [];
+  for (const [id, games] of Object.entries(pg)) {
+    const name = names[id];
+    if (!name || games.length < minGames) continue;
+    const past = (byName.get(nameKey(name)) || []).filter((r) => r[ix.season] < season)
+      .map((r) => ({ season: r[ix.season], ...Object.fromEntries(["g", ...STATS].filter((k) => ix[k] != null).map((k) => [k, r[ix[k]] || 0])) }));
+    if (past.filter((p) => p.g >= 20).length < 3) continue;
+    const now = sum(games);
+    const team = games[games.length - 1].team;
+    const ctx = { bestPpg: Math.max(...past.filter((p) => p.g >= 20).map((p) => p.pts / p.g), 0) };
+    const first = past[0].season;
+    const parts = [];
+    let best = 0;
+    for (const [k, label, val, okNow, okPast, lowsOk] of METRICS) {
+      const v = val(now);
+      const P = past.filter(okPast).map((p) => ({ season: p.season, v: val(p) })).filter((p) => p.v != null);
+      if (v == null || P.length < 3) continue;
+      for (const dir of [1, -1]) {
+        if (!okNow(now, dir > 0) || (dir < 0 && !lowsOk(ctx))) continue;
+        const beats = (p) => (dir > 0 ? v > p.v + 1e-9 : v < p.v - 1e-9);
+        if (P.every(beats)) {
+          parts.push({ k, s: `${fmtM(k, v)} ${label} (career-${dir > 0 ? "high" : "low"})`, w: 2.6 + (dir < 0 ? 0.15 : 0) });
+          break;
+        }
+        // Since when: the last past season at least this good.
+        const last = [...P].reverse().find((p) => !beats(p));
+        const gap = last ? past.filter((p) => p.season > last.season).length : 0;
+        if (last && gap >= 4) {
+          const rookie = last.season === first;
+          parts.push({ k, s: `${fmtM(k, v)} ${label} (${dir > 0 ? "highest" : "lowest"} since ${rookie ? "his rookie year" : short(last.season)})`, w: 2.1 + Math.min(0.5, gap * 0.05) });
+          break;
+        }
+      }
+    }
+    if (!parts.length) continue;
+    // FGA/G alone isn't a story; TS% is said only when FG% isn't.
+    let P2 = parts.filter((p) => !(p.k === "ts" && parts.some((q) => q.k === "fgp")));
+    // FGA/G only beside a scoring low (Durant: "12.8 FGA/G (career-low)").
+    if (!P2.some((p) => p.k === "ppg" && /low/.test(p.s))) P2 = P2.filter((p) => p.k !== "fga");
+    // One shooting number alone isn't a line; scoring alone is.
+    if (!P2.length || (P2.length === 1 && P2[0].k !== "ppg")) continue;
+    P2 = P2.sort((a, b) => b.w - a.w).slice(0, 3).sort((a, b) => ORDER.indexOf(a.k) - ORDER.indexOf(b.k));
+    best = Math.max(...P2.map((p) => p.w));
+    out.push({ kind: "season", team, player: name, id, key: `season|${id}|${P2.map((p) => p.k).join(",")}`,
+      text: `${name} this season (${now.g} games): ${P2.map((p) => p.s).join(", ")}`, score: best + 0.15 * (P2.length - 1), rare: P2.some((p) => /career-/.test(p.s)) });
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Team games this season, in order: { TRI: [{ id, d, opp, win }] }.
+function teamGames(rows) {
+  const T = {};
+  for (const g of [...rows].filter((g) => g.hs != null && g.as != null).sort((a, b) => a.d.localeCompare(b.d) || String(a.id).localeCompare(String(b.id)))) {
+    (T[g.h] ??= []).push({ id: g.id, d: g.d, opp: g.a, win: g.hs > g.as });
+    (T[g.a] ??= []).push({ id: g.id, d: g.d, opp: g.h, win: g.as > g.hs });
+  }
+  return T;
+}
+const statLine = (t, { tsToo = false } = {}) => {
+  const bits = [`${r1(t.pts / t.g)} PPG`, `${r1(t.reb / t.g)} RPG`, `${r1(t.ast / t.g)} APG`];
+  if (t.stl / t.g >= 1.5) bits.push(`${r1(t.stl / t.g)} SPG`);
+  if (t.blk / t.g >= 1.5) bits.push(`${r1(t.blk / t.g)} BPG`);
+  if (t.fga >= 20) bits.push(`${Math.round(pct(t.fgm, t.fga))}% FG`);
+  if (t.fg3a >= 15) bits.push(`${Math.round(pct(t.fg3m, t.fg3a))}% 3PT`);
+  if (tsToo && ts(t) != null) bits.push(`${r1(ts(t))} TS%`);
+  return bits.join(", ");
+};
+
+// 2. Since a key teammate went out: who has stepped up, and the team's record.
+export function absenceLines({ pg, rows, names, minOut = 3 }) {
+  const T = teamGames(rows);
+  const byTeam = {};
+  for (const [id, games] of Object.entries(pg)) for (const g of games) ((byTeam[g.team] ??= {})[id] ??= new Map()).set(g.gameId, g);
+  const out = [];
+  for (const [team, list] of Object.entries(T)) {
+    const players = byTeam[team] || {};
+    for (const [id, gm] of Object.entries(players)) {
+      const played = list.filter((g) => gm.has(g.id));
+      const ppg = played.reduce((s, g) => s + gm.get(g.id).pts, 0) / Math.max(1, played.length);
+      if (played.length < 3 || ppg < 18) continue;
+      // Out for the team's last N games (and not traded: his last game was for this team).
+      let n = 0;
+      for (let i = list.length - 1; i >= 0 && !gm.has(list[i].id); i--) n++;
+      if (n < minOut) continue;
+      const span = list.slice(list.length - n), before = list.slice(0, list.length - n);
+      const W = span.filter((g) => g.win).length;
+      // The teammate who has done the most with him out: points per game in the span (2+ games), vs before.
+      let best = null;
+      for (const [oid, om] of Object.entries(players)) {
+        if (oid === id) continue;
+        const sg = span.filter((g) => om.has(g.id)).map((g) => om.get(g.id)), bg = before.filter((g) => om.has(g.id)).map((g) => om.get(g.id));
+        if (sg.length < Math.max(2, n - 2)) continue;
+        const t = sum(sg), b = bg.length ? sum(bg) : null;
+        const up = t.pts / t.g - (b ? b.pts / b.g : 0);
+        if (!best || t.pts / t.g > best.t.pts / best.t.g) best = { oid, t, b, up };
+      }
+      if (!best || best.t.pts / best.t.g < 12 || (best.b && best.up < 3)) continue;
+      const who = names[best.oid] || best.oid, out0 = names[id] || id;
+      const lead = Object.entries(players).every(([oid, om]) => oid === best.oid || oid === id || span.filter((g) => om.has(g.id)).reduce((s, g) => s + om.get(g.id).pts, 0) / Math.max(1, span.filter((g) => om.has(g.id)).length) <= best.t.pts / best.t.g);
+      out.push({ kind: "span", team, player: who, id: best.oid, key: `absence|${team}|${id}`,
+        text: `${who} since ${out0} last played (${md(list[list.length - n - 1]?.d || span[0].d)}), ${n} games: ${statLine(best.t)}${best.b ? ` (${r1(best.b.pts / best.b.g)} PPG before)` : ""}${lead ? `; ${team}'s leading scorer` : ""}, ${W}-${n - W} in that span`,
+        score: 2.9 + Math.min(0.6, best.up / 15) });
+    }
+  }
+  return out;
+}
+
+// 3. Over the team's current winning streak (5+): its best scorer in the span.
+export function runLines({ pg, rows, names, minRun = 5 }) {
+  const T = teamGames(rows);
+  const out = [];
+  for (const [team, list] of Object.entries(T)) {
+    let n = 0;
+    for (let i = list.length - 1; i >= 0 && list[i].win; i--) n++;
+    if (n < minRun) continue;
+    const ids = new Set(list.slice(-n).map((g) => g.id));
+    let best = null;
+    for (const [id, games] of Object.entries(pg)) {
+      const sg = games.filter((g) => g.team === team && ids.has(g.gameId));
+      if (sg.length < Math.max(3, n - 2)) continue;
+      const t = sum(sg);
+      if (!best || t.pts / t.g > best.t.pts / best.t.g) best = { id, t };
+    }
+    if (!best) continue;
+    const who = names[best.id] || best.id;
+    const start = list[list.length - n - 1];
+    out.push({ kind: "span", team, player: who, id: best.id, key: `run|${team}`,
+      text: `${who} over ${team}'s ${n}-game winning streak${start && !start.win && list.length - n <= 3 ? ` (after a ${list.length - n === 1 ? "0-1" : `0-${list.length - n}`} start)` : ""}: ${best.t.g} GP, ${statLine(best.t, { tsToo: true })}`,
+      score: 2.8 + Math.min(0.8, (n - minRun) * 0.12) });
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// 4. Player streaks: what tonight would make of his run, against every run in the logs since 2016-17.
+const FEATS = [
+  ["pts50", "50+ points", (g) => g.pts >= 50], ["pts40", "40+ points", (g) => g.pts >= 40], ["pts35", "35+ points", (g) => g.pts >= 35], ["pts30", "30+ points", (g) => g.pts >= 30],
+  ["reb20", "20+ rebounds", (g) => g.reb >= 20], ["reb15", "15+ rebounds", (g) => g.reb >= 15], ["ast15", "15+ assists", (g) => g.ast >= 15], ["ast12", "12+ assists", (g) => g.ast >= 12],
+  ["fg3m7", "7+ threes", (g) => g.fg3m >= 7], ["fg3m5", "5+ threes", (g) => g.fg3m >= 5], ["blk5", "5+ blocks", (g) => g.blk >= 5], ["td", "a triple-double", td],
+];
+const RARE = 5;
+function runsOf(games, test) {
+  const out = [];
+  let s = -1;
+  games.forEach((g, i) => { if (test(g)) { if (s < 0) s = i; } else if (s >= 0) { out.push({ n: i - s, end: games[i - 1].d }); s = -1; } });
+  if (s >= 0) out.push({ n: games.length - s, end: games[games.length - 1].d, current: true });
+  return out;
+}
+export function streakLines({ pg, logs, names }) {
+  const L = logRows(logs);
+  const out = [];
+  // Every run in history (regular season, one season at a time), per feat, with whose it was.
+  const hist = {};
+  for (const [k, , test] of FEATS) {
+    hist[k] = [];
+    for (const [id, rows] of Object.entries(L)) {
+      const by = {};
+      for (const g of rows) if (g.type === 2) (by[seasonOfDate(g.d)] ??= []).push(g);
+      for (const [s, gs] of Object.entries(by)) for (const r of runsOf(gs, test)) if (r.n >= 2) hist[k].push({ id, n: r.n, season: s });
+    }
+    // This season's finished runs too (a current run is the player's own and is left out below).
+    for (const [id, gs] of Object.entries(pg)) for (const r of runsOf(gs, test)) if (r.n >= 2 && !r.current) hist[k].push({ id, n: r.n, season: "this season" });
+  }
+  for (const [id, games] of Object.entries(pg)) {
+    const name = names[id];
+    if (!name) continue;
+    const team = games[games.length - 1].team;
+    let best = null;
+    for (const [k, label, test] of FEATS) {
+      const r = runsOf(games, test).pop();
+      if (!r || !r.current || r.n < 2) continue;
+      const others = hist[k];
+      const atN = others.filter((x) => x.n >= r.n), atNext = others.filter((x) => x.n >= r.n + 1);
+      if (atNext.length > RARE) continue;
+      const players = [...new Map(atNext.map((x) => [x.id, x])).values()];
+      if (!best || atNext.length < best.atNext.length || (atNext.length === best.atNext.length && r.n > best.r.n)) best = { k, label, r, atN, atNext, players };
+    }
+    if (!best) continue;
+    const { label, r, atNext, players, atN } = best;
+    const nm = (x) => `${names[x.id] || x.id} ${x.season === "this season" ? "this season" : short(x.season)}`;
+    const nobody = !atNext.length;
+    const text = `${name} has ${label.replace(/^a /, "")}${/^a /.test(label) ? "s" : ""} in ${r.n} straight games: ${nobody
+      ? `no current player has done it ${r.n + 1} straight since 2016-17${atN.length ? ` (${atN.length} did ${r.n}: ${[...new Map(atN.map((x) => [x.id, x])).values()].slice(0, 3).map(nm).join(", ")})` : ""}`
+      : `one more tonight would put him with ${players.slice(0, 4).map(nm).join(", ")} as the only current players to do it ${r.n + 1} straight since 2016-17`}`;
+    out.push({ kind: "pstreak", team, player: name, id, key: `pstreak|${id}|${best.k}`, text: text.replace("has triple-doubles", "has triple-doubles"),
+      score: 3 + (nobody ? 0.9 : 0.4) + Math.min(0.4, r.n * 0.05), rare: true });
+  }
+  return out;
+}
+
+// 5. Against tonight's opponent: a feat he does far more often against this team (career logs + this season).
+const VS = [["td", "a triple-double", td], ["pts30", "30+ points", (g) => g.pts >= 30], ["dd", "a double-double", dd], ["pts40", "40+ points", (g) => g.pts >= 40]];
+export function vsOppLines({ pg, logs, names, games: slate, lastN = 20 }) {
+  const L = logRows(logs);
+  const opp = new Map();
+  for (const g of slate || []) { opp.set(g.away, g.home); opp.set(g.home, g.away); }
+  const out = [];
+  for (const [id, games] of Object.entries(pg)) {
+    const name = names[id];
+    const team = games[games.length - 1]?.team;
+    const o = opp.get(team);
+    if (!name || !o) continue;
+    const all = [...(L[id] || []).filter((g) => g.type === 2), ...games.map((g) => ({ ...g, type: 2 }))].sort((a, b) => a.d.localeCompare(b.d));
+    const vs = all.filter((g) => g.opp === o).slice(-lastN);
+    if (vs.length < 6) continue;
+    let best = null;
+    for (const [k, label, test] of VS) {
+      const hit = vs.filter(test).length, rate = hit / vs.length;
+      const base = all.filter(test).length / all.length;
+      if (hit < 4 || rate < 0.4 || rate - base < 0.2) continue;
+      const w = rate - base + (k === "td" || k === "pts40" ? 0.15 : 0);
+      if (!best || w > best.w) best = { k, label, hit, rate, base, w };
+    }
+    if (!best) continue;
+    const t = sum(vs);
+    out.push({ kind: "vsopp", team, opp: o, player: name, id, key: `vsopp|${id}|${o}|${best.k}`,
+      text: `${name} has ${best.label} in ${best.hit} of his last ${vs.length} games vs. ${o} (${Math.round(best.base * 100)}% of all his games since 2016-17); ${r1(t.pts / t.g)} PPG, ${r1(t.reb / t.g)} RPG, ${r1(t.ast / t.g)} APG in those games`,
+      score: 2.7 + Math.min(0.9, best.w * 1.5) });
+  }
+  return out;
+}
+
+// 6. Through N games: the most points (and threes) through his team's first N games of a season, since 2016-17.
+export function paceLines({ pg, logs, names }) {
+  const L = logRows(logs);
+  const out = [];
+  const K = [["pts", "points"], ["fg3m", "threes"], ["reb", "rebounds"], ["ast", "assists"]];
+  // For every current player's past season: his running totals through 1, 2, 3… games.
+  const seasonsOf = [];
+  for (const [id, rows] of Object.entries(L)) {
+    const by = {};
+    for (const g of rows) if (g.type === 2) (by[seasonOfDate(g.d)] ??= []).push(g);
+    for (const [s, gs] of Object.entries(by)) seasonsOf.push({ id, season: s, gs });
+  }
+  for (const [k, label] of K) {
+    const cur = Object.entries(pg).map(([id, gs]) => ({ id, n: gs.length, v: gs.reduce((s, g) => s + g[k], 0) })).filter((x) => x.n >= 5 && names[x.id]);
+    const byN = new Map();
+    for (const n of new Set(cur.map((c) => c.n))) byN.set(n, seasonsOf.filter((x) => x.gs.length >= n).map((x) => ({ id: x.id, season: x.season, v: x.gs.slice(0, n).reduce((a, g) => a + g[k], 0) })).sort((a, b) => b.v - a.v));
+    for (const c of cur) {
+      const hist = byN.get(c.n);
+      const better = hist.filter((h) => h.v >= c.v);
+      const thisBetter = cur.filter((x) => x.n === c.n && x.v > c.v).length;
+      if (better.length + thisBetter > 2 || c.v < (k === "pts" ? 150 : 25)) continue;
+      const name = names[c.id];
+      const rank = better.length + thisBetter + 1;
+      const next = hist.find((h) => h.v < c.v);
+      out.push({ kind: "pace", team: pg[c.id][pg[c.id].length - 1].team, player: name, id: c.id, key: `pace|${c.id}|${k}`,
+        text: `${name}'s ${c.v} ${label} through ${c.n} games are ${rank === 1 ? "the most" : `the ${rank === 2 ? "2nd" : "3rd"}-most`} by any current player through ${c.n} games of a season since 2016-17${rank > 1 && better.length ? ` (${better.slice(0, 2).map((h) => `${names[h.id] || h.id} ${h.v}, ${short(h.season)}`).join("; ")})` : next ? ` (next: ${names[next.id] || next.id} ${next.v}, ${short(next.season)})` : ""}`,
+        score: (rank === 1 ? 3.4 : 2.8) + (k === "pts" ? 0.3 : 0), rare: rank === 1 });
+    }
+  }
+  return out;
+}
+
+/** Everyone's prominence (0-1) from this season's minutes and points, for the briefing's ranking. */
+export function prominence(pg, names) {
+  const out = {};
+  for (const [id, gs] of Object.entries(pg)) {
+    const name = names[id];
+    if (!name || !gs.length) continue;
+    const t = sum(gs);
+    out[name] = Math.round(Math.max(0, Math.min(1, 0.6 * Math.min(1, Math.max(0, (t.pts / t.g - 6) / 22)) + 0.4 * Math.min(1, Math.max(0, (t.min / t.g - 12) / 22)))) * 100) / 100;
+  }
+  return out;
+}
+
+/** All of it, for scripts/situations.js -> docs/data/prep.json. */
+export function prepLines(args) {
+  const parts = [["season", seasonLines], ["absence", absenceLines], ["run", runLines], ["streak", streakLines], ["vsopp", vsOppLines], ["pace", paceLines]];
+  const lines = [], errors = [];
+  for (const [k, f] of parts) { try { lines.push(...f(args)); } catch (e) { errors.push(`${k}: ${e.message}`); } }
+  return { lines, errors, stars: prominence(args.pg, args.names) };
+}
+export { surname };

@@ -371,7 +371,21 @@ export function injuryStatus(injuries, today) {
   return (team, player) => (player ? listed.get(`${team}|${nameKey(player)}`) : undefined);
 }
 
-export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries = null, facts = null, records = null, matchups = null, national = null, rest = null, form = null, fouls = null, maxLines = MAX_LINES }) {
+/**
+ * Prep stats (0.66, src/anticipate/prep.js → docs/data/prep.json): season vs career, spans (since a teammate went
+ * out, over a winning streak), player streak watch, vs tonight's opponent, through N games.
+ */
+const PREP_KINDS = new Set(["season", "span", "pstreak", "vsopp", "pace"]);
+function prepStoryLines(prep, teams, games, today) {
+  if (!prep || !Array.isArray(prep.lines) || (prep.today && today && prep.today !== today)) return [];
+  const opp = new Map();
+  for (const g of games) { opp.set(g.away, g.home); opp.set(g.home, g.away); }
+  return prep.lines.filter((l) => PREP_KINDS.has(l.kind) && teams.has(l.team) && (l.kind !== "vsopp" || opp.get(l.team) === l.opp))
+    .map((l) => ({ team: l.team, player: l.player, kind: l.kind, text: l.text, score: l.score, key: l.key, rare: !!l.rare }));
+}
+
+/** Every candidate line for tonight, after the injury report (shared by the per-game storylines and the briefing). */
+export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries = null, facts = null, records = null, matchups = null, national = null, rest = null, form = null, fouls = null, prep = null }) {
   const games = (watch.games || []).map((g) => ({ id: g.id, away: g.awayTri, home: g.homeTri, start: g.start }));
   const teams = new Set(games.flatMap((g) => [g.away, g.home]));
   // The injury report overrules the rest: a player listed Out or Doubtful loses his other lines
@@ -384,17 +398,24 @@ export function tonightStorylines({ watch, trends = {}, leaders = {}, injuries =
   const hist = historyLines(facts, teams, watch.today).filter((h) => !recs.some((r) => r.player && r.passing && r.team === h.team
     && new RegExp(`\\b${surname(r.player)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
     && r.passing.split(" and ").some((n) => new RegExp(`\\b${surname(n)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, "")))));
-  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams).filter((l) => !clubLines(leaders, teams).some((c) => c.player === l.player)), ...clubLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today), ...tvLines(national, teams, watch.today), ...restLines(rest, teams, watch.today), ...formLines(form, teams, watch.today), ...foulLines(fouls, teams), ...earlyLines(fouls, teams, watch.today)]
+  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams).filter((l) => !clubLines(leaders, teams).some((c) => c.player === l.player)), ...clubLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today), ...tvLines(national, teams, watch.today), ...restLines(rest, teams, watch.today), ...formLines(form, teams, watch.today), ...foulLines(fouls, teams), ...earlyLines(fouls, teams, watch.today), ...prepStoryLines(prep, teams, games, watch.today)]
     .flatMap((l) => {
       const st = l.player ? listed.get(`${l.team}|${nameKey(l.player)}`) : null;
       if (st === "Out" || st === "Doubtful") return [];
       return [st === "Questionable" ? { ...l, text: `${l.text} · questionable tonight`, score: l.score * 0.8 } : l];
     });
-  const all = [...injuryLines(injuries, teams, watch.today), ...others];
+  return { games, all: [...injuryLines(injuries, teams, watch.today), ...others] };
+}
+
+// At most this many of a kind in one game's card.
+const PER_GAME = { injury: 2, history: 2, context: 1, matchup: 2, tv: 2, rest: 2, form: 2, foul: 2, season: 2, span: 2, pstreak: 2, vsopp: 1, pace: 1 };
+export function tonightStorylines(args) {
+  const maxLines = args.maxLines ?? MAX_LINES;
+  const { games, all } = tonightCandidates(args);
   return games.map((g) => {
-    let inj = 0, hist = 0, ctx = 0, mu = 0, tv = 0, rs = 0, fm = 0, fo = 0;
+    const n = {};
     const ranked = all.filter((l) => (l.team === g.away || l.team === g.home) && (l.kind !== "matchup" || l.game === `${g.away}@${g.home}`)).sort((a, b) => b.score - a.score)
-      .filter((l) => (l.kind !== "injury" || ++inj <= 2) && (l.kind !== "history" || ++hist <= 2) && (l.kind !== "context" || ++ctx <= 1) && (l.kind !== "matchup" || ++mu <= 2) && (l.kind !== "tv" || ++tv <= 2) && (l.kind !== "rest" || ++rs <= 2) && (l.kind !== "form" || ++fm <= 2) && (l.kind !== "foul" || ++fo <= 2));
+      .filter((l) => !PER_GAME[l.kind] || (n[l.kind] = (n[l.kind] || 0) + 1) <= PER_GAME[l.kind]);
     // The user asked for these two on the Watch List: the best of each keeps a place even on a crowded night.
     const lines = ranked.slice(0, maxLines);
     for (const k of ["club", "tv"]) {

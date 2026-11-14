@@ -340,17 +340,32 @@ for (const [tri, games] of Object.entries(perTeam)) {
   const pg = playerGames(rows);
   const dates = [...new Set(rows.filter((g) => g.pl).map((g) => g.d))].sort().slice(-7);
   // Career highs before this season (the 2016-17 on back-fill, and the NBA Guide's yearly points highs).
-  let careers = null;
+  let careers = null, logsData = null, seasonsData = null, seasonTag = null, keyFn = (n) => n;
   try {
     const zlib = await import("node:zlib");
     const { strictKey } = await import("../src/records/guide.js");
+    keyFn = strictKey;
     const ends = store.season || Number(today.slice(0, 4)) + (Number(today.slice(5, 7)) >= 8 ? 1 : 0);
     const tag = `${ends - 1}-${String(ends).slice(2)}`;
+    seasonTag = tag;
     const logFile = path.join(root, "src", "data", "player-logs-history.json.gz");
     const csFile = path.join(root, "src", "data", `nba-career-seasons-${tag}.json`);
-    careers = careerHighs({ logs: fs.existsSync(logFile) ? JSON.parse(zlib.gunzipSync(fs.readFileSync(logFile))) : null,
-      seasons: fs.existsSync(csFile) ? JSON.parse(fs.readFileSync(csFile, "utf8")) : null, names: store.names || {}, ids: Object.keys(pg), season: tag, nameKey: strictKey });
+    logsData = fs.existsSync(logFile) ? JSON.parse(zlib.gunzipSync(fs.readFileSync(logFile))) : null;
+    seasonsData = fs.existsSync(csFile) ? JSON.parse(fs.readFileSync(csFile, "utf8")) : null;
+    careers = careerHighs({ logs: logsData, seasons: seasonsData, names: store.names || {}, ids: Object.keys(pg), season: tag, nameKey: strictKey });
   } catch (e) { console.error(`career highs not read: ${e.message}`); }
+  // Prep stats (0.66): season vs career, spans, player streak watch, vs tonight's opponent, through N games.
+  try {
+    const { prepLines } = await import("../src/anticipate/prep.js");
+    const wf = path.join(root, "docs", "data", "watch.json");
+    const w = fs.existsSync(wf) ? JSON.parse(fs.readFileSync(wf, "utf8")) : { games: [] };
+    const slate = (w.today === today ? w.games : []).map((g) => ({ away: g.awayTri, home: g.homeTri }));
+    const prep = prepLines({ pg, rows, logs: logsData, seasons: seasonsData, names: store.names || {}, nameKey: keyFn, season: seasonTag, games: slate });
+    const byKind = {};
+    for (const l of prep.lines) byKind[l.kind] = (byKind[l.kind] || 0) + 1;
+    console.log(`prep stats: ${prep.lines.length} lines (${Object.entries(byKind).map(([k, n]) => `${n} ${k}`).join(", ")})${prep.errors.length ? `; errors: ${prep.errors.join("; ")}` : ""}`);
+    fs.writeFileSync(path.join(root, "docs", "data", "prep.json"), JSON.stringify({ generatedAt: out.generatedAt, today, through, lines: prep.lines, stars: prep.stars }));
+  } catch (e) { console.error(`prep stats not written: ${e.message}`); }
   const byDate = Object.fromEntries(dates.map((d) => [d, anomalies(pg, store.names || {}, { dates: [d], careers })]));
   const ch = Object.values(byDate).flat().filter((a) => a.notes.some((n) => n.careerHigh)).length;
   console.log(`outliers: ${Object.values(byDate).flat().length} over ${dates.length} dates, ${ch} with a career high`);
@@ -470,9 +485,26 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const facts = fs.existsSync(path.join(root, "docs", "data", "notes-facts.json")) ? rd("notes-facts.json") : null;
     const records = fs.existsSync(path.join(root, "docs", "data", "records.json")) ? rd("records.json") : null;
     const matchupData = fs.existsSync(path.join(root, "docs", "data", "matchups.json")) ? rd("matchups.json") : null;
-    const games = tonightStorylines({ watch, trends: rd("trends.json"), leaders: rd("leaders.json"), injuries, facts, records, matchups: matchupData, national: (() => { try { return rd("national.json"); } catch { return null; } })(), rest: (() => { try { return rd("rest.json"); } catch { return null; } })(), form: (() => { try { return rd("form.json"); } catch { return null; } })(), fouls: (() => { try { return rd("flowstats.json"); } catch { return null; } })(), maxLines: 8 })
+    const opt = (f) => { try { return rd(f); } catch { return null; } };
+    const args = { watch, trends: rd("trends.json"), leaders: rd("leaders.json"), injuries, facts, records, matchups: matchupData, national: opt("national.json"), rest: opt("rest.json"), form: opt("form.json"), fouls: opt("flowstats.json"), prep: opt("prep.json"), maxLines: 8 };
+    const games = tonightStorylines(args)
       .map((g) => ({ ...g, lines: g.lines.map(({ kind, team, text, score }) => ({ kind, team, text, score: Math.round(score * 100) / 100 })) }));
     fs.writeFileSync(path.join(root, "docs", "data", "tonight.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, games }));
+    // The briefing (0.66): one ranking over every candidate line, with what was already shown on earlier days.
+    try {
+      const { tonightCandidates } = await import("../src/anticipate/tonight.js");
+      const { briefing } = await import("../src/anticipate/briefing.js");
+      const cand = tonightCandidates(args);
+      const seenFile = path.join(root, "history", "briefing-seen.json");
+      const seen = fs.existsSync(seenFile) ? JSON.parse(fs.readFileSync(seenFile, "utf8")) : {};
+      const nat = new Set((args.national?.upcoming || []).filter((g) => g.d === watch.today && g.status !== "dropped").map((g) => `${g.away}@${g.home}`));
+      const b = briefing({ all: cand.all, games: cand.games, stars: args.prep?.stars || {}, nationalGames: nat, seen, today: watch.today });
+      fs.writeFileSync(seenFile, JSON.stringify(b.seen));
+      const firstRun = !Object.keys(seen).length; // the first build has nothing to compare with: nothing is "new"
+      const slimL = (l) => ({ kind: l.kind, team: l.team, player: l.player || null, game: l.game, text: l.text, rank: l.rank, isNew: l.age === 0 && !firstRun });
+      fs.writeFileSync(path.join(root, "docs", "data", "briefing.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, candidates: cand.all.length, top: b.top.map(slimL), deep: b.deep.map(slimL) }));
+      console.log(`briefing: ${cand.all.length} candidates -> top ${b.top.length}, deep cuts ${b.deep.length}`);
+    } catch (e) { console.error(`briefing not written: ${e.message}`); }
   } catch (e) { console.error(`tonight's storylines not written: ${e.message}`); }
 }
 // Per-game box totals for the "vs top teams" page, which computes in the browser.
@@ -485,7 +517,7 @@ for (const f of ["ratings.js", "withwithout.js", "leaders.js"]) fs.copyFileSync(
 fs.mkdirSync(path.join(root, "docs", "ref"), { recursive: true });
 for (const f of fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^nba-(record-book|single-game-bests|postseason-careers)-/.test(f))) fs.copyFileSync(path.join(root, "src", "data", f), path.join(root, "docs", "ref", f.replace(/-\d{4}-\d\d\.json$/, ".json")));
 fs.mkdirSync(path.join(root, "docs", "lib", "anticipate"), { recursive: true });
-fs.copyFileSync(path.join(root, "src", "anticipate", "tonight.js"), path.join(root, "docs", "lib", "anticipate", "tonight.js"));
+for (const f of ["tonight.js", "briefing.js"]) fs.copyFileSync(path.join(root, "src", "anticipate", f), path.join(root, "docs", "lib", "anticipate", f));
 fs.mkdirSync(path.join(root, "docs", "lib", "espn"), { recursive: true });
 for (const f of ["parse.js", "pbp.js"]) fs.copyFileSync(path.join(root, "src", "espn", f), path.join(root, "docs", "lib", "espn", f));
 const after = Object.values(store.dates).filter((d) => d.complete).length;
