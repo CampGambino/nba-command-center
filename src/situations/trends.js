@@ -204,6 +204,7 @@ function describe(g, notes) {
  * bests are, marked as a rookie's.
  * -> { games: [{ id, name, team, against, home, d, pts, prev, rookie }], teams: [{ tri, vets, rookies, games }] }
  */
+export const HIGH_MIN = 10; // a career high of 7 isn't a story
 export function careerHighsAllowed(pg, careers, names = {}) {
   const games = [];
   for (const [id, list] of Object.entries(pg)) {
@@ -214,7 +215,7 @@ export function careerHighsAllowed(pg, careers, names = {}) {
     if (!rookie && best == null) continue; // his career before this season isn't on file
     list.forEach((g, k) => {
       if (!(g.pts > 0) || (best != null && g.pts <= best)) return;
-      if (!(rookie && k === 0)) games.push({ id, name: names[id] || id, team: g.team, against: g.opp, home: g.home, d: g.d, pts: g.pts, prev: best, rookie });
+      if (!(rookie && k === 0) && g.pts >= HIGH_MIN) games.push({ id, name: names[id] || id, team: g.team, against: g.opp, home: g.home, d: g.d, pts: g.pts, prev: best, rookie });
       best = g.pts;
     });
   }
