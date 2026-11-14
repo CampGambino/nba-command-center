@@ -72,7 +72,7 @@ export function teamGames(rows) {
       const q = home ? g.hq : g.aq, oq = home ? g.aq : g.hq;
       const hasQ = q?.length >= 3 && oq?.length >= 3;
       out.push({
-        id: g.id, date: g.d, team: us, opp: them, home: home && !g.n, road: !home && !g.n, win: pf > pa, margin: pf - pa, ot: g.ot > 0,
+        id: g.id, date: g.d, team: us, opp: them, home: home && !g.n, road: !home && !g.n, win: pf > pa, margin: pf - pa, pf, pa, ot: g.ot > 0,
         // Clutch: true / false once the play-by-play is read; null before.
         clutch: g.x ? !!g.cl : null, clutchNet: g.x && g.cl ? (home ? g.cl[0] - g.cl[1] : g.cl[1] - g.cl[0]) : 0,
         q4: q?.length >= 4 && oq?.length >= 4 ? [q[3], oq[3]] : null,
@@ -141,9 +141,10 @@ export function computeSituations(rows, { through = null } = {}) {
 
   const teams = {}, league = {};
   for (const g of tg) {
-    const t = (teams[g.team] ??= { splits: {}, games: [] });
+    const t = (teams[g.team] ??= { splits: {}, games: [], byKey: {} });
     for (const k of keysOf(g)) {
       add((t.splits[k] ??= rec()), g.win);
+      (t.byKey[k] ??= []).push(g);
       add((league[k] ??= rec()), g.win);
     }
     t.games.push(g);
@@ -181,6 +182,9 @@ export function computeSituations(rows, { through = null } = {}) {
       const item = {
         team, key: k, w: r.w, l: r.l, baseline: p0, expectedPct: pe, expectedWins: t.expected[k], p: tail, direction: hi ? "better" : "worse",
         text: `${r.w}-${r.l} ${PHRASE[k]}: a team this good would win about ${t.expected[k]} of ${n} (league-wide, teams win ${Math.round(p0 * 100)}% of those)`,
+        // 0.65 (the user: "incorporate the actual games… so I can see when and where"): the short line and its games.
+        short: `${r.w}-${r.l} ${PHRASE[k]}`,
+        list: (t.byKey[k] || []).map((g) => ({ d: g.date, opp: g.opp, home: g.home, road: g.road, w: g.win, pf: g.pf, pa: g.pa, ot: g.ot })),
       };
       tests.push(item);
       if (n < MIN_GAMES || tail > ALPHA) continue;
@@ -191,11 +195,12 @@ export function computeSituations(rows, { through = null } = {}) {
     }
     t.flags.sort((a, b) => a.p - b.p);
     t.games = undefined;
+    t.byKey = undefined;
   }
   // The most unusual records league-wide, flagged or not: early in the season
   // few reach the 1% bar, and these are the ones closest to it. Each carries
   // its chance of happening by luck, so the page can say how strong it is.
-  const unusual = tests.filter((x) => x.p < 0.1).sort((a, b) => a.p - b.p).slice(0, 12);
+  const unusual = tests.filter((x) => x.p < 0.1).sort((a, b) => a.p - b.p).slice(0, 20);
   const topTeams = Object.fromEntries([3, 4, 5].map((n) => [n, [...tops[n]]]));
   return { through, games: rows.length, baseline, teams, unusual, topTeams, labels: LABEL };
 }

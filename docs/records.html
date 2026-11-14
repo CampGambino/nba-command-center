@@ -132,6 +132,21 @@
   td.next { white-space: nowrap; }
   .wc .mbtn { margin-top: 4px; padding: 2px 8px; font-size: 12px; }
   .wc li[hidden] { display: none; }
+  /* 0.65 (the user: "way too sanitary. I don't know where to look"): tiers */
+  .wc { border-left-width: 4px; }
+  .wc.t3 { border-left-color: #e0a800; } .wc.t2 { border-left-color: var(--accent); } .wc.t1 { border-left-color: var(--line); }
+  .wc.t0 { opacity: .7; }
+  .tier { font-size: 10.5px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; padding: 1px 6px; border-radius: 8px; margin-right: 4px; white-space: nowrap; }
+  .tier.t3 { background: #e0a800; color: #111; } .tier.t2 { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent); }
+  .tier.t1 { background: color-mix(in srgb, var(--muted) 15%, transparent); color: var(--muted); }
+  .hd .why { font-size: 12px; color: var(--faint); } .tier.t0 { color: var(--faint); border: 1px dashed var(--line); }
+  .wc li.t0 { color: var(--muted); }
+  .heads { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(270px, 100%), 1fr)); gap: 8px; margin: 4px 0 12px; }
+  .hd { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: var(--radius); padding: 9px 11px; }
+  .hd.t3 { border-left-color: #e0a800; }
+  .hd .w { font-weight: 700; font-size: 14.5px; } .hd .x { font-size: 13.5px; margin: 3px 0; } .hd .p { font-size: 12.5px; color: var(--muted); }
+  .hd .p b { color: var(--text); font-size: 15px; }
+  h3.sub { font-size: 13px; text-transform: uppercase; letter-spacing: .5px; color: var(--faint); margin: 10px 0 4px; }
 </style>
 </head>
 <body>
@@ -163,8 +178,10 @@
     <label>Within <select id="games"><option value="3">3 games</option><option value="5">5 games</option><option value="10">10 games</option><option value="99" selected>the list</option></select></label>
     <input type="search" id="q" placeholder="Player, coach or team">
     <label><input type="checkbox" id="tonly"> playing tonight</label>
+    <label title="passes to a place that isn't worth a card: Cup below 2nd, franchise below 3rd (2nd in other stats), all-time below 25th (10th)"><input type="checkbox" id="minor"> show minor places</label>
     <span class="toggle" id="rview"><button data-v="who" class="on">By player</button><button data-v="table">Full table</button></span>
   </div>
+  <div id="heads"></div>
   <div class="key" id="reachkey"></div>
   <div id="who" class="who-cards"></div>
   <div class="scroll"><table id="items"></table></div>
@@ -265,9 +282,32 @@ const bar = (p) => (p == null ? "–" : `${pc(p)}<span class="pbar"><i style="wi
 let rview = "who";
 // "Gobert: 7 blocks from passing Davis" -> who he passes and whether that man is still adding to his total.
 const rivalNote = (i) => (i.rivals?.length ? `${i.rivals.map((r) => esc(r.name.split(" ").slice(-1)[0])).join(" and ")} ${i.rivals.length > 1 ? "are" : "is"} active too${i.rivals.some((r) => r.tonight) ? " and plays tonight" : ""}: his games count in the odds` : "");
+// 0.65: how much a mark matters. 3: a record (1st). 2: a headline (all-time top 10, franchise top 3, NBA Cup top 2, a
+// coach's top 10, a big round number). 1: worth a card. 0: a minor place (hidden unless asked for).
+const MAJOR = new Set(["pts", "reb", "ast", "stl", "blk", "fg3m"]);
+function imp(i) {
+  if (i.minor) return 0.5;
+  const r = i.rank ?? 99, maj = MAJOR.has(i.stat);
+  if (i.kind === "pass") return r === 1 ? 10 : r <= 5 ? 7 : r <= 10 ? 6 : r <= 25 ? 3.5 : 2.5;
+  if (i.kind === "franchise") return r === 1 ? 8 : r <= (maj ? 3 : 2) ? 5 : 2.5;
+  if (i.kind === "cup") return r === 1 ? 5 : r <= 2 ? 3.5 : 1.5;
+  if (i.kind === "coach") return r === 1 ? 8 : r <= 10 ? 5 : 2.5;
+  if (i.kind === "round") return (i.score ?? 0) >= 3.2 ? 5 : 3;
+  return 3;
+}
+const tier = (i) => { const v = imp(i); return i.minor ? 0 : v >= 8 ? 3 : v >= 5 ? 2 : 1; };
+const chanceOf = (i) => (i.tonight && i.pTonight != null ? i.pTonight : (i.pNext5 ?? 0) * 0.6);
+const weight = (i) => imp(i) * Math.max(0.05, chanceOf(i));
+const TIERNAME = (i) => {
+  if (i.minor) return "minor";
+  if (i.rank === 1) return i.kind === "pass" ? "NBA record" : i.kind === "franchise" ? "franchise record" : i.kind === "cup" ? "Cup record" : i.kind === "coach" ? "coaching record" : "record";
+  const t = tier(i);
+  return t >= 2 ? (i.kind === "pass" ? `top ${i.rank <= 5 ? 5 : 10} all-time` : i.kind === "franchise" ? `franchise top ${MAJOR.has(i.stat) ? 3 : 2}` : i.kind === "coach" ? "coaching top 10" : "milestone")
+    : i.kind === "pass" && (i.rank ?? 99) <= 25 ? "top 25 all-time" : i.kind === "cup" ? "Cup 2nd" : (KIND[i.kind] || i.kind);
+};
 function reachRows() {
-  const kind = $("kind").value, team = $("team").value, games = +$("games").value, q = $("q").value.trim().toLowerCase(), tonly = $("tonly").checked;
-  return D.items.filter((i) => (!kind || i.kind === kind) && (!team || i.team === team) && (i.gamesAway ?? 99) <= games && (!tonly || i.tonight) && (!q || `${i.who} ${i.team} ${i.text}`.toLowerCase().includes(q)))
+  const kind = $("kind").value, team = $("team").value, games = +$("games").value, q = $("q").value.trim().toLowerCase(), tonly = $("tonly").checked, minor = $("minor").checked;
+  return D.items.filter((i) => (minor || !i.minor) && (!kind || i.kind === kind) && (!team || i.team === team) && (i.gamesAway ?? 99) <= games && (!tonly || i.tonight) && (!q || `${i.who} ${i.team} ${i.text}`.toLowerCase().includes(q)))
     .map((i, k) => [i, k]).sort((a, b) => isOut(a[0]) - isOut(b[0]) || a[1] - b[1]).map(([i]) => i); // out tonight: last
 }
 // Playing tonight and not ruled out (Out / Doubtful on the report) sorts first.
@@ -278,15 +318,19 @@ function renderItems() {
   document.querySelectorAll("#rview button").forEach((b) => b.classList.toggle("on", b.dataset.v === rview));
   $("who").style.display = rview === "who" ? "" : "none";
   $("items").parentElement.style.display = rview === "table" ? "" : "none";
-  $("reachkey").innerHTML = `${rows.length} marks for ${new Set(rows.map((i) => `${i.who}|${i.team}`)).size} players, coaches and teams. ${rview === "who" ? "One card per name (tonight\'s first, anyone out tonight last), his 3 closest marks shown, the rest behind a button: what it is, then <b>needs</b> · ≈ games at his rate · chance in the next 5 games. Narrow it with <i>playing tonight</i> or <i>Within 3 games</i>." : ""} When the man being passed is still playing, his games count too (he can pull away), so the odds of passing an active player are lower than passing a retired one.`;
+  $("reachkey").innerHTML = `${rows.length} marks for ${new Set(rows.map((i) => `${i.who}|${i.team}`)).size} players, coaches and teams. ${rview === "who" ? "One card per name, ordered by <b>how big the mark is × the chance it falls soon</b> (tonight's chance if he plays tonight; anyone out tonight last); the chip says how big: <span class=\"tier t3\">NBA record</span> <span class=\"tier t2\">top 5 all-time</span> <span class=\"tier t1\">top 25 all-time</span>. His 3 biggest marks are shown, the rest behind a button: what it is, then <b>needs</b> · ≈ games at his rate · chance in the next 5 games. Minor places (franchise below 3rd, all-time below 25th, Cup below 2nd) are hidden unless <i>show minor places</i> is on." : ""} When the man being passed is still playing, his games count too (he can pull away), so the odds of passing an active player are lower than passing a retired one.`;
+  // Headliners: the marks that matter most and could fall soon (tonight first).
+  const H = rows.filter((i) => imp(i) >= 3.5 && chanceOf(i) >= 0.15 && !isOut(i)).sort((a, b) => weight(b) - weight(a)).slice(0, 8);
+  $("heads").innerHTML = H.length ? `<h3 class="sub">Headliners · the biggest marks that could fall soon</h3><div class="heads">${H.map((i) => `<div class="hd t${tier(i)}"><div class="w">${tier(i) === 3 ? "🏆 " : ""}${esc(i.who)} <span class="team">${esc(i.team)}</span>${i.tonight ? ` <span class="tag tonight">tonight${i.opp ? ` vs ${esc(i.opp)}` : ""}</span>` : ""}</div><div class="x"><span class="tier t${tier(i)}">${esc(TIERNAME(i))}</span>${esc(i.text.replace(/^[^:]+: /, ""))}</div><div class="p"><b>${fmt(i.need)}</b> to go · ${i.tonight && i.pTonight != null ? `${pc(i.pTonight)} tonight · ` : ""}${pc(i.pNext5)} in 5 games</div></div>`).join("")}</div>` : "";
   if (rview === "who") {
     const by = new Map();
     for (const i of rows) { const k = `${i.who}|${i.team}`; if (!by.has(k)) by.set(k, []); by.get(k).push(i); }
-    const cards = [...by.values()].map((L) => L.sort((a, b) => (a.gamesAway ?? 99) - (b.gamesAway ?? 99) || (b.pNext5 ?? 0) - (a.pNext5 ?? 0)))
-      .sort((a, b) => isOut(a[0]) - isOut(b[0]) || playsTn(b[0]) - playsTn(a[0]) || (a[0].gamesAway ?? 99) - (b[0].gamesAway ?? 99) || b.length - a.length);
+    const best = (L) => Math.max(...L.map(tier));
+    const cards = [...by.values()].map((L) => L.sort((a, b) => weight(b) - weight(a) || (a.gamesAway ?? 99) - (b.gamesAway ?? 99)))
+      .sort((a, b) => isOut(a[0]) - isOut(b[0]) || weight(b[0]) - weight(a[0]) || b.length - a.length);
     $("who").innerHTML = cards.length ? cards.map((L) => { const i = L[0];
-      return `<div class="wc${i.tonight ? " tn" : ""}"><div class="h"><div><b>${esc(i.who)}</b> <span class="team">${esc(i.team)}</span>${aw(i.who)}</div><div>${i.tonight ? `<span class="tag tonight">tonight${i.opp ? ` vs ${esc(i.opp)}` : ""}</span>` : ""}${injTag(i)}</div></div>
-        <ul>${L.map((x, k) => `<li${k >= 3 ? ' class="more" hidden' : ""}><span>${x.rank === 1 ? "🏆 " : ""}${esc(x.text.replace(/^[^:]+: /, ""))} <span class="small">${esc(KIND[x.kind])}</span>${x.rivals ? `<div class="small">${rivalNote(x)}</div>` : ""}</span><span class="p"><b>${fmt(x.need)}</b> · ≈${x.gamesAway ?? "–"} g · ${pc(x.pNext5)}</span></li>`).join("")}</ul>${L.length > 3 ? `<button class="mbtn" onclick="this.previousElementSibling.querySelectorAll('li.more').forEach((x) => (x.hidden = !x.hidden)); this.textContent = this.textContent.startsWith('+') ? 'show fewer' : '+ ${L.length - 3} more'">+ ${L.length - 3} more</button>` : ""}</div>`; }).join("")
+      return `<div class="wc t${best(L)}${i.tonight ? " tn" : ""}"><div class="h"><div><b>${esc(i.who)}</b> <span class="team">${esc(i.team)}</span>${aw(i.who)}</div><div>${i.tonight ? `<span class="tag tonight">tonight${i.opp ? ` vs ${esc(i.opp)}` : ""}</span>` : ""}${injTag(i)}</div></div>
+        <ul>${L.map((x, k) => `<li class="t${tier(x)}${k >= 3 ? " more" : ""}"${k >= 3 ? " hidden" : ""}><span><span class="tier t${tier(x)}">${esc(TIERNAME(x))}</span>${x.rank === 1 ? "🏆 " : ""}${esc(x.text.replace(/^[^:]+: /, ""))}${x.rivals ? `<div class="small">${rivalNote(x)}</div>` : ""}</span><span class="p"><b>${fmt(x.need)}</b> · ≈${x.gamesAway ?? "–"} g · ${pc(x.pNext5)}</span></li>`).join("")}</ul>${L.length > 3 ? `<button class="mbtn" onclick="this.previousElementSibling.querySelectorAll('li.more').forEach((x) => (x.hidden = !x.hidden)); this.textContent = this.textContent.startsWith('+') ? 'show fewer' : '+ ${L.length - 3} more'">+ ${L.length - 3} more</button>` : ""}</div>`; }).join("")
       : `<div class="empty">Nothing matches.</div>`;
     return;
   }
@@ -380,9 +424,9 @@ Promise.all([fetch("data/records.json", { cache: "no-store" }).then((r) => r.jso
   $("stat").innerHTML = Object.keys(d.boards).filter((k) => LABEL[k]).map((k) => `<option value="${k}">${LABEL[k]}</option>`).join("")
     + (d.cup ? Object.keys(d.cup.boards).filter((k) => LABEL[k]).map((k) => `<option value="cup:${k}">NBA Cup: ${LABEL[k]}</option>`).join("") : "");
   if (d.cup) for (const rows of Object.values(d.cup.boards)) for (const r of rows) r.season = r.live && r.base != null ? r.now - r.base : null;
-  ["kind", "team", "games", "q", "tonly"].forEach((id) => $(id).addEventListener("input", renderItems));
+  ["kind", "team", "games", "q", "tonly", "minor"].forEach((id) => $(id).addEventListener("input", renderItems));
   document.querySelectorAll("#rview button").forEach((b) => b.onclick = () => { rview = b.dataset.v; renderItems(); });
-  $("n-reach").textContent = d.items.length;
+  $("n-reach").textContent = d.items.filter((i) => !i.minor).length;
   $("cteam").innerHTML += [...new Set((d.context || []).map((c) => c.team))].sort().map((t) => `<option>${t}</option>`).join("");
   ["ckind", "cstat", "cteam", "cq"].forEach((id) => $(id).addEventListener("input", renderCtx));
   $("fteam").innerHTML = Object.keys(d.franchise || {}).sort().map((t) => `<option>${t}</option>`).join("");

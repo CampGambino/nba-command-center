@@ -2,6 +2,29 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.65.1 (2026-11-14): pages from the 11/14 review (unusual records, clutch players, National TV, Within reach); career highs allowed
+
+The user: "group the same teams when possible and remove the context after the stat about a team this good… incorporate the actual games… whether a dropdown or open click"; "the clutch player table could use pages… highlight any outliers"; "I want to be able to filter this table. also, I don't understand the National Left column… the national tv games that are set at the beginning of the season are subject to change as the league flexes games in and out… there has to be a way to confirm ahead of time"; Within reach: "this is all way too sanitary. I don't know where to look or which ones are important"; "track which teams have allowed opposing players to score their career-highs this season… rookies would have to be differentiated".
+
+### What changed
+- **Team situations, Most unusual records:** one row per team; each record is just the record ("5-0 in games decided by 10 or more") with its rarity as a small chip; click it for the games behind it (date, opponent, W/L, score). src/situations/records.js keeps each unusual record's games (`short`, `list`); up to 20 records.
+- **Clutch players:** 25 a page with Prev/Next and a rank column; the top 3 in each column are marked green, the bottom 3 red for shooting percentages, turnovers and +/- (league-wide, 2+ games; percentages need 8 FG / 5 3P / 8 FT attempts); a **Stands out** box names clear leaders (1.4× the next, or a big gap), the coldest shooter and the worst +/-. Works in 4th-quarter mode too.
+- **National TV:**
+  - Flex tracking: every build reads ESPN's scoreboard for today and the next 20 days; ESPN's national listings (NBCSN = the Monday Peacock games; NBA TV isn't national) confirm, add or drop the Tip-Off Guide's games. ESPN's listing as last seen is kept in `history/national-tv-seen.json`, so a flex is remembered after the game and the splits count games as they aired. The build log lists any flex.
+  - Next games: the next two weeks, each badged *confirmed on ESPN*, *added (flexed in)*, *off ESPN's national list (flexed out?)*, *network changed* or *guide only*; a box lists changes from the guide.
+  - Teams table: filters (team, East/West, network, a national game in the next 7 days); sortable columns; "National left (next 14 listed)" replaced by **Next national** (date, opponent, network; *guide* when it's beyond ESPN's listings) and **National games left** (to the end of the regular season).
+  - The tv storylines skip a game ESPN no longer lists nationally.
+- **Records, Within reach:** each mark has a size chip (NBA record, franchise record, Cup record, top 5 / top 10 / top 25 all-time, franchise top 3, Cup 2nd, …) and each card a coloured edge (gold: a record, blue: a headline). **Headliners** at the top: the biggest marks that could fall soon (size × tonight's chance, or the 5-game chance). Cards and their lines are ordered by size × chance. Minor places (the 0.64 rule) are hidden unless *show minor places* is ticked; the tab count leaves them out.
+- **Career highs allowed (new):** src/situations/trends.js `careerHighsAllowed` → trends.json `highsAllowed`; **vs top teams → Career highs allowed** (`defenses.html?view=highs`): per defense, the opponents who set a scoring career high against it this season (beating his high entering the season and this season's games so far), with the previous high; Veterans / Rookies / Both (a rookie's debut isn't counted; his later bests are, marked). Players whose career before 2016-17 isn't fully on file are left out. A storyline names the defense with the most (3+) when it plays.
+
+### Tested
+- 695 checks pass (new: unusual records carry their games; national flexes confirmed / added / dropped / remembered; career highs allowed with rookies apart). Page sweep OK, including the new `defenses.html?view=highs`. Screenshots of Within reach, clutch, unusual records and National TV checked.
+- ESPN's scoreboard checked for 11/14-11/18: national broadcasts listed per game (e.g. ORL@BOS NBCSN, MIL@MIA ESPN, DET@MIA NBA TV).
+
+### Unproven
+- The career-highs list needs tonight's build (trends.json) to fill; a player whose guide name doesn't match and has no logs could be taken for a rookie.
+- ESPN may list a flex later than the league announces it; a game ESPN drops close to tip is shown as "flexed out?" until it airs.
+
 ## 0.65.0 (2026-11-14): the notes reader fixes from the user's 11/14 review; team streak watch
 
 The user's review (15 screenshots): Kyrie's 10/21 return ("outdated"); Sharpe "on pace to average the most assists per game in franchise history" ("it's for a center"); Sharpe's sentence "scrambled and merged" with a game log; Porter Jr.'s line twice, once "a jumbled mess"; "His 3.5 th th triples"; two Cavs team stats "appended to Jarrett Allen"; the "th" of "9th" displaced; Jenkins' career-high 31 "doesn't tell me when"; Memphis's All-Rookie players "currently on the team". And two stats other accounts flagged after the fact: "OKC loses 3-straight games for the first time since the 2023-24 season" ("this is the type of stuff the command center should be flagging ahead of time"), and the Pelicans allowing 135+ in four straight ("after two or three games, the system should be… flagging it with additional context").

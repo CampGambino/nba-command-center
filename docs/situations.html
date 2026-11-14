@@ -96,6 +96,14 @@
   .odd li { padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
   .odd li:last-child { border-bottom: 0; }
   .odd .luck { color: var(--faint); font-size: 12px; white-space: nowrap; }
+  .odd li { display: flex; gap: 12px; align-items: flex-start; }
+  .odd .ut { min-width: 38px; padding-top: 2px; }
+  .odd .us { flex: 1; }
+  .odd details { padding: 2px 0; }
+  .odd summary { cursor: pointer; }
+  .odd .glist { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 6px 0 4px 14px; }
+  .odd .g { font-size: 12px; padding: 2px 7px; border-radius: 10px; border: 1px solid var(--line); white-space: nowrap; }
+  .odd .g.w b { color: var(--good, #2e9e5b); } .odd .g.l b { color: var(--bad, #d0453a); }
 </style>
 </head>
 <body>
@@ -197,7 +205,12 @@ function render() {
       ${notes.length ? `<div class="meta flag">${notes.map(esc).join("<br>")}</div>` : ""}</div>`;
   }).join("") : `<div class="empty">No games tonight.</div>`;
 
-  $("unusual").innerHTML = S.unusual.length ? S.unusual.map((u) => `<li><b>${u.team}</b> ${esc(u.text)} <span class="luck">· by luck about 1 in ${Math.max(2, Math.round(1 / u.p))}${u.p <= 0.01 ? " · flagged" : ""}</span></li>`).join("")
+  // 0.65 (the user, 11/14): one row per team, the record alone, and the games behind it on a click.
+  const md = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}`;
+  const gameList = (u) => (u.list || []).map((g) => `<span class="g ${g.w ? "w" : "l"}">${md(g.d)} ${g.home ? "vs" : g.road ? "@" : "vs"} ${esc(g.opp)} <b>${g.w ? "W" : "L"}</b> ${g.pf}-${g.pa}${g.ot ? " OT" : ""}</span>`).join("");
+  const byTeam = new Map();
+  for (const u of S.unusual) { if (!byTeam.has(u.team)) byTeam.set(u.team, []); byTeam.get(u.team).push(u); }
+  $("unusual").innerHTML = byTeam.size ? [...byTeam].map(([team, us]) => `<li><b class="ut">${team}</b><div class="us">${us.map((u) => `<details><summary>${esc(u.short || u.text.replace(/:.*$/, ""))} <span class="luck" title="how often a team this good would have a record at least this far from expected">1 in ${Math.max(2, Math.round(1 / u.p))}${u.p <= 0.01 ? " · flagged" : ""}</span></summary><div class="glist">${gameList(u) || "<i>games not listed</i>"}</div></details>`).join("")}</div></li>`).join("")
     : `<li class="empty">Nothing unusual yet.</li>`;
 
   const sign = dir === "best" ? 1 : -1;

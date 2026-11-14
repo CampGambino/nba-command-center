@@ -104,6 +104,16 @@
   .net.today { border-color: var(--accent); }
   td.chg { font-weight: 650; }
   .small { color: var(--faint); font-size: 12px; }
+  .badge { font-size: 11px; padding: 1px 6px; border-radius: 8px; border: 1px solid var(--line); margin-left: 4px; white-space: nowrap; }
+  .badge.confirmed { color: var(--good); border-color: var(--good); }
+  .badge.added { color: var(--accent); border-color: var(--accent); font-weight: 650; }
+  .badge.dropped { color: var(--bad); border-color: var(--bad); font-weight: 650; }
+  .badge.changed { color: var(--warn); border-color: var(--warn); font-weight: 650; }
+  .badge.guide { color: var(--faint); }
+  .net.dropped { opacity: .65; }
+  .net.dropped .teams { text-decoration: line-through; }
+  #teams th.sort { cursor: pointer; }
+  .flexbox { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: var(--radius); padding: 8px 12px; margin: 8px 0 4px; font-size: 13.5px; }
 </style>
 </head>
 <body>
@@ -113,8 +123,9 @@
   <div class="sub" id="sub">Loading…</div>
 </header>
 <main>
-  <h2>Next national games</h2>
+  <h2>Next national games <span class="small" id="nextNote"></span></h2>
   <div class="nets" id="next"></div>
+  <div id="flexed"></div>
   <h2>Players: national TV vs League Pass games</h2>
   <div class="controls">
     <select id="team"><option value="">All teams</option></select>
@@ -126,6 +137,12 @@
   <div class="key" id="key"></div>
   <div class="scroll"><table id="players"></table></div>
   <h2>Teams: record on national TV, by network</h2>
+  <div class="controls">
+    <input type="search" id="tq" placeholder="Team (e.g. NYK, BOS)">
+    <select id="tconf"><option value="">East and West</option><option value="E">East</option><option value="W">West</option></select>
+    <select id="tnet"><option value="">Any network</option></select>
+    <label><input type="checkbox" id="tsoon"> national game in the next 7 days</label>
+  </div>
   <div class="key" id="tkey"></div>
   <div class="scroll"><table id="teams"></table></div>
 </main>
@@ -134,7 +151,9 @@
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const STATS = [["pts", "PTS"], ["reb", "REB"], ["ast", "AST"], ["fg3m", "3PM"], ["tsPct", "TS%"], ["pm", "+/-"], ["min", "MIN"]];
-let D = null, sortKey = "pts", dir = "up";
+let D = null, sortKey = "pts", dir = "up", tsort = "nat", tdir = 1;
+const CONF = Object.fromEntries([..."ATL BOS BKN CHA CHI CLE DET IND MIA MIL NYK ORL PHI TOR WAS".split(" ").map((t) => [t, "E"]), ..."DAL DEN GSW HOU LAC LAL MEM MIN NOP OKC PHX POR SAC SAS UTA".split(" ").map((t) => [t, "W"])]);
+const BADGE = { confirmed: "confirmed on ESPN", added: "added (flexed in)", dropped: "off ESPN's national list (flexed out?)", changed: "network changed", guide: "guide only (not on ESPN yet)" };
 const f1 = (x) => (x == null ? "–" : (Math.round(x * 10) / 10).toFixed(1));
 const sgn = (x) => (x == null ? "–" : `${x > 0 ? "+" : ""}${f1(x)}`);
 const chg = (p, k) => (p.nat[k] == null || p.other[k] == null ? null : Math.round((p.nat[k] - p.other[k]) * 10) / 10);
@@ -142,7 +161,7 @@ const md = (d) => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
 const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 
 function render() {
-  const onTv = new Set(D.upcoming.filter((g) => g.d === today).flatMap((g) => [g.away, g.home]));
+  const onTv = new Set(D.upcoming.filter((g) => g.d === today && g.status !== "dropped").flatMap((g) => [g.away, g.home]));
   const team = $("team").value, min = +$("min").value, mpg = +$("mpg").value, q = $("q").value.trim().toLowerCase();
   const rows = D.players.filter((p) => (!team || p.team === team) && p.nat.gp >= min && p.other.gp >= 1 && p.nat.min >= mpg && p.other.min >= mpg && (!q || p.name.toLowerCase().includes(q)))
     .sort((a, b) => ((chg(b, sortKey) ?? -1e9) - (chg(a, sortKey) ?? -1e9)) * (dir === "up" ? 1 : -1) || a.name.localeCompare(b.name));
@@ -159,18 +178,34 @@ function render() {
   const NETS = D.networks || ["ABC", "ESPN", "NBC", "Peacock", "Prime Video"];
   const wl = (r) => (r && r.w + r.l ? `${r.w}-${r.l}` : "–");
   const pc = (r) => (r && r.w + r.l ? ` <span class=small>(${((r.w / (r.w + r.l)) * 100).toFixed(0)}%)</span>` : "");
-  const T = Object.entries(D.teams).map(([t, r]) => ({ t, ...r, np: r.nat.w + r.nat.l ? r.nat.w / (r.nat.w + r.nat.l) : null }))
-    .sort((a, b) => (b.nat.w + b.nat.l) - (a.nat.w + a.nat.l) || (b.np ?? -1) - (a.np ?? -1) || a.t.localeCompare(b.t));
-  const left = (t) => D.upcoming.filter((g) => g.away === t || g.home === t).length;
-  $("teams").innerHTML = `<tr><th>Team</th><th class="num">All national</th>${NETS.map((n) => `<th class="num">${esc(n)}</th>`).join("")}<th class="num">League Pass</th><th class="num">National left<br><span class=small>next ${D.upcoming.length} listed</span></th></tr>` +
-    T.map((r) => `<tr><td><b>${r.t}</b></td><td class="num"><b>${wl(r.nat)}</b>${pc(r.nat)}</td>${NETS.map((n) => `<td class="num">${wl(r.byNet?.[n])}</td>`).join("")}<td class="num">${wl(r.other)}${pc(r.other)}</td><td class="num">${left(r.t) || "–"}</td></tr>`).join("");
-  $("tkey").innerHTML = `W-L in each network's games. NBC games are simulcast on Peacock, so they count in both columns (Peacock alone also has its own Monday games); ABC/ESPN simulcasts the same way. "All national" counts each game once. League Pass: every other game (local TV).`;
+  const live = D.upcoming.filter((g) => g.status !== "dropped");
+  const nextOf = (t) => live.find((g) => g.away === t || g.home === t);
+  const leftOf = (t) => live.filter((g) => g.away === t || g.home === t).length;
+  const soon = new Date(Date.parse(today + "T12:00:00Z") + 7 * 864e5).toISOString().slice(0, 10);
+  const tq = $("tq").value.trim().toUpperCase(), conf = $("tconf").value, net = $("tnet").value;
+  let T = Object.entries(D.teams).map(([t, r]) => ({ t, ...r, np: r.nat.w + r.nat.l ? r.nat.w / (r.nat.w + r.nat.l) : null, op: r.other.w + r.other.l ? r.other.w / (r.other.w + r.other.l) : null, next: nextOf(t), left: leftOf(t) }))
+    .filter((r) => (!tq || r.t.includes(tq)) && (!conf || CONF[r.t] === conf) && (!net || (r.byNet?.[net] && r.byNet[net].w + r.byNet[net].l) || live.some((g) => (g.away === r.t || g.home === r.t) && g.networks.includes(net))) && (!$("tsoon").checked || (r.next && r.next.d <= soon)));
+  const TS = { nat: (r) => r.nat.w + r.nat.l + (r.np ?? 0), np: (r) => r.np ?? -1, op: (r) => r.op ?? -1, next: (r) => (r.next ? -Date.parse(r.next.d) : -1e15), left: (r) => r.left };
+  T.sort((a, b) => (TS[tsort](b) - TS[tsort](a)) * tdir || a.t.localeCompare(b.t));
+  const th = (k, label, title = "") => `<th class="num sort${tsort === k ? " on" : ""}" data-k="${k}" title="${title}">${label}${tsort === k ? (tdir > 0 ? " ▾" : " ▴") : ""}</th>`;
+  const nx = (g, t) => g ? `${md(g.d)} ${g.home === t ? "vs" : "@"} ${g.home === t ? g.away : g.home} <span class=small>${esc(g.networks.join("/"))}</span>${g.status !== "guide" ? "" : ` <span class="badge guide" title="from the Tip-Off Guide; ESPN lists broadcasts about three weeks out">guide</span>`}` : "–";
+  $("teams").innerHTML = `<tr><th>Team</th>${th("nat", "All national", "W-L in national games played")}${NETS.map((n) => `<th class="num">${esc(n)}</th>`).join("")}${th("op", "League Pass", "W-L in every other game")}${th("next", "Next national", "the next national game, as ESPN lists it (or the guide, if more than three weeks away)")}${th("left", "National games left", "this team's national games from today to the end of the regular season (the guide's schedule, with ESPN's flexes in the next three weeks)")}</tr>` +
+    (T.length ? T.map((r) => `<tr><td><b>${r.t}</b></td><td class="num"><b>${wl(r.nat)}</b>${pc(r.nat)}</td>${NETS.map((n) => `<td class="num">${wl(r.byNet?.[n])}</td>`).join("")}<td class="num">${wl(r.other)}${pc(r.other)}</td><td class="num">${nx(r.next, r.t)}</td><td class="num">${r.left || "–"}</td></tr>`).join("") : `<tr><td class="empty" colspan="${5 + NETS.length}">No teams match.</td></tr>`);
+  document.querySelectorAll("#teams th.sort").forEach((x) => x.onclick = () => { if (tsort === x.dataset.k) tdir = -tdir; else { tsort = x.dataset.k; tdir = 1; } render(); });
+  $("tkey").innerHTML = `<b>National games left</b>: the team's national games from today through the end of the regular season. <b>Next national</b>: its next one; within about three weeks it is as ESPN lists it now (flexes included), further out it is the Tip-Off Guide's (marked <i>guide</i>, subject to change). Click a column to sort. W-L in each network's games. NBC games are simulcast on Peacock, so they count in both columns (Peacock alone also has its own Monday games); ABC/ESPN simulcasts the same way. "All national" counts each game once. League Pass: every other game (local TV).`;
 }
 function syncDir() { document.querySelectorAll("#dir button").forEach((x) => x.classList.toggle("on", x.dataset.d === dir)); }
 fetch("data/national.json", { cache: "no-store" }).then((r) => r.json()).then((d) => {
   D = d;
   $("sub").textContent = `How players do on national TV (ABC, ESPN, NBC, Peacock, Prime Video) vs their League Pass (local TV) games · ${d.played} of ${d.total} national games played · through ${md(d.through)}`;
-  $("next").innerHTML = d.upcoming.length ? d.upcoming.map((g) => `<div class="net${g.d === today ? " today" : ""}"><div class="teams">${g.away} ${g.neutral ? "vs" : "@"} ${g.home}</div><div class="state">${g.d === today ? "Today" : new Date(g.d + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "short", month: "numeric", day: "numeric", timeZone: "UTC" })} · ${g.time} ET · ${esc(g.networks.join(" / "))}</div></div>`).join("") : `<div class="empty">No national games left on the schedule.</div>`;
+  const two = new Date(Date.parse(today + "T12:00:00Z") + 14 * 864e5).toISOString().slice(0, 10);
+  const nextList = d.upcoming.filter((g) => g.d <= two);
+  $("nextNote").textContent = d.espnThrough ? `· the next two weeks, checked against ESPN's broadcast listings through ${md(d.espnThrough)} on every build` : "";
+  $("next").innerHTML = nextList.length ? nextList.map((g) => `<div class="net${g.d === today ? " today" : ""}${g.status === "dropped" ? " dropped" : ""}"><div class="teams">${g.away} ${g.neutral ? "vs" : "@"} ${g.home}</div><div class="state">${g.d === today ? "Today" : new Date(g.d + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "short", month: "numeric", day: "numeric", timeZone: "UTC" })}${g.time ? ` · ${g.time} ET` : ""} · ${esc((g.status === "dropped" ? g.guide : g.networks).join(" / "))}${g.status === "changed" ? ` <span class=small>(guide: ${esc(g.guide.join(" / "))})</span>` : ""}</div><div class="state"><span class="badge ${g.status || "guide"}">${BADGE[g.status || "guide"]}</span></div></div>`).join("") : `<div class="empty">No national games in the next two weeks.</div>`;
+  const fx = (d.flexed || []).filter((g) => g.d >= today);
+  $("flexed").innerHTML = fx.length ? `<div class="flexbox"><b>Changes from the Tip-Off Guide:</b> ${fx.map((g) => `${md(g.d)} ${g.away} @ ${g.home}: ${g.status === "added" ? `now on ${esc(g.networks.join("/"))}` : g.status === "dropped" ? `no longer listed on ${esc(g.guide.join("/"))}` : `${esc(g.guide.join("/"))} → ${esc(g.networks.join("/"))}`}`).join(" · ")}</div>` : "";
+  $("tnet").innerHTML += (d.networks || []).map((n) => `<option>${esc(n)}</option>`).join("");
+  ["tq", "tconf", "tnet", "tsoon"].forEach((id) => $(id).addEventListener("input", render));
   const teams = [...new Set(d.players.map((p) => p.team))].sort();
   $("team").innerHTML += teams.map((t) => `<option>${t}</option>`).join("");
   ["team", "min", "mpg", "q"].forEach((id) => $(id).addEventListener("input", render));

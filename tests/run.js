@@ -770,6 +770,9 @@ const more = {};
   const H = computeSituations(hot);
   const f = H.teams.HHH.flags.find((x) => x.key === "trail3");
   ok(f && f.p <= 0.01 && /6-0 when trailing after 3 quarters/.test(f.text) && H.unusual[0].team === "HHH", "situations: 6-0 when trailing after 3, where trailing teams win 13%, is flagged and ranked first", JSON.stringify(H.teams.HHH.flags));
+  const u3 = H.unusual.find((u) => u.key === "trail3");
+  ok(u3 && u3.short === "6-0 when trailing after 3 quarters" && u3.list.length === 6 && u3.list.every((g) => g.w && g.d && g.opp && g.pf > g.pa),
+    "situations (0.65): an unusual record carries its short line and the games behind it", JSON.stringify([u3?.short, u3?.list?.length]));
 
   // Clutch time and team box totals from a game summary.
   ok(clockSeconds("4:47") === 287 && clockSeconds("5:00") === 300 && clockSeconds("51.2") === 51.2 && clockSeconds("") === null, "detail: game clock read as seconds left");
@@ -1931,6 +1934,38 @@ await articlesChecks(ok);
   const bx = { games: ["2026-10-21", "2026-10-23", "2026-11-11"].map((d) => ({ d })) };
   ok(F.trimReason(kd, { box: bx, today: "2026-11-13" }) === null && F.features(kd.text, kd).stretch === 1 && F.features("Rockets are 30-12 when he has 5+ assists.", {}).whenRecord === 1,
     "notes (0.62): a stretch against the season's first games isn't a past one-off; the scorer sees stretches and records-when");
+}
+
+// ---------- 0.65: career highs allowed (this season's, rookies apart) ----------
+{
+  const { careerHighsAllowed } = await import("../src/situations/trends.js");
+  const pg = {
+    v1: [{ d: "2026-10-22", team: "AAA", opp: "BBB", home: true, pts: 20 }, { d: "2026-10-25", team: "AAA", opp: "CCC", home: false, pts: 31 }, { d: "2026-10-28", team: "AAA", opp: "BBB", home: true, pts: 33 }],
+    r1: [{ d: "2026-10-22", team: "DDD", opp: "CCC", home: true, pts: 12 }, { d: "2026-10-24", team: "DDD", opp: "BBB", home: true, pts: 18 }, { d: "2026-10-26", team: "DDD", opp: "CCC", home: true, pts: 9 }],
+    x1: [{ d: "2026-10-22", team: "EEE", opp: "BBB", home: true, pts: 50 }],
+  };
+  const careers = { v1: { hi: { pts: 30 }, known: new Set(["pts"]), rookie: false }, r1: { hi: {}, known: new Set(["pts"]), rookie: true }, x1: { hi: { pts: 12 }, known: new Set(), rookie: false } };
+  const H = careerHighsAllowed(pg, careers, { v1: "Vet One", r1: "Rook One", x1: "Unknown" });
+  const bbb = H.teams.find((t) => t.tri === "BBB"), ccc = H.teams.find((t) => t.tri === "CCC");
+  ok(H.games.length === 3 && bbb.vets === 1 && bbb.rookies === 1 && ccc.vets === 1 && ccc.rookies === 0 && H.games.find((g) => g.pts === 33).prev === 31 && !H.games.some((g) => g.name === "Unknown"),
+    "career highs allowed (0.65): new career highs this season by the team that allowed them; a rookie's debut doesn't count, his later bests do (marked); a career not on file is left out", JSON.stringify(H.teams.map((t) => [t.tri, t.vets, t.rookies])));
+}
+
+// ---------- 0.65: national TV flexes (ESPN's listings confirm, add or drop the guide's games) ----------
+{
+  const { mergeNational, asAired, espnNational, nationalIndex } = await import("../src/situations/national.js");
+  const guide = { games: [{ d: "2026-11-16", away: "ORL", home: "BOS", time: "7:00 PM", networks: ["Peacock"] }, { d: "2026-11-18", away: "MIL", home: "MIA", networks: ["ESPN"] },
+    { d: "2026-11-18", away: "PHX", home: "SAC", networks: ["ESPN"] }, { d: "2026-12-25", away: "NYK", home: "SAS", networks: ["ABC", "ESPN"] }] };
+  const espnDays = { "2026-11-16": [{ away: "ORL", home: "BOS", tv: ["NBCSN"] }], "2026-11-18": [{ away: "MIL", home: "MIA", tv: ["ESPN"] }, { away: "PHX", home: "SAC", tv: ["NBA TV"] }, { away: "GSW", home: "DAL", tv: ["ESPN"] }] };
+  const m = mergeNational(guide, espnDays, {}, "2026-11-14");
+  const st = Object.fromEntries(m.games.map((g) => [`${g.away}@${g.home}`, g.status]));
+  ok(st["ORL@BOS"] === "confirmed" && st["MIL@MIA"] === "confirmed" && st["PHX@SAC"] === "dropped" && st["GSW@DAL"] === "added" && st["NYK@SAS"] === "guide"
+    && espnNational(["NBCSN", "NBA TV", "ESPN2"]).join() === "Peacock,ESPN",
+    "national (0.65): ESPN's listing confirms the guide's games, drops a flexed-out one, adds a flexed-in one; beyond ESPN's days the guide stands", JSON.stringify(st));
+  // Remembered after the game: a later build with no ESPN read for 11/18 keeps the flex.
+  const m2 = mergeNational(guide, {}, m.seen, "2026-11-20");
+  const ix = nationalIndex(asAired(m2));
+  ok(ix.has("2026-11-18|GSW|DAL") && !ix.has("2026-11-18|PHX|SAC") && ix.has("2026-11-18|MIL|MIA"), "national (0.65): a flex is remembered once played, and the splits count the game as it aired");
 }
 
 // ---------- 0.65: team streak watch (OKC's first 3-game losing streak since 2023-24; NOP allowing 135+ four straight) ----------

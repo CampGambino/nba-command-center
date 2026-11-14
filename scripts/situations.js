@@ -22,7 +22,7 @@ const { createEspn } = await import("../src/espn/client.js");
 const { collectResults, allGames, loadStore, saveStore } = await import("../src/situations/results.js");
 const { computeSituations } = await import("../src/situations/records.js");
 const { clutchPlayerTotals, clutchTeamTotals } = await import("../src/situations/clutch.js");
-const { playerGames, activeStreaks, teamStreaks, anomalies, careerHighs } = await import("../src/situations/trends.js");
+const { playerGames, activeStreaks, teamStreaks, anomalies, careerHighs, careerHighsAllowed } = await import("../src/situations/trends.js");
 const { teamGames, gameLeaders, seasonLeaders, shooting, LEAD_STATS, LINES } = await import("../src/situations/leaders.js");
 
 const args = process.argv.slice(2);
@@ -163,17 +163,34 @@ for (const [tri, games] of Object.entries(perTeam)) {
 }
 // National TV vs other games (src/situations/national.js; the season's national schedule from the Tip-Off Guide).
 {
-  const { nationalIndex, nationalSplits, perGame } = await import("../src/situations/national.js");
+  const { nationalIndex, nationalSplits, perGame, mergeNational, asAired } = await import("../src/situations/national.js");
   const season = store.season || Number(today.slice(0, 4)) + (Number(today.slice(5, 7)) >= 8 ? 1 : 0); // the year the season ends
   const schedFile = path.join(root, "src", "data", `national-tv-${season - 1}-${String(season).slice(2)}.json`);
   if (fs.existsSync(schedFile)) {
-    const sched = JSON.parse(fs.readFileSync(schedFile, "utf8"));
+    const guide = JSON.parse(fs.readFileSync(schedFile, "utf8"));
+    // 0.65: ESPN's national listings for today and the next 20 days confirm, add or drop the guide's games (flexes).
+    const espnDays = {};
+    for (let i = 0; i <= 20; i++) {
+      const d = new Date(Date.parse(`${today}T12:00:00Z`) + i * 864e5).toISOString().slice(0, 10);
+      try { const r = await espn.scoreboard(d); if (r.ok) espnDays[d] = r.data.games.filter((g) => g.date === d && g.awayTri && g.homeTri && (g.seasonType == null || g.seasonType === 2)).map((g) => ({ away: g.awayTri, home: g.homeTri, tv: g.tv || [] })); } catch {}
+    }
+    const seenFile = path.join(root, "history", "national-tv-seen.json");
+    const seenOld = fs.existsSync(seenFile) ? JSON.parse(fs.readFileSync(seenFile, "utf8")) : {};
+    const merged = mergeNational(guide, espnDays, seenOld, today);
+    fs.mkdirSync(path.dirname(seenFile), { recursive: true });
+    fs.writeFileSync(seenFile, JSON.stringify(merged.seen));
+    const sched = { ...guide, games: asAired(merged).games };
+    const flex = merged.games.filter((g) => g.status === "added" || g.status === "dropped" || g.status === "changed");
+    console.log(`national TV: ESPN read for ${Object.keys(espnDays).length} days; ${merged.games.filter((g) => g.status === "confirmed").length} confirmed, ${flex.length} flexed (${flex.map((g) => `${g.d} ${g.away}@${g.home} ${g.status}`).join(", ") || "none"})`);
     const split = nationalSplits(teamFiles, nationalIndex(sched), { currentTeam: (id) => (rosterChanges[id] ? rosterChanges[id].team || "FA" : null) });
     const players = split.players.filter((p) => p.nat.gp >= 1 && p.nat.gp + p.other.gp >= 3)
       .map((p) => ({ id: p.id, name: p.name, team: p.team, nat: perGame(p.nat), other: perGame(p.other) }));
-    const upcoming = sched.games.filter((g) => g.d >= today).slice(0, 14);
+    // Every national game from today on (the guide's, as ESPN now lists them), with each one's status; the page shows
+    // the next two weeks and counts the rest per team.
+    const upcoming = merged.games.filter((g) => g.d >= today);
     const played = sched.games.filter((g) => g.d <= through).length;
-    fs.writeFileSync(path.join(root, "docs", "data", "national.json"), JSON.stringify({ generatedAt: out.generatedAt, through, networks: sched.networks, source: sched.source, played, total: sched.games.length, upcoming, teams: split.teams, players }));
+    const espnThrough = Object.keys(espnDays).sort().pop() || null;
+    fs.writeFileSync(path.join(root, "docs", "data", "national.json"), JSON.stringify({ generatedAt: out.generatedAt, through, networks: guide.networks, source: guide.source, played, total: sched.games.length, upcoming, espnThrough, flexed: merged.games.filter((g) => g.status === "added" || g.status === "dropped" || g.status === "changed"), teams: split.teams, players }));
     console.log(`national TV: ${played} of ${sched.games.length} national games played; ${players.length} players with a national game`);
   } else console.log(`national TV: no schedule file for ${season - 1}-${String(season).slice(2)} (src/data/)`);
 }
@@ -345,7 +362,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     watchLines = streakWatch({ history: fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null, rows, today });
     console.log(`team streak watch: ${watchLines.length} lines`);
   } catch (e) { console.error(`team streak watch: ${e.message}`); }
-  fs.writeFileSync(path.join(root, "docs", "data", "trends.json"), JSON.stringify({ generatedAt: out.generatedAt, through, streaks: activeStreaks(pg, store.names || {}).map(nowTeam), teams: teamStreaks(rows), watch: watchLines, anomalies: byDate }));
+  fs.writeFileSync(path.join(root, "docs", "data", "trends.json"), JSON.stringify({ generatedAt: out.generatedAt, through, streaks: activeStreaks(pg, store.names || {}).map(nowTeam), teams: teamStreaks(rows), watch: watchLines, highsAllowed: careers ? careerHighsAllowed(pg, careers, store.names || {}) : null, anomalies: byDate }));
   // Hot hand (src/situations/form.js, moved from GameFlow in 0.56): each player's game lines for the form section.
   try {
     const { formData } = await import("../src/situations/form.js");

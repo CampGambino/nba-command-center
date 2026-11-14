@@ -136,7 +136,7 @@ export function careerHighs({ logs = null, seasons = null, names = {}, ids = [],
     if (whole) for (const k of Object.keys(L)) known.add(k);
     for (const [k, i] of Object.entries(L)) for (const r of rows) hi[k] = Math.max(hi[k] ?? 0, r[i] || 0);
     if (past && S.hi != null) { known.add("pts"); for (const r of past) hi.pts = Math.max(hi.pts ?? 0, r[S.hi] || 0); }
-    out[id] = { hi, known };
+    out[id] = { hi, known, rookie };
   }
   return out;
 }
@@ -194,4 +194,33 @@ function describe(g, notes) {
     const hi = n.careerHigh ? `, career high (previous ${n.prevCareer})` : n.tiesCareer ? ", ties his career high" : n.seasonHigh ? `, season high (previous ${n.prevHigh})` : "";
     return `${n.value} ${LABEL[n.stat]} (averages ${n.avg}${hi})`;
   }).join("; ");
+}
+
+/**
+ * Career highs allowed (0.65, the user 11/14: "track which teams have allowed opposing players to score their
+ * career-highs this season… rookies would have to be differentiated"). Points only. A game counts when it beats
+ * everything he scored before it: his career high entering the season (careerHighs) and this season's games so far,
+ * so a player can set more than one. A rookie's debut is not counted (any total is a career high); his later new
+ * bests are, marked as a rookie's.
+ * -> { games: [{ id, name, team, against, home, d, pts, prev, rookie }], teams: [{ tri, vets, rookies, games }] }
+ */
+export function careerHighsAllowed(pg, careers, names = {}) {
+  const games = [];
+  for (const [id, list] of Object.entries(pg)) {
+    const c = careers?.[id];
+    if (!c) continue;
+    const rookie = !!c.rookie;
+    let best = rookie ? null : c.known?.has?.("pts") ? c.hi?.pts ?? null : null;
+    if (!rookie && best == null) continue; // his career before this season isn't on file
+    list.forEach((g, k) => {
+      if (!(g.pts > 0) || (best != null && g.pts <= best)) return;
+      if (!(rookie && k === 0)) games.push({ id, name: names[id] || id, team: g.team, against: g.opp, home: g.home, d: g.d, pts: g.pts, prev: best, rookie });
+      best = g.pts;
+    });
+  }
+  games.sort((a, b) => b.d.localeCompare(a.d) || b.pts - a.pts);
+  const by = {};
+  for (const g of games) { const t = (by[g.against] ??= { tri: g.against, vets: 0, rookies: 0, games: [] }); t[g.rookie ? "rookies" : "vets"]++; t.games.push(g); }
+  const teams = Object.values(by).sort((a, b) => b.vets - a.vets || b.rookies - a.rookies || a.tri.localeCompare(b.tri));
+  return { games, teams };
 }

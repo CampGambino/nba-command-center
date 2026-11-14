@@ -58,3 +58,44 @@ export function perGame(s) {
   return { gp: g, min: r(s.min), pts: r(s.pts), reb: r(s.reb), ast: r(s.ast), fg3m: r(s.fg3m), stl: r(s.stl), blk: r(s.blk), tov: r(s.tov), pm: r(s.pm),
     fgPct: s.fga ? Math.round((s.fgm / s.fga) * 1000) / 10 : null, tsPct: s.fga + s.fta ? Math.round((s.pts / (2 * (s.fga + 0.44 * s.fta))) * 1000) / 10 : null };
 }
+
+/**
+ * Flex tracking (0.65, the user 11/14: "the national tv games that are set at the beginning of the season are subject
+ * to change as the league flexes games in and out… there has to be a way to confirm ahead of time"). ESPN's scoreboard
+ * lists each game's national broadcasts; read for the next three weeks every build, it confirms, adds or drops the
+ * Tip-Off Guide's games. ESPN's listing as last seen is kept (history/national-tv-seen.json), so a flex is remembered
+ * once the game is played and the splits count the game as it aired.
+ */
+const ESPN_NET = { ABC: "ABC", ESPN: "ESPN", ESPN2: "ESPN", NBC: "NBC", Peacock: "Peacock", NBCSN: "Peacock", "Prime Video": "Prime Video", "Amazon Prime Video": "Prime Video", Prime: "Prime Video" };
+/** ESPN's national broadcast names -> our networks (NBA TV and radio aren't national here). */
+export function espnNational(names = []) { return [...new Set(names.map((n) => ESPN_NET[String(n).trim()]).filter(Boolean))]; }
+
+/**
+ * sched: the guide's schedule. espnDays: { "YYYY-MM-DD": [{ away, home, tv: [names] }] } for the days ESPN was read.
+ * seen: { key: { nets, at } } from earlier builds. today: "YYYY-MM-DD".
+ * -> { games: [{ d, away, home, time, neutral, guide, espn, networks, status }], seen }
+ *    status: "confirmed" (ESPN lists it, same networks), "changed" (ESPN lists other national networks), "added"
+ *    (national on ESPN, not in the guide: flexed in), "dropped" (in the guide, ESPN read and lists no national
+ *    network: flexed out), "guide" (not read on ESPN yet: the guide's word, subject to change).
+ */
+export function mergeNational(sched, espnDays = {}, seen = {}, today = null) {
+  const next = { ...seen };
+  for (const [d, list] of Object.entries(espnDays)) for (const g of list) next[nationalKey(d, g.away, g.home)] = { nets: espnNational(g.tv), at: today };
+  const out = new Map();
+  for (const g of sched?.games || []) out.set(nationalKey(g.d, g.away, g.home), { d: g.d, away: g.away, home: g.home, time: g.time || null, neutral: !!g.neutral, guide: g.networks || [] });
+  for (const [k, v] of Object.entries(next)) {
+    if (!v.nets.length || out.has(k)) continue;
+    const [d, away, home] = k.split("|");
+    out.set(k, { d, away, home, time: null, neutral: false, guide: [] });
+  }
+  const games = [...out.entries()].map(([k, g]) => {
+    const e = next[k] ? next[k].nets : null;
+    const status = e == null ? (g.guide.length ? "guide" : null) : !e.length ? (g.guide.length ? "dropped" : null)
+      : !g.guide.length ? "added" : e.slice().sort().join() === g.guide.slice().sort().join() || e.every((n) => g.guide.includes(n)) ? "confirmed" : "changed";
+    return status ? { ...g, espn: e, networks: e && e.length ? e : g.guide, status } : null;
+  }).filter(Boolean).sort((a, b) => a.d.localeCompare(b.d) || String(a.time).localeCompare(String(b.time)));
+  return { games, seen: next };
+}
+
+/** The schedule as it aired / will air: national games only (dropped ones out, added ones in), for nationalIndex. */
+export const asAired = (merged) => ({ games: merged.games.filter((g) => g.status !== "dropped").map((g) => ({ d: g.d, away: g.away, home: g.home, networks: g.networks })) });

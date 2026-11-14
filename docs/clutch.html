@@ -55,6 +55,17 @@
   th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 13.5px; vertical-align: top; }
   th { color: var(--muted); font-weight: 600; font-size: 12px; background: var(--panel2); }
   td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.num.hi { color: var(--good); font-weight: 700; background: color-mix(in srgb, var(--good) 14%, transparent); }
+  td.num.lo { color: var(--bad); font-weight: 700; background: color-mix(in srgb, var(--bad) 12%, transparent); }
+  td.rk { color: var(--faint); font-size: 12px; }
+  .pager { display: flex; gap: 10px; align-items: center; margin: 8px 2px 18px; font-size: 13px; flex-wrap: wrap; }
+  .pager button { padding: 4px 10px; }
+  .pager .legend { margin-left: auto; display: flex; gap: 6px; }
+  .pager .legend span { padding: 1px 7px; border-radius: 8px; font-size: 12px; }
+  .pager .legend .hi { color: var(--good); background: color-mix(in srgb, var(--good) 14%, transparent); }
+  .pager .legend .lo { color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, transparent); }
+  .stand { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: var(--radius); padding: 8px 12px; margin: 0 0 10px; font-size: 13.5px; }
+  .stand ul { margin: 4px 0 0; padding-left: 18px; } .stand .lab { font-size: 12px; text-transform: uppercase; letter-spacing: .4px; color: var(--faint); }
   tr:last-child td { border-bottom: 0; }
   .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 2px 10px; }
   select, input[type=search] { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 14px; }
@@ -119,7 +130,9 @@
     <label>Min games <select id="mingp"><option>1</option><option selected>2</option><option>3</option><option>5</option></select></label>
     <span class="toggle" data-t="player"><button data-d="best" class="on">Best first</button><button data-d="worst">Worst first</button></span>
   </div>
+  <div id="stand"></div>
   <div class="scroll"><table id="players"></table></div>
+  <div class="pager" id="pager"></div>
 </main>
 <footer id="foot"></footer>
 <script>
@@ -136,6 +149,42 @@ const KEY = {
   q4: "4th quarter: all of the 4th quarter, any score (overtime not included). Season totals, from ESPN play-by-play. Team W-L is quarters won and lost (ties not shown).",
 };
 const state = { team: { key: "pm", dir: "best" }, player: { key: "pts", dir: "best" } };
+let page = 0;
+const PER = 25;
+// 0.65 (the user, 11/14: "use pages… highlight any outliers that make it obvious"): the top 3 in a column are marked
+// (bottom 3 for the shooting percentages and turnovers), league-wide, among players with 2+ games; percentages need
+// enough attempts (FG 8, 3P 5, FT 8).
+const ATT = { fgp: (p) => p.fga >= 8, fg3p: (p) => p.fg3a >= 5, ftp: (p) => p.fta >= 8 };
+const LOWBAD = new Set(["fgp", "fg3p", "ftp", "pm"]);
+function marks(all) {
+  const out = {};
+  for (const c of PCOLS) {
+    if (c[0] === "gp" || c[0] === "min") continue;
+    const ok = (p) => p.gp >= 2 && (!ATT[c[0]] || ATT[c[0]](p)) && c[2](p) != null;
+    const v = all.filter(ok).map((p) => c[2](p)).sort((a, b) => b - a);
+    if (v.length < 10) continue;
+    const hi = Math.max(v[2], c[0] === "pm" || c[0] === "tov" ? -Infinity : 1e-9), lo = v[v.length - 3];
+    out[c[0]] = { hi, lo: LOWBAD.has(c[0]) || c[0] === "tov" ? lo : null, ok };
+  }
+  return out;
+}
+function standouts(all) {
+  const names = { pts: "points", pm: "+/-", fg3: "threes (made-tried)", ft: "free throws (made-tried)", ast: "assists", stl: "steals", blk: "blocks", reb: "rebounds" };
+  const out = [];
+  for (const [k, w] of Object.entries(names)) {
+    const c = PCOLS.find((x) => x[0] === k);
+    const L = all.filter((p) => p.gp >= 2).sort((a, b) => c[2](b) - c[2](a));
+    if (L.length < 2) continue;
+    const a = c[2](L[0]), b = c[2](L[1]);
+    if (a > 0 && (a >= b * 1.4 || a - b >= (k === "pm" ? 10 : k === "pts" ? 8 : 3))) out.push({ gap: a / Math.max(1, b), text: `<b>${esc(L[0].name)}</b> (${esc(L[0].team)}) leads in ${mode === "clutch" ? "clutch" : "4th-quarter"} ${w}: ${c[3](L[0])}, next ${c[3](L[1])} (${esc(L[1].name)})` });
+  }
+  // The coldest: most clutch shots with the lowest FG%, and the worst +/-.
+  const cold = all.filter((p) => p.fga >= 12).sort((a, b) => a.fgm / a.fga - b.fgm / b.fga)[0];
+  if (cold && cold.fgm / cold.fga < 0.32) out.push({ gap: 1.5, text: `<b>${esc(cold.name)}</b> (${esc(cold.team)}) is ${cold.fgm}-${cold.fga} from the field in ${mode === "clutch" ? "the clutch" : "4th quarters"} (${p1(cold.fgm / cold.fga)}%)` });
+  const worst = all.filter((p) => p.gp >= 2).sort((a, b) => a.pm - b.pm)[0];
+  if (worst && worst.pm <= -15) out.push({ gap: 1.4, text: `<b>${esc(worst.name)}</b> (${esc(worst.team)}) has the worst ${mode === "clutch" ? "clutch" : "4th-quarter"} +/-: ${sg(worst.pm)}` });
+  return out.sort((a, b) => b.gap - a.gap).slice(0, 6);
+}
 // [key, header, value (higher = better), cell]
 const PCOLS = [
   ["gp", "GP", (p) => p.gp, (p) => p.gp], ["min", "MIN", (p) => p.min, (p) => p.min.toFixed(1)],
@@ -177,18 +226,29 @@ function render() {
 
   const team = $("team").value, q = $("q").value.trim().toLowerCase(), min = Number($("mingp").value);
   const list = P.players.filter((p) => (!team || p.team === team) && (!q || p.name.toLowerCase().includes(q)) && p.gp >= min);
-  $("players").innerHTML = header(PCOLS, state.player, "player", "<th>Player</th><th>Team</th>") + sorted(list, PCOLS, state.player).slice(0, 300)
-    .map((p) => `<tr><td><b>${esc(p.name)}</b>${p.unsureGames ? ` <span class="team" title="on-court players couldn't be fully worked out in ${p.unsureGames} of these games: minutes and +/- there may be off">*</span>` : ""}</td><td>${teamCell(p)}</td>${PCOLS.map((c) => `<td class="num">${c[3](p)}</td>`).join("")}</tr>`).join("")
+  const M = marks(P.players);
+  const so = standouts(P.players);
+  $("stand").innerHTML = so.length ? `<div class="stand"><b class="lab">Stands out</b><ul>${so.map((x) => `<li>${x.text}</li>`).join("")}</ul></div>` : "";
+  const cls = (c, p) => { const m = M[c[0]]; if (!m || !m.ok(p)) return ""; const v = c[2](p); return v >= m.hi ? " hi" : m.lo != null && v <= m.lo ? " lo" : ""; };
+  const all = sorted(list, PCOLS, state.player);
+  const pages = Math.max(1, Math.ceil(all.length / PER));
+  page = Math.min(page, pages - 1);
+  $("players").innerHTML = header(PCOLS, state.player, "player", "<th>#</th><th>Player</th><th>Team</th>") + all.slice(page * PER, page * PER + PER)
+    .map((p, i) => `<tr><td class="rk">${page * PER + i + 1}</td><td><b>${esc(p.name)}</b>${p.unsureGames ? ` <span class="team" title="on-court players couldn't be fully worked out in ${p.unsureGames} of these games: minutes and +/- there may be off">*</span>` : ""}</td><td>${teamCell(p)}</td>${PCOLS.map((c) => `<td class="num${cls(c, p)}">${c[3](p)}</td>`).join("")}</tr>`).join("")
     || `<tr><td class="empty">No players match.</td></tr>`;
+  $("pager").innerHTML = all.length > PER ? `<button id="prev" ${page ? "" : "disabled"}>‹ Prev</button> <span>Page ${page + 1} of ${pages} · ${all.length} players</span> <button id="next" ${page < pages - 1 ? "" : "disabled"}>Next ›</button>
+    <span class="legend"><span class="hi">top 3</span> <span class="lo">bottom 3</span></span>` : "";
+  if ($("prev")) $("prev").onclick = () => { page--; render(); };
+  if ($("next")) $("next").onclick = () => { page++; render(); };
   document.querySelectorAll("th.sort").forEach((el) => el.onclick = () => {
     const st = state[el.dataset.w];
     if (st.key === el.dataset.k) st.dir = st.dir === "best" ? "worst" : "best"; else { st.key = el.dataset.k; st.dir = "best"; }
-    sync(); render();
+    page = 0; sync(); render();
   });
 }
 function sync() { document.querySelectorAll(".toggle[data-t]").forEach((tg) => tg.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.d === state[tg.dataset.t].dir))); }
 document.querySelectorAll(".toggle[data-t]").forEach((tg) => tg.querySelectorAll("button").forEach((b) => b.onclick = () => { state[tg.dataset.t].dir = b.dataset.d; sync(); render(); }));
-for (const id of ["team", "q", "mingp"]) $(id).oninput = render;
+for (const id of ["team", "q", "mingp"]) $(id).oninput = () => { page = 0; render(); };
 
 document.querySelectorAll("#mode button").forEach((b) => b.onclick = () => {
   mode = b.dataset.m; P = DATA[mode];

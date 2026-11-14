@@ -167,7 +167,7 @@ function clubLines(leaders, teams) {
 export const TV_MIN_GP = 3, TV_MIN_MIN = 20, TV_GAP = 4, TV_REL = 0.2;
 function tvLines(national, teams, today) {
   const out = [];
-  const games = (national?.upcoming || []).filter((g) => g.d === today && teams.has(g.away) && teams.has(g.home));
+  const games = (national?.upcoming || []).filter((g) => g.d === today && g.status !== "dropped" && teams.has(g.away) && teams.has(g.home));
   for (const g of games) {
     const game = `${g.away}${g.neutral ? " vs " : " @ "}${g.home} on ${g.networks.join(" / ")}`;
     for (const p of national.players || []) {
@@ -264,6 +264,14 @@ function teamLines(trends, teams) {
   // streak since 2023-24", "NOP has allowed 135+ in 4 straight…"); it replaces the bare "lost N straight".
   const out = (trends.watch || []).filter((w) => teams.has(w.team)).map((w) => ({ team: w.team, kind: "team", text: w.text, score: w.score }));
   const wl = new Set((trends.watch || []).filter((w) => w.stat === "W" || w.stat === "L").map((w) => w.team));
+  // 0.65: a defense that has let the most opponents set career highs this season (3+, veterans only).
+  const HT = (trends.highsAllowed?.teams || []).filter((t) => t.vets >= 3);
+  const most = HT.length ? Math.max(...HT.map((t) => t.vets)) : 0;
+  for (const t of HT) {
+    if (!teams.has(t.tri) || t.vets < most) continue;
+    const last = t.games.filter((g) => !g.rookie)[0];
+    out.push({ team: t.tri, kind: "team", score: 2.4, text: `${t.tri} has allowed ${t.vets} career-high scoring games this season, the most in the NBA${last ? ` (latest: ${last.name} ${last.pts}, ${+last.d.slice(5, 7)}/${+last.d.slice(8, 10)})` : ""}` });
+  }
   for (const [team, t] of Object.entries(trends.teams || {})) {
     if (!teams.has(team) || !t.streak || t.streak.n < 4 || wl.has(team)) continue;
     out.push({ team, kind: "team", text: `${team}: ${t.streak.type === "W" ? "won" : "lost"} ${t.streak.n} straight`, score: t.streak.n / 3 });

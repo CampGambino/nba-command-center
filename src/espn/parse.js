@@ -270,6 +270,9 @@ export function readScoreboard(json) {
       // Results (for team situations): final score and points by period, OT periods included.
       final: c.status?.type?.completed === true, periods: c.status?.period ?? null, neutral: c.neutralSite === true,
       homeScore: score("home"), awayScore: score("away"), homeQ: quarters("home"), awayQ: quarters("away"),
+      // National broadcasts as ESPN lists them (0.65: flex tracking).
+      tv: [...new Set([...(c.broadcasts || []).filter((b) => String(b.market).toLowerCase() === "national").flatMap((b) => b.names || []),
+        ...(c.geoBroadcasts || []).filter((b) => String(b.market?.type).toLowerCase() === "national" && (b.type?.shortName || "TV") === "TV").map((b) => b.media?.shortName).filter(Boolean)])],
     });
   }
   // Every date with games this season (preseason included), as Eastern dates.

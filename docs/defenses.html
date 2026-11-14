@@ -109,7 +109,7 @@
   <div class="sub" id="sub">Loading…</div>
 </header>
 <main>
-  <div class="controls"><span class="toggle" id="view"><button data-v="teams" class="on">Teams vs the top</button><button data-v="players">Players vs top defenses</button><button data-v="thirty">30-point games allowed</button></span></div>
+  <div class="controls"><span class="toggle" id="view"><button data-v="teams" class="on">Teams vs the top</button><button data-v="players">Players vs top defenses</button><button data-v="thirty">30-point games allowed</button><button data-v="highs">Career highs allowed</button></span></div>
   <section id="v-teams">
   <div class="controls">
     <span class="toggle" id="by"><button data-b="record" class="on">Best records</button><button data-b="defense">Best defenses</button></span>
@@ -132,6 +132,13 @@
     <div class="scroll"><table id="ttab"></table></div>
     <h2 style="font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:22px 4px 10px">Every 30-point game</h2>
     <div class="scroll"><table id="tgames"></table></div>
+  </section>
+  <section id="v-highs" hidden>
+    <div class="controls"><span class="toggle" id="hwho"><button data-w="vets" class="on">Veterans</button><button data-w="rookies">Rookies</button><button data-w="all">Both</button></span></div>
+    <div class="key" id="hkey"></div>
+    <div class="scroll"><table id="htab"></table></div>
+    <h2 style="font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:22px 4px 10px">Every career high this season</h2>
+    <div class="scroll"><table id="hgames"></table></div>
   </section>
 </main>
 <footer id="foot"></footer>
@@ -238,7 +245,7 @@ document.querySelectorAll("#by button").forEach((b) => b.onclick = () => {
 });
 $("n").onchange = render;
 // ---- Players vs top defenses and 30-point games allowed (moved from GameFlow, 11/13): every team's box scores ----
-let view = ["players", "thirty"].includes(q.get("view")) ? q.get("view") : "teams", PG = null, pside = "fall";
+let view = ["players", "thirty", "highs"].includes(q.get("view")) ? q.get("view") : "teams", PG = null, pside = "fall", hwho = "vets", HA = null;
 async function teamFiles() {
   if (PG) return PG;
   const tris = [...new Set(D.games.flatMap((g) => [g.h, g.a]))].sort();
@@ -270,13 +277,31 @@ async function renderThirty() {
   $("tgames").innerHTML = `<tr><th class="num">Pts</th><th>Player</th><th>Team</th><th>Against</th><th>Date</th></tr>` +
     t.games.map((g) => `<tr><td class="num"><b>${g.pts}</b></td><td>${g.name}</td><td>${g.team}</td><td>${g.home ? "vs" : "at"} ${g.against}</td><td>${md(g.d)}</td></tr>`).join("");
 }
+// 0.65 (the user, 11/14): which teams have let opponents score career highs this season; rookies apart.
+async function renderHighs() {
+  if (!HA) HA = (await fetch("data/trends.json", { cache: "no-store" }).then((r) => r.json())).highsAllowed || { games: [], teams: [] };
+  const md = (d) => new Date(d + "T12:00:00").toLocaleDateString([], { month: "short", day: "numeric" });
+  const want = (g) => hwho === "all" || (hwho === "rookies" ? g.rookie : !g.rookie);
+  const G = HA.games.filter(want);
+  const by = {};
+  for (const g of G) (by[g.against] ??= []).push(g);
+  const T = Object.entries(by).sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+  const max = T.length ? T[0][1].length : 0;
+  $("hkey").innerHTML = `${G.length} career-high scoring games this season ${hwho === "rookies" ? "by rookies" : hwho === "vets" ? "by players past their rookie season" : ""}, credited to the defense that allowed them. A game counts when it beats everything he had scored before it (his career high entering the season, then this season's games), so one player can set more than one. ${hwho !== "vets" ? "A rookie's debut isn't counted (any total is a career high); his new bests after it are. " : ""}Points only; players whose career before 2016-17 isn't on file in full are left out.`;
+  $("htab").innerHTML = `<tr><th>Team</th><th class="num">Allowed</th><th>Who (points, previous high)</th></tr>` +
+    (T.length ? T.map(([tri, L]) => `<tr${L.length === max && max >= 2 ? ' class="top"' : ""}><td><b>${tri}</b></td><td class="num"><b>${L.length}</b></td><td class="team" style="white-space:normal">${L.map((g) => `${g.name}${g.rookie && hwho === "all" ? " (R)" : ""} ${g.pts}${g.prev != null ? ` <span class="small">(${g.prev})</span>` : ""}`).join(", ")}</td></tr>`).join("") : `<tr><td class="empty" colspan="3">None yet.</td></tr>`);
+  $("hgames").innerHTML = `<tr><th class="num">Pts</th><th class="num">Prev. high</th><th>Player</th><th>Team</th><th>Against</th><th>Date</th></tr>` +
+    (G.length ? G.map((g) => `<tr><td class="num"><b>${g.pts}</b></td><td class="num">${g.prev ?? "–"}</td><td>${g.name}${g.rookie ? ` <span class="small">rookie</span>` : ""}</td><td>${g.team}</td><td>${g.home ? "vs" : "at"} ${g.against}</td><td>${md(g.d)}</td></tr>`).join("") : `<tr><td class="empty" colspan="6">None yet.</td></tr>`);
+}
+document.querySelectorAll("#hwho button").forEach((b) => b.onclick = () => { hwho = b.dataset.w; document.querySelectorAll("#hwho button").forEach((x) => x.classList.toggle("on", x === b)); renderHighs(); });
 function showView() {
   document.querySelectorAll("#view button").forEach((b) => b.classList.toggle("on", b.dataset.v === view));
-  for (const v of ["teams", "players", "thirty"]) $(`v-${v}`).hidden = v !== view;
+  for (const v of ["teams", "players", "thirty", "highs"]) $(`v-${v}`).hidden = v !== view;
   const u = new URL(location.href); if (view === "teams") u.searchParams.delete("view"); else u.searchParams.set("view", view); history.replaceState(null, "", u);
   if (!D) return;
   if (view === "players") renderPlayers().catch((e) => { $("pkey").textContent = "Couldn't load the box scores: " + e.message; });
   if (view === "thirty") renderThirty().catch((e) => { $("tkey").textContent = "Couldn't load the box scores: " + e.message; });
+  if (view === "highs") renderHighs().catch((e) => { $("hkey").textContent = "Couldn't load the career highs: " + e.message; });
 }
 document.querySelectorAll("#view button").forEach((b) => b.onclick = () => { view = b.dataset.v; showView(); });
 document.querySelectorAll("#pside button").forEach((b) => b.onclick = () => { pside = b.dataset.s; document.querySelectorAll("#pside button").forEach((x) => x.classList.toggle("on", x === b)); renderPlayers(); });
