@@ -1758,6 +1758,15 @@ await articlesChecks(ok);
   ok(has("cc-20-") && !has("cc-21-"), "bridge: a final game shows only what fell in it");
   ok(/SA @ PHX/.test(t.cards.get(keys.find((k) => k.includes("cc-20-"))).gameTag) && /Command Center/.test(t.cards.get(keys.find((k) => k.includes("cc-1-"))).sub), "bridge: cards carry the game and say they come from the Command Center");
   ok(/milestones.* for 2026-11-09/.test(t.el.textContent), "bridge: status note shows it is connected", t.el.textContent);
+  {
+    tonightData.defense = { n30: 129, n40: 27, teams: { ATL: { gp: 12, t30: 0, t40: 0 }, BOS: { gp: 12, t30: 2, t40: 0 }, LAL: { gp: 12, t30: 4, t40: 1 }, MIA: { gp: 12, t30: 3, t40: 1 } } };
+    const td = run({ games: [games[0]] }); await flush(); td.ctx.runAlertChecks(); await flush();
+    const dk = [...td.cards.keys()].filter((k) => k.startsWith("cc-def"));
+    const c30 = td.cards.get("cc-def30-g1-40");
+    delete tonightData.defense;
+    ok(dk.includes("cc-def30-g1-40") && dk.includes("cc-def30-g1-41") && dk.includes("cc-def40-g1-40") && dk.includes("cc-def40-g1-41") && !dk.some((k) => /-(?:1|2|30)$/.test(k)) && /first 30-point game ATL has allowed this season \(12 games\)/.test(c30.text) && /the only team without one/.test(c30.sub),
+      "bridge v6 (0.71): a defense that hadn't allowed a 30-point game (the Celtics) gets a card when someone reaches 30 against it; 40 when two teams or fewer hadn't", dk.join(" "));
+  }
   // Cap: 9 in-play milestones in one game -> 6 cards.
   const many = { id: "g3", status: "live", away: { tricode: "LAL", score: 1 }, home: { tricode: "ATL", score: 1 }, boxscore: { away: Array.from({ length: 9 }, (_, k) => pl(String(100 + k))), home: [] } };
   watch.teams[0].items.push(...Array.from({ length: 9 }, (_, k) => item({ espnId: String(100 + k), player: `Many ${k}`, need: 50, pTonight: 0.2 + k / 100 })));
@@ -2150,6 +2159,79 @@ await articlesChecks(ok);
   ok(F.describe("Became the 12th Raptor ever to record 15+ assists in a single-game and joins Mark Jackson (2X) and Jose Calderon (2X) as the only Raptors to record 16+ assists in a game with one turnover or fewer.").tag === "1 of 3 in team history"
     && N.repairLayout("Became the 12th Raptor ever to record 15+ assists in a single-game (vs. BOS, 11/11/26) 12/22/24 and joins Mark Jackson") === "Became the 12th Raptor ever to record 15+ assists in a single-game (vs. BOS, 11/11/26) and joins Mark Jackson",
     "notes (0.69): 'the only Raptors' is team history; a stray date from the next table cell is cut");
+}
+
+// ---------- 0.71: the user's second 11/15 review (pages, data) ----------
+{
+  const { moveTraded } = await import("../src/site/build.js");
+  const it = (o) => ({ player: "Nique Clifford", espnId: "77", origin: "notes", stat: "pts", label: "points", target: 700, ...o });
+  const teams = [{ team: "SAC", items: [it({}), it({ espnId: "5", player: "Kings Guy" })], problems: [] }, { team: "OKC", items: [], problems: [] }, { team: "BOS", items: [it({ espnId: "88", player: "Gone Guy" })], problems: [] }];
+  moveTraded(teams, { SAC: new Set(["5"]), OKC: new Set(["77"]), BOS: new Set([]) });
+  ok(teams[0].items.length === 1 && teams[1].items[0]?.player === "Nique Clifford" && /now with OKC/.test(teams[1].items[0].note) && !teams[2].items.length && /not on its roster/.test(teams[2].problems[0]),
+    "milestones (0.71): a traded player's notes milestones go with him to tonight's team, or are left out (with a note)", JSON.stringify(teams));
+  const S = await import("../src/anticipate/seasonlong.js");
+  const T30 = ["ATL", "BOS", "BKN", "CHA", "CHI", "CLE", "DAL", "DEN", "DET", "GSW", "HOU", "IND", "LAC", "LAL", "MEM", "MIA", "MIL", "MIN", "NOP", "NYK", "OKC", "ORL", "PHI", "PHX", "POR", "SAC", "SAS", "TOR", "UTA", "WAS"];
+  const rows = T30.map((t, i) => ({ id: `r${i}`, d: "2026-11-01", h: t, a: T30[(i + 1) % 30], hs: 100, as: 99 }));
+  const pg = Object.fromEntries(T30.filter((t) => t !== "BOS").map((t, i) => [`p${i}`, [{ d: "2026-11-01", team: "X", opp: t, pts: 31 }]]));
+  pg.flagg = [{ d: "2026-11-02", team: "DAL", opp: "UTA", pts: 43 }];
+  const dl = S.defenseLines({ pg, rows, names: { flagg: "Cooper Flagg" }, slate: [{ away: "DAL", home: "BOS" }] });
+  ok(dl.length === 1 && /^BOS hasn't allowed a 30-point game this season \(\d+ games\): the only team; \d+ across the league\. DAL's 30-point scorers: Cooper Flagg \(1, high 43\)/.test(dl[0].text),
+    "defense (0.71): the only team that hasn't allowed a 30-point game is a Watch List line the day it plays, with the opponent's 30-point scorers", JSON.stringify(dl));
+  const { tonightCandidates } = await import("../src/anticipate/tonight.js");
+  const st = (team, home, road) => ({ team, overall: [home[0] + road[0], home[1] + road[1]], home, road });
+  const records = { today: "2026-11-20", cup: { tonight: [{ away: "BKN", home: "ORL" }], standings: [st("ORL", [8, 0], [5, 3]), st("LAL", [9, 2], [5, 2]), st("BKN", [2, 5], [0, 4])] } };
+  const C = tonightCandidates({ watch: { today: "2026-11-20", games: [{ id: "1", awayTri: "BKN", homeTri: "ORL" }], teams: [] }, records }).all.filter((l) => l.kind === "cup");
+  ok(C.some((l) => l.team === "ORL" && /^ORL is 8-0 at home in NBA Cup games all-time: the only team unbeaten at home; tonight is a home Cup game/.test(l.text))
+    && C.some((l) => l.team === "BKN" && /0-4 on the road.*the only team without a win on the road/.test(l.text)),
+    "cup (0.71): on a Cup night, a team unbeaten (or winless) at home or on the road in Cup history is a Watch List line", JSON.stringify(C));
+  const { restData } = await import("../src/situations/rest.js");
+  const box = [40, 85, 12, 35, 8, 10, 10, 34, 25, 8, 5, 15, 20];
+  const g = (d, h, a) => ({ d, h, a, hs: 110, as: 100, hb: box, ab: box });
+  const R = restData({ games: [g("2026-11-01", "AAA", "CCC"), g("2026-11-01", "BBB", "DDD"), g("2026-11-02", "AAA", "BBB"), g("2026-11-05", "CCC", "DDD"), g("2026-11-06", "AAA", "DDD")] });
+  const A = R.facing.find((x) => x.tri === "AAA");
+  ok(A.vs.n === 2 && A.both.n === 1 && A.rested.n === 1, "rest (0.71): games against a tired opponent split by the team's own rest (both on a back-to-back, or it rested)", JSON.stringify(A));
+  const { careerContext } = await import("../src/records/yoy.js");
+  const cs = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-career-seasons-2026-27.json"), "utf8"));
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const Lr = (o) => keys.map((k) => o[k] ?? 0);
+  const games = Array.from({ length: 12 }, (_, i) => ({ d: `2026-11-${String(i + 1).padStart(2, "0")}`, opp: "BOS", home: true, pf: 1, pa: 0, pl: { 1: Lr({ min: 30, pts: 13, fgm: 6, fga: 11, fg3m: 3, fg3a: 7, ftm: 4, fta: 5, reb: 3 }) } }));
+  const row = (season, fgm, fga, fg3m, fg3a, ftm, fta) => { const r = Array(cs.keys.length).fill(0); const ix = Object.fromEntries(cs.keys.map((k, i) => [k, i])); Object.assign(r, { [ix.season]: season, [ix.g]: 70, [ix.min]: 2100, [ix.pts]: 800, [ix.reb]: 300, [ix.ast]: 100, [ix.fgm]: fgm, [ix.fga]: fga, [ix.fg3m]: fg3m, [ix.fg3a]: fg3a, [ix.ftm]: ftm, [ix.fta]: fta }); return r; };
+  const seasons = { keys: cs.keys, players: { "Shoot Guy": [row("2023-24", 300, 700, 100, 280, 80, 110), row("2024-25", 310, 700, 110, 300, 90, 120), row("2025-26", 320, 720, 120, 320, 85, 120)] } };
+  const c = careerContext({ seasons, teamFiles: { POR: { team: "POR", keys, names: { 1: "Shoot Guy" }, games } } });
+  const combo = c.find((x) => x.stat === "pct");
+  ok(combo && /^Guy: career highs in FG%, 3P%, 2P% and FT% \(54\.5%, 42\.9%, 75%, 80%\)/.test(combo.text) && c.some((x) => x.stat === "fg3" && /42\.9% from three \(36-84\), his career high/.test(x.text)),
+    "season vs career (0.71): shooting percentages against his seasons (enough attempts), and one line for three or more career highs", JSON.stringify(c.filter((x) => /fg|ft|pct/.test(x.stat)).map((x) => x.text)));
+}
+
+// ---------- 0.71: the user's second 11/15 review (Celtics, Hornets, Mavericks, Hawks notes) ----------
+{
+  const N = await import("../src/notes/narrative.js");
+  const F = await import("../src/notes/facts.js");
+  const L = (text) => ({ text, cells: [{ x0: 40, x1: 560, cx: 300, text }], charX: [] });
+  const doc = { pages: [
+    { page: 1, width: 612, lines: [L("#9 Derrick White 2026-27 SEASON: Derrick White leads the league in free throw percentage this season at 1.000 so far. 2025-26 SEASON: Scored a game-high 33 points to go with five rebounds in 36 minutes vs. MIA Dec. 19...White’s nine 3-pointers tied his career high...It marked White’s seventh career game with 30+ points. PROFESSIONAL CAREER: 2024-25 SEASON: Appeared in 76 games (all starts) where he averaged 16.4 points...Made a franchise record 265 threes during the season...His 265 3-pointers amounted to the fourth most three-pointers in the NBA this season.")] },
+    { page: 2, width: 612, lines: [L("#8 Ron Harper Jr. Posted 22 points (8-11 FG, 6-9 3FG) to go with three rebounds and two assists in 33 minutes at SAS March 10...Harper Jr.'s six 3-pointers marked a career high.")] },
+    { page: 3, width: 612, lines: [L("#29 Morez Johnson Jr. 2025-26 SEASON: Recorded a career-high 17 rebounds vs. UTA (11/6/26), becoming one of three Maverick rookies to record 10+ offensive rebounds in a game and one of six Maverick rookies to record 17+ rebounds in a game.")] },
+    { page: 4, width: 612, lines: [L("Ryan Kalkbrenner Effective Field Goal % 70.0% 96th percentile On/Off point differential: A statistic that measures the amount of points a team scores per 100 Brandon Miller Block % 1.2% 85th percentile possessions. Charlotte's offense is 21.2 points per 100 possessions better with Kalkbrenner on the floor than off, placing him in the 99th percentile in offensive on/off point differential per Cleaning The Glass.")] },
+  ] };
+  const players = [{ id: "9", name: "Derrick White" }, { id: "8", name: "Ron Harper Jr." }, { id: "29", name: "Morez Johnson Jr." }, { id: "5", name: "Ryan Kalkbrenner" }];
+  const dropped = [];
+  const h = N.readHistory(doc, players, { seasonStart: "2026-10-01", today: "2026-11-15", teamWords: ["Charlotte", "Hornets"], dropped });
+  ok(!h.some((x) => /265|nine 3-pointers|six 3-pointers/.test(x.text)) && h.some((x) => /leads the league in free throw percentage/.test(x.text))
+    && h.some((x) => /one of three Maverick rookies/.test(x.text)) && dropped.some((d) => d.reason === "past-season" && /265/.test(d.text)),
+    "notes (0.71): '2025-26 SEASON:' and 'PROFESSIONAL CAREER: 2024-25 SEASON:' headers mark last seasons' notes; 'marked a career high' after an old date is that game's; a past header over this season's dates is a typo", JSON.stringify([h.map((x) => x.text.slice(0, 50)), dropped.map((d) => d.reason)]));
+  ok(!h.some((x) => /percentile On\/Off|A statistic that/.test(x.text)) && h.some((x) => /99th percentile in offensive on\/off/.test(x.text)),
+    "notes (0.71): a stats glossary read into its table is dropped; a real sentence about the stat stays", JSON.stringify(h.map((x) => x.text.slice(0, 60))));
+  ok(N.repairLayout("joining Moussa Cisse and Popeye Jones. 2 0 2 6 - 2 7 D A L L A S M A V E R I C K S G A M E N O T E S.") === "joining Moussa Cisse and Popeye Jones."
+    && N.repairLayout("Kornet is just the sixth active player to be undrafted and have 300+ blocks. 17 Find us on X: @spurs | Facebook: http://www.facebook.com/Spurs.") === "Kornet is just the sixth active player to be undrafted and have 300+ blocks.",
+    "notes (0.71): a letter-spaced page footer and the PR accounts' footer are cut");
+  ok(F.whenWithin("Became one of only three undrafted players in NBA history to start 400 games within their first seven seasons.", ["2019-20", "2020-21", "2021-22", "2022-23", "2023-24", "2024-25", "2025-26"])?.season === "2025-26"
+    && F.whenWithin("within his first seven seasons", ["2024-25", "2025-26"]) === null,
+    "notes (0.71): 'within his first N seasons' is dated to his Nth season once it's past");
+  const A = F.annotate([{ text: "Johnson Jr. is one of three rookies to record 10+ offensive rebounds in a game, joining Moussa Cisse and Popeye Jones.", kind: "context", player: "Morez Johnson Jr." },
+    { text: "Recorded a career-high 17 rebounds vs. UTA (11/6/26), becoming one of three Maverick rookies to record 10+ offensive rebounds in a game.", kind: "record", player: "Morez Johnson Jr." }], {});
+  ok(/one of three Maverick rookies to record 10\+ offensive rebounds/.test(A[0].text) && A[0].tag === "1 of 3 in team history",
+    "notes (0.71): a club the same notes call a team club elsewhere says so", JSON.stringify(A.map((x) => [x.text.slice(0, 60), x.tag])));
 }
 
 // ---------- 0.65: the user's 11/14 notes review (Sharpe, Porter Jr., Mobley, the Cavs, Kyrie, Coward, Jenkins) ----------

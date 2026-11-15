@@ -45,7 +45,7 @@ const RECORD_HORIZON = 60; // an NBA record chase: listed while it's reachable t
 const AHEAD = 3;           // players ahead listed per stat
 const ORD = (n) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th"}`;
 const fmt = (n) => Number(n).toLocaleString("en-US");
-const BOX = ["pts", "reb", "oreb", "dreb", "ast", "stl", "blk", "fgm", "ftm", "fg3m", "min"];
+const BOX = ["pts", "reb", "oreb", "dreb", "ast", "stl", "blk", "fgm", "ftm", "fg3m", "min", "fga", "fg3a", "fta"];
 
 /** Each player's lines this season from the team files: { id: { name, team, last, lines: [{ d, team, opp, home, win, stats }] } } */
 export function seasonLines(teamFiles) {

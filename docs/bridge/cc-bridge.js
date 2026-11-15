@@ -1,5 +1,5 @@
 /*
- * NBA Command Center -> NBA Live bridge.                                  version 5
+ * NBA Command Center -> NBA Live bridge.                                  version 6
  *
  * Add ONE line to NBA Live, just before </body>:
  *   <script src="https://campgambino.github.io/nba-command-center/bridge/cc-bridge.js"></script>
@@ -35,6 +35,9 @@
  *       a 15-point lead with the season's record of leads lost and comebacks, and a 15-point lead lost;
  *       (0.59.1) a regular reserve 3+ minutes past his usual first check-in, and before tip-off a "foul watch" card for
  *       starters in early foul trouble in half their games or more.
+ *     - (v6, 0.71) a defense's first 30-point game allowed this season, when it's the only team (or one of three) that
+ *       hadn't allowed one (the user, 11/15: the Celtics); the same for 40 when two teams or fewer hadn't. From
+ *       tonight.json's defense counts.
  *
  * What it never does
  *   - change NBA Live's own checks, data or cards;
@@ -45,7 +48,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 5;
+  var VERSION = 6;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -53,7 +56,7 @@
   var MIN_IMPORTANCE = 15;    // round numbers below this never get a card (passes always can). Was 20 until 0.15.2; tune from use
   var MAX_PER_GAME = 6;       // in-play cards per game, best first (reached ones always show)
   var PRE_PER_GAME = 3;       // pre-game storyline cards per game
-  var ICON = { history: "📜 FROM THE NOTES", injury: "🩹 INJURY", milestone: "🎯 IN REACH", streak: "🔥 STREAK", lead: "👑 TEAM LEADER", shooting: "🏹 50/40/90", team: "📈 TEAM STREAK", record: "🏛️ RECORD WATCH", context: "📊 CAREER CONTEXT", foul: "⚠️ FOUL WATCH", early: "🔄 LEFT EARLY LAST TIME", season: "📊 THIS SEASON", span: "🧩 IN THAT SPAN", pstreak: "🔥 STREAK WATCH", vsopp: "🆚 VS TONIGHT'S OPPONENT", pace: "⏱️ PACE" };
+  var ICON = { history: "📜 FROM THE NOTES", injury: "🩹 INJURY", milestone: "🎯 IN REACH", streak: "🔥 STREAK", lead: "👑 TEAM LEADER", shooting: "🏹 50/40/90", team: "📈 TEAM STREAK", record: "🏛️ RECORD WATCH", context: "📊 CAREER CONTEXT", foul: "⚠️ FOUL WATCH", early: "🔄 LEFT EARLY LAST TIME", season: "📊 THIS SEASON", span: "🧩 IN THAT SPAN", pstreak: "🔥 STREAK WATCH", vsopp: "🆚 VS TONIGHT'S OPPONENT", pace: "⏱️ PACE", trade: "🔁 SINCE THE TRADE", role: "🪑 STARTER VS BENCH", lineup: "🖐️ STARTING FIVE", turn: "↪️ RECORD TURN", beaten: "⚔️ WHO'S BEATEN THEM", month: "🗓️ THIS MONTH", monthp: "🗓️ THIS MONTH", rookie: "🌱 ROOKIES", defense: "🛡️ DEFENSE WATCH", cup: "🏆 NBA CUP" };
 
   // ESPN abbreviations NBA Live shows -> Command Center tricodes.
   var TRI = { GS: "GSW", NO: "NOP", NY: "NYK", SA: "SAS", UTAH: "UTA", WSH: "WAS", PHO: "PHX", BRK: "BKN", CHO: "CHA" };
@@ -254,6 +257,7 @@
       try { listChecks(game, sides, box, tag, scr); } catch (e) { state.listError = String(e && e.message || e); }
       try { franchiseGameChecks(game, sides, box, tag, scr); } catch (e) { state.fgError = String(e && e.message || e); }
       try { flowChecks(game, sides, box, tag, scr); } catch (e) { state.flowCheckError = String(e && e.message || e); }
+      try { defenseChecks(game, sides, box, tag, scr); } catch (e) { state.defenseCheckError = String(e && e.message || e); }
     });
     if (otherNight) return note("Command Center: Watch List is for " + state.data.today + ", NBA Live shows " + night + " (rebuild the Watch List; season facts still on)", true);
     status();
@@ -738,6 +742,29 @@
           text: team + " lost a " + M[side] + "-point lead to " + other + " · their " + ord(n) + " lost lead of " + LEAD + "+ this season" + "; " + other + "'s " + ord((((L[other] && L[other].comebacks) || []).length) + 1) + " comeback from " + LEAD + "+ down",
           statLine: stl([[M[side], "LEAD LOST"]]), sub: "Command Center · Game Flow files" + through }));
       }
+    });
+  }
+  // v6 (0.71): a defense that hadn't allowed a 30-point game (or 40) this season allows one tonight.
+  function defenseChecks(game, sides, box, tag, scr) {
+    var D = state.tonight && state.tonight.defense;
+    if (!D || !D.teams) return;
+    var T = D.teams, tris = Object.keys(T);
+    [[30, "t30", 3, D.n30], [40, "t40", 2, D.n40]].forEach(function (b) {
+      var zero = tris.filter(function (t) { return T[t][b[1]] === 0; });
+      if (!zero.length || zero.length > b[2]) return;
+      ["away", "home"].forEach(function (side) {
+        var def = side === "away" ? sides.home : sides.away;
+        if (zero.indexOf(def) < 0) return;
+        (box[side] || []).forEach(function (p) {
+          if (!p || !p.id || (Number(p.pts) || 0) < b[0]) return;
+          var others = zero.filter(function (t) { return t !== def; });
+          fire("cc-def" + b[0] + "-" + game.id + "-" + p.id, { type: "milestone", icon: "🛡️ FIRST " + b[0] + " ALLOWED",
+            text: (p.name || ("#" + p.id)) + " (" + (side === "away" ? sides.away : sides.home) + ") has " + p.pts + " — the first " + b[0] + "-point game " + def + " has allowed this season (" + (T[def].gp || "?") + " games)",
+            statLine: typeof fmtAlertStatLine === "function" ? fmtAlertStatLine([[p.pts, "PTS"], [p.reb || 0, "REB"], [p.ast || 0, "AST"]]) : "",
+            sub: "Command Center · " + (others.length ? "one of " + zero.length + " teams without one (" + others.join(", ") + ")" : "it was the only team without one") + "; " + b[3] + " across the league before tonight",
+            live: game.status === "live", gameId: game.id, gameTag: tag, gameScore: scr });
+        });
+      });
     });
   }
   // Pre-game: tonight's foul-prone regulars (early foul trouble in half their games or more), one card a game.

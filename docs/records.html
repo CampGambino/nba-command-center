@@ -219,10 +219,11 @@
   <h2>This season vs his career</h2>
   <div class="controls">
     <select id="ckind"><option value="">Everything</option><option value="change">Big changes from last season</option><option value="low">Lowest in years</option><option value="high">Highest in years</option></select>
-    <select id="cstat"><option value="">All stats</option><option value="pts">Points</option><option value="reb">Rebounds</option><option value="ast">Assists</option><option value="fg3m">3-pointers</option><option value="min">Minutes</option></select>
+    <select id="cstat"><option value="">All stats</option><option value="pts">Points</option><option value="reb">Rebounds</option><option value="ast">Assists</option><option value="fg3m">3-pointers</option><option value="min">Minutes</option><option value="pct">Shooting: 3+ career highs/lows</option><option value="fg">FG%</option><option value="fg3">3P%</option><option value="fg2">2P%</option><option value="ft">FT%</option></select>
     <select id="cteam"><option value="">All teams</option></select>
     <input type="search" id="cq" placeholder="Player">
   </div>
+  <div class="key">Ordered by how noteworthy: a career high or low over a long career first, then the size of the change and who it's about (his career scoring); minutes count least. Each player's lines sit together under his best one. Shooting needs enough attempts this season (60 FGA, 25 3PA or 2PA, 15 FTA) and in each season compared with.</div>
   <div class="scroll"><table id="ctx"></table></div>
   <div class="key">Per game this season (8+ games) against each of his seasons since 1979-80 with 20+ games (the NBA Guide's year-by-year statistics, through 2025-26). Early-season samples are small: read the games column first.</div>
   <h2>Stat title races, in history</h2>
@@ -357,11 +358,22 @@ function renderFranchise() {
   $("fboard").innerHTML = `<tr><th class="num">Rank</th><th>Player</th><th class="num">Total</th><th>Seasons with them</th></tr>` + (rows.length ? rows.map((r) => `<tr class="${r.live ? "live" : ""}"><td class="num">${r.rank ?? "–"}</td><td>${r.live ? `<b>${esc(r.name)}</b>` : esc(r.name)}${aw(r.name)}</td><td class="num">${fmt(r.now)}</td><td class="small">${r.first ? `${esc(r.first.slice(0, 4))}-${esc(r.last.slice(5))}` : "this season"}</td></tr>`).join("")
     : `<tr><td colspan=4 class="empty">No franchise lists.</td></tr>`);
 }
+// 0.71: ordered by how noteworthy (src/records/yoy.js), one player's lines together under his best one.
+function ctxGroups(rows) {
+  const out = [], done = new Set();
+  for (const c of rows) {
+    if (done.has(c.name)) continue;
+    done.add(c.name);
+    const g = rows.filter((x) => x.name === c.name);
+    g.forEach((x, n) => out.push({ c: x, first: n === 0, span: Math.min(g.length, 150) }));
+  }
+  return out;
+}
 function renderCtx() {
   const k = $("ckind").value, st = $("cstat").value, tm = $("cteam").value, q = $("cq").value.trim().toLowerCase();
   const rows = (D.context || []).filter((c) => (!k || c.kind === k) && (!st || c.stat === st) && (!tm || c.team === tm) && (!q || c.name.toLowerCase().includes(q)));
   $("ctx").innerHTML = `<tr><th>Player</th><th>What</th><th class="num">Now</th><th class="num">Last season</th><th class="num">Change</th><th class="num">GP</th></tr>` +
-    (rows.length ? rows.slice(0, 150).map((c) => `<tr><td><b>${esc(c.name)}</b> <span class="team">${esc(c.team)}</span>${aw(c.name)}</td><td>${esc(c.text.replace(/^[^:]+: /, ""))}</td><td class="num">${c.now}</td><td class="num">${c.last}</td><td class="num ${c.delta > 0 ? "hi" : c.delta < 0 ? "lo" : ""}">${c.delta > 0 ? "+" : ""}${c.delta}</td><td class="num">${c.games}</td></tr>`).join("")
+    (rows.length ? ctxGroups(rows).slice(0, 150).map(({ c, first, span }) => `<tr>${first ? `<td${span > 1 ? ` rowspan="${span}"` : ""}><b>${esc(c.name)}</b> <span class="team">${esc(c.team)}</span>${aw(c.name)}</td>` : ""}<td>${esc(c.text.replace(/^[^:]+: /, ""))}</td><td class="num">${c.now}</td><td class="num">${c.last}</td><td class="num ${c.delta > 0 ? "hi" : c.delta < 0 ? "lo" : ""}">${c.delta == null ? "–" : `${c.delta > 0 ? "+" : ""}${c.delta}`}</td><td class="num">${c.games}</td></tr>`).join("")
       : `<tr><td colspan=6 class="empty">Nothing matches.</td></tr>`);
 }
 const PS_BOOK = { playoffs: "Playoffs", finals: "Finals", playIn: "Play-In", allStar: "All-Star Game", allStarActive: "All-Star Game, active players" };

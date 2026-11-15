@@ -66,6 +66,19 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
   const { TEAMS } = await import("../src/teams.js");
   // How notes refer to a team besides city and nickname (a sentence that opens with one is about the team).
   const TEAM_ALIASES = { DAL: ["Mavs"], CLE: ["Cavs"], PHI: ["Sixers", "76ers"], MIN: ["Wolves", "Timberwolves"], POR: ["Blazers", "Trail Blazers"], MIA: ["HEAT"], LAC: ["LA Clippers"], GSW: ["Golden State"] };
+  // 0.71: each player's past seasons (the NBA Guide's rows), to date a "within his first N seasons" fact.
+  let careers = null;
+  try {
+    const { strictKey } = await import("../src/records/guide.js");
+    const tag = `${Number(today.slice(0, 4)) - (Number(today.slice(5, 7)) < 8 ? 1 : 0)}-${String(Number(today.slice(0, 4)) + (Number(today.slice(5, 7)) < 8 ? 0 : 1)).slice(2)}`;
+    const cf = path.join(root, "src", "data", `nba-career-seasons-${tag}.json`);
+    if (fs.existsSync(cf)) {
+      const cs = JSON.parse(fs.readFileSync(cf, "utf8"));
+      const si = cs.keys.indexOf("season");
+      const byKey = new Map(Object.entries(cs.players).map(([n, rows]) => [strictKey(n), [...new Set(rows.map((r) => r[si]).filter((x) => x < tag))].sort()]));
+      careers = new Proxy({}, { get: (_, name) => byKey.get(strictKey(String(name))) });
+    }
+  } catch (e) { console.error(`career seasons not read: ${e.message}`); }
   const factsDir = path.join(root, "history", "notes-facts");
   fs.mkdirSync(factsDir, { recursive: true });
   const keyOf = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().slice(0, 160);
@@ -85,7 +98,7 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
       const oppWords = [O.city, O.nick, ...(O.alt || []), ...(TEAM_ALIASES[e.opp] || [])].filter(Boolean);
       const doc = await readPdf(e.buf);
       // 0.48: league context, clubs, races and the series too, each read for type, tag, the table beside it and what tonight can change.
-      const read = annotate(readHistory(doc, players, { seasonStart, today, teamWords, oppWords, box }), { doc, box, model, teamNames: [T.city, T.nick, e.team].filter(Boolean) });
+      const read = annotate(readHistory(doc, players, { seasonStart, today, teamWords, oppWords, box }), { doc, box, model, teamNames: [T.city, T.nick, e.team].filter(Boolean), careers });
       // 0.49: closed past one-offs, filler, the other venue's stats and layout-garbled lines are trimmed (listed on the page).
       const { keep: lines, trimmed } = trimLines(read, { box, today, home: e.home });
       trimmedBy[e.team] = trimmed.map((l) => ({ text: l.text, player: l.player && !l.guessed ? l.player : null, why: l.trimmed }));

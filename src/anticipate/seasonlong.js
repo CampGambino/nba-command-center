@@ -332,8 +332,50 @@ export function monthPlayerLines({ pg, logs, names, today }) {
   return out;
 }
 
+/**
+ * 30- and 40-point games allowed (0.71; the user, 11/15: "celtics not allowing any player to score 30 points in a game
+ * is definitely notable and something I would want to know the day of"). counts: { tri: { gp, t30, t40 } } and the
+ * league's totals; a line when a team on tonight's slate is the only one (or one of the few) that hasn't allowed one,
+ * with tonight's opponent's 30-point scorers.
+ */
+export function allowedCounts({ pg, rows }) {
+  const T = {};
+  for (const g of rows || []) { if (g.hs == null) continue; for (const t of [g.h, g.a]) (T[t] ??= { gp: 0, t30: 0, t40: 0, by30: [] }).gp++; }
+  let n30 = 0, n40 = 0;
+  for (const gs of Object.values(pg || {})) for (const g of gs) {
+    if (g.pts < 30 || !T[g.opp]) continue;
+    T[g.opp].t30++; n30++;
+    if (g.pts >= 40) { T[g.opp].t40++; n40++; }
+  }
+  return { teams: T, n30, n40 };
+}
+export function defenseLines({ pg, rows, names, slate = [] }) {
+  const C = allowedCounts({ pg, rows });
+  const tris = Object.keys(C.teams);
+  if (tris.length < 20) return [];
+  const opp = new Map();
+  for (const g of slate) { opp.set(g.away, g.home); opp.set(g.home, g.away); }
+  const out = [];
+  for (const [bar, key, n] of [[30, "t30", C.n30], [40, "t40", C.n40]]) {
+    const zero = tris.filter((t) => C.teams[t][key] === 0);
+    if (!zero.length || zero.length > (bar === 30 ? 3 : 2)) continue;
+    for (const t of zero) {
+      const o = opp.get(t);
+      if (!o) continue;
+      // Tonight's opponent's players who have scored that many this season.
+      const threats = Object.entries(pg).filter(([, gs]) => gs.length && gs[gs.length - 1].team === o).map(([id, gs]) => ({ name: names[id] || id, n: gs.filter((g) => g.pts >= bar).length, hi: Math.max(...gs.map((g) => g.pts)) }))
+        .filter((x) => x.n).sort((a, b) => b.n - a.n || b.hi - a.hi).slice(0, 3);
+      const others = zero.filter((x) => x !== t);
+      out.push({ kind: "defense", team: t, key: `defense|${t}|${bar}`,
+        text: `${t} hasn't allowed a ${bar}-point game this season (${C.teams[t].gp} games): ${others.length ? `one of ${zero.length} teams (with ${others.join(", ")})` : "the only team"}; ${n} across the league${threats.length ? `. ${o}'s ${bar}-point scorers: ${threats.map((x) => `${x.name} (${x.n}, high ${x.hi})`).join(", ")}` : ""}`,
+        score: 3.6 + (others.length ? 0 : 0.9) + (bar === 40 ? -0.3 : 0), rare: !others.length });
+    }
+  }
+  return out;
+}
+
 export function seasonLongLines(args) {
-  const parts = [["trade", tradeLines], ["role", roleLines], ["mvp", mvpLines], ["lineup", lineupLines], ["turn", turnLines], ["since", sinceLines], ["beaten", beatenLines], ["month", monthLines], ["unique", uniqueLines], ["rookie", rookieLines], ["monthp", monthPlayerLines]];
+  const parts = [["trade", tradeLines], ["role", roleLines], ["mvp", mvpLines], ["lineup", lineupLines], ["turn", turnLines], ["since", sinceLines], ["beaten", beatenLines], ["month", monthLines], ["unique", uniqueLines], ["rookie", rookieLines], ["monthp", monthPlayerLines], ["defense", defenseLines]];
   const lines = [], errors = [];
   for (const [k, f] of parts) { try { lines.push(...f(args)); } catch (e) { errors.push(`${k}: ${e.message}`); } }
   return { lines, errors };

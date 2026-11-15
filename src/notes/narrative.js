@@ -176,6 +176,10 @@ const ORD = (n) => { const v = n % 100; return n + (v >= 11 && v <= 13 ? "th" : 
 export function repairLayout(s) {
   let t = s.replace(/\s*\d{1,2}\/\d{1,2}\s+(?:at|vs\.?|@)\s+\p{Lu}[\p{L}.]*(?:\s+\p{Lu}[\p{L}.]*)?\s+(?:\d{2,3}-\d{2,3}\s+)?[WL](?:\s+\d{2,3}-\d{2,3})?(?:\s+\d{1,2}:\d{2})?(?:\s+\d{1,3}(?:-\d{1,3})?)+(?=\s|[.,;]|$)/gu, " ");
   t = t.replace(/\s*\b(?:19|20)\d\d-\d\d Game Notes\.?/g, "");
+  // 0.71: a letter-spaced footer ("2 0 2 6 - 2 7 D A L L A S M A V E R I C K S G A M E N O T E S."), and a page number
+  // with the PR accounts ("17 Find us on X: @spurs | Facebook: http://…").
+  t = t.replace(/(?:\s|^)(?:[\p{Lu}0-9\-&](?:\s+|(?=\.?\s*$))){8,}\.?/gu, " ");
+  t = t.replace(/\s*(?:\b\d{1,3}\s+)?(?:Find|Follow) us on\b.*$/i, "");
   // A date from the next table cell after a closing bracket ("(vs. BOS, 11/11/26) 12/22/24 and joins…", 0.69).
   t = t.replace(/\)\s+\d{1,2}\/\d{1,2}\/\d{2,4}(?=\s+[a-z])/g, ")");
   let stray = 0;
@@ -353,11 +357,19 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
     if (carry && carry.page === b.page && carry.bio) { bioWho = paraWho = sectionWho = carry.who; sinceWho = 0; paraHead = true; }
     else if (carry && carry.page === b.page && carry.dist <= 700) { paraWho = carry.who; sinceWho = carry.dist; paraHead = true; }
     const keep = () => { carry = paraWho && paraHead ? { who: paraWho, page: b.page, dist: sinceWho, bio: !!(bioWho && paraWho === bioWho) } : null; }; // lastWhen: "old" / "current" for the paragraph's last dated sentence // chars of text since paraWho was named // the player this paragraph is about, for its "He..." sentences
-    for (let s of sentences(b.text).flatMap((x) => x.split(/\s+(?=(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s+\p{Lu}|#\s?\d{1,2}\s+\p{Lu})/u).flatMap((y) => y.split(/\s*(?:…|\.{3}|[▪●•\u0000-\u0008\u000b\u000c\u000e-\u001f]|\s[o◦▫+]\s(?=[A-Z]))\s*/u).map((z, k, all) => { let w = k > 0 && /^[a-z]/.test(z) ? z[0].toUpperCase() + z.slice(1) : z; if (k < all.length - 1 && /[\p{L}\d%)]$/u.test(w) && !/\b(?:to|the|a|an|of|and|at|in|with|as|by|for|or|his|their|from|on|was|were|who|that|is|are|which)$/i.test(w)) w += "."; return w; }))).map((x) => x.replace(/\s*\*{2,}.*$/, "").trim())) {
+    for (let s of sentences(b.text.replace(/\b((?:19|20)\d\d-\d\d)\s+(SEASON|NOTABLES)\b/g, "$1\u2060$2")).flatMap((x) => x.split(/\s+(?=(?:19|20)\d\d-\d\d\u2060)|\s+(?=(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s+\p{Lu}|#\s?\d{1,2}\s+\p{Lu})/u).flatMap((y) => y.split(/\s*(?:…|\.{3}|[▪●•\u0000-\u0008\u000b\u000c\u000e-\u001f]|\s[o◦▫+]\s(?=[A-Z]))\s*/u).map((z, k, all) => { let w = k > 0 && /^[a-z]/.test(z) ? z[0].toUpperCase() + z.slice(1) : z; if (k < all.length - 1 && /[\p{L}\d%)]$/u.test(w) && !/\b(?:to|the|a|an|of|and|at|in|with|as|by|for|or|his|their|from|on|was|were|who|that|is|are|which)$/i.test(w)) w += "."; return w; }))).map((x) => x.replace(/\s*\*{2,}.*$/, "").trim())) {
       sinceWho += s.length + 1;
-      { const at = b.text.indexOf(s.slice(0, 25), cursor); if (at >= 0) cursor = at; }
+      { const at = b.text.indexOf(s.slice(0, 25).replace(/\u2060/g, " "), cursor); if (at >= 0) cursor = at; }
       while (bios.length && bios[0].at <= cursor + 5) { bioWho = paraWho = sectionWho = bios.shift().p; sinceWho = 0; lastWhen = null; seasonHdr = null; }
       if (/#\s?\d{1,2}\s+\p{Lu}/u.test(s)) seasonHdr = null; // another player's box starts in this text
+      // 0.71: also "2024-25 SEASON:" and "PROFESSIONAL CAREER: 2024-25 SEASON:" (Boston, Dallas), "2026-27 NOTABLES:" (Atlanta).
+      { const sh = s.match(/^(?:[\p{Lu} ]{3,}:\s*)?((?:19|20)\d\d)-(\d\d)\s*(?:\(([^)]{2,30})\)|\u2060?(?:SEASON|NOTABLES)(?:\s*\([^)]{2,30}\))?)\s*[:–—-]\s*/u);
+        if (sh) { seasonHdr = `${sh[1]}-${sh[2]}`; s = s.slice(sh[0].length); if (s) s = s[0].toUpperCase() + s.slice(1); } }
+      s = s.replace(/\u2060/g, " ");
+      // A header that names a past season over this season's games ("2025-26 SEASON: Made his NBA debut at HOU
+      // (10/21/26)…", Dallas' rookie Morez Johnson Jr.) is a typo: a full date this season overrules it.
+      if (seasonHdr && curSeason && seasonHdr !== curSeason && seasonStart
+        && [...s.matchAll(/\b(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})\b/g)].some((m) => `${m[3].length === 2 ? 2000 + +m[3] : +m[3]}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}` >= seasonStart)) seasonHdr = curSeason;
       // An infographic table printed into the sentence that follows it ("…3 NEW ORLEANS 53.6 Despite having the sixth-most…",
       // "…SERIES NOTES Detroit took the first game…"): keep the prose after the last run of capitals.
       if (s.length < 1500 && (!/^[\p{Lu}"“]/u.test(s) || /^\d/.test(s) || TABLEY.test(s) || CAPS_PAIR.test(s))) {
@@ -366,8 +378,7 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       }
       s = s.replace(/(?:\s+[@#][A-Za-z0-9_]{3,})+$/, ""); // the PR account's handle at the end of an infographic page
       s = repairLayout(s);   // 0.65: game-log rows spliced in, stray ordinal suffixes, the page footer
-      { const sh = s.match(/^(?:[\p{Lu} ]{3,}:\s*)?((?:19|20)\d\d)-(\d\d)\s*\(([^)]{2,30})\)\s*[:–—-]\s*/u);
-        if (sh) { seasonHdr = `${sh[1]}-${sh[2]}`; s = s.slice(sh[0].length); if (s) s = s[0].toUpperCase() + s.slice(1); } }
+      s = s.replace(/\b(joining|joins|joined) (\p{Lu}\p{Ll}+), (\p{Lu}\p{Ll}+) and (?=\p{Lu})/u, "$1 $2 $3 and "); // "joining Moussa, Cisse and Popeye Jones" (0.71)
       if (seasonHdr && curSeason && seasonHdr !== curSeason) { drop("past-season", `${seasonHdr}: ${s}`); continue; }
       // A feature box's table, read into one line (0.62).
       let tableLine = false;
@@ -393,7 +404,8 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       prevRaw = s;
       // (The line before is replaced only if the joined one is kept.)
       let joinedFrom = null;
-      if (prevNow && /^(?:That['’]s|That is|This is|That ranks|This ranks|That marks|It['’]s)\b/.test(s) && prevNow.length + s.length < 420) {
+      // 0.71: "He has the fourth-longest streak in Mavs history." says which streak only with the sentence before.
+      if (prevNow && (/^(?:That['’]s|That is|This is|That ranks|This ranks|That marks|It['’]s)\b/.test(s) || /^(?:He|She|It) (?:has|had|is|was|owns) the [\w-]+ (?:streak|mark|total|run|stretch)\b/.test(s)) && prevNow.length + s.length < 420) {
         joinedFrom = prevNow;
         s = `${prevNow} ${s}`;
       }
@@ -403,7 +415,8 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       keep();
       // A span of seasons running through last season ("each of the past three seasons (2023-26)") is a run still going, not an old date.
       const core = s.replace(SINCE_CLAUSE, "").replace(/\b((?:19|20)\d\d)-(\d\d)\b/g, (m, a, b) => (seasonStart && +b - +a.slice(2) >= 2 && 2000 + +b >= +seasonStart.slice(0, 4) ? "these seasons" : m));
-      const ownDates = seasonStart ? datesOf(core) : [];
+      // A stats sidebar's cell read into the sentence ("(10-14 MINS 31 at TOR 11/11/26 FG…") doesn't date it (0.71).
+      const ownDates = seasonStart ? datesOf(core.replace(/\b(?:MINS|PTS|REBS?|TREB|ASTS?|STLS?|BLKS?|DREB|OREB|FGM|FGA|3PM|FTM|FTA)\s+\d+\s+(?:times\s+\([^)]*\)?|(?:at|vs\.?|@)\s+[A-Z]{2,4}\s+\d{1,2}\/\d{1,2}\/\d{2,4})/g, " ").replace(/^\d{1,2}\/\d{1,2}\/\d{2,4}\)\s*|\s\d{1,2}\/\d{1,2}\/\d{2,4}\)\s/g, " ")) : [];
       const prevWhen = lastWhen;
       if (ownDates.length) lastWhen = ownDates.some((d) => d >= seasonStart) ? "current" : "old";
       // A capitals heading starting the next item mid-sentence: cut there.
@@ -416,7 +429,7 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       // Two capitals words in a row that aren't common abbreviations: a table or heading spliced in ("his seventh MOST DOUBLE-DOUBLES double-double").
       if (CAPS_PAIR.test(s) && !tableLine) { drop("caps-pair", s); continue; }
       // A stat sidebar's cells read into the line ("FTA 12 at HOU 22 at PHI 11/30/25", "OREB 2 11/9 @ TOR (3x)", "…Career vs. New York Knicks record…").
-      if (!tableLine && (/\b(?:FTA|FGA|OREB|DREB|REB|AST|PTS|STL|BLK|3PM|FGM|FTM)\s+\d+\s+(?:at|vs\.?|@|\d)/.test(s) || /\d\s+\(\d+x\)|\(\d+x\)\s+\d/.test(s) || /\bCareer vs\. \p{Lu}/u.test(s.slice(1)))) { drop("splice", s); continue; }
+      if (!tableLine && (/\b(?:FTA|FGA|OREB|DREB|T?REBS?|ASTS?|PTS|STLS?|BLKS?|MINS|3PM|FGM|FTM)\s+\d+\s+(?:at|vs\.?|@|\d)/.test(s) || /\d\s+\(\d+x\)|\(\d+x\)\s+\d/.test(s) || /\bCareer vs\. \p{Lu}/u.test(s.slice(1)))) { drop("splice", s); continue; }
       // Two columns read into one line ("…in NBA history. offensive rebounding (3.5 per).", "…game on 11/6. with at least…").
       if (/(?:\p{L}{5,}|\d|\)|%)\. (?!(?:\d|vs\b|[A-Z]))\p{Ll}/u.test(s.replace(/\b(?:vs|No|Jr|Sr|St|approx|per|pts|reb|ast)\. /g, "$&").replace(/\b(?:[A-Z]|vs|No|Jr|Sr|St)\. \p{Ll}/gu, ""))) { drop("splice", s); continue; }
       // A table cell read twice ("Luka DoncicLuka Doncic 5252").
@@ -424,6 +437,10 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       const open = (s.match(/\(/g) || []).length, close = (s.match(/\)/g) || []).length;
       if (open !== close || !/[.!?)"”]$/.test(s) || /\b(?:to|the|a|of|and|at|in|with|as|by|for)\s*$/i.test(s) || (!tableLine && (s.match(/\(\d{1,3}\)/g) || []).length >= 2)) { drop("unfinished", s); continue; }
       if (/Notes\/Trends|Video Highlights|Season Stats|\bGP \d|PPG \d|\(cont\.?\)/i.test(s)) { drop("box-header", s); continue; }
+      // 0.71: a stats glossary and its table read into each other (Charlotte's Cleaning the Glass page: "Ryan Kalkbrenner
+      // Effective Field Goal % 70.0% 96th percentile On/Off point differential: A statistic that measures…").
+      if (/\bA (?:per-possession )?statistic that\b|\bCan be used to\b|\bA ["“]play["”] is anything\b|\bis anything that results in\b/.test(s)
+        || (/\b\d{1,2}(?:st|nd|rd|th) percentile\b/.test(s) && /(?:Field Goal|Block|Steal|Assist|Turnover|Rebound|Usage|Non-Corner 3P|Corner 3P|Free Throw)\s*(?:%|Rate)|On\/Off Differential/.test(s))) { drop("glossary", s); continue; }
       // Who is on the roster is not a storyline ("…(2025-26 First Team)… are currently on the team", 0.65).
       if (/\b(?:are|is) (?:currently|all|still) on the (?:team|roster)\b|\bcurrently on the (?:team|roster)\b/i.test(s)) { drop("roster", s); continue; }
       if (s.replace(/[^0-9]/g, "").length / s.length > (tableLine ? 0.5 : /\b\d{1,3}-\d{1,3} when\b/.test(s) ? 0.32 : 0.22)) { drop("numbers", s); continue; }
@@ -485,6 +502,8 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       if (datedOld) { drop("dated-old", s); continue; }
       // "On Dec. 23, 2025… He is now the first rookie…": an undated follow-on sentence belongs to the date before it.
       if (!dates.length && how && how !== "named" && how !== "heading" && prevWhen === "old" && !/\b(?:this season|active streak|longest active)\b/i.test(s)) { drop("follows-old", s); continue; }
+      // 0.71: "Harper Jr.'s six 3-pointers marked a career high" right after "…at SAS March 10": that game's, named or not.
+      if (!dates.length && prevWhen === "old" && /\b(?:marked|tied|matched|equaled|set|setting|tying)\b[^.]{0,40}\b(?:career|season)[- ]high\b/i.test(s) && !/\b(?:this season|has|is|now)\b/i.test(s)) { drop("follows-old", s); continue; }
       // The box scores: a line's single-game numbers ("30 points, 14 rebounds… vs. WAS (10/24)") match a game
       // a player of ours had this season → that's who, and it's current. Numbers credited to a player who never
       // had that game → not this season's (if he was named) or not his (if he was inferred).

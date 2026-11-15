@@ -21,6 +21,22 @@ export const VERIFIED_FORMATS = new Set(["CLE", "LAL", "SAS", "PHX", "ATL", "CHA
  * @param {Array} [p.games] the day's games (readScoreboard), for the games strip
  * @param {Array} [p.uncounted] tonight's games that count in neither standings nor stats (the NBA Cup final)
  */
+/** Notes milestones for a player a team no longer rosters go to the team that does tonight, or are left out (0.71). */
+export function moveTraded(teams, roster) {
+  for (const t of teams) {
+    if (!roster[t.team]) continue;
+    const gone = t.items.filter((i) => i.origin === "notes" && i.espnId && !roster[t.team].has(String(i.espnId)));
+    if (!gone.length) continue;
+    t.items = t.items.filter((i) => !gone.includes(i));
+    for (const i of gone) {
+      const now = teams.find((o) => o !== t && roster[o.team]?.has(String(i.espnId)));
+      if (now && !now.items.some((x) => String(x.espnId) === String(i.espnId) && x.stat === i.stat && x.target === i.target)) now.items.push({ ...i, note: `now with ${now.team} (${t.team}'s notes still list him)` });
+      else if (!now) t.problems.push(`${i.player} is in ${t.team}'s notes but not on its roster: ${Number(i.target).toLocaleString("en-US")} ${i.label || i.stat} left out`);
+    }
+  }
+  return teams;
+}
+
 export async function buildSite({ entries, games = [], uncounted = [], espn, nba = null, today, root }) {
   const reports = [], teams = [];
   for (const e of entries) {
@@ -88,6 +104,14 @@ export async function buildSite({ entries, games = [], uncounted = [], espn, nba
       offCadence: offCadence.map((i) => `${i.player} ${Number(i.target).toLocaleString("en-US")} ${i.label || i.stat}`) });
   }
 
+  // 0.71: a team's notes can still list a player it has traded (Kings' notes, Nique Clifford, now with OKC): his notes
+  // milestones go with him to the team ESPN rosters him on tonight, or are left out if he isn't playing tonight.
+  try {
+    const roster = {};
+    const T = espn?.teams ? await espn.teams() : null;
+    if (T?.ok) for (const t of teams) { const id = T.data.ids[t.team]; const r = id && espn.roster ? await espn.roster(id) : null; if (r?.ok) roster[t.team] = new Set(r.data.players.map((p) => String(p.id))); }
+    moveTraded(teams, roster);
+  } catch (err) { console.error(`roster check skipped: ${err.message}`); }
   const docs = path.join(root, "docs");
   fs.mkdirSync(path.join(docs, "data"), { recursive: true });
   const site = { generatedAt: new Date().toISOString(), today, games: games.map((g) => ({ id: g.id, start: g.start, home: g.home, away: g.away, homeTri: g.homeTri, awayTri: g.awayTri })), uncounted, teams };

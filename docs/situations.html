@@ -133,7 +133,7 @@
   <div class="controls"><span class="toggle" id="rview"><button data-v="teams" class="on">Teams</button><button data-v="players">Players</button><button data-v="league">League</button></span><label id="rallw" hidden><input type="checkbox" id="rall"> every regular</label><label id="rtonight"></label></div>
   <div class="key" id="rkey"></div>
   <div class="scroll"><table id="rtab"></table></div>
-  <div class="scroll" id="rtab2wrap" style="margin-top:12px"><table id="rtab2"></table></div>
+  <div id="rtab2wrap" style="margin-top:12px"><div class="key" id="rtab2key"></div><div class="scroll"><table id="rtab2"></table></div></div>
 </main>
 <footer id="foot"></footer>
 <script>
@@ -264,8 +264,9 @@ function renderRest() {
     $("rtab").innerHTML = `<tr><th>Team</th>${R.buckets.map((b) => `<th class="num">${R.labels[b].replace(" (back-to-back)", " (B2B)")}</th><th class="num">margin</th>`).join("")}<th class="num">B2B − rest</th></tr>` +
       rows.map((t) => `<tr><td><b>${t.tri}</b>${b2b.includes(t.tri) ? ` <span class="team">B2B tonight</span>` : ""}</td>${R.buckets.map((b) => `<td class="num">${wl2(t.by[b])}</td><td class="num">${sg1(t.by[b].marg)}</td>`).join("")}<td class="num ${t.gap == null ? "" : t.gap <= -5 ? "lo" : t.gap >= 5 ? "hi" : ""}"><b>${sg1(t.gap)}</b></td></tr>`).join("");
     const fc = R.facing.slice().sort((a, b) => (b.gap ?? -1e9) - (a.gap ?? -1e9));
-    $("rtab2").innerHTML = `<tr><th>Team vs a tired opponent</th><th class="num">Games</th><th class="num">Record</th><th class="num">Margin</th><th class="num">Margin, other games</th><th class="num">Advantage</th></tr>` +
-      fc.map((t) => `<tr><td><b>${t.tri}</b></td><td class="num">${t.vs.n}</td><td class="num">${wl2(t.vs)}</td><td class="num">${sg1(t.vs.marg)}</td><td class="num">${sg1(t.other.marg)}</td><td class="num ${t.gap == null ? "" : t.gap >= 5 ? "hi" : t.gap <= -5 ? "lo" : ""}">${sg1(t.gap)}</td></tr>`).join("");
+    $("rtab2").innerHTML = `<tr><th>Team vs a tired opponent</th><th class="num">Games</th><th class="num">Record</th><th class="num">Margin</th><th class="num" title="It had a day off or more; the opponent didn't">It rested</th><th class="num" title="Both teams on the second night of a back-to-back">Both B2B</th><th class="num">Margin, other games</th><th class="num">Advantage</th></tr>` +
+      fc.map((t) => `<tr><td><b>${t.tri}</b></td><td class="num">${t.vs.n}</td><td class="num">${wl2(t.vs)}</td><td class="num">${sg1(t.vs.marg)}</td><td class="num">${t.rested?.n ? `${wl2(t.rested)} <span class="team">${sg1(t.rested.marg)}</span>` : "–"}</td><td class="num">${t.both?.n ? `${wl2(t.both)} <span class="team">${sg1(t.both.marg)}</span>` : "–"}</td><td class="num">${sg1(t.other.marg)}</td><td class="num ${t.gap == null ? "" : t.gap >= 5 ? "hi" : t.gap <= -5 ? "lo" : ""}">${sg1(t.gap)}</td></tr>`).join("");
+    $("rtab2key").innerHTML = `<b>A tired opponent</b> is one on the second night of a back-to-back (no day off). Each team's games against one: record and average margin, split into the games it had rest itself and the ones where <b>both</b> teams were on a back-to-back. <b>Advantage</b>: its margin against a tired opponent minus its margin in every other game. Small samples: a few games each.`;
   } else if (rview === "players") {
     const all = $("rall").checked, rows = R.players.filter((p) => p.rest.min >= 20 && (all || p.flag));
     $("rkey").innerHTML = `Regulars (20+ minutes on rest) with 2+ games on the second night of a back-to-back and 4+ otherwise: points, minutes and FG% on no rest against his other games. <b>Bold</b>: a clear split (4+ points and 20%+), which also goes on the Watch List when his team is on a back-to-back. Showing ${all ? "every regular" : "the clear splits only"}; biggest drop first; small samples.`;

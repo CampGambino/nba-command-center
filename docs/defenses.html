@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NBA Command Center · vs top teams</title>
 <style>
+  tr.top td { background: color-mix(in srgb, #4f9cf9 10%, transparent); }
   :root {
     --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a;
     --text: #e8eaef; --muted: #9aa3b2; --faint: #6b7383;
@@ -130,7 +131,7 @@
   <section id="v-thirty" hidden>
     <div class="key" id="tkey"></div>
     <div class="scroll"><table id="ttab"></table></div>
-    <h2 style="font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:22px 4px 10px">Every 30-point game</h2>
+    <h2 style="font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:22px 4px 10px">Every 40-point game</h2>
     <div class="scroll"><table id="tgames"></table></div>
   </section>
   <section id="v-highs" hidden>
@@ -271,11 +272,13 @@ async function renderPlayers() {
 async function renderThirty() {
   const pg = await teamFiles(), r = teamRatings(lines), t = thirtyAllowed(pg, r);
   const md = (d) => new Date(d + "T12:00:00").toLocaleDateString([], { month: "short", day: "numeric" });
-  $("tkey").innerHTML = `${t.games.length} 30-point games this season. A defense is credited with one for every opposing player who reached 30 against it, so one game can count twice. Def rating: points allowed per 100 possessions.`;
+  const none = t.teams.filter((x) => x.gp && !x.allowed).map((x) => `<b>${x.tri}</b> (${x.gp} games)`);
+  $("tkey").innerHTML = `${t.games.length} 30-point games this season. A defense is credited with one for every opposing player who reached 30 against it, so one game can count twice. Def rating: points allowed per 100 possessions.` +
+    (none.length ? `<br>🛡️ <b>Hasn't allowed one:</b> ${none.join(", ")}${none.length === 1 ? ", the only team" : ""}. It's on the Watch List when ${none.length === 1 ? "it plays" : "they play"}, and NBA Live gets a card the night it ends.` : "");
   $("ttab").innerHTML = `<tr><th>Team</th><th class="num">Allowed</th><th class="num">Per game</th><th class="num">Def rtg</th><th>Who did it</th></tr>` +
-    t.teams.map((x) => `<tr><td><b>${x.tri}</b></td><td class="num"><b>${x.allowed}</b></td><td class="num">${x.perGame == null ? "–" : x.perGame.toFixed(2)}</td><td class="num">${x.drtg == null ? "–" : x.drtg.toFixed(1)}</td><td class="team" style="white-space:normal">${x.players.join(", ")}</td></tr>`).join("");
+    [...t.teams.filter((x) => x.gp && !x.allowed), ...t.teams.filter((x) => !(x.gp && !x.allowed))].map((x) => `<tr${x.gp && !x.allowed ? ' class="top"' : ""}><td><b>${x.tri}</b>${x.gp && !x.allowed ? " 🛡️" : ""}</td><td class="num"><b>${x.allowed}</b></td><td class="num">${x.perGame == null ? "–" : x.perGame.toFixed(2)}</td><td class="num">${x.drtg == null ? "–" : x.drtg.toFixed(1)}</td><td class="team" style="white-space:normal">${x.players.join(", ")}</td></tr>`).join("");
   $("tgames").innerHTML = `<tr><th class="num">Pts</th><th>Player</th><th>Team</th><th>Against</th><th>Date</th></tr>` +
-    t.games.map((g) => `<tr><td class="num"><b>${g.pts}</b></td><td>${g.name}</td><td>${g.team}</td><td>${g.home ? "vs" : "at"} ${g.against}</td><td>${md(g.d)}</td></tr>`).join("");
+    t.games.filter((g) => g.pts >= 40).map((g) => `<tr><td class="num"><b>${g.pts}</b></td><td>${g.name}</td><td>${g.team}</td><td>${g.home ? "vs" : "at"} ${g.against}</td><td>${md(g.d)}</td></tr>`).join("");
 }
 // 0.65 (the user, 11/14): which teams have let opponents score career highs this season; rookies apart.
 async function renderHighs() {

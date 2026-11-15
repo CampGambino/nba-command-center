@@ -2,6 +2,38 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.71.0 (2026-11-15): the user's 17-image review (notes misreads, milestones, the Celtics' defense, Cup, pages)
+
+### What changed
+- **Notes reader (src/notes/narrative.js, facts.js):**
+  - Boston's and Dallas' bios mark seasons as "2025-26 SEASON:" and "PROFESSIONAL CAREER: 2024-25 SEASON:" (also "2026-27 NOTABLES:"); the reader split "2024-25" from "SEASON:" and lost the header. Now joined before splitting: Derrick White's "265 3-pointers… the fourth most in the NBA this season" (2024-25) is dropped as past-season.
+  - A past-season header over this season's full dates ("2025-26 SEASON: Made his NBA debut at HOU (10/21/26)", Dallas' rookie Morez Johnson Jr.) is a typo: the dates win.
+  - "Harper Jr.'s six 3-pointers marked a career high", "Queta's 10 offensive rebounds tied his career high", "White's nine 3-pointers tied his career high" follow a game from last season (March 10, March 1, Dec. 19): an undated "marked/tied a career high" after an old date is that game's, even when it names him. A stats sidebar's cell read into the sentence ("MINS 31 at TOR 11/11/26") no longer dates it as this season.
+  - Charlotte's Cleaning the Glass page (a percentile table and its glossary read into each other) is dropped ("glossary"); the real sentence about Kalkbrenner's on/off stays.
+  - Footers: a letter-spaced "2 0 2 6 - 2 7 D A L L A S M A V E R I C K S G A M E N O T E S." and "17 Find us on X: @spurs | Facebook: …" are cut.
+  - Morez Johnson Jr.: the notes' own sentence says "one of three rookies… joining Moussa, Cisse and Popeye Jones" (their typo, and no "Maverick"). The stray comma between a first and last name is mended, and a club the same notes call a team club elsewhere ("one of three Maverick rookies to record 10+ offensive rebounds") says so and is tagged "1 of 3 in team history". (Both lines are trimmed tonight as a 9-day-old one-off.)
+  - "Within his first N seasons" is dated when it's past: Dort's "one of only three undrafted players… to start 400 games within their first seven seasons" now ends "(settled by the end of his seventh season, 2025-26)". The notes don't name the other two, so we can't.
+  - "He has the fourth-longest streak in Mavs history" is read with the sentence before it (which streak).
+  - A stats-sidebar cell in a sentence (MINS/ASTS/STLS/BLKS/TREB + a date) is a splice.
+- **Milestones (src/site/build.js, docs/index.html):** a team's notes can list a player it traded (the Kings' notes, Nique Clifford): his notes milestones go to the team ESPN rosters him on tonight ("now with OKC"), or are left out with a note. All milestones (and Coming up) put one player's milestones together, at the place of his best-ranked one; each keeps its own chances and expected game, so the ranking is unchanged.
+- **The Celtics haven't allowed a 30-point game (src/anticipate/seasonlong.js `defenseLines`, `allowedCounts`):** a team that's the only one (or one of three) without a 30-point game allowed, or one of two without a 40, is a Watch List line when it plays, with the opponent's 30-point scorers ("BOS hasn't allowed a 30-point game this season (12 games): the only team; 129 across the league. DAL's 30-point scorers: Cooper Flagg (3, high 43), Kyrie Irving (3, high 35)"); it's in tonight's briefing top 10. tonight.json carries every team's counts; **NBA Live bridge v6** fires "🛡️ FIRST 30 ALLOWED" the moment a player reaches 30 against such a team (and 40 likewise). vs top teams → 30-point games allowed lists those teams first; the game list below is now **every 40-point game** (30 is too common).
+- **NBA Cup (src/anticipate/tonight.js `cupLines`):** on a Cup night, a team unbeaten (or winless) at home or on the road in Cup history, and the best all-time Cup record, are Watch List lines ("ORL is 8-0 at home in NBA Cup games all-time: the only team unbeaten at home; tonight is a home Cup game"). Orlando's next home Cup game will carry it.
+- **Rest (src/situations/rest.js, situations.html):** "Team vs a tired opponent" is explained (an opponent on the second night of a back-to-back) and split into games the team rested and games where **both** teams were on a back-to-back.
+- **Game Flow → Assist leaderboard:** 25 rows a page, with pages under the table (players and pairs).
+- **Records → This season vs his career (src/records/yoy.js):** FG%, 3P%, 2P% and FT% against every season with enough attempts (60 FGA, 25 3PA/2PA, 15 FTA this season); a line when three or more are career highs or lows ("Camara: career highs in FG%, 3P%, 2P% and FT% (51.4%, 43.6%, 72.4%, 77.8%)", which matches Basketball Reference); that line also goes on the Watch List (context kind). **Ordered by how noteworthy:** a career mark over a long career, the size of the change, who it's about (career scoring) and the stat (minutes least); one player's lines grouped under his best; a "big change" line replaces the same stat's low/high line. Stat filter has the percentages.
+- New storyline kinds: defense 🛡️, cup 🏆 (beaten is now ⚔️); bridge icons for the 0.70 kinds too.
+
+### Tested
+- 733 checks (new: the season headers and their typo, career-high follow-ons, the glossary, the footers, "within his first N seasons", the team-club carry, traded players' milestones, the defense line, the Cup lines, the rest split, shooting percentages, bridge v6's cards). 66 Worker checks.
+- The notes of all 26 teams (11/14's and today's) before and after: removed are White's 265, the five Cleaning-the-Glass lines, Harper's/Queta's/White's career-high follow-ons, the spaced footer; added: Dort's date, a Bub Carrington games-played streak.
+- Pages all OK; screenshots of All milestones (grouped), 30-point games allowed (BOS first), the rest table, This season vs his career; the assist pager on a 61-row table (25 a page, page 3 shows 51-61).
+
+### Unproven
+- The traded-player move needs ESPN's rosters in the build; the first build after this shows whether Clifford's lines land on OKC.
+- Cup lines need tonight's Cup games in records.json (the next Cup night is 11/20).
+- NBA Live's 🛡️ card has been run against the stand-in NBA Live only.
+- Percentages early in the season swing: 25 attempts is a low bar; watch whether the shooting lines crowd the list.
+
 ## 0.70.1 (2026-11-15): headlines name the right player
 
 The first live build with headlines (12:18 ET, 27 players and 17 teams) credited Keegan Murray with 17 headlines (they were about Dejounte Murray's trade request), Ajay Mitchell with Donovan Mitchell's, Jalen Green with Draymond Green's, Jabari Smith Jr. with another Smith's.

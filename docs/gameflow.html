@@ -4836,7 +4836,7 @@ function renderPairBoard(card, agg){
     });
     tbl.appendChild(tr);
   });
-  card.appendChild(tbl);
+  card.appendChild(tbl); pageTable(card, tbl);
 
   card.appendChild(noteEl(
     "Every passer-to-scorer connection, ranked highest to lowest. \"% of passer's\" is how "+
@@ -4847,6 +4847,24 @@ function renderPairBoard(card, agg){
   finishRender();
 }
 
+/* 0.71 (the user, 11/15: "too many rows… converted to pages so the scrolling isn't infinite"): a long leaderboard
+   shows 25 rows a page, with the pages under it. The ranking and the outliers above it are unchanged. */
+function pageTable(card, tbl, per = 25){
+  const rows=[...tbl.querySelectorAll("tr")].slice(1);
+  if(rows.length<=per) return;
+  const pages=Math.ceil(rows.length/per);
+  const nav=el("div","pager");
+  nav.style.cssText="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 2px;font-size:12.5px";
+  let at=0;
+  const show=(p)=>{ at=Math.max(0,Math.min(pages-1,p)); rows.forEach((r,i)=>{ r.style.display = Math.floor(i/per)===at ? "" : "none"; }); draw(); };
+  const btn=(label,p,on)=>{ const b=el("button","",label); b.style.cssText="padding:2px 8px;border:1px solid var(--line);border-radius:6px;background:"+(on?"var(--accent,#3b82f6)":"transparent")+";color:"+(on?"#fff":"var(--text)")+";cursor:pointer"; b.onclick=()=>show(p); return b; };
+  const draw=()=>{ nav.innerHTML=""; nav.appendChild(btn("‹",at-1,false));
+    for(let p=0;p<pages;p++) if(p<2||p>pages-3||Math.abs(p-at)<=1) nav.appendChild(btn(String(p+1),p,p===at)); else if(!nav.lastChild.dataset.gap){ const g=el("span","","…"); g.dataset.gap="1"; nav.appendChild(g); }
+    nav.appendChild(btn("›",at+1,false)); nav.appendChild(el("span","",` rows ${at*per+1}–${Math.min(rows.length,(at+1)*per)} of ${rows.length}`)); };
+  tbl.after(nav);
+  show(0);
+}
+window.pageTable = pageTable; // reached by tools/check-pages.py
 function renderBoard(agg){
   const out=$("#out"); out.innerHTML="";
   const card=el("div","card"); out.appendChild(card);
@@ -4969,7 +4987,7 @@ function renderBoard(agg){
     });
     tbl.appendChild(tr);
   });
-  card.appendChild(tbl);
+  card.appendChild(tbl); pageTable(card, tbl);
 
   card.appendChild(noteEl(
     (recv

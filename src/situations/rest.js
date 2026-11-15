@@ -77,7 +77,10 @@ export function restData({ games = [], teamFiles = {}, tonight = [], today = nul
   const facing = tris.map((tri) => {
     const mine = rows.filter((r) => r.tri === tri && r.pb != null);
     const vs = stats(mine.filter((r) => r.pb === 0)), other = stats(mine.filter((r) => r.pb > 0));
-    return { tri, vs, other, gap: diff(vs, other, "marg") };
+    // 0.71 (the user, 11/15: "does it also check if the team themselves are also a tired team"): the same games split
+    // by the team's own rest: it rested, or both teams on the second night of a back-to-back.
+    const rested = stats(mine.filter((r) => r.pb === 0 && r.ob != null && r.ob > 0)), both = stats(mine.filter((r) => r.pb === 0 && r.ob === 0));
+    return { tri, vs, rested, both, other, gap: diff(vs, other, "marg") };
   });
 
   // Players: his games on the second night of a back-to-back against his other games (rest known), points and minutes.

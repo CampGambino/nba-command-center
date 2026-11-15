@@ -127,7 +127,7 @@ export function describe(text, meta = {}) {
   const club = clubOf(t), rk = rankOf(t), th = thresholds(t);
   const streakN = t.match(/\b(\d{2,}) (?:consecutive|straight) (?:games|starts|contests)\b/i);
   const teamScope = /\b(?:franchise|team|club) (?:history|annals)\b|\b[A-Z][a-z]+['’]s? (?:all-time|career|franchise)\b|\bby any [A-Z][a-z]+s? player\b/.test(t)
-    || (/\b(?:the )?only (?!NBA\b)(?:[A-Z][a-z]+s|76ers)\b(?! in NBA history)|\b\d{1,2}(?:st|nd|rd|th) [A-Z][a-z]+ ever\b/.test(t) && !/\bin (?:NBA|league) history\b/i.test(t)); // "the only Raptors to…" (0.69)
+    || (/\b(?:the )?only (?!NBA\b)(?:[A-Z][a-z]+s|76ers)\b(?! in NBA history)|\b\d{1,2}(?:st|nd|rd|th) [A-Z][a-z]+ ever\b|\bone of \w+ (?!NBA\b|All\b)[A-Z][a-z]+ (?:rookies|players|guards|forwards|centers|reserves)\b/.test(t) && !/\bin (?:NBA|league) history\b/i.test(t)); // "the only Raptors to…" (0.69), "one of three Maverick rookies" (0.71)
   const scope = teamScope ? "franchise" : f.league ? (f.history || /since/i.test(t) && !f.season ? "nba-history" : "nba") : f.franchise ? "franchise" : null;
   let type = "other", tag = "Notes", why = "";
   if (f.matchup) { type = "matchup"; tag = "Series"; why = "The history with tonight's opponent."; }
@@ -348,8 +348,39 @@ export function hookFor(line, { race = null, stay = null } = {}) {
  * A team's lines, read together: duplicates removed, each with type, tag, why, the table printed beside it,
  * the "stay in the club" check, a hook for tonight and the learned score (src/data/fact-model.json).
  */
-export function annotate(lines, { doc = null, tables = null, box = null, model = null, teamNames = [] } = {}) {
+const ordinalWord = (n) => ["", "first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "10th", "11th", "12th"][n] || `${n}th`;
+const NUMW = { two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12 };
+/**
+ * When a "within his first N seasons" fact happened (0.71; the user, 11/15, on Luguentz Dort's "one of only three
+ * undrafted players… to start 400 games within their first seven seasons": "it doesn't tell me… when it happened").
+ * seasons: the player's NBA seasons before this one, oldest first ("2019-20", …). The fact was settled by his Nth.
+ */
+export function whenWithin(text, seasons) {
+  const m = plain(text).match(/\b(?:within|in|over|through) (?:his|their|the) first (\d{1,2}|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve) (?:NBA )?seasons\b/i);
+  if (!m || !Array.isArray(seasons) || !seasons.length) return null;
+  const n = /\d/.test(m[1]) ? +m[1] : NUMW[m[1].toLowerCase()];
+  if (!n || seasons.length < n) return null; // still in his first N: it can still happen this season
+  return { n, season: seasons[n - 1] };
+}
+
+export function annotate(lines, { doc = null, tables = null, box = null, model = null, teamNames = [], careers = null } = {}) {
   const T = tables || (doc ? readTables(doc) : []);
+  for (const l of lines || []) {
+    const w = l.player && careers ? whenWithin(l.text, careers[l.player]) : null;
+    if (w && !/\(by (?:the end of )?his /.test(l.text)) l.text = l.text.replace(/\.?$/, ` (settled by the end of his ${ordinalWord(w.n)} season, ${w.season}).`);
+  }
+  // 0.71: "one of three rookies to record 10+ offensive rebounds" when the same notes say "one of three Maverick
+  // rookies to record 10+ offensive rebounds" elsewhere: it's a team club; say so.
+  const scoped = (lines || []).map((l) => plain(l.text).match(/\bone of (\w+) ([A-Z][a-z]+(?:er)?s?) (rookies|players|guards|forwards|centers|reserves)\b([^.,;]{0,60})/)).filter(Boolean);
+  for (const l of lines || []) {
+    const t = plain(l.text);
+    const m = t.match(/\bone of (\w+) (rookies|players|guards|forwards|centers|reserves)\b([^.,;]{0,60})/);
+    if (!m || /\b(?:NBA|league) history\b|\bin (?:the )?(?:NBA|league)\b/.test(t)) continue;
+    const words = (x) => new Set(x.toLowerCase().match(/[a-z0-9+]{3,}/g) || []);
+    const mine = words(m[3]);
+    const hit = scoped.find((x) => x[1] === m[1] && x[3] === m[2] && [...words(x[4])].filter((w) => mine.has(w)).length >= 2);
+    if (hit) { l.text = l.text.replace(new RegExp(`\\bone of ${m[1]} ${m[2]}\\b`), `one of ${m[1]} ${hit[2]} ${m[2]}`); l.facts = describe(l.text, l); }
+  }
   return dedupe(lines).map((l) => {
     const d = l.facts;
     const names = l.player ? [l.player, l.player.split(" ").slice(-1)[0]] : teamNames;
