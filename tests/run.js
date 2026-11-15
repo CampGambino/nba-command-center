@@ -2055,10 +2055,10 @@ await articlesChecks(ok);
   const { buzzCounts, buzzBoost } = await import("../src/anticipate/buzz.js");
   const { briefing } = await import("../src/anticipate/briefing.js");
   const heads = [{ title: "Jared McCain is thriving in OKC" }, { title: "Why McCain's role keeps growing with the Thunder" }, { title: "Lakers beat Clippers" }, { title: "Los Angeles weather" }, { title: "Jalen Williams out again" },
-    { title: "After flight delay, Donovan Mitchell wanted game postponed" }, { title: "Rockets' Sengun shines" }, { title: "Wemby on Draymond Green's shove" }];
-  const B = buzzCounts(heads, { players: ["Jared McCain", "Jalen Williams", "Jaylin Williams", "Ajay Mitchell", "Alperen Sengun", "Jalen Green"], teams: ["OKC", "LAL", "LAC"], league: ["Donovan Mitchell"] });
-  ok(B.players["Jared McCain"] === 2 && B.players["Jalen Williams"] === 1 && !B.players["Jaylin Williams"] && !B.players["Ajay Mitchell"] && B.players["Alperen Sengun"] === 1 && !B.players["Jalen Green"] && B.teams.OKC === 1 && B.teams.LAL === 1 && B.teams.LAC === 1,
-    "buzz (0.70): headlines name players (full name, or a surname no one else in the league has, not after another first name) and teams (a shared city doesn't count)", JSON.stringify(B));
+    { title: "After flight delay, Donovan Mitchell wanted game postponed" }, { title: "Rockets' Sengun shines" }, { title: "Wemby on Draymond Green's shove" }, { title: "Ant's ankle" }];
+  const B = buzzCounts(heads, { players: ["Jared McCain", "Jalen Williams", "Jaylin Williams", "Ajay Mitchell", "Alperen Sengun", "Jalen Green", "Victor Wembanyama", "Anthony Edwards"], teams: ["OKC", "LAL", "LAC"], league: ["Donovan Mitchell"] });
+  ok(B.players["Jared McCain"] === 2 && B.players["Jalen Williams"] === 1 && !B.players["Jaylin Williams"] && !B.players["Ajay Mitchell"] && B.players["Alperen Sengun"] === 1 && !B.players["Jalen Green"] && B.players["Victor Wembanyama"] === 1 && B.players["Anthony Edwards"] === 1 && B.teams.OKC === 1 && B.teams.LAL === 1 && B.teams.LAC === 1,
+    "buzz (0.70): headlines name players (full name, or a surname no one else in the league has, not after another first name; a few nicknames: "Wemby", "Ant") and teams (a shared city doesn't count)", JSON.stringify(B));
   const all = [{ kind: "season", team: "OKC", player: "Jared McCain", text: "a", score: 3 }, { kind: "season", team: "SAS", player: "Other Guy", text: "b", score: 3.2 }];
   const R = briefing({ all, games: [{ away: "OKC", home: "SAS" }], stars: { "Jared McCain": 0.4, "Other Guy": 0.4 }, today: "2026-11-15", buzz: B });
   ok(buzzBoost(all[0], B) > 0.25 && R.top[0].player === "Jared McCain" && R.top[0].news === 2, "briefing (0.70): a player in the news moves up, and says so", JSON.stringify(R.top.map((l) => [l.player, l.rank, l.news])));

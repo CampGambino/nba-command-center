@@ -16,6 +16,10 @@ const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 // Capitalized words that come before a surname without being a first name.
 const NOT_NAMES = new Set([...Object.values(TEAMS).flatMap((x) => [x.nick, x.city, ...(x.alt || [])].map(plain)), "why", "how", "what", "when", "where", "and", "after", "with", "as", "for", "the", "is", "on", "in", "rookie", "star", "guard", "forward", "center", "coach", "big", "veteran", "sources", "report", "watch", "inside", "film", "nba"]);
 
+// What headlines call some players (first names that stand alone, and nicknames).
+const ALIAS = { "Victor Wembanyama": ["wemby"], "Shai Gilgeous-Alexander": ["sga", "shai"], "Karl-Anthony Towns": ["kat"], "Giannis Antetokounmpo": ["giannis"], "LeBron James": ["lebron"],
+  "Luka Doncic": ["luka"], "Kevin Durant": ["kd"], "Stephen Curry": ["steph"], "Anthony Edwards": ["ant"], "Nikola Jokic": ["jokic"], "Cooper Flagg": ["flagg"], "Ja Morant": ["ja"] };
+
 export function buzzCounts(headlines, { players = [], teams = [], league = [] } = {}) {
   const titles = (headlines || []).map((h) => ({ raw: h.title, t: plain(h.title) })).filter((h) => h.t);
   // A city two teams share (Los Angeles, and New York with Brooklyn's Nets) doesn't say which team.
@@ -52,7 +56,8 @@ export function buzzCounts(headlines, { players = [], teams = [], league = [] } 
       const orig = i >= 0 ? raw.slice(i, i + before.length) : "";
       return !before || before === first(name) || !/^[A-Z][a-z]+$/.test(orig) || NOT_NAMES.has(before);
     };
-    for (const h of titles) if (full.test(h.t) || alone(h)) { out.players[name] = (out.players[name] || 0) + 1; note(name, h.raw); }
+    const nick = ALIAS[name] ? new RegExp(`\\b(?:${ALIAS[name].join("|")})('s)?\\b`) : null;
+    for (const h of titles) if (full.test(h.t) || alone(h) || (nick && nick.test(h.t))) { out.players[name] = (out.players[name] || 0) + 1; note(name, h.raw); }
   }
   return out;
 }

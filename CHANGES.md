@@ -7,13 +7,13 @@ Each entry: what changed, how it was tested, and what is still unproven.
 The first live build with headlines (12:18 ET, 27 players and 17 teams) credited Keegan Murray with 17 headlines (they were about Dejounte Murray's trade request), Ajay Mitchell with Donovan Mitchell's, Jalen Green with Draymond Green's, Jabari Smith Jr. with another Smith's.
 
 ### What changed
-- **src/anticipate/buzz.js:** a surname alone counts only when no other player in the league has it (the build passes every name in this season's results), and not right after a capitalized word that isn't his first name ("Donovan Mitchell"); team names and "Why", "After"… before it are fine ("Rockets' Sengun shines").
+- **src/anticipate/buzz.js:** a surname alone counts only when no other player in the league has it (the build passes every name in this season's results), and not right after a capitalized word that isn't his first name ("Donovan Mitchell"); team names and "Why", "After"… before it are fine ("Rockets' Sengun shines"). A few names headlines use alone: Wemby, SGA/Shai, KAT, Giannis, LeBron, Luka, KD, Steph, Ant, Jokić, Flagg, Ja.
 
 ### Tested
-- 722 checks (the buzz check now has Donovan Mitchell, Draymond Green and "Rockets' Sengun"). The 12:18 build's sample titles: Murray, Mitchell, Green and Smith no longer match; Şengün, Acuff, Hart, Bridges (full name) still do.
+- 722 checks (the buzz check now has Donovan Mitchell, Draymond Green, "Rockets' Sengun", "Wemby" and "Ant's"). The 12:18 build's sample titles: Murray, Mitchell, Green and Smith no longer match; Şengün, Acuff, Hart, Bridges (full name) still do.
 
 ### Unproven
-- A nickname ("Wemby", "KAT", "SGA") isn't matched; those players are counted only by their full name or surname.
+- Nicknames beyond that short list aren't matched; "Ant" or "Ja" could catch a stray word (headlines are title text, so it's rare).
 
 ## 0.70.0 (2026-11-15): season-long and morning-after lines (the StatMuse posts), what's in the news, last season replayed
 
