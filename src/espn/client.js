@@ -115,6 +115,8 @@ export function createEspn({ dataDir, fetchImpl = fetch, now = () => Date.now(),
     injuries: () => wrap("injuries", `${BASE}/injuries`, 1 * HOUR, readInjuries, SHRINK.injuries),
     // Past seasons don't change: cache for a week. `season` is the ending year (2026 = 2025-26).
     gameLog: (athleteId, season) => wrap(`log-${athleteId}-${season}`, `${WEB}/athletes/${athleteId}/gamelog?season=${season}`, 7 * 24 * HOUR, readGameLog, SHRINK.gameLog),
+    // This season's log, fresh: whether today's finished game has reached ESPN's totals yet (src/registry/track.js, todayPlayed).
+    gameLogNow: (athleteId, season) => wrap(`lognow-${athleteId}-${season}`, `${WEB}/athletes/${athleteId}/gamelog?season=${season}`, 10 * 60e3, readGameLog, SHRINK.gameLog),
     career: (athleteId) => wrap(`career-${athleteId}`, `${WEB}/athletes/${athleteId}/stats`, 6 * HOUR, readCareer),
   };
 }

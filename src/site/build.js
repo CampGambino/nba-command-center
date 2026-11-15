@@ -71,7 +71,7 @@ export async function buildSite({ entries, games = [], uncounted = [], espn, nba
     // Round career numbers within ~3 games, straight from ESPN, for every rostered
     // player; notes milestones win where both exist. Projected separately with
     // today's date: ESPN's totals are already current, nothing to roll forward.
-    const found = await discoverMilestones({ team: e.team, espn, skip: watchItems });
+    const found = await discoverMilestones({ team: e.team, espn, skip: watchItems, today });
     problems.push(...found.problems);
     if (found.milestones.length) {
       const w2 = await buildWatch({ team: e.team, notesDate: today, milestones: found.milestones, espn, nba, today });

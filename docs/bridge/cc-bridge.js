@@ -1,5 +1,5 @@
 /*
- * NBA Command Center -> NBA Live bridge.                                  version 7
+ * NBA Command Center -> NBA Live bridge.                                  version 8
  *
  * Add ONE line to NBA Live, just before </body>:
  *   <script src="https://campgambino.github.io/nba-command-center/bridge/cc-bridge.js"></script>
@@ -35,6 +35,11 @@
  *       a 15-point lead with the season's record of leads lost and comebacks, and a 15-point lead lost;
  *       (0.59.1) a regular reserve 3+ minutes past his usual first check-in, and before tip-off a "foul watch" card for
  *       starters in early foul trouble in half their games or more.
+ *     - (v8, 0.72.2; the user, 11/15) foul trouble only for tonight's starters, players who start half their games or
+ *       more, and players averaging 25.0 minutes or more ("no need to send foul trouble alert for a player coming off
+ *       the bench unless they are typically a starter or average at least 25.0 minutes per game": Josh Green, 4 starts
+ *       in 11 games); and a milestone or record card that a later stat change undoes says so ("TAKEN BACK") instead of
+ *       quietly going back to a countdown, or staying up as reached once the game is final.
  *     - (v7, 0.72.1; the user, 11/15: Thybulle and Miles Bridges opened the 3rd, sat at 6:53 and were carded "didn't
  *       start the 3rd") "not out for the 3rd" only for a starter the play-by-play hasn't shown on the floor in the 3rd at
  *       all, and "still on the bench" only for one who hasn't been back since he first sat.
@@ -51,7 +56,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 7;
+  var VERSION = 8;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -70,7 +75,7 @@
   // NBA Live's own ladders (MILESTONE_LADDERS): those round numbers are already its cards.
   var NBA_LIVE_STAT = { pts: "pts", fg3m: "tpm", reb: "reb", ast: "ast", stl: "stl", blk: "blk" };
 
-  var state = { data: null, items: [], tonight: null, records: null, recItems: [], bests: null, flow: null, maxLead: {}, firstAt: {}, done: {}, loadedAt: 0, error: null, connected: false, fired: 0, keys: {} };
+  var state = { data: null, items: [], tonight: null, records: null, recItems: [], bests: null, flow: null, maxLead: {}, firstAt: {}, done: {}, hit: {}, loadedAt: 0, error: null, connected: false, fired: 0, keys: {} };
   window.CC_BRIDGE = { version: VERSION, state: state };
 
   function param(name) { try { return new URLSearchParams(location.search).get(name); } catch (e) { return null; } }
@@ -240,18 +245,23 @@
         // 2. Chases and passes from the notes that NBA Live doesn't know, gated.
         if (!p) return;
         var reachedTonight = i.need > 0 && v >= i.need;
+        // v8: a mark this page showed as reached and a stat change has since undone (an assist or a rebound given to
+        // someone else, a three ruled a two) stays on the card, said plainly, live or final.
+        var hk = "cc-" + i.espnId + "-" + game.id + "|" + i.stat + "|" + i.target;
+        if (reachedTonight) state.hit[hk] = v;
+        var was = !reachedTonight && state.hit[hk] != null ? state.hit[hk] : null;
         if (i.kind !== "pass" && i.importance < MIN_IMPORTANCE) return;   // a rung nobody celebrates, reached or not
         if (i.kind === "pass" && (i.minor || !worthPlace(i.scope, i.stat, i.passing && i.passing.rank))) return;   // 0.61: a place worth saying (0.64: i.minor also covers lists of unproven scope)
-        if (game.status === "final" && !reachedTonight) return;          // a final game: only what fell in it
-        if (!reachedTonight) {
+        if (game.status === "final" && !reachedTonight && was === null) return;   // a final game: only what fell in it
+        if (!reachedTonight && was === null) {
           if ((p.min || 0) < 1) return;                                  // not a story until he plays
           if ((i.pTonight || 0) < MIN_CHANCE) return;                    // not in play tonight
         }                                                                // (a surprise reach always shows)
-        picks.push({ i: i, v: v, reached: reachedTonight, rank: reachedTonight ? 1e9 : (i.pTonight || 0) * i.importance });
+        picks.push({ i: i, v: v, was: was, reached: reachedTonight, rank: reachedTonight || was !== null ? 1e9 : (i.pTonight || 0) * i.importance });
       });
       picks.sort(function (a, b) { return b.rank - a.rank; });
       var byPlayer = {}, order = [];
-      picks.filter(function (x, k) { return x.reached || k < MAX_PER_GAME; }).forEach(function (x) {
+      picks.filter(function (x, k) { return x.reached || x.was !== null || k < MAX_PER_GAME; }).forEach(function (x) {
         if (!byPlayer[x.i.espnId]) { byPlayer[x.i.espnId] = []; order.push(x.i.espnId); }
         byPlayer[x.i.espnId].push(x);
       });
@@ -338,9 +348,10 @@
       var v = recValue(r, p);
       if (v === null || !p) return;
       var reached = v >= r.need;
-      if (game.status === "final" && !reached) return;
-      if (!reached && ((p.min || 0) < 1 || (r.pTonight || 0) < MIN_CHANCE)) return;
-      picks.push({ r: r, v: v, reached: reached, rank: reached ? 1e9 : (r.pTonight || 0) * (r.score || 1) });
+      var undone = !reached && !!state.hit["cc-rec-" + r.id + "-" + r.stat + "-" + r.kind + "|" + game.id];   // v8: shown as reached, since taken back
+      if (game.status === "final" && !reached && !undone) return;
+      if (!reached && !undone && ((p.min || 0) < 1 || (r.pTonight || 0) < MIN_CHANCE)) return;
+      picks.push({ r: r, v: v, reached: reached, rank: reached || undone ? 1e9 : (r.pTonight || 0) * (r.score || 1) });
     });
     // One tile per player, stat and list (the user, 11/13): passing two names tonight reads "passes A and B for 8th".
     var groups = {}, picksBy = {};
@@ -356,15 +367,22 @@
       var G0 = groups[k], any = G0.done[0] || G0.next || (picksBy[k] || [])[0];
       // 0.63 (the user, 11/13: "SGA alert cards are confusing… Daniels played a game earlier in the night"): a pass on a
       // board (NBA Cup, franchise, all-time) is decided on tonight's live totals of everyone on it, not the morning's.
-      if (any && SCOPE_OF[any.r.kind] && recBoard(any.r)) { var lp = livePass(any.r, any.v, G0.rank); return lp && (lp.reached || game.status !== "final") ? lp : null; }
+      if (any && SCOPE_OF[any.r.kind] && recBoard(any.r)) { var lp = livePass(any.r, any.v, G0.rank); return lp && (lp.reached || game.status !== "final" || state.hit["cc-rec-" + k + "|" + game.id]) ? lp : null; }
       if (!G0.done.length) return G0.next;   // may be null: nothing worth saying in reach
       G0.done.sort(function (a, b) { return (a.r.rank || 99) - (b.r.rank || 99); });
       var best = G0.done[0];
       return { r: best.r, v: best.v, reached: true, rank: G0.rank, also: G0.done.slice(1).map(function (x) { return x.r.passing && x.r.passing.name; }).filter(Boolean) };
     }).filter(function (x) { return x && (x.live || !SCOPE_OF[x.r.kind] || worthPlace(SCOPE_OF[x.r.kind], x.r.stat, x.r.rank)); });   // judged by the place he ends on
     merged.sort(function (a, b) { return b.rank - a.rank; });
-    merged.filter(function (x, k) { return x.reached || k < MAX_PER_GAME; }).forEach(function (x) {
+    var hitKey = function (x) { return "cc-rec-" + x.r.id + "-" + x.r.stat + "-" + x.r.kind + "|" + game.id; };
+    merged.filter(function (x, k) { return x.reached || state.hit[hitKey(x)] || k < MAX_PER_GAME; }).forEach(function (x) {
       var r = x.r, label = r.label || r.stat;
+      // v8: remember what this page showed as reached; if a stat change undoes it, the card says so.
+      var nowReached = x.live ? !!x.reached : (r.need - x.v) <= 0;
+      var undone = !nowReached && !!state.hit[hitKey(x)];
+      if (nowReached) state.hit[hitKey(x)] = 1;
+      // On a live board the other name may simply have scored again, so that case is worded without blaming the scorer.
+      var undo = function (t) { return !undone ? t : t + (x.live ? " · showed as reached earlier tonight; not on the totals now" : " · showed as reached earlier tonight; a stat change has taken it back"); };
       var scopeWord = r.kind === "cup" ? "NBA Cup" : r.kind === "franchise" ? "franchise" : "all-time";
       var board = recBoard(r);
       var title = (r.kind === "cup" ? "🏆 NBA Cup" : r.kind === "franchise" ? "🏛️ " + r.team + " history" : "📜 All-time") + " · " + label + (x.live ? " · live tonight" : "");
@@ -374,8 +392,8 @@
         if (!x.reached) stat2.push([x.need, "TO GO"]);
         fire("cc-rec-" + r.id + "-" + r.stat + "-" + r.kind, {
           type: "milestone", backHtml: back,
-          icon: x.reached ? (x.place === 1 ? "🏆 RECORD" : "🎉 " + (r.kind === "cup" ? "CUP HISTORY" : r.kind === "franchise" ? "FRANCHISE HISTORY" : "PASSED")) : "📈 " + x.need + " TO GO",
-          text: x.text,
+          icon: undone ? "↩️ TAKEN BACK" : x.reached ? (x.place === 1 ? "🏆 RECORD" : "🎉 " + (r.kind === "cup" ? "CUP HISTORY" : r.kind === "franchise" ? "FRANCHISE HISTORY" : "PASSED")) : "📈 " + x.need + " TO GO",
+          text: undo(x.text),
           statLine: typeof fmtAlertStatLine === "function" ? fmtAlertStatLine(stat2) : "",
           sub: "Command Center · career records (" + scopeWord + "), live: everyone's totals tonight · pre-game " + pct(r.pTonight),
           live: game.status === "live", gameId: game.id, gameTag: tag, gameScore: scr,
@@ -396,8 +414,8 @@
       if (left > 0) stat.push([left, "TO GO"]);
       fire("cc-rec-" + r.id + "-" + r.stat + "-" + r.kind, {
         type: "milestone", backHtml: back,
-        icon: left <= 0 ? (r.rank === 1 ? "🏆 RECORD" : "🎉 " + (r.kind === "cup" ? "CUP HISTORY" : r.kind === "franchise" ? "FRANCHISE HISTORY" : r.kind === "round" ? Number(r.target).toLocaleString() : "PASSED")) : "📈 " + left + " TO GO",
-        text: text,
+        icon: undone ? "↩️ TAKEN BACK" : left <= 0 ? (r.rank === 1 ? "🏆 RECORD" : "🎉 " + (r.kind === "cup" ? "CUP HISTORY" : r.kind === "franchise" ? "FRANCHISE HISTORY" : r.kind === "round" ? Number(r.target).toLocaleString() : "PASSED")) : "📈 " + left + " TO GO",
+        text: undo(text),
         statLine: typeof fmtAlertStatLine === "function" ? fmtAlertStatLine(stat) : "",
         sub: "Command Center · career records (" + scopeWord + ") · pre-game " + pct(r.pTonight),
         live: game.status === "live", gameId: game.id, gameTag: tag, gameScore: scr,
@@ -668,7 +686,8 @@
         var Fo = !Fo0 ? { trouble: 0, out: 0, gp: R ? R.gp : 0 } : !Fo0.outIn ? Fo0 : {   // tonight's own game, if a later build has it, comes out
           gp: Fo0.gp - ((Fo0.troubleIn || []).concat(Fo0.outIn).some(function (x) { return String(x) === String(game.id); }) ? 1 : 0),
           trouble: (Fo0.troubleIn || []).filter(mine2).length, out: Fo0.outIn.filter(mine2).length };
-        var regular = p.starter || (R && R.gp >= 3 && (R.starts || 0) >= 1) || (p.min || 0) >= 15;
+        // v8 (the user, 11/15): tonight's starters, players who start half their games or more, and 25.0 minutes a game or more.
+        var regular = p.starter || (R && R.gp >= 3 && ((R.starts || 0) * 2 >= R.gp || (R.mpg || 0) >= 25));
         if (pf >= 6) {
           fire("cc-fo-" + p.id + "-" + game.id, base({ icon: "🚫 FOULED OUT",
             text: name + " (" + team + ") — fouled out" + (at("cc-fo-" + p.id + "-" + game.id) ? " " + at("cc-fo-" + p.id + "-" + game.id) : "") + " · " + (Fo.out ? "his " + ord(Fo.out + 1) + " foul-out this season" : "his first foul-out this season") + " · " + (p.pts || 0) + " pts in " + Math.round(p.min || 0) + " min",
@@ -815,7 +834,7 @@
 
   // One item's part of a player's card (0.63: one card per player and game; the user, 11/13: "try to merge alerts for
   // the same player when possible": Castle reaching 2,500 points and 900 assists in the same minute was two cards).
-  function part(i, v) {
+  function part(i, v, was) {
     var label = i.label || i.stat;
     var need = i.need - v;
     var goal = Number(i.target).toLocaleString();
@@ -827,15 +846,16 @@
     return {
       i: i, v: v, need: need, label: label, reached: need <= 0,
       did: i.kind === "pass" ? "passes " + who + " (" + label + ")" : "reaches " + who,
-      left: need + " " + plural(need, label) + " from " + (i.kind === "pass" ? "passing " : "") + who,
-      icon: need <= 0 ? (i.kind === "pass" ? "🎉 PASSED" : "🎉 " + goal) : "🎯 " + need + " FROM " + (i.kind === "pass" ? "PASSING" : goal),
+      undone: need > 0 && was != null,
+      left: (need > 0 && was != null ? "taken back by a stat change (" + label + " tonight " + was + " → " + v + "): " : "") + need + " " + plural(need, label) + " from " + (i.kind === "pass" ? "passing " : "") + who,
+      icon: need <= 0 ? (i.kind === "pass" ? "🎉 PASSED" : "🎉 " + goal) : was != null ? "↩️ TAKEN BACK" : "🎯 " + need + " FROM " + (i.kind === "pass" ? "PASSING" : goal),
       back: board ? boardBack((i.scope === "franchise" ? "🏛️ " + i.team + " history" : "📜 All-time") + " · " + label, liveRows(board, i.stat, i.player), i.player, (Number(i.current) || 0) + v) : null,
       flag: i.publishable ? "verified" : "review" + (i.review && i.review[0] ? ": " + i.review[0] : ""),
     };
   }
   function playerCard(game, items, tag, scr) {
-    var parts = items.map(function (x) { return part(x.i, x.v); });
-    var done = parts.filter(function (x) { return x.reached; }), todo = parts.filter(function (x) { return !x.reached; }).sort(function (a, b) { return a.need - b.need; });
+    var parts = items.map(function (x) { return part(x.i, x.v, x.was); });
+    var done = parts.filter(function (x) { return x.reached; }), todo = parts.filter(function (x) { return !x.reached; }).sort(function (a, b) { return (b.undone ? 1 : 0) - (a.undone ? 1 : 0) || a.need - b.need; });
     var i0 = parts[0].i;
     // "reaches 2,500 points and 900 assists career": rungs of the same kind read as one phrase.
     var phrase = function (list) {
@@ -848,10 +868,10 @@
     var stat = [], seen = {};
     parts.forEach(function (x) { if (!seen[x.label]) { seen[x.label] = 1; stat.push([x.v, String(x.label).toUpperCase() + " TONIGHT"]); } });
     if (!done.length && todo.length === 1) stat.push([todo[0].need, "TO GO"]);
-    var lead = done[0] || todo[0];
+    var lead = todo[0] && todo[0].undone ? todo[0] : (done[0] || todo[0]);
     fire("cc-" + i0.espnId + "-" + game.id + "-watch", {
       type: "milestone", backHtml: (done.concat(todo).find(function (x) { return x.back; }) || {}).back || null,
-      icon: done.length > 1 ? "🎉 MILESTONES" : lead.icon,
+      icon: lead.undone ? lead.icon : done.length > 1 ? "🎉 MILESTONES" : lead.icon,
       text: text,
       statLine: typeof fmtAlertStatLine === "function" ? fmtAlertStatLine(stat) : "",
       sub: "Command Center · pre-game " + pct(lead.i.pTonight) + " · importance " + lead.i.importance + " · " + lead.flag,

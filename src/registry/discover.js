@@ -1,6 +1,7 @@
 import { nameKey, sameName } from "../notes/names.js";
 import { statLabel } from "../notes/stats.js";
 import { nextRound } from "../anticipate/cadence.js";
+import { todayPlayed } from "./track.js";
 
 /**
  * Milestones found from ESPN alone, for teams whose notes can't be read (or
@@ -17,7 +18,7 @@ import { nextRound } from "../anticipate/cadence.js";
 const STATS = ["pts", "fg3m", "reb", "ast", "stl", "blk", "gp", "dreb", "ftm", "fgm"];
 const GAMES = 3;
 
-export async function discoverMilestones({ team, espn, skip = [] }) {
+export async function discoverMilestones({ team, espn, skip = [], today = null }) {
   const out = [], problems = [];
   const teams = await espn.teams();
   if (!teams.ok) return { milestones: out, problems: [teams.error] };
@@ -28,6 +29,9 @@ export async function discoverMilestones({ team, espn, skip = [] }) {
   // "J. Tatum" in Boston's grid is "Jayson Tatum" here), same stat, same target.
   const inNotes = (p, stat, target) => skip.some((m) => m.stat === stat && m.target === target
     && (m.espnId ? String(m.espnId) === String(p.id) : sameName(m.player || "", p.name) || nameKey(m.player || "") === nameKey(p.name)));
+  // 0.72.2: once today's game is final ESPN adds it to these totals; the list counts from what he had entering today.
+  let played = { boxes: [], inEspn: null, delta: () => 0 };
+  if (today && espn.schedule) { try { played = await todayPlayed({ team, espn, schedule: await espn.schedule(id), today }); } catch (err) { problems.push(`today's game not checked: ${err.message}`); } }
   for (const p of roster.data.players) {
     const c = await espn.career(p.id);
     if (!c.ok) { problems.push(`${p.name}: ${c.error}`); continue; }
@@ -38,7 +42,8 @@ export async function discoverMilestones({ team, espn, skip = [] }) {
     const base = latest?.stats?.gp >= 3 ? latest.stats : car;
     const seasons = new Set(c.data.rows.map((r) => r.season)).size;
     for (const stat of STATS) {
-      const cur = car[stat];
+      const td = played.inEspn ? played.delta(p.id, stat) || 0 : 0;
+      const cur = car[stat] - td;
       if (!Number.isFinite(cur)) continue;
       const target = nextRound(stat, cur, { seasons });
       if (!target) continue;
@@ -49,7 +54,7 @@ export async function discoverMilestones({ team, espn, skip = [] }) {
       out.push({
         team, player: p.name, stat, label: statLabel(stat), kind: "round", scope: "career",
         current: cur, target, need, origin: "espn",
-        sources: [{ format: "espn", text: `ESPN career ${stat}: ${cur}` }],
+        sources: [{ format: "espn", text: `ESPN career ${stat}: ${cur}${td ? ` entering today (${car[stat]} with today's game)` : ""}` }],
         checks: ["from ESPN's career totals only (not in the team's notes); ESPN can differ from NBA.com by a few"],
         status: "review",
       });

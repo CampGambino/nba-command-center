@@ -2,6 +2,32 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.72.2 (2026-11-15): totals stay "entering today" after a matinee; foul trouble for regulars only; cards say when a mark is taken back
+
+The user (11/15, IND @ PHI, a matinee): NBA Live carded "Jaylen Brown (PHI) — reaches 2,000 assists career" with 2 assists tonight; Basketball Reference had him at 1,997 before the game, so he is at 1,999. The Watch List had LeBron James 11 assists from passing Jason Kidd, he had 11, and no card showed for it when NBA Live was opened afterwards. And a foul-trouble card for Josh Green (UTA), a reserve: "no need to send foul trouble alert for a player coming off the bench unless they are typically a starter or average at least 25.0 minutes per game". Also: "one thing the nba live should be checking is when stats are reduced mid-game".
+
+### What was wrong
+- Both PHI cards came from one fault. The tracker adds every finished game on or after the notes date to the notes' totals, which is right the morning after, and wrong for today's own game: the build that ran at 5 PM, after the matinee, added it. Brown's entering total became 1,999 (1,997 + tonight's 2) and NBA Live and the Watch List page then added tonight's box score again: "reached" at 1 more. James's 12,081 became 12,092, "reached in the 1 game(s) since the notes", so there was nothing left for tonight to reach and no card. The same build also moved "tonight" to the team's next game (pre-game 0%, next game 11/16).
+- It only shows on days with early games, when a build runs after a final. Results, records, Game Flow and storylines were not affected: those read through yesterday.
+- Foul trouble fired for anyone who had started once this season, or had 15 minutes tonight.
+
+### What changed
+- **Totals are "entering today's game" all day** (`src/registry/track.js`, `src/anticipate/watch.js`): with the Watch List's day given, today's game is never added, final or not; it stays tonight's game and stays out of the recent form.
+- **ESPN's side of the check** (`todayPlayed` in `src/registry/track.js`): ESPN adds a game to its career totals some time after the final. The tracker compares on what the player had entering today either way, and tells which side of that moment it is on from two of today's players (ESPN's season games played against the games in his log other than today's; `gameLogNow` in the ESPN client, a 10-minute copy). The ESPN-only round numbers (`src/registry/discover.js`) are taken back to entering today the same way.
+- **Bridge v8, foul trouble**: only for tonight's starters, players who have started half their games or more, and players averaging 25.0 minutes or more (3 games minimum for the last two). `flowstats.json` now carries minutes per game (`mpg`) for it. Foul-outs are unchanged.
+- **Bridge v8, a mark taken back**: a milestone or record card this page showed as reached, and which a stat change then undoes, now reads "↩️ TAKEN BACK … taken back by a stat change (assists tonight 3 → 2): 1 assist from 2,000…". Before, it went back to a countdown without a word while the game was live, and stayed up as reached if the change came at the final.
+
+### Tested
+- 746 checks here (7 new: today's finished game not added, with ESPN before and after it has the game; the one-team script without a day still adds it; today's game stays tonight's game; ESPN-only totals taken back only when ESPN has the game; the foul-trouble rule on five kinds of player; taken-back cards live, at the final, and on a page opened afterwards). 752 with the held 0.73 worker checks.
+- Live against ESPN at 6:45 PM ET with tonight's real PHI game final: Brown 1,997 and 3 to go, James 12,081 and 11 to go, both confirmed by ESPN (which had not yet added the game), tonight's game still IND @ PHI.
+- Minutes per game over the season's 188 Game Flow files: Josh Green 19.4 with 4 starts in 11, so no card under the new rule; 12 reserves at 25+ (Holiday, Pritchard, Wiggins…) still get one.
+- The pages test: all pages OK.
+
+### Unproven
+- ESPN having already added today's game is covered by the stand-in only; at 6:45 PM tonight it had not, so the real case hasn't been seen. If ESPN's game log and its career table ever update at different moments for the two players sampled, the check says "can't tell" and the totals are compared as they are.
+- "Taken back" covers the Command Center's own cards while the page stays open; a page loaded after the change simply shows the right count. NBA Live's own cards (its ladders, triple-double watch) are NBA Live's code and still need the same check there.
+- The bridge has run against the stand-in NBA Live only.
+
 ## 0.72.1 (2026-11-15): NBA Live: "not out for the 3rd" for players who did start it
 
 The user (11/15, LAL @ PHX): Matisse Thybulle and Miles Bridges both got "🔄 NOT OUT FOR THE 3RD… didn't start the 3rd quarter · out since Q3 6:53" while Game Flow showed each on the floor from the start of the 3rd until 6:53.

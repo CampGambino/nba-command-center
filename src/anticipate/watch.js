@@ -32,7 +32,7 @@ const STARTER_PLAY = 0.95;   // listed in tonight's starting five: very likely t
 const START_IF_LISTED = { Confirmed: 0.98, Expected: 0.85 };
 
 export async function buildWatch({ team, notesDate, milestones, espn, today, sims = 4000, nba = null }) {
-  const tracked = await trackMilestones({ team, notesDate, milestones, espn, nba });
+  const tracked = await trackMilestones({ team, notesDate, milestones, espn, nba, today });
   const warnings = [...tracked.warnings], problems = [...tracked.problems];
   let tonightGame = null;
   const result = (items) => ({ team, today, notesDate, tonightGame, items, games: tracked.games, warnings, problems });
@@ -43,8 +43,9 @@ export async function buildWatch({ team, notesDate, milestones, espn, today, sim
   if (!schedule.ok) { problems.push(`schedule unavailable: ${schedule.error}`); return result(tracked.milestones.map((m) => ({ ...base(m), note: "no schedule" }))); }
 
   const regular = schedule.data.games.filter((g) => g.seasonType === 2 && g.date);
-  const upcoming = regular.filter((g) => !g.final && g.date >= today).slice(0, HORIZON);
-  const played = regular.filter((g) => g.final).slice(-RECENT);
+  // 0.72.2: today's game stays "tonight" once it is final, and out of the form: the list is the pre-game view all day.
+  const upcoming = regular.filter((g) => g.date >= today && (!g.final || g.date === today)).slice(0, HORIZON);
+  const played = regular.filter((g) => g.final && g.date < today).slice(-RECENT);
   const tonight = upcoming[0]?.date === today ? upcoming[0] : null;
   if (tonight) tonightGame = { id: tonight.id, start: tonight.start, teams: tonight.teams, home: tonight.home, away: tonight.away };
 

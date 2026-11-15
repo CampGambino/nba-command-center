@@ -663,6 +663,47 @@ const more = {};
   }
 }
 
+// ---------- 0.72.2: a build after today's game is final still counts from "entering today" (the user, 11/15) ----------
+// IND @ PHI was a matinee; the 5 PM build added it to every PHI total, and NBA Live then added tonight's box score again:
+// Jaylen Brown "reached 2,000 assists" at 1,999, and LeBron James passing Jason Kidd was "reached since the notes" (no card).
+{
+  const line = (id, ast, min) => ({ id, team: "PHI", played: true, started: true, stats: { ast, min, pts: 10 } });
+  const make = (inEspn) => {
+    const extra = inEspn ? 1 : 0;
+    const car = { a: { ast: 1997 + 2 * extra, gp: 600 + extra }, b: { ast: 12081 + 11 * extra, gp: 1500 + extra } };
+    return {
+      teams: async () => ({ ok: true, warnings: [], data: { ids: { PHI: "20" } } }),
+      roster: async () => ({ ok: true, warnings: [], data: { players: [{ id: "a", name: "Jay Brown" }, { id: "b", name: "Lee James" }] } }),
+      schedule: async () => ({ ok: true, warnings: [], data: { games: [{ id: "g0", date: "2026-11-13", final: true, seasonType: 2 }, { id: "g1", date: "2026-11-15", final: true, seasonType: 2, start: "2026-11-15T18:00Z", teams: ["PHI", "IND"], home: "PHI", away: "IND" },
+        { id: "g2", date: "2026-11-17", final: false, seasonType: 2 }] } }),
+      box: async (id) => ({ ok: true, warnings: [], data: { final: true, players: id === "g1" ? [line("a", 2, 34), line("b", 11, 36)] : [line("a", 5, 30), line("b", 9, 33)] } }),
+      career: async (id) => ({ ok: true, stale: false, warnings: [], data: { rows: [{ season: "2025-26", teamId: "2", stats: { gp: 70, ast: 300 } }, { season: "2026-27", teamId: "20", stats: { gp: 1 + extra, ast: (id === "a" ? 5 : 9) + (id === "a" ? 2 : 11) * extra } }], career: car[id] } }),
+      gameLog: async () => ({ ok: true, warnings: [], data: { types: [{ name: "2026-27 Regular Season", playIn: false, games: [{ id: "g0", stats: { ast: 6, pts: 20 } }, ...(inEspn ? [{ id: "g1", stats: { ast: 4, pts: 18 } }] : [])] }] } }),
+      injuries: async () => ({ ok: true, warnings: [], data: { players: {} } }),
+    };
+  };
+  const ms = () => [
+    { team: "PHI", player: "Jay Brown", stat: "ast", label: "assists", kind: "round", scope: "career", current: 1997, target: 2000, need: 3, status: "ok", checks: [], sources: [] },
+    { team: "PHI", player: "Lee James", stat: "ast", label: "assists", kind: "pass", scope: "nba", current: 12081, target: 12092, need: 11, passing: { player: "Old Kidd", rank: 3 }, status: "ok", checks: [], sources: [] },
+  ];
+  for (const inEspn of [false, true]) {
+    const tr = await trackMilestones({ team: "PHI", notesDate: "2026-11-15", milestones: ms(), espn: make(inEspn), today: "2026-11-15" });
+    const [a, b] = tr.milestones.map((x) => x.tracking);
+    ok(a.current === 1997 && a.need === 3 && !a.reached && a.status === "confirmed" && b.current === 12081 && b.need === 11 && !b.reached && b.status === "confirmed",
+      `tracking 0.72.2: today's finished game is not added to the entering totals (ESPN ${inEspn ? "already has" : "hasn't yet added"} the game): 1,997 and 3 to go, confirmed`, JSON.stringify([a.current, a.need, a.status, a.notes, b.current, b.need, b.status]));
+  }
+  const old = await trackMilestones({ team: "PHI", notesDate: "2026-11-15", milestones: ms(), espn: make(false) });
+  ok(old.milestones[0].tracking.current === 1999 && old.milestones[1].tracking.reached, "tracking: without a day given (the one-team script), finished games on or after the notes date are still added");
+  const w = await buildWatch({ team: "PHI", notesDate: "2026-11-15", milestones: ms(), espn: make(true), today: "2026-11-15", sims: 300 });
+  ok(w.tonightGame?.id === "g1" && w.items[0].need === 3 && !w.items[0].reached && w.items[0].pTonight != null && w.items[1].need === 11 && !w.items[1].reached,
+    "watch 0.72.2: today's game stays tonight's game once it is final, and nothing counts as reached before it", JSON.stringify([w.tonightGame, w.items.map((i) => [i.need, i.reached, i.pTonight, i.note])]));
+  const d1 = await discoverMilestones({ team: "PHI", espn: make(true), today: "2026-11-15" });
+  const d0 = await discoverMilestones({ team: "PHI", espn: make(false), today: "2026-11-15" });
+  const br = (d) => d.milestones.find((m) => m.player === "Jay Brown" && m.stat === "ast");
+  ok(br(d1)?.current === 1997 && br(d1)?.need === 3 && br(d0)?.current === 1997 && br(d0)?.need === 3,
+    "discovery 0.72.2: ESPN's totals are taken back to entering today once ESPN has added today's game, and left alone before it has", JSON.stringify([br(d1), br(d0), d1.problems]));
+}
+
 // ---------- ESPN-only discovery never repeats a notes milestone (site showed "J. Tatum" and "Jayson Tatum") ----------
 {
   const fake = {
@@ -1916,6 +1957,35 @@ await articlesChecks(ok);
     ok(!t8.cards.get("cc-ret-53-g7-h2") && /^Sits Long \(GSW\) didn't start the 3rd quarter/.test(t8.cards.get("cc-ret-50-g7-h2")?.text || "")
       && !t9.cards.get("cc-ret-53-g8-h1") && /^Sits Long \(GSW\) hasn't come back in/.test(t9.cards.get("cc-ret-50-g8-h1")?.text || ""),
       "bridge v7 (0.72.1): a starter who opened the 3rd and then sat isn't carded \"didn't start the 3rd\"; one on his second rest isn't \"hasn't come back in\"; the real cases still are", [...t8.cards.keys(), ...t9.cards.keys()].join(" "));
+  }
+  // v8 (0.72.2; the user, 11/15: Josh Green, 4 starts in 11 games, carded for a 4th foul off the bench): foul trouble only
+  // for tonight's starters, players who start half their games or more, and players at 25.0 minutes a game or more.
+  {
+    flowData = { season: "2026-27", games: 12, quarters: [], halves: [], teamQuarters: [], fouls: {}, leads: {},
+      rotation: { "70": { name: "Usual Starter", team: "GSW", gp: 10, starts: 6, mpg: 24 }, "71": { name: "Big Minutes", team: "GSW", gp: 10, starts: 0, mpg: 26.3 }, "72": { name: "Spot Starter", team: "GSW", gp: 11, starts: 4, mpg: 21.5 } } };
+    const gA = { id: "gA", status: "live", period: 3, clock: "9:14", away: { tricode: "GS", score: 67, linescores: [] }, home: { tricode: "HOU", score: 67, linescores: [] }, plays: [],
+      boxscore: { away: [qp("70", { name: "Usual Starter", starter: false, pf: 4 }), qp("71", { name: "Big Minutes", starter: false, pf: 4 }), qp("72", { name: "Spot Starter", starter: false, pf: 4, min: 14 }),
+        qp("73", { name: "New Guy", starter: false, pf: 4, min: 18 }), qp("74", { name: "Starts Tonight", pf: 4 })], home: [] } };
+    const tA = run({ games: [gA], date: "20261110" }); await flush(); tA.ctx.runAlertChecks(); await flush();
+    const ft = (id) => !!tA.cards.get("cc-ft-" + id + "-gA");
+    ok(ft("70") && ft("71") && ft("74") && !ft("72") && !ft("73"),
+      "bridge v8 (0.72.2): foul trouble for tonight's starter, a usual starter off the bench and a 25-minute reserve; not for a spot starter (4 of 11) or a reserve with no history", [...tA.cards.keys()].join(" "));
+    flowData = null;
+    // A milestone and a record this page showed as reached, then undone by a stat change: the card says so, live and final.
+    const gB = { id: "gB", status: "live", away: { tricode: "LAL", score: 50 }, home: { tricode: "ATL", score: 48 }, boxscore: { away: [pl("1"), pl("30", { name: "Rec Man", ast: 5 })], home: [] } };
+    const tB = run({ games: [gB] }); await flush(); tB.ctx.runAlertChecks(); await flush();
+    const first = [tB.cards.get("cc-1-gB-watch")?.icon, tB.cards.get("cc-rec-30-ast-pass")?.icon];
+    gB.boxscore.away[0].pts = 9; gB.boxscore.away[1].ast = 2;
+    tB.ctx.runAlertChecks(); await flush();
+    const live = [tB.cards.get("cc-1-gB-watch"), tB.cards.get("cc-rec-30-ast-pass")];
+    gB.status = "final";
+    tB.ctx.runAlertChecks(); await flush();
+    const fin = [tB.cards.get("cc-1-gB-watch"), tB.cards.get("cc-rec-30-ast-pass")];
+    const tC = run({ games: [gB] }); await flush(); tC.ctx.runAlertChecks(); await flush();
+    ok(/^🎉/.test(first[0]) && /^🎉/.test(first[1]) && live[0].icon === "↩️ TAKEN BACK" && live[0].text === "P One (LAL) — taken back by a stat change (points tonight 12 → 9): 1 point from 1,000 points career"
+      && live[1].icon === "↩️ TAKEN BACK" && /1 assist from passing Old Passer.* · showed as reached earlier tonight; a stat change has taken it back$/.test(live[1].text)
+      && fin[0].icon === "↩️ TAKEN BACK" && fin[0].live === false && fin[1].icon === "↩️ TAKEN BACK" && !tC.cards.get("cc-1-gB-watch") && !tC.cards.get("cc-rec-30-ast-pass"),
+      "bridge v8 (0.72.2): a milestone and a record shown as reached, then undone by a stat change, say 'taken back' (live and after the final); a page opened afterwards shows neither", [first.join(" "), live[0] && live[0].text, live[1] && live[1].text, fin[0] && fin[0].icon].join(" | "));
   }
   flowData = null;
 }

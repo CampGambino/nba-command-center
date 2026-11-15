@@ -44,6 +44,49 @@ export function statFromLine(stat, line) {
 const CAREER_STATS = new Set(["gp", "gs", "pts", "reb", "oreb", "dreb", "ast", "stl", "blk", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "tov", "pf"]);
 
 /**
+ * Today's finished game(s) for a team, and whether ESPN's career totals already hold them (0.72.2).
+ *
+ * The Watch List counts from what a player had entering today's game. ESPN adds a game to its career totals some time
+ * after the final horn, so a build that runs after a matinee has to know which side of that moment it is on. Two of
+ * today's players settle it: ESPN's season games played against the games in his game log other than today's.
+ *
+ * @returns {Promise<{ boxes: object[], inEspn: boolean|null, delta: (playerId, stat) => number|null }>}
+ */
+export async function todayPlayed({ team, espn, schedule, today }) {
+  const out = { boxes: [], inEspn: null, delta: () => 0 };
+  if (!today || !schedule?.ok) return out;
+  const finals = schedule.data.games.filter((g) => g.date && g.date >= today && g.final && g.seasonType === 2);
+  for (const g of finals) { const b = await espn.box(g.id); if (b.ok && b.data.final) out.boxes.push({ id: String(g.id), box: b.data }); }
+  if (!out.boxes.length) return out;
+  out.delta = (playerId, stat) => {
+    let d = 0;
+    for (const { box } of out.boxes) { const v = statFromLine(stat, box.players.find((p) => p.id === playerId)); if (v === null) return null; d += v; }
+    return d;
+  };
+  if (!espn.career || !(espn.gameLogNow || espn.gameLog)) return out;
+  const ids = new Set(out.boxes.map((b) => b.id));
+  const season = Number(today.slice(0, 4)) + (Number(today.slice(5, 7)) >= 8 ? 1 : 0);
+  const mine = out.boxes.flatMap(({ box }) => box.players.filter((p) => p.team === team && p.played))
+    .sort((a, b) => (b.stats?.min ?? 0) - (a.stats?.min ?? 0));
+  const seen = new Set(), votes = [];
+  for (const p of mine) {
+    if (seen.has(p.id) || votes.length >= 2) continue;
+    seen.add(p.id);
+    const [c, log] = await Promise.all([espn.career(p.id), (espn.gameLogNow || espn.gameLog)(p.id, season)]);
+    if (!c.ok || !log.ok || !c.data.rows.length) continue;
+    const latest = c.data.rows[c.data.rows.length - 1].season;
+    const gp = c.data.rows.filter((r) => r.season === latest).reduce((a, r) => a + (r.stats.gp ?? 0), 0);
+    const reg = log.data.types.filter((t) => /regular season/i.test(t.name) && !t.playIn).flatMap((t) => t.games);
+    if (!reg.length && gp > 1) continue;                       // an empty log says nothing
+    const earlier = reg.filter((g) => !ids.has(String(g.id))).length;
+    const todays = out.boxes.filter(({ box }) => box.players.some((x) => x.id === p.id && x.played)).length;
+    if (gp === earlier + todays) votes.push(true); else if (gp === earlier) votes.push(false);
+  }
+  out.inEspn = votes.length && votes.every((v) => v === votes[0]) ? votes[0] : null;
+  return out;
+}
+
+/**
  * @param {object} p
  * @param {string} p.team        our tricode (the notes' team)
  * @param {string} p.notesDate   YYYY-MM-DD the notes were written for
@@ -51,7 +94,7 @@ const CAREER_STATS = new Set(["gp", "gs", "pts", "reb", "oreb", "dreb", "ast", "
  * @param {object} p.espn        createEspn(...) or a test double with the same methods
  * @returns {Promise<{ milestones, games, warnings, problems }>}
  */
-export async function trackMilestones({ team, notesDate, milestones, espn, nba = null }) {
+export async function trackMilestones({ team, notesDate, milestones, espn, nba = null, today = null }) {
   const warnings = [], problems = [];
   const done = (status, note) => ({
     milestones: milestones.map((m) => ({ ...m, tracking: { status, notes: [note] } })),
@@ -72,8 +115,14 @@ export async function trackMilestones({ team, notesDate, milestones, espn, nba =
 
   // Games after the notes were written: regular season, on/after the notes date, finished.
   // Regular season only (type 2): preseason (1), playoffs (3) and play-in (5) don't count, as on ESPN's own season rows.
-  const since = schedule.data.games.filter((g) => g.date && g.date >= notesDate && g.final && g.seasonType === 2);
-  const pending = schedule.data.games.filter((g) => g.date && g.date >= notesDate && !g.final && /IN_PROGRESS|HALFTIME|END_PERIOD/.test(g.state || ""));
+  // 0.72.2: with `today` (the Watch List's day), today's own game is never added, final or not: the list's totals are
+  // "entering today's game" all day. The 5 PM build on 11/15 ran after IND @ PHI (a matinee) and added it; NBA Live and
+  // the page then added tonight's box score again (Jaylen Brown "reaches 2,000 assists" at 1,999), and LeBron James's
+  // pass of Jason Kidd became "reached in the 1 game(s) since the notes", so no card showed for it.
+  const before = (g) => !today || g.date < today;
+  const since = schedule.data.games.filter((g) => g.date && g.date >= notesDate && g.final && g.seasonType === 2 && before(g));
+  const pending = schedule.data.games.filter((g) => g.date && g.date >= notesDate && !g.final && /IN_PROGRESS|HALFTIME|END_PERIOD/.test(g.state || "") && before(g));
+  const played = await todayPlayed({ team, espn, schedule, today });
   const boxes = [];
   let boxesComplete = true;
   for (const g of since) {
@@ -211,6 +260,12 @@ export async function trackMilestones({ team, notesDate, milestones, espn, nba =
       espnValue = c.data.career?.[m.stat] ?? null;
     }
     if (espnValue == null) { t.status = "partial"; t.notes.push(`ESPN career data has no ${m.stat}`); continue; }
+    // Today's finished game may already be in ESPN's total: compare on what he had entering today.
+    const td = played.boxes.length ? played.delta(player.id, m.stat) : 0;
+    if (td > 0) {
+      const inEspn = espnValue - td === t.current ? true : espnValue === t.current ? false : played.inEspn;
+      if (inEspn) { t.notes.push(`ESPN's total (${espnValue}) already has today's game (${td}); entering today it was ${espnValue - td}`); espnValue -= td; }
+    }
     t.espn = { value: espnValue, diff: espnValue - t.current, stale: c.stale };
     // Notes that were never updated this season: the notes' figure equals ESPN's total
     // through last season exactly (Boston's second milestone grid, 2026-11-10: 28 of 29
@@ -220,7 +275,8 @@ export async function trackMilestones({ team, notesDate, milestones, espn, nba =
       const seasons = c.data.rows.map((r) => r.season).filter(Boolean);
       const latest = seasons.length ? seasons[seasons.length - 1] : null;
       const rowsNow = c.data.rows.filter((r) => r.season === latest && (scope !== "franchise" || r.teamId === espnTeam));
-      const seasonNow = rowsNow.reduce((a, r) => a + (r.stats[m.stat] ?? 0), 0);
+      // (espnValue is already without today's game when ESPN has it; the season rows then lose it too)
+      const seasonNow = rowsNow.reduce((a, r) => a + (r.stats[m.stat] ?? 0), 0) - (td > 0 && played.inEspn ? td : 0);
       if (latest && seasonNow > 0 && espnValue - seasonNow === m.current) {
         t.corrected = { from: t.current, to: espnValue, season: latest, added: seasonNow };
         t.notes.push(`the notes' total (${m.current}) is through last season; with ${latest}'s ${seasonNow} it is ${espnValue}, matching ESPN`);

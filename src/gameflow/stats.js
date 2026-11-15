@@ -64,7 +64,7 @@ export function gameFacts(row, c, lite) {
     const pp = p.ptsByPeriod || {};
     return { id: String(p.id), name: p.name, team: tri[p.side], opp: tri[1 - p.side], starter: !!p.starter,
       q: [1, 2, 3, 4].map((k) => pp[k] || 0), out1, back, in1, out3, full1, open3, q1n: q1.length,
-      lastOut: st.length ? st[st.length - 1].et : null, min: Math.round(p.calcMin || 0), pts: p.boxPts || 0,
+      lastOut: st.length ? st[st.length - 1].et : null, min: Math.round(p.calcMin || 0), mins: p.calcMin || 0, pts: p.boxPts || 0,
       trouble: !!p.troubleFrom, fouledOut: !!p.fouledOut };
   });
   // Biggest lead each side held, from the score flow (home minus away), and who won.
@@ -93,8 +93,8 @@ export function flowStats(entries, lite = null) {
         early.push({ id: p.id, name: p.name, team: p.team, opp: p.opp, out: p.lastOut, min: p.min, pts: p.pts, ...at });
       p.q.forEach((pts, k) => { if (pts >= 10) quarters.push({ pts, id: p.id, name: p.name, team: p.team, opp: p.opp, q: k + 1, ...at }); });
       [[0, 1], [2, 3]].forEach(([a, b], h) => { const pts = p.q[a] + p.q[b]; if (pts >= 15) halves.push({ pts, id: p.id, name: p.name, team: p.team, opp: p.opp, h: h + 1, ...at }); });
-      const R = rot[p.id] || (rot[p.id] = { name: p.name, team: p.team, gp: 0, starts: 0, full1: 0, open3: 0, _o1: [], _b: [], _i1: [], _o3: [] });
-      R.team = p.team; R.gp++;
+      const R = rot[p.id] || (rot[p.id] = { name: p.name, team: p.team, gp: 0, starts: 0, full1: 0, open3: 0, _min: 0, _o1: [], _b: [], _i1: [], _o3: [] });
+      R.team = p.team; R.gp++; R._min += p.mins || 0;
       if (p.starter) R.starts++;
       if (p.full1) R.full1++;
       if (p.open3) R.open3++;
@@ -129,7 +129,8 @@ export function flowStats(entries, lite = null) {
   const top = (xs) => xs.sort((a, b) => b.pts - a.pts || String(a.date).localeCompare(String(b.date))).slice(0, TOP_N);
   const rotation = {};
   for (const [id, R] of Object.entries(rot)) {
-    rotation[id] = { name: R.name, team: R.team, gp: R.gp, starts: R.starts, full1: R.full1, open3: R.open3,
+    // mpg (0.72.2): the bridge's foul-trouble card is for starters and for 25.0 minutes a game or more.
+    rotation[id] = { name: R.name, team: R.team, gp: R.gp, starts: R.starts, mpg: R.gp ? Math.round(R._min / R.gp * 10) / 10 : 0, full1: R.full1, open3: R.open3,
       out1: median(R._o1), back: median(R._b), in1: median(R._i1), out3: median(R._o3),
       n: { out1: R._o1.length, back: R._b.length, in1: R._i1.length, out3: R._o3.length } };
   }
