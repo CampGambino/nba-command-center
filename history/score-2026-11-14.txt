@@ -1,0 +1,40 @@
+HIT   89%  MIN Jaden McDaniels: 2000 field goals (needed 5, got 7)
+HIT   84%  NOP Saddiq Bey: 5600 points (needed 11, got 16)
+miss  79%  CHI Josh Giddey: 2300 assists (needed 6, got 5)
+HIT   78%  CHI Norman Powell: 1100 assists (needed 1, got 3)
+HIT   77%  NOP Saddiq Bey: 1000 free throws (needed 2, got 6)
+miss  73%  BKN Julius Randle: 7100 rebounds (needed 5, got 4)
+miss  67%  BKN Keon Ellis: 500 rebounds (needed 2, got 0)
+miss  65%  MIN Jaylen Clark: 200 rebounds (needed 2, got 0)
+miss  62%  CHI Leonard Miller: 250 rebounds (needed 5, got 3)
+HIT   55%  CHI Matas Buzelis: 2100 points (needed 14, got 18)
+HIT   47%  MEM Cedric Coward: 1000 points (needed 15, got 23)
+HIT   44%  BKN Egor Demin: 600 points (needed 11, got 11)
+miss  42%  DET Taurean Prince: 6000 points (needed 12, got 2)
+HIT   42%  BKN Danny Wolf: 200 field goals (needed 4, got 5)
+miss  41%  MIN Cody Williams: 200 assists (needed 4, got 0)
+miss  36%  MIN Jaylen Clark: 500 points (needed 8, got 0)
+HIT   36%  CLE Jaylon Tyson: 300 defensive rebounds (needed 4, got 4)
+miss  32%  BKN Danny Wolf: 100 free throws (needed 4, got 0)
+HIT   28%  MEM Cam Spencer: 500 assists (needed 8, got 8)
+miss  28%  MIN Bones Hyland: 2500 points (needed 16, got 12)
+miss  19%  BKN Drake Powell: 100 assists (needed 3, got 0)
+miss  16%  BKN Day'Ron Sharpe: pass Isaiah Hartenstein (needed 6, got 5)
+miss  15%  NOP Jeremiah Fears: 1400 points (needed 30, got 13)
+miss  15%  BKN Josh Minott: 50 blocks (needed 2, got 0)
+miss  13%  CHI Isaac Okoro: 400 3-pointers (needed 3, got 0)
+miss  10%  NOP Saddiq Bey: 4500 field goal attempts (needed 18, got 15)
+miss  10%  BKN Egor Demin: 200 field goals (needed 7, got 3)
+miss   9%  DET Ronald Holland II: 200 assists (needed 4, got 3)
+miss   9%  MIN Terrence Shannon Jr.: 500 points (needed 26, got 14)
+miss   8%  NOP AJ Johnson: 400 points (needed 13, got 0)
+HIT    7%  CLE Mario Hezonja: 900 field goals (needed 6, got 9)
+HIT    0%  BKN Day'Ron Sharpe: 700 offensive rebounds (needed 9, got 9)
+
+394 calls scored, Brier 0.019 (lower is better; always guessing 50% scores 0.250)
+  0-5%     n=363  predicted 0%  happened 0%
+  5-25%    n= 11  predicted 12%  happened 9%
+  25-50%   n= 10  predicted 38%  happened 50%
+  50-75%   n=  5  predicted 64%  happened 20%
+  75-95%   n=  5  predicted 81%  happened 80%
+calls given 5%+: 31, happened 11, expected 12.3, Brier 0.203
