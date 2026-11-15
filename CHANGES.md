@@ -2,6 +2,26 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.72.1 (2026-11-15): NBA Live: "not out for the 3rd" for players who did start it
+
+The user (11/15, LAL @ PHX): Matisse Thybulle and Miles Bridges both got "🔄 NOT OUT FOR THE 3RD… didn't start the 3rd quarter · out since Q3 6:53" while Game Flow showed each on the floor from the start of the 3rd until 6:53.
+
+### What was wrong
+- The bridge's rule was "a starter who is off the floor at some moment between 0:30 and 6:00 into the 3rd". Both opened the 3rd and were substituted out at 6:53 (5:07 in): inside that window, so the card fired the moment they sat, and its own "out since Q3 6:53" contradicted it. ESPN's play-by-play for the game has it right (Bridges enters at Q3 12:00; both leave at 6:53).
+- The same slip was in "still on the bench": a starter who had already come back and was on a second rest past his usual return time would be carded "hasn't come back in".
+
+### What changed (bridge v7)
+- "Not out for the 3rd" needs the play-by-play to have reached the 3rd and to show nothing of him in it: no play of his and no substitution in or out. It now starts 1:00 into the quarter (was 0:30), to give the 12:00 substitutions time to arrive.
+- "Still on the bench" is only for a starter who hasn't been back since he first sat.
+- NBA Live picks the new bridge up the next time its page is loaded or refreshed.
+
+### Tested
+- 739 checks (new: a starter who opened the 3rd and sat at 6:53: no card; one never seen in the 3rd: card; a starter on his second rest in the 2nd: no card; one who never came back: card). The earlier "not out for the 3rd" and "back in" checks still pass.
+- Tonight's real play-by-play (ESPN 401909986), with NBA Live's own way of working out who's on the floor: both players on at Q3 9:15 and 8:39, off from 6:53.
+
+### Unproven
+- Run against the stand-in NBA Live only; the next real case is the test.
+
 ## 0.72.0 (2026-11-15): the full diagnostic: silent failures, three wrong-data bugs, the build's blind spots
 
 The user (11/15): "do a full diagnostic of the program. check for redundancies, endless loops, possible errors, bottlenecks… find anything that could break the program and see if we could strengthen the current approach."

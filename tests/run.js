@@ -1890,7 +1890,7 @@ await articlesChecks(ok);
   ok(c6("cc-blown-g5-GSW") && c6("cc-blown-g5-GSW").text === "GSW lost a 20-point lead to HOU · their 3rd lost lead of 15+ this season; HOU's 2nd comeback from 15+ down" && c6("cc-fo-61-g5") && /fouled out · his first foul-out this season/.test(c6("cc-fo-61-g5").text),
     "bridge v5: at the final, a 15-point lead lost (from the biggest lead seen), and a foul-out", [c6("cc-blown-g5-GSW"), c6("cc-fo-61-g5")].map((c) => c && c.text).join(" | "));
   // Not out for the 3rd: a starter who opens the 3rd in 10 of 10 starts, 1:00 into it.
-  const g6 = { id: "g6", status: "live", period: 3, clock: "11:00", away: { tricode: "GS", score: 50, linescores: [] }, home: { tricode: "HOU", score: 52, linescores: [] }, plays: [],
+  const g6 = { id: "g6", status: "live", period: 3, clock: "11:00", away: { tricode: "GS", score: 50, linescores: [] }, home: { tricode: "HOU", score: 52, linescores: [] }, plays: [{ badge: "fg", playerId: "40", qtr: "Q3", clock: "11:40" }],
     boxscore: { away: [qp("53", { name: "Half Out", min: 18 })], home: [] } };
   const t7 = run({ games: [g6], date: "20261110", extra: { computeOnCourt: () => ({ away: new Set(), home: new Set() }) } }); await flush(); t7.ctx.runAlertChecks(); await flush();
   ok(t7.cards.get("cc-ret-53-g6-h2") && /didn't start the 3rd quarter · he opened the 3rd in 10 of 10 starts this season/.test(t7.cards.get("cc-ret-53-g6-h2").text) && [...t7.cards.keys()].every((k) => /^cc-(ret|ft|fo|sq|sh|tq|lead|blown)-/.test(k)),
@@ -1900,6 +1900,23 @@ await articlesChecks(ok);
   t7.ctx.computeOnCourt = () => ({ away: new Set(), home: new Set() }); g6.clock = "9:00"; t7.ctx.runAlertChecks(); await flush();
   ok(back7 && back7.ended && /^Half Out \(GSW\) is back in, Q3 9:30 · didn't start the 3rd quarter/.test(back7.text) && t7.cards.get("cc-ret-53-g6-h2").ended,
     "bridge 0.61: a rotation card ends when he checks back in, and doesn't come back", back7 && back7.text);
+  // v7 (the user, 11/15: LAL @ PHX): a starter who opened the 3rd and sat at 6:53 isn't "not out for the 3rd"; one the
+  // play-by-play hasn't shown in the 3rd at all still is; and a starter on his second rest isn't "still on the bench".
+  {
+    const g7 = { id: "g7", status: "live", period: 3, clock: "6:50", away: { tricode: "GS", score: 63, linescores: [] }, home: { tricode: "HOU", score: 81, linescores: [] },
+      plays: [{ badge: "sub", playerId: "56", playerOutId: "53", qtr: "Q3", clock: "6:53" }, { badge: "fg", playerId: "40", qtr: "Q3", clock: "9:15" }, { badge: "sub", playerId: "53", playerOutId: "56", qtr: "Q3", clock: "12:00" }],
+      boxscore: { away: [qp("53", { name: "Half Out", min: 20 }), qp("50", { name: "Sits Long", min: 16 })], home: [] } };
+    flowData = { season: "2026-27", games: 12, quarters: [], halves: [], teamQuarters: [], fouls: {}, leads: {},
+      rotation: { "53": { name: "Half Out", team: "GSW", gp: 10, starts: 10, open3: 10, back: 720, n: { back: 9 } }, "50": { name: "Sits Long", team: "GSW", gp: 10, starts: 10, open3: 10, back: 720, n: { back: 9 } } } };
+    const t8 = run({ games: [g7], date: "20261110", extra: { computeOnCourt: () => ({ away: new Set(), home: new Set() }) } }); await flush(); t8.ctx.runAlertChecks(); await flush();
+    const g8 = { id: "g8", status: "live", period: 2, clock: "4:00", away: { tricode: "GS", score: 40, linescores: [] }, home: { tricode: "HOU", score: 41, linescores: [] },
+      plays: [{ badge: "sub", playerId: "56", playerOutId: "53", qtr: "Q2", clock: "5:00" }, { badge: "sub", playerId: "53", playerOutId: "56", qtr: "Q2", clock: "9:00" }, { badge: "sub", playerId: "56", playerOutId: "53", qtr: "Q1", clock: "4:00" }, { badge: "sub", playerId: "57", playerOutId: "50", qtr: "Q1", clock: "4:00" }],
+      boxscore: { away: [qp("53", { name: "Half Out", min: 14 }), qp("50", { name: "Sits Long", min: 8 })], home: [] } };
+    const t9 = run({ games: [g8], date: "20261110", extra: { computeOnCourt: () => ({ away: new Set(), home: new Set() }) } }); await flush(); t9.ctx.runAlertChecks(); await flush();
+    ok(!t8.cards.get("cc-ret-53-g7-h2") && /^Sits Long \(GSW\) didn't start the 3rd quarter/.test(t8.cards.get("cc-ret-50-g7-h2")?.text || "")
+      && !t9.cards.get("cc-ret-53-g8-h1") && /^Sits Long \(GSW\) hasn't come back in/.test(t9.cards.get("cc-ret-50-g8-h1")?.text || ""),
+      "bridge v7 (0.72.1): a starter who opened the 3rd and then sat isn't carded \"didn't start the 3rd\"; one on his second rest isn't \"hasn't come back in\"; the real cases still are", [...t8.cards.keys(), ...t9.cards.keys()].join(" "));
+  }
   flowData = null;
 }
 

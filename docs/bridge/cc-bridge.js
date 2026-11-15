@@ -1,5 +1,5 @@
 /*
- * NBA Command Center -> NBA Live bridge.                                  version 6
+ * NBA Command Center -> NBA Live bridge.                                  version 7
  *
  * Add ONE line to NBA Live, just before </body>:
  *   <script src="https://campgambino.github.io/nba-command-center/bridge/cc-bridge.js"></script>
@@ -35,6 +35,9 @@
  *       a 15-point lead with the season's record of leads lost and comebacks, and a 15-point lead lost;
  *       (0.59.1) a regular reserve 3+ minutes past his usual first check-in, and before tip-off a "foul watch" card for
  *       starters in early foul trouble in half their games or more.
+ *     - (v7, 0.72.1; the user, 11/15: Thybulle and Miles Bridges opened the 3rd, sat at 6:53 and were carded "didn't
+ *       start the 3rd") "not out for the 3rd" only for a starter the play-by-play hasn't shown on the floor in the 3rd at
+ *       all, and "still on the bench" only for one who hasn't been back since he first sat.
  *     - (v6, 0.71) a defense's first 30-point game allowed this season, when it's the only team (or one of three) that
  *       hadn't allowed one (the user, 11/15: the Celtics); the same for 40 when two teams or fewer hadn't. From
  *       tonight.json's defense counts.
@@ -48,7 +51,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 6;
+  var VERSION = 7;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -591,6 +594,19 @@
     for (var k = 0; k < P.length; k++) if (P[k] && P[k].badge === "sub" && String(P[k].playerOutId) === String(id)) return P[k];
     return null;
   }
+  // v7: has the play-by-play shown him on the floor in that period (a play of his, or a substitution in or out)?
+  function onFloorIn(game, id, qtr) {
+    var P = game.plays || [];
+    for (var k = 0; k < P.length; k++) if (P[k] && P[k].qtr === qtr && (String(P[k].playerId) === String(id) || String(P[k].playerOutId) === String(id))) return true;
+    return false;
+  }
+  // Has he come back in at any point (a substitution with him entering)?
+  function cameBackIn(game, id) {
+    var P = game.plays || [];
+    for (var k = 0; k < P.length; k++) if (P[k] && P[k].badge === "sub" && String(P[k].playerId) === String(id)) return true;
+    return false;
+  }
+  function feedReached(game, qtr) { var P = game.plays || []; for (var k = 0; k < P.length; k++) if (P[k] && P[k].qtr === qtr) return true; return false; }
   function flowChecks(game, sides, box, tag, scr) {
     var F0 = state.flow;
     if (!F0) return;
@@ -697,12 +713,15 @@
         var name = p.name || ("#" + p.id), pf = Number(p.pf) || 0;
         var why = pf > Math.min(per, 4) ? " (" + pf + " fouls)" : "";
         var out = lastOut(game, p.id), outText = out ? " · out since " + (out.qtr || "") + " " + (out.clock || "") : "";
-        if (per <= 2 && R.back != null && R.n && R.n.back >= 5 && R.n.back >= 0.6 * R.starts && now >= R.back + LATE_RETURN && now < 2 * QTR) {
+        // v7: not for a starter who already came back and is on a second rest.
+        if (per <= 2 && R.back != null && R.n && R.n.back >= 5 && R.n.back >= 0.6 * R.starts && now >= R.back + LATE_RETURN && now < 2 * QTR && !cameBackIn(game, p.id)) {
           fire("cc-ret-" + p.id + "-" + game.id + "-h1", base({ icon: "🔄 STILL ON THE BENCH",
             text: name + " (" + team + ") hasn't come back in" + why + " · usually returns " + (R.back % QTR === 0 ? clockAt(R.back) : "by " + clockAt(R.back)) + " (median of " + R.n.back + " starts)" + outText,
             statLine: stl([[Math.round(p.min || 0), "MIN"], [p.pts || 0, "PTS"]]), sub: "Command Center · usual rotation from the Game Flow files · worth a look for an injury" }));
         }
-        if (per === 3 && now >= 2 * QTR + 30 && now < 2 * QTR + 360 && (R.open3 || 0) >= 0.8 * R.starts && R.starts >= 5) {
+        // v7: only if the play-by-play has reached the 3rd and hasn't shown him on the floor in it. Before, a starter who
+        // opened the 3rd and sat inside its first six minutes got this card ("didn't start the 3rd · out since Q3 6:53").
+        if (per === 3 && now >= 2 * QTR + 60 && now < 2 * QTR + 360 && (R.open3 || 0) >= 0.8 * R.starts && R.starts >= 5 && feedReached(game, "Q3") && !onFloorIn(game, p.id, "Q3")) {
           fire("cc-ret-" + p.id + "-" + game.id + "-h2", base({ icon: "🔄 NOT OUT FOR THE 3RD",
             text: name + " (" + team + ") didn't start the 3rd quarter" + why + " · he opened the 3rd in " + R.open3 + " of " + R.starts + " starts this season" + outText,
             statLine: stl([[Math.round(p.min || 0), "MIN"], [p.pts || 0, "PTS"]]), sub: "Command Center · usual rotation from the Game Flow files · worth a look for an injury" }));
