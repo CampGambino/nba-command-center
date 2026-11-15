@@ -10,6 +10,7 @@ import { TEAM_FEEDS, teamFeedGroup, findLiveBlog, parseLiveBlog, LIVE_FEED } fro
 import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey, tagOf as articleTag } from "../cloudflare/articles-worker.js";
 
 import { handleVotes } from "../cloudflare/votes.js";
+import { handleHeadlines } from "../cloudflare/headlines.js";
 import { pdfText, statusIn, slotUrls, latestReport, statusOnReport } from "../cloudflare/injurypdf.js";
 import zlibMod from "node:zlib";
 export async function articlesChecks(ok) {
@@ -407,6 +408,18 @@ export async function articlesChecks(ok) {
     const other = await call("GET", "/review");
     ok(denied.status === 403 && up.status === 200 && up.headers.get("Access-Control-Allow-Origin") === "https://campgambino.github.io" && list.votes.length === 1 && list.votes[0].v === -1 && bad.status === 400 && other === null,
       "votes (0.67): a vote needs the key; the latest vote per line is kept, 0 takes it back; anyone can read; other paths pass through", JSON.stringify(list));
+  }
+  // ---------- 0.70: headlines for the briefing's "in the news" boost ----------
+  {
+    const now = Date.parse("2026-11-15T18:00:00Z");
+    const log = [{ at: now - 3600e3, published: now - 2 * 3600e3, src: "athletic", title: "Jared McCain is thriving in OKC", url: "https://x", reason: "posted by you", byline: "A" },
+      { at: now - 100 * 3600e3, src: "espn", title: "Old story", url: "https://y" }, { at: now - 60e3, src: "espn", title: "" }];
+    const env = { STATE: { get: async (k) => (k === "log" ? log : null) } };
+    const r = await handleHeadlines(new Request("https://w.example/headlines"), env, new URL("https://w.example/headlines"), now);
+    const j = await r.json();
+    const other = await handleHeadlines(new Request("https://w.example/votes"), env, new URL("https://w.example/votes"), now);
+    ok(j.headlines.length === 1 && j.headlines[0].title === "Jared McCain is thriving in OKC" && !("reason" in j.headlines[0]) && !("url" in j.headlines[0]) && other === null,
+      "headlines (0.70): the last 72 hours' titles only (no review-page reasons or links); other paths pass through", JSON.stringify(j));
   }
   // ---------- 0.68: the league's latest injury report, read by the Worker (11/14: Porter Jr. Out at 7:15 PM) ----------
   {

@@ -29,6 +29,7 @@
 import { lineupCheck } from "./lineups.js";
 import { digestCheck } from "./digest.js";
 import { handleVotes, SITE } from "./votes.js";
+import { handleHeadlines } from "./headlines.js";
 export const ARTICLES_CRON = "*/5 * * * *";
 
 const FEEDS = [
@@ -416,6 +417,9 @@ export default {
     // Briefing votes (0.67): /votes is public; /vote needs the key (checked inside).
     const voted = await handleVotes(req, env, url, key);
     if (voted) return voted;
+    // Headlines (0.70): the last 72 hours of headlines, public, for the briefing's "in the news" boost.
+    const heads = await handleHeadlines(req, env, url);
+    if (heads) return heads;
     if (url.searchParams.get("k") !== key) return new Response("Not found", { status: 404 });
     if (url.pathname === "/review") return html(page(await load(env, "state", {}), await load(env, "log", []), await load(env, "rules", { muteBylines: [], muteWords: [], allowBylines: [] }), key, await load(env, "labels", [])));
     if (url.pathname === "/act") return act(env, url, key);

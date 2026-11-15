@@ -375,7 +375,9 @@ export function injuryStatus(injuries, today) {
  * Prep stats (0.66, src/anticipate/prep.js → docs/data/prep.json): season vs career, spans (since a teammate went
  * out, over a winning streak), player streak watch, vs tonight's opponent, through N games.
  */
-const PREP_KINDS = new Set(["season", "span", "pstreak", "vsopp", "pace"]);
+// 0.70 (src/anticipate/seasonlong.js): trade and starter/bench splits, lineups, record turns and "since Christmas",
+// who has beaten the best teams, month ratings and totals, rookies.
+const PREP_KINDS = new Set(["season", "span", "pstreak", "vsopp", "pace", "trade", "role", "lineup", "turn", "beaten", "month", "monthp", "rookie"]);
 function prepStoryLines(prep, teams, games, today) {
   if (!prep || !Array.isArray(prep.lines) || (prep.today && today && prep.today !== today)) return [];
   const opp = new Map();
@@ -408,7 +410,7 @@ export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries =
 }
 
 // At most this many of a kind in one game's card.
-const PER_GAME = { injury: 2, history: 2, context: 1, matchup: 2, tv: 2, rest: 2, form: 2, foul: 2, season: 2, span: 2, pstreak: 2, vsopp: 1, pace: 1 };
+const PER_GAME = { injury: 2, history: 2, context: 1, matchup: 2, tv: 2, rest: 2, form: 2, foul: 2, season: 2, span: 2, pstreak: 2, vsopp: 1, pace: 1, trade: 1, role: 1, lineup: 1, turn: 1, beaten: 1, month: 1, monthp: 1, rookie: 1 };
 export function tonightStorylines(args) {
   const maxLines = args.maxLines ?? MAX_LINES;
   const { games, all } = tonightCandidates(args);

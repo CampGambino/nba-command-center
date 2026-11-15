@@ -340,7 +340,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
   const pg = playerGames(rows);
   const dates = [...new Set(rows.filter((g) => g.pl).map((g) => g.d))].sort().slice(-7);
   // Career highs before this season (the 2016-17 on back-fill, and the NBA Guide's yearly points highs).
-  let careers = null, logsData = null, seasonsData = null, seasonTag = null, keyFn = (n) => n;
+  let careers = null, logsData = null, seasonsData = null, seasonTag = null, keyFn = (n) => n, awardsData = null;
   try {
     const zlib = await import("node:zlib");
     const { strictKey } = await import("../src/records/guide.js");
@@ -361,10 +361,23 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const w = fs.existsSync(wf) ? JSON.parse(fs.readFileSync(wf, "utf8")) : { games: [] };
     const slate = (w.today === today ? w.games : []).map((g) => ({ away: g.awayTri, home: g.homeTri }));
     const prep = prepLines({ pg, rows, logs: logsData, seasons: seasonsData, names: store.names || {}, nameKey: keyFn, season: seasonTag, games: slate });
+    // Season-long and morning-after lines (0.70): trades, starter/bench, vs MVP season, lineups, record turns, best
+    // since Christmas, who has beaten the best teams, month ratings and totals, rookies, last night's unique lines.
+    let lastNight = [];
+    try {
+      const { seasonLongLines } = await import("../src/anticipate/seasonlong.js");
+      const hf2 = path.join(root, "src", "data", `nba-history-${seasonTag}.json`);
+      awardsData = fs.existsSync(hf2) ? JSON.parse(fs.readFileSync(hf2, "utf8")).awards : null;
+      const sl = seasonLongLines({ pg, rows, logs: logsData, seasons: seasonsData, awards: awardsData, names: store.names || {}, nameKey: keyFn, season: seasonTag, slate, today });
+      const yday = new Date(Date.parse(`${today}T12:00:00Z`) - 864e5).toISOString().slice(0, 10);
+      lastNight = sl.lines.filter((l) => l.kind === "unique" && l.date >= yday).sort((a, b) => b.score - a.score);
+      prep.lines.push(...sl.lines.filter((l) => l.kind !== "unique"));
+      prep.errors.push(...sl.errors);
+    } catch (e) { prep.errors.push(`season-long: ${e.message}`); }
     const byKind = {};
     for (const l of prep.lines) byKind[l.kind] = (byKind[l.kind] || 0) + 1;
     console.log(`prep stats: ${prep.lines.length} lines (${Object.entries(byKind).map(([k, n]) => `${n} ${k}`).join(", ")})${prep.errors.length ? `; errors: ${prep.errors.join("; ")}` : ""}`);
-    fs.writeFileSync(path.join(root, "docs", "data", "prep.json"), JSON.stringify({ generatedAt: out.generatedAt, today, through, lines: prep.lines, stars: prep.stars }));
+    fs.writeFileSync(path.join(root, "docs", "data", "prep.json"), JSON.stringify({ generatedAt: out.generatedAt, today, through, lines: prep.lines, stars: prep.stars, lastNight }));
   } catch (e) { console.error(`prep stats not written: ${e.message}`); }
   // "Did we see it coming?" (0.67): the stats other accounts posted, against what we'd have said that morning.
   try {
@@ -372,9 +385,9 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const cf = path.join(root, "src", "data", "flag-checks.json");
     const hf = path.join(root, "src", "data", "nba-results-history.json");
     if (fs.existsSync(cf)) {
-      const R = runChecks(JSON.parse(fs.readFileSync(cf, "utf8")).checks, { rows, logs: logsData, seasons: seasonsData, history: fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null, names: store.names || {}, nameKey: keyFn, season: seasonTag });
+      const R = runChecks(JSON.parse(fs.readFileSync(cf, "utf8")).checks, { rows, logs: logsData, seasons: seasonsData, history: fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null, names: store.names || {}, nameKey: keyFn, season: seasonTag, awards: awardsData });
       fs.writeFileSync(path.join(root, "docs", "data", "flag-checks.json"), JSON.stringify({ generatedAt: out.generatedAt, ...R }));
-      console.log(`flag checks: ${R.found} of ${R.total} seen coming${R.checks.filter((c) => !c.found).length ? ` (missed: ${R.checks.filter((c) => !c.found).map((c) => c.id).join(", ")})` : ""}`);
+      console.log(`flag checks: ${R.found} of ${R.total} seen coming${R.checks.filter((c) => c.found === false).length ? ` (missed: ${R.checks.filter((c) => c.found === false).map((c) => c.id).join(", ")})` : ""}`);
     }
   } catch (e) { console.error(`flag checks not run: ${e.message}`); }
   const byDate = Object.fromEntries(dates.map((d) => [d, anomalies(pg, store.names || {}, { dates: [d], careers })]));
@@ -518,13 +531,22 @@ for (const [tri, games] of Object.entries(perTeam)) {
         if (r.ok) { votes = (await r.json()).votes || []; fs.writeFileSync(votesFile, JSON.stringify(votes)); }
       } catch (e) { console.error(`briefing votes not read (using the saved copy): ${e.message}`); }
       const model = learn(votes, args.prep?.stars || {});
-      const b = briefing({ all: cand.all, games: cand.games, stars: args.prep?.stars || {}, nationalGames: nat, seen, today: watch.today, model });
+      // 0.70: what the news is about (the articles watcher's last 72 hours of headlines) moves those lines up.
+      let buzz = null;
+      try {
+        const { buzzCounts } = await import("../src/anticipate/buzz.js");
+        const r = await fetch("https://ncc-articles.dukie0813.workers.dev/headlines", { signal: AbortSignal.timeout(15000) });
+        if (r.ok) buzz = buzzCounts((await r.json()).headlines || [], { players: cand.all.map((l) => l.player).filter(Boolean), teams: cand.games.flatMap((g) => [g.away, g.home]) });
+      } catch (e) { console.error(`headlines not read: ${e.message}`); }
+      const b = briefing({ all: cand.all, games: cand.games, stars: args.prep?.stars || {}, nationalGames: nat, seen, today: watch.today, model, buzz });
       fs.writeFileSync(seenFile, JSON.stringify(b.seen));
       const firstRun = !Object.keys(seen).length; // the first build has nothing to compare with: nothing is "new"
-      const slimL = (l) => ({ key: l.key, kind: l.kind, team: l.team, player: l.player || null, game: l.game, text: l.text, rank: l.rank, learned: l.learned || 0, isNew: l.age === 0 && !firstRun });
+      const slimL = (l) => ({ key: l.key, kind: l.kind, team: l.team, player: l.player || null, game: l.game, text: l.text, rank: l.rank, learned: l.learned || 0, isNew: l.age === 0 && !firstRun, news: l.news || 0, headlines: l.news ? buzz?.titles?.[l.player] || [] : [] });
       const learned = Object.entries(model.weights).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 12);
-      fs.writeFileSync(path.join(root, "docs", "data", "briefing.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, candidates: cand.all.length, votes: { n: model.n, up: model.up.size, down: model.down.size, learned }, top: b.top.map(slimL), deep: b.deep.map(slimL) }));
-      console.log(`briefing: ${cand.all.length} candidates -> top ${b.top.length}, deep cuts ${b.deep.length}; ${model.n} votes, ${Object.keys(model.weights).length} learned weights`);
+      fs.writeFileSync(path.join(root, "docs", "data", "briefing.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, candidates: cand.all.length, votes: { n: model.n, up: model.up.size, down: model.down.size, learned }, top: b.top.map(slimL), deep: b.deep.map(slimL),
+        lastNight: (args.prep?.lastNight || []).slice(0, 6).map((l) => ({ key: l.key, kind: l.kind, team: l.team, player: l.player, text: l.text })),
+        news: buzz ? Object.entries(buzz.players).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, n]) => ({ name, n, titles: buzz.titles[name] || [] })) : null }));
+      console.log(`briefing: ${cand.all.length} candidates -> top ${b.top.length}, deep cuts ${b.deep.length}; ${model.n} votes, ${Object.keys(model.weights).length} learned weights; ${buzz ? `${Object.keys(buzz.players).length} players and ${Object.keys(buzz.teams).length} teams in the headlines` : "no headlines"}; ${(args.prep?.lastNight || []).length} lines from last night`);
     } catch (e) { console.error(`briefing not written: ${e.message}`); }
   } catch (e) { console.error(`tonight's storylines not written: ${e.message}`); }
 }
@@ -538,7 +560,7 @@ for (const f of ["ratings.js", "withwithout.js", "leaders.js"]) fs.copyFileSync(
 fs.mkdirSync(path.join(root, "docs", "ref"), { recursive: true });
 for (const f of fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^nba-(record-book|single-game-bests|postseason-careers)-/.test(f))) fs.copyFileSync(path.join(root, "src", "data", f), path.join(root, "docs", "ref", f.replace(/-\d{4}-\d\d\.json$/, ".json")));
 fs.mkdirSync(path.join(root, "docs", "lib", "anticipate"), { recursive: true });
-for (const f of ["tonight.js", "briefing.js", "learn.js"]) fs.copyFileSync(path.join(root, "src", "anticipate", f), path.join(root, "docs", "lib", "anticipate", f));
+for (const f of ["tonight.js", "briefing.js", "learn.js", "buzz.js"]) fs.copyFileSync(path.join(root, "src", "anticipate", f), path.join(root, "docs", "lib", "anticipate", f));
 fs.mkdirSync(path.join(root, "docs", "lib", "espn"), { recursive: true });
 for (const f of ["parse.js", "pbp.js"]) fs.copyFileSync(path.join(root, "src", "espn", f), path.join(root, "docs", "lib", "espn", f));
 const after = Object.values(store.dates).filter((d) => d.complete).length;

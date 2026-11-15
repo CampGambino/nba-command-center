@@ -2,6 +2,37 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.70.0 (2026-11-15): season-long and morning-after lines (the StatMuse posts), what's in the news, last season replayed
+
+The user (11/15) sent 15 posts that did well, "based on season-long checks and right after the game posts. not all of these can be predicted ahead of time… it shouldn't be limited to these exactly. there is plenty of context behind some of these in the zeitgeist… knowing when to display or promote them can be tricky."
+
+### What changed
+- **src/anticipate/seasonlong.js (new): the kinds of post, not the posts.** Each runs on every player or team, every build:
+  - **trade splits:** a player with games for two teams this season: stats per team, record, 20-point games, win percentage before and after ("Kuminga: 100% as a Hawk, 45% before");
+  - **starter vs. bench:** 5+ starts and 3+ bench games, 6+ PPG apart;
+  - **vs. his last MVP season:** better in three of PPG/RPG/APG/TS%, or scoring within 1.5 PPG of it (from the NBA Guide's awards and season rows);
+  - **starting fives:** the most-used five's record when it's 85%+ over 10+ games, or far from the team's record otherwise ("Hornets 14-1 with this lineup");
+  - **record turns:** "went 24-1 in its first 25; 6-5 since" (a 40-point swing in win percentage, 8+ games a side);
+  - **best/worst record since** Christmas, New Year's Day, the All-Star break (found from the schedule's longest February gap);
+  - **who has beaten the best teams:** "Teams with multiple wins vs. OKC: SAS, MIN", with tonight's opponent's place in it (from 20 games, or 4+ losses);
+  - **month ratings:** offense, defense and net rating ranks this month (possessions from the team box totals), when a team is 1st or 30th in one;
+  - **month totals:** a player's month no other current player has had since 2016-17 (fewest categories that make it so: "500 points, 35 steals, 50 threes");
+  - **rookies:** the points club at the highest round number 2-6 rookies have reached, and anyone within 30 points of a club of 10 or fewer ("Caleb Love is 2 points from joining the 7 rookies with 400+");
+  - **last night (the post-game kind):** a 30+ point line with four more numbers that no other current player had in a game since 2016-17, or only one or two ("joins X as the only…"), with the fewest numbers that make it so.
+  The season-long ones go into each game's card and the briefing (new icons); last night's go under **From last night** on the briefing.
+- **In the news (src/anticipate/buzz.js, cloudflare/headlines.js):** the articles Worker has a public `/headlines` (the last 72 hours of ESPN and Athletic headlines it saw: time, source, title only; nothing from the review page). The build counts each player (full name, or a surname only one player on the slate has) and team (nickname, or a city only one team has) and the briefing moves a player's lines up by 0.15 a headline (to 0.45; a team's 0.05, to 0.2). A line in the news says "📰 in 2 headlines" (hover for them); the top names are listed under the briefing. This is the stand-in for "what NBA Twitter is talking about": it sees what the news writes, not what the timeline says.
+- **Last season replayed (src/anticipate/replay.js):** last season's results history and the current players' logs (each game's team found from the results by date, opponent and home) feed the same detectors, with the logs and career seasons cut to before that season. "Did we see it coming?" now takes checks from past seasons (`season`), and sets apart the ones that need data we don't keep for past seasons (`replayable: false`, shown ⏸️, not counted as misses).
+- **The 15 posts as checks:** 12 replayable, 11 seen coming as of the morning before (Jokić vs. his MVP season, Şengün's 35/10/5/3/3/5, McCain's split and 20-point games, Kuminga's win percentage, Luka's month, Luka's 44/9/5/3/2/7 game, "multiple wins vs. OKC: SAS, MIN", Caleb Love's rookie club, OKC 24-1 then 6-5, the Suns' best record since Christmas). Missed: Daniels' PPG higher than his 3P% (not built: an oddity). Can't replay: McCain as a starter and the Hornets' lineup (no starters in last season's logs), the Hornets' January ratings (no box totals for last season); all three run on this season's data.
+
+### Tested
+- 722 checks pass (new: a record turn, a trade split with win percentage, starter vs. bench, vs. an MVP season, multiple wins over a top team, month ratings, last night's six-number line, headlines naming players and teams (a shared city and a shared surname don't count), the briefing boost, last season's team per game, past-season checks and the set-apart ones). 66 Worker checks (new: /headlines gives titles only, from the last 72 hours).
+- Replayed on 2025-26: the lines above on their mornings; 25 "last night" lines over the season (about one a week); on 2026-03-10, 39 season-long lines. This season (11/15): 100 prep lines (4 starter/bench, 2 lineups, 5 month ratings, 2 rookie), 3 in tonight's cards. "Did we see it coming?" 22 of 24, 3 more can't be replayed. Pages all OK.
+
+### Unproven
+- The headlines boost: /headlines goes live with this deploy; the weights (0.15 a headline) are a guess until the votes say otherwise. Headlines see the news, not the timeline: a meme or a beef that never makes an ESPN or Athletic headline is still invisible.
+- "Since 2016-17 among current players" is what the logs hold: a retired player's game (D'Angelo Russell's, in the Luka post) can't be named.
+- Lineup and starter splits for a player traded mid-season use whichever team he started for; a five with a player who later left keeps its record.
+
 ## 0.69.0 (2026-11-15): notes lines that didn't line up (the user's 11/15 review of NBA Live's pre-game cards)
 
 The user: "some of the language in these doesn't align": Dyson Daniels' line read with a stats table in it; Jamal Shead "1 of 3 in NBA history" for a Raptors-only club, with a stray date; "BOS has won 5 straight: a win tonight would be its first 6-game winning streak since 2024-25 (March 2025)" ("recent enough that we don't need an alert"); Wembanyama's "Third consecutive NBA blocks champion" ("not something that needs to be included in the pregame… worth noting closer to the end of the season where he could lead the league for the 4th season"); "Active streak · 23 … from Jan. 17 to March 8, 2026 … → 24 with tonight's game" ("it can't be this season and it can't be active"); Naz Reid's 169 threes "this season" ("the bolded preface is from the 2023-24 season with the Wolves").

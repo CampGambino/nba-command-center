@@ -2008,6 +2008,74 @@ await articlesChecks(ok);
     "flag checks (0.67): a posted stat is checked against what we'd have said that morning (results before that day only)", JSON.stringify(R.checks.map((c) => [c.id, c.found, c.line])));
 }
 
+// ---------- 0.70: season-long and morning-after lines (the StatMuse posts, 11/15), headlines, last season replayed ----------
+{
+  const S = await import("../src/anticipate/seasonlong.js");
+  const day = (i) => new Date(Date.UTC(2026, 9, 21) + i * 864e5).toISOString().slice(0, 10);
+  const T30 = ["ATL", "BOS", "BKN", "CHA", "CHI", "CLE", "DAL", "DEN", "DET", "GSW", "HOU", "IND", "LAC", "LAL", "MEM", "MIA", "MIL", "MIN", "NOP", "NYK", "OKC", "ORL", "PHI", "PHX", "POR", "SAC", "SAS", "TOR", "UTA", "WAS"];
+  // 30 teams, 20 nights: OKC wins its first 12 then goes 2-6; everyone else alternates. Box totals: 100 possessions a side.
+  const rows = [];
+  const box = (pts) => [40, 85, 12, 35, 8, 10, 10, 34, 25, 8, 5, 15, 20];
+  for (let i = 0; i < 20; i++) for (let k = 0; k < 15; k++) {
+    const h = T30[(k + i) % 30], a = T30[(k + i + 15) % 30];
+    let hw = (i + k) % 2 === 0;
+    if (h === "OKC") hw = i < 12 || i % 4 === 0; if (a === "OKC") hw = !(i < 12 || i % 4 === 0);
+    rows.push({ id: `g${i}-${k}`, d: day(i), h, a, hs: hw ? 110 : 100, as: hw ? 100 : 110, hb: box(), ab: box() });
+  }
+  const turn = S.turnLines({ rows });
+  ok(turn.some((l) => /^OKC went 12-0 in its first 12 games; 2-6 since/.test(l.text)), "season-long (0.70): a record turn (\"24-1 in their first 25, 6-5 since\")", JSON.stringify(turn.map((l) => l.text)));
+  // Players: a trade (two teams), a starter/bench split, a five that keeps winning, a rookie club, an MVP season.
+  const g = (d, team, opp, win, o) => ({ d, gameId: `${d}-${team}`, team, opp, home: true, win, starter: false, min: 20, pts: 10, reb: 4, ast: 3, stl: 1, blk: 0, fgm: 4, fga: 9, fg3m: 1, fg3a: 3, ftm: 1, fta: 2, tov: 1, ...o });
+  const pg = {
+    tr: [0, 1, 2, 3].map((i) => g(day(i), "PHI", "BOS", false, { pts: 6 })).concat([4, 5, 6].map((i) => g(day(i), "OKC", "BOS", true, { pts: 22 }))),
+    ro: [0, 1, 2, 3, 4].map((i) => g(day(i), "CHA", "BOS", true, { starter: true, pts: 24 })).concat([5, 6, 7].map((i) => g(day(i), "CHA", "BOS", false, { pts: 8 }))),
+    mv: [0, 1, 2, 3, 4, 5, 6, 7].map((i) => g(day(i), "DEN", "BOS", true, { pts: 30, reb: 13, ast: 11, fga: 18, fta: 6, fgm: 11 })),
+  };
+  const names = { tr: "Trade Guy", ro: "Role Guy", mv: "Big Man" };
+  const tr = S.tradeLines({ pg, names }), ro = S.roleLines({ pg, names });
+  const seasons = { keys: ["season", "g", "min", "pts", "reb", "ast", "stl", "blk", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "tov"], players: { "Big Man": [["2023-24", 79, 2700, 2085, 976, 708, 100, 70, 822, 1411, 83, 230, 358, 438, 237]] } };
+  const mv = S.mvpLines({ pg, names, seasons, awards: { "NBA Most Valuable Player": [{ season: "2023-24", player: "Big Man" }] }, season: "2026-27" });
+  ok(tr.length === 1 && /^Trade Guy this season, OKC \(3 GP, 3-0\): 22\.0 PPG.*3 20-point games · PHI \(4 GP, 0-4\): 6\.0 PPG.*win percentage 100\.0% as a Thunder player, 0\.0% before/.test(tr[0].text) && tr[0].team === "OKC"
+    && ro.length === 1 && /^Role Guy as a starter \(5 GP, 5-0\): 24\.0 PPG.*off the bench \(3 GP\): 8\.0 PPG/.test(ro[0].text)
+    && mv.length === 1 && /^Big Man this season vs\. his last MVP season \(2023-24\): 30\.0 PPG \(26\.4\)/.test(mv[0].text),
+    "season-long (0.70): a player's split by team after a trade (win percentage too), as a starter vs. off the bench, and against his last MVP season", JSON.stringify([...tr, ...ro, ...mv].map((l) => l.text)));
+  // Who has beaten the best team (OKC lost 6, to 4 teams; one beat it twice), with tonight's opponent.
+  const bt = S.beatenLines({ rows: rows.concat([{ id: "x1", d: day(20), h: "OKC", a: "SAS", hs: 90, as: 100 }, { id: "x2", d: day(21), h: "SAS", a: "OKC", hs: 100, as: 90 }, ...Array.from({ length: 12 }, (_, i) => ({ id: `w${i}`, d: day(22 + i), h: "OKC", a: "UTA", hs: 120, as: 100 }))]), slate: [{ away: "SAS", home: "OKC" }] });
+  ok(bt.some((l) => l.team === "OKC" && /^Teams with multiple wins vs\. OKC this season: (?:[A-Z]{3}, )*SAS \(/.test(l.text)), "season-long (0.70): the teams with more than one win over a top team", JSON.stringify(bt.map((l) => l.text)));
+  const mo = S.monthLines({ rows, today: "2026-11-09" });
+  ok(Array.isArray(mo) && mo.every((l) => /in (October|November)/.test(l.text) && /in net rating/.test(l.text)), "season-long (0.70): month ratings from the team box totals (possessions)", JSON.stringify(mo.slice(0, 2).map((l) => l.text)));
+  // Last night: a line no one else in the logs has.
+  const logs = { columns: ["date", "opp", "home", "result", "type", "min", "pts", "reb", "ast", "stl", "blk", "fg3m", "fgm", "fga", "fg3a", "ftm", "fta"], players: { o1: [["2020-01-01", "BOS", 1, "W", 2, 36, 40, 10, 5, 1, 1, 5, 14, 25, 9, 7, 8]] } };
+  const pgU = { u1: [g(day(3), "HOU", "NOP", true, { pts: 36, reb: 13, ast: 7, stl: 3, blk: 3, fg3m: 5 })] };
+  const un = S.uniqueLines({ pg: pgU, logs, names: { u1: "Six Cat", o1: "Old Guy" } });
+  ok(un.length === 1 && /^Six Cat vs\. NOP \(10\/24\): 36 PTS, 13 REB, 7 AST, 3 STL, 3 BLK, 5 3P\. No other current player has had 35\+ PTS, \d/.test(un[0].text) && un[0].kind === "unique",
+    "season-long (0.70): last night's line nobody else had since 2016-17, with the fewest numbers that make it so", JSON.stringify(un.map((l) => l.text)));
+}
+{
+  const { buzzCounts, buzzBoost } = await import("../src/anticipate/buzz.js");
+  const { briefing } = await import("../src/anticipate/briefing.js");
+  const heads = [{ title: "Jared McCain is thriving in OKC" }, { title: "Why McCain's role keeps growing with the Thunder" }, { title: "Lakers beat Clippers" }, { title: "Los Angeles weather" }, { title: "Jalen Williams out again" }];
+  const B = buzzCounts(heads, { players: ["Jared McCain", "Jalen Williams", "Jaylin Williams"], teams: ["OKC", "LAL", "LAC"] });
+  ok(B.players["Jared McCain"] === 2 && B.players["Jalen Williams"] === 1 && !B.players["Jaylin Williams"] && B.teams.OKC === 1 && B.teams.LAL === 1 && B.teams.LAC === 1,
+    "buzz (0.70): headlines name players (full name, or a surname only one player on the slate has) and teams (a shared city doesn't count)", JSON.stringify(B));
+  const all = [{ kind: "season", team: "OKC", player: "Jared McCain", text: "a", score: 3 }, { kind: "season", team: "SAS", player: "Other Guy", text: "b", score: 3.2 }];
+  const R = briefing({ all, games: [{ away: "OKC", home: "SAS" }], stars: { "Jared McCain": 0.4, "Other Guy": 0.4 }, today: "2026-11-15", buzz: B });
+  ok(buzzBoost(all[0], B) > 0.25 && R.top[0].player === "Jared McCain" && R.top[0].news === 2, "briefing (0.70): a player in the news moves up, and says so", JSON.stringify(R.top.map((l) => [l.player, l.rank, l.news])));
+}
+{
+  const { pastSeason } = await import("../src/anticipate/replay.js");
+  const { runChecks } = await import("../src/anticipate/flagcheck.js");
+  const history = { columns: ["date", "home", "away", "homeScore", "awayScore", "type"], games: [["2025-12-01", "PHI", "BOS", 100, 110, 2], ["2025-12-03", "PHI", "BOS", 100, 105, 2], ["2026-02-10", "OKC", "UTA", 120, 100, 2], ["2026-02-12", "UTA", "OKC", 90, 115, 2], ["2026-04-20", "OKC", "PHX", 120, 100, 3]] };
+  const logs = { columns: ["date", "opp", "home", "result", "type", "min", "pts", "reb", "ast", "stl", "blk", "fg3m", "fgm", "fga", "fg3a", "ftm", "fta"],
+    players: { m1: [["2025-12-01", "BOS", 1, "L", 2, 20, 6, 2, 2, 0, 0, 1, 2, 7, 3, 1, 2], ["2025-12-03", "BOS", 1, "L", 2, 20, 6, 2, 2, 0, 0, 1, 2, 7, 3, 1, 2], ["2026-02-10", "UTA", 1, "W", 2, 24, 21, 3, 4, 1, 0, 3, 8, 14, 6, 2, 2], ["2026-02-12", "UTA", 0, "W", 2, 24, 22, 3, 4, 1, 0, 3, 8, 14, 6, 3, 3], ["2026-04-20", "PHX", 1, "W", 3, 30, 30, 3, 4, 1, 0, 3, 8, 14, 6, 2, 2]] } };
+  const P = pastSeason({ history, logs, season: "2025-26" });
+  ok(P.rows.length === 4 && P.pg.m1.map((x) => x.team).join() === "PHI,PHI,OKC,OKC" && P.pg.m1[3].win,
+    "replay (0.70): last season's player games get their team from the results (date, opponent, home); playoffs left out", JSON.stringify(P.pg.m1.map((x) => [x.d, x.team, x.win])));
+  const R = runChecks([{ id: "a", season: "2025-26", morning: "2026-02-13", claim: "x", detector: "seasonlong", match: "^Mac Cain this season, OKC \\(2 GP, 2-0\\)" }, { id: "b", season: "2025-26", morning: "2026-02-13", claim: "y", replayable: false }],
+    { rows: [], logs, seasons: null, history, names: { m1: "Mac Cain" }, season: "2026-27" });
+  ok(R.found === 1 && R.total === 1 && R.cantReplay === 1 && R.checks[1].found === null, "flag checks (0.70): a post from last season is replayed; one that needs data we don't keep is set apart, not counted a miss", JSON.stringify(R));
+}
+
 // ---------- 0.65: career highs allowed (this season's, rookies apart) ----------
 {
   const { careerHighsAllowed } = await import("../src/situations/trends.js");

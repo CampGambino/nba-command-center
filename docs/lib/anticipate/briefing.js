@@ -8,12 +8,14 @@
  *        + a national TV game
  *        + new today (first seen today; a line seen for days fades)
  *        + rare (a detector's "only / first / most since" flag)
+ *        + in the news (0.70: the player, or failing that his team, in the last 72 hours' headlines; src/anticipate/buzz.js)
  *
  * Top 10: mixed (at most 3 from one game, 3 of one kind, 1 per player); no injuries, rest, TV or context lines there
  * (each game's card keeps those). Deep cuts: the rare and the big about lesser-known players, which would never beat
  * a star's line on prominence.
  */
 import { boost } from "./learn.js";
+import { buzzBoost } from "./buzz.js";
 const KEEP_OUT = new Set(["injury", "rest", "tv", "context"]);
 const RARE_KINDS = new Set(["pstreak", "pace", "record"]);
 const strip = (t) => String(t).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[\d.,%]+/g, "#").replace(/\s+/g, " ").trim().toLowerCase();
@@ -26,7 +28,7 @@ const dayDiff = (a, b) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(
  * seen: { key: "YYYY-MM-DD" first seen }; today.
  * -> { top: [line+], deep: [line+], seen }
  */
-export function briefing({ all, games = [], stars = {}, nationalGames = new Set(), seen = {}, today, topN = 10, deepN = 5, model = null }) {
+export function briefing({ all, games = [], stars = {}, nationalGames = new Set(), seen = {}, today, topN = 10, deepN = 5, model = null, buzz = null }) {
   const gameOf = new Map();
   for (const g of games) { gameOf.set(g.away, `${g.away}@${g.home}`); gameOf.set(g.home, `${g.away}@${g.home}`); }
   const next = {};
@@ -44,8 +46,10 @@ export function briefing({ all, games = [], stars = {}, nationalGames = new Set(
     const rare = l.rare || RARE_KINDS.has(l.kind) ? 0.3 : 0;
     const game = gameOf.get(l.team);
     const learned = boost(l, model, stars);   // 0.67: the user's votes, by feature
-    const rank = (l.score || 0) + 0.9 * prom + (nationalGames.has(game) ? 0.25 : 0) + fresh + rare + learned;
-    scored.push({ ...l, game, prom, age, learned, rank: Math.round(rank * 100) / 100, key });
+    const news = buzzBoost(l, buzz);
+    const rank = (l.score || 0) + 0.9 * prom + (nationalGames.has(game) ? 0.25 : 0) + fresh + rare + learned + news;
+    const inNews = l.player && buzz?.players?.[l.player] ? buzz.players[l.player] : 0;
+    scored.push({ ...l, game, prom, age, learned, news: inNews, rank: Math.round(rank * 100) / 100, key });
   }
   scored.sort((a, b) => b.rank - a.rank);
   const pick = (list, n, { perGame, perKind }) => {

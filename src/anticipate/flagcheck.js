@@ -4,25 +4,39 @@
  * day's games. The hit rate shows how much of what gets posted the Command Center has ahead of time; each miss says
  * what to build next.
  *
- * check: { id, posted, morning: "YYYY-MM-DD", claim, detector: "prep" | "teamwatch", match: "regex", slate?, note? }
+ * check: { id, posted, morning: "YYYY-MM-DD", claim, detector: "prep" | "teamwatch" | "seasonlong", match: "regex", slate?, season?, note? }
+ * A check with a past `season` (0.70) is replayed from the results history and the logs (src/anticipate/replay.js).
  */
 import { playerGames } from "../situations/trends.js";
 import { prepLines } from "./prep.js";
 import { streakWatch } from "../situations/streakwatch.js";
+import { seasonLongLines } from "./seasonlong.js";
+import { pastSeason, logsBefore } from "./replay.js";
 
-export function runChecks(checks, { rows, logs, seasons, history, names, nameKey, season }) {
+export function runChecks(checks, { rows, logs, seasons, history, names, nameKey, season, awards = null }) {
   const out = [];
   const cache = new Map();
   for (const c of checks || []) {
+    if (c.replayable === false) { out.push({ ...c, found: null, line: null }); continue; } // needs data we don't keep for that season
     let lines = [];
     try {
       const key = `${c.detector}|${c.morning}|${JSON.stringify(c.slate || null)}`;
       if (!cache.has(key)) {
-        const before = rows.filter((g) => g.d < c.morning);
-        // That day's games (from the results once played; a check can name them before they are).
-        const slate = c.slate || rows.filter((g) => g.d === c.morning).map((g) => ({ away: g.a, home: g.h }));
-        cache.set(key, c.detector === "teamwatch" ? streakWatch({ history, rows: before, today: c.morning })
-          : prepLines({ pg: playerGames(before), rows: before, logs, seasons, names, nameKey, season, games: slate }).lines);
+        if (c.season && c.season !== season) {
+          // A past season: rebuilt from what we keep, with the logs and career seasons as they stood before it.
+          const past = pastSeason({ history, logs, season: c.season, before: c.morning });
+          const K = seasons?.keys?.indexOf("season") ?? -1;
+          const sb = seasons && { ...seasons, players: Object.fromEntries(Object.entries(seasons.players).map(([n, r]) => [n, r.filter((x) => x[K] < c.season)]).filter(([, r]) => r.length)) };
+          const slate = c.slate || history.games.filter((r) => r[0] === c.morning && r[5] === 2).map((r) => ({ away: r[2], home: r[1] }));
+          cache.set(key, seasonLongLines({ pg: past.pg, rows: past.rows, logs: logsBefore(logs, c.season), seasons: sb, awards, names, nameKey, season: c.season, slate, today: c.morning }).lines);
+        } else {
+          const before = rows.filter((g) => g.d < c.morning);
+          // That day's games (from the results once played; a check can name them before they are).
+          const slate = c.slate || rows.filter((g) => g.d === c.morning).map((g) => ({ away: g.a, home: g.h }));
+          cache.set(key, c.detector === "teamwatch" ? streakWatch({ history, rows: before, today: c.morning })
+            : c.detector === "seasonlong" ? seasonLongLines({ pg: playerGames(before), rows: before, logs, seasons, awards, names, nameKey, season, slate, today: c.morning }).lines
+            : prepLines({ pg: playerGames(before), rows: before, logs, seasons, names, nameKey, season, games: slate }).lines);
+        }
       }
       lines = cache.get(key);
     } catch (e) { out.push({ ...c, found: false, line: null, error: e.message }); continue; }
@@ -31,5 +45,5 @@ export function runChecks(checks, { rows, logs, seasons, history, names, nameKey
     out.push({ ...c, found: !!hit, line: hit ? hit.text : null });
   }
   const found = out.filter((c) => c.found).length;
-  return { checks: out, found, total: out.length };
+  return { checks: out, found, total: out.filter((c) => c.found !== null).length, cantReplay: out.filter((c) => c.found === null).length };
 }
