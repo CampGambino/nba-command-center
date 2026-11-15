@@ -30,6 +30,8 @@ import { lineupCheck } from "./lineups.js";
 import { digestCheck } from "./digest.js";
 import { handleVotes, SITE } from "./votes.js";
 import { handleHeadlines } from "./headlines.js";
+import { healthCheck } from "./health.js";
+import { tfetch, LIMIT_MS } from "./net.js";
 export const ARTICLES_CRON = "*/5 * * * *";
 
 const FEEDS = [
@@ -202,15 +204,15 @@ export function parseLiveBlog(html, blogUrl) {
 
 async function readFeed(feed) {
   if (feed.kind === "liveblog") {
-    const hub = await fetch(feed.url, { headers: UA });
+    const hub = await tfetch(feed.url, { headers: UA }, LIMIT_MS.page);
     if (!hub.ok) throw new Error(`NBA page HTTP ${hub.status}`);
     const blog = findLiveBlog(await readHead(hub, 120000));
     if (!blog) return []; // no live blog this week
-    const res = await fetch(blog, { headers: UA });
+    const res = await tfetch(blog, { headers: UA }, LIMIT_MS.page);
     if (!res.ok) throw new Error(`live blog HTTP ${res.status}`);
     return parseLiveBlog(await res.text(), blog);
   }
-  const res = await fetch(feed.url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; NBA-Command-Center articles watcher)", Accept: feed.kind === "espn" ? "application/json" : "application/rss+xml, application/xml, text/xml" } });
+  const res = await tfetch(feed.url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; NBA-Command-Center articles watcher)", Accept: feed.kind === "espn" ? "application/json" : "application/rss+xml, application/xml, text/xml" } }, LIMIT_MS.page);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   if (feed.kind === "espn") return parseEspn(await res.json());
   if (!feed.maxBytes) return parseRss(await res.text(), feed.src).map((it) => ({ ...it, team: feed.team }));
@@ -244,7 +246,7 @@ export function embedFor(item, { now = Date.now(), base = null, key = null } = {
 
 async function discord(env, payload) {
   for (let attempt = 0; attempt < 3; attempt++) {
-    const res = await fetch(`${env.DISCORD_WEBHOOK}?wait=true`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: "NBA Command Center · Articles", allowed_mentions: { parse: [] }, ...payload }) });
+    const res = await tfetch(`${env.DISCORD_WEBHOOK}?wait=true`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: "NBA Command Center · Articles", allowed_mentions: { parse: [] }, ...payload }) }, LIMIT_MS.discord);
     if (res.ok) return true;
     if (res.status === 429) { const b = await res.json().catch(() => ({})); await new Promise((r) => setTimeout(r, Math.ceil((b.retry_after || 1) * 1000) + 200)); continue; }
     return false;
@@ -399,7 +401,7 @@ export default {
       if (teamFeedGroup(minute).length) await check(env, at, { feeds: teamFeedGroup(minute) });
       if (minute % 5 === 3) await check(env, at, { feeds: [LIVE_FEED] });
     };
-    ctx.waitUntil(event.cron === ARTICLES_CRON ? check(env) : Promise.allSettled([lineupCheck(env, at), digestCheck(env, at), articles()]));
+    ctx.waitUntil(event.cron === ARTICLES_CRON ? check(env) : Promise.allSettled([lineupCheck(env, at), digestCheck(env, at), articles(), healthCheck(env, at)]));
   },
   async fetch(req, env) {
     const url = new URL(req.url);
@@ -424,6 +426,8 @@ export default {
     if (url.pathname === "/review") return html(page(await load(env, "state", {}), await load(env, "log", []), await load(env, "rules", { muteBylines: [], muteWords: [], allowBylines: [] }), key, await load(env, "labels", [])));
     if (url.pathname === "/act") return act(env, url, key);
     if (url.pathname === "/check") return Response.json(await check(env));
+    // Build check (0.73), private: what it would say right now, without posting (?send=1 runs it for real).
+    if (url.pathname === "/buildcheck") return Response.json(await healthCheck(env, Date.now(), { dry: url.searchParams.get("send") !== "1" }));
     // Private diagnostics: every item of an Athletic feed (?list=nba or nba/knicks), or a slice of an Athletic page
     // (?page=<nytimes.com/athletic/... URL>&find=<text>), to see what a feed carries and how a page is built.
     if (url.pathname === "/peek" && (url.searchParams.get("list") || url.searchParams.get("page"))) {

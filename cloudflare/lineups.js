@@ -24,6 +24,7 @@ export const ESPN_TRI = { GS: "GSW", NY: "NYK", SA: "SAS", NO: "NOP", UTAH: "UTA
 const triOf = (a) => ESPN_TRI[a] || a;
 export const TEAM_FILE = (tri) => `https://raw.githubusercontent.com/CampGambino/nba-command-center/main/docs/data/teams/${tri}.json`;
 import { latestReport, statusOnReport } from "./injurypdf.js";
+import { tfetch, bodyJson, bodyText, LIMIT_MS } from "./net.js";
 export const INJURIES_FILE = "https://raw.githubusercontent.com/CampGambino/nba-command-center/main/docs/data/injuries.json";
 const POS_ORDER = { PG: 0, SG: 1, G: 1.5, SF: 2, F: 2.5, PF: 3, C: 4 };
 
@@ -160,7 +161,7 @@ export function supersededEmbed(embed, why) {
 }
 async function editDiscord(url, id, payload) {
   if (!id || id === true) return false;
-  try { const res = await fetch(`${url}/messages/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ allowed_mentions: { parse: [] }, ...payload }) }); return res.ok; } catch { return false; }
+  try { const res = await tfetch(`${url}/messages/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ allowed_mentions: { parse: [] }, ...payload }) }, LIMIT_MS.discord); return res.ok; } catch { return false; }
 }
 
 /** Who started, by team, from an ESPN game summary -> { TRI: [{ name, pos }] } (only teams with five starters). */
@@ -177,7 +178,8 @@ export function espnStarters(summary) {
 /** Posts; returns the message id (or true if Discord gave none), false on failure. */
 async function postDiscord(url, payload) {
   for (let attempt = 0; attempt < 3; attempt++) {
-    const res = await fetch(`${url}?wait=true`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: "NBA Command Center · Lineups", allowed_mentions: { parse: [] }, ...payload }) });
+    // 0.73: a time limit; a request that times out or can't connect counts as a failed post (tried again next minute).
+    const res = await tfetch(`${url}?wait=true`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: "NBA Command Center · Lineups", allowed_mentions: { parse: [] }, ...payload }) }, LIMIT_MS.discord);
     if (res.ok) { const m = await res.json().catch(() => null); return m?.id || true; }
     if (res.status === 429) { const b = await res.json().catch(() => ({})); await new Promise((r) => setTimeout(r, Math.ceil((b.retry_after || 1) * 1000) + 200)); continue; }
     return false;
@@ -186,10 +188,12 @@ async function postDiscord(url, payload) {
 }
 
 export async function readFeed(yyyymmdd) {
-  const res = await fetch(FEED(yyyymmdd), { redirect: "manual", headers: { Accept: "application/json", Referer: "https://www.nba.com/", "User-Agent": "ncc-lineups/1.0 (personal use)" } });
+  // 0.73: 8 seconds at most (the next read is 30 seconds on); a slow or failed read is "not this time", never an error.
+  const res = await tfetch(FEED(yyyymmdd), { redirect: "manual", headers: { Accept: "application/json", Referer: "https://www.nba.com/", "User-Agent": "ncc-lineups/1.0 (personal use)" } }, LIMIT_MS.feed);
   if (res.status === 301 || res.status === 302) return { ok: false, status: res.status, note: "not posted yet" };
-  if (!res.ok) return { ok: false, status: res.status };
-  const text = await res.text();
+  if (!res.ok) return { ok: false, status: res.status, ...(res.status === 504 && res.statusText ? { note: res.statusText } : {}) };
+  const text = await bodyText(res);
+  if (text == null) return { ok: false, status: res.status, note: "cut off" };
   try { return { ok: true, status: res.status, json: JSON.parse(text) }; } catch { return { ok: false, status: res.status, note: "not JSON" }; }
 }
 
@@ -246,10 +250,15 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
   const st = st0.date === ymd ? st0 : { date: ymd, sched: null, teams: {} };
   if (st.done) return { skipped: "all of today's games have tipped" };
   let changed = false;
+  // 0.73: whatever this run has done (a lineup posted, a tip checked) is saved even if a later step fails, so the
+  // next minute doesn't post it again.
+  try {
   if (!st.sched) {
-    const res = await fetch(ESPN_SCOREBOARD(compact));
+    const res = await tfetch(ESPN_SCOREBOARD(compact), {}, LIMIT_MS.espn);
     if (!res.ok) return { error: `ESPN scoreboard ${res.status}` };
-    st.sched = readSchedule(await res.json()); changed = true;
+    const board = await bodyJson(res);
+    if (!board) return { error: "ESPN scoreboard unreadable" };
+    st.sched = readSchedule(board); changed = true;
   }
   const report = { phases: {}, read: [], posted: 0 };
   for (const g of st.sched) for (const tri of g.teams) {
@@ -284,13 +293,13 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
         if (s.posted && !again) continue;
         if (dry) { (report.wouldPost ??= []).push(`${tm.tri} ${again ? "change" : "confirmed"}`); continue; }
         let last = null, file = null, injuries = null;
-        try { const r = await fetch(TEAM_FILE(tm.tri)); if (r.ok) { file = await r.json(); if (!again) last = lastStarters(file, ymd); } } catch {}
-        try { const r = await fetch(INJURIES_FILE); if (r.ok) injuries = await r.json(); } catch {}
+        try { const r = await tfetch(TEAM_FILE(tm.tri), {}, LIMIT_MS.site); if (r.ok) { file = await r.json(); if (!again) last = lastStarters(file, ymd); } } catch {}
+        try { const r = await tfetch(INJURIES_FILE, {}, LIMIT_MS.site); if (r.ok) injuries = await r.json(); } catch {}
         // Who left the five: since the last post (a change), or since the team's last game (a first post).
         const base = again ? s.posted : last?.names;
         const d = base ? diff(base, names) : null;
         // 0.68: a regular missing who isn't on the site's (older) injury report: read the league's latest first.
-        if (d && irep === undefined && unlistedRegulars(file, injuries, d.out, tm.tri, ymd).length) irep = await latestReport(Date.now(), fetch);
+        if (d && irep === undefined && unlistedRegulars(file, injuries, d.out, tm.tri, ymd).length) irep = await latestReport(Date.now(), (u) => tfetch(u, {}, LIMIT_MS.pdf));
         const warn = d ? suspicion(file, injuries, d.out, d.in, tm.tri, ymd, irep || null) : null;
         const embed = lineupEmbed({ ...g, statusText: g.statusText || etClock(sg.tip) + " ET" }, tm, { expected: again ? null : s.expected, last, previous: again ? s.posted : null, warn });
         const id = await postDiscord(env.LINEUPS_WEBHOOK, { embeds: [embed] });
@@ -310,7 +319,7 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
   for (const g of due.tip) {
     let five = null;
     try {
-      const res = await fetch(ESPN_SUMMARY(g.id));
+      const res = await tfetch(ESPN_SUMMARY(g.id), {}, LIMIT_MS.espn);
       report.read.push(`espn ${g.id} ${res.status}`);
       if (res.ok) five = espnStarters(await res.json());
     } catch {}
@@ -328,7 +337,7 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
       if (!same) {
         if (dry) { (report.wouldPost ??= []).push(`${tri} tip`); continue; }
         let last = null;
-        if (!s.posted) { try { const r = await fetch(TEAM_FILE(tri)); if (r.ok) last = lastStarters(await r.json(), ymd); } catch {} }
+        if (!s.posted) { try { const r = await tfetch(TEAM_FILE(tri), {}, LIMIT_MS.site); if (r.ok) last = lastStarters(await r.json(), ymd); } catch {} }
         const home = g.teams[0] === tri; // ESPN lists home first
         const embed = lineupEmbed({ statusText: "" }, { tri, opp, home, starters, inactive: [] }, { previous: s.posted, last, kind: "tip" });
         const id = await postDiscord(env.LINEUPS_WEBHOOK, { embeds: [embed] });
@@ -355,8 +364,10 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
       await postDiscord(env.LINEUPS_WEBHOOK, { embeds: [timingEmbed(timing)] });
     }
   }
-  if (changed && !dry) await env.STATE.put("lineups", JSON.stringify(st));
   return report;
+  } finally {
+    if (changed && !dry) await env.STATE.put("lineups", JSON.stringify(st));
+  }
 }
 
 /** The night's timing per team: minutes before the scheduled tip that NBA.com confirmed and we posted. */
@@ -411,7 +422,7 @@ async function lineupTest(env, date, { dry, test }) {
     if (t) {
       const ymd = `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`;
       let last = null;
-      try { const r = await fetch(TEAM_FILE(t.tri)); if (r.ok) last = lastStarters(await r.json(), ymd); } catch {}
+      try { const r = await tfetch(TEAM_FILE(t.tri), {}, LIMIT_MS.site); if (r.ok) last = lastStarters(await r.json(), ymd); } catch {}
       if (await postDiscord(env.LINEUPS_WEBHOOK, { embeds: [lineupEmbed(g, t, { last, test: true })] })) report.posted = 1;
     }
   }

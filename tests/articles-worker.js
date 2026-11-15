@@ -11,6 +11,8 @@ import articlesWorker, { check as articlesCheck, decide as articleDecide, parseR
 
 import { handleVotes } from "../cloudflare/votes.js";
 import { handleHeadlines } from "../cloudflare/headlines.js";
+import { healthProblem, healthCheck } from "../cloudflare/health.js";
+import { tfetch } from "../cloudflare/net.js";
 import { pdfText, statusIn, slotUrls, latestReport, statusOnReport } from "../cloudflare/injurypdf.js";
 import zlibMod from "node:zlib";
 export async function articlesChecks(ok) {
@@ -420,6 +422,89 @@ export async function articlesChecks(ok) {
     const other = await handleHeadlines(new Request("https://w.example/votes"), env, new URL("https://w.example/votes"), now);
     ok(j.headlines.length === 1 && j.headlines[0].title === "Jared McCain is thriving in OKC" && !("reason" in j.headlines[0]) && !("url" in j.headlines[0]) && other === null,
       "headlines (0.70): the last 72 hours' titles only (no review-page reasons or links); other paths pass through", JSON.stringify(j));
+  }
+  // ---------- 0.73: time limits, the build check, and no duplicate storylines (the user's OK, 11/15) ----------
+  {
+    const realFetch = globalThis.fetch;
+    const kvOf = () => { const kv = new Map(); return { kv, STATE: { get: async (k) => (kv.has(k) ? JSON.parse(kv.get(k)) : null), put: async (k, v) => kv.set(k, v) } }; };
+    try {
+      // tfetch: a request that never answers, and one that can't connect, both come back as a 504 (never a throw).
+      globalThis.fetch = (u, o = {}) => new Promise((_, rej) => o.signal?.addEventListener("abort", () => rej(o.signal.reason)));
+      const keep = setTimeout(() => {}, 2000); // Node doesn't wait for a time limit's own timer
+      const slow = await tfetch("https://x.example/slow", {}, 30);
+      clearTimeout(keep);
+      globalThis.fetch = async () => { throw new TypeError("connect failed"); };
+      const down = await tfetch("https://x.example/down", {}, 30);
+      ok(slow.status === 504 && slow.statusText === "timed out" && !slow.ok && down.status === 504 && down.statusText === "network error",
+        "worker (0.73): a request has a time limit; one that times out or can't connect is a failed answer, not a crash", JSON.stringify([slow.status, slow.statusText, down.statusText]));
+
+      // Lineups: a failed NBA.com read is "not this time"; and what a run has posted is saved even if a later step fails.
+      const P = (name, pos, st) => ({ playerName: name, position: pos, lineupStatus: st, timestamp: "2026-11-20T18:50:00" });
+      const five = (st) => [P("A One", "PG", st), P("B Two", "SG", st), P("C Three", "SF", st), P("D Four", "PF", st), P("E Five", "C", st)];
+      const good = { games: [{ gameId: "1", gameStatusText: "7:30 pm ET", homeTeam: { teamAbbreviation: "NYK", players: five("Confirmed") }, awayTeam: { teamAbbreviation: "IND", players: [] } }] };
+      const T = (hhmm) => Date.parse(`2026-11-20T${hhmm}:00-05:00`);
+      const { kv, STATE } = kvOf(); const posts = []; let feedMode = "down", reads = 0;
+      const env = { LINEUPS_WEBHOOK: "https://discord.com/api/webhooks/3/test-z", STATE };
+      globalThis.fetch = async (u, o = {}) => {
+        u = String(u);
+        if (u.includes("daily_lineups_20261120")) { reads++; if (feedMode === "down") throw new TypeError("connect failed"); return new Response(JSON.stringify(feedMode === "good-then-bad" && reads % 2 === 0 ? { games: [null] } : good), { status: 200 }); }
+        if (u.startsWith("https://discord.com/")) { posts.push(JSON.parse(o.body)); return new Response(JSON.stringify({ id: `m${posts.length}` }), { status: 200 }); }
+        if (u.includes("/scoreboard?dates=20261120")) return new Response(JSON.stringify({ events: [{ id: "9", date: "2026-11-21T00:30Z", competitions: [{ competitors: [{ team: { abbreviation: "NY" } }, { team: { abbreviation: "IND" } }] }] }] }), { status: 200 });
+        return new Response("", { status: 404 });
+      };
+      const noSleep = { sleep: async () => {} };
+      const d1 = await lineupCheck(env, T("18:56"), noSleep);
+      ok(posts.length === 0 && d1.read.length === 2 && d1.read.every((x) => /nba\.com 504 \(network error\)/.test(x)), "lineups (0.73): NBA.com not answering is a missed read, tried again 30 seconds on", JSON.stringify(d1.read));
+      feedMode = "good-then-bad"; reads = 0;
+      const threw = await lineupCheck(env, T("18:57"), noSleep).then(() => false, () => true);
+      const saved = JSON.parse(kv.get("lineups") || "{}").teams?.NYK?.posted;
+      feedMode = "good";
+      const again = await lineupCheck(env, T("18:58"), noSleep);
+      ok(threw && posts.length === 1 && saved?.length === 5 && again.posted === 0, "lineups (0.73): a lineup already posted is written down even when a later read breaks the run, so the next minute doesn't post it again", JSON.stringify([threw, posts.length, saved, again.posted]));
+
+      // Storylines: Discord takes the first message and not the second; the next run sends only the rest.
+      const D = kvOf(); const sent = []; let failOn = 2, tries = 0;
+      const games = Array.from({ length: 14 }, (_, i) => ({ id: `g${i}`, away: "BOS", home: "LAL", start: "2026-11-21T00:30Z", lines: Array.from({ length: 6 }, (_, k) => ({ text: `Game ${i} line ${k}: ${"storyline text ".repeat(12)}` })) }));
+      globalThis.fetch = async (u, o = {}) => {
+        u = String(u);
+        if (u.includes("docs/data/tonight.json")) return new Response(JSON.stringify({ today: "2026-11-20", games }), { status: 200 });
+        if (u.startsWith("https://discord.com/")) { tries++; if (tries === failOn) return new Response("{}", { status: 500 }); sent.push(JSON.parse(o.body)); return new Response("{}", { status: 200 }); }
+        return new Response("", { status: 404 });
+      };
+      const envD = { ALERTS_WEBHOOK: "https://discord.com/api/webhooks/4/test-a", STATE: D.STATE };
+      const dry = await digestCheck(envD, T("14:00"), { dry: true });
+      const p1 = await digestCheck(envD, T("14:00"), noSleep), p2 = await digestCheck(envD, T("14:01"), noSleep), p3 = await digestCheck(envD, T("14:02"), noSleep);
+      const titles = sent.flatMap((m) => (m.embeds || []).map((e) => e.title + (e.description || "").slice(0, 30)));
+      ok(dry.wouldPost >= 2 && /^1 of \d+ messages sent/.test(p1.partial || "") && p2.posted === dry.wouldPost && sent.length === dry.wouldPost && new Set(sent.map((m) => JSON.stringify(m))).size === sent.length && p3.skipped === "nothing due",
+        "digest (0.73): when Discord takes part of the storylines post, the next run sends only what's left (no message twice)", JSON.stringify([dry.wouldPost, p1, p2.posted, sent.length, p3]));
+
+      // The build check: one message a day when the build isn't doing its job; quiet after three days; nothing when it's fine.
+      const day = (d, hhmm) => Date.parse(`2026-11-${d}T${hhmm}:00-05:00`);
+      const H = (at, steps = [{ step: "tonight", ok: true }, { step: "situations", ok: true }]) => ({ at: new Date(at).toISOString(), today: "x", steps });
+      ok(healthProblem(H(day(20, "10:40")), day(20, "12:30")) === null
+        && /^No build has finished today\. The last one was Nov 19, 5:35 PM ET\.$/.test(healthProblem(H(day(19, "17:35")), day(20, "12:30")))
+        && /^The Nov 20, 1:04 PM ET build had a problem: results, stats and storylines didn't finish \(exit 1\)\.$/.test(healthProblem(H(day(20, "13:04"), [{ step: "tonight", ok: true }, { step: "situations", ok: false, error: "exit 1" }]), day(20, "13:10")))
+        && /hasn't rebuilt since Nov 20, 8:05 AM ET \(6 hours/.test(healthProblem(H(day(20, "08:05")), day(20, "14:05"))) && healthProblem(null, day(20, "13:00")) === null,
+        "build check (0.73): no build today, a step that didn't finish, or a build over 5 hours old; an unreadable note isn't a problem", healthProblem(H(day(19, "17:35")), day(20, "12:30")));
+      const K = kvOf(); const alerts = []; let health = H(day(19, "17:35"));
+      globalThis.fetch = async (u, o = {}) => {
+        u = String(u);
+        if (u.includes("docs/data/health.json")) return new Response(JSON.stringify(health), { status: 200 });
+        if (u.startsWith("https://discord.com/")) { alerts.push(JSON.parse(o.body)); return new Response("{}", { status: 200 }); }
+        return new Response("", { status: 404 });
+      };
+      const envH = { ALERTS_WEBHOOK: "https://discord.com/api/webhooks/4/test-a", STATE: K.STATE };
+      const h0 = await healthCheck(envH, day(20, "12:25")), h1 = await healthCheck(envH, day(20, "12:30")), h2 = await healthCheck(envH, day(20, "12:35")), h3 = await healthCheck(envH, day(20, "12:32"));
+      const h4 = await healthCheck(envH, day(21, "12:30")), h5 = await healthCheck(envH, day(22, "12:30")), h6 = await healthCheck(envH, day(23, "12:30"));
+      health = H(day(24, "10:40"));
+      const h7 = await healthCheck(envH, day(24, "12:30"));
+      health = H(day(24, "13:04"), [{ step: "tonight", ok: false, error: "stopped after 14 minutes" }]);
+      const h8 = await healthCheck(envH, day(24, "13:05"));
+      const noHook = await healthCheck({ STATE: K.STATE }, day(24, "13:10"));
+      ok(h0.skipped && h1.posted === 1 && h1.streak === 1 && /already/.test(h2.skipped) && h3.skipped && h4.streak === 2 && h5.streak === 3 && /three days in a row/.test(alerts[2].content) && /quiet/.test(h6.skipped) && alerts.length === 4
+        && h7.ok === true && h8.posted === 1 && h8.streak === 1 && /notes and milestones didn't finish \(stopped after 14 minutes\)/.test(alerts[3].content) && alerts[0].username === "NBA Command Center · Build check" && /actions\/workflows\/daily\.yml/.test(alerts[0].content) && /no ALERTS_WEBHOOK/.test(noHook.skipped),
+        "build check (0.73): one message a day from 12:30 PM ET, a last one on the third day running, then quiet until a build goes through", JSON.stringify([h0, h1, h2, h4, h5, h6, h7, h8, alerts.length]));
+    } finally { globalThis.fetch = realFetch; }
   }
   // ---------- 0.68: the league's latest injury report, read by the Worker (11/14: Porter Jr. Out at 7:15 PM) ----------
   {

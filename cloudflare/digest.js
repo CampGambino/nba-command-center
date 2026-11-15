@@ -9,9 +9,10 @@
  *     build, which also runs at 8 AM and 1 PM for this). If that day's data isn't built yet, it waits
  *     and sends as soon as it is (still only games that haven't tipped).
  *
- * Secret ALERTS_WEBHOOK (#alerts) in Cloudflare. KV "digest": { date, sched: [{ id, start }], sent: { id: ms } }.
+ * Secret ALERTS_WEBHOOK (#alerts) in Cloudflare. KV "digest": { date, sched: [{ id, start }], sent: { id: ms }, progress?: { key, done } }.
  */
 import { discordDigest } from "../src/anticipate/discord-digest.js";
+import { tfetch, bodyJson, LIMIT_MS } from "./net.js";
 
 export const TONIGHT_URL = "https://raw.githubusercontent.com/CampGambino/nba-command-center/main/docs/data/tonight.json";
 export const EVENING_AT_MIN = 14 * 60; // 2:00 PM ET
@@ -37,7 +38,7 @@ export function dueNow(sched, now, sent = {}) {
 
 async function postDiscord(url, payload) {
   for (let attempt = 0; attempt < 3; attempt++) {
-    const res = await fetch(`${url}?wait=true`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const res = await tfetch(`${url}?wait=true`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, LIMIT_MS.discord);
     if (res.ok) return true;
     if (res.status === 429) { const b = await res.json().catch(() => ({})); await new Promise((r) => setTimeout(r, Math.ceil((b.retry_after || 1) * 1000) + 200)); continue; }
     return false;
@@ -50,7 +51,7 @@ async function postDiscord(url, payload) {
  * day's schedule is known, every 5 minutes from 8 AM).
  * opts: { dry: report without posting or saving; force: send every not-yet-tipped game now (the test endpoint) }.
  */
-export async function digestCheck(env, now = Date.now(), { dry = false, force = false } = {}) {
+export async function digestCheck(env, now = Date.now(), { dry = false, force = false, sleep = (ms) => new Promise((r) => setTimeout(r, ms)) } = {}) {
   if (!env.ALERTS_WEBHOOK && !dry) return { skipped: "no ALERTS_WEBHOOK secret" };
   const t = et(now);
   if (t.min < 8 * 60 && !force) return { skipped: "before 8 AM ET" };
@@ -59,10 +60,7 @@ export async function digestCheck(env, now = Date.now(), { dry = false, force = 
   const waiting = st.sched ? dueNow(st.sched, now, st.sent).length > 0 : t.min % 5 === 0;
   if (!waiting && !force && !dry) return { skipped: st.sched ? "nothing due" : "waiting for the 5-minute mark" };
   let data = null;
-  try {
-    const r = await fetch(`${TONIGHT_URL}?t=${Math.floor(now / 60e3)}`);
-    if (r.ok) data = await r.json();
-  } catch { /* try again next run */ }
+  { const r = await tfetch(`${TONIGHT_URL}?t=${Math.floor(now / 60e3)}`, {}, LIMIT_MS.site); if (r.ok) data = await bodyJson(r); } // unreadable: try again next run
   if (!data || data.today !== t.ymd) return { waiting: `today's site data isn't built yet (${data ? data.today : "unreadable"})` };
   const games = data.games || [];
   st.sched = games.map((g) => ({ id: g.id, start: g.start }));
@@ -74,9 +72,17 @@ export async function digestCheck(env, now = Date.now(), { dry = false, force = 
     const payloads = discordDigest(due.sort((a, b) => a.start.localeCompare(b.start)), { date, heading: early ? "Afternoon storylines" : "Tonight's storylines", note: early ? "tip before 4 PM ET" : "" });
     if (dry) report.wouldPost = payloads.length;
     else {
-      let ok = true;
-      for (const p of payloads) { ok = (await postDiscord(env.ALERTS_WEBHOOK, p)) && ok; await new Promise((r) => setTimeout(r, 600)); }
-      if (ok) { for (const g of due) st.sent[g.id] = now; report.posted = payloads.length; }
+      // 0.73: a post in several messages that Discord takes only part of picks up where it stopped on the next run,
+      // instead of sending the first messages again (the diagnostic's duplicate).
+      const key = `${due.map((g) => g.id).sort().join(",")}|${payloads.length}`;
+      let done = st.progress?.key === key ? Math.min(st.progress.done, payloads.length) : 0, ok = true;
+      for (let i = done; i < payloads.length; i++) {
+        if (!(await postDiscord(env.ALERTS_WEBHOOK, payloads[i]))) { ok = false; break; }
+        done = i + 1;
+        await sleep(600);
+      }
+      if (ok) { for (const g of due) st.sent[g.id] = now; report.posted = payloads.length; delete st.progress; }
+      else { st.progress = { key, done }; report.partial = `${done} of ${payloads.length} messages sent; the rest next run`; }
       // Games with no storylines still count as sent (nothing to say about them).
     }
   }

@@ -2,6 +2,22 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.73.0 (2026-11-15): the Discord worker: a build check, time limits, no duplicate storylines
+
+The three items the diagnostic left for a decision; the user (11/15): "go for all three". Deployed after the night's last tip, so nothing changed under #lineups mid-slate.
+
+### What changed
+- **Build check (cloudflare/health.js):** every 5 minutes from 12:30 PM to 7 PM ET the Worker reads the site's health note (docs/data/health.json) and posts once to #alerts, as "NBA Command Center · Build check", if no build has finished today, the latest build had a step that didn't finish, or the latest build is over 5 hours old. One message a day at most; on the third day running it says so and stays quiet until a build goes through. A note it can't read is not treated as a problem. The private address `/buildcheck?k=<key>` shows what it would say right now without posting.
+- **Time limits (cloudflare/net.js `tfetch`):** every request the Worker makes on its schedule now has one: NBA.com's lineups file 8 s, ESPN 8 s, the site's files 8 s, Discord 10 s, the league's injury report 5 s a try, article feeds 12 s. A request that times out or can't connect comes back as a failed answer (504) instead of an error, which every caller already treats as "try again next time".
+- **#lineups:** a failed NBA.com read is a missed read ("nba.com 504 (timed out)" in the report), tried again 30 seconds on; and **what a run has already done is saved even if a later step breaks it** (before, a lineup posted at :00 followed by a bad read at :30 was never written down, and the next minute would post it again).
+- **Storylines (cloudflare/digest.js):** a post in several messages that Discord takes only part of now picks up where it stopped on the next run (before, the first messages went out again every minute until all got through).
+
+### Tested
+- 72 Worker checks (new: a request that never answers and one that can't connect; NBA.com down for a run; a posted lineup surviving a broken read and not posting twice; a storylines post interrupted after its first message; the build check's three problems, its once-a-day rule, the third-day message, the quiet after it and the reset). All 66 earlier Worker checks unchanged, including every lineups timing check. 744 in the full suite.
+
+### Unproven
+- Nothing here has run on Cloudflare yet beyond the deploy itself: the first evidence is tomorrow's lineups and 2 PM storylines arriving as usual, and no build-check message on a normal day.
+- The build check's thresholds (12:30 PM start, 5 hours) are first guesses: a GitHub schedule running very late could trip it on a day the build is merely slow.
 ## 0.72.8 (2026-11-15): NBA Live: a round number needs importance 30 for a card; big names from 25
 
 The user (11/15, on "🎯 14 FROM 800 · Will Riley (WAS) — 14 points from 800 points career · importance 25"): "I don't think anything with importance below 40 needs to appear as a nba live alert. I don't know how the important meter is calculated, but maybe below 30 doesn't make the cut. big names are exceptions, but I doubt i need to know when someone gets to 2,000 made baskets unless it's at a record pace".
@@ -40,7 +56,7 @@ The user (11/15): "Proceed" (the next two on the list: team margin by quarter, a
 - The two-out line's fix from 0.72.6 (a scorer of 15+ a game, not a deep reserve) goes out with this.
 
 ### Tested
-- 766 checks here (3 new: a quarter out of line with the other three, with the opponent and the places, and nothing for even teams or few games; the final-two-minutes lines; a real game's final two minutes adding up). 771 with the held 0.73 worker checks. The pages test, with the new view added: all pages OK; the view read in a headless browser (52 games, 283 players, no blanks or errors).
+- 765 checks here (3 new: a quarter out of line with the other three, with the opponent and the places, and nothing for even teams or few games; the final-two-minutes lines; a real game's final two minutes adding up). 771 with the held 0.73 worker checks. The pages test, with the new view added: all pages OK; the view read in a headless browser (52 games, 283 players, no blanks or errors).
 - This season: 52 of 188 games qualify. Team points for equal points against across the league (807) and equal the players' points. Top: Ty Jerome 24 points (9-13 FG), Alexander-Walker 22, Curry 20. Teams: PHI 5-0 (41-23), ATL 5-1, UTA 1-5 (29-46).
 - Quarter lines today, 10 teams: "LAL has been outscored by 60 in 4th quarters (−4.6 a game, the 3rd-worst in the NBA; lost 9 of 13) and is +163 in the other three combined"; "MIL has been outscored by 105 in 2nd quarters (−8.1 a game, the worst…)…; tonight's opponent ATL is +55 in 2nd quarters (5th-best)". (Run before the gap was raised from 4 to 4.5; a few of the ten will drop.)
 
