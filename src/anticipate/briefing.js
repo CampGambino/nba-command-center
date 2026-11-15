@@ -13,6 +13,7 @@
  * (each game's card keeps those). Deep cuts: the rare and the big about lesser-known players, which would never beat
  * a star's line on prominence.
  */
+import { boost } from "./learn.js";
 const KEEP_OUT = new Set(["injury", "rest", "tv", "context"]);
 const RARE_KINDS = new Set(["pstreak", "pace", "record"]);
 const strip = (t) => String(t).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[\d.,%]+/g, "#").replace(/\s+/g, " ").trim().toLowerCase();
@@ -25,7 +26,7 @@ const dayDiff = (a, b) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(
  * seen: { key: "YYYY-MM-DD" first seen }; today.
  * -> { top: [line+], deep: [line+], seen }
  */
-export function briefing({ all, games = [], stars = {}, nationalGames = new Set(), seen = {}, today, topN = 10, deepN = 5 }) {
+export function briefing({ all, games = [], stars = {}, nationalGames = new Set(), seen = {}, today, topN = 10, deepN = 5, model = null }) {
   const gameOf = new Map();
   for (const g of games) { gameOf.set(g.away, `${g.away}@${g.home}`); gameOf.set(g.home, `${g.away}@${g.home}`); }
   const next = {};
@@ -34,6 +35,7 @@ export function briefing({ all, games = [], stars = {}, nationalGames = new Set(
   for (const l of all || []) {
     if (KEEP_OUT.has(l.kind) || !gameOf.has(l.team)) continue;
     const key = lineKey(l);
+    if (model?.down?.has(key)) continue; // the user voted this line down (0.67)
     const first = next[key] || today;
     next[key] = first;
     const age = today ? dayDiff(first, today) : 0;
@@ -41,8 +43,9 @@ export function briefing({ all, games = [], stars = {}, nationalGames = new Set(
     const fresh = age === 0 ? 0.35 : age >= 7 ? -1 : age >= 3 ? -0.5 : 0;
     const rare = l.rare || RARE_KINDS.has(l.kind) ? 0.3 : 0;
     const game = gameOf.get(l.team);
-    const rank = (l.score || 0) + 0.9 * prom + (nationalGames.has(game) ? 0.25 : 0) + fresh + rare;
-    scored.push({ ...l, game, prom, age, rank: Math.round(rank * 100) / 100, key });
+    const learned = boost(l, model, stars);   // 0.67: the user's votes, by feature
+    const rank = (l.score || 0) + 0.9 * prom + (nationalGames.has(game) ? 0.25 : 0) + fresh + rare + learned;
+    scored.push({ ...l, game, prom, age, learned, rank: Math.round(rank * 100) / 100, key });
   }
   scored.sort((a, b) => b.rank - a.rank);
   const pick = (list, n, { perGame, perKind }) => {
@@ -58,7 +61,7 @@ export function briefing({ all, games = [], stars = {}, nationalGames = new Set(
   const taken = new Set(top.map((l) => l.key)), topPlayers = new Set(top.map((l) => l.player).filter(Boolean));
   // Deep cuts: lesser-known players (or a team), rare or big, by their own score (prominence doesn't count here).
   const deepPool = scored.filter((l) => !taken.has(l.key) && !topPlayers.has(l.player) && l.prom < 0.45 && (l.rare || RARE_KINDS.has(l.kind) || (l.score || 0) >= 3) && l.age < 7)
-    .sort((a, b) => (b.score || 0) + (b.rare ? 0.3 : 0) - ((a.score || 0) + (a.rare ? 0.3 : 0)));
+    .sort((a, b) => (b.score || 0) + (b.rare ? 0.3 : 0) + b.learned - ((a.score || 0) + (a.rare ? 0.3 : 0) + a.learned));
   const deep = pick(deepPool, deepN, { perGame: 2, perKind: 2 });
   return { top, deep, seen: next };
 }

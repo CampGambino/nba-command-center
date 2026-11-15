@@ -2,6 +2,25 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.67.0 (2026-11-14): 👍/👎 on the briefing, learned; "Did we see it coming?"
+
+The user: "Go for it" (the two next steps proposed with 0.66: votes on each briefing line that the ranking learns from, and the tweets they send kept as checks with a hit rate).
+
+### What changed
+- **Votes (cloudflare/votes.js, in the Worker):** `POST /vote?k=<key>` stores the latest vote per line (👍 1, 👎 −1, 0 takes it back; at most 3,000; one KV write a vote; CORS for campgambino.github.io only). `GET /votes` returns them (public: the lines are public). The key is the review page's private key; the review page has a new **👍👎 Vote on the briefing** link that opens the Watch List with `#vote=<key>`. The page keeps the key in that browser only (localStorage) and removes it from the address bar; the fragment never reaches a server; the key is in no file.
+- **Watch List, the briefing:** with the key, each line has 👍/👎 (clicking the same again takes it back); "Learning from N votes: more career lows, fewer notes lines…"; "Turn voting off in this browser". Without the key nothing changes.
+- **Learning (src/anticipate/learn.js):** each vote counts for the line's features: its kind, who it's about (star / regular / lesser-known / team), what it says (career high/low, "since", NBA or franchise history, streak, tonight, only, record, notes, shooting, defense), and kind × what it says. Weight = 0.8 × (up − down) / (up + down + 2), from 2 votes; a line's boost is the sum, ±1.5. A line voted down itself stays out of the briefing. The build reads the Worker's votes (a copy in `history/briefing-votes.json` if it can't), and briefing.json shows the vote counts and the strongest learned weights.
+- **"Did we see it coming?" (src/anticipate/flagcheck.js, src/data/flag-checks.json):** every build checks each stat another account posted against what our detectors would have said that morning (results before that day only; a check can name its slate). Watch List, under the briefing: the hit rate, and for each one what we said or that we missed (with why). Today's 12 (the 11/14 tweets plus OKC and the Pelicans).
+
+### Tested
+- 704 checks pass (new: learned weights reorder the briefing and a voted-down line stays out; a flag check finds OKC's line from the 11/13 morning and misses an unrelated one); 61 Worker checks (new: a vote needs the key, latest per line, 0 takes it back, anyone can read, other paths pass through).
+- In a browser with the Worker stood in: `#vote=…` stored and cleared from the address bar; 👍 posts `{key, kind, team, player, text, d, v}` to `/vote?k=…` and lights up; the "Did we see it coming?" box opens.
+- The 12 checks on this season's results: **11 of 12 seen coming**; the miss is Franz Wagner's "fifth in Magic history" (no franchise-history game logs).
+
+### Unproven
+- The live Worker's `/votes` after the deploy, and the first build reading it, are checked after the push.
+- The learned weights start from nothing: they move only after a few votes per feature.
+
 ## 0.66.0 (2026-11-14): the briefing (one ranking for the slate) and prep stats from the user's tweets
 
 The user: "With all the information in the command center, how do I extract the pertinent and relevant information to display on the main page to prepare me for the evening slates… how can we highlight the obscure", then "Start with that" with nine tweets to find ahead of time: Dosunmu since Edwards' injury; Jokić's career-worst 22.9% from three; Curry over the Warriors' 7-game winning streak; 40+ in 5 straight (Dončić can join tonight); most points through 10 games (Dončić 393); Wemby over the Spurs' 9 straight; Curry's and Durant's seasons ("highest since '20-21", "career-low"); Franz Wagner's 30+ in four straight; Jokić's triple-double in 14 of 17 vs. the Pelicans.

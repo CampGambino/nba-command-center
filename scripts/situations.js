@@ -366,6 +366,17 @@ for (const [tri, games] of Object.entries(perTeam)) {
     console.log(`prep stats: ${prep.lines.length} lines (${Object.entries(byKind).map(([k, n]) => `${n} ${k}`).join(", ")})${prep.errors.length ? `; errors: ${prep.errors.join("; ")}` : ""}`);
     fs.writeFileSync(path.join(root, "docs", "data", "prep.json"), JSON.stringify({ generatedAt: out.generatedAt, today, through, lines: prep.lines, stars: prep.stars }));
   } catch (e) { console.error(`prep stats not written: ${e.message}`); }
+  // "Did we see it coming?" (0.67): the stats other accounts posted, against what we'd have said that morning.
+  try {
+    const { runChecks } = await import("../src/anticipate/flagcheck.js");
+    const cf = path.join(root, "src", "data", "flag-checks.json");
+    const hf = path.join(root, "src", "data", "nba-results-history.json");
+    if (fs.existsSync(cf)) {
+      const R = runChecks(JSON.parse(fs.readFileSync(cf, "utf8")).checks, { rows, logs: logsData, seasons: seasonsData, history: fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null, names: store.names || {}, nameKey: keyFn, season: seasonTag });
+      fs.writeFileSync(path.join(root, "docs", "data", "flag-checks.json"), JSON.stringify({ generatedAt: out.generatedAt, ...R }));
+      console.log(`flag checks: ${R.found} of ${R.total} seen coming${R.checks.filter((c) => !c.found).length ? ` (missed: ${R.checks.filter((c) => !c.found).map((c) => c.id).join(", ")})` : ""}`);
+    }
+  } catch (e) { console.error(`flag checks not run: ${e.message}`); }
   const byDate = Object.fromEntries(dates.map((d) => [d, anomalies(pg, store.names || {}, { dates: [d], careers })]));
   const ch = Object.values(byDate).flat().filter((a) => a.notes.some((n) => n.careerHigh)).length;
   console.log(`outliers: ${Object.values(byDate).flat().length} over ${dates.length} dates, ${ch} with a career high`);
@@ -498,12 +509,22 @@ for (const [tri, games] of Object.entries(perTeam)) {
       const seenFile = path.join(root, "history", "briefing-seen.json");
       const seen = fs.existsSync(seenFile) ? JSON.parse(fs.readFileSync(seenFile, "utf8")) : {};
       const nat = new Set((args.national?.upcoming || []).filter((g) => g.d === watch.today && g.status !== "dropped").map((g) => `${g.away}@${g.home}`));
-      const b = briefing({ all: cand.all, games: cand.games, stars: args.prep?.stars || {}, nationalGames: nat, seen, today: watch.today });
+      // 0.67: the user's 👍/👎 from the Worker (a copy is kept in history/ in case the Worker can't be reached).
+      const { learn } = await import("../src/anticipate/learn.js");
+      const votesFile = path.join(root, "history", "briefing-votes.json");
+      let votes = fs.existsSync(votesFile) ? JSON.parse(fs.readFileSync(votesFile, "utf8")) : [];
+      try {
+        const r = await fetch("https://ncc-articles.dukie0813.workers.dev/votes", { signal: AbortSignal.timeout(15000) });
+        if (r.ok) { votes = (await r.json()).votes || []; fs.writeFileSync(votesFile, JSON.stringify(votes)); }
+      } catch (e) { console.error(`briefing votes not read (using the saved copy): ${e.message}`); }
+      const model = learn(votes, args.prep?.stars || {});
+      const b = briefing({ all: cand.all, games: cand.games, stars: args.prep?.stars || {}, nationalGames: nat, seen, today: watch.today, model });
       fs.writeFileSync(seenFile, JSON.stringify(b.seen));
       const firstRun = !Object.keys(seen).length; // the first build has nothing to compare with: nothing is "new"
-      const slimL = (l) => ({ kind: l.kind, team: l.team, player: l.player || null, game: l.game, text: l.text, rank: l.rank, isNew: l.age === 0 && !firstRun });
-      fs.writeFileSync(path.join(root, "docs", "data", "briefing.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, candidates: cand.all.length, top: b.top.map(slimL), deep: b.deep.map(slimL) }));
-      console.log(`briefing: ${cand.all.length} candidates -> top ${b.top.length}, deep cuts ${b.deep.length}`);
+      const slimL = (l) => ({ key: l.key, kind: l.kind, team: l.team, player: l.player || null, game: l.game, text: l.text, rank: l.rank, learned: l.learned || 0, isNew: l.age === 0 && !firstRun });
+      const learned = Object.entries(model.weights).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 12);
+      fs.writeFileSync(path.join(root, "docs", "data", "briefing.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, candidates: cand.all.length, votes: { n: model.n, up: model.up.size, down: model.down.size, learned }, top: b.top.map(slimL), deep: b.deep.map(slimL) }));
+      console.log(`briefing: ${cand.all.length} candidates -> top ${b.top.length}, deep cuts ${b.deep.length}; ${model.n} votes, ${Object.keys(model.weights).length} learned weights`);
     } catch (e) { console.error(`briefing not written: ${e.message}`); }
   } catch (e) { console.error(`tonight's storylines not written: ${e.message}`); }
 }
@@ -517,7 +538,7 @@ for (const f of ["ratings.js", "withwithout.js", "leaders.js"]) fs.copyFileSync(
 fs.mkdirSync(path.join(root, "docs", "ref"), { recursive: true });
 for (const f of fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^nba-(record-book|single-game-bests|postseason-careers)-/.test(f))) fs.copyFileSync(path.join(root, "src", "data", f), path.join(root, "docs", "ref", f.replace(/-\d{4}-\d\d\.json$/, ".json")));
 fs.mkdirSync(path.join(root, "docs", "lib", "anticipate"), { recursive: true });
-for (const f of ["tonight.js", "briefing.js"]) fs.copyFileSync(path.join(root, "src", "anticipate", f), path.join(root, "docs", "lib", "anticipate", f));
+for (const f of ["tonight.js", "briefing.js", "learn.js"]) fs.copyFileSync(path.join(root, "src", "anticipate", f), path.join(root, "docs", "lib", "anticipate", f));
 fs.mkdirSync(path.join(root, "docs", "lib", "espn"), { recursive: true });
 for (const f of ["parse.js", "pbp.js"]) fs.copyFileSync(path.join(root, "src", "espn", f), path.join(root, "docs", "lib", "espn", f));
 const after = Object.values(store.dates).filter((d) => d.complete).length;

@@ -1979,6 +1979,35 @@ await articlesChecks(ok);
     "briefing (0.66): ranked across the slate, one line per player, no injury lines, a line seen for days fades, lesser-known rare lines as deep cuts", JSON.stringify({ top: B.top.map((l) => l.text), deep: B.deep.map((l) => l.text) }));
 }
 
+// ---------- 0.67: learning from briefing votes; "did we see it coming?" ----------
+{
+  const { learn, boost, features } = await import("../src/anticipate/learn.js");
+  const { briefing } = await import("../src/anticipate/briefing.js");
+  const stars = { "Star A": 0.9, "Star B": 0.8, "Bench C": 0.2, "Bench D": 0.25 };
+  const votes = [
+    { key: "k1", kind: "season", player: "Star A", text: "Star A this season: 20.0 PPG (career-low)", v: 1 },
+    { key: "k2", kind: "season", player: "Star B", text: "Star B this season: 25.0 PPG (career-low)", v: 1 },
+    { key: "k3", kind: "history", player: "Bench C", text: "CHI notes: Bench C ranked second in deflections", v: -1 },
+    { key: "k4", kind: "history", player: "Bench D", text: "DET notes: Bench D led the team in charges", v: -1 },
+  ];
+  const M = learn(votes, stars);
+  const good = { kind: "season", player: "Star B", text: "Star B this season: 24.0 PPG (career-low)" }, bad = { kind: "history", player: "Bench D", text: "MIA notes: Bench D…" };
+  ok(M.n === 4 && boost(good, M, stars) > 0.5 && boost(bad, M, stars) < -0.5 && features({ kind: "team", text: "x" }).includes("who:team"),
+    "learn (0.67): votes become weights by feature (kind, who, what it says); like lines rise, unlike lines sink", JSON.stringify(M.weights));
+  const all = [{ kind: "history", team: "AAA", player: "Bench D", text: "MIA notes: Bench D…", score: 4 }, { kind: "season", team: "BBB", player: "Star B", text: "Star B this season: 24.0 PPG (career-low)", score: 3 },
+    { kind: "team", team: "AAA", text: "voted down", score: 5, key: "kd" }];
+  const B = briefing({ all, games: [{ away: "AAA", home: "BBB" }], stars, today: "2026-11-15", model: { ...M, down: new Set([...M.down, "kd"]) } });
+  ok(B.top[0].player === "Star B" && !B.top.some((l) => l.key === "kd"), "briefing (0.67): the learned weights reorder it, and a line voted down stays out", JSON.stringify(B.top.map((l) => [l.text, l.learned])));
+  const { runChecks } = await import("../src/anticipate/flagcheck.js");
+  const rows = [{ d: "2026-11-10", h: "OKC", a: "AAA", hs: 100, as: 110 }, { d: "2026-11-12", h: "OKC", a: "AAA", hs: 99, as: 104 }, { d: "2026-11-13", h: "OKC", a: "AAA", hs: 90, as: 104 }];
+  const H = { games: [] };
+  for (let i = 0; i < 90; i++) H.games.push([new Date(Date.UTC(2024, 0, 1) + i * 864e5).toISOString().slice(0, 10), "OKC", "AAA", i % 2 ? 120 : 100, 110, 2]);
+  const R = runChecks([{ id: "okc", morning: "2026-11-13", claim: "OKC 3 straight", detector: "teamwatch", match: "^OKC has lost 2 straight: a loss tonight would be its first 3-game losing streak" },
+    { id: "nope", morning: "2026-11-13", claim: "something else", detector: "teamwatch", match: "^NOP " }], { rows, history: H, names: {} });
+  ok(R.found === 1 && R.total === 2 && R.checks[0].found && /first 3-game losing streak/.test(R.checks[0].line) && !R.checks[1].found,
+    "flag checks (0.67): a posted stat is checked against what we'd have said that morning (results before that day only)", JSON.stringify(R.checks.map((c) => [c.id, c.found, c.line])));
+}
+
 // ---------- 0.65: career highs allowed (this season's, rookies apart) ----------
 {
   const { careerHighsAllowed } = await import("../src/situations/trends.js");

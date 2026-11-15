@@ -28,6 +28,7 @@
  */
 import { lineupCheck } from "./lineups.js";
 import { digestCheck } from "./digest.js";
+import { handleVotes, SITE } from "./votes.js";
 export const ARTICLES_CRON = "*/5 * * * *";
 
 const FEEDS = [
@@ -347,6 +348,7 @@ function page(st, log, rules, key, labels) {
 tr.skip td{color:#777}.m{color:#888;font-size:12px}.b{display:inline-block;margin:2px 4px 2px 0;padding:2px 7px;border:1px solid #ccc;border-radius:6px;text-decoration:none;font-size:12px;white-space:nowrap}.bad{color:#c00}
 input{padding:5px;font-size:14px}</style>
 <h2>NBA Command Center · Articles watcher</h2>
+<p><a class="b" href="${SITE}/nba-command-center/#vote=${key}" target=_blank>👍👎 Vote on the briefing</a> <span class=m>opens the Watch List with voting turned on in that browser (bookmark this review page, not the Watch List link)</span></p>
 <ul>${src}</ul><p class=m>Checks on its Cloudflare schedule (every 5 minutes); saves only when something new arrives, or every 30 minutes to show it's alive. Last saved ${ago(st.lastWrite)}${st.lastWrite && Date.now() - st.lastWrite > 40 * 60e3 ? ` <span class=bad>(over 40 minutes: the 2-minute schedule may not be running)</span>` : ""}.</p>
 ${list("Muted writers", rules.muteBylines, "unmute-writer")}${list("Always-allowed writers", rules.allowBylines, "unallow-writer")}${list("Muted phrases", rules.muteWords, "unmute-word")}
 <form action="/act"><input type=hidden name=k value="${key}"><input type=hidden name=do value="mute-word"><input name=v placeholder="mute a phrase in titles"> <button>Mute</button></form>
@@ -411,6 +413,9 @@ export default {
       const ok = await discord(env, { content: `✅ Articles watcher connected. New ESPN and Athletic NBA articles will post here within a few minutes of going up (every Athletic NBA story; from ESPN, recaps, previews, videos, fantasy and betting are skipped).\nYour private review page, to train what gets posted: ${url.origin}/review?k=${key}` });
       return html(ok ? "<p style='font:16px sans-serif'>Done. Check the Discord channel: a test message with your private review link is there.</p>" : "<p>Discord didn't accept the message. Check the DISCORD_WEBHOOK secret.</p>", ok ? 200 : 502);
     }
+    // Briefing votes (0.67): /votes is public; /vote needs the key (checked inside).
+    const voted = await handleVotes(req, env, url, key);
+    if (voted) return voted;
     if (url.searchParams.get("k") !== key) return new Response("Not found", { status: 404 });
     if (url.pathname === "/review") return html(page(await load(env, "state", {}), await load(env, "log", []), await load(env, "rules", { muteBylines: [], muteWords: [], allowBylines: [] }), key, await load(env, "labels", [])));
     if (url.pathname === "/act") return act(env, url, key);

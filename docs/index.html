@@ -90,6 +90,13 @@
   .brief ol.top li { font-size: 15px; } .brief ol.deep li { font-size: 13.5px; color: var(--muted); }
   .brief .bg { font-size: 11px; font-weight: 700; color: var(--faint); margin-right: 6px; white-space: nowrap; letter-spacing: .3px; }
   .brief .bnew { font-size: 10.5px; font-weight: 700; text-transform: uppercase; padding: 1px 6px; border-radius: 8px; margin-right: 6px; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+  .brief .t { flex: 1; }
+  details.seen { margin: -8px 0 18px; padding: 8px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); font-size: 13.5px; }
+  details.seen summary { cursor: pointer; } details.seen ul { margin: 8px 0 0; padding-left: 4px; list-style: none; }
+  details.seen li { padding: 5px 0; border-top: 1px solid var(--line); } details.seen .said { color: var(--muted); font-size: 12.5px; }
+  .brief .vote { display: flex; gap: 4px; flex: none; }
+  .brief .vote button { border: 1px solid var(--line); background: transparent; border-radius: 8px; padding: 1px 6px; cursor: pointer; font-size: 13px; opacity: .55; }
+  .brief .vote button:hover { opacity: 1; } .brief .vote button.on { opacity: 1; border-color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); }
   .brief h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--faint); margin: 12px 0 2px; }
 </style>
 </head>
@@ -108,6 +115,7 @@
   <h2 id="briefing">The briefing</h2>
   <div class="key" id="briefKey">The slate's ten biggest storylines, ranked together across every game and every source: how big or rare it is, who it's about, national TV, and whether it's new today. Then the deep cuts: rare or big ones about lesser-known players.</div>
   <div class="brief" id="brief"><div class="empty">Loading…</div></div>
+  <details class="seen" id="seenBox" hidden><summary id="seenSum"></summary><div class="key">Stats other accounts posted, checked against what our lines said the morning before (from the results as they stood then). Each miss is the next thing to build.</div><ul id="seenList"></ul></details>
 
   <h2>Tonight's storylines</h2>
   <div class="key">What could happen or end tonight, per game: 📜 history from the teams' notes, 🩹 regulars on the injury report and what changes without them, milestones in reach, streaks on the line, runs leading the team, shooters a make or two from 50 / 40 / 90, and team streaks. The same lines go to Discord at 3 PM. Tap a line for the details.<span id="injAsOf"></span></div>
@@ -334,20 +342,67 @@ function renderMatchups(m, injuries) {
 }
 
 // The briefing (0.66): docs/data/briefing.json, ranked by the build (src/anticipate/briefing.js).
+// Votes (0.67): with the private key (from the review page's "Vote on the briefing" link, kept in this browser
+// only), each line gets 👍 / 👎; they go to the Worker and the next build learns from them (src/anticipate/learn.js).
+const WORKER = "https://ncc-articles.dukie0813.workers.dev";
+(() => {
+  const m = location.hash.match(/(?:^#|&)vote=([0-9a-f]{12,64})/);
+  if (m) { try { localStorage.setItem("ncc-vote-key", m[1]); } catch {} history.replaceState(null, "", location.pathname + location.search); }
+})();
+const voteKey = () => { try { return localStorage.getItem("ncc-vote-key"); } catch { return null; } };
+let MYVOTES = null, BRIEF = null, BRIEF_INJ = null;
+const FEATURE_WORDS = { "who:star": "stars", "who:regular": "regular starters", "who:lesser": "lesser-known players", "who:team": "team lines", "kind:season": "season-vs-career lines", "kind:span": "in-that-span lines", "kind:pstreak": "player streaks", "kind:vsopp": "vs-opponent lines", "kind:pace": "pace lines", "kind:history": "notes lines", "kind:team": "team streaks", "kind:matchup": "head-to-head lines", "kind:record": "record chases", "kind:milestone": "milestones", "says:career-low": "career lows", "says:career-high": "career highs", "says:since": "\"first/highest since\" lines", "says:nba-history": "NBA-history lines", "says:team-history": "franchise-history lines", "says:streak": "streaks", "says:only": "\"only/no one else\" lines", "says:shooting": "shooting numbers", "says:defense": "defense lines", "says:notes": "the teams' notes" };
+async function vote(l, v) {
+  const k = voteKey();
+  if (!k) return;
+  const cur = MYVOTES?.get(l.key) || 0, nv = cur === v ? 0 : v;
+  try {
+    const r = await fetch(`${WORKER}/vote?k=${k}`, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ key: l.key, kind: l.kind, team: l.team, player: l.player, text: l.text, d: data.today, v: nv }) });
+    if (!r.ok) throw new Error(r.status === 403 ? "the voting key isn't right: open the link from the review page again" : `error ${r.status}`);
+    MYVOTES.set(l.key, nv);
+    renderBriefing();
+  } catch (e) { alertLine(`Vote not saved: ${e.message}`); }
+}
+function renderSeen(f) {
+  if (!f || !f.checks || !f.checks.length) return;
+  $("seenBox").hidden = false;
+  $("seenSum").innerHTML = `<b>Did we see it coming?</b> ${f.found} of ${f.total} stats other accounts posted were in our lines that morning`;
+  const md = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}`;
+  $("seenList").innerHTML = f.checks.map((c) => `<li class="${c.found ? "hit" : "miss"}"><b>${c.found ? "✅" : "❌"} ${esc(c.claim)}</b> <span class="empty">(posted ${md(c.posted)}; our ${md(c.morning)} morning)</span><br>${c.found ? `<span class="said">We said: ${esc(c.line)}</span>` : `<span class="said">Not in our lines.${c.note ? ` ${esc(c.note)}` : ""}</span>`}</li>`).join("");
+}
+function alertLine(t) { const el = $("briefNote"); if (el) el.textContent = t; }
 function renderBriefing(b, injuries) {
-  const status = injuryStatus(injuries, data.today);
+  if (b !== undefined) BRIEF = b;
+  if (injuries !== undefined) BRIEF_INJ = injuries;
+  b = BRIEF;
+  const status = injuryStatus(BRIEF_INJ, data.today);
   if (!b || !b.top || b.today !== data.today) { $("brief").innerHTML = `<div class="empty">No briefing for tonight yet (it's built with the day's data).</div>`; return; }
+  const k = voteKey();
+  if (k && !MYVOTES) {
+    MYVOTES = new Map();
+    fetch(`${WORKER}/votes`, { cache: "no-store" }).then((r) => r.json()).then((j) => { for (const x of j.votes || []) MYVOTES.set(x.key, x.v); renderBriefing(); }).catch(() => {});
+  }
   const ok = (l) => !l.player || !/^(?:Out|Doubtful)$/.test(status(l.team, l.player) || "");
-  const li = (l, i) => { const k = KIND[l.kind] || ["•", "#"]; return `<li><span class="n">${i + 1}</span><span class="k">${k[0]}</span><span>${l.isNew ? `<span class="bnew">new</span>` : ""}<span class="bg">${esc(l.game.replace("@", " @ "))}</span> ${esc(l.text)}${l.player && status(l.team, l.player) === "Questionable" ? " <i>(questionable)</i>" : ""}</span></li>`; };
+  const all = [...b.top, ...b.deep];
+  const btns = (l) => { if (!k || !l.key) return ""; const v = MYVOTES?.get(l.key) || 0, i = all.indexOf(l);
+    return `<span class="vote"><button data-i="${i}" data-v="1" class="${v > 0 ? "on" : ""}" title="More like this">👍</button><button data-i="${i}" data-v="-1" class="${v < 0 ? "on" : ""}" title="Less like this (and hide this line)">👎</button></span>`; };
+  const li = (l, i) => { const kd = KIND[l.kind] || ["•", "#"]; return `<li><span class="n">${i + 1}</span><span class="k">${kd[0]}</span><span class="t">${l.isNew ? `<span class="bnew">new</span>` : ""}<span class="bg">${esc(l.game.replace("@", " @ "))}</span> ${esc(l.text)}${l.player && status(l.team, l.player) === "Questionable" ? " <i>(questionable)</i>" : ""}</span>${btns(l)}</li>`; };
   const top = b.top.filter(ok), deep = b.deep.filter(ok);
-  $("brief").innerHTML = `<ol class="top">${top.map(li).join("")}</ol>${deep.length ? `<h3>Deep cuts</h3><ol class="deep">${deep.map(li).join("")}</ol>` : ""}<div class="empty" style="padding:6px 2px 0">Ranked from ${b.candidates} candidate lines.</div>`;
+  const V = b.votes || { n: 0, learned: [] };
+  const words = (V.learned || []).filter(([f]) => FEATURE_WORDS[f]).slice(0, 4).map(([f, w]) => `${w > 0 ? "more" : "fewer"} ${FEATURE_WORDS[f]}`);
+  const learnedNote = V.n ? `Learning from ${V.n} vote${V.n === 1 ? "" : "s"}${words.length ? `: ${words.join(", ")}` : ""}.` : "";
+  $("brief").innerHTML = `<ol class="top">${top.map(li).join("")}</ol>${deep.length ? `<h3>Deep cuts</h3><ol class="deep">${deep.map(li).join("")}</ol>` : ""}
+    <div class="empty" style="padding:6px 2px 0">Ranked from ${b.candidates} candidate lines. ${learnedNote} ${k ? `Your votes count from the next build (several a day). <a href="#" id="voteOff">Turn voting off in this browser</a>` : ""}</div><div class="empty" id="briefNote"></div>`;
+  document.querySelectorAll("#brief .vote button").forEach((x) => x.onclick = () => vote(all[+x.dataset.i], +x.dataset.v));
+  if ($("voteOff")) $("voteOff").onclick = (e) => { e.preventDefault(); try { localStorage.removeItem("ncc-vote-key"); } catch {} MYVOTES = null; renderBriefing(); };
 }
 
 async function renderStories() {
   try {
-    const [trends, leaders, injuries, facts, matchups, national, rest, form, prep, brief] = await Promise.all(["data/trends.json", "data/leaders.json", "data/injuries.json", "data/notes-facts.json", "data/matchups.json", "data/national.json", "data/rest.json", "data/form.json", "data/prep.json", "data/briefing.json"].map((f) => fetch(f, { cache: "no-store" }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))));
+    const [trends, leaders, injuries, facts, matchups, national, rest, form, prep, brief, flags] = await Promise.all(["data/trends.json", "data/leaders.json", "data/injuries.json", "data/notes-facts.json", "data/matchups.json", "data/national.json", "data/rest.json", "data/form.json", "data/prep.json", "data/briefing.json", "data/flag-checks.json"].map((f) => fetch(f, { cache: "no-store" }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))));
     const stories = tonightStorylines({ watch: data, trends, leaders, injuries, facts, matchups, national, rest, form, prep, maxLines: 8 });
     renderBriefing(brief, injuries);
+    renderSeen(flags);
     renderHistory(facts, injuries);
     renderMatchups(matchups, injuries);
     $("injAsOf").textContent = injuries?.report?.asOf ? ` Injuries from the official NBA injury report of ${injuries.report.asOf} ET.` : "";

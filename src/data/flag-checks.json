@@ -1,0 +1,17 @@
+{
+  "about": "Stats other accounts posted that the user sent (11/14), and the morning our detectors should have had them. src/anticipate/flagcheck.js runs them every build; docs/data/flag-checks.json has the results.",
+  "checks": [
+    { "id": "okc-3-losses", "posted": "2026-11-14", "morning": "2026-11-13", "claim": "OKC loses 3 straight for the first time since 2023-24", "detector": "teamwatch", "match": "^OKC has lost 2 straight: a loss tonight would be its first 3-game losing streak since 2023-24" },
+    { "id": "nop-135-four", "posted": "2026-11-14", "morning": "2026-11-13", "claim": "Pelicans: 135+ allowed in four straight, the third team in NBA history", "detector": "teamwatch", "match": "^NOP has allowed 135\\+ in 3 straight" },
+    { "id": "dosunmu-edwards", "posted": "2026-11-14", "morning": "2026-11-08", "claim": "Ayo Dosunmu since Anthony Edwards' injury: 20.6 PPG… Wolves' leading scorer, 4-2", "detector": "prep", "match": "^Ayo Dosunmu since Anthony Edwards last played" },
+    { "id": "jokic-3pt", "posted": "2026-11-14", "morning": "2026-11-08", "claim": "Jokić shooting a career-worst 22.9% from three", "detector": "prep", "match": "^Nikola Jokic this season.*3PT \\(career-low\\)" },
+    { "id": "curry-streak", "posted": "2026-11-14", "morning": "2026-11-08", "claim": "Curry over the Warriors' 7-game winning streak: 33.8 PPG, 73.3 TS%", "detector": "prep", "match": "^Stephen Curry over GSW's 7-game winning streak" },
+    { "id": "luka-40-five", "posted": "2026-11-14", "morning": "2026-11-08", "claim": "40+ in 5 straight games: Luka Dončić can join this list tonight", "detector": "prep", "match": "^Luka Doncic has 40\\+ points in 4 straight games" },
+    { "id": "luka-393", "posted": "2026-11-14", "morning": "2026-11-10", "claim": "Most points through the first 10 games: Luka Dončić 393", "detector": "prep", "match": "^Luka Doncic's 393 points through 10 games" },
+    { "id": "wemby-streak", "posted": "2026-11-14", "morning": "2026-11-10", "claim": "Spurs have won 9 in a row after an 0-2 start; Wemby in that span", "detector": "prep", "match": "^Victor Wembanyama over SAS's 9-game winning streak" },
+    { "id": "curry-season", "posted": "2026-11-14", "morning": "2026-11-10", "claim": "Curry: 30.6 PPG (highest since '20-21), 50.3% FG (since '15-16), 45.7% 3PT (career-high)", "detector": "prep", "match": "^Stephen Curry this season.*PPG \\(highest since '20-21\\)" },
+    { "id": "durant-season", "posted": "2026-11-14", "morning": "2026-11-10", "claim": "Durant: 21.0 PPG (lowest since rookie year), 12.8 FGA/G (career-low), 24.5% USG", "detector": "prep", "match": "^Kevin Durant this season.*lowest since his rookie year" },
+    { "id": "wagner-30-four", "posted": "2026-11-14", "morning": "2026-11-13", "claim": "Franz Wagner: fifth player in Magic history with 30+ in four straight", "detector": "prep", "match": "^Franz Wagner has 30\\+ points in 3 straight", "note": "Needs franchise-history game logs (we have current players since 2016-17, with no team per game)." },
+    { "id": "jokic-td-nop", "posted": "2026-11-14", "morning": "2026-11-14", "claim": "Jokić has a triple-double in 14 of his last 17 games vs. the Pelicans", "detector": "prep", "match": "^Nikola Jokic has a triple-double in \\d+ of his last \\d+ games vs\\. NOP", "slate": [{ "away": "DEN", "home": "NOP" }] }
+  ]
+}

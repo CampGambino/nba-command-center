@@ -9,6 +9,7 @@ import { dueAt, dueNow, digestCheck } from "../cloudflare/digest.js";
 import { TEAM_FEEDS, teamFeedGroup, findLiveBlog, parseLiveBlog, LIVE_FEED } from "../cloudflare/articles-worker.js";
 import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey, tagOf as articleTag } from "../cloudflare/articles-worker.js";
 
+import { handleVotes } from "../cloudflare/votes.js";
 export async function articlesChecks(ok) {
   const T0 = Date.parse("2026-11-12T11:00:00Z"); // 6:00 AM ET
   const iso = (min) => new Date(T0 + min * 60e3).toISOString();
@@ -387,5 +388,22 @@ export async function articlesChecks(ok) {
       await articlesCheckL(env, T + 300e3, { feeds: [LIVE_FEED] });
       ok(sent.length === 1, "articles: the article a live blog post links to isn't posted again; the same post isn't either", String(sent.length));
     } finally { globalThis.fetch = realFetch; }
+  }
+  // ---------- 0.67: briefing votes ----------
+  {
+    const kv = new Map();
+    const env = { STATE: { get: async (k) => (kv.has(k) ? JSON.parse(kv.get(k)) : null), put: async (k, v) => kv.set(k, v) } };
+    const req = (method, path, body) => new Request(`https://w.example${path}`, { method, body: body ? JSON.stringify(body) : undefined });
+    const call = async (method, path, body) => { const r = req(method, path, body); return handleVotes(r, env, new URL(r.url), "KEY1"); };
+    const denied = await call("POST", "/vote?k=nope", { key: "a", v: 1 });
+    const up = await call("POST", "/vote?k=KEY1", { key: "season|1|ppg", kind: "season", team: "GSW", player: "Stephen Curry", text: "Curry this season…", d: "2026-11-14", v: 1 });
+    await call("POST", "/vote?k=KEY1", { key: "team|x", kind: "team", text: "x", v: -1 });
+    await call("POST", "/vote?k=KEY1", { key: "season|1|ppg", v: -1, kind: "season" });
+    await call("POST", "/vote?k=KEY1", { key: "team|x", v: 0 });
+    const list = await (await call("GET", "/votes")).json();
+    const bad = await call("POST", "/vote?k=KEY1", { key: "z", v: 5 });
+    const other = await call("GET", "/review");
+    ok(denied.status === 403 && up.status === 200 && up.headers.get("Access-Control-Allow-Origin") === "https://campgambino.github.io" && list.votes.length === 1 && list.votes[0].v === -1 && bad.status === 400 && other === null,
+      "votes (0.67): a vote needs the key; the latest vote per line is kept, 0 takes it back; anyone can read; other paths pass through", JSON.stringify(list));
   }
 }
