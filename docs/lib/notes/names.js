@@ -29,6 +29,8 @@ export function nameKey(s) {
     .replace(/[̀-ͯ]/g, "")
     .replace(/[’']/g, "")
     .replace(/\b(jr|sr|ii|iii|iv)\.?$/i, "")
+    // 0.72: initials match with or without their periods ("A.J. Green" in the Guide, "AJ Green" on ESPN; "P.J." / "PJ").
+    .replace(/\b(\p{L})\.(?=\p{L}\.)/gu, "$1").replace(/\b(\p{L}{2,3})\.(?=\s)/gu, (m, a) => (a === a.toUpperCase() ? a : m))
     .replace(/[^a-zA-Z. ]/g, " ")
     .replace(/\s+/g, " ")
     .trim()

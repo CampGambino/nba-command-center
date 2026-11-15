@@ -28,7 +28,15 @@ function sum(games) {
 }
 
 /** A game's line in the logs' column order -> { d, opp, home, win, type, min, pts, … }. */
+// One conversion per logs object (0.72): three detectors ask for it, and every "Did we see it coming?" morning asks again.
+const LOG_ROWS = new WeakMap();
 function logRows(logs) {
+  if (logs && LOG_ROWS.has(logs)) return LOG_ROWS.get(logs);
+  const out = logRows0(logs);
+  if (logs) LOG_ROWS.set(logs, out);
+  return out;
+}
+function logRows0(logs) {
   const C = logs?.columns || [];
   const ix = Object.fromEntries(C.map((c, i) => [c, i]));
   const out = {};

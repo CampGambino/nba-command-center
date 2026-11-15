@@ -1,3 +1,4 @@
+import { sameName, nameKey } from "../notes/names.js";
 import fs from "node:fs";
 import path from "node:path";
 import { parseNotes } from "../notes/parse.js";
@@ -22,9 +23,22 @@ export const VERIFIED_FORMATS = new Set(["CLE", "LAL", "SAS", "PHX", "ATL", "CHA
  * @param {Array} [p.uncounted] tonight's games that count in neither standings nor stats (the NBA Cup final)
  */
 /** Notes milestones for a player a team no longer rosters go to the team that does tonight, or are left out (0.71). */
-export function moveTraded(teams, roster) {
+export function moveTraded(teams, roster, rosterNames = {}) {
   for (const t of teams) {
     if (!roster[t.team]) continue;
+    // 0.72: a notes player with no ESPN id (ids come from the roster) whose name isn't on the roster either has left:
+    // the Kings' 11/15 notes still tracked DeRozan, Westbrook, Schröder and five more (29 milestones under SAC).
+    const names = rosterNames[t.team];
+    if (names?.length >= 10) {
+      // On the roster: the same name, an initial for the first name, or the same last name and first letter ("Nic" / "Nicolas").
+      const last = (k) => k.split(" ").pop();
+      const onRoster = (who) => { const k = nameKey(who); return names.some((n) => { const r = nameKey(n); return r === k || sameName(n, who) || (last(r) === last(k) && r[0] === k[0]); }); };
+      const off = t.items.filter((i) => i.origin === "notes" && !i.espnId && i.player && !onRoster(i.player));
+      if (off.length) {
+        t.items = t.items.filter((i) => !off.includes(i));
+        for (const who of [...new Set(off.map((i) => i.player))]) t.problems.push(`${who} is in ${t.team}'s notes but not on its roster: ${off.filter((i) => i.player === who).length} milestone${off.filter((i) => i.player === who).length === 1 ? "" : "s"} left out`);
+      }
+    }
     const gone = t.items.filter((i) => i.origin === "notes" && i.espnId && !roster[t.team].has(String(i.espnId)));
     if (!gone.length) continue;
     t.items = t.items.filter((i) => !gone.includes(i));
@@ -109,8 +123,9 @@ export async function buildSite({ entries, games = [], uncounted = [], espn, nba
   try {
     const roster = {};
     const T = espn?.teams ? await espn.teams() : null;
-    if (T?.ok) for (const t of teams) { const id = T.data.ids[t.team]; const r = id && espn.roster ? await espn.roster(id) : null; if (r?.ok) roster[t.team] = new Set(r.data.players.map((p) => String(p.id))); }
-    moveTraded(teams, roster);
+    const rosterNames = {};
+    if (T?.ok) for (const t of teams) { const id = T.data.ids[t.team]; const r = id && espn.roster ? await espn.roster(id) : null; if (r?.ok) { roster[t.team] = new Set(r.data.players.map((p) => String(p.id))); rosterNames[t.team] = r.data.players.map((p) => p.name).filter(Boolean); } }
+    moveTraded(teams, roster, rosterNames);
   } catch (err) { console.error(`roster check skipped: ${err.message}`); }
   const docs = path.join(root, "docs");
   fs.mkdirSync(path.join(docs, "data"), { recursive: true });

@@ -304,7 +304,7 @@ async function poll() {
     if (L?.state === "post") continue;
     if (now < new Date(g.start).getTime() - 10 * 60e3) continue; // not yet
     try {
-      const res = await fetch(`${ESPN}/summary?event=${g.id}`, { cache: "no-store" });
+      const res = await fetch(`${ESPN}/summary?event=${g.id}`, { cache: "no-store", signal: AbortSignal.timeout(15000) }); // a hung request can't stall the countdowns (0.72)
       const json = await res.json();
       const st = json?.header?.competitions?.[0]?.status?.type || {};
       const comp = json?.header?.competitions?.[0]?.competitors || [];
@@ -418,8 +418,17 @@ function renderBriefing(b, injuries) {
 
 async function renderStories() {
   try {
-    const [trends, leaders, injuries, facts, matchups, national, rest, form, prep, brief, flags] = await Promise.all(["data/trends.json", "data/leaders.json", "data/injuries.json", "data/notes-facts.json", "data/matchups.json", "data/national.json", "data/rest.json", "data/form.json", "data/prep.json", "data/briefing.json", "data/flag-checks.json"].map((f) => fetch(f, { cache: "no-store" }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))));
-    const stories = tonightStorylines({ watch: data, trends, leaders, injuries, facts, matchups, national, rest, form, prep, maxLines: 8 });
+    const get = (f) => fetch(f, { cache: "no-store" }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+    const [injuries, facts, matchups, brief, flags, built] = await Promise.all(["data/injuries.json", "data/notes-facts.json", "data/matchups.json", "data/briefing.json", "data/flag-checks.json", "data/tonight.json"].map(get));
+    // 0.72: the storylines the build already made (data/tonight.json: the same ones Discord and NBA Live get, with the
+    // record, Cup and foul lines this page never computed), instead of loading six more files (~1 MB by spring) to
+    // work them out again here. If that file is missing or from another day, they're worked out here as before.
+    let stories;
+    if (built && built.today === data.today && Array.isArray(built.games) && built.games.length) stories = built.games;
+    else {
+      const [trends, leaders, national, rest, form, prep] = await Promise.all(["data/trends.json", "data/leaders.json", "data/national.json", "data/rest.json", "data/form.json", "data/prep.json"].map(get));
+      stories = tonightStorylines({ watch: data, trends, leaders, injuries, facts, matchups, national, rest, form, prep, maxLines: 8 });
+    }
     renderBriefing(brief, injuries);
     renderSeen(flags);
     renderHistory(facts, injuries);
@@ -435,10 +444,35 @@ async function renderStories() {
   }
 }
 
+// Build health (0.72): docs/data/health.json says when the build last ran and how each step went. A note shows when a
+// step failed or the data is older than it should be; the footer always says when the last build was.
+const STEP = { tonight: "notes and milestones", situations: "results, stats and storylines", flow: "Game Flow" };
+async function renderHealth(watch) {
+  let h = null;
+  try { const r = await fetch("data/health.json", { cache: "no-store" }); if (r.ok) h = await r.json(); } catch {}
+  const at = h?.at || watch?.generatedAt;
+  if (!at) return;
+  const when = new Date(at), ageH = (Date.now() - when.getTime()) / 3600e3;
+  const clock = when.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  const etHour = +new Date().toLocaleString("en-US", { timeZone: "America/New_York", hour: "numeric", hour12: false });
+  const notes = [];
+  const failed = (h?.steps || []).filter((x) => !x.ok);
+  if (failed.length) notes.push(`The ${esc(clock)} build had a problem: <b>${failed.map((x) => esc(STEP[x.step] || x.step)).join("</b> and <b>")}</b> didn't finish (${failed.map((x) => esc(x.error || "failed")).join("; ")}). That part of the site shows the last good build.`);
+  if (h?.kept) notes.push(esc(h.kept) + ".");
+  // Builds run about every 2.5 hours from 8 AM to 5:30 PM ET: by late morning the newest should be under 5 hours old.
+  if (ageH > 26 || (etHour >= 11 && etHour < 19 && ageH > 5)) notes.push(`The site last rebuilt ${esc(clock)} (${ageH >= 48 ? `${Math.round(ageH / 24)} days` : `${Math.round(ageH)} hours`} ago). Builds run about every 2.5 hours through the day, so GitHub's schedule is late or the build isn't running.`);
+  if (notes.length) $("stale").innerHTML += `<div class="warn-banner">⚠️ ${notes.join("<br>")}</div>`;
+  const marks = (h?.steps || []).map((x) => `${esc(STEP[x.step] || x.step)} ${x.ok ? "✓" : "✗"}`).join(" · ");
+  const warn = (h?.steps || []).flatMap((x) => x.notes || []);
+  document.querySelector("footer").insertAdjacentHTML("beforeend", `<div id="health" style="margin-top:6px"${warn.length ? ` title="${esc(warn.join("\n"))}"` : ""}>Last build ${esc(clock)}${marks ? `: ${marks}` : ""}${warn.length ? ` · ${warn.length} note${warn.length === 1 ? "" : "s"} (hover)` : ""}</div>`);
+}
+
 async function main() {
   try {
     data = await (await fetch("data/watch.json", { cache: "no-store" })).json();
-  } catch (e) { $("sub").textContent = "Couldn't load the Watch List data."; return; }
+  } catch (e) { $("sub").textContent = "Couldn't load the Watch List data."; renderHealth(null); return; }
+  if (!data || !Array.isArray(data.teams)) { $("sub").textContent = "The Watch List data is incomplete (the last build may have been cut short)."; renderHealth(null); return; }
+  renderHealth(data);
   items = data.teams.flatMap((t) => t.items.map((i) => ({ ...i, team: t.team }))).filter((i) => !i.stale);
   const gen = new Date(data.generatedAt);
   $("sub").textContent = `${new Date(data.today + "T12:00:00").toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })} · ${gamesList().length} games · ${data.teams.filter((t) => t.items.length).length} teams' notes · updated ${gen.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`;

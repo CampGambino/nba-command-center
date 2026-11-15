@@ -2161,6 +2161,65 @@ await articlesChecks(ok);
     "notes (0.69): 'the only Raptors' is team history; a stray date from the next table cell is cut");
 }
 
+// ---------- 0.72: the full diagnostic (11/15): what could break, and what was quietly wrong ----------
+{
+  // The Knicks' 11/15 notes: an "on this date" line named the Spurs and carried today's month and day.
+  const { readMeta } = await import("../src/notes/meta.js");
+  const L = (text) => ({ text, cells: [{ text }] });
+  const doc = { pages: [{ lines: [L("NEW YORK KNICKS (8-5)"), L("TORONTO RAPTORS (5-7)"), L("NOVEMBER 15, 2026 *6:00 P.M ET"), L("Nov. 15  @ Toronto  6:00pm"),
+    L("November 15,2012: Knicks ride a 27-11 rally over the game's final 7:02 for a stunning win over the Spurs at San Antonio.")] }] };
+  const m = readMeta(doc, "NYK");
+  ok(m.gameDate === "2026-11-15" && m.opponent === "TOR", "notes (0.72): an \"on this date\" line from another year doesn't name tonight's opponent (the Knicks' notes were read as vs. SAS)", JSON.stringify([m.gameDate, m.opponent, m.opponentEvidence]));
+  // Initials with and without periods.
+  const { strictKey } = await import("../src/records/guide.js");
+  ok(strictKey("A.J. Green") === strictKey("AJ Green") && nameKey("P.J. Washington Jr.") === nameKey("PJ Washington") && strictKey("Gary Payton II") !== strictKey("Gary Payton")
+    && nameKey("D. Mitchell") === "d. mitchell" && sameName("D. Mitchell", "Donovan Mitchell") && sameName("R. Westbrook", "Russell Westbrook"),
+    "names (0.72): \"A.J. Green\" (the Guide) and \"AJ Green\" (ESPN) are one player; suffixes and single initials still work", JSON.stringify([strictKey("A.J. Green"), nameKey("P.J. Washington Jr."), nameKey("D. Mitchell")]));
+  // Notes players with no ESPN id who aren't on the roster (the Kings' notes still tracked DeRozan and Westbrook).
+  const { moveTraded } = await import("../src/site/build.js");
+  const it = (player, o = {}) => ({ player, espnId: null, origin: "notes", stat: "pts", label: "points", target: 500, ...o });
+  const roster12 = ["Domantas Sabonis", "Nicolas Claxton", "Keegan Murray", "A B", "C D", "E F", "G H", "I J", "K L", "M N", "O P", "Q R"];
+  const teams = [{ team: "SAC", items: [it("D. DeRozan"), it("D. DeRozan", { stat: "blk" }), it("R. Westbrook"), it("D. Sabonis"), it("Nic Claxton"), it("Keegan Murray", { espnId: "9" })], problems: [] }];
+  moveTraded(teams, { SAC: new Set(["9"]) }, { SAC: roster12 });
+  ok(teams[0].items.map((i) => i.player).join() === "D. Sabonis,Nic Claxton,Keegan Murray" && teams[0].problems.some((p) => /^D\. DeRozan is in SAC's notes but not on its roster: 2 milestones left out/.test(p)),
+    "milestones (0.72): a notes player with no ESPN id and no one by that name on the roster is left out; an initial or a short first name still matches", JSON.stringify(teams[0]));
+  // The results store against ESPN's records.
+  const { recordCheck } = await import("../src/situations/results.js");
+  const { readScoreboard } = await import("../src/espn/parse.js");
+  const rowsR = [{ id: "1", h: "BOS", a: "DAL", hs: 110, as: 100 }, { id: "2", h: "DAL", a: "BOS", hs: 90, as: 99 }, { id: "3", h: "NYK", a: "TOR", hs: 100, as: 90 }];
+  const sbg = (o) => ({ seasonType: 2, state: "pre", final: false, ...o });
+  const off = recordCheck(rowsR, [sbg({ id: "9", homeTri: "BOS", awayTri: "DAL", homeRec: [2, 0], awayRec: [0, 2] }), sbg({ id: "8", homeTri: "NYK", awayTri: "TOR", homeRec: [2, 0], awayRec: [0, 2] }),
+    sbg({ id: "7", homeTri: "MIA", awayTri: "ORL", state: "post", final: true, homeScore: 100, awayScore: 90, homeRec: [1, 0], awayRec: [0, 1] }), sbg({ id: "6", homeTri: "LAL", awayTri: "PHX", state: "in", homeRec: [5, 5], awayRec: [5, 5] })]);
+  const sbj = { events: [{ id: "1", date: "2026-11-15T23:00Z", season: { type: 2 }, competitions: [{ status: { type: { completed: false, state: "pre" } }, competitors: [
+    { homeAway: "home", team: { displayName: "Boston Celtics" }, records: [{ type: "total", summary: "10-2" }, { type: "home", summary: "6-1" }] }, { homeAway: "away", team: { displayName: "Dallas Mavericks" }, records: [] }] }] }] };
+  const g0 = readScoreboard(sbj).games[0];
+  ok(off.map((x) => `${x.team} ${x.espn} ${x.store}`).join() === "NYK 2-0 1-0,TOR 0-2 0-1" && g0.homeRec.join("-") === "10-2" && g0.awayRec === null,
+    "results (0.72): the store is checked against ESPN's team records (a game lost on a bad read shows as a difference); games in progress are skipped, a final not yet stored is counted", JSON.stringify([off, g0.homeRec]));
+}
+{
+  // scripts/ci.js: one failed step no longer hides (green) or stops the others; the health note says what happened.
+  const { spawnSync } = await import("node:child_process");
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ncc-ci-"));
+  fs.mkdirSync(path.join(tmp, "scripts")); fs.mkdirSync(path.join(tmp, "docs", "data"), { recursive: true });
+  fs.copyFileSync(path.join(root, "scripts", "ci.js"), path.join(tmp, "scripts", "ci.js"));
+  fs.writeFileSync(path.join(tmp, "package.json"), '{"type":"module"}');
+  const watchOld = JSON.stringify({ today: "2026-11-15", teams: [{ notesStatus: "current" }], v: "old" });
+  const stub = (name, body) => fs.writeFileSync(path.join(tmp, "scripts", name), body);
+  const runCi = () => { fs.writeFileSync(path.join(tmp, "docs", "data", "watch.json"), watchOld); const r = spawnSync(process.execPath, ["scripts/ci.js", "build", "--today", "2026-11-15"], { cwd: tmp, encoding: "utf8" }); return { code: r.status, health: JSON.parse(fs.readFileSync(path.join(tmp, "docs", "data", "health.json"), "utf8")), watch: JSON.parse(fs.readFileSync(path.join(tmp, "docs", "data", "watch.json"), "utf8")) }; };
+  const good = `import fs from "node:fs"; fs.writeFileSync("docs/data/watch.json", JSON.stringify({ today: "2026-11-15", teams: [{ notesStatus: "current" }], v: "new" }));`;
+  stub("tonight.js", good); stub("situations.js", `console.error("prep stats not written: boom"); process.exit(1);`); stub("flow.js", `console.log("ok");`);
+  const A = runCi();
+  stub("tonight.js", `import fs from "node:fs"; fs.writeFileSync("docs/data/watch.json", "{}"); process.exit(1);`); stub("situations.js", `console.log("ok");`);
+  const B = runCi();
+  stub("tonight.js", good);
+  const C = runCi();
+  fs.rmSync(tmp, { recursive: true, force: true });
+  ok(A.code === 1 && A.watch.v === "new" && A.health.steps.map((x) => `${x.step}:${x.ok}`).join() === "tonight:true,situations:false,flow:true" && /not written: boom/.test(A.health.steps[1].notes?.[0] || "")
+    && B.code === 1 && B.watch.v === "old" && B.health.steps.map((x) => `${x.step}:${x.ok}`).join() === "tonight:false,situations:true,flow:true"
+    && C.code === 0 && C.health.steps.every((x) => x.ok) && C.health.today === "2026-11-15",
+    "build (0.72): a failed step ends the run red, the other steps still run, the published Watch List is kept when the notes step fails, and health.json says which step and why", JSON.stringify([A.code, A.health.steps, B.code, B.watch.v, C.code]));
+}
+
 // ---------- 0.71: the user's second 11/15 review (pages, data) ----------
 {
   const { moveTraded } = await import("../src/site/build.js");

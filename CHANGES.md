@@ -2,6 +2,42 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.72.0 (2026-11-15): the full diagnostic: silent failures, three wrong-data bugs, the build's blind spots
+
+The user (11/15): "do a full diagnostic of the program. check for redundancies, endless loops, possible errors, bottlenecks… find anything that could break the program and see if we could strengthen the current approach."
+
+### What was checked
+- **Runs:** the last 100 daily runs (since 11/11): 96 fine, 3 failed (11/13, fixed then), 1 superseded. A build takes ~3.5 minutes: 3m08s reading notes and ESPN (about 700 ESPN requests, spaced 250 ms on purpose), 16 s for stats, under 1 s for Game Flow.
+- **Loops:** every `while` / `for(;;)` in the build, the Worker, the pages and the bridge ends (checked one by one); the page's live poll is one chain; the bot's pushes can't trigger builds; nothing feeds back into itself.
+- **Scale:** a made-up full season (1,302 games) through the stats step: about 15 s of work against 13.5 s today (it grows in a straight line). Page data by April: the biggest files are records.json 1.4 MB and form.json 0.8 MB.
+- **Pages with broken data:** every page with each of its data files missing, empty or cut short, and ESPN and the Worker blocked: no blank pages; one uncaught error (an empty watch.json), fixed.
+- **Repo growth:** 9.5 MB after six days. JSON data compresses well between builds; the kept predictions (`history/predictions-<date>.json.gz`, 8-14 versions a day) don't, at 0.3-0.7 MB a day. Projected ~250 MB by April against GitHub's 1 GB guideline.
+- **The Worker:** two schedules that never run the articles check at the same minute; it saves only on a change (well under the free plan's 1,000 saves a day).
+
+### What was wrong, and fixed
+- **A failed step was invisible.** If the stats step crashed, the run still ended green and the site quietly kept old stats; if the notes step failed, nothing else ran. Now (`scripts/ci.js`): every step has its own time limit (14 / 8 / 4 minutes), the other steps still run, the run ends red, what did work is still published, and `docs/data/health.json` records when the build ran and how each step went. **The Watch List shows a note** when a step failed, when the published list was kept over a worse build, or when the site hasn't rebuilt in 5 hours during the day (26 at any time); its footer always says when the last build was and each step's ✓/✗.
+- **Pushes that didn't rebuild.** The workflow listed which source folders trigger a build and left out most of `src/anticipate`, `src/site`, `src/espn` and `src/registry` (0.70.1's fix needed a manual start for that reason). Now any change under `src/` or `scripts/` does.
+- **The Knicks' notes were set aside tonight.** An "on this date" line ("November 15, 2012: Knicks… over the Spurs at…") was read as tonight's game, so the notes looked like they named the wrong opponent. A cell dated in another year is no longer a candidate (`src/notes/meta.js`).
+- **46 dead milestones tonight.** The Kings' notes still track eight players who left (DeRozan, Westbrook, Schröder, Šarić, Eubanks, McDermott, Carter, Ellis: 29 milestones), Charlotte's still list Miles Bridges and LaMelo Ball (16), Washington's one for Westbrook. 0.71 moved traded players by ESPN id, but a player who isn't on the roster never gets an id. Now a notes player with no id and no one by that name on ESPN's roster (same name, an initial, or the same last name and first letter) is left out, with a note.
+- **Three players had no career history.** "AJ Green", "PJ Hall" and "AJ Johnson" (ESPN) are "A.J." / "P.J." in the NBA Guide, and names were compared with their periods. Initials now match either way (`src/notes/names.js`, `strictKey`).
+- **The storyline cards and Discord disagreed.** The page worked the storylines out itself without the records, NBA Cup and foul data the build uses (1 of 9 games differed tonight; Cup nights would differ more). It now shows the build's own (`data/tonight.json`), which also drops six downloads (about 1 MB by spring); it still works them out itself if that file is missing or from another day.
+- **A lost game would never be noticed.** A date is kept for good once read; a short answer from ESPN on that one read would drop games silently. The store is now checked every build against the season record ESPN prints for each team playing today (`recordCheck`); a difference is a warning in the build log, situations.json and the health note. Tonight: no differences.
+- Smaller: the year 2026 was written into the season-vs-career code (wrong from next October); the prep stats re-converted 129,000 game logs three times per call and again for every "Did we see it coming?" morning (now once); the page's live ESPN read has a 15-second limit.
+
+### Tested
+- 738 checks (new: the Knicks line, initials, roster-name check, records check on made-up and real data, and scripts/ci.js run three ways with stand-in steps: stats fail, notes fail, all fine). 66 Worker checks. Pages all OK. With tonight's real ESPN rosters the roster check takes 314 milestones to 268, all 46 for players not on those teams. Removing one game from the store makes the records check name both teams.
+
+### Unproven
+- The health note and the red-run behaviour have run only against stand-in steps; the first real builds show whether a normal day stays quiet.
+- The roster-name check could drop a real player whose notes name shares neither a last name nor a first letter with ESPN's; the note in the team's problems list would show it.
+
+### Not changed (needs a decision, or isn't worth the risk)
+- **The Worker** (nothing touched): its web requests have no time limits; if Discord accepts one part of a storylines post and not the next, the whole post is retried a minute later (a duplicate); and nothing tells anyone if the morning build never happens (the digest just doesn't go out). A once-a-day "today's data hasn't been built" message to #alerts would close that.
+- **Don't cache ESPN between builds:** it would make builds faster and survive an ESPN outage, but stat corrections rely on re-reading games that a cache would answer from memory.
+- **Tests aren't run by GitHub:** the full suite needs the saved notes PDFs (the NBA's documents, kept off the public repo). They exist in this cloud copy and on the PC (`Documents/nba-command-center/samples`, the same 115 files).
+- **Five versions of the name-matching function** (two rules: periods kept or dropped). Unified behaviour for initials now; one shared function is the cleaner end state.
+- **Next season / the offseason:** a few "2026-27" patterns in the notes reader and page footers, the guide data files, and GitHub switching off scheduled runs after 60 quiet days (July to September) all need a hand in October.
+
 ## 0.71.0 (2026-11-15): the user's 17-image review (notes misreads, milestones, the Celtics' defense, Cup, pages)
 
 ### What changed

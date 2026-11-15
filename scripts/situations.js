@@ -19,7 +19,7 @@ if ((process.env.HTTPS_PROXY || process.env.https_proxy) && !process.env.NODE_US
 }
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { createEspn } = await import("../src/espn/client.js");
-const { collectResults, allGames, loadStore, saveStore } = await import("../src/situations/results.js");
+const { collectResults, allGames, loadStore, saveStore, recordCheck } = await import("../src/situations/results.js");
 const { computeSituations } = await import("../src/situations/records.js");
 const { clutchPlayerTotals, clutchTeamTotals } = await import("../src/situations/clutch.js");
 const { playerGames, activeStreaks, teamStreaks, anomalies, careerHighs, careerHighsAllowed } = await import("../src/situations/trends.js");
@@ -51,6 +51,12 @@ if (!rows.length) { console.error(`no results collected${warnings.length ? `: ${
 const sit = computeSituations(rows, { through });
 const sb = await espn.scoreboard(today);
 const tonight = sb.ok ? sb.data.games.filter((g) => g.date === today && g.seasonType === 2).map((g) => ({ id: g.id, away: g.awayTri, home: g.homeTri, start: g.start })) : [];
+// 0.72: the results store against ESPN's own team records (a game lost on a bad read would otherwise go unnoticed).
+try {
+  const off = sb.ok ? recordCheck(rows, sb.data.games.filter((g) => g.date === today)) : [];
+  for (const x of off) warnings.push(`results store: ${x.team} is ${x.espn} on ESPN but ${x.store} here (a game missing or extra; delete that date's file in history/results to re-read it)`);
+  if (off.length) console.error(`results check: ${off.map((x) => `${x.team} ${x.espn} vs ${x.store}`).join(", ")}`);
+} catch (e) { console.error(`results check skipped: ${e.message}`); }
 
 saveStore(storeDir, store, fs);
 if (fs.existsSync(oldFile)) fs.rmSync(oldFile);

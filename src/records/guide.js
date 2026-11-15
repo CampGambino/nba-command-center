@@ -29,7 +29,8 @@ import { isMinorPass } from "./notable.js";
 /** Name match that keeps suffixes: the guide's Gary Payton is not this season's Gary Payton II. */
 export const strictKey = (n) => {
   const suffix = /\s+(Jr\.?|Sr\.?|II|III|IV)\s*$/i.exec(String(n || ""));
-  return `${nameKey(n)}${suffix ? ` ${suffix[1].replace(/\./, "").toLowerCase()}` : ""}`;
+  // 0.72: "A.J. Green" (the Guide) is "AJ Green" (ESPN): initials match with or without their periods.
+  return `${nameKey(n).replace(/\./g, "").replace(/\s+/g, " ").trim()}${suffix ? ` ${suffix[1].replace(/\./, "").toLowerCase()}` : ""}`;
 };
 
 export const LABEL = { pts: "points", reb: "rebounds", oreb: "offensive rebounds", dreb: "defensive rebounds", ast: "assists", stl: "steals", blk: "blocks",

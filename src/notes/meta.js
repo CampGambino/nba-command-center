@@ -68,6 +68,7 @@ export function readMeta(doc, team) {
 function readOpponent(doc, team, gameDate) {
   const own = team && TEAMS[team] ? [TEAMS[team].nick, TEAMS[team].city, ...(TEAMS[team].alt || [])].map((w) => w.toLowerCase()) : [];
   let dateRe = null;
+  const gameYear = gameDate ? +gameDate.slice(0, 4) : null;
   if (gameDate) {
     const [y, m, d] = gameDate.split("-").map(Number);
     const yy = String(y).slice(2);
@@ -79,6 +80,9 @@ function readOpponent(doc, team, gameDate) {
     for (const cell of line.cells?.length ? line.cells : [{ text: line.text }]) {
       const t = cell.text;
       if (!/(\bvs\.?\s|@|\bat\s)/i.test(t)) continue;
+      // 0.72: "November 15, 2012: Knicks ride a 27-11 rally… over the Spurs at…" is an "on this date" line, not
+      // tonight's game (the Knicks' 11/15/26 notes were read as vs. SAS and set aside as a conflict).
+      if (gameYear && [...t.matchAll(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},\s*((?:19|20)\d\d)\b|\b\d{1,2}\/\d{1,2}\/((?:19|20)\d\d)\b/gi)].some((m) => +(m[1] || m[2]) !== gameYear)) continue;
       const parts = t.split(/\bvs\.?\s|@|\bat\s/i);
       let tri = teamFromText(parts.slice(1).join(" ")) || teamFromCode(parts[1]); // "VS. HOU - 11/9/26"
       // "CLEVELAND CAVALIERS @ CHARLOTTE HORNETS" in Charlotte's own notes.

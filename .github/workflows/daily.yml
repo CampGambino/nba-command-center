@@ -30,7 +30,9 @@ on:
         default: ""
   push:
     branches: [main]
-    paths: [".github/workflows/daily.yml", "scripts/ci.js", "scripts/situations.js", "scripts/flow.js", "src/gameflow/**", "scripts/notify.js", "scripts/tonight.js", "src/notes/**", "src/rosters/**", "src/records/**", "src/data/**", "src/situations/**", "src/injuries/**", "src/anticipate/tonight.js"]
+    # Everything the build runs (0.72: was a list that left out most of src/anticipate, src/site, src/espn and src/registry,
+    # so a fix there waited for the next scheduled build).
+    paths: [".github/workflows/daily.yml", "scripts/**", "src/**"]
 
 permissions:
   contents: write
@@ -73,7 +75,9 @@ jobs:
       - name: Score last night
         if: steps.pick.outputs.job == 'score'
         run: node scripts/ci.js score ${{ github.event.inputs.date && format('--date {0}', github.event.inputs.date) || '' }}
+      # Also after a failed step (0.72): the steps that worked and the health note are still published, and the run stays red.
       - name: Commit and push
+        if: ${{ !cancelled() }}
         run: |
           git config user.name "ncc-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

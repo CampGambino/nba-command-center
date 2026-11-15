@@ -130,3 +130,29 @@ export function saveStore(dir, store, fsImpl) {
   for (const [d, v] of Object.entries(store.dates)) put(`${dir}/${d}.json`, JSON.stringify(v));
   return n;
 }
+
+/**
+ * The store against ESPN's own records (0.72). A date is kept for good once ESPN calls its games final, so a short
+ * or empty scoreboard answer on that one read would lose games without a sound. Every scoreboard game carries each
+ * team's season record; for today's games not yet started it's the record through yesterday, for a final one it
+ * includes that game. Returns [{ team, espn: "10-2", store: "9-2" }] for teams that differ.
+ */
+export function recordCheck(rows, games) {
+  const W = {}, L = {};
+  for (const g of rows) { if (g.hs == null || g.as == null) continue; const hw = g.hs > g.as; W[hw ? g.h : g.a] = (W[hw ? g.h : g.a] || 0) + 1; L[hw ? g.a : g.h] = (L[hw ? g.a : g.h] || 0) + 1; }
+  const have = new Set(rows.map((g) => String(g.id)));
+  const out = [];
+  for (const g of games || []) {
+    if (g.seasonType !== 2 || !g.homeTri || !g.awayTri) continue;
+    const counted = have.has(String(g.id));
+    for (const [tri, rec, won] of [[g.homeTri, g.homeRec, g.homeScore > g.awayScore], [g.awayTri, g.awayRec, g.awayScore > g.homeScore]]) {
+      if (!rec) continue;
+      let w = W[tri] || 0, l = L[tri] || 0;
+      if (g.state === "in") continue;                       // mid-game: the printed record may or may not have moved
+      if (g.final && !counted) { if (won) w++; else l++; }   // ESPN's record includes this game; the store doesn't yet
+      if (!g.final && g.state !== "pre") continue;
+      if (rec[0] !== w || rec[1] !== l) out.push({ team: tri, espn: `${rec[0]}-${rec[1]}`, store: `${w}-${l}` });
+    }
+  }
+  return out;
+}

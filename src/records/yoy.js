@@ -25,6 +25,9 @@ export function careerContext({ seasons, teamFiles, minGames = 8 }) {
   const K = Object.fromEntries((seasons?.keys || []).map((k, i) => [k, i]));
   const byKey = new Map(Object.entries(seasons?.players || {}).map(([n, rows]) => [nameKey(n), rows]));
   const out = [];
+  // This season's first year, from the games on file (0.72: was a fixed 2026, wrong from next October).
+  const lastGame = Object.values(teamFiles || {}).flatMap((t) => (t.games || []).map((g) => g.d)).sort().pop() || new Date().toISOString().slice(0, 10);
+  const YEAR0 = +lastGame.slice(0, 4) - (+lastGame.slice(5, 7) < 8 ? 1 : 0);
   for (const p of Object.values(seasonLines(teamFiles))) {
     if (p.lines.length < minGames) continue;
     const rows = (byKey.get(nameKey(p.name)) || []).filter((r) => r[K.g] >= MIN_SEASON_GAMES);
@@ -49,7 +52,7 @@ export function careerContext({ seasons, teamFiles, minGames = 8 }) {
       for (const kind of ["low", "high"]) {
         // the most recent season at or beyond this mark
         const hit = [...rows].reverse().find((r) => (kind === "low" ? per(r) <= now : per(r) >= now));
-        const span = hit ? 2026 - Number(hit[K.season].slice(0, 4)) - 1 : rows.length;
+        const span = hit ? YEAR0 - Number(hit[K.season].slice(0, 4)) - 1 : rows.length;
         const career = !hit;
         if (!career && span < NOTABLE_SPAN) continue;
         if (stat === "min" && !career) continue; // minutes only when it's a career low or high
@@ -85,7 +88,7 @@ export function careerContext({ seasons, teamFiles, minGames = 8 }) {
       const now = (100 * M) / A, last = rows[rows.length - 1];
       for (const kind of ["high", "low"]) {
         const hit = [...rows].reverse().find((r) => (kind === "low" ? pc(r) <= now : pc(r) >= now));
-        const span = hit ? 2026 - Number(hit[K.season].slice(0, 4)) - 1 : rows.length;
+        const span = hit ? YEAR0 - Number(hit[K.season].slice(0, 4)) - 1 : rows.length;
         if (hit && span < NOTABLE_SPAN) continue;
         const what = hit ? `${kind === "low" ? "lowest" : "highest"} since ${hit[K.season]} (${r1(pc(hit))}%)` : `career ${kind}`;
         const row = { name: p.name, team: p.team, stat, label, now: r1(now), last: r1(pc(last)), lastSeason: last[K.season], delta: r1(now - pc(last)), kind, since: hit ? hit[K.season] : null,

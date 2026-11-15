@@ -263,6 +263,7 @@ export function readScoreboard(json) {
     const home = side("home"), away = side("away");
     const score = (h) => { const v = Number(comp(h)?.score); return Number.isFinite(v) ? v : null; };
     const quarters = (h) => (comp(h)?.linescores || []).map((l) => Number(l.value)).filter(Number.isFinite);
+    const rec = (h) => { const m = /^(\d+)-(\d+)$/.exec((comp(h)?.records || []).find((r) => r.type === "total")?.summary || ""); return m ? [+m[1], +m[2]] : null; };
     games.push({
       id: String(e.id), date: etDate(e.date || c.date), start: e.date || c.date || null,
       home, away, homeTri: teamFromText(home || ""), awayTri: teamFromText(away || ""),
@@ -270,6 +271,8 @@ export function readScoreboard(json) {
       // Results (for team situations): final score and points by period, OT periods included.
       final: c.status?.type?.completed === true, periods: c.status?.period ?? null, neutral: c.neutralSite === true,
       homeScore: score("home"), awayScore: score("away"), homeQ: quarters("home"), awayQ: quarters("away"),
+      // Each team's season record as ESPN prints it (after the game once it's final): the results store is checked against it (0.72).
+      homeRec: rec("home"), awayRec: rec("away"),
       // National broadcasts as ESPN lists them (0.65: flex tracking).
       tv: [...new Set([...(c.broadcasts || []).filter((b) => String(b.market).toLowerCase() === "national").flatMap((b) => b.names || []),
         ...(c.geoBroadcasts || []).filter((b) => String(b.market?.type).toLowerCase() === "national" && (b.type?.shortName || "TV") === "TV").map((b) => b.media?.shortName).filter(Boolean)])],

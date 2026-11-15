@@ -18,7 +18,10 @@
  *     history/calibration.jsonl and history/score-<date>.txt. Scoring the same
  *     night again (a late game finished) replaces its line.
  *
- * Exit code: 0 = done (or nothing to do), 1 = failed; nothing is written then.
+ * Every build writes docs/data/health.json (when it ran, each step's result and complaints); the Watch List shows a
+ * note when a step failed or the data is old. A failed step never blanks good data: its last files stay.
+ *
+ * Exit code: 0 = done (or nothing to do), 1 = a step failed (what the other steps wrote is still committed).
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -36,7 +39,23 @@ fs.mkdirSync(data, { recursive: true });
 const [mode, ...rest] = process.argv.slice(2);
 const opt = (name) => (rest.includes(name) ? rest[rest.indexOf(name) + 1] : null);
 const etDay = (offsetDays = 0) => new Date(Date.now() + offsetDays * 864e5).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
-const run = (args) => spawnSync(process.execPath, args, { cwd: root, encoding: "utf8", maxBuffer: 64 << 20 });
+// Each step has its own time limit (0.72), so one that hangs can't use up the job's 30 minutes and take the others with it.
+const LIMIT_MIN = { "scripts/tonight.js": 14, "scripts/situations.js": 8, "scripts/flow.js": 4, "scripts/score.js": 8 };
+const steps = [];
+function run(args) {
+  const t0 = Date.now();
+  const r = spawnSync(process.execPath, args, { cwd: root, encoding: "utf8", maxBuffer: 64 << 20, timeout: (LIMIT_MIN[args[0]] || 10) * 60e3, killSignal: "SIGKILL" });
+  const timedOut = r.error?.code === "ETIMEDOUT" || r.signal === "SIGKILL";
+  if (timedOut) r.status = 124;
+  // What went wrong, for the site's health note: the step's own complaints (never more than a few lines).
+  const notes = String(r.stderr || "").split("\n").map((l) => l.trim()).filter((l) => /not (?:written|read|updated|built)|failed|skipped|results check|unreachable|timed out|Error\b/i.test(l) && !/DeprecationWarning/.test(l)).slice(0, 8).map((l) => l.slice(0, 220));
+  steps.push({ step: args[0].replace(/^scripts\/|\.js$/g, ""), ok: r.status === 0, sec: Math.round((Date.now() - t0) / 1000), ...(timedOut ? { error: `stopped after ${LIMIT_MIN[args[0]] || 10} minutes` } : r.status !== 0 ? { error: `exit ${r.status}` } : {}), ...(notes.length ? { notes } : {}) });
+  return r;
+}
+/** docs/data/health.json: when the build ran and how each step went, for the Watch List's health note (0.72). */
+function writeHealth(today, extra = {}) {
+  try { fs.writeFileSync(path.join(root, "docs", "data", "health.json"), JSON.stringify({ at: new Date().toISOString(), today, steps, ...extra })); } catch (e) { console.error(`health note not written: ${e.message}`); }
+}
 const notesRead = (w) => (w?.teams || []).filter((t) => t.notesStatus === "current" || t.notesStatus === "stale").length;
 
 if (mode === "build") build();
@@ -53,18 +72,30 @@ function build() {
   const r = run(["scripts/tonight.js", "--today", today]);
   process.stdout.write(r.stdout || "");
   process.stderr.write(r.stderr || "");
-  if (r.status !== 0) { console.error(`build failed (exit ${r.status})`); if (beforeText) fs.writeFileSync(watchFile, beforeText); process.exit(1); }
+  if (r.status !== 0) {
+    // 0.72: the notes step failing no longer stops the rest: results, clutch, streaks and Game Flow still update,
+    // the health note says what failed, and the run ends red so it's seen.
+    console.error(`build failed (exit ${r.status}); the published Watch List stays, the other steps still run`);
+    if (beforeText) fs.writeFileSync(watchFile, beforeText);
+    situations(today);
+    writeHealth(today);
+    process.exit(1);
+  }
   const after = JSON.parse(fs.readFileSync(watchFile, "utf8"));
   if (before && before.today === today && notesRead(after) < notesRead(before)) {
     fs.writeFileSync(watchFile, beforeText);
     console.error(`kept the published data: this build read notes for ${notesRead(after)} teams, the published one ${notesRead(before)}`);
     situations(today);
+    writeHealth(today, { kept: `this build read notes for ${notesRead(after)} teams, the published one ${notesRead(before)}: the published Watch List was kept` });
     return;
   }
   const pred = path.join(data, `predictions-${today}.json`);
   if (fs.existsSync(pred)) fs.writeFileSync(path.join(hist, `predictions-${today}.json.gz`), zlib.gzipSync(fs.readFileSync(pred), { level: 9 }));
   console.log(`site data for ${today}: ${after.teams.length} teams, notes read for ${notesRead(after)}`);
   situations(today);
+  writeHealth(today);
+  // A later step failing leaves its last data up, but the run still ends red (it used to end green and go unseen).
+  if (steps.some((x) => !x.ok)) { console.error(`steps failed: ${steps.filter((x) => !x.ok).map((x) => x.step).join(", ")}`); process.exit(1); }
 }
 
 // Team situations (records vs winning teams, close games, trailing at half...).
