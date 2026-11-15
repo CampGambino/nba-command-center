@@ -536,7 +536,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
       try {
         const { buzzCounts } = await import("../src/anticipate/buzz.js");
         const r = await fetch("https://ncc-articles.dukie0813.workers.dev/headlines", { signal: AbortSignal.timeout(15000) });
-        if (r.ok) buzz = buzzCounts((await r.json()).headlines || [], { players: cand.all.map((l) => l.player).filter(Boolean), teams: cand.games.flatMap((g) => [g.away, g.home]) });
+        if (r.ok) buzz = buzzCounts((await r.json()).headlines || [], { players: cand.all.map((l) => l.player).filter(Boolean), teams: cand.games.flatMap((g) => [g.away, g.home]), league: Object.values(store.names || {}) });
       } catch (e) { console.error(`headlines not read: ${e.message}`); }
       const b = briefing({ all: cand.all, games: cand.games, stars: args.prep?.stars || {}, nationalGames: nat, seen, today: watch.today, model, buzz });
       fs.writeFileSync(seenFile, JSON.stringify(b.seen));

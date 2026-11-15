@@ -2,6 +2,19 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.70.1 (2026-11-15): headlines name the right player
+
+The first live build with headlines (12:18 ET, 27 players and 17 teams) credited Keegan Murray with 17 headlines (they were about Dejounte Murray's trade request), Ajay Mitchell with Donovan Mitchell's, Jalen Green with Draymond Green's, Jabari Smith Jr. with another Smith's.
+
+### What changed
+- **src/anticipate/buzz.js:** a surname alone counts only when no other player in the league has it (the build passes every name in this season's results), and not right after a capitalized word that isn't his first name ("Donovan Mitchell"); team names and "Why", "After"… before it are fine ("Rockets' Sengun shines").
+
+### Tested
+- 722 checks (the buzz check now has Donovan Mitchell, Draymond Green and "Rockets' Sengun"). The 12:18 build's sample titles: Murray, Mitchell, Green and Smith no longer match; Şengün, Acuff, Hart, Bridges (full name) still do.
+
+### Unproven
+- A nickname ("Wemby", "KAT", "SGA") isn't matched; those players are counted only by their full name or surname.
+
 ## 0.70.0 (2026-11-15): season-long and morning-after lines (the StatMuse posts), what's in the news, last season replayed
 
 The user (11/15) sent 15 posts that did well, "based on season-long checks and right after the game posts. not all of these can be predicted ahead of time… it shouldn't be limited to these exactly. there is plenty of context behind some of these in the zeitgeist… knowing when to display or promote them can be tricky."

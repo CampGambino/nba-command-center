@@ -13,7 +13,10 @@ const plain = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").re
 const SUFFIX = /\s+(jr\.?|sr\.?|ii|iii|iv)$/i;
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-export function buzzCounts(headlines, { players = [], teams = [] } = {}) {
+// Capitalized words that come before a surname without being a first name.
+const NOT_NAMES = new Set([...Object.values(TEAMS).flatMap((x) => [x.nick, x.city, ...(x.alt || [])].map(plain)), "why", "how", "what", "when", "where", "and", "after", "with", "as", "for", "the", "is", "on", "in", "rookie", "star", "guard", "forward", "center", "coach", "big", "veteran", "sources", "report", "watch", "inside", "film", "nba"]);
+
+export function buzzCounts(headlines, { players = [], teams = [], league = [] } = {}) {
   const titles = (headlines || []).map((h) => ({ raw: h.title, t: plain(h.title) })).filter((h) => h.t);
   // A city two teams share (Los Angeles, and New York with Brooklyn's Nets) doesn't say which team.
   const cityCount = {};
@@ -29,15 +32,27 @@ export function buzzCounts(headlines, { players = [], teams = [] } = {}) {
   const out = { players: {}, teams: {}, titles: {} };
   const note = (k, raw) => { (out.titles[k] ??= []).length < 3 && !out.titles[k].includes(raw) && out.titles[k].push(raw); };
   for (const [tri, re] of Object.entries(teamRe)) for (const h of titles) if (re.test(h.t)) { out.teams[tri] = (out.teams[tri] || 0) + 1; note(tri, h.raw); }
-  // Surnames more than one player on the slate shares only count with the full name.
+  // A surname alone counts only when no other player in the league has it, and not after another first name
+  // ("Donovan Mitchell" isn't Ajay Mitchell; "Draymond Green's shove" isn't Jalen Green).
   const sur = (n) => plain(n).replace(SUFFIX, "").split(/\s+/).slice(-1)[0];
+  const first = (n) => plain(n).split(/\s+/)[0];
   const surCount = {};
-  for (const n of new Set(players)) surCount[sur(n)] = (surCount[sur(n)] || 0) + 1;
+  for (const n of new Set([...league, ...players])) surCount[sur(n)] = (surCount[sur(n)] || 0) + 1;
   for (const name of new Set(players)) {
     const full = new RegExp(`\\b${esc(plain(name).replace(SUFFIX, ""))}\\b`);
     const s = sur(name);
-    const last = s.length >= 4 && surCount[s] === 1 ? new RegExp(`\\b${esc(s)}('s)?\\b`) : null;
-    for (const h of titles) if (full.test(h.t) || (last && last.test(h.t))) { out.players[name] = (out.players[name] || 0) + 1; note(name, h.raw); }
+    const last = s.length >= 4 && surCount[s] === 1 ? new RegExp(`(\\S+\\s+)?\\b${esc(s)}('s)?\\b`) : null;
+    const alone = (h) => {
+      const m = last && h.t.match(last);
+      if (!m) return false;
+      const before = (m[1] || "").trim();
+      // the word before, in the original: a capitalized word that isn't his first name is someone else's first name
+      const raw = h.raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const i = plain(raw).indexOf(m[0]);
+      const orig = i >= 0 ? raw.slice(i, i + before.length) : "";
+      return !before || before === first(name) || !/^[A-Z][a-z]+$/.test(orig) || NOT_NAMES.has(before);
+    };
+    for (const h of titles) if (full.test(h.t) || alone(h)) { out.players[name] = (out.players[name] || 0) + 1; note(name, h.raw); }
   }
   return out;
 }
