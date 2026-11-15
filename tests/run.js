@@ -2048,7 +2048,7 @@ await articlesChecks(ok);
   const day = (n) => new Date(Date.UTC(2023, 9, 25) + n * 864e5).toISOString().slice(0, 10);
   let k = 0;
   for (let i = 0; i < 3; i++) H.games.push([day(k++), "OKC", "AAA", 100, 110, 2]);
-  for (let i = 0; i < 100; i++) H.games.push([day(k++), "OKC", "AAA", i % 2 ? 120 : 100, 110, 2]);
+  for (let i = 0; i < 160; i++) H.games.push([day(k++), "OKC", "AAA", i % 2 ? 120 : 100, 110, 2]);
   // DAL allowed 135+ four straight once; nobody else.
   for (let i = 0; i < 4; i++) H.games.push([day(k++), "DAL", "BBB", 120, 140, 2]);
   H.games.push([day(k++), "DAL", "BBB", 120, 100, 2]);
@@ -2061,6 +2061,26 @@ await articlesChecks(ok);
   const st = tonightStorylines({ watch: { today: "2026-11-14", games: [{ id: "1", awayTri: "OKC", homeTri: "NOP" }], teams: [] }, trends: { teams: { OKC: { streak: { type: "L", n: 4 } } }, watch: W } });
   const texts = st[0].lines.filter((l) => l.kind === "team").map((l) => l.text);
   ok(texts.some((t) => /first 3-game losing streak/.test(t)) && !texts.some((t) => /^OKC: lost/.test(t)) && texts.some((t) => /^NOP has allowed 135\+/.test(t)), "streak watch (0.65): the storylines carry it in place of the bare 'lost N straight'", JSON.stringify(texts));
+}
+
+// ---------- 0.69: the user's 11/15 notes review (Daniels, Shead, Wembanyama, the Spurs' blocks streak, Naz Reid) ----------
+{
+  const N = await import("../src/notes/narrative.js");
+  const F = await import("../src/notes/facts.js");
+  const T = (text, o = {}) => F.trimReason({ text, kind: "trend", ...o }, { today: "2026-11-15", box: { games: [] } });
+  ok(/garbled/.test(T("DREB 92 times (@ CHI, 10 at DEN 1/9/26 Totaled 108 points, 79 rebounds, 60 assists and 32 steals through first 11 games.") || "")
+    && /garbled/.test(T("Became the seventh player in franchise history total 27+ assists in a two-game span. (vs. MEM, 11/9/26) Nov. 6 at Milwaukee: Made first start of the season.") || ""),
+    "notes (0.69): a stats table read into a sentence is trimmed as garbled");
+  ok(/last season's note/.test(T("The Spurs recorded 5+ blocks in 23 straight games from Jan. 17 to March 8, 2026, the longest streak in the NBA this season and the Spurs longest streak in 25 years.") || "")
+    && F.describe("The Spurs recorded 5+ blocks in 23 straight games from Jan. 17 to March 8, 2026, the longest streak in the NBA this season.").type !== "streak"
+    && F.describe("The Spurs have recorded 5+ blocks in 23 straight games, the longest active streak in the NBA.").type === "streak",
+    "notes (0.69): a streak with an end date isn't active, and 'this season' with only last season's dates is last season's note");
+  ok(/title from past seasons/.test(T("Third consecutive NBA blocks champion, becoming third player in NBA history to lead the league in blocks per game in three consecutive seasons.") || "")
+    && F.trimReason({ text: "Third consecutive NBA blocks champion.", kind: "trend" }, { today: "2027-03-10", box: { games: [] } }) === null,
+    "notes (0.69): a title from past seasons waits until March");
+  ok(F.describe("Became the 12th Raptor ever to record 15+ assists in a single-game and joins Mark Jackson (2X) and Jose Calderon (2X) as the only Raptors to record 16+ assists in a game with one turnover or fewer.").tag === "1 of 3 in team history"
+    && N.repairLayout("Became the 12th Raptor ever to record 15+ assists in a single-game (vs. BOS, 11/11/26) 12/22/24 and joins Mark Jackson") === "Became the 12th Raptor ever to record 15+ assists in a single-game (vs. BOS, 11/11/26) and joins Mark Jackson",
+    "notes (0.69): 'the only Raptors' is team history; a stray date from the next table cell is cut");
 }
 
 // ---------- 0.65: the user's 11/14 notes review (Sharpe, Porter Jr., Mobley, the Cavs, Kyrie, Coward, Jenkins) ----------

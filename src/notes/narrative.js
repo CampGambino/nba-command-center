@@ -176,6 +176,8 @@ const ORD = (n) => { const v = n % 100; return n + (v >= 11 && v <= 13 ? "th" : 
 export function repairLayout(s) {
   let t = s.replace(/\s*\d{1,2}\/\d{1,2}\s+(?:at|vs\.?|@)\s+\p{Lu}[\p{L}.]*(?:\s+\p{Lu}[\p{L}.]*)?\s+(?:\d{2,3}-\d{2,3}\s+)?[WL](?:\s+\d{2,3}-\d{2,3})?(?:\s+\d{1,2}:\d{2})?(?:\s+\d{1,3}(?:-\d{1,3})?)+(?=\s|[.,;]|$)/gu, " ");
   t = t.replace(/\s*\b(?:19|20)\d\d-\d\d Game Notes\.?/g, "");
+  // A date from the next table cell after a closing bracket ("(vs. BOS, 11/11/26) 12/22/24 and joins…", 0.69).
+  t = t.replace(/\)\s+\d{1,2}\/\d{1,2}\/\d{2,4}(?=\s+[a-z])/g, ")");
   let stray = 0;
   t = t.replace(/(^|\s)(?:st|nd|rd|th)(?=\s|$)/g, (m, a) => { stray++; return a; });
   if (stray) {
@@ -341,16 +343,21 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
     }
     const blockBio = bios.length ? bios[bios.length - 1].p : null; // the last player header in this block
     let cursor = 0, bioWho = null;
+    // A bio's season headers ("2023-24 (Minnesota): …", "2024-25 (Phoenix) – …"): what follows, up to the next one, is
+    // that season, whatever it says ("made a total of 169 threes this season" was 2023-24; the user, 11/15).
+    let seasonHdr = null;
+    const curSeason = seasonStart ? `${seasonStart.slice(0, 4)}-${String(+seasonStart.slice(0, 4) + 1).slice(2)}` : null;
     let prevRaw = null; // the sentence before, for "That's the fifth-most…" and "They have…"
     let paraWho = null, sinceWho = 0, lastWhen = null;
     let paraHead = false; // paraWho came from a capitals heading (a player's list of bullets), not from a sentence naming him
     if (carry && carry.page === b.page && carry.bio) { bioWho = paraWho = sectionWho = carry.who; sinceWho = 0; paraHead = true; }
     else if (carry && carry.page === b.page && carry.dist <= 700) { paraWho = carry.who; sinceWho = carry.dist; paraHead = true; }
     const keep = () => { carry = paraWho && paraHead ? { who: paraWho, page: b.page, dist: sinceWho, bio: !!(bioWho && paraWho === bioWho) } : null; }; // lastWhen: "old" / "current" for the paragraph's last dated sentence // chars of text since paraWho was named // the player this paragraph is about, for its "He..." sentences
-    for (let s of sentences(b.text).flatMap((x) => x.split(/\s+(?=(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s+\p{Lu}|#\s?\d{1,2}\s+\p{Lu})/u).flatMap((y) => y.split(/\s*(?:…|\.{3}|[▪●•\u0000-\u0008\u000b\u000c\u000e-\u001f]|\s[o◦▫]\s(?=[A-Z]))\s*/u).map((z, k, all) => { let w = k > 0 && /^[a-z]/.test(z) ? z[0].toUpperCase() + z.slice(1) : z; if (k < all.length - 1 && /[\p{L}\d%)]$/u.test(w) && !/\b(?:to|the|a|an|of|and|at|in|with|as|by|for|or|his|their|from|on|was|were|who|that|is|are|which)$/i.test(w)) w += "."; return w; }))).map((x) => x.replace(/\s*\*{2,}.*$/, "").trim())) {
+    for (let s of sentences(b.text).flatMap((x) => x.split(/\s+(?=(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s+\p{Lu}|#\s?\d{1,2}\s+\p{Lu})/u).flatMap((y) => y.split(/\s*(?:…|\.{3}|[▪●•\u0000-\u0008\u000b\u000c\u000e-\u001f]|\s[o◦▫+]\s(?=[A-Z]))\s*/u).map((z, k, all) => { let w = k > 0 && /^[a-z]/.test(z) ? z[0].toUpperCase() + z.slice(1) : z; if (k < all.length - 1 && /[\p{L}\d%)]$/u.test(w) && !/\b(?:to|the|a|an|of|and|at|in|with|as|by|for|or|his|their|from|on|was|were|who|that|is|are|which)$/i.test(w)) w += "."; return w; }))).map((x) => x.replace(/\s*\*{2,}.*$/, "").trim())) {
       sinceWho += s.length + 1;
       { const at = b.text.indexOf(s.slice(0, 25), cursor); if (at >= 0) cursor = at; }
-      while (bios.length && bios[0].at <= cursor + 5) { bioWho = paraWho = sectionWho = bios.shift().p; sinceWho = 0; lastWhen = null; }
+      while (bios.length && bios[0].at <= cursor + 5) { bioWho = paraWho = sectionWho = bios.shift().p; sinceWho = 0; lastWhen = null; seasonHdr = null; }
+      if (/#\s?\d{1,2}\s+\p{Lu}/u.test(s)) seasonHdr = null; // another player's box starts in this text
       // An infographic table printed into the sentence that follows it ("…3 NEW ORLEANS 53.6 Despite having the sixth-most…",
       // "…SERIES NOTES Detroit took the first game…"): keep the prose after the last run of capitals.
       if (s.length < 1500 && (!/^[\p{Lu}"“]/u.test(s) || /^\d/.test(s) || TABLEY.test(s) || CAPS_PAIR.test(s))) {
@@ -359,6 +366,9 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       }
       s = s.replace(/(?:\s+[@#][A-Za-z0-9_]{3,})+$/, ""); // the PR account's handle at the end of an infographic page
       s = repairLayout(s);   // 0.65: game-log rows spliced in, stray ordinal suffixes, the page footer
+      { const sh = s.match(/^(?:[\p{Lu} ]{3,}:\s*)?((?:19|20)\d\d)-(\d\d)\s*\(([^)]{2,30})\)\s*[:–—-]\s*/u);
+        if (sh) { seasonHdr = `${sh[1]}-${sh[2]}`; s = s.slice(sh[0].length); if (s) s = s[0].toUpperCase() + s.slice(1); } }
+      if (seasonHdr && curSeason && seasonHdr !== curSeason) { drop("past-season", `${seasonHdr}: ${s}`); continue; }
       // A feature box's table, read into one line (0.62).
       let tableLine = false;
       { const t = summarizeTable(s, tris); if (t) { s = t; tableLine = true; } }

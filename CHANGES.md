@@ -2,6 +2,26 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.69.0 (2026-11-15): notes lines that didn't line up (the user's 11/15 review of NBA Live's pre-game cards)
+
+The user: "some of the language in these doesn't align": Dyson Daniels' line read with a stats table in it; Jamal Shead "1 of 3 in NBA history" for a Raptors-only club, with a stray date; "BOS has won 5 straight: a win tonight would be its first 6-game winning streak since 2024-25 (March 2025)" ("recent enough that we don't need an alert"); Wembanyama's "Third consecutive NBA blocks champion" ("not something that needs to be included in the pregame… worth noting closer to the end of the season where he could lead the league for the 4th season"); "Active streak · 23 … from Jan. 17 to March 8, 2026 … → 24 with tonight's game" ("it can't be this season and it can't be active"); Naz Reid's 169 threes "this season" ("the bolded preface is from the 2023-24 season with the Wolves").
+
+### What changed
+- **src/notes/narrative.js:** a player bio's season headers ("2023-24 (Minnesota): …", "2024-25 (Phoenix) – …") now set the season for what follows, up to the next header or player box; anything under a past season is dropped (reason "past-season"), whatever it says. " + " separates items like other bullets (Phoenix's notes ran three items into one line). `repairLayout` cuts a date from the next table cell after a closing bracket ("(vs. BOS, 11/11/26) 12/22/24 and joins…").
+- **src/notes/facts.js:**
+  - trimmed as garbled: a table read into a sentence (DREB/OREB, "(@ CHI,", or a second "Nov. 6 at Milwaukee:" item inside a line);
+  - trimmed as last season's note: a line that says "this season" but whose dated days are all before this season (and doesn't name this season);
+  - trimmed until March: a title from past seasons ("blocks champion", "led the league in … in three consecutive seasons");
+  - a streak with an end date ("from Jan. 17 to March 8, 2026", "snapped", "ended") isn't an active streak (no "→ 24 with tonight's game");
+  - "the only Raptors…", "the 12th Raptor ever" are team history ("1 of 3 in team history").
+- **Team streak watch:** a win/loss run is news only if the team hasn't had one that long in about two seasons of games (150, was 82): Boston's "first 6-game winning streak since March 2025" is gone; OKC's "first 3-game losing streak since 2023-24" stays.
+
+### Tested
+- 712 checks pass (new: the garbled table lines, last season's streak, the past-seasons title (kept from March), the Raptors club and the stray date). Today's 18 teams' notes re-read before and after: the six lines in the review are fixed or gone; Phoenix's merged line splits into Booker's three items (each with its own tag); one past-season Naz Reid line (Mar. 22 vs. Atlanta) also goes. "Did we see it coming?" still 11 of 12.
+
+### Unproven
+- A past-season line without a season header or dates (Kennard's "Split time between Atlanta and Los Angeles… career-high 78 games") still reads as current.
+
 ## 0.68.0 (2026-11-15): lineups: the Worker reads the league's latest injury report before warning; real read times
 
 The user (11/15), on the 11/14 BKN @ MEM post (7:40 PM): "Michael Porter Jr. was listed out on the 7:15 injury report but the alert for checking was flagged. he couldn't start because he was already ruled out by the time the starting lineup was confirmed." Cause: the post checked the site's injuries.json, which was the 6:00 PM report (the site rebuilds a few times a day; the league posts every 15 minutes). Also from the 11/14 timing check: every "seen" time was the planned read slot, so whether the 30-second reads run on time couldn't be told.

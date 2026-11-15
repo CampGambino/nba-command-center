@@ -126,12 +126,13 @@ export function describe(text, meta = {}) {
   const f = features(t, meta);
   const club = clubOf(t), rk = rankOf(t), th = thresholds(t);
   const streakN = t.match(/\b(\d{2,}) (?:consecutive|straight) (?:games|starts|contests)\b/i);
-  const teamScope = /\b(?:franchise|team|club) (?:history|annals)\b|\b[A-Z][a-z]+['’]s? (?:all-time|career|franchise)\b|\bby any [A-Z][a-z]+s? player\b/.test(t);
+  const teamScope = /\b(?:franchise|team|club) (?:history|annals)\b|\b[A-Z][a-z]+['’]s? (?:all-time|career|franchise)\b|\bby any [A-Z][a-z]+s? player\b/.test(t)
+    || (/\b(?:the )?only (?!NBA\b)(?:[A-Z][a-z]+s|76ers)\b(?! in NBA history)|\b\d{1,2}(?:st|nd|rd|th) [A-Z][a-z]+ ever\b/.test(t) && !/\bin (?:NBA|league) history\b/i.test(t)); // "the only Raptors to…" (0.69)
   const scope = teamScope ? "franchise" : f.league ? (f.history || /since/i.test(t) && !f.season ? "nba-history" : "nba") : f.franchise ? "franchise" : null;
   let type = "other", tag = "Notes", why = "";
   if (f.matchup) { type = "matchup"; tag = "Series"; why = "The history with tonight's opponent."; }
   else if (f.race) { type = "race"; tag = "Race"; why = "A race on a leaderboard: both sides can move."; }
-  else if (f.streak) { type = "streak"; tag = streakN ? `Active streak · ${Number(streakN[1])}` : "Active streak"; why = "A live streak: it grows if he plays tonight."; }
+  else if (f.streak && !/\bfrom (?:\w+\.? \d{1,2}|\d{1,2}\/\d{1,2})[^.]{0,30}\b(?:to|through|until) (?:\w+\.? \d{1,2},? (?:19|20)\d\d|\d{1,2}\/\d{1,2}\/\d{2,4})|\b(?:snapped|ended|came to an end)\b/i.test(t)) { type = "streak"; tag = streakN ? `Active streak · ${Number(streakN[1])}` : "Active streak"; why = "A live streak: it grows if he plays tonight."; }
   else if (club != null) {
     type = "club";
     const where = scope === "franchise" ? " in team history" : f.season ? " this season" : f.history || scope === "nba-history" ? " in NBA history" : "";
@@ -413,6 +414,19 @@ export function trimReason(line, { box = null, today, home = null } = {}) {
   // Layout damage: a bio-table row ("… on Virginia / USA 8th Season 10/21/26 vs UTA") or two columns read across.
   if (/\b[A-Z][a-z]+(?: [A-Z][a-z]+)? \/ [A-Z]{2,3}\b|\b\d{1,2}(?:st|nd|rd|th) Season\b/.test(t)) return "garbled (a table row)";
   if ((t.match(/\bjoining\b/g) || []).length >= 2 || /\b(?:of|in|to|the|for|and)\s+[A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+(?:Jr|Sr)\.?|\s+I{2,3})?\s+(?:notches|notched|records|recorded|becomes|became|scores|scored|posts|posted|tallies|tallied)\b/.test(t)) return "garbled (two columns read as one)";
+  // 0.69 (the user, 11/15): a table read into the sentence ("DREB 92 times (@ CHI, 10 at DEN 1/9/26 Totaled…").
+  if (/\b(?:DREB|OREB)\b|\(@ [A-Z]{2,4},|\s(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)\.? \d{1,2} (?:at|vs\.?) [A-Z][a-z]+:/.test(t)) return "garbled (a table read into it)";
+  // Last season's text left in this season's notes: it says "this season" but every date in it is before this season
+  // ("5+ blocks in 23 straight games from Jan. 17 to March 8, 2026, the longest streak in the NBA this season").
+  const seasonStart = today ? `${+today.slice(5, 7) >= 8 ? today.slice(0, 4) : +today.slice(0, 4) - 1}-10-01` : null;
+  const fullDates = [...t.matchAll(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.? \d{1,2}(?:\s*[-–]\s*\d{1,2})?,? ((?:19|20)\d\d)\b/g)].map((m) => `${m[2]}-${String("JanFebMarAprMayJunJulAugSepOctNovDec".indexOf(m[1]) / 3 + 1).padStart(2, "0")}-15`)
+    .concat([...t.matchAll(/\b(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})\b/g)].map((m) => `${m[3].length === 2 ? 2000 + +m[3] : m[3]}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}`));
+  const curTag = seasonStart ? `${seasonStart.slice(0, 4)}-${String(+seasonStart.slice(0, 4) + 1).slice(2)}` : null;
+  if (seasonStart && /\bthis season\b/i.test(t) && !t.includes(curTag) && fullDates.length && fullDates.every((x) => x < seasonStart)) return "last season's note (its dates are all before this season)";
+  // A title from past seasons ("Third consecutive NBA blocks champion"): background now, a storyline again from March,
+  // when he could add another (the user, 11/15).
+  if (/\b(?:champion|scoring title|blocks title|rebounding title|assists title)\b|\blead(?:s|ing)? the (?:league|NBA) in [^.]{0,40}\b(?:consecutive|straight) seasons\b/i.test(t) && !/\b(?:this season|on pace|currently|so far)\b/i.test(t)
+    && today && +today.slice(5, 7) >= 8) return "a title from past seasons (back from March, when another is in reach)";
   // Filler about the franchise's age.
   if (!line.player && /\b\d{1,3}(?:st|nd|rd|th) season in (?:franchise|team) history\b/i.test(t) && t.length < 120) return "filler";
   // The other venue: a home-only stat on a road night, and the reverse.

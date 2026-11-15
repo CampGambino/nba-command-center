@@ -11,7 +11,8 @@
  * results store, so every "since" and count is within that window and says so.
  */
 export const WINDOW = "2016-17";
-const GAP_GAMES = 82; // a W/L run is news when the team hasn't had one that long in a season's worth of games
+const GAP_GAMES = 150; // a W/L run is news when the team hasn't had one that long in about two seasons of games (0.69:
+                       // "first 6-game winning streak since March 2025" is recent enough not to need an alert)
 
 export const seasonOf = (d) => { const y = +d.slice(0, 4), m = +d.slice(5, 7); return m >= 8 ? `${y}-${String((y + 1) % 100).padStart(2, "0")}` : `${y - 1}-${String(y % 100).padStart(2, "0")}`; };
 const MON = ["Jan.", "Feb.", "March", "April", "May", "June", "July", "Aug.", "Sept.", "Oct.", "Nov.", "Dec."];
