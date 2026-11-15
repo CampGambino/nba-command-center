@@ -10,6 +10,8 @@ import { TEAM_FEEDS, teamFeedGroup, findLiveBlog, parseLiveBlog, LIVE_FEED } fro
 import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey, tagOf as articleTag } from "../cloudflare/articles-worker.js";
 
 import { handleVotes } from "../cloudflare/votes.js";
+import { pdfText, statusIn, slotUrls, latestReport, statusOnReport } from "../cloudflare/injurypdf.js";
+import zlibMod from "node:zlib";
 export async function articlesChecks(ok) {
   const T0 = Date.parse("2026-11-12T11:00:00Z"); // 6:00 AM ET
   const iso = (min) => new Date(T0 + min * 60e3).toISOString();
@@ -405,5 +407,30 @@ export async function articlesChecks(ok) {
     const other = await call("GET", "/review");
     ok(denied.status === 403 && up.status === 200 && up.headers.get("Access-Control-Allow-Origin") === "https://campgambino.github.io" && list.votes.length === 1 && list.votes[0].v === -1 && bad.status === 400 && other === null,
       "votes (0.67): a vote needs the key; the latest vote per line is kept, 0 takes it back; anyone can read; other paths pass through", JSON.stringify(list));
+  }
+  // ---------- 0.68: the league's latest injury report, read by the Worker (11/14: Porter Jr. Out at 7:15 PM) ----------
+  {
+    const content = `BT (Injury) Tj (Report:) Tj (11/14/26) Tj (07:15) Tj (PM) Tj ET BT (08:00) Tj ((ET)) Tj (BKN@MEM) Tj (Brooklyn) Tj (Nets) Tj (Bilodeau,) Tj (Tyler) Tj (Out) Tj (G) Tj (League) Tj (-) Tj (Two-) Tj (Way) Tj
+      (Udeh,) Tj (Jr.,) Tj (Ernest) Tj (Out) Tj (G) Tj (League) Tj (-) Tj (Two-Way) Tj (Porter) Tj (Jr.,) Tj (Michael) Tj (Out) Tj (Personal) Tj (Reasons) Tj (Traore,) Tj (Nolan) Tj (Available) Tj (Injury/Illness) Tj (-) Tj (Right) Tj (Calf) Tj
+      (Memphis) Tj (Grizzlies) Tj (Aldama,) Tj (Santi) Tj (Questionable) Tj (Injury/Illness) Tj (-) Tj (Left) Tj (Ankle) Tj ET`;
+    const z = zlibMod.deflateSync(Buffer.from(content, "latin1"));
+    const meta = Buffer.from("1 0 obj\n<< /Type/Metadata /Length 5 >>\nstream\n<xml>\nendstream\nendobj\n");
+    const pdf = Buffer.concat([Buffer.from("%PDF-1.4\n"), meta, Buffer.from(`2 0 obj\n<< /Length ${z.length} /Filter/FlateDecode >>\nstream\n`), z, Buffer.from("\r\nendstream\nendobj\n%%EOF")]);
+    const text = await pdfText(pdf);
+    const mpj = statusIn(text, "Michael Porter Jr."), udeh = statusIn(text, "Ernest Udeh Jr."), traore = statusIn(text, "Nolan Traore");
+    ok(mpj?.status === "Out" && mpj.reason === "Personal Reasons" && udeh?.status === "Out" && traore?.status === "Available" && /Right Calf$/.test(traore.reason) && statusIn(text, "Santi Aldama")?.status === "Questionable" && statusIn(text, "LeBron James") === null,
+      "injury report (0.68): the Worker reads the league's PDF: Porter Jr. Out (Personal Reasons); 'Udeh, Jr., Ernest'; a reason stops at the next team", JSON.stringify({ mpj, udeh, traore }));
+    ok(/Injury-Report_2026-11-14_07_30PM\.pdf$/.test(slotUrls(Date.parse("2026-11-15T00:40:00Z"), 2)[0]) && /07_15PM/.test(slotUrls(Date.parse("2026-11-15T00:40:00Z"), 2)[1]), "injury report (0.68): the 15-minute slots back from now, Eastern time");
+    const rep = await latestReport(Date.parse("2026-11-15T00:40:00Z"), async (u) => (/07_15PM/.test(u) ? new Response(pdf) : new Response("", { status: 404 })));
+    ok(rep?.asOf === "7:15 PM" && rep.bodies.some((b) => /\(Porter\)/.test(b)), "injury report (0.68): the newest report that exists (7:30 not up yet, 7:15 is)", rep?.url);
+    // The 7:40 PM post: the site's file was the 6:00 PM report (no Porter Jr.); the league's 7:15 PM report has him Out.
+    const R = (st, min) => [st, min];
+    const games = Array.from({ length: 11 }, (_, i) => ({ d: `2026-11-${String(i + 1).padStart(2, "0")}`, pl: { 1: R(1, 34), 2: R(0, 12) } }));
+    const file = { names: { 1: "Michael Porter Jr.", 2: "Noah Clowney" }, games };
+    const inj6 = { date: "2026-11-14", report: { asOf: "11/14/26 06:00 PM" }, players: [] };
+    const withRep = suspicion(file, inj6, ["Michael Porter Jr."], ["Noah Clowney"], "BKN", "2026-11-14", rep);
+    const without = suspicion(file, inj6, ["Michael Porter Jr."], ["Noah Clowney"], "BKN", "2026-11-14", null);
+    ok(withRep === "🩹 Michael Porter Jr.: Out (Personal Reasons) on the 7:15 PM injury report." && /isn't on the 6:00 PM injury report/.test(without || ""),
+      "lineups (0.68): no 'check before using' when the latest report has him Out (his status instead); without it, the warning says which report it checked", JSON.stringify([withRep, without]));
   }
 }

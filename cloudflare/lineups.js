@@ -23,6 +23,7 @@ export const ESPN_SUMMARY = (id) => `https://site.api.espn.com/apis/site/v2/spor
 export const ESPN_TRI = { GS: "GSW", NY: "NYK", SA: "SAS", NO: "NOP", UTAH: "UTA", WSH: "WAS" };
 const triOf = (a) => ESPN_TRI[a] || a;
 export const TEAM_FILE = (tri) => `https://raw.githubusercontent.com/CampGambino/nba-command-center/main/docs/data/teams/${tri}.json`;
+import { latestReport, statusOnReport } from "./injurypdf.js";
 export const INJURIES_FILE = "https://raw.githubusercontent.com/CampGambino/nba-command-center/main/docs/data/injuries.json";
 const POS_ORDER = { PG: 0, SG: 1, G: 1.5, SF: 2, F: 2.5, PF: 3, C: 4 };
 
@@ -91,21 +92,38 @@ export function lastStarters(file, beforeYmd) {
  * and isn't on tonight's injury report. 11/12/26: NBA.com briefly had Justin Edwards (0 starts) in for Jaylen
  * Brown (11 of 11, not on the report); a different five, with Brown, started. Returns a note or null.
  */
-export function suspicion(file, injuries, out, inn, tri, ymd) {
+/** Regulars missing from the five who aren't on the site's injury report (a reason to read the league's latest). */
+export function unlistedRegulars(file, injuries, out, tri, ymd) {
+  if (!file || !out?.length) return [];
+  const ids = Object.fromEntries(Object.entries(file.names || {}).map(([id, n]) => [nameKey(n), id]));
+  const games = (file.games || []).filter((g) => !ymd || g.d < ymd);
+  const listed = new Set((injuries && (!ymd || injuries.date === ymd) ? injuries.players || [] : []).filter((p) => p.team === tri).map((p) => nameKey(p.name)));
+  return out.filter((n) => { const c = startCount(file, ids, games, n); return c.gp >= 3 && c.gs === c.gp && !listed.has(nameKey(n)); });
+}
+function startCount(file, ids, games, name) {
+  const id = ids[nameKey(name)]; let gp = 0, gs = 0;
+  if (id) for (const g of games) { const r = g.pl?.[id]; if (r && (r[1] > 0 || r[0] === 1)) { gp++; if (r[0] === 1) gs++; } }
+  return { gp, gs };
+}
+/**
+ * A swap worth checking: a player out of the five who has started every game he's played and isn't on the injury
+ * report. `report` (0.68) is the league's latest report as the Worker read it ({ asOf, text }, cloudflare/injurypdf.js):
+ * a player on it isn't flagged, and his status is said instead (11/14: Porter Jr. Out, personal reasons, 7:15 PM).
+ */
+export function suspicion(file, injuries, out, inn, tri, ymd, report = null) {
   if (!file || !out?.length) return null;
   const ids = Object.fromEntries(Object.entries(file.names || {}).map(([id, n]) => [nameKey(n), id]));
   const games = (file.games || []).filter((g) => !ymd || g.d < ymd);
-  const count = (name) => {
-    const id = ids[nameKey(name)]; let gp = 0, gs = 0;
-    if (id) for (const g of games) { const r = g.pl?.[id]; if (r && (r[1] > 0 || r[0] === 1)) { gp++; if (r[0] === 1) gs++; } }
-    return { gp, gs };
-  };
-  const listed = new Set((injuries && (!ymd || injuries.date === ymd) ? injuries.players || [] : []).filter((p) => p.team === tri).map((p) => nameKey(p.name)));
-  const odd = out.filter((n) => { const c = count(n); return c.gp >= 3 && c.gs === c.gp && !listed.has(nameKey(n)); });
-  if (!odd.length) return null;
-  const who = odd.map((n) => { const c = count(n); return `${n} has started all ${c.gp} games he's played and isn't on the injury report`; }).join("; ");
+  const count = (name) => startCount(file, ids, games, name);
+  const cand = unlistedRegulars(file, injuries, out, tri, ymd);
+  const onReport = report ? cand.map((n) => [n, statusOnReport(report, n)]).filter(([, st]) => st) : [];
+  const odd = cand.filter((n) => !onReport.some(([m]) => m === n));
+  const notes = onReport.map(([n, st]) => `🩹 ${n}: ${st.status}${st.reason ? ` (${st.reason})` : ""} on the ${report.asOf} injury report.`);
+  if (!odd.length) return notes.length ? notes.join("\n") : null;
+  const asOf = report?.asOf || (injuries?.report?.asOf ? String(injuries.report.asOf).replace(/^\S+\s+/, "").replace(/^0/, "") : null);
+  const who = odd.map((n) => { const c = count(n); return `${n} has started all ${c.gp} games he's played and isn't on the ${asOf ? `${asOf} ` : ""}injury report`; }).join("; ");
   const subs = (inn || []).map((n) => { const c = count(n); return `${n} ${c.gs} start${c.gs === 1 ? "" : "s"} in ${c.gp} game${c.gp === 1 ? "" : "s"}`; }).join(", ");
-  return `⚠️ **Check before using:** ${who}${subs ? ` (${subs})` : ""}. Could be an NBA.com entry error; rechecking every minute until tip.`;
+  return [...notes, `⚠️ **Check before using:** ${who}${subs ? ` (${subs})` : ""}. Could be an NBA.com entry error; rechecking every minute until tip.`].join("\n");
 }
 
 const md = (ymd) => `${Number(ymd.slice(5, 7))}/${Number(ymd.slice(8, 10))}`;
@@ -240,6 +258,7 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
   }
   // NBA.com's file at :00, :20 and :40 of this minute, whenever any game is due then (one read covers every game).
   const minute0 = Math.floor(now / 60e3) * 60e3;
+  let irep; // the league's latest injury report, read at most once a run (only when a post would warn)
   for (const off of [0, BURST_EVERY_S]) {
     const t = minute0 + off * 1000;
     const due = st.sched.some((g) => g.teams.some((tri) => phaseOf(st.teams[tri], g.tip, t) === "pregame")
@@ -247,6 +266,8 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
     if (!due && !(dry && off === 0)) continue;
     if (t > Date.now()) await sleep(t - Date.now());
     const feed = await readFeed(compact);
+    // 0.68: when the read really happened (a run can start late); the slot time if the clock says otherwise.
+    const late = Date.now() - t, readAt = late >= 0 && late < 60e3 ? t + late : t;
     report.read.push(`${off}s nba.com ${feed.status}${feed.note ? ` (${feed.note})` : ""}`);
     if (!feed.ok) continue;
     for (const g of parseLineups(feed.json)) {
@@ -257,7 +278,7 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
         const names = tm.starters.map((p) => p.name);
         if (tm.status === "Expected" && !s.expected) { s.expected = names; changed = true; }
         // Timing (times only, for the nightly summary): when NBA.com stamped it confirmed, when we first saw it.
-        if (tm.status === "Confirmed") { const w = (s.when ??= {}); if (!w.seen) { w.seen = t; w.feed = tm.at; changed = true; } }
+        if (tm.status === "Confirmed") { const w = (s.when ??= {}); if (!w.seen) { w.seen = readAt; w.slot = t; w.feed = tm.at; changed = true; } }
         if (tm.status !== "Confirmed") continue;
         const again = s.posted && diff(s.posted, names).in.length > 0;
         if (s.posted && !again) continue;
@@ -268,7 +289,9 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
         // Who left the five: since the last post (a change), or since the team's last game (a first post).
         const base = again ? s.posted : last?.names;
         const d = base ? diff(base, names) : null;
-        const warn = d ? suspicion(file, injuries, d.out, d.in, tm.tri, ymd) : null;
+        // 0.68: a regular missing who isn't on the site's (older) injury report: read the league's latest first.
+        if (d && irep === undefined && unlistedRegulars(file, injuries, d.out, tm.tri, ymd).length) irep = await latestReport(Date.now(), fetch);
+        const warn = d ? suspicion(file, injuries, d.out, d.in, tm.tri, ymd, irep || null) : null;
         const embed = lineupEmbed({ ...g, statusText: g.statusText || etClock(sg.tip) + " ET" }, tm, { expected: again ? null : s.expected, last, previous: again ? s.posted : null, warn });
         const id = await postDiscord(env.LINEUPS_WEBHOOK, { embeds: [embed] });
         if (id) {
@@ -277,7 +300,7 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
           s.suspect = !!warn; // read every minute until tip, to catch a correction fast
           s.posted = names; s.postedTeam = { starters: tm.starters }; changed = true; report.posted++;
           const w = (s.when ??= {});
-          if (again) (w.changes ??= []).push({ seen: t, feed: tm.at, posted: Date.now() }); else w.posted = Date.now();
+          if (again) (w.changes ??= []).push({ seen: readAt, feed: tm.at, posted: Date.now() }); else w.posted = Date.now();
         }
       }
     }
@@ -345,6 +368,7 @@ export function nightTiming(st) {
     rows.push({ team: tri, opp: g.teams.find((x) => x !== tri), tip: g.tip,
       feedMin: before(w.feed), seenMin: before(w.seen), postedMin: before(w.posted),
       lagSec: w.posted && w.feed ? Math.round((w.posted - w.feed) / 1000) : null,
+      lateSec: w.seen && w.slot ? Math.round((w.seen - w.slot) / 1000) : null, // 0.68: how late the read ran after its slot
       changes: (w.changes || []).map((c) => ({ seenMin: before(c.seen), feedMin: before(c.feed), postedMin: before(c.posted) })),
       tipResult: s.tip || null });
   }

@@ -2,6 +2,23 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.68.0 (2026-11-15): lineups: the Worker reads the league's latest injury report before warning; real read times
+
+The user (11/15), on the 11/14 BKN @ MEM post (7:40 PM): "Michael Porter Jr. was listed out on the 7:15 injury report but the alert for checking was flagged. he couldn't start because he was already ruled out by the time the starting lineup was confirmed." Cause: the post checked the site's injuries.json, which was the 6:00 PM report (the site rebuilds a few times a day; the league posts every 15 minutes). Also from the 11/14 timing check: every "seen" time was the planned read slot, so whether the 30-second reads run on time couldn't be told.
+
+### What changed (cloudflare/, needs the user's OK to deploy)
+- **cloudflare/injurypdf.js (new):** finds the league's newest report (15-minute slots back from now, up to two hours), inflates only its page-content streams (fonts, images, metadata skipped) and looks a player up by the report's "Last, First" form (also "Udeh, Jr., Ernest"), returning his status and reason (the reason stops at the next row or team).
+- **Lineup posts:** when a regular is missing from the five and isn't on the site's injury file, the Worker reads the league's latest report first (at most once a run). If he's on it, the post says so ("🩹 Michael Porter Jr.: Out (Personal Reasons) on the 7:15 PM injury report.") and doesn't warn. If not, the warning names the report it checked ("isn't on the 7:30 PM injury report").
+- **Timing:** each first sighting records when the read really happened (`seen`) beside its slot (`slot`); the night's timing has `lateSec` (how late the read ran), and the timing workflow prints it.
+
+### Tested
+- 65 Worker checks pass (new: a PDF built like the league's (a metadata stream, a deflated page): Porter Jr. Out (Personal Reasons), Udeh's "Jr.," form, Traore Available with his reason cut at the next team, Aldama Questionable; the 15-minute slots in Eastern time; the newest report that exists; the 11/14 post with the 7:15 PM report gives his status and no warning, and without it the warning says "the 6:00 PM injury report"). 708 checks in the full suite.
+- The real 11/14 7:15 PM report: Porter Jr. Out (Personal Reasons), Mobley Out, Traore Available, Bilodeau Out. Reading it takes about 5 ms of CPU in Node (native inflate; fonts skipped).
+
+### Unproven
+- The Worker's CPU budget (free plan): the report is read only when a post would warn, but a large report on a busy night is untested there.
+- A report the league posts late (after the lineup) can't help; the warning still names the report it checked.
+
 ## 0.67.0 (2026-11-14): 👍/👎 on the briefing, learned; "Did we see it coming?"
 
 The user: "Go for it" (the two next steps proposed with 0.66: votes on each briefing line that the ranking learns from, and the tweets they send kept as checks with a hit rate).
