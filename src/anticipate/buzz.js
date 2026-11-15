@@ -54,10 +54,14 @@ export function buzzCounts(headlines, { players = [], teams = [], league = [] } 
       const raw = h.raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       const i = plain(raw).indexOf(m[0]);
       const orig = i >= 0 ? raw.slice(i, i + before.length) : "";
+      // and the surname itself capitalized ("the young season" isn't Trae Young)
+      const own = i >= 0 ? raw.slice(i + m[0].length - (m[2] ? m[2].length : 0) - s.length, i + m[0].length - (m[2] ? m[2].length : 0)) : "";
+      if (!/^[A-Z]/.test(own)) return false;
       return !before || before === first(name) || !/^[A-Z][a-z]+$/.test(orig) || NOT_NAMES.has(before);
     };
-    const nick = ALIAS[name] ? new RegExp(`\\b(?:${ALIAS[name].join("|")})('s)?\\b`) : null;
-    for (const h of titles) if (full.test(h.t) || alone(h) || (nick && nick.test(h.t))) { out.players[name] = (out.players[name] || 0) + 1; note(name, h.raw); }
+    const nick = ALIAS[name] ? new RegExp(`\\b(?:${ALIAS[name].join("|")})('s)?\\b`, "i") : null;
+    const byNick = (h) => { const m = nick && h.raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "").match(nick); return !!m && /^[A-Z]/.test(m[0]); };
+    for (const h of titles) if (full.test(h.t) || alone(h) || byNick(h)) { out.players[name] = (out.players[name] || 0) + 1; note(name, h.raw); }
   }
   return out;
 }
