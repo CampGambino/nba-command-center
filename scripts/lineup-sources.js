@@ -73,6 +73,14 @@ export function report(rows, rewrites = []) {
 
 async function main() {
   const start = Date.now();
+  // Can this machine read both files at all? (NBA.com turns some data centres away.) Status codes only.
+  {
+    const r = await get(FEED);
+    const j = r?.ok ? await r.json().catch(() => null) : null;
+    const id = j?.games?.[0]?.gameId;
+    const b = id ? await get(BOX(id), { method: "HEAD" }) : null;
+    console.log(`reach: lineups file ${r ? r.status : "no answer"}${j ? ` (${j.games.length} games)` : ""} · box score file ${id ? (b ? b.status : "no answer") : "not tried (no game id yet)"}`);
+  }
   const sb = await get(ESPN);
   const board = sb?.ok ? await sb.json().catch(() => null) : null;
   const games = (board?.events || []).map((e) => ({ tip: Date.parse(e.date), teams: (e.competitions?.[0]?.competitors || []).map((c) => TRI[c.team?.abbreviation] || c.team?.abbreviation) }))
