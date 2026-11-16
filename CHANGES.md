@@ -2,6 +2,28 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.74.0 (2026-11-15): #lineups: context on each confirmed five; a test of a second NBA.com file for speed
+
+The user (11/15), on the night's "Lineup timing" post (median lag 215 s) and the offer of context on lineup alerts: "that'll be a nice addition for context. anyway to close the lag time from confirmed lineup to post in discord?"
+
+### What the timing post showed
+- All 18 lineups were posted the moment the Worker saw them, each on a 30-second check about 6 seconds after it was due. The 96-336 seconds are between NBA.com's "confirmed" stamp and its lineups file showing it: the file is rewritten only every few minutes (watched after the games: rewritten at 9:56:20 PM and next at 9:59:34 PM). Checking faster can't recover that; only a source that shows the five sooner can.
+
+### What changed
+- **Context on the post** (`lineupContext` in `cloudflare/lineups.js`, from the team's box-score file the Worker already reads for each post, so no extra requests): how often this five has started together this season and its record, or that it is the first time (from the team's 3rd game); and for a starter, "first start of the season (N games off the bench)", "first game of the season", or "2nd/3rd start of the season" for one with two starts or fewer in 5+ games. The lines sit under "vs last game", marked 📌. If the team file can't be read the post goes out without them.
+- **A side-by-side test, outside the Worker** (`scripts/lineup-sources.js`, workflow "lineup sources (read only)", 4:40 PM ET daily for a few nights and by hand with a date): every 10 seconds from 45 minutes before each tip it looks at the lineups file (its date first; it is read only when rewritten) and at each game's live box score file, and prints when each first showed every team's five, each file's lag from the stamp, which was ahead, and how often the lineups file was rewritten. Team codes and clock times only. It reads; it posts nothing and the Worker doesn't use it.
+
+### Tested
+- 74 Worker checks (2 new: the context lines for a usual five, a new five, a rare starter and a debut, and nothing without the team's games; the lines on the post, and a post without them unchanged) and 776 in all (2 more: the watcher's reading of both files and its report).
+- The context on tonight's real team files: "This five has started together 9 times this season (3-6; 12 team games)" (NYK); "Josh Okogie: 3rd start of the season (12 games)" (UTA); a reserve swapped in reads "First time this five starts together… | Andre Drummond: first start of the season (12 games off the bench)".
+- The watcher against tonight's real files after the games: both read, SAC and OKC confirmed in each.
+
+### Unproven
+- Whether the box score file shows a five before the lineups file: that is what the test is for. Its first night is 11/16.
+- GitHub can start a scheduled run late; a night's early games can be missed by it.
+- Not done: checking NBA.com more often than every 30 seconds in the Worker. The gain is 15 seconds on average, and the Worker's free plan limits how many requests one run can make.
+- The context can't say "first time off the bench" for a regular left out of the five: before tip the program can't tell a benching from an absence (the injury-report note and the warning cover those).
+
 ## 0.73.0 (2026-11-15): the Discord worker: a build check, time limits, no duplicate storylines
 
 The three items the diagnostic left for a decision; the user (11/15): "go for all three". Deployed after the night's last tip, so nothing changed under #lineups mid-slate.

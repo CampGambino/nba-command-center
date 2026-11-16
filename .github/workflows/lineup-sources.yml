@@ -1,0 +1,30 @@
+# A few nights' test (0.74): which NBA.com file shows a confirmed five first, the daily lineups file the Worker reads
+# or each game's live box score file? It only reads; it posts nothing and changes nothing the Worker does.
+# The log is public: the script prints team codes and clock times only (no names).
+name: lineup sources (read only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "the night to watch (YYYY-MM-DD); empty = today, Eastern"
+        required: false
+        default: ""
+  schedule:
+    - cron: "40 21 * * *"   # 4:40 PM ET in winter: it waits for the first window, 45 minutes before the next tip
+
+permissions:
+  contents: read
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Watch both files until the last tip (times and team codes only)
+        run: |
+          if [ -n "${{ github.event.inputs.date }}" ]; then node scripts/lineup-sources.js --date "${{ github.event.inputs.date }}"; else node scripts/lineup-sources.js; fi

@@ -2247,6 +2247,24 @@ await articlesChecks(ok);
     { rows: [], logs, seasons: null, history, names: { m1: "Mac Cain" }, season: "2026-27" });
   ok(R.found === 1 && R.total === 1 && R.cantReplay === 1 && R.checks[1].found === null, "flag checks (0.70): a post from last season is replayed; one that needs data we don't keep is set apart, not counted a miss", JSON.stringify(R));
 }
+// ---------- 0.74: the two-source lineup watch (scripts/lineup-sources.js): reading and reporting ----------
+{
+  const S = await import("../scripts/lineup-sources.js");
+  const pl = (status, stamp, pos = "G") => ({ position: pos, lineupStatus: status, timestamp: stamp });
+  const feed = { games: [{ gameId: "0022600001", homeTeam: { teamAbbreviation: "PHI", players: [...Array(5)].map(() => pl("Confirmed", "2026-11-16T18:36:00")).concat([{ position: "", lineupStatus: "Confirmed", timestamp: "2026-11-16T19:50:00" }]) },
+    awayTeam: { teamAbbreviation: "IND", players: [...Array(4)].map(() => pl("Confirmed", "2026-11-16T18:35:00")).concat([pl("Expected", "2026-11-16T12:00:00")]) } }] };
+  const L = S.readLineups(feed);
+  const box = S.readBoxStarters({ game: { homeTeam: { teamTricode: "PHI", players: [...Array(5)].map(() => ({ starter: "1" })).concat([{ starter: "0" }]) }, awayTeam: { teamTricode: "IND", players: [{ starter: "1" }] } } });
+  ok(S.stampMs("2026-11-12T18:34:00") === Date.parse("2026-11-12T23:34:00Z") && S.stampMs("2026-07-01T18:34:00") === Date.parse("2026-07-01T22:34:00Z")
+    && L.PHI.confirmed && L.PHI.stamp === Date.parse("2026-11-16T23:36:00Z") && L.PHI.gameId === "0022600001" && !L.IND.confirmed && box.PHI === true && box.IND === false,
+    "lineup sources (0.74): NBA.com's Eastern stamps (winter and summer), a five confirmed only when all five are, starters in the box score file only when there are five", JSON.stringify([L, box]));
+  const T = Date.parse("2026-11-16T23:36:00Z");
+  const R = S.report([{ team: "PHI", tip: T + 24 * 60e3, stamp: T, feed: T + 276e3, box: T + 70e3, boxThere: T - 600e3 }, { team: "IND", tip: T + 24 * 60e3, stamp: T, feed: T + 216e3, box: null }], [T, T + 200e3, T + 380e3]);
+  ok(/^PHI tip 19:00:00 · stamp 18:36:00 · lineups file 18:40:36 \(\+276s\) · box file 18:37:10 \(\+70s\) · box file first there 18:26:00 · box ahead by 206s$/.test(R.lines[0]) && /^IND .* box file —$/.test(R.lines[1])
+    && R.summary === "teams with both: 1 of 2 · median lineups-file lag 246s · median box-file lag 70s · box ahead in 1 of 1 (median 206s) · lineups file rewritten 3 times, 190s apart at the median (180-200s)" && !/[a-z]{4,} [A-Z][a-z]+ [A-Z][a-z]+/.test(R.lines.join(" ")),
+    "lineup sources (0.74): the report is one line a team (codes and clock times only) with each file's lag from the stamp and which was ahead, then the medians and how often the lineups file was rewritten", [R.lines.join(" | "), R.summary].join(" || "));
+}
+
 // ---------- 0.72.7: margin by quarter, and the final two minutes (the user, 11/15: "Proceed") ----------
 {
   const { quarterMargins, quarterLines } = await import("../src/situations/quarters.js");

@@ -4,7 +4,7 @@
  * deploy (tests/articles-only.js); tests/run.js runs them as part of the full suite.
  */
 import fs from "node:fs";
-import { parseLineups, diff as lineupDiff, lastStarters, lineupEmbed, lineupCheck, feedTime, espnStarters, feedDue, suspicion, timingEmbed } from "../cloudflare/lineups.js";
+import { parseLineups, diff as lineupDiff, lastStarters, lineupEmbed, lineupCheck, feedTime, espnStarters, feedDue, suspicion, timingEmbed, lineupContext } from "../cloudflare/lineups.js";
 import { dueAt, dueNow, digestCheck } from "../cloudflare/digest.js";
 import { TEAM_FEEDS, teamFeedGroup, findLiveBlog, parseLiveBlog, LIVE_FEED } from "../cloudflare/articles-worker.js";
 import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey, tagOf as articleTag } from "../cloudflare/articles-worker.js";
@@ -180,6 +180,23 @@ export async function articlesChecks(ok) {
     const e = lineupEmbed(g, g.teams[0], { last, expected: ["Jalen Brunson", "Mikal Bridges", "OG Anunoby", "Mitchell Robinson", "Karl-Anthony Towns"] });
     ok(/in \*\*Josh Hart\*\* · out Mitchell Robinson/.test(e.description) && /vs expected earlier today/.test(e.description) && /Inactive: Miles McBride/.test(e.description)  && e.title === "NYK vs IND · 7:30 pm ET" && e.description.startsWith("Jalen Brunson\nMikal Bridges\nOG Anunoby\nJosh Hart\nKarl-Anthony Towns\n"),
       "lineups: the post lists the five PG to C with no position labels (user, 11/12), and says what changed from the last game and the expected five", e.description);
+    // 0.74: context on a confirmed five, from the team's box-score file.
+    {
+      const row = (st, min = 20) => [st, min, 10];
+      const five = (ids) => Object.fromEntries([1, 2, 3, 4, 5, 6, 7].map((id) => [id, row(ids.includes(id) ? 1 : 0, id === 7 ? 0 : 20)]));
+      const cf = { names: { 1: "Jalen Brunson", 2: "Mikal Bridges", 3: "OG Anunoby", 4: "Mitchell Robinson", 5: "Karl-Anthony Towns", 6: "Josh Hart", 7: "New Guy" },
+        games: [1, 2, 3, 4, 5, 6].map((k) => ({ d: `2026-11-0${k}`, opp: "BOS", pf: k <= 4 ? 110 : 90, pa: 100, pl: five(k <= 5 ? [1, 2, 3, 4, 5] : [1, 2, 3, 5, 6]) })) };
+      const usual = lineupContext(cf, ["Jalen Brunson", "Mikal Bridges", "OG Anunoby", "Mitchell Robinson", "Karl-Anthony Towns"], "2026-11-12");
+      const swap = lineupContext(cf, ["Jalen Brunson", "Mikal Bridges", "OG Anunoby", "Josh Hart", "New Guy"], "2026-11-12");
+      ok(usual.length === 1 && usual[0] === "This five has started together 5 times this season (4-1; 6 team games)."
+        && swap.join(" | ") === "First time this five starts together this season (6 team games). | Josh Hart: 2nd start of the season (6 games). | New Guy: first game of the season."
+        && lineupContext(cf, ["Jalen Brunson", "Mikal Bridges", "OG Anunoby", "Mitchell Robinson", "Josh Hart"], "2026-11-06").some((x) => x === "Josh Hart: first start of the season (5 games off the bench).")
+        && lineupContext(null, ["a"], null).length === 0 && lineupContext({ names: {}, games: [] }, ["a", "b", "c", "d", "e"]).length === 0,
+        "lineups (0.74): context for a confirmed five: how often it has started together and its record, a first or rare start, a season debut; nothing without the team's games", [usual.join(" | "), swap.join(" | ")].join(" || "));
+      const ce = lineupEmbed(g, g.teams[0], { last, context: swap });
+      ok(/📌 First time this five starts together this season/.test(ce.description) && /📌 New Guy: first game of the season\./.test(ce.description) && !/📌/.test(lineupEmbed(g, g.teams[0], { last }).description),
+        "lineups (0.74): the context lines go on the post under what changed; a post without context is unchanged", ce.description);
+    }
     // A run: posts once per confirmed five; a later change posts again; dry runs post nothing.
     const kv = new Map(), posts = [], edits = [];
     const env = { LINEUPS_WEBHOOK: "https://discord.com/api/webhooks/3/test-z", STATE: { get: async (k) => (kv.has(k) ? JSON.parse(kv.get(k)) : null), put: async (k, v) => kv.set(k, v) } };

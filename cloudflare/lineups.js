@@ -127,11 +127,46 @@ export function suspicion(file, injuries, out, inn, tri, ymd, report = null) {
   return [...notes, `⚠️ **Check before using:** ${who}${subs ? ` (${subs})` : ""}. Could be an NBA.com entry error; rechecking every minute until tip.`].join("\n");
 }
 
+/**
+ * Context for a confirmed five, from the team's box-score file (0.74; the user's OK, 11/15: "that'll be a nice addition
+ * for context"). Two kinds of line, each only when there is something to say:
+ *   the five as a unit   "This five has started together 6 times this season (4-2)" / "First time this five starts
+ *                        together this season" (once the team has played 3 games);
+ *   a new starter        "X: first start of the season (5 games off the bench)" / "X: first game of the season" /
+ *                        "X: 2nd start of the season (9 games)" for a player with 2 starts or fewer in 5+ games.
+ * Who is OUT of the five isn't called "off the bench" here: before tip the program can't tell a benching from an absence
+ * (the injury-report note and the warning cover those).
+ */
+export function lineupContext(file, names, ymd = null) {
+  if (!file || names?.length !== 5) return [];
+  const ids = Object.fromEntries(Object.entries(file.names || {}).map(([id, n]) => [nameKey(n), id]));
+  const games = (file.games || []).filter((g) => !ymd || g.d < ymd);
+  if (!games.length) return [];
+  const out = [];
+  const want = names.map((n) => ids[nameKey(n)]);
+  if (games.length >= 3) {
+    let n = 0, w = 0;
+    if (want.every(Boolean)) for (const g of games) {
+      const five = Object.entries(g.pl || {}).filter(([, r]) => r[0] === 1).map(([id]) => id);
+      if (five.length === 5 && want.every((id) => five.includes(id))) { n++; if (g.pf > g.pa) w++; }
+    }
+    out.push(n ? `This five has started together ${n === 1 ? "once" : `${n} times`} this season (${w}-${n - w}; ${games.length} team games).` : `First time this five starts together this season (${games.length} team games).`);
+  }
+  const ordinal = (k) => (k === 1 ? "1st" : k === 2 ? "2nd" : k === 3 ? "3rd" : `${k}th`);
+  for (const name of names) {
+    const c = startCount(file, ids, games, name);
+    if (c.gp === 0) { if (games.length >= 3) out.push(`${name}: first game of the season.`); }
+    else if (c.gs === 0) out.push(`${name}: first start of the season (${c.gp} game${c.gp === 1 ? "" : "s"} off the bench).`);
+    else if (c.gs <= 2 && c.gp >= 5) out.push(`${name}: ${ordinal(c.gs + 1)} start of the season (${c.gp} games).`);
+  }
+  return out;
+}
+
 const md = (ymd) => `${Number(ymd.slice(5, 7))}/${Number(ymd.slice(8, 10))}`;
 const list = (xs) => xs.join(", ");
 
 /** The Discord embed for a team's confirmed five (or a change to it). */
-export function lineupEmbed(game, team, { expected = null, last = null, previous = null, test = false, kind = null, warn = null } = {}) {
+export function lineupEmbed(game, team, { expected = null, last = null, previous = null, test = false, kind = null, warn = null, context = null } = {}) {
   const lines = team.starters.map((p) => p.name); // in position order, PG to C (the user: no labels)
   const notes = [];
   if (previous) { const d = diff(previous, team.starters.map((p) => p.name)); if (d.in.length) notes.push(`🔄 **${kind === "tip" ? "Started differently than confirmed" : "Changed after it was confirmed"}:** in ${list(d.in)} · out ${list(d.out)}`); }
@@ -140,6 +175,7 @@ export function lineupEmbed(game, team, { expected = null, last = null, previous
     notes.push(d.in.length ? `**vs last game** (${md(last.d)} vs ${last.opp}): in **${list(d.in)}** · out ${list(d.out)}` : `Same five as last game (${md(last.d)} vs ${last.opp}).`);
   }
   if (expected) { const d = diff(expected, team.starters.map((p) => p.name)); if (d.in.length) notes.push(`**vs expected earlier today:** in ${list(d.in)} · out ${list(d.out)}`); }
+  if (context?.length) notes.push(context.map((c) => `📌 ${c}`).join("\n"));
   if (warn) notes.push(warn);
   if (team.inactive.length) notes.push(`Inactive: ${list(team.inactive)}`);
   const changed = notes.some((n) => /^\*\*vs|^🔄/.test(n) && /in \*\*|in [A-Z]/.test(n));
@@ -301,7 +337,9 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
         // 0.68: a regular missing who isn't on the site's (older) injury report: read the league's latest first.
         if (d && irep === undefined && unlistedRegulars(file, injuries, d.out, tm.tri, ymd).length) irep = await latestReport(Date.now(), (u) => tfetch(u, {}, LIMIT_MS.pdf));
         const warn = d ? suspicion(file, injuries, d.out, d.in, tm.tri, ymd, irep || null) : null;
-        const embed = lineupEmbed({ ...g, statusText: g.statusText || etClock(sg.tip) + " ET" }, tm, { expected: again ? null : s.expected, last, previous: again ? s.posted : null, warn });
+        let context = null;
+        try { context = lineupContext(file, names, ymd); } catch { /* context is an extra: the post goes out without it */ }
+        const embed = lineupEmbed({ ...g, statusText: g.statusText || etClock(sg.tip) + " ET" }, tm, { expected: again ? null : s.expected, last, previous: again ? s.posted : null, warn, context });
         const id = await postDiscord(env.LINEUPS_WEBHOOK, { embeds: [embed] });
         if (id) {
           if (again && s.card) await editDiscord(env.LINEUPS_WEBHOOK, s.card.id, { embeds: [supersededEmbed(s.card.embed, `changed at ${etClock(Date.now())} ET`)] });
