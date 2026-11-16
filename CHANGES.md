@@ -11,7 +11,7 @@ The user (11/15), after the list of suggestions from the posts: "Start it up" (t
   - a starter who wasn't on the floor to finish his team's last 3+ close games when he had finished half or more before, with a note if he sat the whole 4th of the latest one;
   - a starter who has finished a quarter or fewer of the 5+ close games he started;
   - a scorer (18+ a game in them) who hasn't played in the 4th in 3+ of his starts (30%+), with his team's record in those games and whether every one was decided by 15+.
-- **Two regulars out at once** (`comboAbsences` in `src/injuries/impact.js`, an injury storyline). When a team has two or more regulars Out or Doubtful on tonight's report: its record in the games without both of the two biggest, counted only from when each had played for the team, this season and last; and the teammate whose scoring rises most in them (3+ a game), or failing that the top scorer.
+- **Two regulars out at once** (`comboAbsences` in `src/injuries/impact.js`, an injury storyline). When a team has two or more regulars Out or Doubtful on tonight's report: its record in the games without both of the two biggest, counted only from when each had played for the team, this season and last; and the scorer (15+ a game in them) whose scoring rises most (3+ a game), or failing that the top scorer. (The 15 was added after the first live build picked deep reserves who only play in those games: "Bennett Stirtz 9.8 PPG… (0.7 otherwise)".)
 - The single-absence line was already there (the team's record and two teammates' numbers without him, this season).
 - Three of the 20 posts' checks now say they are built; the scoreboard is 29 of 36 with 11 set apart (the two-out line needs that night's injury report, which isn't kept for last season).
 

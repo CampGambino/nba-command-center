@@ -2270,6 +2270,9 @@ await articlesChecks(ok);
   const C = comboAbsences(imp, { LAL: file }, { prior });
   ok(C.length === 1 && C[0].text === "Star One and Star Two both out: LAL 1-2 in 3 games without both since last season; Third Guy 44.3 PPG, 8.7 RPG, 9.7 APG in them (18.0 PPG otherwise)" && C[0].score > 3,
     "injuries (0.72.6): two regulars out at once: the games without both since both were with the team (a game before then isn't one), last season's included, and the teammate whose scoring rises most", JSON.stringify(C.map((c) => c.text)));
+  // A deep reserve who only plays in those games isn't the pick; the top scorer is.
+  const deep = { ...file, names: { ...file.names, z: "Deep Reserve" }, games: file.games.map((g, k) => ({ ...g, pl: { ...g.pl, z: pl(k === 2 || k === 3 ? 20 : 3, k === 2 || k === 3 ? 12 : 1), r: pl(30, 20) } })) };
+  ok(/; Top Scorer 27\.0 PPG/.test(comboAbsences(imp, { LAL: deep }, { prior: null })[0]?.text || ""), "injuries (0.72.6): a reserve who only plays without them (12 from 1) isn't named over the team's scorer", JSON.stringify(comboAbsences(imp, { LAL: deep }, { prior: null }).map((c) => c.text)));
   ok(comboAbsences(imp.slice(0, 1), { LAL: file }, { prior }).length === 0 && comboAbsences(imp, { LAL: { ...file, games: file.games.slice(0, 2) } }, { prior: null }).length === 0, "injuries (0.72.6): one regular out, or no games without both, gets no such line");
 }
 

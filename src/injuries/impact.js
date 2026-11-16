@@ -141,9 +141,10 @@ export function comboAbsences(impacts, teamFiles, { prior = null, minGames = 2 }
       if (mine.length < minGames) continue;
       const avg = (gs, k) => gs.reduce((n, g) => n + g.lines[id][k], 0) / gs.length;
       const c = { id, name: file.names[id] || id, n: mine.length, pts: avg(mine, "pts"), reb: avg(mine, "reb"), ast: avg(mine, "ast"), other: other.length ? avg(other, "pts") : null, otherN: other.length };
-      // The teammate whose scoring rises most without them (3+ a game, on 3+ other games); failing that, the top scorer.
+      // The scorer (15+ a game in them) whose scoring rises most without them (3+ a game, on 3+ other games); failing
+      // that, the top scorer. Without the 15, the pick was a deep reserve who only plays then (Stirtz 9.8 from 0.7).
       c.gain = c.other != null && c.otherN >= 3 ? c.pts - c.other : null;
-      const rank = (x) => (x.gain != null && x.gain >= 3 ? 1000 + x.gain : x.pts);
+      const rank = (x) => (x.gain != null && x.gain >= 3 && x.pts >= 15 ? 1000 + x.gain : x.pts);
       if (!best || rank(c) > rank(best)) best = c;
     }
     const w = both.filter((g) => g.won).length;
