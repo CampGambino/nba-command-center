@@ -318,6 +318,64 @@ function lastTwoLines(flow, teams) {
 }
 
 /**
+ * 0.79 (posts the user sent, 11/16), all from the Game Flow files, every team and player:
+ *  - games lost after leading by 10+ in a row ("blown a double-digit lead in 3 straight games"): from two, with what a
+ *    loss tonight would make it against the season's longest run;
+ *  - the record when leading by 10+ ("4-5 when leading by 10+ points… 1 of 5 teams with a losing record"): a losing
+ *    record, or among the three teams with the most such losses;
+ *  - shots to tie or take the lead in the last 90 seconds of the 4th or overtime: the league's three with the most makes;
+ *  - a full half or a full game ("players who play full halves (rare) and full games (almost never)"): anyone who did
+ *    it in his team's last game, with how often it has happened this season.
+ */
+export const BY10 = { run: 2, losses: 3, swingMakes: 3, fullDays: 4 };
+export function flowTeamLines(flow, teams, today = null) {
+  const out = [], B = flow?.by10 || {}, md = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}`;
+  const tris = Object.keys(B);
+  const seasonLongest = tris.reduce((m, t) => Math.max(m, B[t].longest || 0), 0);
+  const losing = tris.filter((t) => B[t].upL > B[t].upW);
+  const lossRank = (n) => tris.filter((t) => B[t].upL > n).length + 1;
+  for (const t of tris) {
+    if (!teams.has(t)) continue;
+    const x = B[t], n = x.run.length;
+    if (n >= BY10.run) {
+      const next = n + 1;
+      out.push({ team: t, kind: "team", key: `blown10|${t}`, rare: next > seasonLongest, score: 3.2 + 0.4 * (n - 2) + (next > seasonLongest ? 0.3 : 0),
+        text: `${t} has lost its last ${n} games after leading by 10+ (${x.run.map((g) => `${g.lead} vs ${g.opp} ${md(g.d)}`).join(", ")}); a ${ordinalWord(next)} straight tonight would ${next > seasonLongest ? "be the longest such run in the NBA this season" : next === seasonLongest ? `tie the season's longest (${seasonLongest})` : `leave it short of the season's longest (${seasonLongest})`}` });
+    }
+    if (x.upL >= BY10.losses && (x.upL > x.upW || lossRank(x.upL) <= 3)) {
+      const others = losing.filter((o) => o !== t);
+      const more = tris.filter((o) => B[o].upL > x.upL), same = tris.filter((o) => o !== t && B[o].upL === x.upL);
+      out.push({ team: t, kind: "team", key: `led10|${t}`, score: 2.9 + (x.upL > x.upW ? 0.3 : 0) + 0.1 * Math.min(4, x.upL - 3),
+        text: `${t} is ${x.upW}-${x.upL} when leading by 10+ this season` + (x.upL > x.upW ? `: ${others.length ? `one of ${others.length + 1} teams with a losing record in those games (with ${others.join(", ")})` : "the only team with a losing record in those games"}`
+          : `; ${more.length ? `only ${more.join(" and ")} ${more.length === 1 ? "has" : "have"} lost more such games` : same.length ? `tied with ${same.join(", ")} for the most such losses in the NBA` : "the most such losses in the NBA"}`) });
+    }
+  }
+  (flow?.swing || []).slice(0, 3).forEach((p, i) => {
+    if (!teams.has(p.team) || p.m < BY10.swingMakes) return;
+    const tied = flow.swing.filter((o) => o.m === p.m).length > 1;
+    out.push({ team: p.team, player: p.name, kind: "fourth", key: `swing|${p.id}`, score: 3.0 + 0.15 * (p.m - 3) + (p.m / p.a >= 0.6 ? 0.2 : 0),
+      text: `${p.name} is ${p.m}-for-${p.a} on shots to tie or take the lead in the final 90 seconds of the 4th or overtime this season (${flow.swing[0].m === p.m ? (tied ? "tied for the most makes" : "the most makes") : `${ordinal(i + 1)}-most makes`} in the NBA)` });
+  });
+  const F = flow?.full;
+  if (F && today) {
+    const recent = (d) => d && (Date.parse(today) - Date.parse(d)) / 864e5 <= BY10.fullDays;
+    const nH = F.halves.length, nG = F.games.length, games = flow.games || 0;
+    for (const g of F.games) if (teams.has(g.team) && recent(g.date))
+      out.push({ team: g.team, player: g.name, kind: "season", key: `fullgame|${g.id}|${g.gameId}`, rare: true, score: 4,
+        text: `${g.name} played every second of ${g.team}'s last game (${g.min} minutes${g.ot ? `, ${g.ot === 1 ? "an overtime" : `${g.ot} overtimes`} included` : ""}, ${md(g.date)} vs ${g.opp}): ${nG === 1 ? "the only full game by any player" : `one of ${nG} full games`} this season (${games} games)` });
+    for (const h of F.halves) if (teams.has(h.team) && recent(h.date) && !F.games.some((g) => g.id === h.id && g.gameId === h.gameId))
+      out.push({ team: h.team, player: h.name, kind: "season", key: `fullhalf|${h.id}|${h.gameId}`, rare: nH <= 3, score: 3.3,
+        text: `${h.name} played the entire ${h.h === 1 ? "first" : "second"} half on ${md(h.date)} vs ${h.opp} (${h.min} minutes in the game): ${nH === 1 ? "the only full half by any player" : `one of ${nH} full halves`} this season (${games} games); ${nG ? `${nG} full game${nG > 1 ? "s" : ""}` : "nobody has played a full game"}` });
+    for (const f of F.fives) if (teams.has(f.team) && recent(f.date))
+      out.push({ team: f.team, kind: "team", key: `fullfive|${f.team}|${f.gameId}`, rare: true, score: 3.8,
+        text: `${f.team} played the same five for the entire ${f.h === 1 ? "first" : "second"} half on ${md(f.date)} vs ${f.opp} (${f.names.join(", ")}): ${F.fives.length === 1 ? "the only time a team has done it" : `one of ${F.fives.length} times`} this season` });
+  }
+  return out;
+}
+const ordinal = (n) => n + (n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th");
+const ordinalWord = (n) => ["", "first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth"][n] || ordinal(n);
+
+/**
  * Shots across games (flowstats.json `shots`; 0.75, the user 11/15): makes in a row, misses in a row, court time without
  * a made field goal, and court time without a free-throw attempt, for players on tonight's teams whose run is still
  * going (he played in the last 6 days). Each is measured against this season's longest, and the makes against the NBA
@@ -574,7 +632,7 @@ export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries =
   const hist = historyLines(facts, teams, watch.today).filter((h) => !recs.some((r) => r.player && r.passing && r.team === h.team
     && new RegExp(`\\b${surname(r.player)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
     && r.passing.split(" and ").some((n) => new RegExp(`\\b${surname(n)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, "")))));
-  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams).filter((l) => !clubLines(leaders, teams).some((c) => c.player === l.player)), ...clubLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today), ...tvLines(national, teams, watch.today), ...restLines(rest, teams, watch.today), ...formLines(form, teams, watch.today), ...foulLines(fouls, teams), ...earlyLines(fouls, teams, watch.today), ...fourthLines(fouls, teams), ...lastTwoLines(fouls, teams), ...shotLines(fouls, teams, watch.today, prep?.stars || null), ...seededLines(fouls, teams), ...prepStoryLines(prep, teams, games, watch.today), ...cupLines(records, teams, watch.today)]
+  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams).filter((l) => !clubLines(leaders, teams).some((c) => c.player === l.player)), ...clubLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today), ...tvLines(national, teams, watch.today), ...restLines(rest, teams, watch.today), ...formLines(form, teams, watch.today), ...foulLines(fouls, teams), ...earlyLines(fouls, teams, watch.today), ...fourthLines(fouls, teams), ...lastTwoLines(fouls, teams), ...shotLines(fouls, teams, watch.today, prep?.stars || null), ...flowTeamLines(fouls, teams, watch.today), ...seededLines(fouls, teams), ...prepStoryLines(prep, teams, games, watch.today), ...cupLines(records, teams, watch.today)]
     .flatMap((l) => {
       const st = l.player ? listed.get(`${l.team}|${nameKey(l.player)}`) : null;
       if (st === "Out" || st === "Doubtful") return [];

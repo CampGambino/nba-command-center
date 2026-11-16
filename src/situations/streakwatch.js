@@ -57,8 +57,8 @@ const BARS = [
   ...[85, 90, 95].map((x) => ({ key: `held${x}`, fam: "held", test: (g) => g.pa < x, say: `held opponents under ${x}` })),
   ...[85, 90, 95].map((x) => ({ key: `low${x}`, fam: "low", test: (g) => g.pf < x, say: `scored under ${x}` })),
   // 0.72.5 (the user's post, 11/15: "Kings last 4 games: lost by 33, 14, 27, 31, all at home"): margins.
-  ...[30, 25, 20].map((x) => ({ key: `lostby${x}`, fam: "lostby", test: (g) => g.pa - g.pf >= x, say: `lost by ${x}+` })),
-  ...[30, 25, 20].map((x) => ({ key: `wonby${x}`, fam: "wonby", test: (g) => g.pf - g.pa >= x, say: `won by ${x}+` })),
+  ...[30, 25, 20, 15].map((x) => ({ key: `lostby${x}`, fam: "lostby", test: (g) => g.pa - g.pf >= x, say: `lost by ${x}+` })),
+  ...[30, 25, 20, 15].map((x) => ({ key: `wonby${x}`, fam: "wonby", test: (g) => g.pf - g.pa >= x, say: `won by ${x}+` })),
 ];
 // Blowouts that aren't in a row: 25+ in three or more of a team's last five games of a season.
 const SPAN = 5, BLOW = 25;

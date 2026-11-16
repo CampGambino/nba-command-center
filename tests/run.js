@@ -2010,6 +2010,47 @@ await articlesChecks(ok);
       && !t9.cards.get("cc-ret-53-g8-h1") && /^Sits Long \(GSW\) hasn't come back in/.test(t9.cards.get("cc-ret-50-g8-h1")?.text || ""),
       "bridge v7 (0.72.1): a starter who opened the 3rd and then sat isn't carded \"didn't start the 3rd\"; one on his second rest isn't \"hasn't come back in\"; the real cases still are", [...t8.cards.keys(), ...t9.cards.keys()].join(" "));
   }
+  // v15 (0.79): a player who hasn't left the game, from 5:00 left; a half, from 2:00 left; a rare game state.
+  {
+    flowData = { season: "2026-27", games: 197, quarters: [], halves: [], teamQuarters: [], fouls: {}, leads: {}, rotation: {},
+      full: { halves: [{ id: "9", name: "Max Christie", team: "DAL", h: 2, date: "2026-10-23", gameId: "old" }], games: [], fives: [] } };
+    const mk = (o) => ({ id: "gi", status: "live", period: 4, clock: "4:30", away: { tricode: "GS", score: 100, linescores: [] }, home: { tricode: "HOU", score: 98, linescores: [] },
+      plays: [{ badge: "sub", playerId: "72", playerOutId: "71", qtr: "Q3", clock: "12:00" }, { badge: "sub", playerId: "71", playerOutId: "72", qtr: "Q2", clock: "6:00" }, { badge: "fg", playerId: "73", qtr: "Q3", clock: "8:00" }, { badge: "sub", playerId: "73", playerOutId: "74", qtr: "Q2", clock: "3:00" }],
+      boxscore: { away: [qp("70", { name: "Iron Man", min: 43, pts: 31 }), qp("72", { name: "Sat Once", min: 37 }), qp("75", { name: "Box Says Less", min: 30 }), qp("73", { name: "Second Half", min: 25, starter: false })], home: [] }, ...o });
+    const court = { away: new Set(["70", "72", "75", "73"]), home: new Set() };
+    const early = mk({ clock: "5:30" });
+    const tE = run({ games: [early], date: "20261110", extra: { computeOnCourt: () => court } }); await flush(); tE.ctx.runAlertChecks(); await flush();
+    const gi = mk({});
+    const tI = run({ games: [gi], date: "20261110", extra: { computeOnCourt: () => court } }); await flush(); tI.ctx.runAlertChecks(); await flush();
+    const iron = tI.cards.get("cc-iron-70-gi");
+    ok(![...tE.cards.keys()].some((k) => /^cc-iron/.test(k)) && iron && iron.icon === "🦾 HASN'T LEFT THE GAME" && iron.text === "Iron Man (GSW) has played every second so far (43:30) · nobody has played a full game this season (197 games)"
+      && !tI.cards.get("cc-iron-72-gi") && !tI.cards.get("cc-iron-75-gi") && !tI.cards.get("cc-iron-73-gi"),
+      "bridge v15: a starter with no substitution out gets a card from 5:00 left in the 4th (not at 5:30; not one who sat, nor one whose box minutes disagree)", [...tI.cards.entries()].filter(([k]) => /iron/.test(k)).map(([k, c]) => k + ": " + c.text).join(" | "));
+    gi.clock = "1:30"; tI.ctx.runAlertChecks(); await flush();
+    const half = tI.cards.get("cc-ironh-73-gi-2");
+    ok(half && half.text === "Second Half (GSW) has played the whole second half so far (22:30) · 1 full half by any player this season (last: Max Christie, 10/23)" && !tI.cards.get("cc-ironh-70-gi-2") && !tI.cards.get("cc-ironh-72-gi-2"),
+      "bridge v15: from 2:00 left in a half, a player who has played all of it (a reserve who opened the 3rd); not the one with a full-game card, nor one who came in during the half", half && half.text);
+    gi.plays.unshift({ badge: "sub", playerId: "76", playerOutId: "73", qtr: "Q4", clock: "1:10" }); gi.clock = "1:00";
+    tI.ctx.computeOnCourt = () => ({ away: new Set(["70", "72", "75"]), home: new Set() }); tI.ctx.runAlertChecks(); await flush();
+    ok(tI.cards.get("cc-ironh-73-gi-2").ended && /^Second Half \(GSW\) came out at Q4 1:10 · he had played all of the second half until then$/.test(tI.cards.get("cc-ironh-73-gi-2").text) && !tI.cards.get("cc-iron-70-gi").ended,
+      "bridge v15: the card ends when he comes out", tI.cards.get("cc-ironh-73-gi-2").text);
+    Object.assign(gi, { status: "final", clock: "0:00" }); gi.boxscore.away[0].min = 48; tI.ctx.runAlertChecks(); await flush();
+    ok(tI.cards.get("cc-iron-70-gi").icon === "🦾 FULL GAME" && tI.cards.get("cc-iron-70-gi").text === "Iron Man (GSW) played every second of the game (48 minutes) · the first full game by any player this season (197 games before tonight)",
+      "bridge v15: at the final, a player who never came out has a full game", tI.cards.get("cc-iron-70-gi").text);
+    // A feed with no substitutions at all says nothing.
+    const bare = mk({ id: "gb", plays: [{ badge: "fg", playerId: "70", qtr: "Q4", clock: "5:00" }] });
+    const tB = run({ games: [bare], date: "20261110", extra: { computeOnCourt: () => court } }); await flush(); tB.ctx.runAlertChecks(); await flush();
+    // A rare game state: down 11 in overtime.
+    tonightData.situations = [{ id: "ot-down-10", when: { ot: true, minDown: 10 }, text: "teams down 10+ in overtime are 1-180 over the last 29 seasons", asOf: "2026-03-26" }];
+    const ot = mk({ id: "go", period: 5, clock: "2:00", away: { tricode: "GS", score: 120, linescores: [] }, home: { tricode: "HOU", score: 109, linescores: [] } });
+    const close = mk({ id: "gc", period: 5, clock: "2:00", away: { tricode: "GS", score: 120, linescores: [] }, home: { tricode: "HOU", score: 112, linescores: [] } });
+    const tO = run({ games: [ot, close], date: "20261109", extra: { computeOnCourt: () => court } }); await flush(); tO.ctx.runAlertChecks(); await flush();
+    delete tonightData.situations;
+    const sit = tO.cards.get("cc-sit-ot-down-10-go");
+    ok(![...tB.cards.keys()].some((k) => /^cc-iron/.test(k)) && sit && sit.icon === "🧮 ALMOST NEVER" && sit.text === "HOU trail GSW by 11 in overtime · teams down 10+ in overtime are 1-180 over the last 29 seasons" && /looked up on 3\/26\/26, not counted since/.test(sit.sub) && !tO.cards.get("cc-sit-ot-down-10-gc"),
+      "bridge v15: no play-by-play substitutions, no iron-man card; a team down 10+ in overtime gets the looked-up record (not at 8 down)", sit && sit.text + " // " + sit.sub);
+    flowData = null;
+  }
   // v8 (0.72.2; the user, 11/15: Josh Green, 4 starts in 11 games, carded for a 4th foul off the bench): foul trouble only
   // for tonight's starters, players who start half their games or more, and players at 25.0 minutes a game or more.
   {
@@ -2940,6 +2981,15 @@ await articlesChecks(ok);
     ok(two.games === 2 && two.quarters.length && two.quarters[0].pts >= two.quarters[two.quarters.length - 1].pts && r1 && r1.gp === 2
       && two.leadTable.length === 2 && two.leadTable.every((t) => t.gp === 2 && t.neverTrailed + t.neverLed <= 2) && S.placeOn([{ pts: 20 }, { pts: 18 }, { pts: 18 }], 18) === 2,
       "game flow stats: season lists best first, rotations over games, the Leads & comebacks table, places on a list (ties share)", JSON.stringify(two.leadTable));
+    // 0.79: the same two games give each team a record when leading / trailing by 10+, a run, and the lists exist.
+    {
+      const tA = Fg.teams[0], B = two.by10[tA.team];
+      ok(B && B.gp === 2 && B.upW + B.upL === (tA.maxLead >= 10 ? 2 : 0) && B.downW + B.downL === (tA.maxDown >= 10 ? 2 : 0) && B.run.length === (!tA.won && tA.maxLead >= 10 ? 2 : 0) && B.longest === B.run.length
+        && Array.isArray(two.full.halves) && Array.isArray(two.full.games) && Array.isArray(two.full.fives) && Array.isArray(two.swing)
+        && Fg.players.every((p) => typeof p.fullGame === "boolean" && (!p.fullGame || (p.fullH1 && p.fullH2)) && (!p.fullH1 || p.mins >= 23.9))
+        && Object.values(Fg.swing).every((x) => x.m <= x.a && x.a >= 1),
+        "game flow stats (0.79): the record when leading or trailing by 10+, the run of games lost after such a lead, full halves and games, tie-or-lead shots late", JSON.stringify([B, two.full, Fg.swing]));
+    }
     // 0.75: every shot of the sample game, per player: his makes add up to his points in the box score.
     const shotPts = (x) => x.ev.reduce((n, [, k, m]) => n + (m ? (k === "3" ? 3 : k === "2" ? 2 : 1) : 0), 0);
     const off = Object.entries(Fg.shots).filter(([id, x]) => shotPts(x) !== Gm.players.find((p) => String(p.id) === id).boxPts).map(([, x]) => x.name);
@@ -3438,7 +3488,7 @@ await articlesChecks(ok);
   {
     const src = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");
     const sl = fs.readFileSync(path.join(root, "src", "anticipate", "seasonlong.js"), "utf8");
-    ok(/var VERSION = 14;/.test(src) && /return !l\.bg && \(l\.kind !== "foul"/.test(src) && (sl.match(/standing: true/g) || []).length === 2 && /era\|decade\|[^\n]*\n[^\n]*\n[^\n]*standing: true/.test(sl),
+    ok(/var VERSION = 1[4-9];/.test(src) && /return !l\.bg && \(l\.kind !== "foul"/.test(src) && (sl.match(/standing: true/g) || []).length === 2 && /era\|decade\|[^\n]*\n[^\n]*\n[^\n]*standing: true/.test(sl),
       "bridge v14: a standing fact (\"leads the decade in…\") is marked bg and gets no pre-game card in NBA Live");
   }
 
@@ -3520,6 +3570,72 @@ await articlesChecks(ok);
     const sas = lines("SAS"), uta = lines("UTA");
     ok(sas.length === 1 && sas[0].kind === "season" && sas[0].text === "Dylan Harper has raised his career high twice this season (24 → 25 → 31, the latest on 11/15): one of 2 players past their rookie season to do it twice (with Ajay Mitchell)" && uta.length === 0,
       "career highs (0.78): a line for any player past his rookie season who has done it twice or more, when he plays; rookies are left to the page", sas.map((l) => l.text).join(" | "));
+  }
+}
+
+// ---------- 0.79: twelve posts the user sent (11/16) and full halves / full games ----------
+{
+  const T = await import("../src/anticipate/tonight.js");
+  const by = (upW, upL, run = [], longest = run.length) => ({ gp: 13, upW, upL, downW: 1, downL: 5, run, longest, last: "2026-11-15" });
+  const flow = { games: 197, by10: { TOR: by(4, 4, [{ lead: 22, opp: "BOS", d: "2026-11-11" }, { lead: 17, opp: "PHI", d: "2026-11-12" }, { lead: 13, opp: "NYK", d: "2026-11-15" }]), CHA: by(4, 5, [], 3), UTA: by(1, 5, [{ lead: 10, opp: "HOU", d: "2026-11-13" }, { lead: 10, opp: "SAS", d: "2026-11-15" }]), BOS: by(9, 1), MIL: by(0, 4), LAC: by(6, 2) },
+    swing: [{ id: "1", name: "Scottie Barnes", team: "TOR", m: 3, a: 5, gp: 5 }, { id: "2", name: "Landry Shamet", team: "NYK", m: 2, a: 2, gp: 2 }],
+    full: { halves: [{ id: "9", name: "Max Christie", team: "DAL", opp: "IND", h: 2, min: 38, pts: 16, gameId: "g9", date: "2026-11-14" }], games: [], fives: [] } };
+  const L = T.flowTeamLines(flow, new Set(["TOR", "UTA", "BOS", "LAC", "DAL", "NYK"]), "2026-11-16");
+  const txt = (k) => L.find((l) => l.key === k)?.text;
+  ok(txt("blown10|TOR") === "TOR has lost its last 3 games after leading by 10+ (22 vs BOS 11/11, 17 vs PHI 11/12, 13 vs NYK 11/15); a fourth straight tonight would be the longest such run in the NBA this season"
+    && txt("blown10|UTA") === "UTA has lost its last 2 games after leading by 10+ (10 vs HOU 11/13, 10 vs SAS 11/15); a third straight tonight would tie the season's longest (3)",
+    "blown leads (0.79): games lost in a row after leading by 10+, for any team, with what tonight would make it", L.filter((l) => /^blown10/.test(l.key)).map((l) => l.text).join(" | "));
+  ok(txt("led10|UTA") === "UTA is 1-5 when leading by 10+ this season: one of 3 teams with a losing record in those games (with CHA, MIL)" && txt("led10|TOR") === "TOR is 4-4 when leading by 10+ this season; only CHA and UTA have lost more such games" && !txt("led10|BOS") && !txt("led10|LAC"),
+    "leading by 10+ (0.79): a losing record names the others; many such losses without a losing record says who has more; a team that holds its leads gets no line", L.filter((l) => /^led10/.test(l.key)).map((l) => l.text).join(" | "));
+  ok(txt("swing|1") === "Scottie Barnes is 3-for-5 on shots to tie or take the lead in the final 90 seconds of the 4th or overtime this season (the most makes in the NBA)" && !txt("swing|2")
+    && txt("fullhalf|9|g9") === "Max Christie played the entire second half on 11/14 vs IND (38 minutes in the game): the only full half by any player this season (197 games); nobody has played a full game"
+    && !T.flowTeamLines(flow, new Set(["DAL"]), "2026-11-30").some((l) => /^full/.test(l.key)),
+    "late shots and full halves (0.79): the league's most makes to tie or lead late (three or more); a full half in his team's last game, for a few days", L.filter((l) => /^(swing|full)/.test(l.key)).map((l) => l.text).join(" | "));
+  {
+    const f2 = JSON.parse(JSON.stringify(flow));
+    f2.full.games = [{ id: "7", name: "Iron Man", team: "DAL", opp: "IND", min: 53, pts: 30, ot: 1, gameId: "g9", date: "2026-11-14" }];
+    f2.full.halves.push({ id: "7", name: "Iron Man", team: "DAL", opp: "IND", h: 1, min: 53, pts: 30, gameId: "g9", date: "2026-11-14" });
+    f2.full.fives = [{ team: "DAL", opp: "IND", h: 2, names: ["A", "B", "C", "D", "E"], gameId: "g9", date: "2026-11-14" }];
+    const L2 = T.flowTeamLines(f2, new Set(["DAL"]), "2026-11-16");
+    ok(L2.find((l) => l.key === "fullgame|7|g9")?.text === "Iron Man played every second of DAL's last game (53 minutes, an overtime included, 11/14 vs IND): the only full game by any player this season (197 games)"
+      && !L2.some((l) => l.key === "fullhalf|7|g9") && /^DAL played the same five for the entire second half on 11\/14 vs IND \(A, B, C, D, E\): the only time a team has done it this season$/.test(L2.find((l) => l.key === "fullfive|DAL|g9")?.text || ""),
+      "full games (0.79): a full game is one line (his halves aren't repeated); five players a whole half is a team line", L2.map((l) => l.text).join(" | "));
+  }
+
+  // The morning after: an unusual scoring game, a team's game that is the season's most.
+  {
+    const S = await import("../src/anticipate/seasonlong.js");
+    const columns = ["date", "opp", "home", "result", "type", "min", "pts", "reb", "ast", "stl", "blk", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "tov"];
+    const lg = (date, pts, fgm, fga, fg3m, fg3a, ftm, fta) => [date, "BOS", 1, "W", 2, 30, pts, 4, 2, 1, 0, fgm, fga, fg3m, fg3a, ftm, fta, 1];
+    const logs = { columns, players: { 2: [lg("2023-03-24", 30, 10, 10, 10, 10, 0, 0), lg("2024-01-05", 50, 18, 30, 4, 10, 10, 12)], 3: [lg("2022-02-02", 27, 9, 14, 9, 14, 0, 0)] } };
+    const g = (o) => ({ d: "2025-12-31", team: "SAS", opp: "NYK", min: 34, pts: 36, reb: 6, ast: 0, stl: 0, blk: 0, fgm: 11, fga: 17, fg3m: 11, fg3a: 17, ftm: 3, fta: 3, tov: 1, ...o });
+    const odd = S.oddScoringLines({ pg: { 1: [g({})], 4: [g({ pts: 22, fgm: 8, fga: 16, fg3m: 2, fg3a: 6, ftm: 4, fta: 4 })] }, logs, names: { 1: "Julian Champagnie", 2: "Luke Kennard", 3: "Old Shooter", 4: "Normal Night" } });
+    ok(odd.length === 1 && odd[0].kind === "unique" && odd[0].date === "2025-12-31"
+      && odd[0].text === "Julian Champagnie scored 36 without a two-point attempt vs. NYK (12/31; 11-of-17 from three, 3-of-3 at the line): the most by a current player in such a game since 2016-17 (was Luke Kennard 30, 3/24/23)",
+      "the morning after (0.79): the most points in a game without a two-point attempt by a current player since 2016-17; an ordinary 22 gives nothing", odd.map((l) => l.text).join(" | "));
+    const tb = (ftm, fta, tov = 12) => [40, 88, 12, 34, ftm, fta, 10, 33, 25, 8, 5, tov, 20];
+    const rows = [];
+    for (let i = 0; i < 31; i++) rows.push({ d: `2026-10-${String(1 + (i % 28)).padStart(2, "0")}`, h: "AAA", a: "BBB", hs: 110, as: 100, hq: [1, 1, 1, 1], aq: [1, 1, 1, 1], hb: tb(18, 22 + (i === 5 ? 11 : 0)), ab: tb(20, 24) });
+    rows.push({ d: "2026-11-02", h: "LAC", a: "TOR", hs: 118, as: 125, hq: [1, 1, 1, 1], aq: [1, 1, 1, 1], hb: tb(20, 25), ab: tb(31, 48) });
+    const tn = S.teamNightLines({ rows });
+    ok(tn.length === 1 && tn[0].key === "teamnight|ftmiss|TOR|2026-11-02" && tn[0].text === "TOR missed 17 free throws vs. LAC (11/2; 31-of-48): the most by any team in a game this season (was AAA 15, 10/6)" && !S.teamNightLines({ rows: rows.slice(0, 10) }).length,
+      "the morning after (0.79): a team's box-score total that is the season's most for any team; nothing in the season's first weeks", tn.map((l) => l.text).join(" | "));
+  }
+
+  // Runs of wins and losses by 15+ are watched too.
+  {
+    const SW = await import("../src/situations/streakwatch.js");
+    const src = fs.readFileSync(path.join(root, "src", "situations", "streakwatch.js"), "utf8");
+    ok((src.match(/\[30, 25, 20, 15\]/g) || []).length === 2 && typeof SW.teamSeqs === "function", "team streak watch (0.79): runs of games won or lost by 15+ join 20, 25 and 30");
+  }
+
+  // Seeded rare game states reach NBA Live through tonight.json; the playoff ones wait.
+  {
+    const sd = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "seeded-lists.json"), "utf8"));
+    const st = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8");
+    ok(sd.situations.length === 4 && sd.situations.filter((x) => !x.playoffs).map((x) => x.id).join() === "ot-down-10,road-100-before-50" && sd.situations.every((x) => x.text && x.asOf && x.when && x.source) && /filter\(\(x\) => !x\.playoffs\)/.test(st) && /defense, stars, situations \}/.test(st)
+      && /var VERSION = 15;/.test(fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8")),
+      "seeded situations (0.79): four looked-up records kept with their date and source; the two that aren't playoff-only go to NBA Live (bridge v15)");
   }
 }
 

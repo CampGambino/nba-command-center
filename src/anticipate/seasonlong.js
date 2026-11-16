@@ -10,6 +10,7 @@
  *   sinceLines     "The Phoenix Suns have the best record in the NBA since Christmas."
  *   beatenLines    "Teams with multiple wins vs OKC: Spurs, Timberwolves. That's it."
  *   monthLines     "Hornets in January: 1st in offense, 6th in defense, 1st in net rating."
+ *   oddScoringLines / teamNightLines (0.79)  the morning after: 36 points without a two-point attempt; a team's 17 missed free throws.
  *   uniqueLines    "Luka vs Pacers: 44/9/5/3/2/7: joins D-Lo as the only players…" (the morning after, from the logs).
  *
  * Inputs: this season's results rows (src/situations/results.js; team box totals hb/ab) and player games (playerGames),
@@ -265,6 +266,67 @@ export function uniqueLines({ pg, logs, names, date = null, history = null }) {
   return out;
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// 0.79 (posts the user sent, 11/16), the morning after, the whole league:
+//  - a scoring game of an unusual make-up ("Have you scored more than 35 points in a game without a 2PA?"): no
+//    two-point attempt, no free throw attempt, or no miss; among the three highest such games by a current player
+//    since 2016-17;
+//  - a team's game that is the season's most for any team in a box-score total ("Raptors missed 17 free throws
+//    tonight"): missed free throws, turnovers, threes, steals, blocks, offensive rebounds, assists, fouls.
+const WITHOUT = [
+  ["no2", "without a two-point attempt", (g) => g.fga > 0 && g.fga === g.fg3a, (g) => `${g.fg3m}-of-${g.fg3a} from three${g.fta ? `, ${g.ftm}-of-${g.fta} at the line` : ""}`, 20],
+  ["noft", "without a free throw attempt", (g) => g.fta === 0 && g.fga > 0, (g) => `${g.fgm}-of-${g.fga} from the field, ${g.fg3m} threes`, 35],
+  ["nomiss", "without a missed shot", (g) => g.fga >= 6 && g.fgm === g.fga && g.ftm === g.fta, (g) => `${g.fgm}-of-${g.fga} from the field${g.fta ? `, ${g.ftm}-of-${g.fta} at the line` : ""}`, 20],
+];
+export function oddScoringLines({ pg, logs, names, date = null }) {
+  const days = Object.values(pg).flat().map((g) => g.d).sort();
+  const d = date || days[days.length - 1];
+  if (!d) return [];
+  const C = logs?.columns || [], ix = Object.fromEntries(C.map((c, i) => [c, i]));
+  const K = ["pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta"];
+  const all = [];
+  for (const [id, rows] of Object.entries(logs?.players || {})) for (const r of rows) if (r[ix.type] === 2 && r[ix.date] < d) all.push({ id, d: r[ix.date], ...Object.fromEntries(K.map((k) => [k, r[ix[k]] || 0])) });
+  for (const [id, gs] of Object.entries(pg)) for (const g of gs) if (g.d < d) all.push({ id, d: g.d, ...Object.fromEntries(K.map((k) => [k, g[k] || 0])) });
+  const out = [];
+  for (const [id, gs] of Object.entries(pg)) {
+    const g = gs.find((x) => x.d === d);
+    if (!g || !names[id]) continue;
+    for (const [key, say, test, how, min] of WITHOUT) {
+      if (g.pts < min || !test(g)) continue;
+      const pool = all.filter(test).sort((x, y) => y.pts - x.pts);
+      const better = pool.filter((x) => x.pts > g.pts), top = pool[0];
+      if (better.length > 2) continue;
+      const nm = (x) => `${names[x.id] || "a current player"} ${x.pts}, ${md(x.d)}/${x.d.slice(2, 4)}`;
+      out.push({ kind: "unique", team: g.team, player: names[id], id, key: `odd|${key}|${id}|${d}`, date: d, rare: true, score: 3.5 + (better.length ? 0 : 0.5),
+        text: `${names[id]} scored ${g.pts} ${say} vs. ${g.opp} (${md(d)}; ${how(g)}): ${!better.length ? `the most by a current player in such a game since 2016-17${top ? ` (was ${nm(top)})` : ""}` : `only ${better.slice(0, 2).map(nm).join(" and ")} had more in such a game among current players since 2016-17`}` });
+      break;
+    }
+  }
+  return out;
+}
+
+const TEAM_NIGHT = [["ftmiss", "missed", "free throws", (b) => b.fta - b.ftm, (b) => `${b.ftm}-of-${b.fta}`], ["tov", "committed", "turnovers", (b) => b.tov], ["fg3m", "made", "threes", (b) => b.fg3m, (b) => `${b.fg3m}-of-${b.fg3a}`],
+  ["fg3miss", "missed", "threes", (b) => b.fg3a - b.fg3m, (b) => `${b.fg3m}-of-${b.fg3a}`], ["stl", "had", "steals", (b) => b.stl], ["blk", "blocked", "shots", (b) => b.blk], ["oreb", "grabbed", "offensive rebounds", (b) => b.oreb],
+  ["ast", "had", "assists", (b) => b.ast], ["pf", "committed", "fouls", (b) => b.pf]];
+export function teamNightLines({ rows, date = null, boxKeys = ["fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "oreb", "dreb", "ast", "stl", "blk", "tov", "pf"], minGames = 60 }) {
+  const withBox = (rows || []).filter((g) => Array.isArray(g.hb) && Array.isArray(g.ab));
+  const d = date || withBox.map((g) => g.d).sort().pop();
+  if (!d) return [];
+  const box = (arr) => Object.fromEntries(boxKeys.map((k, i) => [k, arr[i] || 0]));
+  const sides = (g) => [{ team: g.h, opp: g.a, d: g.d, b: box(g.hb), ot: (g.hq || []).length > 4 }, { team: g.a, opp: g.h, d: g.d, b: box(g.ab), ot: (g.aq || []).length > 4 }];
+  const before = withBox.filter((g) => g.d < d).flatMap(sides), night = withBox.filter((g) => g.d === d).flatMap(sides);
+  if (before.length < minGames) return [];
+  const out = [];
+  for (const t of night) for (const [key, verb, noun, val, how] of TEAM_NIGHT) {
+    const v = val(t.b), prev = before.map((x) => ({ ...x, v: val(x.b) })).sort((x, y) => y.v - x.v)[0];
+    if (!(v >= prev.v) || night.some((o) => o !== t && val(o.b) > v)) continue;
+    if (v === prev.v && before.filter((x) => val(x.b) === v).length > 2) continue;   // a mark many games share is no mark
+    out.push({ kind: "unique", team: t.team, key: `teamnight|${key}|${t.team}|${d}`, date: d, rare: v > prev.v, score: 3.3 + (v > prev.v ? 0.3 : 0) + (key === "ftmiss" || key === "tov" ? 0.1 : 0),
+      text: `${t.team} ${verb} ${v} ${noun} vs. ${t.opp} (${md(d)}${how ? `; ${how(t.b)}` : ""}${t.ot ? "; overtime" : ""}): ${v > prev.v ? "the most" : "tied for the most"} by any team in a game this season (${v > prev.v ? "was" : "with"} ${prev.team} ${prev.v}, ${md(prev.d)})` });
+  }
+  return out;
+}
+
 /** Rookies by points: the club at the highest round number two to six of them have reached, and who is closest. */
 export function rookieLines({ pg, logs, seasons, names, nameKey = (n) => n }) {
   const veteran = new Set(Object.keys(logs?.players || {}).filter((id) => (logs.players[id] || []).length));
@@ -457,7 +519,7 @@ export function eraLines({ pg, logs, names, today }) {
 }
 
 export function seasonLongLines(args) {
-  const parts = [["trade", tradeLines], ["role", roleLines], ["mvp", mvpLines], ["lineup", lineupLines], ["turn", turnLines], ["since", sinceLines], ["beaten", beatenLines], ["month", monthLines], ["unique", uniqueLines], ["rookie", rookieLines], ["monthp", monthPlayerLines], ["defense", defenseLines], ["era", eraLines]];
+  const parts = [["trade", tradeLines], ["role", roleLines], ["mvp", mvpLines], ["lineup", lineupLines], ["turn", turnLines], ["since", sinceLines], ["beaten", beatenLines], ["month", monthLines], ["unique", uniqueLines], ["odd", oddScoringLines], ["teamnight", teamNightLines], ["rookie", rookieLines], ["monthp", monthPlayerLines], ["defense", defenseLines], ["era", eraLines]];
   const lines = [], errors = [];
   for (const [k, f] of parts) { try { lines.push(...f(args)); } catch (e) { errors.push(`${k}: ${e.message}`); } }
   return { lines, errors };

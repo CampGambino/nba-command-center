@@ -7,5 +7,12 @@
     { "id": "q25-since-1996", "what": "quarters of 25+ points", "since": "1996-97", "event": { "type": "quarter", "min": 25 },
       "source": "Suns game notes for 11/15/26 (Stathead)", "through": "2026-11-14",
       "rows": [["Stephen Curry", 8], ["Devin Booker", 6], ["Kobe Bryant", 4], ["Damian Lillard", 4], ["Joel Embiid", 4]] }
+  ],
+  "situations_about": "Game states with a record someone has looked up over many seasons (a paid lookup), shown in NBA Live when a live game enters one. `text` is the record as printed on `asOf`; it is not counted forward (the play-by-play kept here starts in 2026-27). when: ot (an overtime period), period, maxLeft (seconds left in the period), minDown (the margin), roadMin / homeMax (points). playoffs: only in the playoffs (not switched on yet).",
+  "situations": [
+    { "id": "ot-down-10", "when": {"ot": true, "minDown": 10}, "text": "teams down 10+ in overtime are 1-180 over the last 29 seasons (the one: Minnesota, from 13 down, 3/25/26)", "asOf": "2026-03-26", "source": "Keerthika Uthayakumar on X, 3/26/26" },
+    { "id": "road-100-before-50", "when": {"roadMin": 90, "homeMax": 49}, "text": "one game of 37,964 since 1996-97 has had the road team score 100 before the home team had 50 (Knicks at Hawks, 4/30/26)", "asOf": "2026-04-30", "source": "Keerthika Uthayakumar on X, 4/30/26" },
+    { "id": "po-lead-6-last-30", "playoffs": true, "when": {"period": 4, "maxLeft": 30, "minDown": 6}, "text": "teams leading by 6+ in the last 30 seconds of regulation in the playoffs are 1713-2 over the last 29 years (the two: the 2024 Knicks and the 2026 Rockets lost)", "asOf": "2026-04-25", "source": "Keerthika Uthayakumar on X, 4/25/26" },
+    { "id": "po-down-14-last-170", "playoffs": true, "when": {"period": 4, "maxLeft": 170, "minDown": 14}, "text": "teams down 14+ in the final 2:50 of regulation in the playoffs are 1-970 over the last 27 postseasons", "asOf": "2025-05-21", "source": "Keerthika Uthayakumar on X, 5/21/25" }
   ]
 }

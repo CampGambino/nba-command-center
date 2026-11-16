@@ -4,7 +4,9 @@
  * day's games. The hit rate shows how much of what gets posted the Command Center has ahead of time; each miss says
  * what to build next.
  *
- * check: { id, posted, morning: "YYYY-MM-DD", claim, detector: "prep" | "teamwatch" | "seasonlong", match: "regex", slate?, season?, note? }
+ * check: { id, posted, morning: "YYYY-MM-DD", claim, detector: "prep" | "teamwatch" | "seasonlong" | "flow", match: "regex", slate?, season?, note? }
+ * "flow" (0.79): the lines made from the Game Flow files (leads, late shots, full halves), from this season's files as
+ * they stood before that morning; the caller passes flowAt(morning) -> the season facts.
  * A check with a past `season` (0.70) is replayed from the results history and the logs (src/anticipate/replay.js).
  */
 import { playerGames } from "../situations/trends.js";
@@ -12,8 +14,9 @@ import { prepLines } from "./prep.js";
 import { streakWatch } from "../situations/streakwatch.js";
 import { seasonLongLines } from "./seasonlong.js";
 import { pastSeason, logsBefore } from "./replay.js";
+import { flowTeamLines } from "./tonight.js";
 
-export function runChecks(checks, { rows, logs, seasons, history, names, nameKey, season, awards = null }) {
+export function runChecks(checks, { rows, logs, seasons, history, names, nameKey, season, awards = null, flowAt = null }) {
   const out = [];
   const cache = new Map();
   for (const c of checks || []) {
@@ -38,7 +41,8 @@ export function runChecks(checks, { rows, logs, seasons, history, names, nameKey
           const before = rows.filter((g) => g.d < c.morning);
           // That day's games (from the results once played; a check can name them before they are).
           const slate = c.slate || rows.filter((g) => g.d === c.morning).map((g) => ({ away: g.a, home: g.h }));
-          cache.set(key, c.detector === "teamwatch" ? streakWatch({ history, rows: before, today: c.morning })
+          cache.set(key, c.detector === "flow" ? (flowAt ? flowTeamLines(flowAt(c.morning), new Set(slate.flatMap((g) => [g.away, g.home])), c.morning) : [])
+            : c.detector === "teamwatch" ? streakWatch({ history, rows: before, today: c.morning })
             : c.detector === "seasonlong" ? seasonLongLines({ pg: playerGames(before), rows: before, logs, seasons, awards, names, nameKey, season, slate, today: c.morning }).lines
             : prepLines({ pg: playerGames(before), rows: before, logs, seasons, names, nameKey, season, games: slate }).lines);
         }

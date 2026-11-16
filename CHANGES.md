@@ -2,6 +2,58 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.79.0 (2026-11-16): twelve posts "that explode on twitter"; full halves and full games, with a live alert
+
+The user (11/16, 1:56 PM, 12 posts): a Wizards 30-point half list; Toronto's blown double-digit leads (three straight; 4-5 when leading by 10+); 17 missed free throws; three "teams were 0-180 / 1713-1 / 0-970 when…" records; shots to tie or take the lead in the final 90 seconds; a road team at 100 before the home team had 50; six straight wins by 15+; five players an entire half; 36 points without a two-point attempt. And: "checking for players who play full halves (rare) and full games (almost never). at least for the full game, start alerting in the final five minutes if that player hasn't exited the game yet. let me know if I should ask the nba live project to handle that".
+
+Every detector below runs over the whole league (the rule of 0.78); the team or player in a post is its test.
+
+### Full halves and full games
+- **Season counts from the play-by-play** (`gameFacts` / `flowStats` in `src/gameflow/stats.js` → `flowstats.json` `full`): a player on the floor for every second of a half, or of a game with its overtimes; a team whose five all played a whole half. This season, 197 games: **one full half** (Max Christie, DAL, 2nd half vs IND 10/23), **no full game**, no five.
+- **Watch List line** the next days his team plays: "Max Christie played the entire second half on 10/23 vs IND (38 minutes in the game): the only full half by any player this season (197 games); nobody has played a full game". A full game and a same-five half get their own lines.
+- **Live, in NBA Live, bridge v15** (no need to ask the NBA Live project: the bridge reads NBA Live's own play-by-play substitutions and on-court list):
+  - **🦾 HASN'T LEFT THE GAME** from 5:00 left in the 4th quarter, and through any overtime: a starter with no substitution out, on the floor now, whose box minutes agree. "…has played every second so far (43:30) · nobody has played a full game this season (197 games)". It ends when he comes out ("came out at Q4 1:10 · he had played all of the game until then") and becomes **🦾 FULL GAME** at the final if he never did.
+  - **🦾 HASN'T SAT THIS HALF** in the last two minutes of a half, for a player who has played all of it (the second half also for a reserve who opened the 3rd). Five on one team is one card, **🦾 SAME FIVE ALL HALF**.
+  - No card if the feed carries no substitutions at all (nothing can be said then).
+
+### Leads (two Toronto posts)
+- `flowstats.json` `by10`: each team's record when leading by 10+ and when trailing by 10+, its current run of games lost after leading by 10+, and the season's longest such run.
+- Lines (`flowTeamLines` in `src/anticipate/tonight.js`, kind team): "TOR has lost its last 3 games after leading by 10+ (22 vs BOS 11/11, 17 vs PHI 11/12, 13 vs NYK 11/15); a fourth straight tonight would be the longest such run in the NBA this season"; "UTA is 1-5 when leading by 10+ this season: one of 4 teams with a losing record in those games (with CHA, CHI, MIL)".
+- Against the posts: the three games and leads match (22, 17, 13). The record reads **4-4** here where the post says 4-5: ESPN's play-by-play has four Toronto losses after a 10+ lead (DEN, BOS, PHI, NYK). The other four teams with a losing record match (CHA, CHI, UTA, MIL).
+
+### Late shots
+- `flowstats.json` `swing`: field goal attempts in the last 90 seconds of the 4th quarter or an overtime that would tie the game or take the lead (free throws not counted), per player. A line for the league's three with the most makes (three or more): "Scottie Barnes is 3-for-5 on shots to tie or take the lead… (the most makes in the NBA)".
+
+### The morning after
+- `oddScoringLines` (`src/anticipate/seasonlong.js`): a scoring game without a two-point attempt, without a free throw attempt, or without a miss, when it is among the three highest such games by a current player since 2016-17. Replayed on 12/31/25: "Julian Champagnie scored 36 without a two-point attempt vs. NYK (12/31; 11-of-17 from three, 3-of-3 at the line): the most by a current player in such a game since 2016-17 (was Luke Kennard 30, 3/24/23)".
+- `teamNightLines`: a team's box-score total that is the season's most for any team in a game (missed free throws, turnovers, threes made and missed, steals, blocks, offensive rebounds, assists, fouls), from the 60th team-game on. Replayed on 11/3: "TOR missed 17 free throws vs. LAC (11/2; 31-of-48): the most by any team in a game this season (was POR 15, 10/27)".
+- Both go to "From last night".
+
+### Margins
+- The team streak watch carries runs of games won or lost by **15+** (it had 20, 25, 30). Replayed on 3/4/26: "CHA has won by 15+ in 5 straight: 9 other teams since 2016-17; only GSW 2017-18, OKC 2024-25 went 6+".
+
+### Records someone looked up (three posts)
+- `src/data/seeded-lists.json` `situations`: a game state with its record as printed, the day and the source. Two go to NBA Live through `tonight.json` and show once a game when it enters the state (**🧮 ALMOST NEVER**): a team down 10+ in overtime ("1-180 over the last 29 seasons"), and a road team at 90 with the home team under 50 ("one game of 37,964 since 1996-97…"). Two are playoff-only and kept for April (leading by 6+ in the last 30 seconds, 1713-2; down 14+ in the final 2:50, 1-970): the first would fire in most playoff games, so how it shows is a decision for then.
+- These are not counted forward: the play-by-play kept here starts this season, so the card says the day the record was looked up.
+
+### The checks
+- All twelve are in `src/data/flag-checks.json`. A new detector, `flow`, replays the Game Flow lines from the files as they stood before a morning (0.7 seconds a morning). **5 of 5 replayable seen coming** (Toronto's run the morning of the third game, its record, the missed free throws, Charlotte's run, Champagnie); 7 set apart (they need play-by-play or franchise history from before this season). Overall **34 of 41**, 18 set apart.
+
+### Tested
+- 870 checks (14 new): the new season facts on the real sample game; each line by its text (runs, records, late shots, a full half, a full game with an overtime, a same-five half); the two morning-after detectors on built data, with an ordinary night and the season's first weeks giving nothing; bridge v15 in the stand-in NBA Live: no card at 5:30, a card at 4:30 for the starter who never sat (not for one who sat or whose box minutes disagree), the half card for a reserve who opened the 3rd, the card ending when he comes out, FULL GAME at the final, nothing when the feed has no substitutions, the overtime record at 11 down and not at 8.
+- The new facts on all 197 games of the season (0.7 s); the detectors replayed on 11/2, 11/14, 11/15 and 12/31/25.
+- A full local run of the stats and Game Flow builds, the page checks ("all pages OK"), and bridge v15 inside the real NBA Live page (the 11/10 copy) with NYK @ TOR replayed live. Generated data restored afterwards.
+
+### Unproven
+- **The live alert has never fired on a real game**: no player has played a full game this season, and the test page is a stand-in. It depends on NBA Live's play-by-play carrying every substitution; one missed substitution out would show a player as never having sat. The box-minutes check is the guard (within two minutes of the game clock).
+- The second-half card needs a play of his in the 3rd quarter to know he opened it.
+- "Tie or take the lead" takes the score before the shot from the play-by-play row; a row that arrives out of order would miscount one shot.
+- The 4-4 against the post's 4-5 is unexplained: one more Toronto loss with a 10+ lead exists in the league's data than in ESPN's.
+
+### Not done
+- The Wizards' 30-point-half list since 1996-97 (five names, no counts): this season's 30-point halves are counted and carded live already; a franchise list would have to be seeded, and only quarter lists can be seeded so far.
+- Pages for these facts (a column for the record when leading by 10+ on Game Flow's Leads & comebacks, late shots on the clutch page). They are on the Watch List and in NBA Live only.
+
 ## 0.78.0 (2026-11-16): the user's 20 images: notes that don't hold up, Houston's quarter math, league-wide trackers
 
 The user (11/16, 11:26 AM, 20 images): a decade-leader card that "doesn't need to show up in the nba live alerts column"; a returned player tagged as an active streak of missed games; notes lines that say nothing ("Below is a look at…", "the second Wizard to do so", "ranks eighth among all rookies"); a misspelling; Houston's and Boston's quarter margins against the league's own page; two Washington lines from last season ("this can't be true given number of games played this season and the field goal attempts"); a shot drought by a minor player ranked 4th, next to a post about Joel Embiid's shooting; the back-to-back table ("they need to have played both games"); how overtime counts in the final two minutes; repeat 30-point scorers against one defense; a non-rookie who has set his career high twice. And a rule: "player and team trends should be broad to the league to try to catch multiple instances, not just one".

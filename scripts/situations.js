@@ -394,7 +394,17 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const cf = path.join(root, "src", "data", "flag-checks.json");
     const hf = path.join(root, "src", "data", "nba-results-history.json");
     if (fs.existsSync(cf)) {
-      const R = runChecks(JSON.parse(fs.readFileSync(cf, "utf8")).checks, { rows, logs: logsData, seasons: seasonsData, history: fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null, names: store.names || {}, nameKey: keyFn, season: seasonTag, awards: awardsData });
+      const { flowStats } = await import("../src/gameflow/stats.js");
+      const R = runChecks(JSON.parse(fs.readFileSync(cf, "utf8")).checks, { rows, logs: logsData, seasons: seasonsData, history: fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null, names: store.names || {}, nameKey: keyFn, season: seasonTag, awards: awardsData,
+        // 0.79: checks on lines made from the Game Flow files: this season's files as they stood before that morning.
+        flowAt: (morning) => {
+          const dir = path.join(root, "docs", "data", "flow", String(store.season));
+          if (!fs.existsSync(dir)) return null;
+          const byId = new Map(rows.map((r) => [String(r.id), r]));
+          const entries = fs.readdirSync(dir).filter((f) => /^\d+\.json$/.test(f)).map((f) => ({ row: byId.get(f.replace(".json", "")), f })).filter((e) => e.row && e.row.d < morning)
+            .map((e) => ({ row: e.row, c: JSON.parse(fs.readFileSync(path.join(dir, e.f), "utf8")) }));
+          return flowStats(entries);
+        } });
       fs.writeFileSync(path.join(root, "docs", "data", "flag-checks.json"), JSON.stringify({ generatedAt: out.generatedAt, ...R }));
       console.log(`flag checks: ${R.found} of ${R.total} seen coming${R.checks.filter((c) => c.found === false).length ? ` (missed: ${R.checks.filter((c) => c.found === false).map((c) => c.id).join(", ")})` : ""}`);
     }
@@ -539,10 +549,14 @@ for (const [tri, games] of Object.entries(perTeam)) {
     // 0.71: 30- and 40-point games each defense has allowed, for NBA Live's "first one allowed" card (the user, 11/15: the Celtics).
     let defense = null;
     try { const { allowedCounts } = await import("../src/anticipate/seasonlong.js"); const C = allowedCounts({ pg: playerGames(rows), rows }); defense = { n30: C.n30, n40: C.n40, teams: Object.fromEntries(Object.entries(C.teams).map(([t, x]) => [t, { gp: x.gp, t30: x.t30, t40: x.t40 }])) }; } catch (e) { console.error(`defense counts not written: ${e.message}`); }
+    // 0.79: rare game states with a record someone looked up (seeded-lists.json `situations`), for NBA Live to show when a
+    // live game enters one. The playoff ones wait for the playoffs.
+    let situations = [];
+    try { situations = (JSON.parse(fs.readFileSync(path.join(root, "src", "data", "seeded-lists.json"), "utf8")).situations || []).filter((x) => !x.playoffs).map(({ id, when, text, asOf }) => ({ id, when, text, asOf })); } catch (e) { console.error(`situations not written: ${e.message}`); }
     // 0.72.8: the big names (prep stats' prominence, 0.6+), for NBA Live's milestone cards: a lesser round number gets a card only for them.
     let stars = null;
     try { const st = rd("prep.json").stars || {}; stars = Object.fromEntries(Object.entries(st).filter(([, v]) => v >= 0.6).map(([n, v]) => [n, Math.round(v * 100) / 100])); } catch { /* no prep stats: no exceptions */ }
-    fs.writeFileSync(path.join(root, "docs", "data", "tonight.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, games, defense, stars }));
+    fs.writeFileSync(path.join(root, "docs", "data", "tonight.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, games, defense, stars, situations }));
     // The briefing (0.66): one ranking over every candidate line, with what was already shown on earlier days.
     try {
       const { tonightCandidates } = await import("../src/anticipate/tonight.js");

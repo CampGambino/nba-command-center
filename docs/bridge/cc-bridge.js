@@ -77,7 +77,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 14;
+  var VERSION = 15;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -619,6 +619,7 @@
   var QTR = 720;
   var SEASON_TOP = 10, TEAM_TOP = 5;         // a place on the season's lists worth a card
   var Q_MIN = 15, H_MIN = 22, TQ_MIN = 40;    // and the least that can make one
+  var IRON_GAME = 300, IRON_HALF = 120;        // v15: a player who hasn't sat: from 5:00 left in the game, 2:00 left in a half
   var LATE_RETURN = 180;                      // seconds past his usual return
   var LEAD = 15;                              // a lead lost is a card from here
   var LEAD_FROM = 20, LEAD_STEP = 5;          // lead context: from a 20-point lead, in steps of 5 (v10)
@@ -882,6 +883,87 @@
             statLine: stl([[Math.round(p.min || 0), "MIN"], [p.pts || 0, "PTS"]]), sub: "Command Center · usual rotation from the Game Flow files · worth a look for an injury" }));
         }
       });
+    });
+    // v15 (the user, 11/16: "checking for players who play full halves (rare) and full games (almost never)… start
+    // alerting in the final five minutes if that player hasn't exited the game yet"). A starter with no substitution out
+    // in the play-by-play, on the floor now, with box minutes that agree: from 5:00 left in the 4th (and through any
+    // overtime) for the game; in the last two minutes of a half for that half. The card ends when he comes out.
+    var FULL0 = F0.full || {}, FULL = { halves: (FULL0.halves || []).filter(mine), games: (FULL0.games || []).filter(mine), fives: (FULL0.fives || []).filter(mine) };
+    var hasSubs = (game.plays || []).some(function (x) { return x && x.badge === "sub"; });
+    var subIn = function (id, qs) { var P = game.plays || []; for (var k = 0; k < P.length; k++) if (P[k] && P[k].badge === "sub" && qs.indexOf(P[k].qtr) >= 0 && String(P[k].playerId) === String(id)) return true; return false; };
+    var subOut = function (id, qs) { var P = game.plays || []; for (var k = 0; k < P.length; k++) if (P[k] && P[k].badge === "sub" && (!qs || qs.indexOf(P[k].qtr) >= 0) && String(P[k].playerOutId) === String(id)) return P[k]; return null; };
+    var mmss = function (t) { return Math.floor(t / 60) + ":" + String(Math.round(t % 60)).padStart(2, "0"); };
+    var seasonGames = F0.games || 0;
+    var fullGamesText = FULL.games.length ? FULL.games.length + " full game" + (FULL.games.length > 1 ? "s" : "") + " this season (last: " + FULL.games[0].name + ", " + md(FULL.games[0].date) + ")" : "nobody has played a full game this season (" + seasonGames + " games)";
+    var fullHalvesText = FULL.halves.length ? FULL.halves.length + " full hal" + (FULL.halves.length > 1 ? "ves" : "f") + " by any player this season (last: " + FULL.halves[0].name + ", " + md(FULL.halves[0].date) + ")" : "nobody has played a full half this season (" + seasonGames + " games)";
+    ["away", "home"].forEach(function (side) {
+      var team = side === "away" ? sides.away : sides.home;
+      var roster = (box[side] || []).filter(function (p) { return p && p.id; });
+      // Cards already up: he came out, or the game ended with him still in.
+      roster.forEach(function (p) {
+        [["cc-iron-" + p.id + "-" + game.id, null, "the game"], ["cc-ironh-" + p.id + "-" + game.id + "-1", ["Q1", "Q2"], "the first half"], ["cc-ironh-" + p.id + "-" + game.id + "-2", ["Q3", "Q4"], "the second half"]].forEach(function (c) {
+          var ex = typeof ALERT_STORIES !== "undefined" && ALERT_STORIES.get(c[0]);
+          if (!ex || ex.ended || typeof endStory !== "function") return;
+          var out = subOut(p.id, c[1]);
+          if (out) { state.done[c[0]] = 1; endStory(c[0], (p.name || ("#" + p.id)) + " (" + team + ") came out at " + (out.qtr || "") + " " + (out.clock || "") + " · he had played all of " + c[2] + " until then"); }
+        });
+      });
+      if (!hasSubs) return;                                   // no substitutions in the feed: nothing can be said
+      var agree = function (p, sec) { return (Number(p.min) || 0) >= sec / 60 - 2; };
+      if (live && court && court[side]) {
+        var onNow = function (p) { return court[side].has(p.id) || court[side].has(String(p.id)); };
+        // The whole game.
+        if (per >= 4 && now >= 4 * QTR - IRON_GAME) roster.forEach(function (p) {
+          if (!p.starter || !onNow(p) || subOut(p.id, null) || !agree(p, now)) return;
+          fire("cc-iron-" + p.id + "-" + game.id, base({ icon: "🦾 HASN'T LEFT THE GAME",
+            text: (p.name || ("#" + p.id)) + " (" + team + ") has played every second so far (" + mmss(now) + ")" + (per > 4 ? ", overtime included" : "") + " · " + fullGamesText,
+            statLine: stl([[Math.round(p.min || 0), "MIN"], [p.pts || 0, "PTS"]]), sub: "Command Center · no substitution out in the play-by-play · ends when he comes out" }));
+        });
+        // A half: the last two minutes of the 2nd or 4th quarter.
+        [[2, ["Q1", "Q2"], "first", 0], [4, ["Q3", "Q4"], "second", 2 * QTR]].forEach(function (h) {
+          if (per !== h[0] || now < h[0] * QTR - IRON_HALF) return;
+          var whole = roster.filter(function (p) {
+            if (!onNow(p) || subOut(p.id, h[1])) return false;
+            return h[0] === 2 ? p.starter && agree(p, now) : feedReached(game, "Q3") && !subIn(p.id, h[1]) && onFloorIn(game, p.id, "Q3");
+          });
+          var sofar = mmss(now - h[3]);
+          if (whole.length >= 5) {
+            fire("cc-iron5-" + team + "-" + game.id + "-" + h[0], base({ icon: "🦾 SAME FIVE ALL HALF",
+              text: team + " have played the same five for the whole " + h[2] + " half so far (" + sofar + "): " + whole.map(function (p) { return p.name; }).join(", ") + " · " + (FULL.fives.length ? FULL.fives.length + " time" + (FULL.fives.length > 1 ? "s" : "") + " a team has done it this season" : "no team has done it this season (" + seasonGames + " games)"),
+              statLine: "", sub: "Command Center · no substitution in the half in the play-by-play" }));
+            return;
+          }
+          whole.forEach(function (p) {
+            if (state.keys["cc-iron-" + p.id + "-" + game.id] && !state.done["cc-iron-" + p.id + "-" + game.id]) return;   // the full-game card says more
+            fire("cc-ironh-" + p.id + "-" + game.id + "-" + (h[0] === 2 ? 1 : 2), base({ icon: "🦾 HASN'T SAT THIS HALF",
+              text: (p.name || ("#" + p.id)) + " (" + team + ") has played the whole " + h[2] + " half so far (" + sofar + ") · " + fullHalvesText,
+              statLine: stl([[Math.round(p.min || 0), "MIN"], [p.pts || 0, "PTS"]]), sub: "Command Center · no substitution out in the half in the play-by-play · ends when he comes out" }));
+          });
+        });
+      }
+      // The game is over and he never came out.
+      if (game.status === "final") roster.forEach(function (p) {
+        var k = "cc-iron-" + p.id + "-" + game.id;
+        if (!state.keys[k] || state.done[k] || subOut(p.id, null)) return;
+        fire(k, base({ icon: "🦾 FULL GAME",
+          text: (p.name || ("#" + p.id)) + " (" + team + ") played every second of the game (" + Math.round(p.min || 0) + " minutes) · " + (FULL.games.length ? "the " + ord(FULL.games.length + 1) + " full game by any player this season" : "the first full game by any player this season (" + seasonGames + " games before tonight)"),
+          statLine: stl([[Math.round(p.min || 0), "MIN"], [p.pts || 0, "PTS"]]), sub: "Command Center · no substitution out in the play-by-play" }));
+      });
+    });
+    // v15: a game state with a record someone looked up over many seasons (tonight.json `situations`), once a game.
+    var a0 = Number(game.away && game.away.score) || 0, h0 = Number(game.home && game.home.score) || 0;
+    if (live) ((state.tonight && state.tonight.situations) || []).forEach(function (S0) {
+      var w = S0.when || {}, perEnd = per <= 4 ? per * QTR : 4 * QTR + (per - 4) * 300, left = perEnd - now, m = Math.abs(a0 - h0);
+      if (w.ot && per < 5) return;
+      if (w.period && per !== w.period) return;
+      if (w.maxLeft != null && left > w.maxLeft) return;
+      if (w.minDown != null && m < w.minDown) return;
+      if (w.roadMin != null && a0 < w.roadMin) return;
+      if (w.homeMax != null && h0 > w.homeMax) return;
+      var lead = a0 > h0 ? sides.away : sides.home, trail = a0 > h0 ? sides.home : sides.away;
+      var head = w.roadMin != null ? sides.away + " have " + a0 + ", " + sides.home + " have " + h0 : trail + " trail " + lead + " by " + m + (per > 4 ? " in overtime" : " with " + mmss(Math.max(0, left)) + " left in the " + qName(Math.min(per, 4)));
+      fire("cc-sit-" + S0.id + "-" + game.id, base({ icon: "🧮 ALMOST NEVER", text: head + " · " + S0.text, statLine: stl([[m, "MARGIN"]]),
+        sub: "Command Center · a record looked up on " + md(S0.asOf) + "/" + String(S0.asOf).slice(2, 4) + ", not counted since" }));
     });
     // 4. Leads: a big lead with each side's season record at that size (v10: from 20, in steps of 5), and a lead lost.
     var L = F.leads || {};

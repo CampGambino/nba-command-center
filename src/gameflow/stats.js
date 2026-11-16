@@ -7,6 +7,9 @@
  *     quarters:     the season's best single quarters by a player (points, regulation quarters), best first
  *     halves:       the same for halves (Q1+Q2, Q3+Q4)
  *     teamQuarters: the best quarters by a team
+ *     full (0.79):  { halves: [{ id, name, team, opp, h, min, pts, gameId, date }], games: [...], fives: [{ team, opp, h, names }] }
+ *     by10 (0.79):  { TRI: { gp, upW, upL, downW, downL, run: [{ lead, opp, d }], longest, last } }   leading / trailing by 10+
+ *     swing (0.79): [{ id, name, team, m, a, gp }]   shots to tie or take the lead in the last 90 seconds of the 4th / OT
  *     rotation:     { personId: { name, team, gp, starts, out1, back, in1, out3, full1, open3, n } }   median elapsed seconds
  *                   out1  a starter's first check-out in Q1      back  his first return after it, first half
  *                   in1   a reserve's first check-in             out3  a starter's first check-out in Q3
@@ -68,7 +71,12 @@ export function gameFacts(row, c, lite) {
     // 0.72.6 (fourth-quarter minutes): seconds on the floor in the 4th, and in the last three minutes of regulation.
     const on = (a, b) => st.reduce((n, s) => n + Math.max(0, Math.min(s.et, b) - Math.max(s.st, a)), 0);
     const q4 = on(3 * REG_LEN, 4 * REG_LEN), last3 = on(4 * REG_LEN - 180, 4 * REG_LEN), second = on(2 * REG_LEN, 3 * REG_LEN);
-    return { id: String(p.id), name: p.name, team: tri[p.side], opp: tri[1 - p.side], starter: !!p.starter, q4, last3, second,
+    // 0.79 (the user, 11/16: "checking for players who play full halves (rare) and full games (almost never)"): on the
+    // floor for every second of a half, or of the whole game with its overtimes.
+    const gameLen = 4 * REG_LEN + Math.max(0, G.maxP - 4) * 300;
+    const fullH1 = G.maxP >= 2 && on(0, 2 * REG_LEN) >= 2 * REG_LEN - 1, fullH2 = G.maxP >= 4 && on(2 * REG_LEN, 4 * REG_LEN) >= 2 * REG_LEN - 1;
+    const fullGame = G.maxP >= 4 && on(0, gameLen) >= gameLen - 1;
+    return { id: String(p.id), name: p.name, team: tri[p.side], opp: tri[1 - p.side], starter: !!p.starter, q4, last3, second, fullH1, fullH2, fullGame,
       q: [1, 2, 3, 4].map((k) => pp[k] || 0), out1, back, in1, out3, full1, open3, q1n: q1.length,
       lastOut: st.length ? st[st.length - 1].et : null, min: Math.round(p.calcMin || 0), mins: p.calcMin || 0, pts: p.boxPts || 0,
       trouble: !!p.troubleFrom, fouledOut: !!p.fouledOut };
@@ -90,7 +98,36 @@ export function gameFacts(row, c, lite) {
     held: !!(G.leadState && G.leadState[side] && G.leadState[side].held), heldStrict: !!(G.leadState && G.leadState[side] && G.leadState[side].heldStrict),
     maxLead: side ? maxHome : maxAway, maxDown: side ? maxAway : maxHome,
     q: G.per[side].filter((x) => x.p <= 4).map((x) => x.pts), score: side ? hs : as, oppScore: side ? as : hs }));
-  return { ...base, players, teams, closeLate, periods: G.maxP, l2m: lastTwo(pbp, G, tri), shots: shotLog(pbp, G, tri) };
+  return { ...base, players, teams, closeLate, periods: G.maxP, l2m: lastTwo(pbp, G, tri), shots: shotLog(pbp, G, tri), swing: swingShots(pbp, G) };
+}
+
+/**
+ * Shots to tie or take the lead late (0.79; a post the user sent, 11/16: "6-for-7 when taking a shot to tie or take
+ * the lead in the final 90 seconds of the 4th or OT"). A field goal attempt in the last SWING_SEC seconds of the 4th
+ * quarter or an overtime, by a team tied or behind, that would tie the game or put it ahead if it went in (a two when
+ * down 0-2, a three when down 0-3). Free throws are not counted. -> { id: { m, a } }
+ */
+export const SWING_SEC = 90;
+function swingShots(pbp, G) {
+  const A = (pbp.game && pbp.game.actions) || pbp.actions || [];
+  const side = {};
+  for (const p of G.players) side[String(p.id)] = p.side;
+  const out = {};
+  let home = 0, away = 0;
+  for (const a of A) {
+    const isShot = a.actionType === "2pt" || a.actionType === "3pt";
+    const left = clockLeft(a.clock), id = a.personId ? String(a.personId) : null, sd = id != null ? side[id] : null;
+    if (isShot && a.period >= 4 && left != null && left <= SWING_SEC && sd != null) {
+      const v = a.actionType === "3pt" ? 3 : 2, made = a.shotResult === "Made";
+      // The score before the shot: a made shot's own row already carries its points.
+      let h = home, w = away;
+      if (made && a.scoreHome != null && a.scoreHome !== "") { h = Number(a.scoreHome) - (sd === 1 ? v : 0); w = Number(a.scoreAway) - (sd === 0 ? v : 0); }
+      const behind = sd === 1 ? w - h : h - w;
+      if (behind >= 0 && behind <= v) { const L = (out[id] ??= { m: 0, a: 0 }); L.a++; if (made) L.m++; }
+    }
+    if (a.scoreHome != null && a.scoreHome !== "") { home = Number(a.scoreHome); away = Number(a.scoreAway); }
+  }
+  return out;
 }
 
 /**
@@ -240,6 +277,7 @@ function lastTwo(pbp, G, tri) {
 
 export function flowStats(entries, lite = null) {
   const quarters = [], halves = [], teamQuarters = [], rot = {}, fouls = {}, leads = {}, table = {}, early = [], fourth = {};
+  const full = { halves: [], games: [], fives: [] }, swing = {}, led = {};
   const shotGames = [];
   const l2m = { games: 0, players: {}, teams: {} };
   const L2K = ["sec", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "tov", "pm"];
@@ -249,6 +287,20 @@ export function flowStats(entries, lite = null) {
     try { F = gameFacts(row, c, lite); } catch { continue; }
     games++;
     const at = { gameId: F.gameId, date: F.date };
+    // 0.79: full halves and full games, and a team whose five all played a whole half.
+    for (const p of F.players) {
+      for (const h of [1, 2]) if (p[h === 1 ? "fullH1" : "fullH2"]) full.halves.push({ id: p.id, name: p.name, team: p.team, opp: p.opp, h, min: p.min, pts: p.pts, ...at });
+      if (p.fullGame) full.games.push({ id: p.id, name: p.name, team: p.team, opp: p.opp, min: p.min, pts: p.pts, ot: Math.max(0, F.periods - 4), ...at });
+    }
+    for (const t of F.teams) for (const h of [1, 2]) {
+      const five = F.players.filter((p) => p.team === t.team && p[h === 1 ? "fullH1" : "fullH2"]);
+      if (five.length >= 5) full.fives.push({ team: t.team, opp: t.opp, h, names: five.map((p) => p.name), ...at });
+    }
+    for (const [id, x] of Object.entries(F.swing || {})) {
+      const who = F.players.find((p) => p.id === id); if (!who) continue;
+      const S = swing[id] || (swing[id] = { id, name: who.name, team: who.team, m: 0, a: 0, gp: 0 });
+      S.team = who.team; S.m += x.m; S.a += x.a; S.gp++;
+    }
     for (const p of F.players) {
       // A starter who left in the first half and never came back (not a foul-out): injury news, more often than not.
       if (p.starter && p.lastOut != null && p.lastOut < 2 * REG_LEN - 1e-6 && !p.fouledOut)
@@ -304,6 +356,9 @@ export function flowStats(entries, lite = null) {
       t.q.forEach((pts, k) => teamQuarters.push({ pts, team: t.team, opp: t.opp, q: k + 1, ...at }));
       const L = leads[t.team] || (leads[t.team] = { gp: 0, blown: [], comebacks: [] });
       L.gp++;
+      // 0.79 (posts the user sent, 11/16: "4-5 when leading by 10+ points this season", "blown a double-digit lead in 3
+      // straight games"): each game's biggest lead and deficit with its result, oldest first after the sort below.
+      (led[t.team] ??= []).push({ d: F.date, opp: t.opp, won: t.won, lead: t.maxLead, down: t.maxDown, gameId: F.gameId });
       if (!t.won && t.maxLead >= LEAD_MIN) L.blown.push({ lead: t.maxLead, opp: t.opp, score: t.score + "-" + t.oppScore, ...at });
       if (t.won && t.maxDown >= LEAD_MIN) L.comebacks.push({ down: t.maxDown, opp: t.opp, score: t.score + "-" + t.oppScore, ...at });
       // Game Flow's "Leads & comebacks" table for the full season, the same counts the page makes (renderStreaks).
@@ -341,7 +396,21 @@ export function flowStats(entries, lite = null) {
     .sort((a, b) => String(b.date).localeCompare(String(a.date)));
   // 0.76: every 20-point quarter of the season (not only the 30 best), so a list counted from a date can be kept current.
   const bigQuarters = quarters.filter((q) => q.pts >= BIG_QUARTER).map(({ pts, id, name, team, q, date }) => ({ pts, id, name, team, q, date })).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : b.pts - a.pts));
-  return { games, leadMin: LEAD_MIN, leadTable: Object.values(table), leftEarly, bigQuarters, quarters: top(quarters), halves: top(halves), teamQuarters: top(teamQuarters), rotation, fouls, leads, fourth, shots: shotStreaks(shotGames),
+  // Record when leading / trailing by 10+, and the current run of games lost after leading by 10+ (0 = the last game wasn't one).
+  const by10 = {};
+  for (const [tri, gs] of Object.entries(led)) {
+    gs.sort((a, b) => String(a.d).localeCompare(String(b.d)));
+    const up = gs.filter((g) => g.lead >= 10), dn = gs.filter((g) => g.down >= 10);
+    const run = [];
+    for (let i = gs.length - 1; i >= 0 && !gs[i].won && gs[i].lead >= 10; i--) run.unshift({ lead: gs[i].lead, opp: gs[i].opp, d: gs[i].d });
+    let longest = 0, cur = 0;
+    for (const g of gs) { cur = !g.won && g.lead >= 10 ? cur + 1 : 0; if (cur > longest) longest = cur; }
+    by10[tri] = { gp: gs.length, upW: up.filter((g) => g.won).length, upL: up.filter((g) => !g.won).length, downW: dn.filter((g) => g.won).length, downL: dn.filter((g) => !g.won).length, run, longest, last: gs.length ? gs[gs.length - 1].d : null };
+  }
+  const byDate = (a, b) => String(b.date).localeCompare(String(a.date));
+  full.halves.sort(byDate); full.games.sort(byDate); full.fives.sort(byDate);
+  const swingTop = Object.values(swing).filter((x) => x.a >= 2).sort((a, b) => b.m - a.m || a.a - b.a).slice(0, 40);
+  return { games, leadMin: LEAD_MIN, by10, full, swing: swingTop, leadTable: Object.values(table), leftEarly, bigQuarters, quarters: top(quarters), halves: top(halves), teamQuarters: top(teamQuarters), rotation, fouls, leads, fourth, shots: shotStreaks(shotGames),
     l2m: { games: l2m.games, teams: l2m.teams, players: Object.values(l2m.players).map((p) => ({ ...p, sec: Math.round(p.sec), min: Math.round(p.sec / 6) / 10, ast: null, stl: null, blk: null })).sort((a, b) => b.pts - a.pts) } };
 }
 
