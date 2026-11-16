@@ -1731,6 +1731,9 @@ await articlesChecks(ok);
       item({ espnId: "3", player: "Minor Mark", importance: 9 }),                // importance < 15: no card
       item({ espnId: "10", player: "Allen Like", importance: 18 }),              // 15-19 (like Allen's 4,000 defensive rebounds): card since 0.15.2
       item({ espnId: "11", player: "Just Under", importance: 14 }),              // just under the cutoff: no card
+      item({ espnId: "12", player: "Star Rung", importance: 26 }),               // v11: a big name's lesser round number in points: card
+      item({ espnId: "13", player: "Star Baskets", importance: 26, stat: "fgm", label: "field goals" }), // a big name's made baskets: no card
+      item({ espnId: "14", player: "Plain Rung", importance: 26 }),              // not a big name: no card
       item({ espnId: "4", player: "Pass Man", kind: "pass", scope: "nba", importance: 15, passing: { player: "Old Guy", rank: 20 }, need: 2, stat: "fg3m", label: "3-pointers" }), // pass: card even below 20
       item({ espnId: "5", player: "Ladder Guy", target: 20000, need: 5 }),        // NBA Live's own ladder: skipped
       item({ espnId: "6", player: "Count Guy", target: 15000, need: 50, tracking: "disagrees", review: ["notes say 14950, ESPN says 14946"] }), // ladder + disagreement: count note
@@ -1767,7 +1770,7 @@ await articlesChecks(ok);
   }
   // tonight.json for the pre-game cards (v2): LAL @ ATL is live in the games below, MIA @ BOS hasn't tipped.
   const L = (kind, text) => ({ kind, text, team: "X", score: 1 });
-  const tonightData = { today: "2026-11-09", games: [
+  const tonightData = { today: "2026-11-09", stars: { "Star Rung": 0.9, "Star Baskets": 0.9 }, games: [
     { away: "LAL", home: "ATL", lines: [L("streak", "Live game line")] },
     { away: "MIA", home: "BOS", lines: [L("streak", "Pre one: 30+ points in 8 straight"), L("lead", "Pre two"), L("shooting", "Pre three"), L("team", "Pre four")] },
   ] };
@@ -1780,12 +1783,14 @@ await articlesChecks(ok);
     rec({ id: "31", who: "Cup Man", kind: "cup", stat: "fg3m", label: "3-pointers", need: 2, rank: 1, passing: { name: "Cup King", value: 64, rank: 1 }, text: "Man: 2 3-pointers from passing Cup King (64) for the NBA Cup record; 1 ties him" }), // Cup game: card
     rec({ id: "32", who: "Far Man", need: 40, pTonight: 0.05 }),                                   // long shot, not reached: none
     rec({ id: "1", who: "P One", stat: "pts", kind: "round", target: 1000, need: 10, text: "One: 10 points from 1,000 career points", passing: null }), // the notes already carry it: none
+    rec({ id: "33", who: "Board Man", stat: "oreb", label: "offensive rebounds", kind: "round", target: 4000, need: 1, club: 9, passing: null, text: "Man: 1 offensive rebound from 4,000 career offensive rebounds" }),   // v11: nine players ever: card
+    rec({ id: "34", who: "Glass Man", stat: "dreb", label: "defensive rebounds", kind: "round", target: 7000, need: 1, club: 32, passing: null, text: "Man: 1 defensive rebound from 7,000 career defensive rebounds" }), // 32 players: none
   ] };
   const bestsData = { "Regular season": { pts: { floor: 57, games: [{ value: 100 }, { value: 81 }, { value: 60 }, { value: 58 }, { value: 58 }, { value: 57 }] }, fg3m: { floor: 11, games: [{ value: 14 }, { value: 11 }] } },
     "NBA Cup": { pts: { floor: 39, games: [{ value: 60 }, { value: 49 }, { value: 39 }] } } };
   const flush = () => new Promise((r) => setTimeout(r, 5));
   const games = [
-    { id: "g1", status: "live", away: { tricode: "LAL", score: 50 }, home: { tricode: "ATL", score: 48 }, boxscore: { away: [pl("1"), pl("2"), pl("3"), pl("4"), pl("5"), pl("6"), pl("7", { min: 0, pts: 0 }), pl("9"), pl("10"), pl("11"),
+    { id: "g1", status: "live", away: { tricode: "LAL", score: 50 }, home: { tricode: "ATL", score: 48 }, boxscore: { away: [pl("1"), pl("2"), pl("3"), pl("4"), pl("5"), pl("6"), pl("7", { min: 0, pts: 0 }), pl("9"), pl("10"), pl("11"), pl("12"), pl("13"), pl("14"), pl("33", { name: "Board Man" }), pl("34", { name: "Glass Man" }),
       pl("30", { name: "Rec Man", ast: 5 }), pl("31", { name: "Cup Man", tpm: 1 }), pl("32", { name: "Far Man", ast: 3 }), pl("40", { name: "Big Night", pts: 58, tpm: 9 }), pl("41", { name: "Warm Hand", pts: 52 })], home: [] } },
     { id: "g2", status: "final", away: { tricode: "SA", score: 100 }, home: { tricode: "PHX", score: 90 }, boxscore: { away: [pl("20"), pl("21")], home: [] } },
   ];
@@ -1809,7 +1814,9 @@ await articlesChecks(ok);
   ok(has("cc-1-"), "bridge: an in-play milestone gets a card");
   ok(!has("cc-2-"), "bridge: under 10% tonight and not reached: no card", keys.join(" "));
   ok(!has("cc-3-"), "bridge: a minor round number gets no card even when reached", keys.join(" "));
-  ok(has("cc-10-") && !has("cc-11-"), "bridge: importance cutoff is 15 (18 gets a card, 14 doesn't)", keys.join(" "));
+  ok(!has("cc-10-") && !has("cc-11-") && has("cc-12-") && !has("cc-13-") && !has("cc-14-") && has("cc-1-g1"),
+    "bridge v11 (0.72.8): a round number needs importance 30 for a card (18 and 14 get none); a big name gets one from 25 in a main stat (26 points), not for made baskets, and nobody else at 26", keys.join(" "));
+  ok(has("cc-rec-33-oreb-round") && !has("cc-rec-34-dreb-round"), "bridge v11 (0.72.8): a career-records round number outside the six main stats gets a card only for a small club (9 players, not 32)", keys.filter((k) => k.startsWith("cc-rec")).join(" "));
   ok(has("cc-9-"), "bridge: a long-shot milestone reached tonight gets a card (the surprise is the story)");
   ok(has("cc-4-") && /passes Old Guy/.test(t.cards.get(keys.find((k) => k.includes("cc-4-"))).text), "bridge: a pass gets a card and is worded 'passes Old Guy' (needed 2, made 3)");
   ok(!has("cc-5-") && !has("cc-count-5"), "bridge: NBA Live's own ladder milestone is left to NBA Live");

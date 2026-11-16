@@ -2,6 +2,32 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.72.8 (2026-11-15): NBA Live: a round number needs importance 30 for a card; big names from 25
+
+The user (11/15, on "🎯 14 FROM 800 · Will Riley (WAS) — 14 points from 800 points career · importance 25"): "I don't think anything with importance below 40 needs to appear as a nba live alert. I don't know how the important meter is calculated, but maybe below 30 doesn't make the cut. big names are exceptions, but I doubt i need to know when someone gets to 2,000 made baskets unless it's at a record pace".
+
+### How importance is worked out (unchanged, `src/anticipate/importance.js`)
+- A round career number starts at 25 and gains 10 for each landmark it has reached in its stat (points: 5,000, 10,000, 15,000…; assists: 2,000, 3,000, 5,000…), then is multiplied by the stat's weight: points 1.0, rebounds and assists 0.8, threes 0.75, steals and blocks 0.6, defensive rebounds 0.5, made baskets and free throws 0.45.
+- So 800 points is 25, 5,000 points 35, 10,000 points 45; 2,000 assists 28, 5,000 assists 44; 5,000 made baskets 20 and 10,000 made baskets 29. Passes on all-time and franchise lists are scored separately (60+ and 40+) and keep their own rule (a place worth saying).
+
+### What changed (bridge v11)
+- **The line is 30** (was 15). Under it, no card, in play or reached. Made baskets, free throws and offensive rebounds can't reach 30 at any total.
+- **Big names from 25**, in points, rebounds, assists, steals, blocks and threes only. A big name is a player at 0.6 or more on the prep stats' prominence (this season's points and minutes; 77 players today), now written to `tonight.json` as `stars`.
+- **Round numbers from the career records** (the other source of these cards) in any stat outside those six need a club of 10 or fewer: "4,000 career offensive rebounds" (nine players ever) stays; 7,000 defensive rebounds (32) doesn't.
+- Games played is weighted 0.55 (was 0.5) so that 1,000 games is 30 and gets its card.
+
+### Why 30 and not 40
+- At 40 the only round numbers left are ones NBA Live's own ladders already card (10,000+ points, 5,000+ assists, 8,000+ rebounds, 1,500+ threes), so the Command Center would add none. 30 adds the first landmarks below those ladders: 5,000 points, 3,000 rebounds, 1,000 games. It is one number (`MIN_IMPORTANCE`).
+
+### Tested
+- 766 checks here (the cutoff check rewritten: 18 and 14 get no card, a big name at 26 in points does, the same player's made baskets and another player at 26 don't; new: a records round number outside the main six only for a small club). 772 with the held 0.73 worker checks.
+- Tonight's in-play round numbers under the new rule: of nine (Riley 800 points, Coulibaly 2,000 points, Tatum 5,000 made baskets and 4,000 defensive rebounds, Siakam 5,000 made baskets, Flagg 400 assists, Carter 500 points, Sarr 700 made baskets, Brown 2,000 assists), one keeps its card: Jaylen Brown's 2,000 assists (28, a big name).
+
+### Unproven
+- "At a record pace" (the youngest or fastest to a number) isn't something the program knows; nothing brings a low rung back on that ground.
+- The big-name list is this season's production, so a famous player having a quiet year can fall off it.
+- The bridge has run against the stand-in NBA Live only.
+
 ## 0.72.7 (2026-11-15): margin by quarter; the final two minutes, apart from clutch time
 
 The user (11/15): "Proceed" (the next two on the list: team margin by quarter, and clutch in the final two minutes against the final five).

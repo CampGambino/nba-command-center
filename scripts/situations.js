@@ -538,7 +538,10 @@ for (const [tri, games] of Object.entries(perTeam)) {
     // 0.71: 30- and 40-point games each defense has allowed, for NBA Live's "first one allowed" card (the user, 11/15: the Celtics).
     let defense = null;
     try { const { allowedCounts } = await import("../src/anticipate/seasonlong.js"); const C = allowedCounts({ pg: playerGames(rows), rows }); defense = { n30: C.n30, n40: C.n40, teams: Object.fromEntries(Object.entries(C.teams).map(([t, x]) => [t, { gp: x.gp, t30: x.t30, t40: x.t40 }])) }; } catch (e) { console.error(`defense counts not written: ${e.message}`); }
-    fs.writeFileSync(path.join(root, "docs", "data", "tonight.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, games, defense }));
+    // 0.72.8: the big names (prep stats' prominence, 0.6+), for NBA Live's milestone cards: a lesser round number gets a card only for them.
+    let stars = null;
+    try { const st = rd("prep.json").stars || {}; stars = Object.fromEntries(Object.entries(st).filter(([, v]) => v >= 0.6).map(([n, v]) => [n, Math.round(v * 100) / 100])); } catch { /* no prep stats: no exceptions */ }
+    fs.writeFileSync(path.join(root, "docs", "data", "tonight.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, games, defense, stars }));
     // The briefing (0.66): one ranking over every candidate line, with what was already shown on earlier days.
     try {
       const { tonightCandidates } = await import("../src/anticipate/tonight.js");

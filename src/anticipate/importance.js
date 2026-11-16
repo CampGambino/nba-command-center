@@ -11,7 +11,7 @@
 
 const STAT_WEIGHT = {
   pts: 1.0, reb: 0.8, ast: 0.8, fg3m: 0.75, td: 0.8, dd: 0.6, stl: 0.6, blk: 0.6,
-  dreb: 0.5, oreb: 0.45, gp: 0.5, gs: 0.4, fgm: 0.45, ftm: 0.45, min: 0.35,
+  dreb: 0.5, oreb: 0.45, gp: 0.55, gs: 0.4,   // gp 0.55 (0.72.8): 1,000 games is 30, the line for an NBA Live card fgm: 0.45, ftm: 0.45, min: 0.35,
   g30pt: 0.6, g40pt: 0.75, g50pt: 0.9, g60pt: 1.0,
   // Printed by some teams (Boston, Chicago, Orlando) but rarely news: kept, ranked low.
   fga: 0.15, fta: 0.15, pf: 0.1,

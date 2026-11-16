@@ -1,5 +1,5 @@
 /*
- * NBA Command Center -> NBA Live bridge.                                  version 10
+ * NBA Command Center -> NBA Live bridge.                                  version 11
  *
  * Add ONE line to NBA Live, just before </body>:
  *   <script src="https://campgambino.github.io/nba-command-center/bridge/cc-bridge.js"></script>
@@ -35,6 +35,11 @@
  *       a 15-point lead with the season's record of leads lost and comebacks, and a 15-point lead lost;
  *       (0.59.1) a regular reserve 3+ minutes past his usual first check-in, and before tip-off a "foul watch" card for
  *       starters in early foul trouble in half their games or more.
+ *     - (v11, 0.72.8; the user, 11/15, on "Will Riley — 14 points from 800 points career · importance 25": "maybe below
+ *       30 doesn't make the cut. big names are exceptions, but I doubt i need to know when someone gets to 2,000 made
+ *       baskets") a round number needs importance 30 for a card (was 15). A big name (tonight.json `stars`) gets one
+ *       from 25, in points, rebounds, assists, steals, blocks and threes only. A round number from the career records in
+ *       any other stat needs a club of 10 or fewer (4,000 offensive rebounds: nine players ever).
  *     - (v10, 0.72.4; the user, 11/15: "start checking around 20 points leads, and as the lead balloons, increase the
  *       check… it shouldn't actually show if no lead was lost at that amount. a 15-point lead is pretty common place")
  *       lead context starts at a 20-point lead and is measured in steps of 5 on the biggest lead of the game: up 25 it
@@ -68,12 +73,14 @@
  */
 (function () {
   "use strict";
-  var VERSION = 10;
+  var VERSION = 11;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
   var MIN_CHANCE = 0.10;      // pre-game chance tonight needed to take a card while live
-  var MIN_IMPORTANCE = 15;    // round numbers below this never get a card (passes always can). Was 20 until 0.15.2; tune from use
+  var MIN_IMPORTANCE = 30;    // round numbers below this never get a card (passes always can). 15 until v11 (the user, 11/15)
+  var STAR_IMPORTANCE = 25;   // ...except a big name's, in the six main stats
+  var SMALL_CLUB = 10;        // a career-records round number in any other stat: only a club this small
   var MAX_PER_GAME = 6;       // in-play cards per game, best first (reached ones always show)
   var PRE_PER_GAME = 3;       // pre-game storyline cards per game
   var ICON = { history: "📜 FROM THE NOTES", injury: "🩹 INJURY", milestone: "🎯 IN REACH", streak: "🔥 STREAK", lead: "👑 TEAM LEADER", shooting: "🏹 50/40/90", team: "📈 TEAM STREAK", record: "🏛️ RECORD WATCH", context: "📊 CAREER CONTEXT", foul: "⚠️ FOUL WATCH", early: "🔄 LEFT EARLY LAST TIME", fourth: "⏳ 4TH QUARTER", qtr: "🕒 BY QUARTER", season: "📊 THIS SEASON", span: "🧩 IN THAT SPAN", pstreak: "🔥 STREAK WATCH", vsopp: "🆚 VS TONIGHT'S OPPONENT", pace: "⏱️ PACE", trade: "🔁 SINCE THE TRADE", role: "🪑 STARTER VS BENCH", lineup: "🖐️ STARTING FIVE", turn: "↪️ RECORD TURN", beaten: "⚔️ WHO'S BEATEN THEM", month: "🗓️ THIS MONTH", monthp: "🗓️ THIS MONTH", rookie: "🌱 ROOKIES", era: "📆 SINCE THEN", defense: "🛡️ DEFENSE WATCH", cup: "🏆 NBA CUP" };
@@ -262,7 +269,7 @@
         var hk = "cc-" + i.espnId + "-" + game.id + "|" + i.stat + "|" + i.target;
         if (reachedTonight) state.hit[hk] = v;
         var was = !reachedTonight && state.hit[hk] != null ? state.hit[hk] : null;
-        if (i.kind !== "pass" && i.importance < MIN_IMPORTANCE) return;   // a rung nobody celebrates, reached or not
+        if (i.kind !== "pass" && i.importance < MIN_IMPORTANCE && !(MAJOR[i.stat] && i.importance >= STAR_IMPORTANCE && bigName(i.player))) return;   // a rung nobody celebrates, reached or not
         if (i.kind === "pass" && (i.minor || !worthPlace(i.scope, i.stat, i.passing && i.passing.rank))) return;   // 0.61: a place worth saying (0.64: i.minor also covers lists of unproven scope)
         if (game.status === "final" && !reachedTonight && was === null) return;   // a final game: only what fell in it
         if (!reachedTonight && was === null) {
@@ -311,6 +318,8 @@
      place worth saying. NBA Cup: top 2. Franchise: top 3 in points, rebounds, assists, steals, blocks, threes; top 2 in
      anything else. All-time: top 25 in those six, top 10 in anything else. Round numbers are left to the cadence. */
   var MAJOR = { pts: 1, reb: 1, ast: 1, stl: 1, blk: 1, fg3m: 1 };
+  // v11: the night's big names (tonight.json `stars`, from the prep stats' prominence). No list: no exceptions.
+  function bigName(name) { var S = state.tonight && state.tonight.stars; return !!(S && S[name] != null); }
   function worthPlace(scope, stat, place) {
     if (!place) return true;
     var major = !!MAJOR[stat];
@@ -354,6 +363,7 @@
     state.recItems.forEach(function (r) {
       if (r.team !== sides.away && r.team !== sides.home) return;
       if (r.kind === "cup" && !cupTonight) return;                       // Cup marks count only in Cup games
+      if (r.kind === "round" && !MAJOR[r.stat] && !(r.club && r.club <= SMALL_CLUB)) return;   // v11: 7,000 defensive rebounds (32 players) isn't a card
       if (inNotes(r)) return;
       var side = r.team === sides.away ? "away" : "home";
       var p = (box[side] || []).find(function (x) { return String(x.id) === String(r.id); });
