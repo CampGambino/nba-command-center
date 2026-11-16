@@ -28,7 +28,12 @@ export function runChecks(checks, { rows, logs, seasons, history, names, nameKey
           const K = seasons?.keys?.indexOf("season") ?? -1;
           const sb = seasons && { ...seasons, players: Object.fromEntries(Object.entries(seasons.players).map(([n, r]) => [n, r.filter((x) => x[K] < c.season)]).filter(([, r]) => r.length)) };
           const slate = c.slate || history.games.filter((r) => r[0] === c.morning && r[5] === 2).map((r) => ({ away: r[2], home: r[1] }));
-          cache.set(key, seasonLongLines({ pg: past.pg, rows: past.rows, logs: logsBefore(logs, c.season), seasons: sb, awards, names, nameKey, season: c.season, slate, today: c.morning }).lines);
+          // 0.72.5: a past season goes through whichever detector the check names (prep stats and the team streak
+          // watch as well; the watch's history is cut to end before that season, which the rebuilt rows then supply).
+          const start = `${c.season.slice(0, 4)}-08-01`;
+          cache.set(key, c.detector === "teamwatch" ? streakWatch({ history: { ...history, games: history.games.filter((r) => r[0] < start) }, rows: past.rows, today: c.morning })
+            : c.detector === "prep" ? prepLines({ pg: past.pg, rows: past.rows, logs: logsBefore(logs, c.season), seasons: sb, names, nameKey, season: c.season, games: slate }).lines
+            : seasonLongLines({ pg: past.pg, rows: past.rows, logs: logsBefore(logs, c.season), seasons: sb, awards, names, nameKey, season: c.season, slate, today: c.morning }).lines);
         } else {
           const before = rows.filter((g) => g.d < c.morning);
           // That day's games (from the results once played; a check can name them before they are).

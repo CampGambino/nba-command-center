@@ -56,7 +56,25 @@ const BARS = [
   ...[150, 145, 140, 135, 130].map((x) => ({ key: `pf${x}`, fam: "pf", test: (g) => g.pf >= x, say: `scored ${x}+` })),
   ...[85, 90, 95].map((x) => ({ key: `held${x}`, fam: "held", test: (g) => g.pa < x, say: `held opponents under ${x}` })),
   ...[85, 90, 95].map((x) => ({ key: `low${x}`, fam: "low", test: (g) => g.pf < x, say: `scored under ${x}` })),
+  // 0.72.5 (the user's post, 11/15: "Kings last 4 games: lost by 33, 14, 27, 31, all at home"): margins.
+  ...[30, 25, 20].map((x) => ({ key: `lostby${x}`, fam: "lostby", test: (g) => g.pa - g.pf >= x, say: `lost by ${x}+` })),
+  ...[30, 25, 20].map((x) => ({ key: `wonby${x}`, fam: "wonby", test: (g) => g.pf - g.pa >= x, say: `won by ${x}+` })),
 ];
+// Blowouts that aren't in a row: 25+ in three or more of a team's last five games of a season.
+const SPAN = 5, BLOW = 25;
+const blowouts = (games, sign) => games.map((g) => (sign * (g.pf - g.pa) >= BLOW ? Math.abs(g.pf - g.pa) : 0));
+/** The most 25+ games (sign 1: wins, -1: losses) a team had in any SPAN straight games of each season: { season: n }. */
+function spanMax(games, sign) {
+  const bySeason = {};
+  for (const g of games) (bySeason[seasonOf(g.d)] ??= []).push(g);
+  const out = {};
+  for (const [s, gs] of Object.entries(bySeason)) {
+    const b = blowouts(gs, sign); let best = 0;
+    for (let i = 0; i < b.length; i++) { let n = 0; for (let j = i; j < Math.min(b.length, i + SPAN); j++) if (b[j]) n++; if (n > best) best = n; }
+    out[s] = best;
+  }
+  return out;
+}
 const RARE = 3; // at most this many team runs as long as tonight's would be, since 2016-17
 
 /**
@@ -72,6 +90,8 @@ export function streakWatch({ history = null, rows = [], today = null } = {}) {
     league[b.key] = [];
     for (const [t, games] of Object.entries(seq)) for (const r of runs(games, b.test)) league[b.key].push({ team: t, n: r.n, end: games[r.end].d, current: r.end === games.length - 1 });
   }
+  const spans = { "-1": {}, "1": {} };
+  for (const [t, games] of Object.entries(seq)) { spans["-1"][t] = spanMax(games, -1); spans["1"][t] = spanMax(games, 1); }
   for (const [team, games] of Object.entries(seq)) {
     if (!games.length) continue;
     const last = games[games.length - 1];
@@ -93,7 +113,7 @@ export function streakWatch({ history = null, rows = [], today = null } = {}) {
       }
     }
     // 2. Scoring and allowing: per family, the bar whose run is rarest one game further (then the longest run).
-    for (const fam of ["pa", "pf", "held", "low"]) {
+    for (const fam of ["pa", "pf", "held", "low", "lostby", "wonby"]) {
       let best = null;
       for (const b of BARS.filter((x) => x.fam === fam)) {
         const r = runs(games, b.test).pop();
@@ -113,6 +133,24 @@ export function streakWatch({ history = null, rows = [], today = null } = {}) {
       out.push({ team, kind: "teamwatch", stat: b.key, n: r.n,
         text: `${team} has ${b.say} in ${r.n} straight: ${head}${tail}`,
         score: 3.2 + (atNext.length === 0 ? 0.8 : 0) + (atN.length <= 1 ? 0.4 : 0), then: { n: n1, teams: atNext.map((x) => ({ team: x.team, season: seasonOf(x.end) })) } });
+    }
+    // 3. Blowouts in a short span (0.72.5): 25+ in three or more of the last five, the latest among them.
+    for (const sign of [-1, 1]) {
+      const cur = seasonOf(last.d);
+      const mine = games.filter((g) => seasonOf(g.d) === cur).slice(-SPAN);
+      const b = blowouts(mine, sign), k = b.filter(Boolean).length;
+      if (k < 3 || !b[b.length - 1]) continue;
+      const others = [];
+      for (const [t, bySeason] of Object.entries(spans[String(sign)])) for (const [s, n] of Object.entries(bySeason)) if (!(t === team && s === cur)) others.push({ team: t, season: s, n });
+      const atK = others.filter((x) => x.n >= k), atK1 = others.filter((x) => x.n >= k + 1);
+      if (atK1.length > RARE) continue;
+      const name = (list) => list.slice(-3).map((x) => `${x.team} ${x.season}`).join(", ");
+      const head = atK.length === 0 ? `no other team has had ${k} in a ${SPAN}-game span since ${WINDOW}`
+        : `${atK.length === 1 ? "one other team has" : `${atK.length} other teams have`} had ${k} in a ${SPAN}-game span since ${WINDOW}${atK.length <= 3 ? ` (${name(atK)})` : ""}`;
+      const tail = atK1.length ? `; only ${name(atK1)} had ${k + 1}` : atK.length ? `; none had ${k + 1}` : "";
+      out.push({ team, kind: "teamwatch", stat: sign < 0 ? "blown25" : "rout25", n: k,
+        text: `${team} has ${sign < 0 ? "lost" : "won"} ${k} of its last ${mine.length} by ${BLOW}+ (by ${b.filter(Boolean).join(", ")}): ${head}${tail}`,
+        score: 3.3 + (atK1.length === 0 ? 0.6 : 0) + (atK.length <= 1 ? 0.4 : 0), then: { n: k + 1, teams: atK1.map((x) => ({ team: x.team, season: x.season })) } });
     }
   }
   return out;

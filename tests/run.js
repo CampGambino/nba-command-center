@@ -2240,6 +2240,47 @@ await articlesChecks(ok);
     { rows: [], logs, seasons: null, history, names: { m1: "Mac Cain" }, season: "2026-27" });
   ok(R.found === 1 && R.total === 1 && R.cantReplay === 1 && R.checks[1].found === null, "flag checks (0.70): a post from last season is replayed; one that needs data we don't keep is set apart, not counted a miss", JSON.stringify(R));
 }
+// ---------- 0.72.5: era totals, blowout spans, and last season's posts through the team watch (the user's 20 posts, 11/15) ----------
+{
+  const { eraLines } = await import("../src/anticipate/seasonlong.js");
+  const { streakWatch } = await import("../src/situations/streakwatch.js");
+  const { runChecks } = await import("../src/anticipate/flagcheck.js");
+  const cols = ["date", "opp", "home", "result", "type", "min", "pts", "reb", "ast", "stl", "blk", "fg3m", "fgm", "fga", "fg3a", "ftm", "fta"];
+  const g = (d, type, pts, reb, ast, stl, blk) => [d, "XXX", 1, "W", type, 30, pts, reb, ast, stl, blk, 1, 5, 10, 3, 2, 2];
+  const many = (n, start, f) => Array.from({ length: n }, (_, i) => f(new Date(Date.parse(start) + i * 2 * 864e5).toISOString().slice(0, 10)));
+  // Vet: before the decade 9,000 points that mustn't count, then 100 games of 30/10/10. Rival: 100 games of 30 and a 40-point playoff game.
+  // Kid: his whole career in the logs (debut 2023), 100 games with 4 blocks; Vet and Rival block 1 a game over the same span.
+  const logs = { columns: cols, players: {
+    vet: [...many(300, "2017-10-20", (d) => g(d, 2, 30, 5, 5, 1, 1)), ...many(100, "2023-10-25", (d) => g(d, 2, 30, 10, 10, 2, 1))],
+    riv: [...many(100, "2023-10-25", (d) => g(d, 2, 30, 4, 3, 1, 1)), g("2024-06-01", 3, 40, 4, 3, 1, 1)],
+    kid: many(100, "2023-10-25", (d) => g(d, 2, 15, 6, 2, 0, 4)) } };
+  const pgOf = (team, pts, n = 4) => Array.from({ length: n }, (_, i) => ({ d: `2026-11-0${i + 1}`, team, pts, reb: 5, ast: 5, stl: 1, blk: 1, fg3m: 1, win: true }));
+  const pg = { vet: pgOf("DEN", 30), riv: pgOf("BOS", 30), kid: pgOf("SAS", 15) };
+  const L = eraLines({ pg, logs, names: { vet: "Old Vet", riv: "The Rival", kid: "New Kid" }, today: "2026-11-15" });
+  const txt = L.map((l) => l.text);
+  // Decade points: Vet 300 games counted from 2020 only... (those 300 start in 2017: the ones before 1/1/2020 are out).
+  ok(txt.some((t) => /^Old Vet leads the decade \(since 1\/1\/2020, playoffs included\) in .*rebounds .*assists .*steals/.test(t)) && L.every((l) => l.kind === "era"),
+    "era lines (0.72.5): a player leading three or more of the decade's totals among current players, games before 2020 left out", txt.join(" | "));
+  ok(txt.some((t) => /^Most blocks since New Kid entered the NBA \(10\/25\/23\): New Kid 404, /.test(t) && /regular season, current players/.test(t)),
+    "era lines (0.72.5): most blocks since a player entered the NBA, when his whole career is in the logs and he leads by a distance", txt.join(" | "));
+  // A lead about to change hands: the chaser within two of his games.
+  const close = { columns: cols, players: { a: many(100, "2024-01-01", (d) => g(d, 2, 30, 1, 1, 0, 0)), b: [...many(99, "2024-01-01", (d) => g(d, 2, 30, 1, 1, 0, 0)), g("2024-09-01", 3, 27, 1, 1, 0, 0)] } };
+  const L2 = eraLines({ pg: { a: pgOf("DEN", 30, 1), b: pgOf("BOS", 30, 1) }, logs: close, names: { a: "Front Man", b: "Chaser" }, today: "2026-11-15" });
+  ok(L2.length === 1 && L2[0].text.startsWith("Chaser is 4 points from passing Front Man for the most points this decade (3,027 to 3,030;"), "era lines (0.72.5): a decade lead within reach is said before it changes hands (playoffs counted)", L2.map((l) => l.text).join(" | "));
+  // Blowouts: 25+ losses in three of the last five; history has one team with three in five and none with four.
+  const H = { games: [] };
+  const add = (d, home, away, hs, as) => H.games.push([d, home, away, hs, as, 2]);
+  ["2025-01-01", "2025-01-03", "2025-01-05"].forEach((d) => add(d, "UTA", "BOS", 90, 120));
+  const rows = [["2026-11-01", 80, 111], ["2026-11-03", 100, 114], ["2026-11-05", 90, 117], ["2026-11-07", 99, 100], ["2026-11-09", 80, 113]].map(([d, hs, as], i) => ({ d, h: "SAC", a: ["ATL", "DEN", "MIN", "LAL", "OKC"][i], hs, as }));
+  const W = streakWatch({ history: H, rows, today: "2026-11-10" });
+  const sac = W.find((l) => l.team === "SAC" && l.stat === "blown25");
+  ok(sac && sac.text === "SAC has lost 3 of its last 5 by 25+ (by 31, 27, 33): one other team has had 3 in a 5-game span since 2016-17 (UTA 2024-25); none had 4" && !W.some((l) => l.team === "ATL" && /by 25\+/.test(l.text)),
+    "team watch (0.72.5): 25-point losses in three of the last five, with how many teams have had that many and one more", W.map((l) => l.text).join(" | "));
+  // Last season's post through the team watch: the history is cut before that season so its games aren't counted twice.
+  const hist = { columns: ["date", "home", "away", "homeScore", "awayScore", "type"], games: [...H.games, ...rows.map((r) => [r.d.replace("2026", "2025"), r.h, r.a, r.hs, r.as, 2])] };
+  const R = runChecks([{ id: "k", season: "2025-26", morning: "2025-11-10", claim: "x", detector: "teamwatch", match: "^SAC has lost 3 of its last 5 by 25\\+" }], { rows: [], logs: { columns: cols, players: {} }, seasons: null, history: hist, names: {}, season: "2026-27" });
+  ok(R.found === 1, "flag checks (0.72.5): a post from last season can be checked against the team watch and the prep stats, not only the season-long lines", JSON.stringify(R.checks.map((c) => [c.found, c.error, c.line])));
+}
 
 // ---------- 0.65: career highs allowed (this season's, rookies apart) ----------
 {

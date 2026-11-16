@@ -2,6 +2,33 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.72.5 (2026-11-15): 20 more posts as checks; era totals, blowout spans; last season replayed through every detector
+
+The user (11/15) sent 20 posts from other accounts: "some more interesting stats at the time they were tweeted. Unclear how to incorporate them in a predictive sense. it requires the program to continually check against itself."
+
+### How a post becomes something predictive
+- Each post is one case of a pattern. The pattern is written once and run for every player and team each morning; where it can, it says what one more game would make true ("3 points from passing Tatum for the most points this decade", "a win tonight would be its first 9-game winning streak since…") rather than what just happened.
+- The checking-against-itself already exists as "Did we see it coming?": every post is replayed against what the lines said that morning, on every build. The 20 are in it now.
+
+### What changed
+- **All 20 posts added** to `src/data/flag-checks.json`. Seven are seen coming, six are misses (each names what isn't built), seven can't be replayed (each says what data is missing). Overall: **29 of 37**, 10 set apart (was 22 of 24, 3).
+- **Era totals** (new kind `era`, 📆; `eraLines` in `src/anticipate/seasonlong.js`), among current players, from the logs since 2016-17 plus this season:
+  - the decade (since 1/1/2020, playoffs included, as the post counted): a player leading three or more of points, rebounds, assists, steals, blocks, threes; and a lead within about two of the chaser's games, said before it changes hands;
+  - "most blocks since Wembanyama entered the NBA": for a player whose whole career is in the logs, a total he leads by 15% or more since his debut (regular season, as the post counted).
+- **Blowouts in the team streak watch** (`src/situations/streakwatch.js`): lost or won by 20/25/30+ in straight games, and 25+ in three or more of the last five, each with how many teams have done it since 2016-17 and how many went one further.
+- **Last season's posts go through every detector** (`src/anticipate/flagcheck.js`): prep stats and the team watch as well as the season-long lines. The watch's history is cut off before that season so its games aren't counted twice.
+
+### Tested
+- 757 checks here (5 new: decade leader with pre-2020 games left out; since-debut leader; a decade lead within reach; three 25-point losses in five with the count of teams; a last-season post through the team watch). 763 with the held 0.73 worker checks. The pages test: all pages OK.
+- Replays against the posts' own numbers: the morning of 11/19/25, "Nikola Jokic is 3 points from passing Jayson Tatum for the most points this decade (13,214 to 13,216)"; the next morning 13,242 points, 6,030 rebounds, 4,326 assists, the post's figures (steals 702 to its 703). 10/30/25: Wembanyama 449 blocks, Brook Lopez 343 (the post: 449 and 342). 11/13/25: "DET has won 8 straight: a win tonight would be its first 9-game winning streak since at least 2016-17" and "SAC has lost 3 of its last 5 by 25+ (by 31, 27, 33)…; only POR 2021-22, POR 2023-24 had 4".
+- Today's build, run here: two era lines (Jokić leads four of the six decade totals; Wembanyama 684 blocks since his debut, Lopez 436), the second in tonight's SAS @ UTA storylines.
+
+### Unproven
+- "Among current players": a retired player could hold a decade lead we don't see (the logs are current players only).
+- The stats step takes about 40 seconds instead of 15: the 13 new last-season mornings are replayed on every build though they can't change. Keeping their results would fix it.
+- Not built, in the order they look worth doing: a leader's partial scoring against the league (Dončić through three quarters) and "sat the 4th quarter in 7 of 13" (both from this season's Game Flow files); a player's games without two named teammates, tied to tonight's injury report; two teammates' streaks together; a record since a short bad start; starts of seasons across years; lists seeded from a post and counted forward (player-coach wins, career plus/minus, 20-point quarters).
+- Out of reach with what we keep: who blocked whom before this season; whole-career records against every franchise.
+
 ## 0.72.4 (2026-11-15): lead context by size, from 20; a Basketball Reference total settles notes vs. ESPN
 
 The user (11/15): on "📊 LEAD CONTEXT · BOS lead DAL by 30 · BOS have lost a 15-point lead once this season": "start checking around 20 points leads, and as the lead balloons, increase the check — so lost lead by +25 when up 25 and lost a lead by +30 when up 30, even those are rarer so it shouldn't actually show if no lead was lost at that amount. a 15-point lead is pretty common place". And on "🧮 COUNT CHECK · Anthony Davis (WAS) — the team's notes have 8,751 rebounds… ESPN says 8752": a Basketball Reference page from before the game with 8,752.

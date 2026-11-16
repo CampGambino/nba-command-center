@@ -374,8 +374,76 @@ export function defenseLines({ pg, rows, names, slate = [] }) {
   return out;
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// 0.72.5: totals over an era, among current players (the logs start in 2016-17). The decade counts the playoffs, as the
+// post did; "since he entered the NBA" is regular season only, as that post was (Brook Lopez 342).
+//   "Most blocks since Victor Wembanyama entered the NBA: Wemby 449 … Brook Lopez 342, Walker Kessler 301."
+//   "Jokić now leads this decade in total points, total rebounds, total assists, and total steals!" (and, before it:
+//   "Jokić is 26 points from passing Jayson Tatum for the most points this decade").
+const ECATS = [["pts", "points", 2000], ["reb", "rebounds", 600], ["ast", "assists", 400], ["stl", "steals", 100], ["blk", "blocks", 100], ["fg3m", "3-pointers", 200]];
+const DECADE = "2020-01-01";
+const num = (n) => Number(n).toLocaleString("en-US");
+export function eraLines({ pg, logs, names, today }) {
+  const C = logs?.columns || [];
+  const ix = Object.fromEntries(C.map((c, i) => [c, i]));
+  if (ix.date == null) return [];
+  // Every current player's games, oldest first: [date, { cat: value }].
+  const G = new Map();
+  const put = (id, d, row, reg) => { if (!G.has(id)) G.set(id, []); G.get(id).push([d, row, reg]); };
+  for (const [id, rows] of Object.entries(logs.players || {})) for (const r of rows) { if (today && r[ix.date] >= today) continue; put(id, r[ix.date], Object.fromEntries(ECATS.map(([c]) => [c, r[ix[c]] || 0])), r[ix.type] === 2); }
+  for (const [id, gs] of Object.entries(pg)) for (const g of gs) put(id, g.d, Object.fromEntries(ECATS.map(([c]) => [c, g[c] || 0])), true);
+  const since = (start, regOnly = false) => { const T = new Map(); for (const [id, gs] of G) { const t = { g: 0 }; for (const [c] of ECATS) t[c] = 0; for (const [d, r, reg] of gs) if (d >= start && (reg || !regOnly)) { t.g++; for (const [c] of ECATS) t[c] += r[c]; } if (t.g) T.set(id, t); } return T; };
+  const board = (T, c) => [...T.entries()].map(([id, t]) => ({ id, v: t[c] })).sort((a, b) => b.v - a.v);
+  const nm = (id) => names[id] || id;
+  const perGame = (id, c) => { const gs = pg[id] || []; return gs.length ? gs.reduce((a, g) => a + (g[c] || 0), 0) / gs.length : 0; };
+  const out = [];
+
+  // 1. The decade: who leads what, and a lead about to change hands.
+  const D = since(DECADE);
+  const boards = Object.fromEntries(ECATS.map(([c]) => [c, board(D, c)]));
+  const leads = {};
+  for (const [c, , min] of ECATS) { const top = boards[c][0]; if (top && top.v >= min) (leads[top.id] ??= []).push(c); }
+  for (const [id, cats] of Object.entries(leads)) {
+    if (cats.length < 3 || !pg[id]?.length) continue;
+    const say = cats.map((c) => `${ECATS.find((x) => x[0] === c)[1]} (${num(boards[c][0].v)})`).join(", ").replace(/, ([^,]+)$/, " and $1");
+    out.push({ kind: "era", team: lastTeam(pg[id]), player: nm(id), id, key: `era|decade|${id}|${cats.join("-")}`,
+      text: `${nm(id)} leads the decade (since 1/1/2020, playoffs included) in ${say}: ${cats.length} of the six main totals, among current players`,
+      score: 3.2 + 0.3 * cats.length, rare: cats.length >= 4 });
+  }
+  for (const [c, label, min] of ECATS) {
+    const [first, second] = boards[c];
+    if (!first || !second || first.v < min || !pg[second.id]?.length) continue;
+    const gap = first.v - second.v + 1, rate = perGame(second.id, c);
+    if (gap <= 0 || !(rate > 0) || gap > 2 * rate) continue;              // within about two of his games
+    out.push({ kind: "era", team: lastTeam(pg[second.id]), player: nm(second.id), id: second.id, key: `era|decade-pass|${second.id}|${c}`,
+      text: `${nm(second.id)} is ${num(gap)} ${gap === 1 ? label.replace(/s$/, "") : label} from passing ${nm(first.id)} for the most ${label} this decade (${num(second.v)} to ${num(first.v)}; since 1/1/2020, playoffs included, current players)`,
+      score: 3.9, rare: true });
+  }
+
+  // 2. Since he entered the NBA: a player whose whole career is in the logs, first by a distance in something.
+  for (const [id, gs] of G) {
+    const season = pg[id] || [];
+    const debut = gs[0][0];
+    if (debut < "2017-10-01" || gs.length < 82 || season.length < 3 || perGame(id, "pts") < 12) continue;
+    const T = since(debut, true);
+    let best = null;
+    for (const [c, label, min] of ECATS) {
+      const b = board(T, c);
+      if (b[0]?.id !== id || b[0].v < min || !b[1]) continue;
+      const margin = (b[0].v - b[1].v) / b[0].v;
+      if (margin >= 0.15 && (!best || margin > best.margin)) best = { c, label, b, margin };
+    }
+    if (!best) continue;
+    const [a, b2, c3] = best.b;
+    out.push({ kind: "era", team: lastTeam(season), player: nm(id), id, key: `era|debut|${id}|${best.c}`,
+      text: `Most ${best.label} since ${nm(id)} entered the NBA (${md(debut)}/${debut.slice(2, 4)}): ${nm(id)} ${num(a.v)}, ${nm(b2.id)} ${num(b2.v)}${c3 ? `, ${nm(c3.id)} ${num(c3.v)}` : ""} (regular season, current players)`,
+      score: 3.0 + Math.min(1, best.margin * 2), rare: best.margin >= 0.25 });
+  }
+  return out;
+}
+
 export function seasonLongLines(args) {
-  const parts = [["trade", tradeLines], ["role", roleLines], ["mvp", mvpLines], ["lineup", lineupLines], ["turn", turnLines], ["since", sinceLines], ["beaten", beatenLines], ["month", monthLines], ["unique", uniqueLines], ["rookie", rookieLines], ["monthp", monthPlayerLines], ["defense", defenseLines]];
+  const parts = [["trade", tradeLines], ["role", roleLines], ["mvp", mvpLines], ["lineup", lineupLines], ["turn", turnLines], ["since", sinceLines], ["beaten", beatenLines], ["month", monthLines], ["unique", uniqueLines], ["rookie", rookieLines], ["monthp", monthPlayerLines], ["defense", defenseLines], ["era", eraLines]];
   const lines = [], errors = [];
   for (const [k, f] of parts) { try { lines.push(...f(args)); } catch (e) { errors.push(`${k}: ${e.message}`); } }
   return { lines, errors };
