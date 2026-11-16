@@ -1,5 +1,5 @@
 /*
- * NBA Command Center -> NBA Live bridge.                                  version 8
+ * NBA Command Center -> NBA Live bridge.                                  version 9
  *
  * Add ONE line to NBA Live, just before </body>:
  *   <script src="https://campgambino.github.io/nba-command-center/bridge/cc-bridge.js"></script>
@@ -35,6 +35,13 @@
  *       a 15-point lead with the season's record of leads lost and comebacks, and a 15-point lead lost;
  *       (0.59.1) a regular reserve 3+ minutes past his usual first check-in, and before tip-off a "foul watch" card for
  *       starters in early foul trouble in half their games or more.
+ *     - (v9, 0.72.3; the user, 11/15: "make this clickable and flip over to see the list of top players this season
+ *       while also accounting for any records that were also broken the same day… one of the alerts should be trimmed
+ *       but both versions should still be tracked") the season cards flip to the season's list, with tonight's quarters
+ *       from every game NBA Live shows in it, and the all-time record under it; places count tonight's too. While NBA
+ *       Live's own QUARTER EXPLOSION card is up for a quarter, the season place and list are added to that card (its
+ *       all-time list stays) and the separate season card is not fired; it shows only where NBA Live has no card.
+ *       This is the one place the bridge adds to a card of NBA Live's: two fields, on its way through fireStory.
  *     - (v8, 0.72.2; the user, 11/15) foul trouble only for tonight's starters, players who start half their games or
  *       more, and players averaging 25.0 minutes or more ("no need to send foul trouble alert for a player coming off
  *       the bench unless they are typically a starter or average at least 25.0 minutes per game": Josh Green, 4 starts
@@ -48,7 +55,7 @@
  *       tonight.json's defense counts.
  *
  * What it never does
- *   - change NBA Live's own checks, data or cards;
+ *   - change NBA Live's own checks or data, or its cards beyond the one addition above (v9);
  *   - throw: if NBA Live's hooks (fireStory, runAlertChecks, GAMES) are missing or renamed,
  *     it shows a small "Command Center: not connected" note and stays idle.
  *
@@ -56,7 +63,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 8;
+  var VERSION = 9;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -75,7 +82,7 @@
   // NBA Live's own ladders (MILESTONE_LADDERS): those round numbers are already its cards.
   var NBA_LIVE_STAT = { pts: "pts", fg3m: "tpm", reb: "reb", ast: "ast", stl: "stl", blk: "blk" };
 
-  var state = { data: null, items: [], tonight: null, records: null, recItems: [], bests: null, flow: null, maxLead: {}, firstAt: {}, done: {}, hit: {}, loadedAt: 0, error: null, connected: false, fired: 0, keys: {} };
+  var state = { data: null, items: [], tonight: null, records: null, recItems: [], bests: null, flow: null, maxLead: {}, firstAt: {}, done: {}, hit: {}, merged: {}, decorated: {}, loadedAt: 0, error: null, connected: false, fired: 0, keys: {} };
   window.CC_BRIDGE = { version: VERSION, state: state };
 
   function param(name) { try { return new URLSearchParams(location.search).get(name); } catch (e) { return null; } }
@@ -603,8 +610,92 @@
     var better = list.filter(function (x) { return x.pts > v; }).length;
     var tied = list.filter(function (x) { return x.pts === v; }).length;
     var best = list[0];
-    if (!better) return (tied ? "ties the most " : "the most ") + what + " this season" + (tied && best ? " (" + (best.name || best.team) + (best.opp ? " vs " + best.opp : "") + " " + md(best.date) + ")" : "");
-    return (tied ? "tied for the " : "the ") + ord(better + 1) + "-most " + what + " this season (most: " + best.pts + ", " + (best.name || best.team) + (best.opp ? " vs " + best.opp : "") + " " + md(best.date) + ")";
+    var when = function (x) { return x.tonight ? "tonight" : md(x.date); };
+    if (!better) return (tied ? "ties the most " : "the most ") + what + " this season" + (tied && best ? " (" + (best.name || best.team) + (best.opp ? " vs " + best.opp : "") + " " + when(best) + ")" : "");
+    return (tied ? "tied for the " : "the ") + ord(better + 1) + "-most " + what + " this season (most: " + best.pts + ", " + (best.name || best.team) + (best.opp ? " vs " + best.opp : "") + " " + when(best) + ")";
+  }
+  // v9: the season's lists as they stand right now: the Game Flow files through last night, plus tonight's quarters,
+  // halves and team quarters from every game NBA Live shows (so a 20-point quarter earlier tonight is on the list a
+  // later one is measured against). Any of tonight's games a later build already holds is taken from NBA Live instead.
+  function seasonLists() {
+    if (state.seasonL && state.seasonAt === state.cycle) return state.seasonL;
+    var F0 = state.flow || {}, ids = {}, tq = [], th = [], tt = [];
+    (games() || []).forEach(function (g) {
+      if (!g || (g.status !== "live" && g.status !== "final")) return;
+      ids[String(g.id)] = 1;
+      var lastQ = g.status === "final" ? 4 : Math.min(Number(g.period) || 0, 4);
+      var T = { away: tri(g.away && g.away.tricode), home: tri(g.home && g.home.tricode) };
+      ["away", "home"].forEach(function (side) {
+        var team = T[side], opp = T[side === "away" ? "home" : "away"];
+        (((g.boxscore || {})[side]) || []).forEach(function (p) {
+          if (!p || !p.id) return;
+          var q = (p.qtrPts || []).slice(0, 4).map(function (v) { return Math.min(Number(v) || 0, Number(p.pts) || 0); });
+          var who = { id: String(p.id), name: p.name || ("#" + p.id), team: team, opp: opp, gameId: String(g.id), tonight: true };
+          for (var k = 1; k <= lastQ; k++) if ((q[k - 1] || 0) >= Q_MIN) tq.push(Object.assign({ pts: q[k - 1], q: k }, who));
+          [[1, 2], [3, 4]].forEach(function (h, j) {
+            var v = (q[h[0] - 1] || 0) + (q[h[1] - 1] || 0);
+            if (lastQ >= h[0] && v >= H_MIN) th.push(Object.assign({ pts: v, h: j + 1 }, who));
+          });
+        });
+        var ls = (g[side] && g[side].linescores) || [];
+        for (var k = 1; k <= lastQ; k++) { var tv = Number(ls[k - 1]) || 0; if (tv >= TQ_MIN) tt.push({ pts: tv, team: team, opp: opp, q: k, gameId: String(g.id), tonight: true }); }
+      });
+    });
+    var old = function (x) { return !ids[String(x.gameId)]; }, by = function (a, b) { return b.pts - a.pts; };
+    state.seasonAt = state.cycle;
+    return (state.seasonL = { quarters: (F0.quarters || []).filter(old).concat(tq).sort(by), halves: (F0.halves || []).filter(old).concat(th).sort(by), teamQuarters: (F0.teamQuarters || []).filter(old).concat(tt).sort(by) });
+  }
+  // The back of a season card: the list's top rows with his own in bold (and added below if it's further down), then
+  // the all-time mark from NBA Live's own book, when NBA Live has one.
+  function seasonBack(title, list, isMe, rowText, rows, foot) {
+    var place = function (x) { return list.filter(function (y) { return y.pts > x.pts; }).length + 1; };
+    var row = function (x) { return '<div class="alert-back-play"' + (isMe(x) ? ' style="font-weight:700"' : "") + '><span class="abp-time">' + place(x) + ".</span> " + escH(rowText(x)) + " · <strong>" + x.pts + "</strong></div>"; };
+    var top = list.slice(0, rows), me = list.filter(isMe)[0];
+    var html = '<div class="alert-back-title">' + escH(title) + "</div>" + top.map(row).join("");
+    if (me && top.indexOf(me) < 0) html += '<div class="alert-back-play" style="opacity:.6">…</div>' + row(me);
+    (foot || []).forEach(function (f) { html += '<div class="alert-back-play" style="opacity:.75">' + escH(f) + "</div>"; });
+    return html;
+  }
+  var whenOf = function (x) { return x.tonight ? "tonight" : md(x.date); };
+  var qRow = function (x) { return (x.name || x.team) + (x.name ? " (" + x.team + ")" : "") + " · " + ["1st", "2nd", "3rd", "4th"][x.q - 1] + (x.opp ? " vs " + x.opp : "") + " " + whenOf(x); };
+  var hRow = function (x) { return x.name + " (" + x.team + ") · " + (x.h === 2 ? "2nd" : "1st") + " half" + (x.opp ? " vs " + x.opp : "") + " " + whenOf(x); };
+  // NBA Live's all-time marks (its NBA_SITUATIONAL_RECORDS / team-quarter book), read if they are there.
+  function allTime(keys) {
+    var out = [];
+    keys.forEach(function (kv) {
+      try {
+        var B = kv[0] === "teamQuarter" ? (typeof NBA_TEAM_QUARTER_PTS !== "undefined" ? NBA_TEAM_QUARTER_PTS : null)
+          : (typeof NBA_SITUATIONAL_RECORDS !== "undefined" ? NBA_SITUATIONAL_RECORDS[kv[0]] : null);
+        if (B && typeof B.record === "number" && isFinite(B.record)) out.push(kv[1] + ": " + B.record + (B.holder ? " · " + B.holder : ""));
+      } catch (e) { /* no book: no line */ }
+    });
+    return out;
+  }
+  // v9: NBA Live's own QUARTER EXPLOSION card (qexp-<game>-<player>-<period>) on its way through fireStory: when the
+  // quarter is among the season's best, its season place goes on the front and the season's list under its all-time
+  // list on the back. Anything unexpected and the card goes through exactly as NBA Live made it.
+  function decorate(key, card) {
+    var m = /^qexp-([^-]+)-([^-]+)-(\d+)$/.exec(String(key));
+    if (!m || !card || !state.flow) return card;
+    var k = Number(m[3]), game = (games() || []).filter(function (g) { return g && String(g.id) === m[1]; })[0];
+    if (!game || k < 1 || k > 4) return card;
+    var p = null;
+    ["away", "home"].forEach(function (side) { (((game.boxscore || {})[side]) || []).forEach(function (x) { if (x && String(x.id) === m[2]) p = x; }); });
+    if (!p) return card;
+    var v = Math.min(Number((p.qtrPts || [])[k - 1]) || 0, Number(p.pts) || 0);
+    var L = seasonLists().quarters, own = function (x) { return x.tonight && x.id === String(p.id) && x.q === k; };
+    var others = L.filter(function (x) { return !own(x); });
+    if (v < Q_MIN || placeOnList(others, v) > SEASON_TOP) { delete state.decorated[key]; return card; }
+    state.decorated[key] = 1;
+    var line = placeText(others, v, "in a quarter");
+    return Object.assign({}, card, {
+      sub: (card.sub ? card.sub + " · " : "") + line.charAt(0).toUpperCase() + line.slice(1),
+      backHtml: (card.backHtml || "") + seasonBack("📅 This season · points in a quarter", L, own, qRow, 5),
+    });
+  }
+  function dropCard(key) {
+    var ex = typeof ALERT_STORIES !== "undefined" && ALERT_STORIES.get(key);
+    if (ex) { if (ex.el) ex.el.remove(); ALERT_STORIES.delete(key); delete state.keys[key]; }
   }
   function onCourtNow(game) { try { return typeof computeOnCourt === "function" ? computeOnCourt(game) : null; } catch (e) { return null; } }
   function lastOut(game, id) {
@@ -645,7 +736,8 @@
     var court = live ? onCourtNow(game) : null;
     var stl = function (pairs) { return typeof fmtAlertStatLine === "function" ? fmtAlertStatLine(pairs) : ""; };
     var base = function (extra) { return Object.assign({ type: "milestone", live: live, gameId: game.id, gameTag: tag, gameScore: scr }, extra); };
-    var through = F.games ? " (" + F.games + " games through last night)" : "";
+    var through = F.games ? " (" + F.games + " games through last night, and tonight's)" : "";
+    var S = seasonLists();
     ["away", "home"].forEach(function (side) {
       var team = side === "away" ? sides.away : sides.home, opp = side === "away" ? sides.home : sides.away;
       // 1. Quarters and halves among the season's best.
@@ -656,26 +748,40 @@
         var q = (p.qtrPts || []).slice(0, 4).map(function (v) { return Math.min(Number(v) || 0, Number(p.pts) || 0); });
         for (var k = 1; k <= lastQ; k++) {
           var v = q[k - 1] || 0;
-          if (v < Q_MIN || placeOnList(F.quarters, v) > SEASON_TOP) continue;
-          fire("cc-sq-" + p.id + "-" + k, base({ icon: "📅 SEASON-BEST QUARTER",
-            text: name + " (" + team + ") — " + v + " points in the " + qName(k) + ": " + placeText(F.quarters, v, "in a quarter"),
+          var ownQ = (function (k) { return function (x) { return x.tonight && x.id === String(p.id) && x.q === k; }; })(k);
+          var othersQ = S.quarters.filter(function (x) { return !ownQ(x); });
+          if (v < Q_MIN || placeOnList(othersQ, v) > SEASON_TOP) continue;
+          // v9: while NBA Live's own card for this quarter is up and carries the season place, there is no second card.
+          // Once NBA Live has dissolved its card (two quarters on), ours waits for the final rather than pop in mid-game.
+          var sqKey = "cc-sq-" + p.id + "-" + k, theirs = "qexp-" + game.id + "-" + p.id + "-" + k;
+          if (state.decorated[theirs] && typeof ALERT_STORIES !== "undefined" && ALERT_STORIES.get(theirs)) { state.merged[sqKey] = 1; dropCard(sqKey); continue; }
+          if (state.merged[sqKey] && live) continue;
+          fire(sqKey, base({ icon: "📅 SEASON-BEST QUARTER",
+            text: name + " (" + team + ") — " + v + " points in the " + qName(k) + ": " + placeText(othersQ, v, "in a quarter"),
+            backHtml: seasonBack("📅 This season · points in a quarter", S.quarters, ownQ, qRow, 10, allTime(k === 1 ? [["quarter", "NBA record"], ["firstQuarter", "1st-quarter record"]] : [["quarter", "NBA record"]])),
             statLine: stl([[v, "PTS IN Q" + k]]), sub: "Command Center · Game Flow files" + through }));
         }
         [[1, 2], [3, 4]].forEach(function (h, j) {
           if (lastQ < h[0]) return;
           var v = (q[h[0] - 1] || 0) + (q[h[1] - 1] || 0);
-          if (v < H_MIN || placeOnList(F.halves, v) > SEASON_TOP) return;
+          var ownH = function (x) { return x.tonight && x.id === String(p.id) && x.h === j + 1; };
+          var othersH = S.halves.filter(function (x) { return !ownH(x); });
+          if (v < H_MIN || placeOnList(othersH, v) > SEASON_TOP) return;
           fire("cc-sh-" + p.id + "-" + (j + 1), base({ icon: "📅 SEASON-BEST HALF",
-            text: name + " (" + team + ") — " + v + " points in the " + (j ? "2nd" : "1st") + " half" + (live && per <= h[1] ? " so far" : "") + ": " + placeText(F.halves, v, "in a half"),
+            backHtml: seasonBack("📅 This season · points in a half", S.halves, ownH, hRow, 10, allTime(j ? [["half", "NBA record"]] : [["half", "NBA record"], ["firstHalf", "1st-half record"]])),
+            text: name + " (" + team + ") — " + v + " points in the " + (j ? "2nd" : "1st") + " half" + (live && per <= h[1] ? " so far" : "") + ": " + placeText(othersH, v, "in a half"),
             statLine: stl([[v, "PTS IN " + (j ? "2ND" : "1ST") + " HALF"]]), sub: "Command Center · Game Flow files" + through }));
         });
       });
       var ls = (game[side] && game[side].linescores) || [];
       for (var k = 1; k <= lastQ; k++) {
         var tv = Number(ls[k - 1]) || 0;
-        if (tv < TQ_MIN || placeOnList(F.teamQuarters, tv) > TEAM_TOP) continue;
+        var ownT = (function (k) { return function (x) { return x.tonight && x.team === team && x.gameId === String(game.id) && x.q === k; }; })(k);
+        var othersT = S.teamQuarters.filter(function (x) { return !ownT(x); });
+        if (tv < TQ_MIN || placeOnList(othersT, tv) > TEAM_TOP) continue;
         fire("cc-tq-" + game.id + "-" + team + "-" + k, base({ icon: "📅 SEASON-BEST TEAM QUARTER",
-          text: team + " — " + tv + " points in the " + qName(k) + " vs " + opp + ": " + placeText(F.teamQuarters, tv, "by a team in a quarter"),
+          backHtml: seasonBack("📅 This season · team points in a quarter", S.teamQuarters, ownT, qRow, 10, allTime([["teamQuarter", "NBA record"]])),
+          text: team + " — " + tv + " points in the " + qName(k) + " vs " + opp + ": " + placeText(othersT, tv, "by a team in a quarter"),
           statLine: stl([[tv, "TEAM PTS IN Q" + k]]), sub: "Command Center · Game Flow files" + through }));
       }
       // 2. Foul trouble (live): more fouls than the period number, the coaching rule of thumb Game Flow uses.
@@ -882,6 +988,13 @@
   function connect() {
     state.connected = has("fireStory") && typeof fireStory === "function" && has("runAlertChecks") && typeof runAlertChecks === "function" && Array.isArray(games());
     if (!state.connected) return status();
+    // v9: NBA Live's quarter card picks up the season place on its way to the screen; any failure passes it through untouched.
+    var fire0 = fireStory;
+    fireStory = function (key, card) {
+      var out = card;
+      try { out = decorate(key, card) || card; } catch (e) { out = card; state.decorateError = String(e && e.message || e); }
+      return fire0.call(this, key, out);
+    };
     var original = runAlertChecks;
     // Wrap NBA Live's check cycle: its own checks first, ours after, and ours can't break it.
     runAlertChecks = function () {

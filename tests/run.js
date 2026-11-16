@@ -1987,6 +1987,41 @@ await articlesChecks(ok);
       && fin[0].icon === "↩️ TAKEN BACK" && fin[0].live === false && fin[1].icon === "↩️ TAKEN BACK" && !tC.cards.get("cc-1-gB-watch") && !tC.cards.get("cc-rec-30-ast-pass"),
       "bridge v8 (0.72.2): a milestone and a record shown as reached, then undone by a stat change, say 'taken back' (live and after the final); a page opened afterwards shows neither", [first.join(" "), live[0] && live[0].text, live[1] && live[1].text, fin[0] && fin[0].icon].join(" | "));
   }
+  // v9 (0.72.3; the user, 11/15): the season cards flip to the season's list with tonight's quarters from every game in
+  // it; and while NBA Live's own QUARTER EXPLOSION card is up, the season place rides on that card instead of a second one.
+  {
+    flowData = { season: "2026-27", games: 188, halves: [], teamQuarters: [], fouls: {}, leads: {}, rotation: {},
+      quarters: [q(22, "Jalen Brunson"), q(21, "Franz Wagner"), q(20, "A"), q(18, "B"), q(18, "C"), q(17, "D"), q(17, "E"), q(16, "F"), q(16, "G"), q(16, "H"), q(16, "I")] };
+    const mk = () => [
+      { id: "gX", status: "live", period: 4, clock: "1:13", away: { tricode: "GS", score: 100, linescores: [] }, home: { tricode: "HOU", score: 99, linescores: [] }, plays: [],
+        boxscore: { away: [qp("80", { pts: 30, qtrPts: [5, 3, 3, 19] })], home: [] } },
+      { id: "gY", status: "final", away: { tricode: "LAL", score: 110, linescores: [] }, home: { tricode: "ATL", score: 100, linescores: [] }, plays: [],
+        boxscore: { away: [qp("81", { pts: 25, qtrPts: [20, 2, 3, 0] })], home: [] } } ];
+    const tD = run({ games: mk() }); await flush(); tD.ctx.runAlertChecks(); await flush();
+    const own = tD.cards.get("cc-sq-80-4"), other = tD.cards.get("cc-sq-81-1");
+    ok(own && own.text === "P80 (GSW) — 19 points in the 4th quarter: the 5th-most in a quarter this season (most: 22, Jalen Brunson vs CHI 11/4)"
+      && /tied for the 3rd-most in a quarter this season/.test(other?.text || "")
+      && /This season · points in a quarter/.test(own.backHtml) && /P81 \(LAL\) · 1st vs ATL tonight · <strong>20<\/strong>/.test(own.backHtml)
+      && /font-weight:700"><span class="abp-time">5\.<\/span> P80 \(GSW\) · 4th vs HOU tonight · <strong>19/.test(own.backHtml) && (own.backHtml.match(/alert-back-play/g) || []).length === 10,
+      "bridge v9 (0.72.3): a season-best quarter flips to the season's list (10 rows, his in bold), and a 20-point quarter in another game tonight counts in the list and in his place", [own && own.text, other && other.text, own && own.backHtml].join(" | "));
+    // NBA Live's own card for the quarter, fired from its checks: it carries the season place; no second card.
+    const G2 = mk(); let nbaLive = true;
+    const tE = run({ games: G2, extra: { runAlertChecks: function () { if (nbaLive) this.fireStory("qexp-gX-80-4", { type: "streak", icon: "💥 QUARTER EXPLOSION", text: "P80 (GS) — 4th quarter explosion", sub: "", statLine: "19 Q4 PTS", backHtml: "<div class=\"alert-back-title\">🏆 points in a quarter</div>", live: true, gameId: "gX" }); } } });
+    await flush(); tE.ctx.runAlertChecks(); await flush();
+    const theirs = tE.cards.get("qexp-gX-80-4"), dup = tE.cards.get("cc-sq-80-4");
+    nbaLive = false; tE.cards.delete("qexp-gX-80-4");                    // NBA Live dissolves its card two quarters on
+    tE.ctx.runAlertChecks(); await flush();
+    const mid = tE.cards.get("cc-sq-80-4");
+    G2[0].status = "final"; tE.ctx.runAlertChecks(); await flush();
+    const end = tE.cards.get("cc-sq-80-4");
+    ok(theirs && theirs.icon === "💥 QUARTER EXPLOSION" && theirs.text === "P80 (GS) — 4th quarter explosion" && theirs.sub === "The 5th-most in a quarter this season (most: 22, Jalen Brunson vs CHI 11/4)"
+      && /^<div class="alert-back-title">🏆 points in a quarter<\/div><div class="alert-back-title">📅 This season/.test(theirs.backHtml) && !dup && !mid && end && end.live === false && tE.cards.get("cc-sq-81-1"),
+      "bridge v9 (0.72.3): NBA Live's quarter card gets the season place and list added (its text, icon and all-time list untouched) and no second card fires; ours waits for the final once NBA Live's is gone", [theirs && theirs.sub, !!dup, !!mid, end && end.text].join(" | "));
+    const tF = run({ games: mk(), extra: { runAlertChecks: function () { this.fireStory("qexp-gX-80-4", { icon: "💥 QUARTER EXPLOSION", text: "x", sub: "", gameId: "gX" }); this.fireStory("other-key", { icon: "A", text: "b", sub: "c" }); } } });
+    flowData = null;
+    await flush(); tF.ctx.runAlertChecks(); await flush();
+    ok(tF.cards.get("qexp-gX-80-4")?.sub === "" && tF.cards.get("other-key")?.sub === "c", "bridge v9: without the season file, and for every other card, NBA Live's cards pass through unchanged");
+  }
   flowData = null;
 }
 

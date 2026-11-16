@@ -2,6 +2,29 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.72.3 (2026-11-15): season-best cards flip to the season's list; one card for a big quarter, not two
+
+The user (11/15, on "📅 SEASON-BEST QUARTER" cards for Siakam and Dončić): "is there a way to make this clickable and flip over to see the list of top players this season while also accounting for any records that were also broken the same day? I also think the nba live program already has an alert like this… in order to reduce redundancy, one of the alerts should be trimmed but both versions (most points in a quarter all time and most points in a quarter this season) should still be tracked."
+
+### What NBA Live already has
+- Its own "💥 QUARTER EXPLOSION" card (15+ points in the current quarter, growing into "record pace" and "record"), whose back is the all-time list (37, Klay Thompson). So a 19-point quarter got two cards while it was happening: NBA Live's against the all-time mark, ours against the season.
+
+### What changed (bridge v9)
+- **The season cards flip.** Season-best quarter, half and team quarter now have a back: the season's top 10 with his line in bold (added below if he's further down), then the all-time marks from NBA Live's own book (NBA record; the 1st-quarter or 1st-half record where it applies).
+- **Tonight counts.** The list, and the place on the front, include tonight's quarters, halves and team quarters from every game NBA Live shows, live or final. Dončić's 20 in the 1st tonight is on the list Siakam's 19 is measured against (tied for 9th, not 8th).
+- **One card while it's happening.** When NBA Live's quarter card is up and the quarter is among the season's ten best, the season place goes on that card's line under the stat ("Tied for the 9th-most in a quarter this season (most: 22, Jalen Brunson vs CHI 11/4)") and the season's top five, with his line, go under its all-time list on the back. Our separate card isn't fired. NBA Live's text, icon and escalation are untouched.
+- **Ours shows only where NBA Live has no card:** a quarter that ended before the page was opened, or a finished game. If NBA Live drops its card mid-game (it does two quarters later), ours waits for the final instead of popping in for an old quarter.
+- This is the one place the bridge adds to a card of NBA Live's. It is done as the card passes through `fireStory`; any error, a missing season file, or a card key it doesn't recognise, and the card goes through exactly as NBA Live made it (then both cards show, as before).
+
+### Tested
+- 749 checks here (3 new: the back and tonight's quarter in the list and the place; NBA Live's card decorated, no second card, ours at the final; every other card and the no-season-file case untouched). 755 with the held 0.73 worker checks.
+- The real NBA Live page (the 11/10 copy, nba-live_14) in headless Chrome, with tonight's IND @ PHI replayed as live in the 4th: one card for Siakam, NBA Live's, reading "Q4 explosion · 19 Q4 PTS · Tied for the 9th-most in a quarter this season…", its back listing the season; Dončić's finished-game card with the 10-row back, his 20 "tonight" in bold, and both all-time marks.
+
+### Unproven
+- The user's current NBA Live is newer than the copy tested. If its quarter card's key is no longer `qexp-<game>-<player>-<period>`, nothing is added and both cards show as before.
+- In the replay NBA Live's record book didn't load (its relay is blocked here), so its all-time list above ours on the same back hasn't been seen together on a real page; the stand-in covers the order.
+- Halves and team quarters have no NBA Live twin that was found (its RED-HOT HALF is team shooting), so those stay separate cards.
+
 ## 0.72.2 (2026-11-15): totals stay "entering today" after a matinee; foul trouble for regulars only; cards say when a mark is taken back
 
 The user (11/15, IND @ PHI, a matinee): NBA Live carded "Jaylen Brown (PHI) — reaches 2,000 assists career" with 2 assists tonight; Basketball Reference had him at 1,997 before the game, so he is at 1,999. The Watch List had LeBron James 11 assists from passing Jason Kidd, he had 11, and no card showed for it when NBA Live was opened afterwards. And a foul-trouble card for Josh Green (UTA), a reserve: "no need to send foul trouble alert for a player coming off the bench unless they are typically a starter or average at least 25.0 minutes per game". Also: "one thing the nba live should be checking is when stats are reduced mid-game".
