@@ -83,11 +83,28 @@ export const ATHLETIC_SKIP = [
   [/\bfantasy\b/i, "fantasy"],
 ];
 
+// The user, 11/16 (five live blog posts in #articles that morning): "I never need an ICYMI post to appear… I don't need
+// the daily scores, and I don't need to be told to communicate in the chat. I don't need to read about subscribing to
+// The Athletic, nor do I need to be reminded about missed coverage."
+// A repeat by its own label, from any source and any writer:
+export const REPEAT = /^\s*icymi\b|\bin case you missed it\b/i;
+// The live blog's housekeeping posts, by title or by what the post says:
+export const LIVE_SKIP = [
+  [/\b(?:(?:sun|mon|tues|wednes|thurs|fri|satur)day|last night|yesterday|today|tonight)['’]s (?:nba )?(?:scores?|results|final scores?)\b|^(?:nba )?(?:scores|scoreboard)\b/i, null, "daily scores"],
+  [/\bsound off\b|\b(?:join|in) (?:the|our) (?:chat|conversation|discussion)\b|\bwe want to hear from you\b/i, /\bdiscuss tab\b|\bemail us at\b|\bwe(?:'|’)ll feature your comments\b/i, "reader chat prompt"],
+  [/\bsubscribe\b|\bsubscription\b/i, /\bget your subscription\b|\bsubscribe (?:to the athletic|here|now|today)\b/i, "subscription promo"],
+  [/\bmissed (?:our|the) (?:coverage|live blog)\b|\bcatch up on\b.*\b(?:last|previous) week\b/i, /\bcatch up by clicking\b|\bour live blog for the \w+ week\b/i, "pointer to an older live blog"],
+];
+
 export function decide(item, rules = {}, now = Date.now()) {
   const by = (item.byline || "").toLowerCase();
   const allowWriter = by && (rules.allowBylines || []).some((b) => by.includes(b.toLowerCase()));
   if ((rules.allowKeys || []).includes(item.key)) return { post: true, reason: "you allowed it" };
   if (item.published && now - item.published > MAX_AGE_H * 3600e3) return { post: false, reason: `published over ${MAX_AGE_H}h ago` };
+  if (REPEAT.test(item.title || "")) return { post: false, reason: "ICYMI (a repeat)" };
+  if (item.src === "athletic-live") {
+    for (const [title, body, why] of LIVE_SKIP) if (title.test(item.title || "") || (body && body.test(item.description || ""))) return { post: false, reason: why };
+  }
   if (by && (rules.muteBylines || []).some((b) => by.includes(b.toLowerCase()))) return { post: false, reason: `muted writer` };
   const t = item.title || "";
   const word = (rules.muteWords || []).find((w) => w && t.toLowerCase().includes(w.toLowerCase()));
@@ -229,8 +246,9 @@ const mins = (ms) => (ms < 90e3 ? "under 2 min" : ms < 90 * 60e3 ? `${Math.round
 export function embedFor(item, { now = Date.now(), base = null, key = null } = {}) {
   const who = [SOURCE[item.src] || item.src, item.byline].filter(Boolean).join(" · ");
   const when = item.published ? `Published ${etTime(item.published)} ET (${etDate(item.published)}) · seen ${mins(Math.max(0, now - item.published))} later` : "Publish time not given";
-  const buttons = base && key ? `\n\n[👎 Noise](${base}/act?k=${key}&do=noise&key=${encodeURIComponent(item.key)})` +
-    (item.byline ? ` · [🔇 Mute ${item.byline.split(/,| and /)[0].trim().slice(0, 40)}](${base}/act?k=${key}&do=mute-writer&v=${encodeURIComponent(item.byline.split(/,| and /)[0].trim())})` : "") +
+  // No emoji in the links (11/16): on a phone Discord opens its emoji sheet when the emoji is tapped, so only the word worked.
+  const buttons = base && key ? `\n\n[Mark as noise](${base}/act?k=${key}&do=noise&key=${encodeURIComponent(item.key)})` +
+    (item.byline ? ` · [Mute ${item.byline.split(/,| and /)[0].trim().slice(0, 40)}](${base}/act?k=${key}&do=mute-writer&v=${encodeURIComponent(item.byline.split(/,| and /)[0].trim())})` : "") +
     ` · [Review](${base}/review?k=${key})` : "";
   const desc = (item.description || "").slice(0, item.src === "athletic-live" ? 900 : 300); // a live blog post's text is the news itself
   return {

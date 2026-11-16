@@ -2,6 +2,26 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.76.1 (2026-11-16): #articles: no ICYMI posts, no live blog housekeeping; links without emoji
+
+The user (11/16, 8:26 AM, with five phone screenshots of #articles): "I never need an ICYMI post to appear. That means in case you missed it, so theoretically it should have already been seen. I don't need the daily scores, and I don't need to be told to communicate in the chat. I don't need to read about subscribing to the athletic, nor do I need to be reminded about missed coverage." And: tapping the thumbs-down opens Discord's emoji sheet; tapping "Noise" opens a "Leaving Discord" window, "so I assume the thumbs down, the Mute and Review links do not work as intended."
+
+### What changed (the Worker, `cloudflare/articles-worker.js`)
+- **ICYMI never posts**, from any source or writer, an always-posted writer included (`REPEAT`: a title that starts with "ICYMI" or says "in case you missed it"). Reason shown on the review page: "ICYMI (a repeat)".
+- **The live blog's housekeeping posts are skipped** (`LIVE_SKIP`, by title or by what the post says): the day's scores ("Sunday's NBA scores"), the reader chat prompt ("Sound off in our chat!", "Discuss tab", "email us at"), the subscription promo, and the pointer to last week's blog ("Missed our coverage from last week?"). Each is listed on the review page with its reason and can still be posted by hand from there.
+- **The links under a post are words only**: "Mark as noise · Mute <writer> · Review". The emoji sat inside the link, and on a phone Discord opens its emoji sheet when an emoji is tapped, so only the word worked.
+
+### What was not broken
+- The "Leaving Discord" window is Discord's own check before it opens any outside link; "Visit Site" carries the action out. Ticking "Trust … links from now on" once stops it asking. A webhook can't post buttons that act inside Discord.
+
+### Tested
+- 78 Worker checks (4 new): this morning's six posts by their real titles and text are all skipped with the right reason; ICYMI from ESPN and The Athletic and from an always-posted writer; live blog news still posts (a game story, "subscribe" or "scores" used in passing, "Your NBA Cupdate"); a post allowed by hand still goes out; the links' exact text and no emoji in them. 819 in the full run.
+
+### Unproven
+- The rules are written from one morning's posts. The Athletic's wording for these changes week to week; a new variant gets through until it is seen once (marking it as noise is how it reaches me).
+- Whether the user's taps on "Noise" this morning were saved can't be seen from here (the Worker isn't reachable from the build machine); the review page lists them.
+- "Your NBA Cupdate" (a writer's Cup roundup) still posts: it wasn't on the user's list.
+
 ## 0.76.0 (2026-11-16): the user's 20 screenshots: notes that read wrong, and lists the notes print that weren't tracked
 
 The user (11/16, 12:53 AM, 20 images taken before the 11/15 games): Pacers mile markers, lineups, franchise leaders, injury table and Carlisle's record against every team; two Clippers player boxes ("something to consider tracking for all players"); the Clippers' record since 2011-12; the Bucks' record splits; four Command Center notes that read wrong ("slightly jumbled", "Towns listed twice for double-double streak… he is actually at 12", "looks combined or merged", "doesn't tell me which player or if it is the team"); and the Suns' Booker lists "for tracking purposes".

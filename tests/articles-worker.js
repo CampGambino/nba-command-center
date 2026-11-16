@@ -7,7 +7,7 @@ import fs from "node:fs";
 import { parseLineups, diff as lineupDiff, lastStarters, lineupEmbed, lineupCheck, feedTime, espnStarters, feedDue, suspicion, timingEmbed, lineupContext } from "../cloudflare/lineups.js";
 import { dueAt, dueNow, digestCheck } from "../cloudflare/digest.js";
 import { TEAM_FEEDS, teamFeedGroup, findLiveBlog, parseLiveBlog, LIVE_FEED } from "../cloudflare/articles-worker.js";
-import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey, tagOf as articleTag } from "../cloudflare/articles-worker.js";
+import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey, tagOf as articleTag, embedFor } from "../cloudflare/articles-worker.js";
 
 import { handleVotes } from "../cloudflare/votes.js";
 import { handleHeadlines } from "../cloudflare/headlines.js";
@@ -124,6 +124,25 @@ export async function articlesChecks(ok) {
       !articleDecide(mk({ title: "Best bets for tonight" }), {}, now).post && articleDecide(mk({ url: "https://www.espn.com/espn/betting/story/_/id/9/x", byline: "W" }), { allowBylines: ["W"] }, now).post &&
       !articleDecide(mk({ title: "Nets live updates" }), {}, now).post && articleDecide(mk({ title: "Nets live updates", src: "athletic", byline: "" }), {}, now).post && !articleDecide(mk({ src: "athletic", title: "Celtics trade talk" }), { muteWords: ["trade talk"] }, now).post && !articleDecide(mk({ title: "Big trade talk" }), { muteWords: ["trade talk"] }, now).post,
       "articles: rules (previews, no writer, fantasy, betting words, allowed writer overrides section, ESPN live blogs; every Athletic story except muted phrases)");
+    // The live blog's housekeeping and repeats (the user, 11/16, with that morning's posts).
+    const lbD = (title, description = "", byline = "") => articleDecide({ src: "athletic-live", key: "lb:t", type: "LiveBlog", title, description, byline, published: now }, {}, now);
+    ok(lbD("ICYMI: Yaxel Lendeborg changes the energy", "Yaxel Lendeborg wanted to make a change", "Nick Friedell").reason === "ICYMI (a repeat)" && !lbD("ICYMI: A massive Knicks win", "", "Mike Prada").post
+      && !articleDecide(mk({ src: "athletic", title: "ICYMI: The week in NBA trades" }), { allowBylines: ["W"] }, now).post && !articleDecide(mk({ title: "In case you missed it: the weekend's news" }), {}, now).post,
+      "articles: an ICYMI post is a repeat and never posts, from any source or writer");
+    ok(lbD("Sunday's NBA scores", "We had a shootout in Phoenix").reason === "daily scores" && lbD("Sound off in our chat!", "Scroll over to the Discuss tab on this page").reason === "reader chat prompt"
+      && lbD("Subscribe to The Athletic!", "Get your subscription here").reason === "subscription promo" && lbD("Missed our coverage from last week?", "Catch up by clicking over to our live blog for the fourth week of the season.").reason === "pointer to an older live blog"
+      && lbD("A note for readers", "You can also email us at live@theathletic.com.").reason === "reader chat prompt",
+      "articles: the live blog's scores, chat prompt, subscription promo and last-week pointer are skipped, by title or by what the post says");
+    ok(lbD("BREAKING: Steph Curry out two weeks", "Curry has a sprained ankle", "Anthony Slater").post && lbD("Your NBA Cupdate", "Monday means another night of Cup games", "Mike Prada").post
+      && lbD("Wembanyama scores 40 as Spurs win", "The Spurs subscribe to a simple idea: defend.").post && lbD("Knicks rally past Raptors in overtime", "They forced overtime, then hung on").post
+      && articleDecide(mk({ title: "Lakers' scores of role players step up" }), {}, now).post && articleDecide({ src: "athletic-live", key: "lb:t", title: "Sunday's NBA scores", published: now }, { allowKeys: ["lb:t"] }, now).post,
+      "articles: live blog news still posts (a game story, a word like 'subscribe' or 'scores' in passing), and a post allowed by hand still goes out");
+    {
+      const e = embedFor({ src: "athletic-live", key: "lb:9", title: "T", description: "D", byline: "Nick Friedell", published: now }, { now, base: "https://w.example", key: "K" });
+      const links = e.description.split("\n\n").pop();
+      ok(links === "[Mark as noise](https://w.example/act?k=K&do=noise&key=lb%3A9) · [Mute Nick Friedell](https://w.example/act?k=K&do=mute-writer&v=Nick%20Friedell) · [Review](https://w.example/review?k=K)" && !/\p{Extended_Pictographic}/u.test(links),
+        "articles: the links under a post are words only (an emoji in a link opens Discord's emoji sheet on a phone)", links);
+    }
     const athD = (title) => articleDecide(mk({ src: "athletic", byline: "", title }), {}, now);
     ok(!athD("The Bounce: Jaylen Brown goes cold in revenge game against Celtics").post && athD("The Bounce: x").reason === "The Bounce (show)" && !athD("This Week in Sports Trivia: Nov. 12, 2026").post
       && !athD("Fantasy basketball waiver wire: who to add").post && athD("November sports watch guide: College basketball returns, NWSL Championship").post && athD("Bouncing back: the Bulls' plan").post,
