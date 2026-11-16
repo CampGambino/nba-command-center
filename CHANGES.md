@@ -2,6 +2,25 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.75.1 (2026-11-15): NBA Live shows which bridge version it is running, and when a newer one is out
+
+The user (11/15, 10:39 PM, with three cards: Coulibaly 2,000 points "importance 25", Tatum and Siakam 5,000 field goals "importance 18"): "did the importance factor get overlooked or am I running an older version of the program?"
+
+### What happened
+- An older version. NBA Live loads the bridge once, when its page loads, and keeps that copy; the importance rule (v11) went out at 8:52 PM. Under v11 none of the three gets a card: Coulibaly's 25 is under 30 and he isn't on tonight's big-name list; made baskets are never an exception. NBA Live (the 11/10 copy) doesn't keep cards across a refresh, so cards on screen were fired by the copy of the bridge the page had loaded.
+- Nothing on the page said which version was running, which is why it had to be asked.
+
+### What changed (bridge v12)
+- The status note ends with the running version ("… · 14 cards · v12").
+- With each data refresh (every 15 minutes) the bridge reads `bridge/version.json`; when a newer version has been published than the one the page loaded, the note stays up and reads "a newer version is out (v13; this page is running v12). Refresh NBA Live to load it."
+
+### Tested
+- 780 checks (1 new: the version on the note, the refresh notice when a newer one is published, and `bridge/version.json` matching the bridge so a version bump can't forget it).
+
+### Unproven
+- The notice only works from v12 on: a page still running v11 or earlier has to be refreshed once without it.
+- GitHub Pages lets browsers keep the bridge file for 10 minutes, so a refresh within 10 minutes of a release can still load the previous copy.
+
 ## 0.75.0 (2026-11-15): shots across games: makes and misses in a row, court time without a field goal or a free throw
 
 The user (11/15, with a Mavs PR post on Daniel Gafford's consecutive field goals): "is there anyway to track consecutive made shots over multiple games?… field goals, three-pointers, free-throws over a stretch of games… longest time without a made field goal… 25+ consecutive minutes without a field goal, even more detrimental if they have taken a bunch of shots… longest time played without a free-throw attempt… relevant and active trackers, not just based off the season-long stats… I don't know enough to know the ultimate outliers".

@@ -1743,7 +1743,7 @@ await articlesChecks(ok);
     { team: "SAS", items: [ item({ espnId: "20", player: "Final Reach", need: 6 }), item({ espnId: "21", player: "Final Miss", need: 30 }) ] },
   ] };
   const pl = (id, o) => ({ id, min: 20, pts: 12, tpm: 3, reb: 5, ast: 2, stl: 1, blk: 0, dreb: 4, oreb: 1, starter: true, ...o });
-  let flowData = null;
+  let flowData = null, versionData = null;
   function run({ date = "20261109", hooks = true, games, extra = {} } = {}) {
     const cards = new Map(); let original = 0;
     const el = { style: {}, textContent: "" };
@@ -1751,7 +1751,7 @@ await articlesChecks(ok);
       URLSearchParams, console, Promise, Object, Number, String, Math, Array, Date, JSON,
       location: { search: "?cc=" + encodeURIComponent("https://cc.example/data/watch.json") },
       document: { readyState: "complete", getElementById: (id) => (id === "cc-bridge-note" ? el : null), createElement: () => el, body: { appendChild() {} } },
-      fetch: async (u) => ({ ok: true, json: async () => (String(u).includes("flowstats.json") ? flowData : String(u).includes("tonight.json") ? tonightData : String(u).includes("records.json") ? recordsData : String(u).includes("single-game-bests") ? bestsData : watch) }),
+      fetch: async (u) => ({ ok: true, json: async () => (String(u).includes("version.json") ? versionData : String(u).includes("flowstats.json") ? flowData : String(u).includes("tonight.json") ? tonightData : String(u).includes("records.json") ? recordsData : String(u).includes("single-game-bests") ? bestsData : watch) }),
       setInterval() {}, setTimeout() {}, clearTimeout() {}, addEventListener() {},
     };
     ctx.window = ctx;
@@ -1800,6 +1800,18 @@ await articlesChecks(ok);
   const keys = [...t.cards.keys()];
   const has = (frag) => keys.some((k) => k.includes(frag));
   ok(t.orig() === 1, "bridge: NBA Live's own checks still run, once");
+  {
+    // v12: the note carries the running version; a newer published version asks for a refresh; version.json matches the bridge.
+    const running = Number(/var VERSION = (\d+);/.exec(code)[1]);
+    const published = JSON.parse(fs.readFileSync(path.join(root, "docs", "bridge", "version.json"), "utf8")).version;
+    versionData = { version: running + 1 };
+    const tv = run({ games }); await flush(); tv.ctx.runAlertChecks(); await flush();
+    versionData = { version: running };
+    const ts = run({ games }); await flush(); ts.ctx.runAlertChecks(); await flush();
+    versionData = null;
+    ok(published === running && new RegExp(` · v${running}$`).test(t.el.textContent) && new RegExp(`a newer version is out \\(v${running + 1}; this page is running v${running}\\)\\. Refresh NBA Live`).test(tv.el.textContent) && / · v\d+$/.test(ts.el.textContent),
+      "bridge v12 (0.75.1): the status note ends with the running version; when a newer one is published it says so and asks for a refresh; bridge/version.json matches the bridge", [published, t.el.textContent, tv.el.textContent].join(" | "));
+  }
   ok(!keys.some((k) => k.startsWith("cc-pre-")), "bridge 0.61: once the night's first game has tipped, no pre-game cards");
   {
     const tp = run({ games: games.filter((g) => g.status !== "live" && g.status !== "final") }); await flush(); tp.ctx.runAlertChecks(); await flush();

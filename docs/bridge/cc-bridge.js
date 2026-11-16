@@ -1,5 +1,5 @@
 /*
- * NBA Command Center -> NBA Live bridge.                                  version 11
+ * NBA Command Center -> NBA Live bridge.                                  version 12
  *
  * Add ONE line to NBA Live, just before </body>:
  *   <script src="https://campgambino.github.io/nba-command-center/bridge/cc-bridge.js"></script>
@@ -35,6 +35,10 @@
  *       a 15-point lead with the season's record of leads lost and comebacks, and a 15-point lead lost;
  *       (0.59.1) a regular reserve 3+ minutes past his usual first check-in, and before tip-off a "foul watch" card for
  *       starters in early foul trouble in half their games or more.
+ *     - (v12, 0.75.1; the user, 11/15: "did the importance factor get overlooked or am I running an older version of
+ *       the program?") the status note ends with the running version, and when a newer bridge has been published
+ *       (bridge/version.json, looked at with each data refresh) it says so and asks for a refresh: NBA Live loads this
+ *       file once, when its page loads, so cards fired by an older copy stay until then.
  *     - (v11, 0.72.8; the user, 11/15, on "Will Riley — 14 points from 800 points career · importance 25": "maybe below
  *       30 doesn't make the cut. big names are exceptions, but I doubt i need to know when someone gets to 2,000 made
  *       baskets") a round number needs importance 30 for a card (was 15). A big name (tonight.json `stars`) gets one
@@ -73,7 +77,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 11;
+  var VERSION = 12;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -127,7 +131,14 @@
     } catch (e) { /* page not ready */ }
   }
 
+  // v12: is a newer bridge published than the one this page loaded? (The page keeps whatever it loaded.)
+  var versionUrl = url === DEFAULT_URL ? url.replace(/data\/watch\.json(\?.*)?$/, "bridge/version.json") : url.replace(/watch\.json(\?.*)?$/, "version.json");
+  function checkVersion() {
+    fetch(versionUrl, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (v) { state.latest = v && typeof v.version === "number" ? v.version : null; if (state.latest > VERSION) status(); }).catch(function () { state.latest = null; });
+  }
   function load() {
+    checkVersion();
     // Tonight's storylines: optional; a missing file just means no pre-game cards.
     if (tonightUrl !== url) fetch(tonightUrl, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; })
       .then(function (t) { state.tonight = t && Array.isArray(t.games) ? t : null; }).catch(function (e) { state.tonight = null; state.tonightError = String(e && e.message || e); });
@@ -189,7 +200,8 @@
     if (!state.connected) return note("Command Center: not connected (this NBA Live version lacks fireStory/runAlertChecks/GAMES)", true);
     if (state.error) return note("Command Center: couldn't load the Watch List (" + state.error + ")", true);
     var d = state.data && state.data.today;
-    note("Command Center: " + state.items.length + " milestones" + (state.recItems.length ? " + " + state.recItems.length + " records" : "") + (d ? " for " + d : "") + (state.flow ? " · season facts: " + state.flow.games + " games" : state.flowError ? " · season facts not loaded" : "") + (state.fired ? " · " + state.fired + " cards" : ""));
+    if (state.latest > VERSION) return note("Command Center: a newer version is out (v" + state.latest + "; this page is running v" + VERSION + "). Refresh NBA Live to load it.", true);
+    note("Command Center: " + state.items.length + " milestones" + (state.recItems.length ? " + " + state.recItems.length + " records" : "") + (d ? " for " + d : "") + (state.flow ? " · season facts: " + state.flow.games + " games" : state.flowError ? " · season facts not loaded" : "") + (state.fired ? " · " + state.fired + " cards" : "") + " · v" + VERSION);
   }
 
   // Is this item one of NBA Live's own ladder cards? Then NBA Live already shows it.
