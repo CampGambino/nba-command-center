@@ -380,6 +380,8 @@ for (const [tri, games] of Object.entries(perTeam)) {
       prep.lines.push(...sl.lines.filter((l) => l.kind !== "unique"));
       prep.errors.push(...sl.errors);
     } catch (e) { prep.errors.push(`season-long: ${e.message}`); }
+    // 0.72.7: a quarter far out of line with a team's other three, and tonight's opponent in that quarter.
+    try { const { quarterLines } = await import("../src/situations/quarters.js"); prep.lines.push(...quarterLines(rows, slate)); } catch (e) { prep.errors.push(`quarters: ${e.message}`); }
     const byKind = {};
     for (const l of prep.lines) byKind[l.kind] = (byKind[l.kind] || 0) + 1;
     console.log(`prep stats: ${prep.lines.length} lines (${Object.entries(byKind).map(([k, n]) => `${n} ${k}`).join(", ")})${prep.errors.length ? `; errors: ${prep.errors.join("; ")}` : ""}`);

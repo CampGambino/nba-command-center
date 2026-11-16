@@ -2240,6 +2240,34 @@ await articlesChecks(ok);
     { rows: [], logs, seasons: null, history, names: { m1: "Mac Cain" }, season: "2026-27" });
   ok(R.found === 1 && R.total === 1 && R.cantReplay === 1 && R.checks[1].found === null, "flag checks (0.70): a post from last season is replayed; one that needs data we don't keep is set apart, not counted a miss", JSON.stringify(R));
 }
+// ---------- 0.72.7: margin by quarter, and the final two minutes (the user, 11/15: "Proceed") ----------
+{
+  const { quarterMargins, quarterLines } = await import("../src/situations/quarters.js");
+  const rows = [];
+  for (let i = 0; i < 10; i++) {
+    const d = `2026-11-${String(i + 1).padStart(2, "0")}`;
+    rows.push({ d, h: "AAA", a: "BBB", hq: [28, 28, 20, 28], aq: [25, 25, 28, 25] });      // AAA: +3, +3, -8, +3; BBB the reverse
+    rows.push({ d, h: "CCC", a: "DDD", hq: [25, 25, 25, 25], aq: [25, 25, 25, 25] });
+    rows.push({ d, h: "EEE", a: "FFF", hq: [26, 25, 25, 25, 12], aq: [25, 25, 26, 25, 10] }); // an overtime period is left out
+  }
+  const M = quarterMargins(rows);
+  const L = quarterLines(rows, [{ away: "BBB", home: "AAA" }]);
+  const a = L.find((l) => l.team === "AAA"), b = L.find((l) => l.team === "BBB");
+  ok(M.AAA.gp === 10 && M.AAA.q[2].pf - M.AAA.q[2].pa === -80 && M.AAA.rank[2] === 6 && M.BBB.rank[2] === 1 && M.EEE.q.length === 4
+    && a && a.kind === "qtr" && a.text === "AAA has been outscored by 80 in 3rd quarters (−8.0 a game, the worst in the NBA; lost 10 of 10) and is +90 in the other three combined; tonight's opponent BBB is +80 in 3rd quarters (best)"
+    && b && /^BBB has outscored opponents by 80 in 3rd quarters \(\+8\.0 a game, the best in the NBA; won 10 of 10\) and is −90 in the other three combined; tonight's opponent AAA is −80 in 3rd quarters \(worst\)$/.test(b.text)
+    && !L.some((l) => ["CCC", "DDD", "EEE", "FFF"].includes(l.team)) && quarterLines(rows.slice(0, 9), []).length === 0,
+    "quarters (0.72.7): one quarter far out of line with a team's other three, its place in the league, and tonight's opponent in that quarter; even teams and teams with few games get no line", L.map((l) => l.text).join(" | "));
+  const { tonightCandidates } = await import("../src/anticipate/tonight.js");
+  const flow = { l2m: { games: 20, teams: { UTA: { team: "UTA", games: 6, w: 1, l: 5, pts: 29, opp: 46 }, PHI: { team: "PHI", games: 5, w: 5, l: 0, pts: 41, opp: 23 }, BOS: { team: "BOS", games: 6, w: 3, l: 3, pts: 30, opp: 30 }, DEN: { team: "DEN", games: 2, w: 2, l: 0, pts: 9, opp: 2 } },
+    top: [{ name: "Late Scorer", team: "PHI", gp: 5, pts: 24, fgm: 9, fga: 13, ftm: 4, fta: 4 }, { name: "Not Tonight", team: "MEM", gp: 6, pts: 22, fgm: 5, fga: 13, ftm: 10, fta: 10 }, { name: "Few Points", team: "UTA", gp: 4, pts: 12, fgm: 3, fga: 9, ftm: 5, fta: 6 }] } };
+  const watch = { today: "2026-11-16", teams: [], games: [{ id: "1", homeTri: "UTA", awayTri: "PHI", home: "UTA", away: "PHI" }, { id: "2", homeTri: "BOS", awayTri: "DEN", home: "BOS", away: "DEN" }] };
+  const T = tonightCandidates({ watch, fouls: flow }).all.filter((l) => l.kind === "fourth").map((l) => l.text);
+  ok(T.length === 3 && T.includes("UTA is 1-5 in games within 3 in the final two minutes, outscored 46-29 in those two-minute stretches") && T.includes("PHI is 5-0 in games within 3 in the final two minutes, outscoring opponents 41-23 in those two-minute stretches")
+    && T.includes("Late Scorer has 24 points in the final two minutes of close games (the most in the NBA): 9-13 FG, 4-4 FT in 5 games (within 3 in the last two minutes)"),
+    "storylines (0.72.7): the final two minutes: a team at either end of the record (4+ games) and the league's top scorers there (15+ points, playing tonight)", T.join(" | "));
+}
+
 // ---------- 0.72.6: fourth-quarter storylines and two regulars out at once (the user, 11/15: "Start it up") ----------
 {
   const end = (date, opp, fin, gameId) => ({ date, opp, fin, gameId });
@@ -2846,6 +2874,11 @@ await articlesChecks(ok);
     ok(two.games === 2 && two.quarters.length && two.quarters[0].pts >= two.quarters[two.quarters.length - 1].pts && r1 && r1.gp === 2
       && two.leadTable.length === 2 && two.leadTable.every((t) => t.gp === 2 && t.neverTrailed + t.neverLed <= 2) && S.placeOn([{ pts: 20 }, { pts: 18 }, { pts: 18 }], 18) === 2,
       "game flow stats: season lists best first, rotations over games, the Leads & comebacks table, places on a list (ties share)", JSON.stringify(two.leadTable));
+    // 0.72.7: the final two minutes. When the sample game qualifies, the players' points are the teams' points.
+    const two2 = Fg.l2m;
+    ok(two2 === null || (two2.periods >= 1 && Object.values(two2.players).reduce((n, x) => n + x.pts, 0) === two2.teams[0].pf + two2.teams[1].pf && two2.teams[0].pf === two2.teams[1].pa
+      && Object.values(two2.players).every((x) => x.fgm <= x.fga && x.ftm <= x.fta && x.sec <= 120 * two2.periods + 1)),
+      "game flow stats (0.72.7): a real game's final two minutes (if within 3): players' points add up to the two teams', makes never exceed attempts, nobody plays more than the window", JSON.stringify(two2 && [two2.periods, two2.teams]));
     // 0.72.6: fourth quarters. Five players are on the floor for each team in the 4th and in its last three minutes.
     const q4By = {}, l3By = {};
     for (const p of Fg.players) { q4By[p.team] = (q4By[p.team] || 0) + p.q4; l3By[p.team] = (l3By[p.team] || 0) + p.last3; }

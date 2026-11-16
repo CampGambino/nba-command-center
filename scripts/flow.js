@@ -87,7 +87,11 @@ try {
   const entries = ids.map((id) => ({ row: byId.get(id), c: JSON.parse(fs.readFileSync(path.join(dir, `${id}.json`), "utf8")) }));
   const lite = {};
   const S = flowStats(entries, lite);
-  fs.writeFileSync(path.join(root, "docs", "data", "flowstats.json"), JSON.stringify({ season, updated: new Date().toISOString(), ...S }));
+  // 0.72.7: the final two minutes of close games as its own file, in the clutch page's shape; flowstats keeps the teams
+  // and the top scorers for the storylines.
+  const { l2m, ...rest } = S;
+  fs.writeFileSync(path.join(root, "docs", "data", "l2m-players.json"), JSON.stringify({ generatedAt: new Date().toISOString(), through: entries.reduce((d, e) => (e.row?.d > d ? e.row.d : d), ""), games: l2m.games, players: l2m.players, teams: l2m.teams }));
+  fs.writeFileSync(path.join(root, "docs", "data", "flowstats.json"), JSON.stringify({ season, updated: new Date().toISOString(), ...rest, l2m: { games: l2m.games, teams: l2m.teams, top: l2m.players.slice(0, 15) } }));
   // Game Flow's Scoring highs and Assist leaderboard read this one file instead of every game's (0.60).
   fs.writeFileSync(path.join(root, "docs", "data", "flow", `${season}-lite.json`), JSON.stringify({ season, v: 1, games: lite }));
   console.log(`flow stats: ${S.games} games, ${Object.keys(S.rotation).length} players' rotations, best quarter ${S.quarters[0] ? S.quarters[0].pts + " (" + S.quarters[0].name + ")" : "none"}`);

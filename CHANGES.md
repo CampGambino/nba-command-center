@@ -2,6 +2,28 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.72.7 (2026-11-15): margin by quarter; the final two minutes, apart from clutch time
+
+The user (11/15): "Proceed" (the next two on the list: team margin by quarter, and clutch in the final two minutes against the final five).
+
+### What changed
+- **Margin by quarter** (`src/situations/quarters.js`; storyline kind `qtr`, 🕒, one a game at most; from the results store, so it is current with each build). A team gets a line when one quarter is in the league's top or bottom three by margin a game (2.5+), and either the other three quarters point the other way or that quarter is 4.5+ a game apart from them. It gives the total, the per-game figure, the place in the league, quarters won or lost, and the other three combined. When tonight's opponent is in the top or bottom five the other way in the same quarter, the line ends with it.
+- **The final two minutes** (`lastTwo` in `src/gameflow/stats.js`, from the kept play-by-play). The window is the league's Last Two Minute report's: the last two minutes of the 4th quarter or an overtime, in games within 3 at some moment of them. Per player: time on the floor, points, shots, threes, free throws, rebounds, turnovers, +/-. Per team: those games' W-L and points for and against in the stretches. Clutch time (last five minutes, within five) is unchanged.
+  - **Clutch page:** a third view, "Final 2 minutes" (`clutch.html?mode=l2m`, `docs/data/l2m-players.json`), beside Clutch time and 4th quarter. Assists, steals and blocks show a dash there.
+  - **Storylines** (kind `fourth`, now up to two a game): a team at either end of the record in such games (4+ games, 80% or 20%), and the league's top three scorers in those stretches (15+ points) when they play tonight.
+- The two-out line's fix from 0.72.6 (a scorer of 15+ a game, not a deep reserve) goes out with this.
+
+### Tested
+- 766 checks here (3 new: a quarter out of line with the other three, with the opponent and the places, and nothing for even teams or few games; the final-two-minutes lines; a real game's final two minutes adding up). 771 with the held 0.73 worker checks. The pages test, with the new view added: all pages OK; the view read in a headless browser (52 games, 283 players, no blanks or errors).
+- This season: 52 of 188 games qualify. Team points for equal points against across the league (807) and equal the players' points. Top: Ty Jerome 24 points (9-13 FG), Alexander-Walker 22, Curry 20. Teams: PHI 5-0 (41-23), ATL 5-1, UTA 1-5 (29-46).
+- Quarter lines today, 10 teams: "LAL has been outscored by 60 in 4th quarters (−4.6 a game, the 3rd-worst in the NBA; lost 9 of 13) and is +163 in the other three combined"; "MIL has been outscored by 105 in 2nd quarters (−8.1 a game, the worst…)…; tonight's opponent ATL is +55 in 2nd quarters (5th-best)". (Run before the gap was raised from 4 to 4.5; a few of the ten will drop.)
+
+### Unproven
+- Not checked against NBA.com's own last-two-minutes numbers (we don't use NBA.com stats). Player +/- there depends on working out who is on the floor: across the league it sums to −11 instead of 0, so a few stretches have a player miscounted. Points and shots don't depend on it.
+- Samples are small: the top scorer has 24 points in 5 games. The page shows games and minutes beside every line.
+- The final-two-minutes numbers are a build behind (the Game Flow step runs last). The quarter lines are not.
+- Thresholds are first guesses.
+
 ## 0.72.6 (2026-11-15): fourth quarters for starters; two regulars out at once
 
 The user (11/15), after the list of suggestions from the posts: "Start it up" (the two picked first: fourth-quarter minutes for starters, and games without specific teammates tied to the injury report).

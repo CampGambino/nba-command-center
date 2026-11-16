@@ -293,6 +293,30 @@ function fourthLines(flow, teams) {
   return out;
 }
 
+/**
+ * The final two minutes (flowstats.json `l2m`; 0.72.7): games within 3 at some point in the last two minutes of the 4th
+ * or overtime, the window of the league's Last Two Minute reports. A team at either end of the record in them (4+
+ * games), and the league's top scorers in those stretches (15+ points).
+ */
+function lastTwoLines(flow, teams) {
+  const L = flow?.l2m;
+  if (!L) return [];
+  const out = [];
+  for (const t of Object.values(L.teams || {})) {
+    if (!teams.has(t.team) || t.games < 4) continue;
+    const share = t.w / t.games;
+    if (share > 0.2 && share < 0.8) continue;
+    out.push({ team: t.team, kind: "fourth", score: 3.0 + Math.min(0.6, Math.abs(share - 0.5)) + (t.games >= 6 ? 0.2 : 0),
+      text: `${t.team} is ${t.w}-${t.l} in games within 3 in the final two minutes, ${t.pts >= t.opp ? "outscoring opponents" : "outscored"} ${t.pts >= t.opp ? `${t.pts}-${t.opp}` : `${t.opp}-${t.pts}`} in those two-minute stretches` });
+  }
+  (L.top || []).slice(0, 3).forEach((p, i) => {
+    if (!teams.has(p.team) || p.pts < 15) return;
+    out.push({ team: p.team, player: p.name, kind: "fourth", score: 3.1 - 0.1 * i,
+      text: `${p.name} has ${p.pts} points in the final two minutes of close games (${i === 0 ? "the most" : i === 1 ? "2nd-most" : "3rd-most"} in the NBA): ${p.fgm}-${p.fga} FG, ${p.ftm}-${p.fta} FT in ${p.gp} games (within 3 in the last two minutes)` });
+  });
+  return out;
+}
+
 function teamLines(trends, teams) {
   // 0.65: the streak watch says what tonight would make of a run ("a loss tonight would be OKC's first 3-game losing
   // streak since 2023-24", "NOP has allowed 135+ in 4 straight…"); it replaces the bare "lost N straight".
@@ -414,7 +438,7 @@ export function injuryStatus(injuries, today) {
  */
 // 0.70 (src/anticipate/seasonlong.js): trade and starter/bench splits, lineups, record turns and "since Christmas",
 // who has beaten the best teams, month ratings and totals, rookies.
-const PREP_KINDS = new Set(["season", "span", "pstreak", "vsopp", "pace", "trade", "role", "lineup", "turn", "beaten", "month", "monthp", "rookie", "defense", "cup", "era"]);
+const PREP_KINDS = new Set(["season", "span", "pstreak", "vsopp", "pace", "trade", "role", "lineup", "turn", "beaten", "month", "monthp", "rookie", "defense", "cup", "era", "qtr"]);
 function prepStoryLines(prep, teams, games, today) {
   if (!prep || !Array.isArray(prep.lines) || (prep.today && today && prep.today !== today)) return [];
   const opp = new Map();
@@ -468,7 +492,7 @@ export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries =
   const hist = historyLines(facts, teams, watch.today).filter((h) => !recs.some((r) => r.player && r.passing && r.team === h.team
     && new RegExp(`\\b${surname(r.player)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
     && r.passing.split(" and ").some((n) => new RegExp(`\\b${surname(n)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, "")))));
-  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams).filter((l) => !clubLines(leaders, teams).some((c) => c.player === l.player)), ...clubLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today), ...tvLines(national, teams, watch.today), ...restLines(rest, teams, watch.today), ...formLines(form, teams, watch.today), ...foulLines(fouls, teams), ...earlyLines(fouls, teams, watch.today), ...fourthLines(fouls, teams), ...prepStoryLines(prep, teams, games, watch.today), ...cupLines(records, teams, watch.today)]
+  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams).filter((l) => !clubLines(leaders, teams).some((c) => c.player === l.player)), ...clubLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today), ...tvLines(national, teams, watch.today), ...restLines(rest, teams, watch.today), ...formLines(form, teams, watch.today), ...foulLines(fouls, teams), ...earlyLines(fouls, teams, watch.today), ...fourthLines(fouls, teams), ...lastTwoLines(fouls, teams), ...prepStoryLines(prep, teams, games, watch.today), ...cupLines(records, teams, watch.today)]
     .flatMap((l) => {
       const st = l.player ? listed.get(`${l.team}|${nameKey(l.player)}`) : null;
       if (st === "Out" || st === "Doubtful") return [];
@@ -478,7 +502,7 @@ export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries =
 }
 
 // At most this many of a kind in one game's card.
-const PER_GAME = { injury: 2, history: 2, context: 1, matchup: 2, tv: 2, rest: 2, form: 2, foul: 2, season: 2, span: 2, pstreak: 2, vsopp: 1, pace: 1, trade: 1, role: 1, lineup: 1, turn: 1, beaten: 1, month: 1, monthp: 1, rookie: 1, defense: 1, cup: 1, era: 1, fourth: 1 };
+const PER_GAME = { injury: 2, history: 2, context: 1, matchup: 2, tv: 2, rest: 2, form: 2, foul: 2, season: 2, span: 2, pstreak: 2, vsopp: 1, pace: 1, trade: 1, role: 1, lineup: 1, turn: 1, beaten: 1, month: 1, monthp: 1, rookie: 1, defense: 1, cup: 1, era: 1, fourth: 2, qtr: 1 };
 export function tonightStorylines(args) {
   const maxLines = args.maxLines ?? MAX_LINES;
   const { games, all } = tonightCandidates(args);

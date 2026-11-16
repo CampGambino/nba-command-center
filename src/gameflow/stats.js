@@ -90,11 +90,72 @@ export function gameFacts(row, c, lite) {
     held: !!(G.leadState && G.leadState[side] && G.leadState[side].held), heldStrict: !!(G.leadState && G.leadState[side] && G.leadState[side].heldStrict),
     maxLead: side ? maxHome : maxAway, maxDown: side ? maxAway : maxHome,
     q: G.per[side].filter((x) => x.p <= 4).map((x) => x.pts), score: side ? hs : as, oppScore: side ? as : hs }));
-  return { ...base, players, teams, closeLate, periods: G.maxP };
+  return { ...base, players, teams, closeLate, periods: G.maxP, l2m: lastTwo(pbp, G, tri) };
+}
+
+/**
+ * The final two minutes (0.72.7; the user, 11/15: "clutch stats in the final 2 minutes of the 4th quarter to differentiate
+ * from the final five minutes"). The league's Last Two Minute reports cover games within three points at any time in
+ * the last two minutes of the 4th quarter or overtime; this is the same window: for each such period, everything from
+ * 2:00 on. Clutch time (the last five minutes, within five) stays what it was.
+ * -> null, or { periods, teams: [{ pf, pa }, { pf, pa }] (away, home), players: { id: { sec, pts, fgm, … pm } } }
+ */
+export const L2M_SEC = 120, L2M_PTS = 3;
+const clockLeft = (c) => { const m = /PT(\d+)M([\d.]+)S/.exec(String(c || "")); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
+function lastTwo(pbp, G, tri) {
+  const A = (pbp.game && pbp.game.actions) || pbp.actions || [];
+  const side = {};
+  for (const p of G.players) side[String(p.id)] = p.side;
+  const endOf = (per) => (per <= 4 ? per * REG_LEN : 4 * REG_LEN + (per - 4) * 300);
+  const out = { periods: 0, teams: [{ pf: 0, pa: 0 }, { pf: 0, pa: 0 }], players: {} };
+  const line = (id) => (out.players[id] ??= { sec: 0, pts: 0, fgm: 0, fga: 0, fg3m: 0, fg3a: 0, ftm: 0, fta: 0, reb: 0, tov: 0, pm: 0 });
+  for (let per = 4; per <= G.maxP; per++) {
+    const acts = A.filter((a) => a.period === per);
+    let entering = null, close = false;
+    const inWin = [];
+    for (const a of acts) {
+      const left = clockLeft(a.clock);
+      if (left == null || a.scoreHome == null || a.scoreHome === "") continue;
+      const d = Number(a.scoreHome) - Number(a.scoreAway);
+      if (left > L2M_SEC) entering = d;
+      else { inWin.push({ a, left, d }); if (Math.abs(d) <= L2M_PTS) close = true; }
+    }
+    if (entering != null && Math.abs(entering) <= L2M_PTS) close = true;
+    if (!close || !inWin.length) continue;
+    out.periods++;
+    const end = endOf(per), start = end - L2M_SEC;
+    // Who was on the floor, and for how long.
+    for (const p of G.players) {
+      const sec = p.stints.reduce((n, x) => n + Math.max(0, Math.min(x.et, end) - Math.max(x.st, start)), 0);
+      if (sec > 0) line(String(p.id)).sec += sec;
+    }
+    // On the floor at t: in a stint that has begun and not ended (at the final horn, the ones that ran to it).
+    const onAt = (t) => G.players.filter((p) => p.stints.some((x) => (x.st <= t + 1e-6 && x.et > t + 1e-6) || (t >= end - 1e-6 && x.et >= end - 1e-6 && x.st < end)));
+    for (const { a, left } of inWin) {
+      const id = a.personId ? String(a.personId) : null, sd = id != null ? side[id] : null;
+      const made = a.shotResult === "Made";
+      const pts = made ? (a.actionType === "3pt" ? 3 : a.actionType === "2pt" ? 2 : a.actionType === "freethrow" ? 1 : 0) : 0;
+      if (id != null && sd != null) {
+        const L = line(id);
+        if (a.actionType === "2pt" || a.actionType === "3pt") { L.fga++; if (made) L.fgm++; if (a.actionType === "3pt") { L.fg3a++; if (made) L.fg3m++; } }
+        else if (a.actionType === "freethrow") { L.fta++; if (made) L.ftm++; }
+        else if (a.actionType === "rebound") L.reb++;
+        else if (a.actionType === "turnover") L.tov++;
+        L.pts += pts;
+      }
+      if (pts && sd != null) {
+        out.teams[sd].pf += pts; out.teams[1 - sd].pa += pts;
+        for (const p of onAt(end - left)) line(String(p.id)).pm += p.side === sd ? pts : -pts;
+      }
+    }
+  }
+  return out.periods ? out : null;
 }
 
 export function flowStats(entries, lite = null) {
   const quarters = [], halves = [], teamQuarters = [], rot = {}, fouls = {}, leads = {}, table = {}, early = [], fourth = {};
+  const l2m = { games: 0, players: {}, teams: {} };
+  const L2K = ["sec", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "tov", "pm"];
   let games = 0;
   for (const { row, c } of entries) {
     let F;
@@ -135,6 +196,22 @@ export function flowStats(entries, lite = null) {
       if (p.trouble) { Fo.trouble++; Fo.troubleIn.push(F.gameId); }
       if (p.fouledOut) { Fo.out++; Fo.outIn.push(F.gameId); }
     }
+    if (F.l2m) {
+      l2m.games++;
+      const names = Object.fromEntries(F.players.map((p) => [p.id, p]));
+      for (const [id, x] of Object.entries(F.l2m.players)) {
+        const who = names[id]; if (!who) continue;
+        const P = l2m.players[id] || (l2m.players[id] = { id, name: who.name, team: who.team, gp: 0, ...Object.fromEntries(L2K.map((k) => [k, 0])) });
+        P.team = who.team; P.gp++;
+        for (const k of L2K) P[k] += x[k];
+      }
+      F.teams.forEach((t, side) => {
+        const T = l2m.teams[t.team] || (l2m.teams[t.team] = { team: t.team, games: 0, w: 0, l: 0, pts: 0, opp: 0, pm: 0, fgm: 0, fga: 0, fg3m: 0, fg3a: 0, ftm: 0, fta: 0, reb: 0, tov: 0 });
+        T.games++; if (t.won) T.w++; else T.l++;
+        T.pts += F.l2m.teams[side].pf; T.opp += F.l2m.teams[side].pa; T.pm = T.pts - T.opp;
+        for (const [id, x] of Object.entries(F.l2m.players)) if (names[id]?.team === t.team) for (const k of ["fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "tov"]) T[k] += x[k];
+      });
+    }
     for (const t of F.teams) {
       t.q.forEach((pts, k) => teamQuarters.push({ pts, team: t.team, opp: t.opp, q: k + 1, ...at }));
       const L = leads[t.team] || (leads[t.team] = { gp: 0, blown: [], comebacks: [] });
@@ -174,7 +251,8 @@ export function flowStats(entries, lite = null) {
   // Only those who usually play the second half: a rest-day starter pulled at the half is no story.
   const leftEarly = early.filter((e) => { const r = rotation[e.id]; return r && r.starts >= 3 && (r.open3 || 0) >= 0.7 * r.starts; })
     .sort((a, b) => String(b.date).localeCompare(String(a.date)));
-  return { games, leadMin: LEAD_MIN, leadTable: Object.values(table), leftEarly, quarters: top(quarters), halves: top(halves), teamQuarters: top(teamQuarters), rotation, fouls, leads, fourth };
+  return { games, leadMin: LEAD_MIN, leadTable: Object.values(table), leftEarly, quarters: top(quarters), halves: top(halves), teamQuarters: top(teamQuarters), rotation, fouls, leads, fourth,
+    l2m: { games: l2m.games, teams: l2m.teams, players: Object.values(l2m.players).map((p) => ({ ...p, sec: Math.round(p.sec), min: Math.round(p.sec / 6) / 10, ast: null, stl: null, blk: null })).sort((a, b) => b.pts - a.pts) } };
 }
 
 /* The place a value would take on a best-first list: 1 = the best. Ties share the place. */
