@@ -15,7 +15,7 @@ The user (11/16, 8:26 AM, with five phone screenshots of #articles): "I never ne
 - The "Leaving Discord" window is Discord's own check before it opens any outside link; "Visit Site" carries the action out. Ticking "Trust … links from now on" once stops it asking. A webhook can't post buttons that act inside Discord.
 
 ### Tested
-- 78 Worker checks (4 new): this morning's six posts by their real titles and text are all skipped with the right reason; ICYMI from ESPN and The Athletic and from an always-posted writer; live blog news still posts (a game story, "subscribe" or "scores" used in passing, "Your NBA Cupdate"); a post allowed by hand still goes out; the links' exact text and no emoji in them. 819 in the full run.
+- 78 Worker checks (4 new): this morning's six posts by their real titles and text are all skipped with the right reason; ICYMI from ESPN and The Athletic and from an always-posted writer; live blog news still posts (a game story, "subscribe" or "scores" used in passing, "Your NBA Cupdate"); a post allowed by hand still goes out; the links' exact text and no emoji in them. 823 in the full run.
 
 ### Unproven
 - The rules are written from one morning's posts. The Athletic's wording for these changes week to week; a new variant gets through until it is seen once (marking it as noise is how it reaches me).
