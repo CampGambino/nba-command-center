@@ -171,10 +171,33 @@ export function readNarrative(doc) {
  * Split a page into columns at vertical gutters: x-ranges that almost no line
  * has text in. Returns each column as a list of its lines, top to bottom.
  */
+/**
+ * Does the sentence point back at something it doesn't say? "such instances", "such a game", "in the group",
+ * "during the span": only when nothing before the reference in the same sentence names a number of a stat
+ * ("…12 points, four rebounds… the first NBA reserve to tally such minimums" says its own).
+ */
+const BACK_REF = /\bsuch (?:an? )?(?:instances?|games?|performances?|outings?|contests?|feats?|minimums|totals|numbers|nights?|quarters?|hal(?:f|ves))\b|\bin (?:the|that) group\b|\b(?:during|over|in) th(?:e|at) span\b/i;
+const OWN_FEAT = /(?:\d[\d,.]*|\b(?:one|two|three|four|five|six|seven|eight|nine|ten))\+?(?:-plus)?%?\s*(?:or more\s+)?(?:points?|pts|rebounds?|reb|assists?|ast|steals?|stl|blocks?|blk|threes|3-pointers?|3fgm?|3pm|three-pointers?|turnovers?|minutes?|ppg|rpg|apg|fg%?|games?|wins?)\b|\b(?:double|triple)-doubles?\b/i;
+export function dangling(s) {
+  const m = s.match(BACK_REF);
+  if (!m) return false;
+  const before = s.slice(0, m.index);
+  // "Since Chris Finch took over…, the third most in the NBA during that span" names its own span.
+  if (/\bspan\b/i.test(m[0]) && /\bsince\b|\b(?:last|past|first|previous) (?:\w+ )?(?:games?|seasons?|years?|months?|weeks?)\b|\bfrom\b[^.]*\b(?:to|through)\b|\bstretch\b|\b(?:19|20)\d\d\b|\b\d{1,2}\/\d{1,2}\b/i.test(before)) return false;
+  return !OWN_FEAT.test(before);
+}
+
+const FOOTER = /^(?:[@#]\w+\s+)?(?:PAGE\s+)?\d{1,3}$|^[@#]\w+$/i;
+const STRAY_HEAD = /^(?:Date|Opponent|Result|Score)$/;
 export function columnsOf(page) {
   const width = Math.ceil(page.width || 612);
   const cover = new Uint16Array(width + 1);
-  const lines = page.lines.filter((l) => l.cells.length);
+  // 0.77: the page's own footer (a bare page number, "@nuggets PAGE 5", "@BullsPR PAGE 16") was read as the end of the
+  // last sentence above it ("…an NBA single-season record. 1."), and a table's header word printed inside a paragraph
+  // ("…in three consecutive / Date / games…") as part of it.
+  const lines = page.lines.filter((l) => !STRAY_HEAD.test(l.text.trim()))
+    .map((l) => (l.y < 45 && l.cells.some((c) => FOOTER.test(c.text.trim())) ? { ...l, cells: l.cells.filter((c) => !FOOTER.test(c.text.trim())) } : l))
+    .filter((l) => l.cells.length);
   for (const l of lines) for (const c of l.cells) for (let x = Math.max(0, Math.floor(c.x0)); x <= Math.min(width, Math.ceil(c.x1)); x++) cover[x]++;
 
   const limit = Math.max(1, Math.floor(lines.length * 0.03));
@@ -268,6 +291,7 @@ export function repairLayout(s) {
   let t = s.replace(/\s*\d{1,2}\/\d{1,2}\s+(?:at|vs\.?|@)\s+\p{Lu}[\p{L}.]*(?:\s+\p{Lu}[\p{L}.]*)?\s+(?:\d{2,3}-\d{2,3}\s+)?[WL](?:\s+\d{2,3}-\d{2,3})?(?:\s+\d{1,2}:\d{2})?(?:\s+\d{1,3}(?:-\d{1,3})?)+(?=\s|[.,;]|$)/gu, " ");
   t = t.replace(/\s*\b(?:19|20)\d\d-\d\d Game Notes\.?/g, "");
   t = t.replace(/\b(\d{1,2})-\s+of-(\d{1,2})\b/g, "$1-of-$2"); // "shooting 6- of-26" (Houston, 11/15)
+  t = t.replace(/(\))\s+20\d\d-\d\d\.?$/, "$1."); // the next header's season after the last bullet ("…(70 on 3/24/17) 2026-27.", Phoenix)
   // 0.71: a letter-spaced footer ("2 0 2 6 - 2 7 D A L L A S M A V E R I C K S G A M E N O T E S."), and a page number
   // with the PR accounts ("17 Find us on X: @spurs | Facebook: http://…").
   t = t.replace(/(?:\s|^)(?:[\p{Lu}0-9\-&](?:\s+|(?=\.?\s*$))){8,}\.?/gu, " ");
@@ -428,6 +452,7 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
   // five…"): the paragraph's player carries to the next block on the page, within the same distance as inside one (0.48).
   let carry = null;
   let prevBlock = null, thisBlock = null;
+  let carrySeason = null;
   for (const b of blocks(doc)) {
     prevBlock = thisBlock; thisBlock = b;
     if (b.page !== sectionPage) { sectionWho = null; sectionPage = b.page; }
@@ -443,21 +468,25 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
     let cursor = 0, bioWho = null;
     // A bio's season headers ("2023-24 (Minnesota): …", "2024-25 (Phoenix) – …"): what follows, up to the next one, is
     // that season, whatever it says ("made a total of 169 threes this season" was 2023-24; the user, 11/15).
-    let seasonHdr = null;
+    // 0.77: the header also covers the bullets under it when each bullet is its own block (Cleveland: "2025-26 Notes:
+    // Appeared in 70 games…" and then a page of last season's games; the user, 11/16: Harden's "55 points is tied for
+    // the 2nd-most… this season" was 2025-26). It carries down the page until another player's box or heading.
+    let seasonHdr = carrySeason && carrySeason.page === b.page ? carrySeason.hdr : null;
     const curSeason = seasonStart ? `${seasonStart.slice(0, 4)}-${String(+seasonStart.slice(0, 4) + 1).slice(2)}` : null;
     let prevRaw = null; // the sentence before, for "That's the fifth-most…" and "They have…"
+    let sIdx = 0, prevIdx = -9; // prevRaw is the sentence right before only when prevIdx === sIdx - 1
     let paraWho = null, sinceWho = 0, lastWhen = null;
     let paraHead = false; // paraWho came from a capitals heading (a player's list of bullets), not from a sentence naming him
     if (carry && carry.page === b.page && carry.bio) { bioWho = paraWho = sectionWho = carry.who; sinceWho = 0; paraHead = true; }
     else if (carry && carry.page === b.page && carry.dist <= 700) { paraWho = carry.who; sinceWho = carry.dist; paraHead = true; }
     const keep = () => { carry = paraWho && paraHead ? { who: paraWho, page: b.page, dist: sinceWho, bio: !!(bioWho && paraWho === bioWho) } : null; }; // lastWhen: "old" / "current" for the paragraph's last dated sentence // chars of text since paraWho was named // the player this paragraph is about, for its "He..." sentences
-    for (let s of sentences(b.text.replace(/\b((?:19|20)\d\d-\d\d)\s+(SEASON|NOTABLES|Season Highlights)\b/g, "$1\u2060$2")).flatMap((x) => x.split(/\s+(?=(?:19|20)\d\d-\d\d\u2060)|\s+(?=(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s+\p{Lu}|#\s?\d{1,2}\s+\p{Lu})/u).flatMap((y) => y.split(/\s*(?:…|\.{3}|[▪●•\u0000-\u0008\u000b\u000c\u000e-\u001f]|\s[o◦▫+]\s(?=[A-Z]))\s*/u).map((z, k, all) => { let w = k > 0 && /^[a-z]/.test(z) ? z[0].toUpperCase() + z.slice(1) : z; if (k < all.length - 1 && /[\p{L}\d%)]$/u.test(w) && !/\b(?:to|the|a|an|of|and|at|in|with|as|by|for|or|his|their|from|on|was|were|who|that|is|are|which)$/i.test(w)) w += "."; return w; }))).map((x) => x.replace(/\s*\*{2,}.*$/, "").trim())) {
+    for (let s of sentences(b.text.replace(/\b((?:19|20)\d\d-\d\d)\s+(SEASON|NOTABLES|Season Highlights|NOTES|Notes)(?=\b|:)/g, "$1\u2060$2")).flatMap((x) => x.split(/\s+(?=(?:19|20)\d\d-\d\d\u2060)|\s+(?=(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s+\p{Lu}|#\s?\d{1,2}\s+\p{Lu})/u).flatMap((y) => y.split(/\s*(?:…|\.{3}|[▪●•\u0000-\u0008\u000b\u000c\u000e-\u001f]|\s[o◦▫+]\s(?=[A-Z]))\s*/u).map((z, k, all) => { let w = k > 0 && /^[a-z]/.test(z) ? z[0].toUpperCase() + z.slice(1) : z; if (k < all.length - 1 && /[\p{L}\d%)]$/u.test(w) && !/\b(?:to|the|a|an|of|and|at|in|with|as|by|for|or|his|their|from|on|was|were|who|that|is|are|which)$/i.test(w)) w += "."; return w; }))).map((x) => x.replace(/\s*\*{2,}.*$/, "").trim())) {
       sinceWho += s.length + 1;
       { const at = b.text.indexOf(s.slice(0, 25).replace(/\u2060/g, " "), cursor); if (at >= 0) cursor = at; }
       while (bios.length && bios[0].at <= cursor + 5) { bioWho = paraWho = sectionWho = bios.shift().p; sinceWho = 0; lastWhen = null; seasonHdr = null; }
       if (/#\s?\d{1,2}\s+\p{Lu}/u.test(s)) seasonHdr = null; // another player's box starts in this text
       // 0.71: also "2024-25 SEASON:" and "PROFESSIONAL CAREER: 2024-25 SEASON:" (Boston, Dallas), "2026-27 NOTABLES:" (Atlanta).
-      { const sh = s.match(/^(?:[\p{Lu} ]{3,}:\s*)?((?:19|20)\d\d)-(\d\d)\s*(?:\(([^)]{2,30})\)|\u2060?(?:SEASON|NOTABLES|Season Highlights)(?:\s*\([^)]{2,30}\))?)\s*[:–—-]\s*/u);
+      { const sh = s.match(/^(?:[\p{Lu} ]{3,}:\s*)?((?:19|20)\d\d)-(\d\d)\s*(?:\(([^)]{2,30})\)|\u2060?(?:SEASON|NOTABLES|Season Highlights|NOTES|Notes)(?:\s*\([^)]{2,30}\))?)\s*[:–—-]\s*/u);
         if (sh) { seasonHdr = `${sh[1]}-${sh[2]}`; s = s.slice(sh[0].length); if (s) s = s[0].toUpperCase() + s.slice(1); } }
       s = s.replace(/\u2060/g, " ");
       // A header that names a past season over this season's games ("2025-26 SEASON: Made his NBA debut at HOU
@@ -497,6 +526,7 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       // "That's the fifth-most over the first 17 games…" says nothing alone: read it with the sentence before.
       const prevNow = prevRaw;
       prevRaw = s;
+      sIdx++;
       // (The line before is replaced only if the joined one is kept.)
       let joinedFrom = null;
       // 0.71: "He has the fourth-longest streak in Mavs history." says which streak only with the sentence before.
@@ -504,8 +534,18 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
         joinedFrom = prevNow;
         s = `${prevNow} ${s}`;
       }
+      // 0.77: a sentence that points back without saying at what ("Booker is tied for the second-most such instances in
+      // the NBA this season", "…one of five teams this season to record such a game", "the only player in the group…
+      // during the span"; the user, 11/16) is read with the sentence right before it, or not at all.
+      else if (dangling(s)) {
+        if (prevNow && prevIdx === sIdx - 1 && prevNow.length + s.length < 420) { joinedFrom = prevNow; s = `${prevNow} ${s}`; }
+        else { drop("dangling", s); prevIdx = sIdx; continue; }
+      }
+      prevIdx = sIdx;
       const they = /^They\b/.test(s) && !!prevNow && !!((teamRe && teamRe.test(plain(prevNow))) || (teamMid && teamMid.test(plain(prevNow))));
       // Who this part of the paragraph is about, noted before any filter drops the sentence.
+      // A capitals heading naming another player ends a season header carried from the block above.
+      if (headWho && carrySeason && carrySeason.page === b.page && carrySeason.who && headWho !== carrySeason.who && seasonHdr === carrySeason.hdr) seasonHdr = null;
       { const named = subjectOf(s), early = named || headWho; if (early) { paraWho = sectionWho = early; sinceWho = s.length + 1; paraHead = !named; if (bioWho && early !== bioWho) bioWho = null; } }
       keep();
       // A span of seasons running through last season ("each of the past three seasons (2023-26)") is a run still going, not an old date.
@@ -673,6 +713,7 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
     // A player's box header printed at the end of the block before his notes ("…W115-108 Center #28 Alperen Sengun 6-11/255"):
     // his notes are the next block, after the header's "•" (Houston, 11/13).
     if (blockBio) carry = { who: blockBio, page: b.page, dist: 0, bio: true };
+    carrySeason = seasonHdr && !blockBio ? { hdr: seasonHdr, page: b.page, who: sectionWho } : null;
   }
   // The same forward fact printed twice ("needs 816 points to pass Kobe Bryant"): keep one.
   const fwdKey = (t) => { const m = t.match(/needs?\s+([\d,]+)\s+([a-z-]+(?:\s+[a-z-]+)?)\s+to\s+(?:pass|tie|surpass)\s+([A-Z][^.,]{2,40}?)(?=\s+for|[.,]|$)/i); return m ? m.slice(1).join('|').toLowerCase() : null; };

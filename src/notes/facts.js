@@ -266,11 +266,44 @@ export function dedupe(lines) {
       if (d.streak && d.streak === od.streak) return true;
       const j = jaccard(b, ob);
       let shared = 0; for (const x of b) if (ob.has(x)) shared++;
+      { const A = said(l), B = said(o), na = numbersIn(A).size, nb = numbersIn(B).size; if (na <= nb ? sameFact(A, B) : sameFact(B, A)) return true; }
       return j >= 0.6 || (d.type === od.type && d.tag === od.tag && (j >= 0.35 || (d.rank === 1 && shared >= 4)));
     });
     if (!dup) out.push({ ...l, facts: d });
+    // 0.77: the one that says more stays ("He ranks 11th in the NBA with 130 bench points" lost to "Wagner ranks 11 with
+    // 130 bench points this season and is 8th in the NBA with a 58.4% FG"; the user, 11/16), whatever their scores.
+    else if (numbersIn(said(l)).size > numbersIn(said(dup)).size && sameFact(said(dup), said(l))) out[out.indexOf(dup)] = { ...l, facts: d };
+    // The same numbers both ways: the telling that opens with his name over one with a heading spliced on its front.
+    else if (l.player && numbersIn(said(l)).size === numbersIn(said(dup)).size && sameFact(said(dup), said(l)) && opensWithName(l) && !opensWithName(dup)) out[out.indexOf(dup)] = { ...l, facts: d };
   }
   return out;
+}
+
+const opensWithName = (l) => { const t = plain(l.text), n = plain(l.player || "").split(" "); return !!l.player && (t.startsWith(n[0]) || t.startsWith(n[n.length - 1]) || (n.length > 2 && t.startsWith(n[n.length - 2]))); };
+// ---------- The same fact told twice, at two lengths or in other words (0.77) ----------
+const NUM_WORD = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, first: 1, second: 2, third: 3, fourth: 4, fifth: 5, sixth: 6, seventh: 7, eighth: 8, ninth: 9, tenth: 10 };
+/** Every number a line states, as written or spelled ("five straight", "11th", "58.4%", "T-1st"). */
+export function numbersIn(text) {
+  const out = new Set();
+  const t = plain(text).toLowerCase().replace(/\b(?:19|20)\d\d-\d\d\b/g, " ");
+  for (const m of t.matchAll(/\d[\d,]*(?:\.\d+)?/g)) out.add(String(parseFloat(m[0].replace(/,/g, ""))));
+  for (const m of t.matchAll(/[a-z]+/g)) if (NUM_WORD[m[0]] != null) out.add(String(NUM_WORD[m[0]]));
+  return out;
+}
+const SAME_SYN = [[/\bconsecutive\b/g, "straight"], [/\b(?:contests|outings)\b/g, "games"], [/\bmin\./g, "minimum"], [/\b(\d+)(?:st|nd|rd|th)\b/g, "$1"], [/\b(?:owns|holds|has)\b/g, "has"], [/\b(?:franchise|team|club)[- ]record\b/g, "franchise longest"],
+  [/\bestablish(?:es|ed)?\b/g, "is"], [/\b(?:which|that|also|well|now|currently)\b/g, " "]];
+const sameBag = (t) => { let x = plain(t).toLowerCase(); for (const [re, w] of SAME_SYN) x = x.replace(re, w); return bag(x); };
+/**
+ * Is `short` the same fact as `long`, told in fewer or other words? Every number the shorter states is in the longer,
+ * and most of its words are too (four or more shared, 60% of the shorter's).
+ */
+export function sameFact(short, long) {
+  const a = numbersIn(short), b = numbersIn(long);
+  if (!a.size) return false;
+  for (const n of a) if (!b.has(n)) return false;
+  const x = sameBag(short), y = sameBag(long);
+  let shared = 0; for (const w of x) if (y.has(w)) shared++;
+  return shared >= 4 && shared / Math.min(x.size, y.size) >= 0.6;
 }
 
 /** The ranked table printed with a line (same page or the next), by its subject's row and the words they share. */
@@ -465,6 +498,17 @@ export function checkStreaks(lines, box) {
   return lines;
 }
 
+/** Which list a rank line is about, coarsely: enough to tell a scoring list from an assists list. */
+export function listStat(text) {
+  const t = plain(text).toLowerCase();
+  // A list with a condition on it ("30+ point games", "among one-franchise players", "by a center") is its own list.
+  if (/\d\+|-plus\b|\bgames? with\b|-point games\b|\bquarters?\b|\bhal(?:f|ves)\b|\bamongs?t?\b(?! all)|\bby an? \w+|\bbefore turning\b|\bundrafted\b|\brookies?\b|\bbench\b|\bplayoffs?\b|\bpostseason\b|\bactive\b|\bsingle[- ]game\b|\bin a game\b|\bstreaks?\b|\bstraight\b|\bconsecutive\b/.test(t)) return `own:${t.slice(0, 40)}`;
+  // Only a line about holding or taking a place: "passed…", "moved into…", "now ranks…".
+  if (!/\bpass(?:ed|es|ing)?\b|\bsurpass|\bmov(?:ed|es|ing) (?:into|past|up|ahead)\b|\bclimb|\bovert(?:ook|ake)|\branks?\b|\bsits\b|\bis now\b/.test(t)) return `own:${t.slice(0, 40)}`;
+  for (const [k, re] of [["td", /triple-double/], ["dd", /double-double/], ["fg3", /three|3-point|3fg|3pm|triples/], ["reb", /rebound/], ["ast", /assist/], ["stl", /steal/], ["blk", /block/], ["gp", /games played/], ["pts", /scor|points/]]) if (re.test(t)) return k;
+  return "other";
+}
+
 // ---------- What to trim (0.49, from the user's review of the 11/13 slate) ----------
 // The user's rule: keep what can still move — a streak, a club, a race, a count that grows, a rank this season, the
 // series — and what is rare over a long span ("the most FTA in a regulation game since Dec. 12, 2014"). Trim what is a
@@ -533,6 +577,17 @@ export function trimReason(line, { box = null, today, home = null } = {}) {
     && today && +today.slice(5, 7) >= 8) return "a title from past seasons (back from March, when another is in reach)";
   // Filler about the franchise's age.
   if (!line.player && /\b\d{1,3}(?:st|nd|rd|th) season in (?:franchise|team) history\b/i.test(t) && t.length < 120) return "filler";
+  // 0.77 (the user, 11/16, on "Bam Adebayo has now started eight season openers with Miami"): the opener is news for the
+  // first three weeks of the season. A run that began on opening night ("in every game since the opener") is still going,
+  // and a mark rare over ten years or more ("the most FTA in a regulation game since Dec. 12, 2014") stays, as before.
+  {
+    const first = (box?.games || []).map((g) => g.d).sort()[0] || seasonStart?.replace(/-10-01$/, "-10-20");
+    const weeks = first && today ? (Date.parse(today) - Date.parse(first)) / 6048e5 : 0;
+    if (weeks > 3 && /\bseason[- ]open(?:er|ers|ing)\b|\bopening[- ]night\b|\bopening[- ]day\b/i.test(t) && !/\b(?:since|every game since|dating back to)\b[^.]{0,30}\b(?:opener|opening)/i.test(t) && !longSpan(t, today)) return "past one-off (season opener, over three weeks ago)";
+  }
+  // A recap written the night of an earlier game and left in ("Gobert had 10 rebounds through three quarters of tonight's
+  // game, marking his 37th…", from Oct. 25, read on Nov. 16): "tonight" was that night, and its counts have moved since.
+  if (/\b(?:of|in|during|through) tonight['’]s (?:game|contest|win|loss|victory|matchup)\b/i.test(t) && /\b(?:had|scored|recorded|tallied|finished|posted|grabbed|marking|marked|made|dished|notched)\b/i.test(t)) return "a recap from the night of an earlier game (its counts are as of that night)";
   // The other venue: a home-only stat on a road night, and the reverse.
   const homeStat = /\bhome (?:sellouts?|sellout streak|attendance|crowds?|games?|record|winning streak|win streak|losing streak|court)\b|\bsellouts?\b|\bat home\b/i.test(t);
   const roadStat = /\bon the road\b|\broad (?:games?|record|trip|winning streak|win streak|losing streak|wins?|losses)\b|\baway from home\b/i.test(t);
@@ -566,7 +621,16 @@ export function trimLines(lines, { box = null, today, home = null, floor = 4 } =
   const top = new Map();
   for (const l of lines) if (l.streakNow) { const k = `${l.playerId}|${l.streakNow.key}`; top.set(k, Math.max(top.get(k) || 0, l.streakNow.said)); }
   const older = (l) => (l.streakNow && l.streakNow.said < top.get(`${l.playerId}|${l.streakNow.key}`) ? `an older count of the same streak (${l.streakNow.said}; it is at ${Math.max(l.streakNow.now, top.get(`${l.playerId}|${l.streakNow.key}`))})` : null);
-  for (const l of lines) { const why = older(l) || trimReason(l, { box, today, home }); (why ? trimmed : keep).push(why ? { ...l, trimmed: why } : l); }
+  // 0.77: a climb up one list told place by place ("passed Julius Erving for the 79th most points", "passed Tracy McGrady
+  // for the 78th", "now ranks 77th"; the user, 11/16): the place he holds now is the line; the rungs below are trimmed.
+  const rung = (l) => { const m = /^(?:T-)?(\d+)(?:st|nd|rd|th) (all-time|in team history)$/.exec(l.tag || ""); return m && l.playerId ? { n: +m[1], key: `${l.playerId}|${m[2]}|${listStat(l.text)}` } : null; };
+  const rungs = new Map();
+  for (const l of lines) { const r = rung(l); if (r) rungs.set(r.key, [...(rungs.get(r.key) || []), r.n]); }
+  // A climb goes rung by rung: the place a line is measured against is the nearest better one within five, followed up
+  // the ladder (79th -> 78th -> 77th). A place far above belongs to some other list that shares the wording.
+  const topOf = (key, n) => { for (;;) { const up = (rungs.get(key) || []).filter((m) => m < n && n - m <= 5); if (!up.length) return n; n = Math.min(...up); } };
+  const lower = (l) => { const r = rung(l); const top = r ? topOf(r.key, r.n) : null; return r && top < r.n ? `an earlier place on the same list (${ordinal(r.n)}; he is ${ordinal(top)} now)` : null; };
+  for (const l of lines) { const why = older(l) || lower(l) || trimReason(l, { box, today, home }); (why ? trimmed : keep).push(why ? { ...l, trimmed: why } : l); }
   // The same fact told twice, once with its date and once without ("Wilson is the first rookie in Bulls history to…"):
   // when the dated telling is a past one-off, so is the other.
   const firstName = (l) => (l.player || "").split(" ").slice(-1)[0];

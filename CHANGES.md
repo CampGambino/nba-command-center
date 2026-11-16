@@ -2,6 +2,46 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.77.0 (2026-11-16): the user's 19 screenshots: notes without their subject, repeats, last season's notes
+
+The user (11/16, 10:05 AM, 19 images of the Command Center's notes lines next to the game notes): lines that don't say what they count ("does not tell me what category he is tied in", "this doesn't specify which group", "this doesn't tell me what kind of game"), page numbers on the end of lines, the same fact printed twice in different words, last season's Cleveland notes shown as this season's, a jumbled Nuggets line, a question about what "11 new · 19 lines" means, a season-opener line a month on, and a recap from Oct. 25 whose counts have moved since.
+
+### Lines that pointed at something they didn't carry
+- **"…tied for the second-most such instances", "…one of five teams to record such a game", "…the only player in the group … during the span"** (images 1, 3, 8): the reader keeps one sentence per line, and these sentences lean on the one before. A sentence that points back ("such instances / games / minimums…", "in the group", "during the span") and names no feat or span of its own (`dangling` in `src/notes/narrative.js`) is now joined to the sentence right before it when that one was kept ("He put up 13 points … in the first quarter, his fifth 10+ point first quarter of the season. Booker is tied for the second-most such instances in the NBA this season…"). When the sentence before was not kept (the Brooks line: its lead-in was a past-seasons list), it is dropped; half a fact is not shown.
+- A sentence that names its own feat stays as it was ("…five games with three or more steals, tying for third-most such games in the league"; "Since Chris Finch took over … the third most in the NBA during that span").
+
+### Page furniture in the text
+- **"…in franchise history. 1." / "… 10."** (image 4) and **"@nuggets PAGE 5."**: page numbers and footers at the bottom of a page were read as the end of the last sentence. A bottom-of-page cell that is only a page number, a handle, or "PAGE n" is dropped before the text is assembled (`FOOTER`, lines in the bottom 45 points).
+- **The Nuggets lines** (image 14: "…in three consecutive Date games…"): a table's header word ("Date", "Opponent", "Result", "Score") standing alone on a line between two halves of a sentence is dropped (`STRAY_HEAD`).
+- "…(70 on 3/24/17) 2026-27.": the next header's season stuck to the last bullet above it is cut off (which also shows that line for what it is: a 2017 game, no longer listed).
+
+### The same fact twice
+- **Wagner's 130 bench points, Sharpe twice, the pair in image 7** (images 5, 6, 7): `dedupe` compared wording; two sentences with different wording and the same numbers got through. Now two lines about the same player are the same fact when every number in the shorter one is in the longer one and most of its words are too (`numbersIn`, `sameFact` in `src/notes/facts.js`). The line with more numbers is kept; at a tie, the one that opens with the player's name.
+- **Booker 77th and 78th** (image 2): both are true, one is newer. Lines that place a player on the same list ("all-time scoring list") are now a ladder: a line whose place has a better one within five on the same list, for the same player, is trimmed as "an earlier place on the same list (78th; he is 77th now)". Lists with a condition ("…before their 30th birthday"), a streak's rank ("third-longest such streak") and lines with no passing verb are not part of a ladder.
+
+### Last season's notes shown as this season's
+- **Harden and Mitchell, Cleveland** (images 9 to 13): Cleveland prints a player's notes under "2026-27 Notes:" and "2025-26 Notes:". The reader knew "2025-26 SEASON" style headers; it now also knows "Notes", and carries the header over the bullets below it on the same page until a new header, a new player, or a bio heading (`carrySeason`). Five Cleveland lines read as current were last season's (Harden, Mitchell, Proctor, Tyson, Merrill); all are now dropped as past-season.
+- **Sengun** (images 16, 17): left as is. The line is this season's: the box scores have him at 23.1 points, 9.6 rebounds and 7.6 assists now; last season's 20.4 / 8.9 / 6.2 would not meet the line's "23 / 9 / 7".
+
+### Old news
+- **The season opener** (image 18): a one-off from the first game ("…in the season opener") is trimmed once the opener is more than three weeks back: "past one-off (season opener, over three weeks ago)". "Since the opener" and a rarity that reaches back ten years or more ("the most free throws in a regulation game since Dec. 12, 2014", "the fourth-most by a Wizard in a season opener since 1973-74") are kept. 20 opener lines across the league go.
+- **Gobert's Oct. 25 recap** (images 19, 20): "…of tonight's game" in a recap from an earlier night means its counts are as of that night. Trimmed: "a recap from the night of an earlier game (its counts are as of that night)". Counting "games with 10+ rebounds through three quarters" forward (Gobert one behind Jokić) is queued, not built: it needs rebounds by quarter from the play-by-play and a starting count nobody prints with its window.
+
+### "11 new · 19 lines" (image 15)
+- "New" means the line was first printed in that team's notes today: it was in no earlier version of their notes this season. It says nothing about when the event happened. The page now says "11 new in the notes today · 19 lines", with that explanation on hover (`docs/index.html`). A line whose text was repaired by a reader fix counts as new once, on the day of the fix.
+
+### Tested
+- 838 checks (15 new): the three "points back" cases from the screenshots and three that must stand alone; the join and the drop through the whole reader; footers and a stray "Date"; Cleveland's "2025-26 Notes:" carried over bullets and stopped by the next player; `numbersIn`, `sameFact`, `dedupe` keeping the fuller line; the ladder (78th under 77th; a birthday list and a streak's rank left alone); the opener rule (three weeks, "since the opener", a 2014 rarity kept); the "tonight's game" recap; the stray season after a bullet.
+- One milestone snapshot changed, reviewed: Charlotte (Brandon Miller's pass target is named "PJ Washington" from the sentence, where it was "P.J. Washington Jr." from the list; same milestone).
+- Every team's notes lines before and after on the stored copies for all 30 teams and the 11/16 files for eight: about 164 lines differ; each is a join, a drop, a merge or a trim described above.
+- A full local run of tonight's build for 11/16 (16 teams, 196 notes lines, 88 trimmed), then the page checks ("all pages OK"). Generated data restored afterwards.
+
+### Unproven
+- "Same fact" goes by numbers and shared words. Two different facts with the same numbers about the same player would merge; none did in the 30 teams' notes, and the test is strict (four shared words and 60% of the shorter line).
+- The ladder knows a list by the words around the place. A list the notes name two ways in two lines stays as two lines.
+- The header carry is tested on Cleveland's layout. A team that prints "2025-26 Notes:" above bullets of both seasons would lose this season's; none of the 30 does today.
+- Game notes that print only last season's notes for a player (as the user says Houston's may) are caught only when a header says so.
+
 ## 0.76.1 (2026-11-16): #articles: no ICYMI posts, no live blog housekeeping; links without emoji
 
 The user (11/16, 8:26 AM, with five phone screenshots of #articles): "I never need an ICYMI post to appear. That means in case you missed it, so theoretically it should have already been seen. I don't need the daily scores, and I don't need to be told to communicate in the chat. I don't need to read about subscribing to the athletic, nor do I need to be reminded about missed coverage." And: tapping the thumbs-down opens Discord's emoji sheet; tapping "Noise" opens a "Leaving Discord" window, "so I assume the thumbs down, the Mute and Review links do not work as intended."

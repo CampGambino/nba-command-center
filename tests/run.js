@@ -3246,6 +3246,106 @@ await articlesChecks(ok);
   }
 }
 
+// ---------- 0.77: the user's 19 screenshots (11/16, 10 AM): lines without their subject, repeats, last season's notes ----------
+{
+  const N = await import("../src/notes/narrative.js");
+  const F = await import("../src/notes/facts.js");
+  const L = (text, y = 400) => ({ text, y, cells: [{ x0: 40, x1: 560, cx: 300, text }], charX: [] });
+  const players = [{ id: "1", name: "Devin Booker" }, { id: "2", name: "James Harden" }, { id: "3", name: "Donovan Mitchell" }, { id: "4", name: "Jamal Murray" }];
+  const opts = { seasonStart: "2026-10-01", today: "2026-11-16", teamWords: ["Chicago", "Bulls"] };
+
+  ok(N.repairLayout("Tied for the fifth-highest scoring game by any active NBA player (70 on 3/24/17) 2026-27.") === "Tied for the fifth-highest scoring game by any active NBA player (70 on 3/24/17)."
+    && N.repairLayout("He averaged 25.6 points in 2025-26.") === "He averaged 25.6 points in 2025-26.", "the next header's season after a last bullet is cut off; a season in a sentence stays");
+
+  // A sentence that points back ("such instances", "such a game", "in the group… during the span").
+  ok(N.dangling("Booker is tied for the second-most such instances in the NBA this season, trailing only Luka Dončić.") && N.dangling("The Bulls are one of five teams this season to record such a game (DAL, GSW, HOU, LAL).")
+    && N.dangling("Brooks is the only player in the group to knock down 30+ 3FGM during the span."), "points back: \"such instances\", \"such a game\", \"in the group\" say nothing alone");
+  ok(!N.dangling("Tre Jones had 12 points, four rebounds, four assists and four steals off the bench at BOS (10/30), becoming the first NBA reserve to tally such minimums in game this season.")
+    && !N.dangling("He leads the team in steals this season with 24 and has five games with three or more steals, tying for third-most such games in the league.")
+    && !N.dangling("Since Chris Finch took over as Head Coach, the Wolves have held their opponents under 40.0% shooting 63 times, the third most in the NBA during that span (Oklahoma City: 75 and Boston: 74)."),
+    "points back: a sentence that names its own feat or its own span stands alone");
+  {
+    const h = N.readHistory({ pages: [{ page: 1, width: 612, lines: [
+      L("Devin Booker put up 13 points on 5-of-6 shooting and 3-of-4 3FG in the first quarter on Nov. 14, his fifth 10+ point first quarter of the season. Booker is tied for the second-most such instances in the NBA this season, trailing only Luka Dončić."),
+      L("Chicago had 11 steals and 10 blocks vs. ATL (11/13), marking their first game this season with at least 10 steals and 10 blocks. The Bulls are one of five teams this season to record such a game (DAL, GSW, HOU, LAL)."),
+    ] }, { page: 2, width: 612, lines: [L("Jamal Murray is the only player in the group to knock down 30+ 3FGM during the span, a mark he set last week against Utah.")] }] }, players, opts);
+    const bk = h.filter((x) => /such instances/.test(x.text)), ch = h.filter((x) => /such a game/.test(x.text));
+    ok(bk.length === 1 && /his fifth 10\+ point first quarter of the season\. Booker is tied for the second-most such instances/.test(bk[0].text) && ch.length === 1 && ch[0].text.startsWith("Chicago had 11 steals and 10 blocks"),
+      "points back: read together with the sentence right before it", h.map((x) => x.text.slice(0, 50)).join(" | "));
+    ok(!h.some((x) => /in the group/.test(x.text)) && !h.some((x) => /^Devin Booker put up 13 points.*first quarter of the season\.$/.test(x.text)), "points back: with no sentence before it, it is left out; the joined line replaces its first half");
+  }
+
+  // The page's footer and a table's header word are not part of the paragraph.
+  {
+    const cell = (text, x0) => ({ text, x0, x1: x0 + text.length * 4, cx: x0 + text.length * 2 });
+    const line = (y, ...cells) => ({ y, text: cells.map((c) => c.text).join("  "), cells });
+    const cols = N.columnsOf({ width: 612, lines: [line(402, cell("Murray has tallied two or more blocks in three consecutive", 59)), line(392, cell("Date", 118)), line(383, cell("games, tying his career-high streak.", 59)),
+      line(19.4, cell("Michael Porter Jr. leads the NBA with 6.3 PPG off dribble handoffs this season.", 47), cell("1", 579)), line(17.1, cell("@nuggets", 37), cell("PAGE 5", 80))] });
+    ok(cols.flat().join(" ") === "Murray has tallied two or more blocks in three consecutive games, tying his career-high streak. Michael Porter Jr. leads the NBA with 6.3 PPG off dribble handoffs this season.",
+      "footers: a page number, \"@nuggets PAGE 5\" and a stray \"Date\" are left out of the text", JSON.stringify(cols));
+  }
+
+  // Cleveland's "2025-26 Notes:" covers the bullets under it, down the page, until another player's box.
+  {
+    const doc = { pages: [{ page: 16, width: 612, lines: [
+      L("#1 James Harden Guard 6-5 220lbs 18th Year Pro"),
+      L("2026-27 NOTES: • Tallied a season-high 32 PTS on 9-14 shooting on Nov. 11 at New York, his 345th career game with at least 30 PTS, tying Allen Iverson for the 11th-most games with 30+ PTS in NBA history."),
+      L("2025-26 Notes: Appeared in 70 games (all starts) this season for the L.A. Clippers (44 games) and Cleveland (26 games)."),
+      L("• Contributed a season-high 55 PTS, including 10-16 shooting from the three-point line, 7 AST, 3 REB and 1 STL in 35 MIN on Nov. 22 at CHA. His 55 points is tied for the 2nd-most points scored by any player in the NBA this season."),
+      L("• Recorded a team-high 30 PTS on 11-16 shooting on March 11 at ORL. It was his 343rd career 30-point game, tying Elgin Baylor for the 12th-most 30-point games in NBA history."),
+      L("#45 Donovan Mitchell Guard 6-3 228lbs 10th Year Pro"),
+      L("• Donovan Mitchell became the 4th player in Cavs history to make at least 900 3FG with his 2nd made three-pointer on Nov. 14 vs. DAL."),
+    ] }] };
+    const dropped = [];
+    const h = N.readHistory(doc, players, { ...opts, dropped });
+    ok(!h.some((x) => /55 points is tied|343rd career 30-point/.test(x.text)) && dropped.some((d) => d.reason === "past-season" && /55 points is tied/.test(d.text)),
+      "season header: bullets under \"2025-26 Notes:\" are last season's, each in its own block", h.map((x) => x.text.slice(0, 40)).join(" | "));
+    ok(h.some((x) => /345th career game/.test(x.text)) && h.some((x) => /900 3FG/.test(x.text) && x.player === "Donovan Mitchell"), "season header: this season's notes above it, and the next player's box below it, are kept", h.map((x) => x.text.slice(0, 40)).join(" | "));
+  }
+
+  // The same fact told twice.
+  ok([...F.numbersIn("Sharpe has recorded 5+ assists in five consecutive contests, T-1st with 58.4% and 1,234 in 2025-26")].sort().join(",") === "1,1234,5,58.4", "numbers in a line: digits, spelled-out counts and ordinals; a season is not a number");
+  ok(F.sameFact("He ranks 11th in the NBA with 130 bench points this season.", "Wagner ranks 11 with 130 bench points this season and is 8th in the NBA with a 58.4% FG.")
+    && F.sameFact("Sharpe has recorded 5+ assists in five consecutive contests, which establishes a franchise-record streak by a center.", "Day'Ron Sharpe has recorded 5+ assists in five straight games, which is the longest streak by a center in franchise history.")
+    && !F.sameFact("He ranks 11th in the NBA with 130 bench points this season.", "Wagner is averaging 10.8 points, 3.4 rebounds and 1.5 assists in 18.3 minutes across 12 outings."), "same fact: told shorter or in other words; different numbers are a different fact");
+  {
+    const mk = (text, player, score) => ({ text, player, playerId: player, score });
+    const d = F.dedupe([
+      mk("He ranks 11th in the NBA with 130 bench points this season.", "Moritz Wagner", 5), mk("Wagner ranks 11 with 130 bench points this season and is 8th in the NBA with a 58.4% FG.", "Moritz Wagner", 3),
+      mk("Day'Ron Sharpe has recorded 5+ assists in five straight games, which is the longest streak by a center in franchise history.", "Day'Ron Sharpe", 4), mk("Sharpe has recorded 5+ assists in five consecutive contests, which establishes a franchise-record streak by a center.", "Day'Ron Sharpe", 3),
+      mk("An elite offensive rebounder as well, Sharpe holds the highest offensive rebound percentage by any player in NBA history, minimum 200 games played.", "Day'Ron Sharpe", 6),
+      mk("Sharpe owns the highest career offensive rebound percentage in NBA history (18.2%), min. 200 games played, and owns the fourth-highest career field goal percentage (56.2%) in Nets franchise history.", "Day'Ron Sharpe", 2),
+      mk("Career vs. Golden State Warriors - Bey averages 16.0 points per game off the bench, which is ranked 3rd in the NBA among all reserves.", "Saddiq Bey", 5), mk("Bey has been very productive off the bench, averaging 16.0 points per game, which ranks 3 among all NBA bench players.", "Saddiq Bey", 4),
+    ]).map((l) => l.text.slice(0, 34));
+    ok(d.length === 4 && d.includes("Wagner ranks 11 with 130 bench poi") && d.includes("Sharpe owns the highest career off") && d.includes("Day'Ron Sharpe has recorded 5+ ass") && d.includes("Bey has been very productive off t"),
+      "same fact: one line stays, the one that says more (or, at the same numbers, the one that opens with his name)", d.join(" | "));
+  }
+
+  // A climb up one list, the season opener a month on, and a recap left from the night of an older game.
+  {
+    const box = { keys: ["starter", "min"], games: [{ d: "2026-10-21" }, { d: "2026-11-14" }] };
+    const bk = (text, tag) => ({ text, tag, player: "Devin Booker", playerId: "1", score: 3 });
+    const lines = [bk("Devin Booker passed Tracy McGrady on the NBA's all-time scoring list and now ranks 77th in league history.", "77th all-time"), bk("He passed Tracy McGrady for the 78th most points in NBA history.", "78th all-time"),
+      bk("He passed Julius Erving for the 79th most points in NBA history.", "79th all-time"), bk("He ranks 11th in points in NBA history by any player before their 30th birthday.", "11th all-time"),
+      bk("He ranks 3rd all-time in points among players drafted 13th.", "3rd all-time"),
+      { text: "Giannis Antetokounmpo passed his own mark with at least 12 rebounds in seven-straight games, tying the third-longest such streak in team history.", tag: "3rd in team history", player: "G", playerId: "9", score: 3 },
+      { text: "Giannis Antetokounmpo passed Alonzo Mourning and ranks second in rebounds in team history.", tag: "2nd in team history", player: "G", playerId: "9", score: 3 }];
+    const t = F.trimLines(lines, { box, today: "2026-11-16", floor: 0 });
+    const why = Object.fromEntries(t.trimmed.map((l) => [l.tag, l.trimmed]));
+    ok(why["78th all-time"] === "an earlier place on the same list (78th; he is 77th now)" && why["79th all-time"] === "an earlier place on the same list (79th; he is 77th now)" && t.keep.some((l) => l.tag === "77th all-time"),
+      "ladder: the place he holds now is kept; the rungs below say where he is now", JSON.stringify(why));
+    ok(t.keep.some((l) => l.tag === "11th all-time") && t.keep.some((l) => l.tag === "3rd all-time") && t.keep.some((l) => l.tag === "3rd in team history") && t.keep.some((l) => l.tag === "2nd in team history"),
+      "ladder: a list with a condition on it, a place far above, and a streak's rank are other lists", t.trimmed.map((l) => l.tag).join(","));
+    const opener = { text: "Bam Adebayo has now started eight season openers with Miami, the second-most in team history.", player: "Bam Adebayo", playerId: "5" };
+    ok(F.trimReason(opener, { box, today: "2026-11-16" }) === "past one-off (season opener, over three weeks ago)" && F.trimReason(opener, { box, today: "2026-11-05" }) !== "past one-off (season opener, over three weeks ago)"
+      && F.trimReason({ text: "He has scored 20+ points in every game since the season opener, the longest such run of his career.", player: "X", playerId: "6" }, { box, today: "2026-11-16" }) !== "past one-off (season opener, over three weeks ago)",
+      "season opener: trimmed once it is over three weeks old; a run going since the opener is not");
+    ok(F.trimReason({ text: "Gobert had 10 rebounds through three quarters of tonight’s game, marking his 37th game with 10+ rebounds through the first three quarters, second in the NBA behind Nikola Jokic (38).", player: "Rudy Gobert", playerId: "7" }, { box, today: "2026-11-16" }) === "a recap from the night of an earlier game (its counts are as of that night)"
+      && F.trimReason({ text: "Tonight’s game is the first of four meetings between the teams this season.", player: null }, { box, today: "2026-11-16" }) !== "a recap from the night of an earlier game (its counts are as of that night)",
+      "\"tonight's game\" in a recap left from an earlier night is trimmed; a line about tonight's own game is not");
+  }
+}
+
 // ---------- snapshot ----------
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });
