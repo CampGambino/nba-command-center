@@ -26,6 +26,9 @@ import { expandFeeds } from "./feeds.js";
 import { buildStints, REG_LEN } from "./model.js";
 
 export const LEAD_MIN = 15;
+export const CLOSE_PTS = 5;      // "close late": within 5 in the last five minutes of regulation
+export const REST_LEAD = 15;     // sat the 4th with his team up this many after three: rest, not a benching
+const FINISH_SEC = 90;           // "finished the game": on the floor for at least half of the last three minutes
 export const TOP_N = 30;
 const median = (xs) => {
   if (!xs.length) return null;
@@ -62,7 +65,10 @@ export function gameFacts(row, c, lite) {
       if (s3 && s3.et < 3 * REG_LEN - 1e-6) out3 = s3.et;
     } else if (!p.starter && first) in1 = first.st;
     const pp = p.ptsByPeriod || {};
-    return { id: String(p.id), name: p.name, team: tri[p.side], opp: tri[1 - p.side], starter: !!p.starter,
+    // 0.72.6 (fourth-quarter minutes): seconds on the floor in the 4th, and in the last three minutes of regulation.
+    const on = (a, b) => st.reduce((n, s) => n + Math.max(0, Math.min(s.et, b) - Math.max(s.st, a)), 0);
+    const q4 = on(3 * REG_LEN, 4 * REG_LEN), last3 = on(4 * REG_LEN - 180, 4 * REG_LEN), second = on(2 * REG_LEN, 3 * REG_LEN);
+    return { id: String(p.id), name: p.name, team: tri[p.side], opp: tri[1 - p.side], starter: !!p.starter, q4, last3, second,
       q: [1, 2, 3, 4].map((k) => pp[k] || 0), out1, back, in1, out3, full1, open3, q1n: q1.length,
       lastOut: st.length ? st[st.length - 1].et : null, min: Math.round(p.calcMin || 0), mins: p.calcMin || 0, pts: p.boxPts || 0,
       trouble: !!p.troubleFrom, fouledOut: !!p.fouledOut };
@@ -71,16 +77,24 @@ export function gameFacts(row, c, lite) {
   let maxHome = 0, maxAway = 0;
   for (const f of G.flow) { if (f.d > maxHome) maxHome = f.d; if (-f.d > maxAway) maxAway = -f.d; }
   const hs = box.game.homeTeam.score, as = box.game.awayTeam.score;
-  const teams = [0, 1].map((side) => ({ team: tri[side], opp: tri[1 - side], won: side ? hs > as : as > hs, home: side === 1,
+  // Close late: within CLOSE_PTS at some moment of the last five minutes of regulation (the margin entering them counts).
+  let entering = 0, closeLate = false;
+  for (const f of G.flow) {
+    if (f.t < 4 * REG_LEN - 300) entering = f.d;
+    else if (f.t <= 4 * REG_LEN && Math.abs(f.d) <= CLOSE_PTS) closeLate = true;
+  }
+  if (Math.abs(entering) <= CLOSE_PTS) closeLate = true;
+  const after3 = [0, 1].map((side) => G.per[side].filter((x) => x.p <= 3).reduce((a, x) => a + x.pts, 0));
+  const teams = [0, 1].map((side) => ({ team: tri[side], opp: tri[1 - side], won: side ? hs > as : as > hs, home: side === 1, after3: after3[side] - after3[1 - side],
     neverLed: !!(G.everLed && !G.everLed[side]), neverTrailed: !!(G.everLed && !G.everLed[1 - side]),
     held: !!(G.leadState && G.leadState[side] && G.leadState[side].held), heldStrict: !!(G.leadState && G.leadState[side] && G.leadState[side].heldStrict),
     maxLead: side ? maxHome : maxAway, maxDown: side ? maxAway : maxHome,
     q: G.per[side].filter((x) => x.p <= 4).map((x) => x.pts), score: side ? hs : as, oppScore: side ? as : hs }));
-  return { ...base, players, teams };
+  return { ...base, players, teams, closeLate, periods: G.maxP };
 }
 
 export function flowStats(entries, lite = null) {
-  const quarters = [], halves = [], teamQuarters = [], rot = {}, fouls = {}, leads = {}, table = {}, early = [];
+  const quarters = [], halves = [], teamQuarters = [], rot = {}, fouls = {}, leads = {}, table = {}, early = [], fourth = {};
   let games = 0;
   for (const { row, c } of entries) {
     let F;
@@ -102,6 +116,20 @@ export function flowStats(entries, lite = null) {
       if (p.back != null) R._b.push(p.back);
       if (p.in1 != null) R._i1.push(p.in1);
       if (p.out3 != null) R._o3.push(p.out3);
+      // 0.72.6: a starter's fourth quarters. Sat it out (still playing after halftime, not fouled out), and whether he
+      // was on the floor to finish the games that were close late.
+      if (p.starter && F.periods >= 4 && p.second > 0 && !(p.fouledOut && p.q4 === 0)) {
+        const Q = fourth[p.id] || (fourth[p.id] = { name: p.name, team: p.team, gs: 0, sat: 0, satLed: 0, satW: 0, satMargin: 0, satMin: null, satClose: 0, satPts: 0, satIn: [], close: 0, closed: 0, ends: [] });
+        const T = F.teams.find((t) => t.team === p.team);
+        if (Q.team !== p.team) Object.assign(Q, { team: p.team, gs: 0, sat: 0, satLed: 0, satW: 0, satMargin: 0, satMin: null, satClose: 0, satPts: 0, satIn: [], close: 0, closed: 0, ends: [] });   // traded: his new team's games only
+        Q.gs++;
+        if (p.q4 === 0) {
+          Q.sat++; Q.satPts += p.pts; Q.satIn.push(F.gameId);
+          if (T) { if (T.after3 >= REST_LEAD) Q.satLed++; if (T.won) Q.satW++; Q.satMargin += T.score - T.oppScore; const m = Math.abs(T.score - T.oppScore); Q.satMin = Q.satMin == null ? m : Math.min(Q.satMin, m); }
+          if (F.closeLate) Q.satClose++;
+        }
+        if (F.closeLate) { const fin = p.last3 >= FINISH_SEC; Q.close++; if (fin) Q.closed++; Q.ends.push({ date: F.date, opp: p.opp, fin, gameId: F.gameId }); }
+      }
       const Fo = fouls[p.id] || (fouls[p.id] = { name: p.name, team: p.team, gp: 0, trouble: 0, out: 0, troubleIn: [], outIn: [] });
       Fo.team = p.team; Fo.gp++;
       if (p.trouble) { Fo.trouble++; Fo.troubleIn.push(F.gameId); }
@@ -135,10 +163,18 @@ export function flowStats(entries, lite = null) {
       n: { out1: R._o1.length, back: R._b.length, in1: R._i1.length, out3: R._o3.length } };
   }
   for (const id of Object.keys(fouls)) if (!fouls[id].trouble && !fouls[id].out) delete fouls[id];
+  // Fourth quarters: games oldest first; `miss` is his current run of close games he didn't finish.
+  for (const [id, Q] of Object.entries(fourth)) {
+    Q.ends.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    let miss = 0;
+    for (let i = Q.ends.length - 1; i >= 0 && !Q.ends[i].fin; i--) miss++;
+    Q.miss = miss; Q.ends = Q.ends.slice(-6);
+    if (Q.sat < 2 && Q.close < 3) delete fourth[id];
+  }
   // Only those who usually play the second half: a rest-day starter pulled at the half is no story.
   const leftEarly = early.filter((e) => { const r = rotation[e.id]; return r && r.starts >= 3 && (r.open3 || 0) >= 0.7 * r.starts; })
     .sort((a, b) => String(b.date).localeCompare(String(a.date)));
-  return { games, leadMin: LEAD_MIN, leadTable: Object.values(table), leftEarly, quarters: top(quarters), halves: top(halves), teamQuarters: top(teamQuarters), rotation, fouls, leads };
+  return { games, leadMin: LEAD_MIN, leadTable: Object.values(table), leftEarly, quarters: top(quarters), halves: top(halves), teamQuarters: top(teamQuarters), rotation, fouls, leads, fourth };
 }
 
 /* The place a value would take on a best-first list: 1 = the best. Ties share the place. */

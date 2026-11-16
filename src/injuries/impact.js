@@ -87,3 +87,73 @@ export function injuryImpacts(rows, teamFiles, { date } = {}) {
   }
   return out.sort((a, b) => b.score - a.score);
 }
+
+/**
+ * Two regulars out at once (0.72.6; the post, 11/15: "Austin Reaves in 3 career games without Luka Doncic, LeBron
+ * James since Doncic trade: 51/11/9, 37/8/13, 45/7/7"). For a team with two or more regulars listed Out or Doubtful
+ * tonight: its games without both of the two biggest (each already with the team by then), this season and last, and
+ * the teammate who scores most in them.
+ *
+ * impacts: injuryImpacts(...). prior: last season's player games by ESPN id, [{ d, team, pts, reb, ast, win }]
+ * (src/anticipate/replay.js pastSeason().pg), or null for this season only.
+ */
+const IXL = { min: 1, pts: 2, reb: 9, ast: 10 };
+export function comboAbsences(impacts, teamFiles, { prior = null, minGames = 2 } = {}) {
+  const out = [];
+  const byTeam = {};
+  for (const x of impacts) if (x.status === "Out" || x.status === "Doubtful") (byTeam[x.team] ??= []).push(x);
+  for (const [team, list] of Object.entries(byTeam)) {
+    if (list.length < 2 || !teamFiles[team]) continue;
+    const [a, b] = [...list].sort((p, q) => q.mpg - p.mpg);
+    const file = teamFiles[team];
+    // The team's games, oldest first, each with who played: { d, won, lines: { id: { pts, reb, ast } }, season }.
+    const games = [];
+    if (prior) {
+      const byDate = new Map();
+      for (const [id, gs] of Object.entries(prior)) for (const g of gs) {
+        if (g.team !== team) continue;
+        const G = byDate.get(g.d) || byDate.set(g.d, { d: g.d, won: !!g.win, lines: {}, last: true }).get(g.d);
+        G.lines[id] = { pts: g.pts || 0, reb: g.reb || 0, ast: g.ast || 0 };
+      }
+      games.push(...byDate.values());
+    }
+    for (const g of file.games) {
+      const lines = {};
+      for (const [id, l] of Object.entries(g.pl)) if ((l[IXL.min] || 0) > 0) lines[id] = { pts: l[IXL.pts] || 0, reb: l[IXL.reb] || 0, ast: l[IXL.ast] || 0 };
+      games.push({ d: g.d, won: g.pf > g.pa, lines });
+    }
+    games.sort((x, y) => x.d.localeCompare(y.d));
+    // Without both, once each has played for the team (a game before he arrived isn't a game without him).
+    const here = { [a.id]: false, [b.id]: false };
+    const both = [], rest = [];
+    for (const g of games) {
+      const inA = !!g.lines[a.id], inB = !!g.lines[b.id];
+      if (here[a.id] && here[b.id]) (!inA && !inB ? both : rest).push(g);
+      if (inA) here[a.id] = true;
+      if (inB) here[b.id] = true;
+    }
+    if (both.length < minGames) continue;
+    const now = new Set(Object.keys(file.games[file.games.length - 1]?.pl || {}));
+    let best = null;
+    for (const id of new Set(both.flatMap((g) => Object.keys(g.lines)))) {
+      if (id === a.id || id === b.id || !now.has(id)) continue;
+      const mine = both.filter((g) => g.lines[id]), other = rest.filter((g) => g.lines[id]);
+      if (mine.length < minGames) continue;
+      const avg = (gs, k) => gs.reduce((n, g) => n + g.lines[id][k], 0) / gs.length;
+      const c = { id, name: file.names[id] || id, n: mine.length, pts: avg(mine, "pts"), reb: avg(mine, "reb"), ast: avg(mine, "ast"), other: other.length ? avg(other, "pts") : null, otherN: other.length };
+      // The teammate whose scoring rises most without them (3+ a game, on 3+ other games); failing that, the top scorer.
+      c.gain = c.other != null && c.otherN >= 3 ? c.pts - c.other : null;
+      const rank = (x) => (x.gain != null && x.gain >= 3 ? 1000 + x.gain : x.pts);
+      if (!best || rank(c) > rank(best)) best = c;
+    }
+    const w = both.filter((g) => g.won).length;
+    const span = both.some((g) => g.last) ? " since last season" : " this season";
+    const r1 = (x) => (Math.round(x * 10) / 10).toFixed(1);
+    const word = a.status === "Out" && b.status === "Out" ? "out" : "out or doubtful";
+    let text = `${a.name} and ${b.name} both ${word}: ${team} ${w}-${both.length - w} in ${both.length} games without both${span}`;
+    if (best) text += `; ${best.name} ${r1(best.pts)} PPG, ${r1(best.reb)} RPG, ${r1(best.ast)} APG in ${best.n === both.length ? "them" : `${best.n} of them`}${best.other != null && best.otherN >= 3 ? ` (${r1(best.other)} PPG otherwise)` : ""}`;
+    out.push({ team, combo: [a.id, b.id], names: [a.name, b.name], games: both.length, w, l: both.length - w, best, text,
+      score: Math.round((Math.max(a.score, b.score) + 0.3 + (best && best.other != null && best.pts - best.other >= 5 ? 0.3 : 0)) * 100) / 100 });
+  }
+  return out;
+}

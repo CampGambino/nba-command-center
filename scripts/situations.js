@@ -470,6 +470,20 @@ for (const [tri, games] of Object.entries(perTeam)) {
     // The report writes "11/02/2026" (zero-padded): compare as dates, not strings.
     const tonightRows = report.rows.filter((r) => isoDate(r.date) === today);
     const impact = injuryImpacts(report.rows, files, { date: today });
+    // 0.72.6: two regulars out at once: the team's games without both, this season and last, and who steps up.
+    try {
+      const { comboAbsences } = await import("../src/injuries/impact.js");
+      const { pastSeason } = await import("../src/anticipate/replay.js");
+      const zlib = await import("node:zlib");
+      const lf = path.join(root, "src", "data", "player-logs-history.json.gz"), hf = path.join(root, "src", "data", "nba-results-history.json");
+      const y = Number(today.slice(0, 4)) - (Number(today.slice(5, 7)) < 8 ? 1 : 0);
+      const last = `${y - 1}-${String(y % 100).padStart(2, "0")}`;
+      const prior = fs.existsSync(lf) && fs.existsSync(hf) ? pastSeason({ history: JSON.parse(fs.readFileSync(hf, "utf8")), logs: JSON.parse(zlib.gunzipSync(fs.readFileSync(lf))), season: last }).pg : null;
+      const combos = comboAbsences(impact, files, { prior });
+      impact.push(...combos);
+      impact.sort((p, q) => q.score - p.score);
+      if (combos.length) console.log(`two out at once: ${combos.map((c) => c.text).join(" | ")}`);
+    } catch (e) { warnings.push(`combined absences: ${e.message}`); }
     fs.writeFileSync(file, JSON.stringify({ generatedAt: out.generatedAt, date: today, report: { url: report.url, asOf: report.asOf },
       players: tonightRows.map(({ team, name, status, reason, matchup, time }) => ({ team, name, status, reason, matchup, time })), impact }));
     console.log(`injury report ${report.asOf}: ${tonightRows.length} entries tonight, ${impact.length} regulars listed out/doubtful/questionable`);

@@ -2240,6 +2240,39 @@ await articlesChecks(ok);
     { rows: [], logs, seasons: null, history, names: { m1: "Mac Cain" }, season: "2026-27" });
   ok(R.found === 1 && R.total === 1 && R.cantReplay === 1 && R.checks[1].found === null, "flag checks (0.70): a post from last season is replayed; one that needs data we don't keep is set apart, not counted a miss", JSON.stringify(R));
 }
+// ---------- 0.72.6: fourth-quarter storylines and two regulars out at once (the user, 11/15: "Start it up") ----------
+{
+  const end = (date, opp, fin, gameId) => ({ date, opp, fin, gameId });
+  const flow = { fourth: {
+    a: { name: "Was Closing", team: "NYK", gs: 9, sat: 1, satW: 0, satMargin: -2, satMin: 2, satClose: 1, satPts: 6, satIn: ["g7"], close: 7, closed: 4, miss: 3, ends: [end("2026-11-01", "BOS", true, "g4"), end("2026-11-05", "PHI", false, "g5"), end("2026-11-11", "CLE", false, "g6"), end("2026-11-13", "IND", false, "g7")] },
+    b: { name: "Rested Star", team: "OKC", gs: 13, sat: 5, satW: 2, satMargin: 5, satMin: 21, satClose: 0, satPts: 131, satIn: [], close: 4, closed: 4, miss: 0, ends: [] },
+    c: { name: "Never Closes", team: "DET", gs: 12, sat: 0, satW: 0, satMargin: 0, satMin: null, satClose: 0, satPts: 0, satIn: [], close: 5, closed: 0, miss: 5, ends: [end("2026-11-12", "WAS", false, "g9")] },
+    d: { name: "Role Player", team: "OKC", gs: 13, sat: 6, satW: 3, satMargin: 9, satMin: 4, satClose: 0, satPts: 40, satIn: [], close: 4, closed: 3, miss: 1, ends: [] },
+    e: { name: "Fine Starter", team: "DET", gs: 12, sat: 1, satW: 1, satMargin: 20, satMin: 20, satClose: 0, satPts: 20, satIn: [], close: 5, closed: 4, miss: 0, ends: [] } } };
+  const watch = { today: "2026-11-16", teams: [], games: [{ id: "1", homeTri: "NYK", awayTri: "OKC", home: "NYK", away: "OKC" }, { id: "2", homeTri: "DET", awayTri: "XXX", home: "DET", away: "XXX" }] };
+  const { tonightCandidates } = await import("../src/anticipate/tonight.js");
+  const L = tonightCandidates({ watch, fouls: flow }).all.filter((l) => l.kind === "fourth").map((l) => l.text);
+  ok(L.length === 3 && L.includes("Was Closing started but wasn't on the floor to finish NYK's last 3 close games; he had finished 4 of 4 before, and didn't play in the 4th at all 11/13 vs IND (close: within 5 in the last five minutes)")
+    && L.includes("Rested Star hasn't played in the 4th quarter in 5 of his 13 starts: OKC 2-3 in those (every one decided by 20+), and he averages 26.2 points in them")
+    && L.includes("Never Closes has not finished any of the 5 close games he has started for DET (close: within 5 in the last five minutes)"),
+    "storylines (0.72.6): fourth quarters: a starter who stopped finishing close games, a scorer who sits the 4th of decided games, one who never finishes; a role player sitting and a starter who finishes get none", L.join(" | "));
+  // Two regulars out at once: games without both since each joined, this season and last, and the teammate who rises most.
+  const { comboAbsences } = await import("../src/injuries/impact.js");
+  const pl = (min, pts, reb = 5, ast = 5) => [1, min, pts, 0, 0, 0, 0, 0, 0, reb, ast, 0, 0, 0, 0, 0, 0, 0];
+  const file = { team: "LAL", names: { s1: "Star One", s2: "Star Two", r: "Third Guy", t: "Top Scorer" }, games: [
+    { d: "2026-10-22", pf: 110, pa: 100, pl: { s1: pl(35, 30), s2: pl(34, 25), r: pl(30, 18), t: pl(30, 26) } },
+    { d: "2026-10-24", pf: 100, pa: 110, pl: { s1: pl(35, 30), r: pl(30, 20), t: pl(30, 26) } },
+    { d: "2026-10-26", pf: 120, pa: 110, pl: { s1: pl(0, 0), s2: pl(0, 0), r: pl(38, 51, 11, 9), t: pl(30, 27) } },
+    { d: "2026-10-28", pf: 100, pa: 105, pl: { r: pl(38, 37, 8, 13), t: pl(30, 27) } },
+    { d: "2026-10-30", pf: 100, pa: 99, pl: { s1: pl(35, 30), s2: pl(34, 25), r: pl(30, 16), t: pl(30, 26) } } ] };
+  const prior = { s1: [{ d: "2026-03-01", team: "LAL", pts: 30, win: true }], s2: [{ d: "2026-03-01", team: "LAL", pts: 20, win: true }], r: [{ d: "2026-02-01", team: "LAL", pts: 40, reb: 1, ast: 1, win: true }, { d: "2026-03-01", team: "LAL", pts: 18, reb: 4, ast: 4, win: true }, { d: "2026-03-05", team: "LAL", pts: 45, reb: 7, ast: 7, win: false }], t: [] };
+  const imp = [{ team: "LAL", id: "s1", name: "Star One", status: "Out", mpg: 35, score: 3 }, { team: "LAL", id: "s2", name: "Star Two", status: "Out", mpg: 34, score: 2.5 }, { team: "BOS", id: "x", name: "Lone Out", status: "Out", mpg: 30, score: 2 }];
+  const C = comboAbsences(imp, { LAL: file }, { prior });
+  ok(C.length === 1 && C[0].text === "Star One and Star Two both out: LAL 1-2 in 3 games without both since last season; Third Guy 44.3 PPG, 8.7 RPG, 9.7 APG in them (18.0 PPG otherwise)" && C[0].score > 3,
+    "injuries (0.72.6): two regulars out at once: the games without both since both were with the team (a game before then isn't one), last season's included, and the teammate whose scoring rises most", JSON.stringify(C.map((c) => c.text)));
+  ok(comboAbsences(imp.slice(0, 1), { LAL: file }, { prior }).length === 0 && comboAbsences(imp, { LAL: { ...file, games: file.games.slice(0, 2) } }, { prior: null }).length === 0, "injuries (0.72.6): one regular out, or no games without both, gets no such line");
+}
+
 // ---------- 0.72.5: era totals, blowout spans, and last season's posts through the team watch (the user's 20 posts, 11/15) ----------
 {
   const { eraLines } = await import("../src/anticipate/seasonlong.js");
@@ -2810,6 +2843,13 @@ await articlesChecks(ok);
     ok(two.games === 2 && two.quarters.length && two.quarters[0].pts >= two.quarters[two.quarters.length - 1].pts && r1 && r1.gp === 2
       && two.leadTable.length === 2 && two.leadTable.every((t) => t.gp === 2 && t.neverTrailed + t.neverLed <= 2) && S.placeOn([{ pts: 20 }, { pts: 18 }, { pts: 18 }], 18) === 2,
       "game flow stats: season lists best first, rotations over games, the Leads & comebacks table, places on a list (ties share)", JSON.stringify(two.leadTable));
+    // 0.72.6: fourth quarters. Five players are on the floor for each team in the 4th and in its last three minutes.
+    const q4By = {}, l3By = {};
+    for (const p of Fg.players) { q4By[p.team] = (q4By[p.team] || 0) + p.q4; l3By[p.team] = (l3By[p.team] || 0) + p.last3; }
+    const fq = Object.values(two.fourth)[0];
+    ok(Object.values(q4By).every((v) => Math.abs(v - 3600) <= 60) && Object.values(l3By).every((v) => Math.abs(v - 900) <= 30) && typeof Fg.closeLate === "boolean" && Fg.teams[0].after3 === -Fg.teams[1].after3
+      && Object.values(two.fourth).every((x) => x.gs === 2 && x.sat <= 2 && x.closed <= x.close && x.miss <= x.close),
+      "game flow stats (0.72.6): a real game's 4th-quarter seconds add up to five players a side; starters' fourth quarters (sat it out, finished the close ones) are counted per player", JSON.stringify([q4By, l3By, Fg.closeLate, fq]));
     const lite = {}; S.flowStats([{ row, c }], lite);
     const Lm = lite[String(c.id)], Gp = Gm.players.filter((p) => p.played);
     ok(Lm && Lm.players.length === Gp.length && Lm.assists.length === Gm.assists.length && Lm.box.homeTeam.teamTricode === Gm.box.homeTeam.teamTricode

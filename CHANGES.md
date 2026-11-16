@@ -2,6 +2,30 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.72.6 (2026-11-15): fourth quarters for starters; two regulars out at once
+
+The user (11/15), after the list of suggestions from the posts: "Start it up" (the two picked first: fourth-quarter minutes for starters, and games without specific teammates tied to the injury report).
+
+### What changed
+- **Fourth quarters** (`src/gameflow/stats.js` → `flowstats.json` `fourth`; storyline kind `fourth`, ⏳). For every game a player starts (still playing after halftime, not fouled out): his seconds in the 4th and in the last three minutes of regulation, whether the game was close late (within 5 at some moment of the last five minutes), and the margin after three. Three lines come from it, at most one a game:
+  - a starter who wasn't on the floor to finish his team's last 3+ close games when he had finished half or more before, with a note if he sat the whole 4th of the latest one;
+  - a starter who has finished a quarter or fewer of the 5+ close games he started;
+  - a scorer (18+ a game in them) who hasn't played in the 4th in 3+ of his starts (30%+), with his team's record in those games and whether every one was decided by 15+.
+- **Two regulars out at once** (`comboAbsences` in `src/injuries/impact.js`, an injury storyline). When a team has two or more regulars Out or Doubtful on tonight's report: its record in the games without both of the two biggest, counted only from when each had played for the team, this season and last; and the teammate whose scoring rises most in them (3+ a game), or failing that the top scorer.
+- The single-absence line was already there (the team's record and two teammates' numbers without him, this season).
+- Three of the 20 posts' checks now say they are built; the scoreboard is 29 of 36 with 11 set apart (the two-out line needs that night's injury report, which isn't kept for last season).
+
+### Tested
+- 761 checks here (4 new: a real game's 4th-quarter seconds add up to five players a side, and the per-player counts; the three fourth-quarter lines and two that must not fire; two out at once with a game before both had joined left out and last season's included; one out or no shared absences gets nothing). 767 with the held 0.73 worker checks. The pages test: all pages OK.
+- This season's 188 Game Flow files, league-wide: three lines. "Josh Hart started but wasn't on the floor to finish NYK's last 3 close games; he had finished 4 of 4 before, and didn't play in the 4th at all 11/13 vs IND"; "Shai Gilgeous-Alexander hasn't played in the 4th quarter in 5 of his 13 starts: OKC 2-3 in those (every one decided by 20+)…" (checked against the five box scores: 96-120, 98-119, 128-97, 114-75, 103-123); "John Collins has not finished any of the 5 close games he has started for DET".
+- Tonight's 8 PM injury report: three teams with two regulars out. "Tre Johnson and Justin Champagnie both out: WAS 2-4 in 6 games without both since last season; Will Riley 18.8 PPG… in 5 of them (8.8 PPG otherwise)".
+
+### Unproven
+- "Finished the game" is a rule of thumb (on the floor for at least half of the last three minutes of regulation); overtime isn't looked at. The thresholds (3 close games, 18 points) are first guesses.
+- Why a starter didn't finish isn't known to the program: an injury in the 4th reads the same as a coach's decision. The left-early line covers first-half exits only.
+- Last season's games in the two-out line take each player's team from the results (date, opponent, home), and a long shared absence from last season can dominate the count (UTA: 31 games without Markkanen and Jackson Jr.).
+- The fourth-quarter numbers are a build behind the rest (the Game Flow step runs last), as the foul and left-early lines are.
+
 ## 0.72.5 (2026-11-15): 20 more posts as checks; era totals, blowout spans; last season replayed through every detector
 
 The user (11/15) sent 20 posts from other accounts: "some more interesting stats at the time they were tweeted. Unclear how to incorporate them in a predictive sense. it requires the program to continually check against itself."

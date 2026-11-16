@@ -259,6 +259,40 @@ function earlyLines(flow, teams, today) {
       text: `${e.name} left ${md(e.date)} vs ${e.opp} at ${at(e.out)} and didn't return (${e.min} min, ${e.pts} pts); he usually plays the second half` }));
 }
 
+/**
+ * Fourth quarters (docs/data/flowstats.json `fourth`; 0.72.6, the user 11/15: "fourth quarter minutes for starters to see
+ * which ones are getting benched"; the posts: "he's sat out the 4th quarter in 7 of 13 games"). Two different stories:
+ *   rest     a scorer who hasn't played in the 4th in 3+ of his starts (30%+), with his team's record in those games;
+ *   benched  a starter not on the floor to finish his team's last 3+ close games when he used to be, or one who
+ *            finishes a quarter or fewer of the close games he starts (5+).
+ * Close = within 5 in the last five minutes of regulation; finishing = on the floor for most of the last three.
+ */
+export const FOURTH = { sat: 3, share: 0.3, ppg: 18, miss: 3, close: 5, rarely: 0.25 };
+function fourthLines(flow, teams) {
+  if (!flow?.fourth) return [];
+  const out = [];
+  const r1 = (x) => (Math.round(x * 10) / 10).toFixed(1);
+  // The latest close game: did he sit the whole 4th of it?
+  const satLast = (q) => { const e = q.ends[q.ends.length - 1]; return e && (q.satIn || []).includes(e.gameId) ? `, and didn't play in the 4th at all ${+e.date.slice(5, 7)}/${+e.date.slice(8, 10)} vs ${e.opp}` : ""; };
+  for (const q of Object.values(flow.fourth)) {
+    if (!teams.has(q.team)) continue;
+    const before = q.close - q.miss, beforeFin = q.closed;                    // close games before the current run, and those he finished
+    if (q.miss >= FOURTH.miss && before >= 2 && beforeFin / before >= 0.5) {
+      out.push({ team: q.team, player: q.name, kind: "fourth", score: 3.7 + Math.min(0.5, 0.1 * q.miss),
+        text: `${q.name} started but wasn't on the floor to finish ${q.team}'s last ${q.miss} close games; he had finished ${beforeFin} of ${before} before${satLast(q)} (close: within 5 in the last five minutes)` });
+    } else if (q.close >= FOURTH.close && q.closed / q.close <= FOURTH.rarely) {
+      out.push({ team: q.team, player: q.name, kind: "fourth", score: 2.7 + (q.closed === 0 ? 0.3 : 0),
+        text: `${q.name} has ${q.closed === 0 ? "not finished any" : `finished ${q.closed}`} of the ${q.close} close games he has started for ${q.team} (close: within 5 in the last five minutes)` });
+    } else if (q.sat >= FOURTH.sat && q.sat / q.gs >= FOURTH.share && q.satPts / q.sat >= FOURTH.ppg) {
+      const m = q.satMargin / q.sat;
+      const how = q.satMin >= 15 ? `every one decided by ${Math.floor(q.satMin / 5) * 5}+` : `${m >= 0 ? "+" : ""}${r1(m)} a game`;
+      out.push({ team: q.team, player: q.name, kind: "fourth", score: 3.1 + Math.min(0.6, q.sat / q.gs),
+        text: `${q.name} hasn't played in the 4th quarter in ${q.sat} of his ${q.gs} starts: ${q.team} ${q.satW}-${q.sat - q.satW} in those (${how}), and he averages ${r1(q.satPts / q.sat)} points in them` });
+    }
+  }
+  return out;
+}
+
 function teamLines(trends, teams) {
   // 0.65: the streak watch says what tonight would make of a run ("a loss tonight would be OKC's first 3-game losing
   // streak since 2023-24", "NOP has allowed 135+ in 4 straight…"); it replaces the bare "lost N straight".
@@ -434,7 +468,7 @@ export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries =
   const hist = historyLines(facts, teams, watch.today).filter((h) => !recs.some((r) => r.player && r.passing && r.team === h.team
     && new RegExp(`\\b${surname(r.player)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
     && r.passing.split(" and ").some((n) => new RegExp(`\\b${surname(n)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, "")))));
-  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams).filter((l) => !clubLines(leaders, teams).some((c) => c.player === l.player)), ...clubLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today), ...tvLines(national, teams, watch.today), ...restLines(rest, teams, watch.today), ...formLines(form, teams, watch.today), ...foulLines(fouls, teams), ...earlyLines(fouls, teams, watch.today), ...prepStoryLines(prep, teams, games, watch.today), ...cupLines(records, teams, watch.today)]
+  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams).filter((l) => !clubLines(leaders, teams).some((c) => c.player === l.player)), ...clubLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today), ...tvLines(national, teams, watch.today), ...restLines(rest, teams, watch.today), ...formLines(form, teams, watch.today), ...foulLines(fouls, teams), ...earlyLines(fouls, teams, watch.today), ...fourthLines(fouls, teams), ...prepStoryLines(prep, teams, games, watch.today), ...cupLines(records, teams, watch.today)]
     .flatMap((l) => {
       const st = l.player ? listed.get(`${l.team}|${nameKey(l.player)}`) : null;
       if (st === "Out" || st === "Doubtful") return [];
@@ -444,7 +478,7 @@ export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries =
 }
 
 // At most this many of a kind in one game's card.
-const PER_GAME = { injury: 2, history: 2, context: 1, matchup: 2, tv: 2, rest: 2, form: 2, foul: 2, season: 2, span: 2, pstreak: 2, vsopp: 1, pace: 1, trade: 1, role: 1, lineup: 1, turn: 1, beaten: 1, month: 1, monthp: 1, rookie: 1, defense: 1, cup: 1, era: 1 };
+const PER_GAME = { injury: 2, history: 2, context: 1, matchup: 2, tv: 2, rest: 2, form: 2, foul: 2, season: 2, span: 2, pstreak: 2, vsopp: 1, pace: 1, trade: 1, role: 1, lineup: 1, turn: 1, beaten: 1, month: 1, monthp: 1, rookie: 1, defense: 1, cup: 1, era: 1, fourth: 1 };
 export function tonightStorylines(args) {
   const maxLines = args.maxLines ?? MAX_LINES;
   const { games, all } = tonightCandidates(args);
