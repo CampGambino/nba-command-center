@@ -325,6 +325,101 @@ export function paceLines({ pg, logs, names }) {
   return out;
 }
 
+// 7. His own best start (0.76; the Clippers' notes, 11/15: "His 114 points through first 10 games is the most through
+// his first 10 games of any season (previous: 108 points in 2025-26)"). paceLines measures a start against the league;
+// this measures it against the player's own seasons. The logs begin in 2016-17, so for a player who was already in
+// the league then the line says "since 2016-17".
+const OWN = { games: 8, past: 3, mpg: 20, perGame: { pts: 10, reb: 6, ast: 4, fg3m: 1.8 }, low: { past: 5, mpg: 24, bestPpg: 18 }, keep: 30 };
+const OWN_STATS = [["pts", "points"], ["reb", "rebounds"], ["ast", "assists"], ["fg3m", "threes"]];
+export function ownStartLines({ pg, logs, names, seasons = null, nameKey = (n) => n, keep = OWN.keep }) {
+  const L = logRows(logs);
+  const out = [];
+  const si = seasons?.keys ? seasons.keys.indexOf("season") : -1;
+  const firstByKey = si >= 0 ? new Map(Object.entries(seasons.players || {}).map(([nm, rows]) => [nameKey(nm), rows.map((r) => r[si]).sort()[0]])) : new Map();
+  const firstSeason = (nm) => firstByKey.get(nameKey(nm)) || null;
+  for (const [id, gs] of Object.entries(pg)) {
+    const name = names[id], n = gs.length;
+    if (!name || n < OWN.games || !L[id]) continue;
+    const now = seasonOfDate(gs[n - 1].d);
+    const by = {};
+    for (const g of L[id]) if (g.type === 2 && seasonOfDate(g.d) < now) (by[seasonOfDate(g.d)] ??= []).push(g);
+    const all = Object.entries(by).map(([season, rows]) => ({ season, rows: rows.sort((a, b) => (a.d < b.d ? -1 : 1)) }));
+    const past = all.filter((x) => x.rows.length >= n);
+    if (past.length < OWN.past) continue;
+    const t = sum(gs);
+    if (t.min / n < OWN.mpg) continue;
+    // The logs start in 2016-17: a player whose career began before then (the NBA Guide's seasons say) gets "since 2016-17".
+    const span = all.some((x) => x.season === "2016-17") && !(firstSeason(name) >= "2016-17") ? " since 2016-17" : "";
+    const through = (rows, k) => rows.slice(0, n).reduce((a, g) => a + (g[k] || 0), 0);
+    let best = null;
+    for (const [k, label] of OWN_STATS) {
+      const v = t[k];
+      if (v / n < OWN.perGame[k]) continue;
+      const prev = past.map((x) => ({ season: x.season, v: through(x.rows, k) })).sort((a, b) => b.v - a.v)[0];
+      if (v <= prev.v) continue;
+      const lift = (v - prev.v) / Math.max(1, prev.v);
+      if (!best || (k === "pts" ? 1 : 0) + lift > best.rank) best = { rank: (k === "pts" ? 1 : 0) + lift, k, label, v, prev, lift };
+    }
+    if (best) {
+      out.push({ kind: "pace", team: gs[n - 1].team, player: name, id, key: `own|${id}|${best.k}`,
+        text: `${name}'s ${best.v} ${best.label} through ${n} games are his most through ${n} games of any season${span} (previous: ${best.prev.v}, ${short(best.prev.season)})`,
+        score: 2.3 + Math.min(0.5, best.lift * 2) + (best.k === "pts" ? 0.2 : 0) });
+      continue;
+    }
+    // The other end, for a scorer: his fewest points through this many games.
+    const bestPpg = Math.max(...all.filter((x) => x.rows.length >= 20).map((x) => x.rows.reduce((a, g) => a + g.pts, 0) / x.rows.length), 0);
+    if (past.length < OWN.low.past || t.min / n < OWN.low.mpg || bestPpg < OWN.low.bestPpg) continue;
+    const low = past.map((x) => ({ season: x.season, v: through(x.rows, "pts") })).sort((a, b) => a.v - b.v)[0];
+    if (t.pts >= low.v) continue;
+    out.push({ kind: "pace", team: gs[n - 1].team, player: name, id, key: `own|${id}|ptsLow`,
+      text: `${name}'s ${t.pts} points through ${n} games are his fewest through ${n} games of any season${span} (previous low: ${low.v}, ${short(low.season)})`,
+      score: 2.3 + Math.min(0.5, ((low.v - t.pts) / Math.max(1, low.v)) * 2) });
+  }
+  return out.sort((a, b) => b.score - a.score).slice(0, keep);
+}
+
+// 8. Already at last season's count (0.76; the Clippers' notes: "Has recorded 20-point performances in four of 11
+// games this season, after doing so three times during entire 25-26 campaign"). And one short of it, which is the
+// line to have before the game: one more tonight matches all of last season.
+const ALREADY = { games: 8, lastGames: 40, share: 0.5, keep: 30 };
+const EVENTS = [
+  // family, key, label (plural), test; the first of a family that qualifies is the one said
+  ["pts", "pts40", "40-point games", (g) => g.pts >= 40], ["pts", "pts30", "30-point games", (g) => g.pts >= 30], ["pts", "pts20", "20-point games", (g) => g.pts >= 20],
+  ["dbl", "td", "triple-doubles", td], ["dbl", "dd", "double-doubles", dd],
+  ["fg3", "fg3m5", "games with 5+ threes", (g) => g.fg3m >= 5], ["ast", "ast10", "games with 10+ assists", (g) => g.ast >= 10],
+];
+export function alreadyLines({ pg, logs, names }) {
+  const L = logRows(logs);
+  const out = [];
+  for (const [id, gs] of Object.entries(pg)) {
+    const name = names[id], n = gs.length;
+    if (!name || n < ALREADY.games || !L[id]) continue;
+    const now = seasonOfDate(gs[n - 1].d);
+    const lastTag = `${+now.slice(0, 4) - 1}-${String(+now.slice(0, 4) % 100).padStart(2, "0")}`;
+    const last = L[id].filter((g) => g.type === 2 && seasonOfDate(g.d) === lastTag);
+    if (last.length < ALREADY.lastGames || n > last.length * ALREADY.share) continue;
+    const seen = new Set();
+    let best = null;
+    for (const [fam, key, label, test] of EVENTS) {
+      if (seen.has(fam)) continue;
+      const c = gs.filter(test).length, was = last.filter(test).length;
+      const how = c > was && was >= 2 ? "more" : c === was && was >= 3 ? "same" : c === was - 1 && was >= 3 && c >= 2 ? "one" : null;
+      if (!how) continue;
+      seen.add(fam);
+      const rank = { more: 3, one: 2, same: 1 }[how] + (fam === "pts" ? 0.5 : 0) + Math.min(0.4, was / 50);
+      if (!best || rank > best.rank) best = { rank, how, key, label, c, was };
+    }
+    if (!best) continue;
+    const tail = best.how === "more" ? `already more than in all of last season (${best.was} in ${last.length} games)`
+      : best.how === "same" ? `already as many as in all of last season (${best.was} in ${last.length} games)`
+      : `one more matches all of last season (${best.was} in ${last.length} games)`;
+    out.push({ kind: "season", team: gs[n - 1].team, player: name, id, key: `already|${id}|${best.key}`,
+      text: `${name} has ${best.c} ${best.label} in ${n} games this season: ${tail}`,
+      score: 2.2 + best.rank * 0.15, ...(best.how === "one" ? { tonight: true } : {}) });
+  }
+  return out.sort((a, b) => b.score - a.score).slice(0, ALREADY.keep);
+}
+
 /** Everyone's prominence (0-1) from this season's minutes and points, for the briefing's ranking. */
 export function prominence(pg, names) {
   const out = {};
@@ -339,7 +434,7 @@ export function prominence(pg, names) {
 
 /** All of it, for scripts/situations.js -> docs/data/prep.json. */
 export function prepLines(args) {
-  const parts = [["season", seasonLines], ["absence", absenceLines], ["run", runLines], ["streak", streakLines], ["vsopp", vsOppLines], ["pace", paceLines]];
+  const parts = [["season", seasonLines], ["absence", absenceLines], ["run", runLines], ["streak", streakLines], ["vsopp", vsOppLines], ["pace", paceLines], ["own", ownStartLines], ["already", alreadyLines]];
   const lines = [], errors = [];
   for (const [k, f] of parts) { try { lines.push(...f(args)); } catch (e) { errors.push(`${k}: ${e.message}`); } }
   return { lines, errors, stars: prominence(args.pg, args.names) };

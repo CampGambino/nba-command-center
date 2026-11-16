@@ -359,6 +359,30 @@ function shotLines(flow, teams, today) {
   return out;
 }
 
+/**
+ * A list from a team's notes, counted forward (0.76): where a player on tonight's slate stands on it, and what the
+ * next one does. Said only when the next one changes his place (tied with someone, or within two of the name above).
+ * flow.seeded: src/gameflow/stats.js seededCounts().
+ */
+export function seededLines(flow, teams) {
+  const out = [];
+  const ord = (n) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th"}`;
+  for (const L of flow?.seeded || []) {
+    L.rows.forEach((r) => {
+      if (!r.team || !teams.has(r.team)) return;
+      const place = L.rows.filter((x) => x.n > r.n).length + 1;
+      const tied = L.rows.filter((x) => x !== r && x.n === r.n);
+      const above = L.rows.filter((x) => x.n > r.n).sort((a, b) => a.n - b.n)[0] || null;
+      if (!tied.length && !(above && above.n - r.n <= 2)) return;
+      const where = tied.length ? `tied with ${tied.map((x) => x.name).join(" and ")} for ${place === 1 ? "the most" : ord(place)}` : place === 1 ? "the most" : `${ord(place)}-most`;
+      const next = tied.length ? `the next one puts him alone in ${place === 1 ? "first" : ord(place)}` : above.n - r.n === 1 ? `the next one ties ${above.name} (${above.n})` : `two more tie ${above.name} (${above.n})`;
+      out.push({ team: r.team, player: r.name, kind: "era", score: 2.8 + (L.min >= 25 ? 0.2 : 0) + (tied.length || above.n - r.n === 1 ? 0.3 : 0), key: `seed|${L.id}|${r.name}`,
+        text: `${r.name} has ${r.n} ${L.what} since ${L.since}, ${where}; ${next}. From the ${L.source.replace(/ game notes.*$/, "")}' notes, counted forward here from ${Number(L.through.slice(5, 7))}/${Number(L.through.slice(8, 10))}` });
+    });
+  }
+  return out;
+}
+
 function teamLines(trends, teams) {
   // 0.65: the streak watch says what tonight would make of a run ("a loss tonight would be OKC's first 3-game losing
   // streak since 2023-24", "NOP has allowed 135+ in 4 straight…"); it replaces the bare "lost N straight".
@@ -534,7 +558,7 @@ export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries =
   const hist = historyLines(facts, teams, watch.today).filter((h) => !recs.some((r) => r.player && r.passing && r.team === h.team
     && new RegExp(`\\b${surname(r.player)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
     && r.passing.split(" and ").some((n) => new RegExp(`\\b${surname(n)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, "")))));
-  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams).filter((l) => !clubLines(leaders, teams).some((c) => c.player === l.player)), ...clubLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today), ...tvLines(national, teams, watch.today), ...restLines(rest, teams, watch.today), ...formLines(form, teams, watch.today), ...foulLines(fouls, teams), ...earlyLines(fouls, teams, watch.today), ...fourthLines(fouls, teams), ...lastTwoLines(fouls, teams), ...shotLines(fouls, teams, watch.today), ...prepStoryLines(prep, teams, games, watch.today), ...cupLines(records, teams, watch.today)]
+  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams).filter((l) => !clubLines(leaders, teams).some((c) => c.player === l.player)), ...clubLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today), ...tvLines(national, teams, watch.today), ...restLines(rest, teams, watch.today), ...formLines(form, teams, watch.today), ...foulLines(fouls, teams), ...earlyLines(fouls, teams, watch.today), ...fourthLines(fouls, teams), ...lastTwoLines(fouls, teams), ...shotLines(fouls, teams, watch.today), ...seededLines(fouls, teams), ...prepStoryLines(prep, teams, games, watch.today), ...cupLines(records, teams, watch.today)]
     .flatMap((l) => {
       const st = l.player ? listed.get(`${l.team}|${nameKey(l.player)}`) : null;
       if (st === "Out" || st === "Doubtful") return [];

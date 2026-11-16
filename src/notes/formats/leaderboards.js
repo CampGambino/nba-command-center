@@ -20,6 +20,9 @@ import { teamFromText } from "../../teams.js";
  */
 const RE_PAREN = /(?:^|\s)(T-)?(\d{1,2})(t)?[.,]\s*(\p{Lu}[\p{L}’'.,\- ]*?)\s*\(\s*([\d,.]{1,7})\s*\)/gu;
 const RE_PLAIN = /(?:^|\s)(T-)?(\d{1,2})(t)?[.)]\s+(\p{Lu}[\p{L}’'.\- ]*?[\p{L}.])\s{2,}([\d,.]{1,7})(?=\s|$)/gu;
+// Dotted leaders (Indiana's "FRANCHISE LEADERS" sidebar, 11/15): "1. Reggie Miller ...............4,141". A row tied
+// with the one above prints no rank ("7. Micheal Williams....29" / "Pooh Richardson....29").
+const RE_DOTS = /(?:^|\s)(?:(T-)?(\d{1,2})(t)?[.)]\s+)?(\p{Lu}[\p{L}’'\- ]*?(?:\.\s?\p{Lu}[\p{L}’'\- ]*?)*[\p{L}])\s?\.{4,}\s?([\d,.]{1,7})(?=\s|$)/gu;
 // Bare rank: only accepted with wide gaps between rank, name and value
 // (separate cells), which ordinary sentences never have.
 const RE_BARE = /(?:^|\s{2,})(t-|T-)?(\d{1,2})()\s{2,}(\p{Lu}[\p{L}’'.,\- ]*?[\p{L}.])\s{2,}([\d,.]{1,7})(?=\s|$)/gu;
@@ -39,11 +42,13 @@ function rowsOnLine(line) {
       if (found.some((f) => start < f.end && end > f.start)) continue; // already read by an earlier style
       const row = kind === "value-first"
         ? { rank: null, tied: false, player: m[2], raw: m[1], years: m[3].replace(/\s+/g, ""), active: /present/i.test(m[3]) }
+        : m[2] == null ? { rank: null, sameAsAbove: true, tied: true, player: m[4], raw: m[5] }
         : { rank: +m[2], tied: !!(m[1] || m[3]), player: m[4], raw: m[5] };
       found.push({ ...row, kind, start, end, x: xAt(line, start), xEnd: xAt(line, end - 1) });
     }
   };
   take(RE_PAREN, "ranked");
+  take(RE_DOTS, "ranked");
   take(RE_PLAIN, "ranked");
   take(RE_BARE, "ranked");
   take(RE_VALUE_FIRST, "value-first");
@@ -60,6 +65,15 @@ export function readLeaderboards(doc) {
         e.total = num(e.raw);
         if (e.total == null) continue;
         e.player = cleanName(e.player.replace(/^([A-Z]),\s*/, "$1. "));
+        if (e.sameAsAbove) {
+          // No rank printed: tied with the row above, in the list it sits under (its name starts a little to the right).
+          const above = open.find((t) => !t.closed && t.kind === "ranked" && e.x - t.x > -5 && e.x - t.x < 40 && li - t.lastLine <= 2 && t.rows[t.rows.length - 1].total === e.total);
+          if (!above) continue;
+          const last = above.rows[above.rows.length - 1];
+          e.rank = last.rank; last.tied = true;
+          above.rows.push(e); above.lastLine = li; above.xEnd = Math.max(above.xEnd, e.xEnd); joined.add(above);
+          continue;
+        }
         const t = open.find((t) => !t.closed && t.kind === e.kind && Math.abs(t.x - e.x) < 30 && li - t.lastLine <= 2 && (e.kind === "value-first" || nextRank(t.rows[t.rows.length - 1], e)));
         if (t) { t.rows.push(e); t.lastLine = li; t.xEnd = Math.max(t.xEnd, e.xEnd); joined.add(t); }
         else { const n = { page: page.page, kind: e.kind, x: e.x, xEnd: e.xEnd, firstLine: li, lastLine: li, rows: [e] }; open.push(n); joined.add(n); }
@@ -76,6 +90,10 @@ export function readLeaderboards(doc) {
       if (t.kind === "value-first") t.rows.forEach((r, i) => { r.rank = i + 1; });
       t.title = titleAbove(page, t);
       t.section = sectionAbove(page, t);
+      // "FRANCHISE LEADERS / NBA YEARS ONLY / (1976-PRESENT)" over Indiana's lists: the franchise's years in the NBA
+      // (it played in the ABA before), not an NBA list. The words come off the title; the heading keeps them.
+      const years = t.title.match(/\bNBA YEARS ONLY\s*(?:\(\s*\d{4}\s*-\s*PRESENT\s*\))?\s*/i);
+      if (years) { t.title = t.title.replace(years[0], "").trim() || `Leaderboard (page ${t.page})`; t.section = `${t.section || "FRANCHISE LEADERS"} ${years[0].trim()}`; }
       tables.push(t);
     }
   }
@@ -131,7 +149,7 @@ function titleAbove(page, t) {
     if (!cells.length) continue;
     // A data row of a list printed above this one (a bare rank, a value, a
     // "5 Moses Moody .378%" row) means the title search has gone too far.
-    if (cells.some((c) => /^[\d,.%\s\-t]+$/i.test(c.text) || (/^\s*(T-|t-)?\d{1,2}t?[.,]?\s+\p{Lu}/u.test(c.text) && /\d\s*\)?\s*$/.test(c.text)))) break;
+    if (cells.some((c) => /\.{4,}\s?[\d,.]+$/.test(c.text) || /^[\d,.%\s\-t]+$/i.test(c.text) || (/^\s*(T-|t-)?\d{1,2}t?[.,]?\s+\p{Lu}/u.test(c.text) && /\d\s*\)?\s*$/.test(c.text)))) break;
     // Titles are short; a long cell or sentence-like text is body copy that
     // happens to sit above the list.
     const words = cells.map((c) => c.text).filter((s) => !HEADER_NOISE.test(s.trim()) && s.length <= 60 && !NOT_A_TITLE.test(s.replace(/\([^)]*\)/g, "")));

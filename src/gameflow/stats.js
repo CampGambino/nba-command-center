@@ -122,6 +122,26 @@ function shotLog(pbp, G, tri) {
  * season's longest of each for scale.
  *   games: [{ date, shots: gameFacts().shots }], any order.
  */
+export const BIG_QUARTER = 20;
+const plainName = (n) => String(n || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z ]/g, "").replace(/\s+/g, " ").trim();
+/**
+ * Lists seeded from a team's notes (src/data/seeded-lists.json), counted forward (0.76; the user, 11/16, on the Suns'
+ * "MOST 20+ POINT QUARTERS IN THE NBA SINCE 2016-17 (STATHEAD)"). Each row's count is the printed one plus the
+ * player's quarters at that level dated after the list's `through` day.
+ *   bigQuarters: flowStats().bigQuarters; teamOf: plain name -> team code, for tonight's slate
+ *   -> [{ id, what, since, source, through, min, rows: [{ name, n, added, team }] }], rows best first
+ */
+export function seededCounts(lists, bigQuarters, teamOf = {}) {
+  return (lists || []).filter((l) => l.event?.type === "quarter" && l.event.min >= BIG_QUARTER).map((l) => {
+    const rows = l.rows.map(([name, n]) => {
+      const k = plainName(name);
+      const added = (bigQuarters || []).filter((q) => plainName(q.name) === k && q.pts >= l.event.min && String(q.date).slice(0, 10) > l.through).length;
+      return { name, n: n + added, added, team: teamOf[k] || null };
+    }).sort((a, b) => b.n - a.n);
+    return { id: l.id, what: l.what, since: l.since, source: l.source, through: l.through, min: l.event.min, rows };
+  });
+}
+
 export const SHOT_KEEP = { fg: 8, fg3: 5, ft: 20, fgMiss: 8, fg3Miss: 9, dryFg: 20 * 60, dryFt: 45 * 60 };
 export function shotStreaks(games) {
   const P = {}, best = { fg: [], fg3: [], ft: [], dryFg: [], dryFt: [] };
@@ -319,7 +339,9 @@ export function flowStats(entries, lite = null) {
   // Only those who usually play the second half: a rest-day starter pulled at the half is no story.
   const leftEarly = early.filter((e) => { const r = rotation[e.id]; return r && r.starts >= 3 && (r.open3 || 0) >= 0.7 * r.starts; })
     .sort((a, b) => String(b.date).localeCompare(String(a.date)));
-  return { games, leadMin: LEAD_MIN, leadTable: Object.values(table), leftEarly, quarters: top(quarters), halves: top(halves), teamQuarters: top(teamQuarters), rotation, fouls, leads, fourth, shots: shotStreaks(shotGames),
+  // 0.76: every 20-point quarter of the season (not only the 30 best), so a list counted from a date can be kept current.
+  const bigQuarters = quarters.filter((q) => q.pts >= BIG_QUARTER).map(({ pts, id, name, team, q, date }) => ({ pts, id, name, team, q, date })).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : b.pts - a.pts));
+  return { games, leadMin: LEAD_MIN, leadTable: Object.values(table), leftEarly, bigQuarters, quarters: top(quarters), halves: top(halves), teamQuarters: top(teamQuarters), rotation, fouls, leads, fourth, shots: shotStreaks(shotGames),
     l2m: { games: l2m.games, teams: l2m.teams, players: Object.values(l2m.players).map((p) => ({ ...p, sec: Math.round(p.sec), min: Math.round(p.sec / 6) / 10, ast: null, stl: null, blk: null })).sort((a, b) => b.pts - a.pts) } };
 }
 

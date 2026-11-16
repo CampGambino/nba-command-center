@@ -3066,6 +3066,186 @@ await articlesChecks(ok);
   ok(P.everyone(files).map((x) => x.name).join() === "Big,Guard,Rival", "with / without: the league picker lists everyone who has played");
 }
 
+// ---------- 0.76: the user's 20 screenshots (11/16): notes that read wrong, and lists not yet tracked ----------
+{
+  const P = await import("../src/notes/pdf-layout.js");
+  const N = await import("../src/notes/narrative.js");
+  const F = await import("../src/notes/facts.js");
+  // Text drawn as pictures (Milwaukee): each run measures short, so "Los A" + "ngeles" opened a gap.
+  const run = (x, str, w, y = 655.5) => ({ x, y, w, h: 9, str });
+  const gap = (x, w, y = 655.5) => ({ x, y, w, h: 9, str: " ", space: true });
+  const items = [run(40, "on Nov. 11 vs. the Los A", 87), gap(127, 17.4), run(144.4, "ngeles Lakers, marking the fifth", 114.5), gap(258.9, 20.3), run(279.2, "-", 2.8), gap(281.9, 1),
+    run(282.9, "earliest start by a rookie since the 2014", 143.8), gap(426.7, 24.7), run(451.4, "-", 2.8), gap(454.1, 1.1), run(455.2, "15 campaign. Check", 72.7), gap(528, 14.6), run(542.6, "out when", 34.9)];
+  for (let i = 0; i < 6; i++) items.push(run(40, `filler line number ${i}`, 80, 600 - i * 12));
+  const before = P.buildLines(items.map((x) => ({ ...x })))[0].text;
+  ok(/Los A\s+ngeles/.test(before) && /fifth\s+-\s*earliest/.test(before), "pictured text: without the fix the runs read apart", before);
+  const rects = items.filter((x) => !x.space).map((x, i, all) => { const next = all[i + 1]; return { x: x.x, y: x.y - 2.2, h: 11.52, w: (next && next.y === x.y ? next.x - x.x : x.w * 1.2) + 4.05 }; });
+  const raws = items.filter((x) => !x.space).map((x) => ({ x: x.x, y: x.y, str: /Check$/.test(x.str) ? `${x.str} ` : x.str }));
+  const fixed = items.map((x) => ({ ...x }));
+  const n = P.picturedText(fixed, { rects, raws });
+  const after = P.buildLines(fixed)[0].text;
+  ok(n === 13 && after === "on Nov. 11 vs. the Los Angeles Lakers, marking the fifth-earliest start by a rookie since the 2014-15 campaign. Check out when", "pictured text: printed widths and the file's own spaces put the line back together", after);
+  const plainPage = items.map((x) => ({ ...x }));
+  ok(P.picturedText(plainPage, { rects: rects.slice(0, 4), raws }) === 0 && plainPage.length === items.length, "pictured text: a page whose runs don't sit on pictures is left exactly as it is");
+
+  // A line ending in a hyphen: the notes themselves say whether it is a cut word or a compound.
+  const vocab = N.wordCounts(["a double-double and a second straight game", "the franchise record", "his career and career-high", "second second longest"]);
+  ok(N.keepsHyphen("double", "double", vocab) && N.keepsHyphen("second", "longest", vocab) && N.keepsHyphen("1968", "69", vocab) && N.keepsHyphen("career", "high", vocab), "hyphen at a line end: compounds and seasons keep it (double-double, second-longest, 1968-69)");
+  ok(!N.keepsHyphen("fran", "chise", vocab) && !N.keepsHyphen("Alex", "ander", vocab), "hyphen at a line end: a cut word is joined (franchise; a first half the notes never use alone)");
+  const cell = (text, x0) => ({ text, x0, x1: x0 + text.length * 3.2, cx: x0 + text.length * 1.6 });
+  const row = (y, ...cells) => Object.assign(cells, { y });
+  {
+    const L = (text) => ({ text, cells: [{ x0: 40, x1: 560, cx: 300, text }], charX: [] });
+    const b = N.blocks({ pages: [{ page: 1, width: 612, lines: [L("Towns has recorded a double-"), L("double in nine straight games, tied for the second-"), L("longest streak since the 1968-"), L("69 season in fran-"), L("chise history. The franchise record is 13.")] }] });
+    ok(/a double-double in nine straight games, tied for the second-longest streak since the 1968-69 season in franchise history\./.test(b[0].text), "hyphen at a line end: read in the notes' own text", b[0].text);
+  }
+
+  // Two lists of sentences side by side: read one side, then the other.
+  const rows = [
+    row(346, cell("UPCOMING MILESTONES", 49), cell("MILESTONES ACHIEVED in 2026-27", 327)),
+    row(337, cell("P.J. Washington Jr. needs 10 assists (990) to reach 1,000 career assists.", 49), cell("Marcus Sasser hit 200 career 3-pointers (vs. SAS, 10/24/26).", 327)),
+    row(328, cell("Santi Aldama needs 65 points (2935) for 3000 career points.", 49), cell("P.J. Washington Jr. surpassed 6,000 career points (6,009) and 2,000 points as a", 327)),
+    row(319, cell("Naji Marshall (494) needs 6 more assists as a Dallas Maverick for 500 career assists", 49), cell("Maverick (2,010), moving into 47th place on Dallas' all-time scoring list (vs. SAC,", 327)),
+    row(310, cell("with the franchise.", 49), cell("11/2/26).", 327)),
+    row(250, cell("2 0 2 6 - 2 7  D A L L A S  M A V E R I C K S  G A M E  N O T E S", 180)),
+  ];
+  const side = N.sideBySide(rows);
+  ok(side.indexOf("with the franchise.") === side.indexOf("Naji Marshall (494) needs 6 more assists as a Dallas Maverick for 500 career assists") + 1
+    && side.indexOf("11/2/26).") === side.indexOf("Maverick (2,010), moving into 47th place on Dallas' all-time scoring list (vs. SAC,") + 1
+    && side[side.length - 1].startsWith("2 0 2 6"), "side by side: each list is read whole, and the footer below the gap is not part of either", side.join(" / "));
+  const table = [row(100, cell("1. Reggie Miller", 40), cell("4,141", 300)), row(90, cell("2. Vern Fleming", 40), cell("4,038", 300)), row(80, cell("3. Mark Jackson", 40), cell("3,294", 300)), row(70, cell("4. Jamaal Tinsley", 40), cell("2,786", 300))];
+  ok(N.sideBySide(table).join("|") === "1. Reggie Miller 4,141|2. Vern Fleming 4,038|3. Mark Jackson 3,294|4. Jamaal Tinsley 2,786", "side by side: a table still reads across");
+
+  // The streak in the notes against the box scores (Towns: "eighth consecutive", "nine straight", really 12).
+  const keys = ["starter", "min", "pts", "reb", "ast", "stl", "blk"];
+  const box = { keys, games: Array.from({ length: 12 }, (_, i) => ({ d: `2026-11-${String(i + 1).padStart(2, "0")}`, pl: { 7: [1, 34, 22, 12, 3, 1, 1], 8: [1, 30, i < 9 ? 31 : 12, 4, 5, 0, 0] } })) };
+  const a8 = F.statedStreak("Towns also recorded his eighth consecutive double-double to start the season which ranks fourth in franchise history.");
+  const a9 = F.statedStreak("Towns has recorded a double-double in nine straight games to start the season, which is tied for the second-longest double-double streak to start a season in franchise history.");
+  ok(a8?.n === 8 && a8.key === "dd" && a9?.n === 9 && a9.key === "dd", "streak check: the count and the kind are read from both wordings");
+  ok(F.statedStreak("He had a double-double in nine straight games last season.") === null && F.statedStreak("His streak of 12 straight double-doubles was snapped on Friday.") === null, "streak check: last season's streak and one that ended are left as written");
+  const th = F.statedStreak("Has scored 30+ points in five straight games this season.");
+  ok(th?.n === 5 && th.key === "pts30" && F.streakInBox(box, "8", th).now === 0 && F.streakInBox(box, "7", a9).now === 12 && F.streakInBox(box, "7", a9).all === true, "streak check: counted back from his last game in the box scores");
+  const lines = F.checkStreaks([
+    { text: "Towns also recorded his eighth consecutive double-double to start the season which ranks fourth in franchise history.", player: "Karl-Anthony Towns", playerId: "7", score: 3 },
+    { text: "Towns has recorded a double-double in nine straight games to start the season, which is tied for the second-longest double-double streak to start a season in franchise history.", player: "Karl-Anthony Towns", playerId: "7", score: 3 },
+    { text: "Clarkson has now scored 8,699 points off the bench in his career.", player: "Jordan Clarkson", playerId: "8", score: 3 },
+  ], box);
+  ok(lines[1].tag === "Now 12 straight" && /box scores have it at 12 straight double-doubles through 11\/12 \(every game he has played this season\), so where this line ranks it is out of date\. 13 if he does it again tonight\./.test(lines[1].hook.text) && !lines[2].streakNow, "streak check: a line behind the box scores says so, with the count and what tonight makes it", lines[1].hook?.text);
+  const tr = F.trimLines(lines, { box, today: "2026-11-13" });
+  ok(tr.keep.some((l) => /nine straight/.test(l.text)) && tr.trimmed.length === 1 && /^an older count of the same streak \(8; it is at 12\)/.test(tr.trimmed[0].trimmed), "streak check: the older count of the same streak is trimmed, the latest kept", tr.trimmed.map((l) => l.trimmed).join(" | "));
+
+  // A team box's heading names what its bullet is about; a player's bullet near the team's name is not the team's.
+  {
+    const L = (text) => ({ text, cells: [{ x0: 40, x1: 560, cx: 300, text }], charX: [] });
+    const doc = { pages: [{ page: 1, width: 612, lines: [
+      L("Rockets are 0-0 when having more turnovers than assists (0-1 in 2025-26) and 1-0 when opponents did so (2-0 in 2025-26) Rockets 3-Point Percentage • Shooting 34.4% over the past 5 games after shooting 39.1% the first 8 games (37.2% overall)."),
+      L("He helped the Rockets rally late in the win over Denver, the team's fourth in a row. • Scored a career-high 14 points in a career-best 21 minutes of action on Oct. 31 vs. CLE, the most by a Rockets reserve this season."),
+      L("P.J. Washington Jr. needs 10 assists (990) to reach 1,000 career assists."),
+    ] }] };
+    const h = N.readHistory(doc, [{ id: "1", name: "P.J. Washington" }], { seasonStart: "2026-10-01", today: "2026-11-15", teamWords: ["Houston", "Rockets"] });
+    const shot = h.find((x) => /34\.4%/.test(x.text));
+    ok(shot?.text.startsWith("Rockets 3-Point Percentage: Shooting 34.4% over the past 5 games") && shot.topic === "Rockets 3-Point Percentage" && shot.how === "team", "team box: the heading goes in front of its bullet", shot?.text);
+    ok(!h.some((x) => /career-best 21 minutes/.test(x.text) && x.how === "team"), "team box: a bullet with the team's name somewhere before it is not credited to the team");
+    ok(h.some((x) => x.text.startsWith("P.J. Washington Jr. needs 10 assists")), "a name's initials are not a heading: \"P.J.\" stays on the sentence", h.map((x) => x.text.slice(0, 30)).join(" | "));
+    // Two lines that differ only in the heading's first word still count as two.
+    const two = F.dedupe([{ text: "Rockets Offense: Scored 110+ points in each of the past 3 games after scoring below in each of the 3 games prior (116.2 per overall).", topic: "Rockets Offense", score: 2 },
+      { text: "Rockets Defense: Since allowing 110+ points in each of the first 4 games (111.0 per) have done so 3 times over the past 9 games (105.8 per; 107.4 per overall).", topic: "Rockets Defense", score: 2 }]);
+    ok(two.length === 2, "team box: the heading is not counted when two lines are compared for sameness");
+    ok(F.trimReason({ text: "Three-time winner of the NBA Hustle Award (2018-19, 2021-22, 2022-5-of-19 over the past 4 games (career-high 37.1% overall). 23)." }, { today: "2026-11-15" }) === "garbled (two columns read as one)", "a season list cut by the next column is trimmed as garbled");
+  }
+
+  // Dallas' other two wordings for a milestone, and a former team's list.
+  {
+    const { readNeedsSentence } = await import("../src/notes/formats/needs-sentence.js");
+    const L = (text) => ({ text, cells: [{ x0: 40, x1: 560, cx: 300, text }], charX: [] });
+    const m = readNeedsSentence({ pages: [{ page: 5, width: 612, lines: [L("Santi Aldama needs 65 points (2935) for 3000 career points."), L("Naji Marshall (494) needs 6 more assists as a Dallas Maverick for 500 career assists with the franchise."), L("Max Christie needs 7 rebounds (990) for 1,000 career rebounds.")] }] });
+    const al = m.find((x) => x.player === "Santi Aldama"), nm = m.find((x) => x.player === "Naji Marshall");
+    ok(al?.stat === "pts" && al.target === 3000 && al.current === 2935 && al.scope === "career", "needs … for: \"needs 65 points (2935) for 3000 career points\"", JSON.stringify(al));
+    ok(nm?.stat === "ast" && nm.target === 500 && nm.current === 494 && nm.scope === "franchise", "needs … for: a count with the team (\"as a Dallas Maverick … with the franchise\") is a franchise total", JSON.stringify(nm));
+    ok(!m.some((x) => x.player === "Max Christie"), "needs … for: a printed total that doesn't add up to the target is not read (990 + 7 is not 1,000)");
+  }
+
+  // Indiana's franchise leaders: dotted rows, a tied row with no rank, "NBA YEARS ONLY", and a count of games.
+  {
+    const { readLeaderboards } = await import("../src/notes/formats/leaderboards.js");
+    const L = (text, x = 488) => ({ text, charX: Array.from(text, (_, i) => x + i * 4), cells: [{ x0: x, x1: x + text.length * 4, cx: x + text.length * 2, text }] });
+    const page = { page: 4, width: 612, lines: [L("FRANCHISE LEADERS", 505), L("NBA YEARS ONLY", 513), L("(1976-PRESENT)", 515), L("ASSISTS", 520),
+      L("1.  Reggie Miller ...............................4,141"), L("2.  Vern Fleming .............................4,038"), L("3.  Mark Jackson .............................3,294"), L("4.  Jamaal Tinsley ...........................2,786"), L("5.  T.J. McConnell ........................2,385"), L("6.  Tyrese Haliburton .......................2,297"),
+      L("GAMES WITH 10+ ASSISTS", 500),
+      L("1.  Mark Jackson .......................................130"), L("2.  Tyrese Haliburton..........................129"), L("3.  Jamaal Tinsley .......................................85"), L("4.  Vern Fleming.......................................82"), L("5.  Don Buse............................................34"), L("6.  T.J. McConnell.....................................31"), L("7.  Micheal Williams....................................29"), L("Pooh Richardson....................................29", 504), L("9.  Andrew Nembhard ...............................28")] };
+    const lbs = readLeaderboards({ pages: [page] });
+    const ast = lbs.find((l) => l.title === "ASSISTS"), g10 = lbs.find((l) => /10\+ ASSISTS/.test(l.title));
+    ok(ast?.scope === "franchise" && ast.stat === "ast" && ast.rows.length === 6 && ast.rows[4].player === "T.J. McConnell" && ast.rows[4].total === 2385, "franchise leaders: dotted rows are read, and \"NBA YEARS ONLY\" does not make it an NBA list", JSON.stringify(ast && { t: ast.title, s: ast.scope, n: ast.rows.length }));
+    ok(g10?.stat === "g10ast" && g10.rows.find((r) => r.player === "Tyrese Haliburton")?.total === 129 && g10.rows.find((r) => r.player === "Pooh Richardson")?.rank === 7 && g10.rows[g10.rows.length - 1].player === "Andrew Nembhard", "franchise leaders: \"games with 10+ assists\" is a countable stat, and a row with no rank is tied with the one above", JSON.stringify(g10 && g10.rows.map((r) => [r.rank, r.player])));
+    ok(statFromTitle("GAMES WITH 10+ ASSISTS") === "g10ast" && statFromTitle("# OF 30-PT GAMES") === "g30pt" && statFromTitle("games with 5+ 3PM in season") === "list", "stat from a title: a plain count of games is counted; a compound list keeps its title");
+    const S2 = await import("../src/notes/stats.js");
+    ok(S2.statLabel("g10ast") === "games with 10+ assists" && S2.statLabel("g30pt") === "30-point games", "stat label for a count of games");
+    ok(statFromLine("g10ast", { played: true, stats: { ast: 11 } }) === 1 && statFromLine("g10ast", { played: true, stats: { ast: 9 } }) === 0 && statFromLine("g30pt", { played: true, stats: { pts: 31 } }) === 1, "a box-score line adds one to \"games with 10+ assists\" when he has 10");
+    ok(importance({ stat: "fgm", kind: "round", target: 5000, scope: "career" }).score === importance({ stat: "ftm", kind: "round", target: 5000, scope: "career" }).score && importance({ stat: "fgm", kind: "round", target: 5000, scope: "career" }).reasons.some((w) => /weighted 0\.45/.test(w)), "importance: field goals and free throws are back at 0.45 (a comment had swallowed them)");
+  }
+
+  // A coach's record against every team.
+  {
+    const { readCoachRecord, coachLine } = await import("../src/notes/formats/coach-record.js");
+    const nicks = Object.values((await import("../src/teams.js")).TEAMS).map((t) => t.nick);
+    const L = (text) => ({ text });
+    const trip = []; for (let i = 0; i < 30; i += 3) trip.push(nicks.slice(i, i + 3));
+    const lines = [L("JOHN-BLAIR BICKERSTAFF'S OVERALL RECORD  JOHN-BLAIR BICKERSTAFF'S ALL-TIME RECORD VS. THE NBA (ENTERING 11/12/2026)"), L("2017-18  Grizzlies  15-48  .238  11  13  8  14  8  8"), L(trip[0].join("  "))];
+    for (const t of trip.slice(1)) lines.push(L(`2020-21  Cavaliers  22-50  .306  ${t.map((n) => `${n}  10  9`).join("  ")}`));
+    lines.push(L("CAREER REGULAR SEASON RECORD: 297-278"));
+    const rec = readCoachRecord({ pages: [{ page: 26, lines }] });
+    const first = Object.entries((await import("../src/teams.js")).TEAMS).find(([, t]) => t.nick === nicks[0])[0];
+    ok(rec?.coach === "John-Blair Bickerstaff" && rec.entering === "11/12" && Object.keys(rec.teams).length === 30 && rec.teams[first].w === 11 && rec.teams[first].l === 13 && rec.ok, "coach record: all 30 teams, a row whose names and numbers print apart, and the rows add up to his career record", JSON.stringify(rec && { c: rec.coach, n: Object.keys(rec.teams).length, sum: rec.sum, ok: rec.ok }));
+    ok(/^John-Blair Bickerstaff is 11-13 all-time against the \w+ as a head coach \(297-278 overall, entering 11\/12\)\.$/.test(coachLine(rec, first) || ""), "coach record: tonight's line", coachLine(rec, first));
+    lines[lines.length - 1] = L("CAREER REGULAR SEASON RECORD: 300-278");
+    ok(coachLine(readCoachRecord({ pages: [{ page: 26, lines }] }), first) === null, "coach record: a table that doesn't add up to his career record is not used");
+    ok(F.describe("Rick Carlisle is 35-31 all-time against the 76ers as a head coach (1,017-931 overall, entering 11/15).", { matchup: true }).tag === "Coach vs. opponent", "coach record: tagged as the coach against the opponent");
+  }
+
+  // His own best start, and already at last season's count.
+  {
+    const { ownStartLines, alreadyLines } = await import("../src/anticipate/prep.js");
+    const columns = ["date", "opp", "home", "result", "type", "min", "pts", "reb", "ast", "stl", "blk", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "tov"];
+    const day = (y, i) => new Date(Date.UTC(y, 9, 20 + i * 2)).toISOString().slice(0, 10);
+    const season = (y, n, pts) => Array.from({ length: n }, (_, i) => [day(y, i), "BOS", 1, "W", 2, 30, typeof pts === "function" ? pts(i) : pts, 5, 2, 1, 0, 4, 9, 1, 3, 2, 2, 1]);
+    const logs = { columns, players: {
+      1: [...season(2023, 60, 9), ...season(2024, 60, 10), ...season(2025, 70, (i) => (i < 10 ? 11 : 9))],     // best 10-game start: 110
+      2: [...season(2016, 70, 26), ...season(2022, 70, 25), ...season(2023, 70, 27), ...season(2024, 70, 24), ...season(2025, 76, (i) => (i < 3 ? 22 : 12))],
+      3: [...season(2023, 60, 12), ...season(2024, 60, 12), ...season(2025, 70, 12)],
+      4: [2016, 2021, 2022, 2023, 2024, 2025].flatMap((y) => season(y, 70, 25)),
+    } };
+    const now = (n, pts, team) => Array.from({ length: n }, (_, i) => ({ d: `2026-11-${String(i + 1).padStart(2, "0")}`, team, min: 30, pts: typeof pts === "function" ? pts(i) : pts, reb: 5, ast: 2, stl: 1, blk: 0, fgm: 4, fga: 9, fg3m: 1, fg3a: 3, ftm: 2, fta: 2, tov: 1 }));
+    const pg = { 1: now(10, (i) => (i < 4 ? 15 : 9), "LAC"), 2: now(11, (i) => (i < 4 ? 21 : 12), "LAC"), 3: now(10, 12, "UTA"), 4: now(11, 16, "HOU") };
+    const names = { 1: "Derrick Jones Jr.", 2: "Brook Lopez", 3: "Steady Eddie", 4: "Kevin Durant" };
+    const own = ownStartLines({ pg, logs, names });
+    ok(own.find((l) => l.id === "1")?.text === "Derrick Jones Jr.'s 114 points through 10 games are his most through 10 games of any season (previous: 110, '25-26)", "own start: the most through N games of any of his seasons, with the previous best", own.map((l) => l.text).join(" | "));
+    ok(/^Kevin Durant's 176 points through 11 games are his fewest through 11 games of any season since 2016-17 \(previous low: 275, '16-17\)$/.test(own.find((l) => l.id === "4")?.text || "") && !own.some((l) => l.id === "3" || l.id === "2"), "own start: a scorer's slowest start says \"since 2016-17\" when the logs don't reach his first season; a start like his others says nothing", own.map((l) => l.text).join(" | "));
+    const al = alreadyLines({ pg, logs, names });
+    ok(al.find((l) => l.id === "2")?.text === "Brook Lopez has 4 20-point games in 11 games this season: already more than in all of last season (3 in 76 games)", "already: more 20-point games than in all of last season", al.map((l) => l.text).join(" | "));
+    const pg2 = { 2: now(11, (i) => (i < 2 ? 21 : 12), "LAC") };
+    const one = alreadyLines({ pg: pg2, logs, names });
+    ok(/one more matches all of last season \(3 in 76 games\)$/.test(one[0]?.text || "") && one[0].tonight === true, "already: one short of last season's count is said before the game", one.map((l) => l.text).join(" | "));
+  }
+
+  // A list from the notes, counted forward; records against each conference and the team's own division.
+  {
+    const G = await import("../src/gameflow/stats.js");
+    const lists = [{ id: "q20", what: "quarters of 20+ points", since: "2016-17", event: { type: "quarter", min: 20 }, source: "Suns game notes for 11/15/26 (Stathead)", through: "2026-11-14",
+      rows: [["Luka Doncic", 33], ["Stephen Curry", 31], ["Devin Booker", 29], ["James Harden", 29], ["Damian Lillard", 24]] }];
+    const big = [{ name: "Devin Booker", pts: 22, date: "2026-11-10" }, { name: "Devin Booker", pts: 26, date: "2026-11-15" }, { name: "Luka Dončić", pts: 21, date: "2026-11-15" }];
+    const S = G.seededCounts(lists, big, { "devin booker": "PHX", "luka doncic": "LAL", "james harden": "CLE", "stephen curry": "GSW" });
+    ok(S[0].rows.map((r) => `${r.name} ${r.n}`).join(", ") === "Luka Doncic 34, Stephen Curry 31, Devin Booker 30, James Harden 29, Damian Lillard 24", "seeded list: only quarters after the day the list was read are added (accents or not)", JSON.stringify(S[0].rows));
+    const T = await import("../src/anticipate/tonight.js");
+    const sl = T.seededLines({ seeded: S }, new Set(["PHX", "CLE"]));
+    ok(sl.length === 2 && sl[0].text === "Devin Booker has 30 quarters of 20+ points since 2016-17, 3rd-most; the next one ties Stephen Curry (31). From the Suns' notes, counted forward here from 11/14" && /^James Harden has 29 .*4th-most; the next one ties Devin Booker \(30\)/.test(sl[1].text), "seeded list: tonight's line says where he stands and what the next one does", sl.map((l) => l.text).join(" | "));
+    ok(T.seededLines({ seeded: S }, new Set(["POR"])).length === 0, "seeded list: nothing when the next one changes no place (Lillard is five back)");
+    const g = (id, d, h, a, hs, as) => ({ id, d, h, a, hs, as, ot: 0 });
+    const sit = computeSituations([g("1", "2026-10-21", "MIL", "IND", 110, 100), g("2", "2026-10-23", "MIL", "BOS", 90, 100), g("3", "2026-10-25", "LAL", "MIL", 120, 100), g("4", "2026-10-27", "MIL", "CHI", 95, 99)]);
+    const sp = sit.teams.MIL.splits;
+    ok(sp.vsEast.w === 1 && sp.vsEast.l === 2 && sp.vsWest.w === 0 && sp.vsWest.l === 1 && sp.vsDiv.w === 1 && sp.vsDiv.l === 1 && sit.labels.vsDiv === "vs own division", "records: against the East, the West and the team's own division", JSON.stringify(sp));
+  }
+}
+
 // ---------- snapshot ----------
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });

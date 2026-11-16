@@ -70,6 +70,9 @@ export function statFromTitle(title) {
   if (direct) return direct;
   const games = t.match(/^(?:# of |number of |most )?(\d{2})[- ]?(?:pt|point)s? games?$/);
   if (games) return `g${games[1]}pt`;
+  // "GAMES WITH 10+ ASSISTS" (Indiana's franchise leaders): a count of games, kept from the box scores like "30-point games".
+  const gw = t.match(/^(?:# of |number of |most )?games? w(?:ith|\/) ?(\d{1,2})\+ ?([a-z0-9 -]+?)$/);
+  if (gw) { const k = normStat(gw[2]); if (k && GAME_COUNT_STATS.includes(k)) return k === "pts" ? `g${gw[1]}pt` : `g${gw[1]}${k}`; }
   // Compound lists ("games with 5+ 3PM in season", "consecutive games w/ a
   // 3-pointer", "points per game", "Points/Game") are not a plain career
   // total: they keep their own title as the stat.
@@ -87,7 +90,17 @@ export function statFromTitle(title) {
 export function statLabel(key) {
   if (STAT_LABEL[key]) return STAT_LABEL[key];
   const g = String(key).match(/^g(\d+)pt$/);
-  return g ? `${g[1]}-point games` : key;
+  if (g) return `${g[1]}-point games`;
+  const c = gameCountStat(key);
+  return c ? `games with ${c.min}+ ${STAT_LABEL[c.stat]}` : key;
+}
+
+/** Stats a "games with N+" list can count from a box score. */
+export const GAME_COUNT_STATS = ["pts", "reb", "ast", "stl", "blk", "fg3m"];
+/** "g10ast" -> { min: 10, stat: "ast" }; "g30pt" -> { min: 30, stat: "pts" }; anything else -> null. */
+export function gameCountStat(key) {
+  const m = String(key || "").match(/^g(\d{1,2})(pt|reb|ast|stl|blk|fg3m)$/);
+  return m ? { min: Number(m[1]), stat: m[2] === "pt" ? "pts" : m[2] } : null;
 }
 
 /** "1,234" -> 1234, "29.4" -> 29.4; anything else -> null. */

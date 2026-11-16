@@ -82,13 +82,22 @@ fs.writeFileSync(idxFile, JSON.stringify({ season, v: FLOW_VERSION, ids, missing
 if (corrected.length) console.log(`game flow: stat corrections in ${corrected.length} recent game(s): ${corrected.join(", ")}`);
 // Season facts for the bridge. Never fatal: the flow files above are already written.
 try {
-  const { flowStats } = await import("../src/gameflow/stats.js");
+  const { flowStats, seededCounts } = await import("../src/gameflow/stats.js");
   const byId = new Map(rows.map((r) => [String(r.id), r]));
   const entries = ids.map((id) => ({ row: byId.get(id), c: JSON.parse(fs.readFileSync(path.join(dir, `${id}.json`), "utf8")) }));
   const lite = {};
   const S = flowStats(entries, lite);
   // 0.72.7: the final two minutes of close games as its own file, in the clutch page's shape; flowstats keeps the teams
   // and the top scorers for the storylines.
+  // 0.76: lists read from a team's notes, counted forward from this season's 20-point quarters.
+  try {
+    const sf = path.join(root, "src", "data", "seeded-lists.json");
+    if (fs.existsSync(sf)) {
+      const plain = (n) => String(n || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z ]/g, "").replace(/\s+/g, " ").trim();
+      const teamOf = Object.fromEntries(Object.values(S.rotation || {}).map((r) => [plain(r.name), r.team]));
+      S.seeded = seededCounts(JSON.parse(fs.readFileSync(sf, "utf8")).lists, S.bigQuarters, teamOf);
+    }
+  } catch (e) { console.error("seeded lists:", e.message); }
   const { l2m, ...rest } = S;
   fs.writeFileSync(path.join(root, "docs", "data", "l2m-players.json"), JSON.stringify({ generatedAt: new Date().toISOString(), through: entries.reduce((d, e) => (e.row?.d > d ? e.row.d : d), ""), games: l2m.games, players: l2m.players, teams: l2m.teams }));
   fs.writeFileSync(path.join(root, "docs", "data", "flowstats.json"), JSON.stringify({ season, updated: new Date().toISOString(), ...rest, l2m: { games: l2m.games, teams: l2m.teams, top: l2m.players.slice(0, 15) } }));

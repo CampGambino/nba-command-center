@@ -77,7 +77,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 12;
+  var VERSION = 13;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -219,8 +219,9 @@
     if (!p) return 0;
     if (i.stat === "gp") return (p.min || 0) > 0 ? 1 : 0;
     if (i.stat === "gs") return p.starter && (p.min || 0) > 0 ? 1 : 0;
-    var m = /^g(\d+)pt$/.exec(i.stat || "");
-    if (m) return (p.pts || 0) >= Number(m[1]) ? 1 : 0;
+    // "g30pt": a 30-point game; "g10ast": a game with 10+ assists (v13, for lists like "games with 10+ assists").
+    var m = /^g(\d{1,2})(pt|reb|ast|stl|blk|fg3m)$/.exec(i.stat || "");
+    if (m) { var gf = FIELD[m[2] === "pt" ? "pts" : m[2]]; return gf ? ((Number(p[gf]) || 0) >= Number(m[1]) ? 1 : 0) : null; }
     var f = FIELD[i.stat];
     return f ? (Number(p[f]) || 0) : null;
   }

@@ -14,6 +14,7 @@ import { readNeedsSentence } from "./formats/needs-sentence.js";
 import { readNarrative, readAwayFrom } from "./narrative.js";
 import { statLabel, qualifierOf } from "./stats.js";
 import { nameKey, sameName, displayName } from "./names.js";
+import { teamFromText } from "../teams.js";
 
 /**
  * Game notes PDF -> { meta, milestones, leaderboards, notes, roster, problems }.
@@ -242,6 +243,9 @@ const onRoster = (roster, name) => [...roster.values()].some((r) => sameName(r.n
 
 function chasesFrom(lb, roster, team) {
   if (!lb.stat) return [];
+  // Another franchise's list on a player's page ("MOST 3-POINTERS BY FRONT COURT, GRIZZLIES HISTORY" under Santi
+  // Aldama, now a Maverick): he can't add to it any more, so it is not a chase.
+  { const named = team ? teamFromText(lb.title) : null; if (named && named !== team) return []; }
   const out = [];
   for (let i = 1; i < lb.rows.length; i++) {
     const chaser = lb.rows[i], target = lb.rows[i - 1];

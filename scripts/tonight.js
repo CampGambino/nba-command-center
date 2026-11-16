@@ -61,6 +61,7 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
   const { readPdf } = await import("../src/notes/pdf-layout.js");
   const { readHistory } = await import("../src/notes/narrative.js");
   const { annotate, trimLines } = await import("../src/notes/facts.js");
+  const { readCoachRecord, coachLine } = await import("../src/notes/formats/coach-record.js");
   const modelFile = path.join(root, "src", "data", "fact-model.json");
   const model = fs.existsSync(modelFile) ? JSON.parse(fs.readFileSync(modelFile, "utf8")) : null;
   const { TEAMS } = await import("../src/teams.js");
@@ -98,7 +99,14 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
       const oppWords = [O.city, O.nick, ...(O.alt || []), ...(TEAM_ALIASES[e.opp] || [])].filter(Boolean);
       const doc = await readPdf(e.buf);
       // 0.48: league context, clubs, races and the series too, each read for type, tag, the table beside it and what tonight can change.
-      const read = annotate(readHistory(doc, players, { seasonStart, today, teamWords, oppWords, box }), { doc, box, model, teamNames: [T.city, T.nick, e.team].filter(Boolean), careers });
+      const hist = readHistory(doc, players, { seasonStart, today, teamWords, oppWords, box });
+      // 0.76: the head coach's record against tonight's opponent, from the "ALL-TIME RECORD VS. THE NBA" table (only when
+      // the table reads whole and adds up to his career record).
+      try {
+        const cl = coachLine(readCoachRecord(doc), e.opp);
+        if (cl) hist.push({ page: null, text: cl, kind: "context", player: null, playerId: null, team: true, matchup: true, how: "team", resolved: false, boxGame: null, when: "season", score: 2.6 });
+      } catch (err) { console.log(`  ${e.team} coach record: ${err.message}`); }
+      const read = annotate(hist, { doc, box, model, teamNames: [T.city, T.nick, e.team].filter(Boolean), careers });
       // 0.49: closed past one-offs, filler, the other venue's stats and layout-garbled lines are trimmed (listed on the page).
       const { keep: lines, trimmed } = trimLines(read, { box, today, home: e.home });
       trimmedBy[e.team] = trimmed.map((l) => ({ text: l.text, player: l.player && !l.guessed ? l.player : null, why: l.trimmed }));

@@ -39,6 +39,7 @@ export async function readPdf(buf) {
   }).promise;
 
   const pages = [];
+  let pictured = null, probes = 0, picturedPages = 0; // null: not decided yet
   for (let p = 1; p <= doc.numPages; p++) {
     const page = await doc.getPage(p);
     const viewport = page.getViewport({ scale: 1 });
@@ -57,12 +58,93 @@ export async function readPdf(buf) {
       items.push({ x: e, y: f, w: it.width || it.str.length * h * 0.5, h, str: it.str });
     }
     const shadow = dropShadowLayer(items);
-    pages.push({ page: p, width: viewport.width, height: viewport.height, lines: buildLines(items), ...(shadow ? { shadowDropped: shadow } : {}) });
+    // Text drawn as pictures (Milwaukee): decided by the first two text-heavy
+    // pages, so every other team's notes pay for at most two extra page reads.
+    let pic = 0;
+    const runs = items.reduce((n, it) => n + (it.space ? 0 : 1), 0);
+    if (pictured === true || (pictured === null && runs >= PICTURED_PROBE_RUNS)) {
+      try { pic = picturedText(items, await pictureLayer(pdfjs, page)); } catch { pic = 0; }
+      if (pictured === null && (pic || ++probes >= 2)) pictured = pic > 0;
+      if (pic) picturedPages++;
+    }
+    pages.push({ page: p, width: viewport.width, height: viewport.height, lines: buildLines(items), ...(shadow ? { shadowDropped: shadow } : {}), ...(pic ? { pictured: pic } : {}) });
     page.cleanup?.();
   }
   const pageCount = doc.numPages;
   await doc.destroy?.();
-  return { pageCount, pages, repairedFonts: fixed.repaired };
+  return { pageCount, pages, repairedFonts: fixed.repaired, ...(picturedPages ? { picturedPages } : {}) };
+}
+
+const PICTURED_PROBE_RUNS = 40;
+/** Share of a page's text runs that must sit exactly on a picture before the page is treated as pictured. */
+const PICTURED_SHARE = 0.8;
+/** A run's picture is wider than its text by about this much of the font size (measured on runs that abut). */
+const PICTURE_PAD = 0.45;
+
+/** Where a page's pictures sit, and the text of each run as written in the file (with its own spaces). */
+async function pictureLayer(pdfjs, page) {
+  const ops = await page.getOperatorList();
+  const O = pdfjs.OPS;
+  const rects = [], raws = [];
+  let cm = null, tm = null;
+  for (let i = 0; i < ops.fnArray.length; i++) {
+    const fn = ops.fnArray[i], a = ops.argsArray[i];
+    if (fn === O.transform) cm = a;
+    else if (fn === O.paintImageXObject && cm && !cm[1] && !cm[2]) rects.push({ x: cm[4], y: cm[5], w: cm[0], h: cm[3] });
+    else if (fn === O.setTextMatrix) tm = a && a[0] != null && a[0].length ? a[0] : a;
+    else if (fn === O.showText && tm) {
+      const str = (a[0] || []).map((g) => (g && typeof g === "object" ? g.unicode || "" : "")).join("");
+      raws.push({ x: tm[4], y: tm[5], str });
+      tm = null; // a second string after the same position starts somewhere this does not know
+    }
+  }
+  return { rects, raws };
+}
+
+/**
+ * Some notes (Milwaukee, 2026-11-15) draw every run of text as a picture and
+ * lay the real text underneath in a narrower font. Each run then measures
+ * shorter than it prints, so a gap opens wherever the file splits a run:
+ * "Los A  ngeles", "fifth  - earliest", "(2 6th in NBA)", while a real word
+ * break at a split looks no different.
+ *
+ * On such a page each run starts exactly where its picture starts. The
+ * picture's width is how wide the run really prints, and the run's own text
+ * in the file says whether it begins or ends with a space. Both are applied
+ * here: widths become the printed widths, and `lead` / `trail` mark the real
+ * spaces, so the row builder joins "Los A" + "ngeles" and still separates
+ * "Check " + "out".
+ *
+ * Nothing changes unless at least 80% of the page's runs sit on a picture.
+ * @returns {number} how many runs were corrected
+ */
+export function picturedText(items, { rects, raws }) {
+  const runs = items.filter((it) => !it.space);
+  if (runs.length < 10 || rects.length < runs.length * PICTURED_SHARE) return 0;
+  const rectOf = (it) => rects.find((q) => Math.abs(q.x - it.x) < 0.8 && it.y >= q.y - 0.5 && it.y <= q.y + q.h);
+  const found = new Map();
+  for (const it of runs) { const q = rectOf(it); if (q) found.set(it, q); }
+  if (found.size < runs.length * PICTURED_SHARE) return 0;
+  let fixed = 0;
+  const known = new Set();
+  for (const [it, q] of found) {
+    const raw = raws.find((r) => Math.abs(r.x - it.x) < 0.2 && Math.abs(r.y - it.y) < 0.2);
+    // Only when the run is exactly one string of the file; a run pdfjs merged from several is left alone.
+    if (!raw || raw.str.trim() !== it.str.trim()) continue;
+    it.w = Math.max(it.w, q.w - PICTURE_PAD * it.h);
+    if (/^\s/.test(raw.str)) it.lead = true;
+    if (/\s$/.test(raw.str)) it.trail = true;
+    known.add(it);
+    fixed++;
+  }
+  // The space runs pdfjs made up for the gaps after corrected runs are dropped: the real spaces are known now.
+  let prev = null;
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    if (!it.space) { prev = it; continue; }
+    if (prev && known.has(prev) && Math.abs(prev.y - it.y) < 0.5) items.splice(i--, 1);
+  }
+  return fixed;
 }
 
 /**
@@ -122,6 +204,7 @@ function assembleRow(row) {
   let cell = null;
   let prevEnd = null;
   let spaceMark = false; // an explicit space glyph sits between prevEnd and the next run
+  let prev = null;
   for (const it of items) {
     if (it.space) {
       // Only counts when it sits after text already on the row; a space glyph
@@ -142,8 +225,10 @@ function assembleRow(row) {
     const spaceGap = inNumber ? it.h * 0.45 : it.h * 0.12;
     // Inside a number an explicit space glyph is ignored too: the digit rule
     // above already decides, and "1,50 0" style splits must stay joined.
-    const spaced = gap > spaceGap || (spaceMark && !inNumber);
+    // A space written in the file itself (pictured text) always counts.
+    const spaced = gap > spaceGap || (spaceMark && !inNumber) || Boolean(prev && (prev.trail || it.lead));
     spaceMark = false;
+    prev = it;
     if (text) {
       // A visible gap becomes a space; a big gap becomes two, so cell
       // boundaries survive in the flat string.

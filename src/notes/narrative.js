@@ -28,11 +28,12 @@ const SEG_PASS = /^(?:and\s+)?(\d[\d,]*)\s+([a-z0-9][a-z0-9\- ]*?)\s+away\s+from
 /** Text blocks: every bullet / sentence of every column, in reading order. */
 export function blocks(doc) {
   const out = [];
-  for (const page of doc.pages) {
-    for (const col of columnsOf(page)) {
+  const cols = doc.pages.map((page) => columnsOf(page).map((col) => col.join("\n")));
+  const vocab = wordCounts(cols.flat());
+  for (const [pi, page] of doc.pages.entries()) {
+    for (const col of cols[pi]) {
       const text = col
-        .join("\n")
-        .replace(/(\w)-\n(\w)/g, "$1$2") // word broken across lines
+        .replace(/([\p{L}\d]+)-\n([\p{L}\d]+)/gu, (m, l, r) => (keepsHyphen(l, r, vocab) ? `${l}-${r}` : `${l}${r}`)) // a line ending in a hyphen
         .replace(/\s*\n\s*/g, " ")
         .replace(/\s+/g, " ");
       for (const bullet of cleanSidebar(text).split(/\s*[•▪●]\s*/)) {
@@ -44,6 +45,37 @@ export function blocks(doc) {
     }
   }
   return out;
+}
+
+/**
+ * A line that ends in a hyphen: a word cut in two ("fran-" / "chise") or a compound that happens to break there
+ * ("double-" / "double", "second-" / "longest", "1968-" / "69")? Across all 30 teams' notes (11/16) the compound is
+ * the common case, and joining them all gave "doubledouble", "secondlongest" and "the 196869 season".
+ *
+ * The notes themselves decide: a number on either side keeps the hyphen; a joined form the notes use elsewhere
+ * ("franchise") is a cut word; otherwise the hyphen stays when the notes print the hyphenated form elsewhere, or
+ * when the first half is a word they use on its own ("second", "career").
+ * vocab: wordCounts() of the same notes.
+ */
+export function keepsHyphen(left, right, vocab) {
+  if (/\d/.test(left) || /\d/.test(right)) return true;
+  const l = left.toLowerCase(), r = right.toLowerCase();
+  if (vocab.get(l + r)) return false;
+  if (vocab.get(`${l}-${r}`) || COMPOUND_FIRST.has(l)) return true;
+  return (vocab.get(l) || 0) >= 2; // itself at the line end, and at least once more
+}
+// First halves of the compounds game notes are full of ("second-longest", "career-high", "all-time", "double-double").
+const COMPOUND_FIRST = new Set("first second third fourth fifth sixth seventh eighth ninth tenth career season franchise team game single double triple all two three four five six high low league best most".split(" "));
+
+/** How often each word, and each hyphenated compound, is printed in these texts. */
+export function wordCounts(texts) {
+  const n = new Map();
+  const add = (w) => n.set(w, (n.get(w) || 0) + 1);
+  for (const t of texts) for (const w of t.toLowerCase().match(/\p{L}+(?:-\p{L}+)*/gu) || []) {
+    add(w);
+    if (w.includes("-")) for (const part of w.split("-")) add(part);
+  }
+  return n;
 }
 
 /* A player box with a stats sidebar read into the prose (Houston's "Notes/Trends" boxes, 11/13): "…once prior this
@@ -158,11 +190,70 @@ export function columnsOf(page) {
     const perCol = cols.map(() => []);
     for (const c of l.cells) {
       const i = bounds.findIndex((b, k) => k < bounds.length - 1 && c.cx >= b && c.cx < bounds[k + 1]);
-      perCol[Math.max(0, i)].push(c.text);
+      perCol[Math.max(0, i)].push(c);
     }
-    perCol.forEach((parts, i) => parts.length && cols[i].push(parts.join(" ")));
+    perCol.forEach((parts, i) => { if (parts.length) { parts.y = l.y; cols[i].push(parts); } });
   }
-  return cols.filter((c) => c.length);
+  return cols.filter((c) => c.length).map(sideBySide);
+}
+
+const SIDE_GUTTER = 6, SIDE_ROWS = 3, SIDE_CHARS = 20;
+/**
+ * Two lists of sentences printed side by side on part of a page (Dallas p.5, 11/15: "UPCOMING MILESTONES" beside
+ * "RECENT MILESTONES"). The page's own gutters miss them when full-width text above covers the gap, and reading
+ * straight across then splices the two ("…and 2,000 points as a Naji Marshall (494) needs 6 more assists as a
+ * Dallas Maverick for 500 career assists Maverick (2,010), moving into 47th place…").
+ *
+ * rows: one column's rows, each a list of cells. A run of 3+ rows that all leave the same strip empty, with
+ * sentences (not table cells) on both sides of it in at least 3 of them, is read left side first, then right.
+ * Tables keep reading across: their cells are short or numeric, and the lists read from them depend on it.
+ * -> the column's lines as text
+ */
+export function sideBySide(rows) {
+  const text = (cells) => cells.map((c) => c.text).join(" ");
+  const out = [];
+  let i = 0;
+  while (i < rows.length) {
+    let best = null;
+    const r0 = [...rows[i]].sort((a, b) => a.x0 - b.x0);
+    for (let k = 0; k + 1 < r0.length; k++) {
+      let lo = r0[k].x1, hi = r0[k + 1].x0;
+      if (hi - lo < SIDE_GUTTER) continue;
+      let j = i, both = 0;
+      const L = [], R = [], steps = [];
+      for (; j < rows.length; j++) {
+        // A wider space than the rows above have between them is the end of the lists (the page footer, the next box).
+        if (j > i && rows[j].y != null && rows[j - 1].y != null) {
+          const step = Math.abs(rows[j - 1].y - rows[j].y);
+          const usual = steps.length ? [...steps].sort((p, q) => p - q)[steps.length >> 1] : null;
+          if (usual && step > usual * 2.2) break;
+          steps.push(step);
+        }
+        let a = lo, z = hi, cut = false;
+        for (const c of rows[j]) {
+          if (c.x1 <= a || c.x0 >= z) continue;          // clear of the strip
+          if (c.x0 < a && c.x1 > z) { cut = true; break; } // runs across it
+          if (c.cx < (a + z) / 2) a = Math.max(a, c.x1); else z = Math.min(z, c.x0);
+        }
+        if (cut || z - a < SIDE_GUTTER) break;
+        lo = a; hi = z;
+        const left = rows[j].filter((c) => c.x1 <= lo), right = rows[j].filter((c) => c.x0 >= hi);
+        if (left.length && right.length) both++;
+        L.push(left); R.push(right);
+      }
+      if (j - i < SIDE_ROWS || both < SIDE_ROWS) continue;
+      // Sentences on both sides: long cells with words in them, few bare numbers.
+      const pairs = L.map((l, n) => [text(l), text(R[n])]).filter(([l, r]) => l && r);
+      const prose = (t) => t.length >= SIDE_CHARS && /[a-z]{3,}\s+[a-z]{2,}/.test(t) && !/^[\d.,%\s()\-–/]+$/.test(t);
+      const ok = pairs.filter(([l, r]) => prose(l) && prose(r)).length;
+      if (ok < SIDE_ROWS || ok < pairs.length * 0.6) continue;
+      if (!best || j - i > best.j - i) best = { j, L, R };
+    }
+    if (!best) { out.push(text(rows[i])); i++; continue; }
+    for (const side of [best.L, best.R]) for (const cells of side) if (cells.length) out.push(text(cells));
+    i = best.j;
+  }
+  return out;
 }
 
 const ORD = (n) => { const v = n % 100; return n + (v >= 11 && v <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th"); };
@@ -176,6 +267,7 @@ const ORD = (n) => { const v = n % 100; return n + (v >= 11 && v <= 13 ? "th" : 
 export function repairLayout(s) {
   let t = s.replace(/\s*\d{1,2}\/\d{1,2}\s+(?:at|vs\.?|@)\s+\p{Lu}[\p{L}.]*(?:\s+\p{Lu}[\p{L}.]*)?\s+(?:\d{2,3}-\d{2,3}\s+)?[WL](?:\s+\d{2,3}-\d{2,3})?(?:\s+\d{1,2}:\d{2})?(?:\s+\d{1,3}(?:-\d{1,3})?)+(?=\s|[.,;]|$)/gu, " ");
   t = t.replace(/\s*\b(?:19|20)\d\d-\d\d Game Notes\.?/g, "");
+  t = t.replace(/\b(\d{1,2})-\s+of-(\d{1,2})\b/g, "$1-of-$2"); // "shooting 6- of-26" (Houston, 11/15)
   // 0.71: a letter-spaced footer ("2 0 2 6 - 2 7 D A L L A S M A V E R I C K S G A M E N O T E S."), and a page number
   // with the PR accounts ("17 Find us on X: @spurs | Facebook: http://…").
   t = t.replace(/(?:\s|^)(?:[\p{Lu}0-9\-&](?:\s+|(?=\.?\s*$))){8,}\.?/gu, " ");
@@ -335,7 +427,9 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
   // A player's heading and his bullets can be separate blocks ("KYSHAWN GEORGE • Was selected… • Leads all… • Is one of
   // five…"): the paragraph's player carries to the next block on the page, within the same distance as inside one (0.48).
   let carry = null;
+  let prevBlock = null, thisBlock = null;
   for (const b of blocks(doc)) {
+    prevBlock = thisBlock; thisBlock = b;
     if (b.page !== sectionPage) { sectionWho = null; sectionPage = b.page; }
     // Player-bio headers ("# 7 GIANNIS ANTETOKOUNMPO FORWARD…", "#5 Paolo Banchero (F, 6-10…"): everything after one,
     // up to the next, is about that player, however far down the page it runs.
@@ -357,13 +451,13 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
     if (carry && carry.page === b.page && carry.bio) { bioWho = paraWho = sectionWho = carry.who; sinceWho = 0; paraHead = true; }
     else if (carry && carry.page === b.page && carry.dist <= 700) { paraWho = carry.who; sinceWho = carry.dist; paraHead = true; }
     const keep = () => { carry = paraWho && paraHead ? { who: paraWho, page: b.page, dist: sinceWho, bio: !!(bioWho && paraWho === bioWho) } : null; }; // lastWhen: "old" / "current" for the paragraph's last dated sentence // chars of text since paraWho was named // the player this paragraph is about, for its "He..." sentences
-    for (let s of sentences(b.text.replace(/\b((?:19|20)\d\d-\d\d)\s+(SEASON|NOTABLES)\b/g, "$1\u2060$2")).flatMap((x) => x.split(/\s+(?=(?:19|20)\d\d-\d\d\u2060)|\s+(?=(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s+\p{Lu}|#\s?\d{1,2}\s+\p{Lu})/u).flatMap((y) => y.split(/\s*(?:…|\.{3}|[▪●•\u0000-\u0008\u000b\u000c\u000e-\u001f]|\s[o◦▫+]\s(?=[A-Z]))\s*/u).map((z, k, all) => { let w = k > 0 && /^[a-z]/.test(z) ? z[0].toUpperCase() + z.slice(1) : z; if (k < all.length - 1 && /[\p{L}\d%)]$/u.test(w) && !/\b(?:to|the|a|an|of|and|at|in|with|as|by|for|or|his|their|from|on|was|were|who|that|is|are|which)$/i.test(w)) w += "."; return w; }))).map((x) => x.replace(/\s*\*{2,}.*$/, "").trim())) {
+    for (let s of sentences(b.text.replace(/\b((?:19|20)\d\d-\d\d)\s+(SEASON|NOTABLES|Season Highlights)\b/g, "$1\u2060$2")).flatMap((x) => x.split(/\s+(?=(?:19|20)\d\d-\d\d\u2060)|\s+(?=(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s+\p{Lu}|#\s?\d{1,2}\s+\p{Lu})/u).flatMap((y) => y.split(/\s*(?:…|\.{3}|[▪●•\u0000-\u0008\u000b\u000c\u000e-\u001f]|\s[o◦▫+]\s(?=[A-Z]))\s*/u).map((z, k, all) => { let w = k > 0 && /^[a-z]/.test(z) ? z[0].toUpperCase() + z.slice(1) : z; if (k < all.length - 1 && /[\p{L}\d%)]$/u.test(w) && !/\b(?:to|the|a|an|of|and|at|in|with|as|by|for|or|his|their|from|on|was|were|who|that|is|are|which)$/i.test(w)) w += "."; return w; }))).map((x) => x.replace(/\s*\*{2,}.*$/, "").trim())) {
       sinceWho += s.length + 1;
       { const at = b.text.indexOf(s.slice(0, 25).replace(/\u2060/g, " "), cursor); if (at >= 0) cursor = at; }
       while (bios.length && bios[0].at <= cursor + 5) { bioWho = paraWho = sectionWho = bios.shift().p; sinceWho = 0; lastWhen = null; seasonHdr = null; }
       if (/#\s?\d{1,2}\s+\p{Lu}/u.test(s)) seasonHdr = null; // another player's box starts in this text
       // 0.71: also "2024-25 SEASON:" and "PROFESSIONAL CAREER: 2024-25 SEASON:" (Boston, Dallas), "2026-27 NOTABLES:" (Atlanta).
-      { const sh = s.match(/^(?:[\p{Lu} ]{3,}:\s*)?((?:19|20)\d\d)-(\d\d)\s*(?:\(([^)]{2,30})\)|\u2060?(?:SEASON|NOTABLES)(?:\s*\([^)]{2,30}\))?)\s*[:–—-]\s*/u);
+      { const sh = s.match(/^(?:[\p{Lu} ]{3,}:\s*)?((?:19|20)\d\d)-(\d\d)\s*(?:\(([^)]{2,30})\)|\u2060?(?:SEASON|NOTABLES|Season Highlights)(?:\s*\([^)]{2,30}\))?)\s*[:–—-]\s*/u);
         if (sh) { seasonHdr = `${sh[1]}-${sh[2]}`; s = s.slice(sh[0].length); if (s) s = s[0].toUpperCase() + s.slice(1); } }
       s = s.replace(/\u2060/g, " ");
       // A header that names a past season over this season's games ("2025-26 SEASON: Made his NBA debut at HOU
@@ -392,7 +486,8 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       let headWho = null;
       const hm = s.match(/^((?:[\p{Lu}0-9’'&.\-\/:]{2,}\s+){0,8}?[\p{Lu}0-9’'&.\-\/]{2,}):?\s+(?=\p{Lu}\p{Ll})/u);
       // One capitals word is a heading too ("SHARPE Assists per game…", "DEBUT: Scored…"), unless it's an abbreviation ("NBA", "LA").
-      if (hm && !(/^\S+$/.test(hm[1]) && new RegExp(`^(?:${ABBR})$`).test(hm[1]))) {
+      // Initials are part of a name, not a heading ("P.J. Washington Jr. surpassed…" kept its "P.J.": 0.76).
+      if (hm && !(/^\S+$/.test(hm[1]) && new RegExp(`^(?:${ABBR})$`).test(hm[1])) && !/^(?:\p{Lu}\.){1,3}$/u.test(hm[1])) {
         const h = caps(hm[1]).trim().toUpperCase();
         headWho = full.find((p) => { const n = caps(p.name).trim().toUpperCase().replace(/ (JR|SR|II|III|IV)$/, ""); return n.length > 4 && h.includes(n); })
           || full.find((p) => lastCount[p.last.toLowerCase()] === 1 && p.last.length >= 4 && new RegExp(`(?:^| )${esc(caps(p.last).trim().toUpperCase())}(?: |$)`).test(h)) || null;
@@ -524,7 +619,14 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       if (/^\p{Lu}[\p{L}'’.\-]+(?:\s+\p{Lu}[\p{L}'’.\-]+){1,2}\s+\d[\d,]*\s+(?:which|that|is|ranks)\b/u.test(s)) { drop("table-row", s); continue; }
       const matchup = SERIES.test(s) || (!!oppRe && oppRe.test(plain(s)) && ctxHit);
       // A team-stats box: "Rockets Offense ➢ Averaging 108.0 ppg over the past 5 games…" (the team named in the heading just above).
-      const teamHead = !who && verbLed && teamWords.length && new RegExp(`\\b(?:${teamWords.map(esc).join("|")})\\b`).test(plain(b.text.slice(Math.max(0, cursor - 120), cursor)));
+      // The heading can also be the end of the block before, when the box's bullets are "•" (each bullet is its own block).
+      const preHead = !who && verbLed && teamWords.length ? plain(`${cursor < 120 && prevBlock && prevBlock.page === b.page ? `${prevBlock.text} ` : ""}${b.text.slice(0, cursor)}`.slice(-120)) : "";
+      // The box's own heading ("Rockets Turnovers", "Rockets 3-Point Percentage") says what the bullet under it is about;
+      // without it "Shooting 34.4% over the past 5 games…" names neither the team nor the stat (the user, 11/16).
+      const topic = preHead ? (preHead.match(new RegExp(`\\b((?:${teamWords.map(esc).join("|")}) [A-Z0-9][\\w%'’-]*(?: [A-Z0-9][\\w%'’-]*){0,3})[^\\w)%]*$`)) || [])[1] || null : null;
+      // (Until 0.76 any mention of the team in the 120 characters before counted, which credited a player's bullet
+      // to the team: "Scored a career-high 14 points in a career-best 21 minutes…" in Milwaukee's notes.)
+      const teamHead = !!topic;
       const team = !who && (teamHead || (teamRe && teamRe.test(plain(s))) || ((ctxHit || trendHit || tableLine) && teamMid && teamMid.test(plain(s))) || they || (matchup && SERIES.test(s)));
       if (!who && !team) { drop("no-who", s); continue; }
       const kind = fwd ? (PASSY.test(s) ? "pass" : "next") : hist ? "record" : ctxHit ? "context" : "trend";
@@ -566,7 +668,7 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
         else if (/\bled the (?:charge|way)\b|\badded \d+\b|\bcame off the bench to\b/i.test(s)) { drop("undated-recap", s); continue; }
       }
       if (joinedFrom && out.length && out[out.length - 1].text === joinedFrom) out.pop();
-      out.push({ page: b.page, text: s, kind, player: who?.name || null, playerId: who?.id || null, team: !!team, matchup, how: who ? how : matchup && !team ? "series" : "team", resolved: !subj && !!who, boxGame: chk.game || null, when: "season", score: Math.round(score * 100) / 100 });
+      out.push({ page: b.page, text: topic && !new RegExp(`^${esc(topic)}\\b`).test(s) ? `${topic}: ${s}` : s, topic: topic || undefined, kind, player: who?.name || null, playerId: who?.id || null, team: !!team, matchup, how: who ? how : matchup && !team ? "series" : "team", resolved: !subj && !!who, boxGame: chk.game || null, when: "season", score: Math.round(score * 100) / 100 });
     }
     // A player's box header printed at the end of the block before his notes ("…W115-108 Center #28 Alperen Sengun 6-11/255"):
     // his notes are the next block, after the header's "•" (Houston, 11/13).

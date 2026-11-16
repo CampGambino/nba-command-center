@@ -1,0 +1,11 @@
+{
+  "about": "Lists a team's notes print from a paid lookup (Stathead), kept current here by counting forward from the day they were read. rows: [player, count through `through`].",
+  "lists": [
+    { "id": "q20-since-2016", "what": "quarters of 20+ points", "since": "2016-17", "event": { "type": "quarter", "min": 20 },
+      "source": "Suns game notes for 11/15/26 (Stathead)", "through": "2026-11-14",
+      "rows": [["Luka Doncic", 33], ["Stephen Curry", 31], ["Devin Booker", 29], ["James Harden", 29], ["Damian Lillard", 24]] },
+    { "id": "q25-since-1996", "what": "quarters of 25+ points", "since": "1996-97", "event": { "type": "quarter", "min": 25 },
+      "source": "Suns game notes for 11/15/26 (Stathead)", "through": "2026-11-14",
+      "rows": [["Stephen Curry", 8], ["Devin Booker", 6], ["Kobe Bryant", 4], ["Damian Lillard", 4], ["Joel Embiid", 4]] }
+  ]
+}

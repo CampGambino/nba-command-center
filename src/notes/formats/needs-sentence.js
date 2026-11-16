@@ -14,6 +14,9 @@ import { statWithScope, ordinal, trimLeadIn } from "./common.js";
  */
 const NAME = String.raw`((?:\p{Lu}[\p{L}’'.\-]*\s+){1,4}?\p{Lu}[\p{L}’'.\-]*)`;
 const REACH = new RegExp(String.raw`${NAME}\s+needs\s+([\d,]+)\s+([\p{L}\d\- ]+?)\s*(?:\(\s*([\d,]+)\s*\))?\s+to\s+reach\s+([\d,]+)\s+([\p{L}\d\- ]+?)\s*(?:[.;]|$)`, "gu");
+// Dallas, 11/15: "Santi Aldama needs 65 points (2935) for 3000 career points." and, for a count with the team,
+// "Naji Marshall (494) needs 6 more assists as a Dallas Maverick for 500 career assists with the franchise."
+const REACH_FOR = new RegExp(String.raw`${NAME}\s+(?:\(\s*([\d,]+)\s*\)\s+)?needs\s+([\d,]+)\s+(?:more\s+)?([\p{L}\d\- ]+?)\s*(?:\(\s*([\d,]+)\s*\))?\s+for\s+([\d,]+)\s+([\p{L}\d\- ]+?)\s*(?:[.;]|$)`, "gu");
 const PASS = new RegExp(String.raw`${NAME}\s+needs\s+([\d,]+)\s+([\p{L}\d\- ]+?)\s+to\s+(?:pass|surpass)\s+${NAME}\s+for\s+(\d{1,3}(?:st|nd|rd|th))\b([^.;]*)`, "gu");
 
 export function readNeedsSentence(doc, { team } = {}) {
@@ -34,6 +37,29 @@ export function readNeedsSentence(doc, { team } = {}) {
         statMismatch: counted.stat && named.stat && counted.stat !== named.stat ? `counts "${m[3]}" toward "${m[6]}"` : null,
         target, current: printed ?? (target != null && need != null ? target - need : null), needStated: need,
         scope: named.scope || "career",
+        text: m[0].slice(m[0].indexOf(player)).replace(/\s+/g, " ").trim(),
+      });
+    }
+    for (const m of b.text.matchAll(REACH_FOR)) {
+      const player = trimLeadIn(m[1]);
+      if (!player) continue;
+      const key = `f|${player}|${m[0]}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const counted = statWithScope(m[4]), named = statWithScope(m[7]);
+      const need = num(m[3]), target = num(m[6]), printed = num(m[2] ?? m[5]);
+      // "as a Dallas Maverick … with the franchise": a count with the team, whatever "career" says beside it.
+      const franchise = counted.scope === "franchise" || /\bwith the (?:franchise|team|club)\b|\bas an? \p{Lu}/u.test(`${m[4]} ${m[7]}`);
+      const stat = named.stat || statWithScope(m[7].replace(/\s+with the (?:franchise|team|club)\b.*$/i, "")).stat || statWithScope(m[4].replace(/\s+as an?\b.*$/i, "")).stat;
+      if (!stat || need == null || target == null) continue;
+      // The printed total has to agree with the sentence's own arithmetic, or the sentence was not read right.
+      if (printed != null && printed + need !== target) continue;
+      out.push({
+        format: "needs-sentence", page: b.page, player,
+        statRaw: m[7], stat,
+        statMismatch: null,
+        target, current: printed ?? target - need, needStated: need,
+        scope: franchise ? "franchise" : named.scope || "career",
         text: m[0].slice(m[0].indexOf(player)).replace(/\s+/g, " ").trim(),
       });
     }

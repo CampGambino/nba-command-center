@@ -40,16 +40,25 @@ export const SITUATIONS = [
   ["vsAboveThen", "vs teams over .500 at the time"], ["vs500Then", "vs teams at .500 at the time"], ["vsBelowThen", "vs teams under .500 at the time"],
   ["vsTop3", "vs top-3 records"], ["vsTop4", "vs top-4 records"], ["vsTop5", "vs top-5 records"], ["clutch", "Clutch games"],
   ["close", "Decided by 3 or fewer"], ["ot", "Overtime"], ["ten", "Decided by 10+"],
+  ["vsEast", "vs East"], ["vsWest", "vs West"], ["vsDiv", "vs own division"],
   ["leadHalf", "Leading at half"], ["tiedHalf", "Tied at half"], ["trailHalf", "Trailing at half"],
   ["lead3", "Leading after 3"], ["tied3", "Tied after 3"], ["trail3", "Trailing after 3"],
 ];
 const LABEL = Object.fromEntries(SITUATIONS);
+// Conferences and divisions (0.76; Milwaukee's notes print the record against each: the user, 11/16).
+export const DIVISIONS = {
+  Atlantic: ["BOS", "BKN", "NYK", "PHI", "TOR"], Central: ["CHI", "CLE", "DET", "IND", "MIL"], Southeast: ["ATL", "CHA", "MIA", "ORL", "WAS"],
+  Northwest: ["DEN", "MIN", "OKC", "POR", "UTA"], Pacific: ["GSW", "LAC", "LAL", "PHX", "SAC"], Southwest: ["DAL", "HOU", "MEM", "NOP", "SAS"],
+};
+const DIV_OF = Object.fromEntries(Object.entries(DIVISIONS).flatMap(([d, ts]) => ts.map((t) => [t, d])));
+const EAST = new Set(["Atlantic", "Central", "Southeast"]);
 // Phrases for flags ("... when trailing at half").
 const PHRASE = {
   home: "at home", road: "on the road", vsAbove: "against teams over .500", vs500: "against teams at .500", vsBelow: "against teams under .500",
   vsAboveThen: "against teams over .500 at the time", vs500Then: "against teams at .500 at the time", vsBelowThen: "against teams under .500 at the time",
   vsTop3: "against the 3 best records", vsTop4: "against the 4 best records", vsTop5: "against the 5 best records",
   clutch: "in clutch games (within 5 in the last 5 minutes)",
+  vsEast: "against the East", vsWest: "against the West", vsDiv: "against its own division",
   close: "in games decided by 3 or fewer", ot: "in overtime games", ten: "in games decided by 10 or more",
   leadHalf: "when leading at half", tiedHalf: "when tied at half", trailHalf: "when trailing at half",
   lead3: "when leading after 3 quarters", tied3: "when tied after 3 quarters", trail3: "when trailing after 3 quarters",
@@ -134,6 +143,8 @@ export function computeSituations(rows, { through = null } = {}) {
     if (Math.abs(g.margin) <= 3) k.push("close");
     if (g.ot) k.push("ot");
     if (Math.abs(g.margin) >= 10) k.push("ten");
+    if (DIV_OF[g.opp]) k.push(EAST.has(DIV_OF[g.opp]) ? "vsEast" : "vsWest");
+    if (DIV_OF[g.opp] && DIV_OF[g.opp] === DIV_OF[g.team]) k.push("vsDiv");
     if (g.half != null) k.push(g.half > 0 ? "leadHalf" : g.half < 0 ? "trailHalf" : "tiedHalf");
     if (g.after3 != null) k.push(g.after3 > 0 ? "lead3" : g.after3 < 0 ? "trail3" : "tied3");
     return k;

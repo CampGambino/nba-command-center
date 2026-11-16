@@ -140,7 +140,7 @@
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 // "vs .500" appears only when some team's opponent was exactly .500 (today, or at the time, per the toggle).
-const BASE_COLS = [["home", "Home"], ["road", "Road"], ["vsAbove", "vs &gt;.500"], ["vs500", "vs .500"], ["vsBelow", "vs &lt;.500"],
+const BASE_COLS = [["home", "Home"], ["road", "Road"], ["vsEast", "vs East"], ["vsWest", "vs West"], ["vsDiv", "Division"], ["vsAbove", "vs &gt;.500"], ["vs500", "vs .500"], ["vsBelow", "vs &lt;.500"],
   ["vsTop3", "vs top 3"], ["vsTop4", "vs top 4"], ["vsTop5", "vs top 5"],
   ["clutch", "Clutch"], ["clutchNet", "Clutch +/-"], ["close", "≤3 pts"], ["ot", "OT"],
   ["trailHalf", "Trail half"], ["leadHalf", "Lead half"], ["trail3", "Trail after 3"], ["lead3", "Lead after 3"]];

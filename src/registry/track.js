@@ -25,14 +25,17 @@ import { standing } from "../nba/movement.js";
 
 const loose = (s) => nameKey(s).replace(/\./g, "").replace(/\b([a-z]) (?=[a-z]\b)/g, "$1");
 
+/** "g10ast" -> { min: 10, stat: "ast" }; "g30pt" -> { min: 30, stat: "pts" } (the same reading as notes/stats.js). */
+const gameCountStat = (key) => { const m = /^g(\d{1,2})(pt|reb|ast|stl|blk|fg3m)$/.exec(key || ""); return m ? { min: Number(m[1]), stat: m[2] === "pt" ? "pts" : m[2] } : null; };
+
 /** One player's contribution to a stat in one box-score line. */
 export function statFromLine(stat, line) {
   if (!line || !line.played) return 0;
   const s = line.stats || {};
   if (stat === "gp") return 1;
   if (stat === "gs") return line.started ? 1 : 0;
-  const g = /^g(\d+)pt$/.exec(stat || "");
-  if (g) return (s.pts ?? 0) >= Number(g[1]) ? 1 : 0;
+  const g = gameCountStat(stat); // "g30pt": 30-point games; "g10ast": games with 10+ assists
+  if (g) return (s[g.stat] ?? 0) >= g.min ? 1 : 0;
   if (stat === "dd" || stat === "td") {
     const tens = ["pts", "reb", "ast", "stl", "blk"].filter((k) => (s[k] ?? 0) >= 10).length;
     return tens >= (stat === "dd" ? 2 : 3) ? 1 : 0;

@@ -130,7 +130,7 @@ export function describe(text, meta = {}) {
     || (/\b(?:the )?only (?!NBA\b)(?:[A-Z][a-z]+s|76ers)\b(?! in NBA history)|\b\d{1,2}(?:st|nd|rd|th) [A-Z][a-z]+ ever\b|\bone of \w+ (?!NBA\b|All\b)[A-Z][a-z]+ (?:rookies|players|guards|forwards|centers|reserves)\b/.test(t) && !/\bin (?:NBA|league) history\b/i.test(t)); // "the only Raptors to…" (0.69), "one of three Maverick rookies" (0.71)
   const scope = teamScope ? "franchise" : f.league ? (f.history || /since/i.test(t) && !f.season ? "nba-history" : "nba") : f.franchise ? "franchise" : null;
   let type = "other", tag = "Notes", why = "";
-  if (f.matchup) { type = "matchup"; tag = "Series"; why = "The history with tonight's opponent."; }
+  if (f.matchup) { type = "matchup"; tag = /\ball-time against\b[^.]*\bas a head coach\b/.test(t) ? "Coach vs. opponent" : "Series"; why = "The history with tonight's opponent."; }
   else if (f.race) { type = "race"; tag = "Race"; why = "A race on a leaderboard: both sides can move."; }
   else if (f.streak && !/\bfrom (?:\w+\.? \d{1,2}|\d{1,2}\/\d{1,2})[^.]{0,30}\b(?:to|through|until) (?:\w+\.? \d{1,2},? (?:19|20)\d\d|\d{1,2}\/\d{1,2}\/\d{2,4})|\b(?:snapped|ended|came to an end)\b/i.test(t)) { type = "streak"; tag = streakN ? `Active streak · ${Number(streakN[1])}` : "Active streak"; why = "A live streak: it grows if he plays tonight."; }
   else if (club != null) {
@@ -255,11 +255,13 @@ const sig = (th) => th.map((x) => `${x.stat}${x.min}`).sort().join(",");
 /** The same fact printed twice (a player's page and an infographic page): keep the better-scored one. */
 export function dedupe(lines) {
   const out = [];
+  // A box's heading put before its bullet ("Rockets Offense: …", "Rockets Defense: …") is not part of what the line says.
+  const said = (l) => (l.topic && l.text.startsWith(`${l.topic}: `) ? l.text.slice(l.topic.length + 2) : l.text);
   for (const l of [...lines].sort((a, b) => (b.score || 0) - (a.score || 0))) {
-    const d = l.facts || describe(l.text, l), b = bag(l.text), who = l.player || (l.matchup ? "series" : "team");
+    const d = l.facts || describe(l.text, l), b = bag(said(l)), who = l.player || (l.matchup ? "series" : "team");
     const dup = out.find((o) => {
       if ((o.player || (o.matchup ? "series" : "team")) !== who) return false;
-      const od = o.facts, ob = bag(o.text);
+      const od = o.facts, ob = bag(said(o));
       if (d.thresholds.length >= 2 && sig(d.thresholds) === sig(od.thresholds)) return true;
       if (d.streak && d.streak === od.streak) return true;
       const j = jaccard(b, ob);
@@ -381,7 +383,7 @@ export function annotate(lines, { doc = null, tables = null, box = null, model =
     const hit = scoped.find((x) => x[1] === m[1] && x[3] === m[2] && [...words(x[4])].filter((w) => mine.has(w)).length >= 2);
     if (hit) { l.text = l.text.replace(new RegExp(`\\bone of ${m[1]} ${m[2]}\\b`), `one of ${m[1]} ${hit[2]} ${m[2]}`); l.facts = describe(l.text, l); }
   }
-  return dedupe(lines).map((l) => {
+  return checkStreaks(dedupe(lines).map((l) => {
     const d = l.facts;
     const names = l.player ? [l.player, l.player.split(" ").slice(-1)[0]] : teamNames;
     l.facts = d;
@@ -391,7 +393,76 @@ export function annotate(lines, { doc = null, tables = null, box = null, model =
     const f = { ...d.features, live: hook?.live ? 1 : 0 };
     const p = model ? score(f, model) : null;
     return { ...l, features: f, type: d.type, tag: d.tag, why: d.why, race: race || undefined, stay: stay || undefined, hook: hook || undefined, model: p == null ? undefined : Math.round(p * 1000) / 1000 };
-  });
+  }), box);
+}
+
+// ---------- A streak the notes count, against the box scores (0.76) ----------
+// The user, 11/16: the Knicks' notes carried "his eighth consecutive double-double to start the season" and "a
+// double-double in nine straight games to start the season" on a night Towns' streak stood at 12. Recaps of older
+// games stay in the notes; the box scores know the count as of tonight.
+const COUNT = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20,
+  first: 1, second: 2, third: 3, fourth: 4, fifth: 5, sixth: 6, seventh: 7, eighth: 8, ninth: 9, tenth: 10, eleventh: 11, twelfth: 12, thirteenth: 13, fourteenth: 14, fifteenth: 15, sixteenth: 16, seventeenth: 17, eighteenth: 18, nineteenth: 19, twentieth: 20 };
+const CNT = `(\\d{1,3}(?:st|nd|rd|th)?|${Object.keys(COUNT).join("|")})`;
+const countOf = (w) => COUNT[w.toLowerCase()] ?? (parseInt(w, 10) || null);
+const RUN = "(?:consecutive|straight)";
+const SPAN = `(?:each of )?(?:his |her |the )?(?:first |last |past )?${CNT} ${RUN} (?:games|contests|outings)`;
+const STREAK_STAT = "(points?|rebounds?|assists?|steals?|blocks?|three-pointers|3-pointers|threes)";
+const DOUBLES = [["dd", "double-doubles?", 2], ["td", "triple-doubles?", 3]];
+
+/**
+ * The streak a line counts, when it is one the box scores can count too: a double-double or triple-double streak,
+ * or "N straight games with X+ points". -> { n, key, test(row, k) } or null. Only present-tense lines: a streak
+ * that "ended" or "snapped", or one from another season, is history and is left as written.
+ */
+export function statedStreak(text) {
+  const t = plain(text);
+  if (/\b(?:snapped|ended|came to an end|was halted|last season|in 20(?:0\d|1\d|2[0-5])-\d\d)\b/i.test(t)) return null;
+  if (!/\bto (?:start|open|begin) (?:the|this|his) (?:season|campaign|year)\b|\b(?:has|have) (?:now |also )?(?:recorded|posted|scored|registered|tallied|had|notched|logged|grabbed|made|hit|dished)\b|\bactive\b|\bthis season\b|\bcurrent\b|\b(?:recorded|posted|notched|registered|logged|tallied) (?:his|her)\b|\bextend(?:ed|s|ing)?\b|\bin (?:each of )?(?:his|the) (?:last|past)\b/i.test(t)) return null;
+  for (const [key, word, need] of DOUBLES) {
+    if (key === "dd" && /triple-double/i.test(t)) continue;
+    const m = t.match(new RegExp(`\\b${CNT} ${RUN} (?:games? with (?:an? )?)?${word}`, "i")) || t.match(new RegExp(`\\b${word} in ${SPAN}`, "i"))
+      || t.match(new RegExp(`\\b${CNT}-game ${word.replace("s?", "")} streak`, "i"));
+    const n = m && countOf(m[1]);
+    if (n) return { n, key, label: key === "dd" ? "double-doubles" : "triple-doubles", test: (row, k) => ["pts", "reb", "ast", "stl", "blk"].filter((x) => row[k[x]] >= 10).length >= need };
+  }
+  // "30+ points in five straight games", "five straight games with at least 30 points", "five straight 30-point games"
+  let m = t.match(new RegExp(`\\b(\\d{1,2})(?:\\+|-plus| or more) ${STREAK_STAT} in ${SPAN}`, "i"));
+  let min = m && +m[1], word = m && m[2], n = m && countOf(m[3]);
+  if (!m && (m = t.match(new RegExp(`\\b${CNT} ${RUN} (?:games|contests|outings) (?:with|scoring|of|recording) (?:at least )?(\\d{1,2})(\\+|-plus| or more)? ${STREAK_STAT}`, "i"))) && (m[3] || /at least/i.test(m[0]))) { n = countOf(m[1]); min = +m[2]; word = m[4]; }
+  if (!n && (m = t.match(new RegExp(`\\b${CNT} ${RUN} (\\d{1,2})-(point|rebound|assist) games`, "i")))) { n = countOf(m[1]); min = +m[2]; word = m[3]; }
+  const stat = word && statKey(/^3|three/i.test(word) ? "threes" : word.replace(/s$/, "") + "s");
+  if (!n || !min || !stat) return null;
+  return { n, key: `${stat}${min}`, label: `games with ${min}+ ${WORD[stat]}`, test: (row, k) => row[k[stat]] >= min };
+}
+
+/** How long that streak is in the box scores, counted back from the player's last game. -> { now, last, all } */
+export function streakInBox(box, playerId, stated) {
+  if (!box || !playerId || !stated) return null;
+  const k = Object.fromEntries((box.keys || []).map((x, i) => [x, i]));
+  const played = (box.games || []).filter((g) => g.pl?.[playerId]?.[k.min] > 0).sort((a, b) => (a.d < b.d ? -1 : 1));
+  if (!played.length) return null;
+  let now = 0;
+  for (let i = played.length - 1; i >= 0 && stated.test(played[i].pl[playerId], k); i--) now++;
+  return { now, last: played[played.length - 1].d, all: now === played.length };
+}
+
+/**
+ * Lines whose streak the box scores count higher get a hook saying so; the line keeps the notes' words.
+ * Mutates and returns the lines. Each checked line carries streakNow: { key, said, now }.
+ */
+export function checkStreaks(lines, box) {
+  for (const l of lines || []) {
+    if (!l.playerId) continue;
+    const st = statedStreak(l.text);
+    const at = st && streakInBox(box, String(l.playerId), st);
+    if (!at) continue;
+    l.streakNow = { key: st.key, said: st.n, now: at.now };
+    if (at.now <= st.n) continue;
+    const ranked = /\b(?:ranks?|tied|tying|longest|most|history|record)\b/i.test(plain(l.text));
+    l.tag = `Now ${at.now} straight`;
+    l.hook = { text: `The notes are behind: the box scores have it at ${at.now} straight ${st.label.replace(/^games with /, "with ")} through ${+at.last.slice(5, 7)}/${+at.last.slice(8, 10)}${at.all ? " (every game he has played this season)" : ""}${ranked ? ", so where this line ranks it is out of date" : ""}. ${at.now + 1} if he does it again tonight.`, live: true };
+  }
+  return lines;
 }
 
 // ---------- What to trim (0.49, from the user's review of the 11/13 slate) ----------
@@ -446,6 +517,8 @@ export function trimReason(line, { box = null, today, home = null } = {}) {
   if (/\b[A-Z][a-z]+(?: [A-Z][a-z]+)? \/ [A-Z]{2,3}\b|\b\d{1,2}(?:st|nd|rd|th) Season\b/.test(t)) return "garbled (a table row)";
   if ((t.match(/\bjoining\b/g) || []).length >= 2 || /\b(?:of|in|to|the|for|and)\s+[A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+(?:Jr|Sr)\.?|\s+I{2,3})?\s+(?:notches|notched|records|recorded|becomes|became|scores|scored|posts|posted|tallies|tallied)\b/.test(t)) return "garbled (two columns read as one)";
   // 0.69 (the user, 11/15): a table read into the sentence ("DREB 92 times (@ CHI, 10 at DEN 1/9/26 Totaled…").
+  // 0.76: a season list cut by the next column ("…(2018-19, 2021-22, 2022-5-of-19 over the past 4 games (…). 23).").
+  if (/\b(?:19|20)\d\d-\d{1,2}-of-\d|\)\. \d{1,2}\)\.?$/.test(t)) return "garbled (two columns read as one)";
   if (/\b(?:DREB|OREB)\b|\(@ [A-Z]{2,4},|\s(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)\.? \d{1,2} (?:at|vs\.?) [A-Z][a-z]+:/.test(t)) return "garbled (a table read into it)";
   // Last season's text left in this season's notes: it says "this season" but every date in it is before this season
   // ("5+ blocks in 23 straight games from Jan. 17 to March 8, 2026, the longest streak in the NBA this season").
@@ -488,7 +561,12 @@ export function trimReason(line, { box = null, today, home = null } = {}) {
  */
 export function trimLines(lines, { box = null, today, home = null, floor = 4 } = {}) {
   let keep = [], trimmed = [];
-  for (const l of lines) { const why = trimReason(l, { box, today, home }); (why ? trimmed : keep).push(why ? { ...l, trimmed: why } : l); }
+  // The same streak counted at two points of the season (a recap from three games ago beside the latest): the
+  // higher count is the one to read; the lower is listed as trimmed (0.76).
+  const top = new Map();
+  for (const l of lines) if (l.streakNow) { const k = `${l.playerId}|${l.streakNow.key}`; top.set(k, Math.max(top.get(k) || 0, l.streakNow.said)); }
+  const older = (l) => (l.streakNow && l.streakNow.said < top.get(`${l.playerId}|${l.streakNow.key}`) ? `an older count of the same streak (${l.streakNow.said}; it is at ${Math.max(l.streakNow.now, top.get(`${l.playerId}|${l.streakNow.key}`))})` : null);
+  for (const l of lines) { const why = older(l) || trimReason(l, { box, today, home }); (why ? trimmed : keep).push(why ? { ...l, trimmed: why } : l); }
   // The same fact told twice, once with its date and once without ("Wilson is the first rookie in Bulls history to…"):
   // when the dated telling is a past one-off, so is the other.
   const firstName = (l) => (l.player || "").split(" ").slice(-1)[0];
