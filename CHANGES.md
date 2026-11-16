@@ -2,6 +2,25 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.72.4 (2026-11-15): lead context by size, from 20; a Basketball Reference total settles notes vs. ESPN
+
+The user (11/15): on "📊 LEAD CONTEXT · BOS lead DAL by 30 · BOS have lost a 15-point lead once this season": "start checking around 20 points leads, and as the lead balloons, increase the check — so lost lead by +25 when up 25 and lost a lead by +30 when up 30, even those are rarer so it shouldn't actually show if no lead was lost at that amount. a 15-point lead is pretty common place". And on "🧮 COUNT CHECK · Anthony Davis (WAS) — the team's notes have 8,751 rebounds… ESPN says 8752": a Basketball Reference page from before the game with 8,752.
+
+### What changed
+- **Lead context (bridge v10)** starts at a 20-point lead and is measured in steps of 5 on the biggest lead of the game: up 25 it is about 25-point leads lost and comebacks from 25 down, up 30 about 30. With nothing that size lost or won back this season there is no card, and a card from a smaller step is taken down. The step follows the biggest lead, so it doesn't flip back and forth when the lead moves around a boundary; "(by as many as 31)" is added when the lead has slipped 5 or more. "The most in the NBA" is counted at the same size.
+- **Lead lost** (at the final) still starts at 15, but is counted at its own size: "their 2nd lost lead of 20+ this season".
+- **A confirmation settles a count** (`src/registry/track.js`): when the notes and ESPN differ and a Basketball Reference total the user checked (`src/data/verified-totals.json`) equals ESPN's, ESPN's total is used and the item is "corrected", not "disagrees": no count-check card, and the Watch List says "the notes say 8751; ESPN and Basketball Reference (through 2026-11-14) say 8752". When it equals the notes instead, the difference stays flagged and says Basketball Reference agrees with the notes (NBA Live's ladder uses ESPN, so that one is worth the card). A row settles only while one of the two totals still equals it.
+- **Two rows added** to verified-totals.json from tonight's screenshots: Jaylen Brown 1,997 career assists and Anthony Davis 8,752 career rebounds, both through 11/14.
+
+### Tested
+- 752 checks here (3 new: the lead card at 20, taken down at 26, down still at 21, none at 18; a confirmation with ESPN, with the notes, absent, stale, and another player's). 758 with the held 0.73 worker checks. The pages test: all pages OK.
+- This season's 188 Game Flow files: 17 leads of 15+ lost, 7 of 20+, 2 of 25+ (LAL 25 vs GSW, CLE 29 vs PHI), none of 30+. Tonight's BOS card (up 30; their one lost lead was 22) no longer fires.
+
+### Unproven
+- The bridge on the stand-in NBA Live only.
+- A confirmation is matched by value, not by date: if a player's total happened to sit unchanged across a game, an old row could still settle it. The same rule the Records checks use.
+- Still by hand: nothing breaks a notes-vs-ESPN tie unless the user sends a page. The Command Center's own count (Tip-Off Guide totals plus this season's box scores) could do it automatically when it agrees with one of them; not built.
+
 ## 0.72.3 (2026-11-15): season-best cards flip to the season's list; one card for a big quarter, not two
 
 The user (11/15, on "📅 SEASON-BEST QUARTER" cards for Siakam and Dončić): "is there a way to make this clickable and flip over to see the list of top players this season while also accounting for any records that were also broken the same day? I also think the nba live program already has an alert like this… in order to reduce redundancy, one of the alerts should be trimmed but both versions (most points in a quarter all time and most points in a quarter this season) should still be tracked."

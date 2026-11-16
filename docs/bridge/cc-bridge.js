@@ -1,5 +1,5 @@
 /*
- * NBA Command Center -> NBA Live bridge.                                  version 9
+ * NBA Command Center -> NBA Live bridge.                                  version 10
  *
  * Add ONE line to NBA Live, just before </body>:
  *   <script src="https://campgambino.github.io/nba-command-center/bridge/cc-bridge.js"></script>
@@ -35,6 +35,11 @@
  *       a 15-point lead with the season's record of leads lost and comebacks, and a 15-point lead lost;
  *       (0.59.1) a regular reserve 3+ minutes past his usual first check-in, and before tip-off a "foul watch" card for
  *       starters in early foul trouble in half their games or more.
+ *     - (v10, 0.72.4; the user, 11/15: "start checking around 20 points leads, and as the lead balloons, increase the
+ *       check… it shouldn't actually show if no lead was lost at that amount. a 15-point lead is pretty common place")
+ *       lead context starts at a 20-point lead and is measured in steps of 5 on the biggest lead of the game: up 25 it
+ *       is about 25-point leads lost (and comebacks from 25 down), up 30 about 30. No card when nothing that size has
+ *       been lost or won back this season, and a card from a smaller step is taken down.
  *     - (v9, 0.72.3; the user, 11/15: "make this clickable and flip over to see the list of top players this season
  *       while also accounting for any records that were also broken the same day… one of the alerts should be trimmed
  *       but both versions should still be tracked") the season cards flip to the season's list, with tonight's quarters
@@ -63,7 +68,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 9;
+  var VERSION = 10;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -591,7 +596,8 @@
   var SEASON_TOP = 10, TEAM_TOP = 5;         // a place on the season's lists worth a card
   var Q_MIN = 15, H_MIN = 22, TQ_MIN = 40;    // and the least that can make one
   var LATE_RETURN = 180;                      // seconds past his usual return
-  var LEAD = 15;
+  var LEAD = 15;                              // a lead lost is a card from here
+  var LEAD_FROM = 20, LEAD_STEP = 5;          // lead context: from a 20-point lead, in steps of 5 (v10)
   var qName = function (q) { return ["1st", "2nd", "3rd", "4th"][q - 1] + " quarter"; };
   function elapsedNow(game) {
     var per = Number(game.period) || 1, c = String(game.clock || "").trim();
@@ -853,37 +859,42 @@
         }
       });
     });
-    // 4. Leads: a 15-point lead with each side's season record, and a 15-point lead lost.
+    // 4. Leads: a big lead with each side's season record at that size (v10: from 20, in steps of 5), and a lead lost.
     var L = F.leads || {};
     var a = Number(game.away && game.away.score) || 0, h = Number(game.home && game.home.score) || 0;
     var M = state.maxLead[game.id] || (state.maxLead[game.id] = { away: 0, home: 0 });
     M.away = Math.max(M.away, a - h, Number(game.away && game.away.biggestLead) || 0);
     M.home = Math.max(M.home, h - a, Number(game.home && game.home.biggestLead) || 0);
-    var rankOf = function (key, tri) {
-      var n = (L[tri] && L[tri][key] || []).length;
-      var more = Object.keys(L).filter(function (t) { return (L[t][key] || []).length > n; }).length;
-      return n && !more ? (Object.keys(L).some(function (t) { return t !== tri && (L[t][key] || []).length === n; }) ? " (tied for the most in the NBA)" : " (the most in the NBA)") : "";
+    var sized = function (tri, key, min) { return ((L[tri] && L[tri][key]) || []).filter(function (x) { return (key === "blown" ? x.lead : x.down) >= min; }); };
+    var rankOf = function (key, tri, min) {
+      var n = sized(tri, key, min).length;
+      var more = Object.keys(L).filter(function (t) { return sized(t, key, min).length > n; }).length;
+      return n && !more ? (Object.keys(L).some(function (t) { return t !== tri && sized(t, key, min).length === n; }) ? " (tied for the most in the NBA)" : " (the most in the NBA)") : "";
     };
-    var record = function (tri, key, word) {
-      var xs = (L[tri] && L[tri][key]) || [];
+    var record = function (tri, key, word, min) {
+      var xs = sized(tri, key, min);
       if (!xs.length) return "";
       var x = xs[xs.length - 1];
-      return tri + " have " + word + " " + (xs.length === 1 ? "once" : xs.length + " times") + " this season" + rankOf(key, tri) + " (last: " + (key === "blown" ? x.lead + "-point lead" : x.down + " down") + " vs " + x.opp + " " + md(x.date) + ", " + x.score + ")";
+      return tri + " have " + word + " " + (xs.length === 1 ? "once" : xs.length + " times") + " this season" + rankOf(key, tri, min) + " (last: " + (key === "blown" ? x.lead + "-point lead" : x.down + " down") + " vs " + x.opp + " " + md(x.date) + ", " + x.score + ")";
     };
     ["away", "home"].forEach(function (side) {
       var team = side === "away" ? sides.away : sides.home, other = side === "away" ? sides.home : sides.away;
       var lead = side === "away" ? a - h : h - a;
-      if (live && lead >= LEAD) {
-        var bits = [record(team, "blown", "lost a " + LEAD + "-point lead"), record(other, "comebacks", "come back from " + LEAD + " down")].filter(Boolean);
+      // v10: the lead that could be lost is the biggest one of the game, so the step only goes up: 20, 25, 30…
+      var step = Math.floor(Math.max(M[side], lead) / LEAD_STEP) * LEAD_STEP;
+      if (live && lead >= LEAD_FROM) {
+        var bits = [record(team, "blown", "lost a " + step + "-point lead", step), record(other, "comebacks", "come back from " + step + " down", step)].filter(Boolean);
         if (bits.length) fire("cc-lead-" + game.id + "-" + team, base({ icon: "📊 LEAD CONTEXT",
-          text: team + " lead " + other + " by " + lead + " · " + bits.join(" · "), statLine: stl([[lead, "LEAD"]]),
-          sub: "Command Center · leads of " + LEAD + "+ lost and won back this season, from the Game Flow files" }));
+          text: team + " lead " + other + " by " + lead + (M[side] >= lead + LEAD_STEP ? " (by as many as " + M[side] + ")" : "") + " · " + bits.join(" · "), statLine: stl([[lead, "LEAD"]]),
+          sub: "Command Center · leads of " + step + "+ lost and won back this season, from the Game Flow files" }));
+        else dropCard("cc-lead-" + game.id + "-" + team);     // grown past anything lost or won back this season
       }
       var won = side === "away" ? a > h : h > a;
       if (game.status === "final" && !won && M[side] >= LEAD) {
-        var n = ((L[team] && L[team].blown) || []).length + 1;
+        var lost = Math.max(LEAD, Math.floor(M[side] / LEAD_STEP) * LEAD_STEP);   // v10: counted at its own size
+        var n = sized(team, "blown", lost).length + 1;
         fire("cc-blown-" + game.id + "-" + team, base({ icon: "📉 LEAD LOST",
-          text: team + " lost a " + M[side] + "-point lead to " + other + " · their " + ord(n) + " lost lead of " + LEAD + "+ this season" + "; " + other + "'s " + ord((((L[other] && L[other].comebacks) || []).length) + 1) + " comeback from " + LEAD + "+ down",
+          text: team + " lost a " + M[side] + "-point lead to " + other + " · their " + ord(n) + " lost lead of " + lost + "+ this season" + "; " + other + "'s " + ord(sized(other, "comebacks", lost).length + 1) + " comeback from " + lost + "+ down",
           statLine: stl([[M[side], "LEAD LOST"]]), sub: "Command Center · Game Flow files" + through }));
       }
     });

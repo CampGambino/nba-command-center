@@ -704,6 +704,25 @@ const more = {};
     "discovery 0.72.2: ESPN's totals are taken back to entering today once ESPN has added today's game, and left alone before it has", JSON.stringify([br(d1), br(d0), d1.problems]));
 }
 
+// ---------- 0.72.4: a Basketball Reference total the user checked settles a notes-vs-ESPN difference ----------
+{
+  const fake = {
+    teams: async () => ({ ok: true, warnings: [], data: { ids: { WAS: "27" } } }),
+    roster: async () => ({ ok: true, warnings: [], data: { players: [{ id: "a", name: "Tony Davis" }, { id: "b", name: "Other Guy" }] } }),
+    schedule: async () => ({ ok: true, warnings: [], data: { games: [] } }),
+    box: async () => ({ ok: false, error: "none" }),
+    career: async (id) => ({ ok: true, stale: false, warnings: [], data: { rows: [{ season: "2026-27", teamId: "27", stats: { gp: 11 } }], career: id === "a" ? { reb: 8752 } : { reb: 500 } } }),
+  };
+  const m = (player, current) => ({ team: "WAS", player, stat: "reb", label: "rebounds", kind: "round", scope: "career", current, target: 9000, need: 9000 - current, status: "ok", checks: [], sources: [] });
+  const rows = (value) => ({ rows: [{ player: "Tony Davis", stat: "reb", scope: "career", value, asOf: "2026-11-14" }] });
+  const run1 = async (verified) => (await trackMilestones({ team: "WAS", notesDate: "2026-11-15", today: "2026-11-15", milestones: [m("Tony Davis", 8751), m("Other Guy", 499)], espn: fake, verified })).milestones;
+  const [d1, o1] = await run1(rows(8752)), [d2] = await run1(rows(8751)), [d3] = await run1(null), [d4] = await run1(rows(8740));
+  ok(d1.tracking.status === "corrected" && d1.tracking.current === 8752 && d1.tracking.need === 248 && d1.status !== "review" && /ESPN and Basketball Reference \(through 2026-11-14\) say 8752/.test(d1.tracking.notes.join(" "))
+    && o1.tracking.status === "disagrees" && d3.tracking.status === "disagrees" && d3.status === "review" && d4.tracking.status === "disagrees",
+    "tracking 0.72.4: notes one short of ESPN, and Basketball Reference with ESPN: ESPN's total is used and it isn't a disagreement; no confirmation, an old one, or another player's row settles nothing", JSON.stringify([d1.tracking.status, d1.tracking.current, d1.status, o1.tracking.status, d3.tracking.status, d4.tracking.status]));
+  ok(d2.tracking.status === "disagrees" && /Basketball Reference \(through 2026-11-14\) agrees with the notes/.test(d2.checks.join(" ")), "tracking 0.72.4: when Basketball Reference sides with the notes, the difference stays flagged and says so", d2.checks.join(" | "));
+}
+
 // ---------- ESPN-only discovery never repeats a notes milestone (site showed "J. Tatum" and "Jayson Tatum") ----------
 {
   const fake = {
@@ -1896,7 +1915,7 @@ await articlesChecks(ok);
       "52": { name: "Foul Guy", team: "GSW", gp: 13, starts: 13, open3: 2, back: 2000, n: { back: 1 } }, "55": { name: "Sixth Man", team: "GSW", gp: 10, starts: 0, in1: 300, n: { in1: 9 } },
       "56": { name: "Rare Sub", team: "GSW", gp: 10, starts: 0, in1: 300, n: { in1: 3 } } },
     fouls: { "52": { name: "Foul Guy", team: "GSW", gp: 13, trouble: 9, out: 1, troubleIn: ["a", "b", "c", "d", "e", "f", "g", "h", "g5"], outIn: ["a"] } },
-    leads: { GSW: { gp: 12, blown: [{ lead: 18, opp: "MIL", date: "2026-11-03", score: "108-112", gameId: "o3" }, { lead: 16, opp: "TOR", date: "2026-11-07", score: "99-101", gameId: "o4" }], comebacks: [] },
+    leads: { GSW: { gp: 12, blown: [{ lead: 22, opp: "MIL", date: "2026-11-03", score: "108-112", gameId: "o3" }, { lead: 16, opp: "TOR", date: "2026-11-07", score: "99-101", gameId: "o4" }], comebacks: [] },
       HOU: { gp: 12, blown: [], comebacks: [{ down: 17, opp: "BOS", date: "2026-11-01", score: "110-104", gameId: "o5" }] }, BOS: { gp: 12, blown: [{ lead: 15, opp: "X", date: "2026-11-01", score: "1-2", gameId: "o6" }], comebacks: [] } } };
   const qp = (id, o) => pl(id, { name: "P" + id, ...o });
   const g5 = { id: "g5", status: "live", period: 2, clock: "8:00", away: { tricode: "GS", score: 60, linescores: [45, 15] }, home: { tricode: "HOU", score: 40, linescores: [22, 18] },
@@ -1915,8 +1934,22 @@ await articlesChecks(ok);
     "bridge v5: foul trouble (3 fouls in the 2nd) with his season record, tonight's game left out (a later build can hold it); a bench player with no rotation history doesn't get one", c6("cc-ft-52-g5") && c6("cc-ft-52-g5").text);
   ok(c6("cc-ret-50-g5-h1") && c6("cc-ret-50-g5-h1").text === "Sits Long (GSW) hasn't come back in · usually returns to open the 2nd quarter (median of 9 starts) · out since Q1 4:24" && !c6("cc-ret-51-g5-h1"),
     "bridge v5: a starter 4+ minutes past his usual return (to open Q2) gets a rotation card; one whose usual return is later doesn't", c6("cc-ret-50-g5-h1") && c6("cc-ret-50-g5-h1").text);
-  ok(c6("cc-lead-g5-GSW") && c6("cc-lead-g5-GSW").text === "GSW lead HOU by 20 · GSW have lost a 15-point lead 2 times this season (the most in the NBA) (last: 16-point lead vs TOR 11/7, 99-101) · HOU have come back from 15 down once this season (the most in the NBA) (last: 17 down vs BOS 11/1, 110-104)",
-    "bridge v5: a 15-point lead with both sides' season records", c6("cc-lead-g5-GSW") && c6("cc-lead-g5-GSW").text);
+  ok(c6("cc-lead-g5-GSW") && c6("cc-lead-g5-GSW").text === "GSW lead HOU by 20 · GSW have lost a 20-point lead once this season (the most in the NBA) (last: 22-point lead vs MIL 11/3, 108-112)" && /leads of 20\+ lost/.test(c6("cc-lead-g5-GSW").sub),
+    "bridge v10 (0.72.4): lead context from a 20-point lead, at that size: the 22-point lead lost counts, the 16-point one and a comeback from 17 don't", c6("cc-lead-g5-GSW") && c6("cc-lead-g5-GSW").text);
+  {
+    // The lead balloons: at 26 the question is 25-point leads, nobody has lost one, so the card comes down; and it stays
+    // down when the lead slips back to 21 (the lead that could be lost is still 26). A lead of 18 never gets a card.
+    const gL = { id: "gL", status: "live", period: 2, clock: "8:00", away: { tricode: "GS", score: 60, linescores: [] }, home: { tricode: "HOU", score: 40, linescores: [] }, plays: [], boxscore: { away: [], home: [] } };
+    const tL = run({ games: [gL] }); await flush(); tL.ctx.runAlertChecks(); await flush();
+    const at20 = !!tL.cards.get("cc-lead-gL-GSW");
+    gL.away.score = 66; tL.ctx.runAlertChecks(); await flush();
+    const at26 = !!tL.cards.get("cc-lead-gL-GSW");
+    gL.away.score = 61; tL.ctx.runAlertChecks(); await flush();
+    const back21 = !!tL.cards.get("cc-lead-gL-GSW");
+    const gS = { ...gL, id: "gS", away: { tricode: "GS", score: 58, linescores: [] } };
+    const tS = run({ games: [gS] }); await flush(); tS.ctx.runAlertChecks(); await flush();
+    ok(at20 && !at26 && !back21 && !tS.cards.get("cc-lead-gS-GSW"), "bridge v10 (0.72.4): the lead-context card comes down when the lead outgrows anything lost this season, stays down if it slips back, and an 18-point lead gets none", [at20, at26, back21].join(" "));
+  }
   ok(c6("cc-in-55-g5") && c6("cc-in-55-g5").text === "Sixth Man (GSW) hasn't played yet · usually checks in by Q1 7:00 (median of 9 games off the bench)" && !c6("cc-in-56-g5"),
     "bridge 0.59.1: a regular reserve 3+ minutes past his usual first check-in gets a card; one who rarely plays doesn't", c6("cc-in-55-g5") && c6("cc-in-55-g5").text);
   const t8 = run({ games: [{ id: "g8", status: "pre", away: { tricode: "GS", score: 0 }, home: { tricode: "HOU", score: 0 }, boxscore: { away: [], home: [] } }] }); await flush(); t8.ctx.runAlertChecks(); await flush();
@@ -1928,8 +1961,8 @@ await articlesChecks(ok);
   Object.assign(g5, { status: "final", period: 4, away: { ...g5.away, score: 100 }, home: { ...g5.home, score: 104 } });
   g5.boxscore.home.push(qp("61", { name: "Third Half", pf: 6, pts: 8, min: 20 }));
   t6.ctx.runAlertChecks(); await flush();
-  ok(c6("cc-blown-g5-GSW") && c6("cc-blown-g5-GSW").text === "GSW lost a 20-point lead to HOU · their 3rd lost lead of 15+ this season; HOU's 2nd comeback from 15+ down" && c6("cc-fo-61-g5") && /fouled out · his first foul-out this season/.test(c6("cc-fo-61-g5").text),
-    "bridge v5: at the final, a 15-point lead lost (from the biggest lead seen), and a foul-out", [c6("cc-blown-g5-GSW"), c6("cc-fo-61-g5")].map((c) => c && c.text).join(" | "));
+  ok(c6("cc-blown-g5-GSW") && c6("cc-blown-g5-GSW").text === "GSW lost a 20-point lead to HOU · their 2nd lost lead of 20+ this season; HOU's 1st comeback from 20+ down" && c6("cc-fo-61-g5") && /fouled out · his first foul-out this season/.test(c6("cc-fo-61-g5").text),
+    "bridge v5/v10: at the final, a lead lost, counted at its own size (from the biggest lead seen), and a foul-out", [c6("cc-blown-g5-GSW"), c6("cc-fo-61-g5")].map((c) => c && c.text).join(" | "));
   // Not out for the 3rd: a starter who opens the 3rd in 10 of 10 starts, 1:00 into it.
   const g6 = { id: "g6", status: "live", period: 3, clock: "11:00", away: { tricode: "GS", score: 50, linescores: [] }, home: { tricode: "HOU", score: 52, linescores: [] }, plays: [{ badge: "fg", playerId: "40", qtr: "Q3", clock: "11:40" }],
     boxscore: { away: [qp("53", { name: "Half Out", min: 18 })], home: [] } };

@@ -94,7 +94,7 @@ export async function todayPlayed({ team, espn, schedule, today }) {
  * @param {object} p.espn        createEspn(...) or a test double with the same methods
  * @returns {Promise<{ milestones, games, warnings, problems }>}
  */
-export async function trackMilestones({ team, notesDate, milestones, espn, nba = null, today = null }) {
+export async function trackMilestones({ team, notesDate, milestones, espn, nba = null, today = null, verified = null }) {
   const warnings = [], problems = [];
   const done = (status, note) => ({
     milestones: milestones.map((m) => ({ ...m, tracking: { status, notes: [note] } })),
@@ -289,9 +289,25 @@ export async function trackMilestones({ team, notesDate, milestones, espn, nba =
     }
     if (t.espn.diff === 0) t.status = boxesComplete ? "confirmed" : "partial";
     else {
+      // 0.72.4: an outside confirmation (src/data/verified-totals.json: Basketball Reference pages the user checked)
+      // settles it while one of the two totals still equals its value. The user, 11/15: Anthony Davis, notes 8,751
+      // rebounds, ESPN 8,752, Basketball Reference 8,752 before the game: the notes are one short, no count check needed.
+      const v = (verified?.rows || []).find((r) => r.stat === m.stat && r.scope === scope && (scope !== "franchise" || !r.team || r.team === team)
+        && (nameKey(r.player) === nameKey(player.name) || nameKey(r.player) === nameKey(m.player)));
+      if (v && v.value === espnValue) {
+        t.settled = { value: v.value, asOf: v.asOf, by: "Basketball Reference", notes: t.current };
+        t.notes.push(`the notes say ${t.current}; ESPN and Basketball Reference (through ${v.asOf}) say ${espnValue}`);
+        const shift = espnValue - t.current;
+        t.current = espnValue;
+        t.espn.diff = 0;
+        if (t.target != null) t.need = t.target - t.current; else if (t.need != null) t.need -= shift;
+        if (t.need != null) t.reached = t.need <= 0;
+        t.status = boxesComplete ? "corrected" : "partial";
+        continue;
+      }
       t.status = "disagrees";
       const lagging = boxes.length && t.espn.diff === -delta;
-      t.notes.push(`notes${delta ? " + games since" : ""} say ${t.current}, ESPN says ${espnValue} (${t.espn.diff > 0 ? "+" : ""}${t.espn.diff})${lagging ? "; ESPN may not have added the latest game yet" : ""}`);
+      t.notes.push(`notes${delta ? " + games since" : ""} say ${t.current}, ESPN says ${espnValue} (${t.espn.diff > 0 ? "+" : ""}${t.espn.diff})${lagging ? "; ESPN may not have added the latest game yet" : ""}${v && v.value === t.current ? `; Basketball Reference (through ${v.asOf}) agrees with the notes` : ""}`);
     }
   }
 

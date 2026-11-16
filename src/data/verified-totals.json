@@ -62,6 +62,22 @@
       "value": 961,
       "asOf": "2026-11-13",
       "season": 39
+    },
+    {
+      "player": "Jaylen Brown",
+      "stat": "ast",
+      "scope": "career",
+      "value": 1997,
+      "asOf": "2026-11-14",
+      "season": 44
+    },
+    {
+      "player": "Anthony Davis",
+      "stat": "reb",
+      "scope": "career",
+      "value": 8752,
+      "asOf": "2026-11-14",
+      "season": 115
     }
   ]
 }

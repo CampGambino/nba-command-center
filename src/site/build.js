@@ -52,6 +52,9 @@ export function moveTraded(teams, roster, rosterNames = {}) {
 }
 
 export async function buildSite({ entries, games = [], uncounted = [], espn, nba = null, today, root }) {
+  // Outside confirmations (Basketball Reference pages the user checked) settle a notes-vs-ESPN difference (0.72.4).
+  let verified = null;
+  try { verified = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "verified-totals.json"), "utf8")); } catch { /* none: nothing is settled */ }
   const reports = [], teams = [];
   for (const e of entries) {
     const base = { team: e.team, notesStatus: e.notes?.status || "local", notesWhy: e.notes?.why || e.notes?.error || null, verifiedFormat: VERIFIED_FORMATS.has(e.team) };
@@ -64,7 +67,7 @@ export async function buildSite({ entries, games = [], uncounted = [], espn, nba
     }
     let watchItems = [], tonightGame = null;
     if (parsed) {
-      const w = await buildWatch({ team: e.team, notesDate: parsed.meta.gameDate, milestones: parsed.milestones, espn, nba, today });
+      const w = await buildWatch({ team: e.team, notesDate: parsed.meta.gameDate, milestones: parsed.milestones, espn, nba, today, verified });
       reports.push({ ...w, opponent: parsed.meta.opponent, notesStatus: base.notesStatus });
       watchItems = w.items; tonightGame = w.tonightGame; problems.push(...w.problems);
     }

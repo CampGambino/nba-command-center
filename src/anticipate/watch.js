@@ -31,8 +31,8 @@ const seasonEndYear = (iso) => { const [y, m] = iso.split("-").map(Number); retu
 const STARTER_PLAY = 0.95;   // listed in tonight's starting five: very likely to play
 const START_IF_LISTED = { Confirmed: 0.98, Expected: 0.85 };
 
-export async function buildWatch({ team, notesDate, milestones, espn, today, sims = 4000, nba = null }) {
-  const tracked = await trackMilestones({ team, notesDate, milestones, espn, nba, today });
+export async function buildWatch({ team, notesDate, milestones, espn, today, sims = 4000, nba = null, verified = null }) {
+  const tracked = await trackMilestones({ team, notesDate, milestones, espn, nba, today, verified });
   const warnings = [...tracked.warnings], problems = [...tracked.problems];
   let tonightGame = null;
   const result = (items) => ({ team, today, notesDate, tonightGame, items, games: tracked.games, warnings, problems });
