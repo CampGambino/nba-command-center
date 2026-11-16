@@ -41,6 +41,9 @@ export const SITUATIONS = [
   ["vsTop3", "vs top-3 records"], ["vsTop4", "vs top-4 records"], ["vsTop5", "vs top-5 records"], ["clutch", "Clutch games"],
   ["close", "Decided by 3 or fewer"], ["ot", "Overtime"], ["ten", "Decided by 10+"],
   ["vsEast", "vs East"], ["vsWest", "vs West"], ["vsDiv", "vs own division"],
+  // 0.80 (the user, 11/16: "these are nice to have in case anything stands out"): by day of the week and by month.
+  ...["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((d, i) => [`dow${i}`, `${d}s`]),
+  ...[["10", "October"], ["11", "November"], ["12", "December"], ["01", "January"], ["02", "February"], ["03", "March"], ["04", "April"]].map(([m, n]) => [`mon${m}`, n]),
   ["leadHalf", "Leading at half"], ["tiedHalf", "Tied at half"], ["trailHalf", "Trailing at half"],
   ["lead3", "Leading after 3"], ["tied3", "Tied after 3"], ["trail3", "Trailing after 3"],
 ];
@@ -59,12 +62,15 @@ const PHRASE = {
   vsTop3: "against the 3 best records", vsTop4: "against the 4 best records", vsTop5: "against the 5 best records",
   clutch: "in clutch games (within 5 in the last 5 minutes)",
   vsEast: "against the East", vsWest: "against the West", vsDiv: "against its own division",
+  ...Object.fromEntries(["Sundays", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays"].map((d, i) => [`dow${i}`, `on ${d}`])),
+  ...Object.fromEntries([["10", "October"], ["11", "November"], ["12", "December"], ["01", "January"], ["02", "February"], ["03", "March"], ["04", "April"]].map(([m, n]) => [`mon${m}`, `in ${n}`])),
   close: "in games decided by 3 or fewer", ot: "in overtime games", ten: "in games decided by 10 or more",
   leadHalf: "when leading at half", tiedHalf: "when tied at half", trailHalf: "when trailing at half",
   lead3: "when leading after 3 quarters", tied3: "when tied after 3 quarters", trail3: "when trailing after 3 quarters",
 };
 const MIN_GAMES = 4;
 const ALPHA = 0.01;
+const CAL_P = 0.02; // a weekday or month record is listed as unusual only below this
 const PRIOR = 5; // wins and losses added to a team's record for strength
 const logit = (p) => Math.log(p / (1 - p));
 const expit = (x) => 1 / (1 + Math.exp(-x));
@@ -145,6 +151,7 @@ export function computeSituations(rows, { through = null } = {}) {
     if (Math.abs(g.margin) >= 10) k.push("ten");
     if (DIV_OF[g.opp]) k.push(EAST.has(DIV_OF[g.opp]) ? "vsEast" : "vsWest");
     if (DIV_OF[g.opp] && DIV_OF[g.opp] === DIV_OF[g.team]) k.push("vsDiv");
+    if (g.date) { k.push(`dow${new Date(`${g.date}T12:00:00Z`).getUTCDay()}`); k.push(`mon${g.date.slice(5, 7)}`); }
     if (g.half != null) k.push(g.half > 0 ? "leadHalf" : g.half < 0 ? "trailHalf" : "tiedHalf");
     if (g.after3 != null) k.push(g.after3 > 0 ? "lead3" : g.after3 < 0 ? "trail3" : "tied3");
     return k;
@@ -197,8 +204,11 @@ export function computeSituations(rows, { through = null } = {}) {
         short: `${r.w}-${r.l} ${PHRASE[k]}`,
         list: (t.byKey[k] || []).map((g) => ({ d: g.date, opp: g.opp, home: g.home, road: g.road, w: g.win, pf: g.pf, pa: g.pa, ot: g.ot })),
       };
-      tests.push(item);
-      if (n < MIN_GAMES || tail > ALPHA) continue;
+      // Calendar splits (0.80) say nothing about tonight and add 14 more chances of a fluke: they are listed only when
+      // they clear a bar five times stricter than the others.
+      const cal = /^(?:dow|mon)/.test(k);
+      if (cal) { item.cal = true; if (tail <= CAL_P) tests.push(item); } else tests.push(item);
+      if (n < MIN_GAMES || tail > (cal ? ALPHA / 2 : ALPHA)) continue;
       t.flags.push({
         key: k, w: r.w, l: r.l, baseline: p0, expectedPct: pe, expectedWins: t.expected[k], p: tail, direction: hi ? "better" : "worse",
         text: `${r.w}-${r.l} ${PHRASE[k]}: a team this good would win about ${t.expected[k]} of ${n} (league-wide, teams win ${Math.round(p0 * 100)}% of those)`,

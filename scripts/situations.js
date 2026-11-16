@@ -383,6 +383,20 @@ for (const [tri, games] of Object.entries(perTeam)) {
     } catch (e) { prep.errors.push(`season-long: ${e.message}`); }
     // 0.72.7: a quarter far out of line with a team's other three, and tonight's opponent in that quarter.
     try { const { quarterLines } = await import("../src/situations/quarters.js"); prep.lines.push(...quarterLines(rows, slate)); } catch (e) { prep.errors.push(`quarters: ${e.message}`); }
+    // 0.80: standings with magic and elimination numbers; a line once a team's number is within five.
+    try {
+      const { standings, clinchLines } = await import("../src/situations/standings.js");
+      const st = standings(rows.filter((g) => g.d < today));
+      fs.writeFileSync(path.join(root, "docs", "data", "standings.json"), JSON.stringify({ generatedAt: out.generatedAt, through, ...st }));
+      const tonightTeams = new Set(slate.flatMap((g) => [g.away, g.home]));
+      prep.lines.push(...clinchLines(st, tonightTeams));
+      // 0.80: every franchise's season records since 1946-47 (the NBA Guide): record since a season, pace against its own history.
+      const tsf = path.join(root, "src", "data", `nba-team-seasons-${seasonTag}.json`);
+      if (fs.existsSync(tsf)) {
+        const { teamSeasonLines } = await import("../src/situations/teamseasons.js");
+        prep.lines.push(...teamSeasonLines(JSON.parse(fs.readFileSync(tsf, "utf8")), st, tonightTeams, { season: +seasonTag.slice(0, 4) }));
+      }
+    } catch (e) { prep.errors.push(`standings: ${e.message}`); }
     const byKind = {};
     for (const l of prep.lines) byKind[l.kind] = (byKind[l.kind] || 0) + 1;
     console.log(`prep stats: ${prep.lines.length} lines (${Object.entries(byKind).map(([k, n]) => `${n} ${k}`).join(", ")})${prep.errors.length ? `; errors: ${prep.errors.join("; ")}` : ""}`);
@@ -452,6 +466,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     names: Object.fromEntries([...used].map((id) => [id, names[id] || id])), gameKeys, games, season, shootKeys, shooting: shoot,
   }));
 }
+const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (afternoon on) is a warning in the build log and on the page
 // Injuries: the NBA's latest official injury report for tonight, and what each regular's absence
 // means (team record and teammates with / without him). Read from the league's PDF, newest
 // 15-minute slot first. If no report can be read, the last one written for tonight stays.
@@ -465,15 +480,29 @@ for (const [tri, games] of Object.entries(perTeam)) {
   let report = null;
   try {
     const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-    for (const url of slotsBackFrom(today, h, m).slice(0, 64)) {
+    // 0.80 (the user, 11/16: "there may be times where the most recent injury report is never uploaded. in that case,
+    // it's best to check the version prior to that is populated"): the newest report that has players on it. A slot
+    // that was never posted, can't be read, or has no rows is passed over, and the count of those is kept so the
+    // page and the build log say how far behind the report in use is.
+    const slots = slotsBackFrom(today, h, m).slice(0, 64);
+    let missing = 0, empty = 0;
+    for (const url of slots) {
       const res = await fetch(url, { signal: AbortSignal.timeout(20000) }).catch(() => null);
-      if (!res || !res.ok) continue;
-      const doc = await pdfjs.getDocument({ data: new Uint8Array(await res.arrayBuffer()), verbosity: 0 }).promise;
-      const pages = [];
-      for (let p = 1; p <= doc.numPages; p++) pages.push((await (await doc.getPage(p)).getTextContent()).items.map((it) => ({ x: it.transform[4], y: it.transform[5], str: it.str })));
-      report = { url, ...parseReport(pages) };
+      if (!res || !res.ok) { missing++; continue; }
+      let parsed = null;
+      try {
+        const doc = await pdfjs.getDocument({ data: new Uint8Array(await res.arrayBuffer()), verbosity: 0 }).promise;
+        const pages = [];
+        for (let p = 1; p <= doc.numPages; p++) pages.push((await (await doc.getPage(p)).getTextContent()).items.map((it) => ({ x: it.transform[4], y: it.transform[5], str: it.str })));
+        parsed = parseReport(pages);
+      } catch { parsed = null; }
+      if (!parsed || !parsed.rows.length) { empty++; continue; }
+      report = { url, ...parsed, behind: { slots: missing + empty, missing, empty, minutes: (missing + empty) * 15 } };
       break;
     }
+    if (report && today === etToday && report.behind.minutes >= INJURY_LATE_MIN && h >= 13)
+      warnings.push(`injury report: the newest one with players on it is ${report.asOf || report.url.split("/").pop()} (${report.behind.minutes} minutes back; ${report.behind.missing} slots not posted, ${report.behind.empty} empty or unreadable)`);
+    if (!report && today === etToday && h >= 13) warnings.push(`injury report: none could be read in the last ${slots.length} slots; the last one written for today stays`);
   } catch (e) { warnings.push(`injury report: ${e.message}`); }
   if (report && report.rows.length) {
     const files = Object.fromEntries(Object.entries(perTeam).map(([tri, games]) => {
@@ -497,7 +526,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
       impact.sort((p, q) => q.score - p.score);
       if (combos.length) console.log(`two out at once: ${combos.map((c) => c.text).join(" | ")}`);
     } catch (e) { warnings.push(`combined absences: ${e.message}`); }
-    fs.writeFileSync(file, JSON.stringify({ generatedAt: out.generatedAt, date: today, report: { url: report.url, asOf: report.asOf },
+    fs.writeFileSync(file, JSON.stringify({ generatedAt: out.generatedAt, date: today, report: { url: report.url, asOf: report.asOf, behind: report.behind },
       players: tonightRows.map(({ team, name, status, reason, matchup, time }) => ({ team, name, status, reason, matchup, time })), impact }));
     console.log(`injury report ${report.asOf}: ${tonightRows.length} entries tonight, ${impact.length} regulars listed out/doubtful/questionable`);
   } else {

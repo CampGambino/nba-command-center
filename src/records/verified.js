@@ -47,6 +47,13 @@ export function settleProblems(problems, players, verified) {
     const p = m && byName.get(strictKey(m[1]));
     const t = p?.totals?.[m?.[2]];
     const v = m && find(verified?.rows, m[1], m[2], "career");
+    const a0 = m ? Number(m[3].replace(/,/g, "")) : null, b0 = m ? Number(m[4].replace(/,/g, "")) : null;
+    // 0.80: a retired player has no running total; the confirmation equals one of the guide's two figures (Dolph
+    // Schayes's free throws: 6,712 on the all-time list and at Basketball Reference, 6,979 in the scorers table).
+    if (m && v && !t && (v.value === a0 || v.value === b0)) {
+      errata.push(`${m[1]} ${m[2]}: the guide also gives ${fmt(v.value === a0 ? b0 : a0)} (${m[5]}); ${fmt(v.value)} is right (Basketball Reference, checked ${v.asOf})`);
+      continue;
+    }
     if (!m || !t || !v || v.value !== t.now) { keep.push(line); continue; }
     const a = Number(m[3].replace(/,/g, "")), b = Number(m[4].replace(/,/g, ""));
     const right = t.base === a ? a : b, slip = right === a ? b : a;

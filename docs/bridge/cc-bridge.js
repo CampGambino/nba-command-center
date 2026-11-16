@@ -77,7 +77,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 15;
+  var VERSION = 16;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -87,7 +87,7 @@
   var SMALL_CLUB = 10;        // a career-records round number in any other stat: only a club this small
   var MAX_PER_GAME = 6;       // in-play cards per game, best first (reached ones always show)
   var PRE_PER_GAME = 3;       // pre-game storyline cards per game
-  var ICON = { history: "📜 FROM THE NOTES", injury: "🩹 INJURY", milestone: "🎯 IN REACH", streak: "🔥 STREAK", lead: "👑 TEAM LEADER", shooting: "🏹 50/40/90", team: "📈 TEAM STREAK", record: "🏛️ RECORD WATCH", context: "📊 CAREER CONTEXT", foul: "⚠️ FOUL WATCH", early: "🔄 LEFT EARLY LAST TIME", fourth: "⏳ 4TH QUARTER", qtr: "🕒 BY QUARTER", season: "📊 THIS SEASON", span: "🧩 IN THAT SPAN", pstreak: "🔥 STREAK WATCH", vsopp: "🆚 VS TONIGHT'S OPPONENT", pace: "⏱️ PACE", trade: "🔁 SINCE THE TRADE", role: "🪑 STARTER VS BENCH", lineup: "🖐️ STARTING FIVE", turn: "↪️ RECORD TURN", beaten: "⚔️ WHO'S BEATEN THEM", month: "🗓️ THIS MONTH", monthp: "🗓️ THIS MONTH", rookie: "🌱 ROOKIES", era: "📆 SINCE THEN", defense: "🛡️ DEFENSE WATCH", cup: "🏆 NBA CUP" };
+  var ICON = { history: "📜 FROM THE NOTES", injury: "🩹 INJURY", milestone: "🎯 IN REACH", streak: "🔥 STREAK", lead: "👑 TEAM LEADER", shooting: "🏹 50/40/90", team: "📈 TEAM STREAK", record: "🏛️ RECORD WATCH", context: "📊 CAREER CONTEXT", foul: "⚠️ FOUL WATCH", early: "🔄 LEFT EARLY LAST TIME", fourth: "⏳ 4TH QUARTER", qtr: "🕒 BY QUARTER", clinch: "🔒 CLINCH WATCH", season: "📊 THIS SEASON", span: "🧩 IN THAT SPAN", pstreak: "🔥 STREAK WATCH", vsopp: "🆚 VS TONIGHT'S OPPONENT", pace: "⏱️ PACE", trade: "🔁 SINCE THE TRADE", role: "🪑 STARTER VS BENCH", lineup: "🖐️ STARTING FIVE", turn: "↪️ RECORD TURN", beaten: "⚔️ WHO'S BEATEN THEM", month: "🗓️ THIS MONTH", monthp: "🗓️ THIS MONTH", rookie: "🌱 ROOKIES", era: "📆 SINCE THEN", defense: "🛡️ DEFENSE WATCH", cup: "🏆 NBA CUP" };
 
   // ESPN abbreviations NBA Live shows -> Command Center tricodes.
   var TRI = { GS: "GSW", NO: "NOP", NY: "NYK", SA: "SAS", UTAH: "UTA", WSH: "WAS", PHO: "PHX", BRK: "BKN", CHO: "CHA" };
@@ -621,7 +621,8 @@
   var Q_MIN = 15, H_MIN = 22, TQ_MIN = 40;    // and the least that can make one
   var IRON_GAME = 300, IRON_HALF = 120;        // v15: a player who hasn't sat: from 5:00 left in the game, 2:00 left in a half
   var LATE_RETURN = 180;                      // seconds past his usual return
-  var LEAD = 15;                              // a lead lost is a card from here
+  var LEAD = 20;                              // a lead lost is a card from here (v16: 20, was 15: 18 of the season's first 197 games
+                                              // had a 15-point lead lost, 8 a 20-point one; the user, 11/16)
   var LEAD_FROM = 20, LEAD_STEP = 5;          // lead context: from a 20-point lead, in steps of 5 (v10)
   var qName = function (q) { return ["1st", "2nd", "3rd", "4th"][q - 1] + " quarter"; };
   function elapsedNow(game) {

@@ -101,13 +101,17 @@ export function statusOnReport(report, name) {
   return null;
 }
 
-/** The newest report in the last two hours: { url, asOf, bodies } or null. */
+/** The newest report with players on it in the last three hours: { url, asOf, bodies } or null. */
 export async function latestReport(nowMs, fetchFn = fetch) {
-  for (const url of slotUrls(nowMs, 8)) {
+  // 0.80 (the user, 11/16): a slot that was never posted, or a report with no player on it, is passed over for the one
+  // before it; three hours back (was two).
+  for (const url of slotUrls(nowMs, 12)) {
     try {
       const r = await fetchFn(url);
       if (!r.ok) continue;
-      return { url, asOf: asOfLabel(url), bodies: await pdfBodies(await r.arrayBuffer()) };
+      const bodies = await pdfBodies(await r.arrayBuffer());
+      if (!/\b(?:Out|Questionable|Doubtful|Probable|Available)\b/.test(bodies.map((b) => tjWords(b).join(" ")).join(" "))) continue;
+      return { url, asOf: asOfLabel(url), bodies };
     } catch {}
   }
   return null;

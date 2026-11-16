@@ -55,6 +55,16 @@ export async function buildSite({ entries, games = [], uncounted = [], espn, nba
   // Outside confirmations (Basketball Reference pages the user checked) settle a notes-vs-ESPN difference (0.72.4).
   let verified = null;
   try { verified = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "verified-totals.json"), "utf8")); } catch { /* none: nothing is settled */ }
+  // 0.80: each active player's career totals through last season, from the NBA Guide's year-by-year lines: the count
+  // that breaks a tie between the notes and ESPN (see trackMilestones).
+  let guideBase = null;
+  try {
+    const cs = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-career-seasons-2026-27.json"), "utf8"));
+    const K = Object.fromEntries(cs.keys.map((k, i) => [k, i])), STAT = { gp: "g" };
+    const loose = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[.'’]/g, "").replace(/\s+(jr|sr|ii|iii|iv)$/, "").replace(/\s+/g, " ").trim();
+    const by = new Map(Object.entries(cs.players).map(([n, rows]) => [loose(n), rows]));
+    guideBase = (name, stat) => { const rows = by.get(loose(name)), i = K[STAT[stat] || stat]; return rows && i != null ? rows.reduce((a, r) => a + (r[i] || 0), 0) : null; };
+  } catch { /* no guide totals: a difference stays a count check */ }
   const reports = [], teams = [];
   for (const e of entries) {
     const base = { team: e.team, notesStatus: e.notes?.status || "local", notesWhy: e.notes?.why || e.notes?.error || null, verifiedFormat: VERIFIED_FORMATS.has(e.team) };
@@ -67,7 +77,7 @@ export async function buildSite({ entries, games = [], uncounted = [], espn, nba
     }
     let watchItems = [], tonightGame = null;
     if (parsed) {
-      const w = await buildWatch({ team: e.team, notesDate: parsed.meta.gameDate, milestones: parsed.milestones, espn, nba, today, verified });
+      const w = await buildWatch({ team: e.team, notesDate: parsed.meta.gameDate, milestones: parsed.milestones, espn, nba, today, verified, guideBase });
       reports.push({ ...w, opponent: parsed.meta.opponent, notesStatus: base.notesStatus });
       watchItems = w.items; tonightGame = w.tonightGame; problems.push(...w.problems);
     }

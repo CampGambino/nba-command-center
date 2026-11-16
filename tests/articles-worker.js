@@ -557,6 +557,15 @@ export async function articlesChecks(ok) {
     ok(/Injury-Report_2026-11-14_07_30PM\.pdf$/.test(slotUrls(Date.parse("2026-11-15T00:40:00Z"), 2)[0]) && /07_15PM/.test(slotUrls(Date.parse("2026-11-15T00:40:00Z"), 2)[1]), "injury report (0.68): the 15-minute slots back from now, Eastern time");
     const rep = await latestReport(Date.parse("2026-11-15T00:40:00Z"), async (u) => (/07_15PM/.test(u) ? new Response(pdf) : new Response("", { status: 404 })));
     ok(rep?.asOf === "7:15 PM" && rep.bodies.some((b) => /\(Porter\)/.test(b)), "injury report (0.68): the newest report that exists (7:30 not up yet, 7:15 is)", rep?.url);
+    // 0.80 (the user, 11/16: a report "never uploaded… it's best to check the version prior to that is populated"): a
+    // slot with a file but no player on it is passed over, and the look back is three hours, not two.
+    const z0 = zlibMod.deflateSync(Buffer.from("BT (Injury) Tj (Report:) Tj (11/14/26) Tj (07:30) Tj (PM) Tj ET BT (Game) Tj (Date) Tj (Matchup) Tj (Team) Tj (Player) Tj (Name) Tj (Current) Tj (Status) Tj (Reason) Tj ET", "latin1"));
+    const blank = Buffer.concat([Buffer.from("%PDF-1.4\n"), meta, Buffer.from(`2 0 obj\n<< /Length ${z0.length} /Filter/FlateDecode >>\nstream\n`), z0, Buffer.from("\r\nendstream\nendobj\n%%EOF")]);
+    const repBlank = await latestReport(Date.parse("2026-11-15T00:40:00Z"), async (u) => (/07_30PM/.test(u) ? new Response(blank) : /07_15PM/.test(u) ? new Response(pdf) : new Response("", { status: 404 })));
+    const repLate = await latestReport(Date.parse("2026-11-15T00:40:00Z"), async (u) => (/04_45PM/.test(u) ? new Response(pdf) : new Response("", { status: 404 })));
+    const repNone = await latestReport(Date.parse("2026-11-15T00:40:00Z"), async (u) => (/04_30PM/.test(u) ? new Response(pdf) : /07_30PM/.test(u) ? new Response(blank) : new Response("", { status: 404 })));
+    ok(repBlank?.asOf === "7:15 PM" && /04_45PM/.test(repLate?.url || "") && repNone === null && slotUrls(Date.parse("2026-11-15T00:40:00Z"), 12).length === 12,
+      "injury report (0.80): a posted report with no player on it is passed over for the one before it; the look back is twelve slots (three hours)", JSON.stringify([repBlank?.asOf, repLate?.url, repNone]));
     // The 7:40 PM post: the site's file was the 6:00 PM report (no Porter Jr.); the league's 7:15 PM report has him Out.
     const R = (st, min) => [st, min];
     const games = Array.from({ length: 11 }, (_, i) => ({ d: `2026-11-${String(i + 1).padStart(2, "0")}`, pl: { 1: R(1, 34), 2: R(0, 12) } }));

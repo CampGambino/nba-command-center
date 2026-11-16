@@ -97,7 +97,7 @@ export async function todayPlayed({ team, espn, schedule, today }) {
  * @param {object} p.espn        createEspn(...) or a test double with the same methods
  * @returns {Promise<{ milestones, games, warnings, problems }>}
  */
-export async function trackMilestones({ team, notesDate, milestones, espn, nba = null, today = null, verified = null }) {
+export async function trackMilestones({ team, notesDate, milestones, espn, nba = null, today = null, verified = null, guideBase = null }) {
   const warnings = [], problems = [];
   const done = (status, note) => ({
     milestones: milestones.map((m) => ({ ...m, tracking: { status, notes: [note] } })),
@@ -307,6 +307,35 @@ export async function trackMilestones({ team, notesDate, milestones, espn, nba =
         if (t.need != null) t.reached = t.need <= 0;
         t.status = boxesComplete ? "corrected" : "partial";
         continue;
+      }
+      // 0.80 (the user, 11/16: "have notes or espn been the correct choice every time? if one is always matching
+      // basketball reference, then that is likely the right option. I'd still like to be notified of any
+      // inconsistencies"). In every case with a Basketball Reference page so far, the NBA Guide's career total plus
+      // this season's games gave Basketball Reference's number. So that count breaks the tie: whichever of the notes
+      // and ESPN it equals is used, and the difference stays written on the item.
+      const gb = scope === "career" && guideBase ? guideBase(player.name, m.stat) ?? guideBase(m.player, m.stat) : null;
+      if (gb != null) {
+        const seasons = c.data.rows.map((r) => r.season).filter(Boolean);
+        const latest = seasons.length ? seasons[seasons.length - 1] : null;
+        const seasonNow = c.data.rows.filter((r) => r.season === latest).reduce((a, r) => a + (r.stats[m.stat] ?? 0), 0) - (td > 0 && played.inEspn ? td : 0);
+        const own = gb + seasonNow;
+        t.guide = { base: gb, season: seasonNow, total: own };
+        if (own === espnValue || own === t.current) {
+          const notesSay = t.current, espnRight = own === espnValue;
+          t.settled = { value: own, by: "the NBA Guide's career total plus this season", notes: notesSay, espn: espnValue, right: espnRight ? "ESPN" : "the notes" };
+          t.inconsistent = true;
+          t.notes.push(espnRight ? `the notes say ${notesSay}; ESPN says ${espnValue}, and so does the NBA Guide's total (${gb}) plus this season's ${seasonNow}: ESPN's number is used`
+            : `ESPN says ${espnValue}; the notes say ${notesSay}, and so does the NBA Guide's total (${gb}) plus this season's ${seasonNow}: the notes' number is used`);
+          if (espnRight) {
+            const shift = espnValue - t.current;
+            t.current = espnValue;
+            if (t.target != null) t.need = t.target - t.current; else if (t.need != null) t.need -= shift;
+            if (t.need != null) t.reached = t.need <= 0;
+          }
+          t.espn.diff = 0;
+          t.status = boxesComplete ? "corrected" : "partial";
+          continue;
+        }
       }
       t.status = "disagrees";
       const lagging = boxes.length && t.espn.diff === -delta;

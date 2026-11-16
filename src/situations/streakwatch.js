@@ -75,6 +75,7 @@ function spanMax(games, sign) {
   }
   return out;
 }
+export const START = { games: 5, until: 41, seasons: 5 }; // starts: from the 5th game to the season's midpoint; best or worst in 5+ seasons
 const RARE = 3; // at most this many team runs as long as tonight's would be, since 2016-17
 
 /**
@@ -92,10 +93,42 @@ export function streakWatch({ history = null, rows = [], today = null } = {}) {
   }
   const spans = { "-1": {}, "1": {} };
   for (const [t, games] of Object.entries(seq)) { spans["-1"][t] = spanMax(games, -1); spans["1"][t] = spanMax(games, 1); }
+  // 0.80: every team's seasons, for starts compared across years.
+  const bySeason = {};
+  for (const [t, games] of Object.entries(seq)) { bySeason[t] = {}; for (const g of games) (bySeason[t][seasonOf(g.d)] ??= []).push(g); }
+  const winsIn = (list, n) => (list.length >= n ? list.slice(0, n).filter((g) => g.pf > g.pa).length : null);
+  // The longest run of seasons in a row a team opened n-0, with the season it ended in.
+  const perfectRuns = (t, n, skip) => { let run = 0, best = 0; for (const s of Object.keys(bySeason[t]).sort()) { if (s === skip) continue; run = winsIn(bySeason[t][s], n) === n ? run + 1 : 0; best = Math.max(best, run); } return best; };
   for (const [team, games] of Object.entries(seq)) {
     if (!games.length) continue;
     const last = games[games.length - 1];
     if (today && seasonOf(last.d) !== seasonOf(today)) continue;
+    // 4. The start of the season against the team's other starts (0.80): the best or worst through this many games
+    //    in START.seasons or more, and an unbeaten start one win from matching last season's.
+    {
+      const cur = seasonOf(last.d), mine = bySeason[team][cur], n = mine.length, w = winsIn(mine, n);
+      const prior = Object.keys(bySeason[team]).filter((x) => x < cur).sort().reverse();
+      if (n >= START.games && n <= START.until && prior.length >= START.seasons) {
+        for (const side of ["best", "worst"]) {
+          const beat = (x) => { const pw = winsIn(bySeason[team][x], n); return pw != null && (side === "best" ? pw >= w : pw <= w); };
+          const i = prior.findIndex(beat);
+          if (i !== -1 && i < START.seasons) continue;
+          const when = i === -1 ? `since at least ${prior[prior.length - 1]}` : `since ${prior[i]} (${winsIn(bySeason[team][prior[i]], n)}-${n - winsIn(bySeason[team][prior[i]], n)})`;
+          out.push({ team, kind: "teamwatch", stat: `start-${side}`, n,
+            text: `${team} is ${w}-${n - w}: its ${side} start through ${n} games ${when}`, score: 3.1 + Math.min(0.9, (i === -1 ? prior.length : i) * 0.08) });
+        }
+      }
+      if (n >= 3 && w === n && n < START.until) {
+        let k = 0;
+        for (const x of prior) { if (winsIn(bySeason[team][x], n + 1) === n + 1) k++; else break; }
+        if (k >= 1) {
+          const others = Object.keys(seq).filter((t) => t !== team && perfectRuns(t, n + 1) >= k + 1).length + (perfectRuns(team, n + 1, cur) >= k + 1 ? 1 : 0);
+          const ordK = `${k + 1}${k + 1 === 2 ? "nd" : k + 1 === 3 ? "rd" : "th"}`;
+          out.push({ team, kind: "teamwatch", stat: "start-perfect", n,
+            text: `${team} is ${n}-0: a win tonight makes it ${n + 1}-0 for the ${ordK} straight season${others ? "" : ` (no team has done that since ${WINDOW})`}`, score: 3.6 + (others ? 0 : 0.5) });
+        }
+      }
+    }
     // 1. Wins and losses.
     const won = last.pf > last.pa;
     const wl = runs(games, (g) => (g.pf > g.pa) === won);

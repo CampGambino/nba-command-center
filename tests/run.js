@@ -350,6 +350,21 @@ for (const [team, r] of Object.entries(results)) {
     const fake = [{ team: "CHA", player: "Brandon Miller", stat: "pts", kind: "pass", scope: "franchise", current: 1000, target: 1101, tieAt: 100, need: 101, passing: { player: "Coby White", total: 1100 }, status: "ok", checks: [] }];
     const tm = await trackMilestones({ team: "CHA", notesDate: "2026-11-04", milestones: fake, espn });
     ok(tm.milestones[0].tracking.targetMoved === 11 && tm.milestones[0].tracking.target === 1112 && tm.milestones[0].tracking.need === 1112 - 1018, "tracking: chasing a teammate moves the target (White +4 +7)", JSON.stringify(tm.milestones[0].tracking));
+    // 0.80: the notes and ESPN differ and no one has looked it up: the NBA Guide's total plus this season breaks the tie.
+    {
+      const src = now.milestones.find((m) => m.scope === "career" && m.kind === "round" && m.stat === "pts" && m.tracking?.status === "confirmed" && m.tracking.espn?.value === m.tracking.current && m.target != null);
+      const E = src.tracking.espn.value;
+      const typo = [{ ...src, current: E - 5, need: src.target - (E - 5), tracking: undefined, checks: [] }];
+      const run = async (guideBase) => (await trackMilestones({ team: "CHA", notesDate: "2026-11-09", milestones: typo, espn, guideBase })).milestones[0].tracking;
+      const none = await run(null), probe = await run(() => 0);
+      const S = probe.guide?.season;
+      const espnWins = await run(() => E - S), notesWin = await run(() => E - 5 - S), neither = await run(() => E - 2 - S);
+      ok(none.status === "disagrees" && probe.status === "disagrees" && neither.status === "disagrees" && !neither.settled
+        && espnWins.status === "corrected" && espnWins.current === E && espnWins.need === src.target - E && espnWins.settled.right === "ESPN" && espnWins.inconsistent === true && /ESPN's number is used/.test(espnWins.notes.join(" "))
+        && notesWin.status === "corrected" && notesWin.current === E - 5 && notesWin.settled.right === "the notes" && notesWin.inconsistent === true && /the notes' number is used/.test(notesWin.notes.join(" ")),
+        "notes vs ESPN (0.80): the NBA Guide's career total plus this season's games breaks the tie either way, the difference stays on the item, and a count matching neither settles nothing",
+        JSON.stringify({ player: src.player, stat: src.stat, E, S, none: none.status, espnWins: [espnWins.status, espnWins.current, espnWins.settled], notesWin: [notesWin.status, notesWin.current], neither: neither.status }));
+    }
     ok(requests === 0, "tracking: tests made no network requests", `${requests} attempted`);
 
 
@@ -2882,10 +2897,12 @@ await articlesChecks(ok);
   const s2 = { ...s, against: undefined };
   V.settleChecks({ differ: [], franchise: { differ: [s2] } }, verified, "2026-11-20");
   ok(!s2.settled && !s2.against, "verified: a week-old confirmation says nothing once our total has moved on");
-  const p = V.settleProblems(["Al Horford dreb: the guide gives 6,949 and 6,950 (active list)", "Dolph Schayes ftm: the guide gives 6,712 and 6,979 (career scorers, NBA Guide p. 136)"],
+  const p = V.settleProblems(["Al Horford dreb: the guide gives 6,949 and 6,950 (active list)", "Dolph Schayes ftm: the guide gives 6,712 and 6,979 (career scorers, NBA Guide p. 136)", "Old Timer ftm: the guide gives 5,000 and 5,010 (somewhere)"],
     [{ name: "Al Horford", totals: { dreb: { base: 6949, season: 33, now: 6982 } } }], verified);
-  ok(p.problems.length === 1 && /Schayes/.test(p.problems[0]), "verified: an unconfirmed guide clash stays a problem");
-  ok(p.errata.length === 1 && /6,950 \(active list\); 6,949 is right/.test(p.errata[0]), "verified: B-Ref's 6,982 makes the guide's 6,950 a slip", p.errata[0]);
+  ok(p.problems.length === 1 && /Old Timer/.test(p.problems[0]), "verified: an unconfirmed guide clash stays a problem");
+  ok(p.errata.some((e) => e === "Dolph Schayes ftm: the guide also gives 6,979 (career scorers, NBA Guide p. 136); 6,712 is right (Basketball Reference, checked 2026-11-16)"),
+    "verified (0.80): a retired player's two guide totals are settled by the one Basketball Reference gives", p.errata.join(" | "));
+  ok(p.errata.length === 2 && /6,950 \(active list\); 6,949 is right/.test(p.errata[0]), "verified: B-Ref's 6,982 makes the guide's 6,950 a slip", p.errata[0]);
 }
 
 {
@@ -3634,9 +3651,105 @@ await articlesChecks(ok);
     const sd = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "seeded-lists.json"), "utf8"));
     const st = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8");
     ok(sd.situations.length === 4 && sd.situations.filter((x) => !x.playoffs).map((x) => x.id).join() === "ot-down-10,road-100-before-50" && sd.situations.every((x) => x.text && x.asOf && x.when && x.source) && /filter\(\(x\) => !x\.playoffs\)/.test(st) && /defense, stars, situations \}/.test(st)
-      && /var VERSION = 15;/.test(fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8")),
+      && /var VERSION = 1[5-9];/.test(fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8")),
       "seeded situations (0.79): four looked-up records kept with their date and source; the two that aren't playoff-only go to NBA Live (bridge v15)");
   }
+}
+
+// ---------- 0.80: standings and magic numbers, team seasons since 1946-47, season starts, calendar records, injury fallback ----------
+{
+  // A run of missed threes is a line only when the misses came at a shooter's pace (within SHOTS.fg3Days days).
+  {
+    const { tonightCandidates: TC, SHOTS } = await import("../src/anticipate/tonight.js");
+    const P = (name, from) => ({ name, team: "MIA", last: "2026-11-15", gp: 12, fta: 6, fg: 0, fg3: 0, ft: 0, fgMiss: 0, fg3Miss: 14, fg3MissFrom: from, dryFg: { sec: 0, fga: 0, from: "2026-11-15", games: 1 }, dryFt: { sec: 0, fga: 0, from: "2026-11-15", games: 1 } });
+    const flow = { shots: { players: { a: P("Volume Shooter", "2026-11-09"), b: P("Rare Shooter", "2026-10-22") }, best: {} } };
+    const watch = { today: "2026-11-16", teams: [], games: [{ id: "1", homeTri: "MIA", awayTri: "HOU" }] };
+    const L = TC({ watch, fouls: flow, prep: null }).all.filter((x) => /^shots\|/.test(x.key || "") && /3-point/.test(x.text));
+    ok(L.length === 1 && L[0].player === "Volume Shooter" && /missed his last 14 3-point attempts \(since 11\/9\)/.test(L[0].text) && SHOTS.fg3Days === 16,
+      "shot runs (0.80): 14 missed threes in a week is a line; the same 14 spread over a month by a player who rarely shoots them is not", JSON.stringify(L.map((x) => x.text)));
+  }
+  const { standings, clinchLines, cupFinal, GAMES } = await import("../src/situations/standings.js");
+  const { teamSeasonLines, sinceTable } = await import("../src/situations/teamseasons.js");
+  const { streakWatch } = await import("../src/situations/streakwatch.js");
+  const TS = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-team-seasons-2026-27.json"), "utf8"));
+  const tip = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "tipoff-guide-2026-27.json"), "utf8"));
+  // Every franchise's seasons add up to the all-time record the Tip-Off Guide prints (two printed sources agreeing).
+  const NICK = { Celtics: "BOS", Spurs: "SAS", Lakers: "LAL", Thunder: "OKC", Suns: "PHX", Jazz: "UTA", Bucks: "MIL", Heat: "MIA", "Trail Blazers": "POR", "76ers": "PHI", Nuggets: "DEN", Rockets: "HOU", Bulls: "CHI", Hawks: "ATL", Mavericks: "DAL", Pacers: "IND", Cavaliers: "CLE", Knicks: "NYK", Warriors: "GSW", Magic: "ORL", Raptors: "TOR", Pistons: "DET", Kings: "SAC", Wizards: "WAS", Pelicans: "NOP", Nets: "BKN", Hornets: "CHA", Clippers: "LAC", Grizzlies: "MEM", Timberwolves: "MIN" };
+  const off = tip.franchises.map((f) => { const tri = NICK[Object.keys(NICK).find((k) => f.team.endsWith(k))], L = TS.teams[tri] || []; return [tri, L.reduce((a, x) => a + x[1], 0), L.reduce((a, x) => a + x[2], 0), f.w, f.l]; }).filter((x) => x[1] !== x[3] || x[2] !== x[4]);
+  ok(Object.keys(TS.teams).length === 30 && tip.franchises.length === 30 && off.length === 0 && TS.teams.BOS[0][0] === "1946-47" && TS.teams.OKC[0][0] === "1967-68" && TS.teams.CHA.length === 36,
+    "team seasons (0.80): every franchise's season records since 1946-47 add up to the Tip-Off Guide's all-time record, all 30", JSON.stringify(off));
+  // A small league: two seasons of history, this season's standings.
+  const mini = { teams: { AAA: [["2004-05", 60, 22], ["2025-26", 20, 62]], BBB: [["2004-05", 30, 52], ["2025-26", 50, 32]], CCC: [["2004-05", 41, 41], ["2025-26", 41, 41]] } };
+  const tab = sinceTable(mini.teams, { AAA: { w: 1, l: 0 } }, 2025);
+  ok(tab[0].tri === "BBB" && tab[0].rank === 1 && tab[2].tri === "AAA" && tab[2].w === 21 && sinceTable(mini.teams, {}, 2004)[0].tri === "CCC" && sinceTable(mini.teams, {}, 2004)[1].w === 80 && sinceTable(mini.teams, {}, 2004)[1].rank === sinceTable(mini.teams, {}, 2004)[2].rank,
+    "team seasons (0.80): a record since a season, this season included, ranked against the league", JSON.stringify(tab));
+  const hist = { teams: Object.fromEntries(Object.keys(TS.teams).map((t) => [t, TS.teams[t]])) };
+  const S0 = { East: [{ tri: "BOS", w: 11, l: 2 }, { tri: "MIL", w: 1, l: 13 }, { tri: "NYK", w: 7, l: 6 }], West: [{ tri: "SAS", w: 12, l: 2 }, { tri: "LAC", w: 5, l: 8 }] };
+  const tl = teamSeasonLines(hist, S0, new Set(["BOS", "MIL", "NYK", "SAS", "LAC"]), { season: 2026 });
+  const tx = (k) => tl.find((l) => l.key === k)?.text;
+  ok(/^SAS has the NBA's best record since 2004-05 \(\d+-\d+\)$/.test(tx("era|since|SAS|best")) && /^BOS has the NBA's 2nd-best record since 2004-05 \(\d+-\d+\); SAS is first at/.test(tx("era|since|BOS|best"))
+    && tx("era|pace|BOS|best") === "BOS (11-2) is on pace for 69-13; the best season in franchise history is 68-14 (1972-73)" && tx("era|pace|MIL|worst") === "MIL (1-13) is on pace for 6-76; the worst season in franchise history is 15-67 (2013-14)"
+    && !tl.some((l) => l.team === "NYK" && /pace/.test(l.key)) && tl.every((l) => l.kind === "era" && l.standing === true),
+    "team seasons (0.80): any team's record since a season when it ranks in the league's top or bottom three, and a pace past the franchise's best or worst season; standing lines", JSON.stringify(tl.map((l) => l.text)));
+
+  // Standings: a made-up finish. Five East teams; the two leaders have a game left with each other.
+  const E5 = ["BOS", "NYK", "PHI", "BKN", "TOR"];
+  const mk = (d, h, a, hs, as, n) => ({ d, h, a, hs, as, n });
+  const rowsS = [];
+  let day = 0;
+  const date = () => `2027-0${1 + Math.floor(day / 28)}-${String(1 + (day++ % 28)).padStart(2, "0")}`;
+  for (let i = 0; i < 20; i++) { rowsS.push(mk(date(), "BOS", "TOR", 110, 100)); rowsS.push(mk(date(), "NYK", "BKN", 110, 100)); }
+  for (let i = 0; i < 5; i++) rowsS.push(mk(date(), "PHI", "NYK", 110, 100));
+  const st = standings(rowsS, { games: 30 });
+  const row = (t) => st.East.find((x) => x.tri === t);
+  ok(row("BOS").seed === 1 && row("BOS").w === 20 && row("BOS").l === 0 && row("BOS").left === 10 && row("NYK").w === 20 && row("NYK").l === 5 && row("NYK").gb === 2.5 && row("TOR").l === 20 && row("BOS").streak === "W20" && row("BOS").home === "20-0"
+    && st.East.length === 15 && st.West.length === 15 && GAMES === 82,
+    "standings (0.80): order, record, games back, home record and streak from the results alone", JSON.stringify(st.East.slice(0, 5).map((t) => [t.tri, t.seed, t.w, t.l, t.gb, t.streak, t.home])));
+  // BOS for the division: the rival hardest to shake is unbeaten PHI (5-0): 30 - 0 (its losses) - 20 (BOS's wins) + 1 (no tie-break in hand) = 11.
+  ok(row("BOS").magic.division.n === 11 && row("BOS").magic.division.vs === "PHI", "standings (0.80): a magic number is games minus their losses minus our wins, plus one without the tie-break", JSON.stringify(row("BOS").magic));
+  const near = { East: [{ tri: "BOS", w: 60, l: 10, magic: { top: { n: 1, vs: "NYK" }, division: { n: 1, vs: "NYK" }, playoff: { n: 0, vs: "MIA" }, playin: { n: 0, vs: "CHI" } }, elim: {} },
+    { tri: "ATL", w: 30, l: 40, magic: { top: null, division: null, playoff: { n: 9, vs: "ORL" }, playin: { n: 4, vs: "CHI" } }, elim: { playoff: { n: 3, vs: "ORL" } } },
+    { tri: "WAS", w: 15, l: 55, magic: {}, elim: { playin: { n: 1, vs: "CHI" }, playoff: { n: 0, vs: "MIA" } } }], West: [] };
+  const cl = clinchLines(near, new Set(["BOS", "ATL", "WAS"])).map((l) => l.text);
+  ok(cl.includes("BOS (60-10) clinches the best record in the East with a win tonight") && cl.some((t) => /^ATL's magic number for at least a Play-In place is 4 \(30-40; any mix of its wins and CHI losses\)$/.test(t))
+    && cl.some((t) => /^ATL's elimination number for a top-six place is 3/.test(t)) && cl.includes("WAS (15-55) is out of the postseason with a loss tonight") && clinchLines(near, new Set(["NYK"])).length === 0,
+    "clinch watch (0.80): a line once a number is within five, the biggest prize only, and 'with a win tonight' at one", JSON.stringify(cl));
+  // The Cup's title game is in no one's record; the semifinals are.
+  const cupRows = [mk("2026-12-12", "OKC", "HOU", 110, 100, 1), mk("2026-12-12", "NYK", "ORL", 110, 100, 1), mk("2026-12-15", "OKC", "NYK", 110, 100, 1), mk("2026-12-25", "NYK", "CLE", 110, 100)];
+  const cs = standings(cupRows);
+  ok(cupFinal(cupRows)?.d === "2026-12-15" && cs.West.find((t) => t.tri === "OKC").w === 1 && cs.East.find((t) => t.tri === "NYK").w === 2 && cs.East.find((t) => t.tri === "NYK").l === 0 && cupFinal(cupRows.slice(0, 2)) === null,
+    "standings (0.80): the NBA Cup's title game counts in no record (ESPN files it with the regular season); the semifinals count");
+
+  // Season starts against a team's own earlier starts.
+  const H = { columns: ["date", "home", "away", "homeScore", "awayScore", "type"], games: [] };
+  for (let y = 2016; y <= 2025; y++) for (let i = 0; i < 8; i++) {
+    const d = `${y}-11-${String(i + 1).padStart(2, "0")}`;
+    H.games.push([d, "OKC", "UTA", y >= 2024 ? 110 : i < 2 ? 110 : 90, 100, 2]);          // OKC: 8-0 the last two seasons, 2-6 before
+    H.games.push([d, "POR", "SAC", i < 3 ? 110 : 90, 100, 2]);                              // POR: 3-5 every season
+  }
+  const cur = [];
+  for (let i = 0; i < 6; i++) { const d = `2026-10-${String(20 + i).padStart(2, "0")}`; if (i < 4) cur.push(mk(d, "OKC", "UTA", 110, 100)); cur.push(mk(d, "POR", "SAC", i === 5 ? 90 : 110, 100)); }
+  const sw = streakWatch({ history: H, rows: cur, today: "2026-10-27" }).filter((l) => /^start/.test(l.stat)).map((l) => l.text);
+  ok(sw.includes("OKC is 4-0: a win tonight makes it 5-0 for the 3rd straight season (no team has done that since 2016-17)") && sw.includes("POR is 5-1: its best start through 6 games since at least 2016-17")
+    && sw.some((t) => /^SAC is 1-5: its worst start through 6 games since at least 2016-17$/.test(t)) && !sw.some((t) => /^UTA is 0-4/.test(t)),
+    "season starts (0.80): any team's best or worst start in five or more seasons, and an unbeaten team one win from matching its last seasons' starts", JSON.stringify(sw));
+
+  // Weekday and month records: counted for every team, listed as unusual only when far from the team's own record.
+  const { computeSituations } = await import("../src/situations/records.js");
+  const cal = [];
+  let cid = 0;
+  const g2 = (d, h, a, hs, as) => ({ ...mk(d, h, a, hs, as), id: String(++cid) });
+  const iso = (n) => new Date(Date.UTC(2026, 9, 25 + n)).toISOString().slice(0, 10); // 10/25/26 is a Sunday
+  // DEN loses all 12 Sundays and wins its other 24; MIA splits everything evenly.
+  for (let w = 0; w < 12; w++) {
+    cal.push(g2(iso(7 * w), "DEN", "DAL", 90, 100), g2(iso(7 * w + 3), "DEN", "DAL", 110, 100), g2(iso(7 * w + 5), "DEN", "DAL", 110, 100));
+    cal.push(g2(iso(7 * w), "MIA", "ATL", w % 2 ? 90 : 110, 100), g2(iso(7 * w + 3), "MIA", "ATL", w % 2 ? 110 : 90, 100));
+  }
+  const cso = computeSituations(cal, { through: "2027-01-20" });
+  const den = cso.teams.DEN, calU = (cso.unusual || []).filter((x) => x.cal);
+  ok(den.splits.dow0?.l === 12 && den.splits.dow0.w === 0 && den.splits.dow3?.w === 12 && den.splits.mon11 && cso.teams.MIA.splits.dow0.w === 6
+    && calU.some((x) => x.team === "DEN" && x.key === "dow0" && /^0-12 on Sundays$/.test(x.short)) && !calU.some((x) => x.team === "MIA"),
+    "calendar records (0.80): every team's record by weekday and month is counted; one is listed as unusual only when it is far from the team's own record", JSON.stringify({ keys: Object.keys(den.splits || {}).filter((k) => /^(dow|mon)/.test(k)), calU: calU.map((x) => [x.team, x.short, x.p]) }));
 }
 
 // ---------- snapshot ----------
