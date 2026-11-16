@@ -45,6 +45,7 @@ if (seasonBefore && store.season && seasonBefore !== store.season) {
 }
 // Stat corrections: recent games are re-read for a few days (src/situations/results.js RECHECK_DAYS).
 if (store.corrected?.length) console.log(`stat corrections: ${store.corrected.length} recent game(s) changed on a re-read: ${store.corrected.join(", ")}`);
+if (store.requartered?.length) console.log(`quarter scores: ${store.requartered.length} game(s) changed on a re-read: ${store.requartered.map((x) => `${x.d} ${x.a}@${x.h}`).join(", ")}`);
 const rows = allGames(store);
 if (!rows.length) { console.error(`no results collected${warnings.length ? `: ${warnings[0]}` : ""}`); process.exit(1); }
 
@@ -534,7 +535,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const opt = (f) => { try { return rd(f); } catch { return null; } };
     const args = { watch, trends: rd("trends.json"), leaders: rd("leaders.json"), injuries, facts, records, matchups: matchupData, national: opt("national.json"), rest: opt("rest.json"), form: opt("form.json"), fouls: opt("flowstats.json"), prep: opt("prep.json"), maxLines: 8 };
     const games = tonightStorylines(args)
-      .map((g) => ({ ...g, lines: g.lines.map(({ kind, team, text, score }) => ({ kind, team, text, score: Math.round(score * 100) / 100 })) }));
+      .map((g) => ({ ...g, lines: g.lines.map(({ kind, team, text, score, standing }) => ({ kind, team, text, score: Math.round(score * 100) / 100, ...(standing ? { bg: 1 } : {}) })) }));
     // 0.71: 30- and 40-point games each defense has allowed, for NBA Live's "first one allowed" card (the user, 11/15: the Celtics).
     let defense = null;
     try { const { allowedCounts } = await import("../src/anticipate/seasonlong.js"); const C = allowedCounts({ pg: playerGames(rows), rows }); defense = { n30: C.n30, n40: C.n40, teams: Object.fromEntries(Object.entries(C.teams).map(([t, x]) => [t, { gp: x.gp, t30: x.t30, t40: x.t40 }])) }; } catch (e) { console.error(`defense counts not written: ${e.message}`); }

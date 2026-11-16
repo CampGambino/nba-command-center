@@ -132,7 +132,7 @@ export function describe(text, meta = {}) {
   let type = "other", tag = "Notes", why = "";
   if (f.matchup) { type = "matchup"; tag = /\ball-time against\b[^.]*\bas a head coach\b/.test(t) ? "Coach vs. opponent" : "Series"; why = "The history with tonight's opponent."; }
   else if (f.race) { type = "race"; tag = "Race"; why = "A race on a leaderboard: both sides can move."; }
-  else if (f.streak && !/\bfrom (?:\w+\.? \d{1,2}|\d{1,2}\/\d{1,2})[^.]{0,30}\b(?:to|through|until) (?:\w+\.? \d{1,2},? (?:19|20)\d\d|\d{1,2}\/\d{1,2}\/\d{2,4})|\b(?:snapped|ended|came to an end)\b/i.test(t)) { type = "streak"; tag = streakN ? `Active streak · ${Number(streakN[1])}` : "Active streak"; why = "A live streak: it grows if he plays tonight."; }
+  else if (f.streak && !ABSENCE.test(t) && !/\bfrom (?:\w+\.? \d{1,2}|\d{1,2}\/\d{1,2})[^.]{0,30}\b(?:to|through|until) (?:\w+\.? \d{1,2},? (?:19|20)\d\d|\d{1,2}\/\d{1,2}\/\d{2,4})|\b(?:snapped|ended|came to an end)\b/i.test(t)) { type = "streak"; tag = streakN ? `Active streak · ${Number(streakN[1])}` : "Active streak"; why = "A live streak: it grows if he plays tonight."; }
   else if (club != null) {
     type = "club";
     const where = scope === "franchise" ? " in team history" : f.season ? " this season" : f.history || scope === "nba-history" ? " in NBA history" : "";
@@ -398,6 +398,9 @@ export function whenWithin(text, seasons) {
   return { n, season: seasons[n - 1] };
 }
 
+// 0.78: games missed in a row are not a streak he extends by playing ("returned to the court after missing 11 consecutive
+// games due to a left knee contusion" was tagged "Active streak · 11 → 12 if he plays tonight"; the user, 11/16).
+export const ABSENCE = /\b(?:miss(?:ed|ing|es)?|sat out|sitting out|sidelined|was out|been out|out for|inactive for|absent for|did not play in|unavailable for)\b[^.]{0,40}\b\d+ (?:consecutive|straight)\b|\b\d+ (?:consecutive|straight) (?:games|contests) (?:missed|out|on the sidelines)\b|\b(?:after|following) (?:a|an) \d+-game absence\b/i;
 export function annotate(lines, { doc = null, tables = null, box = null, model = null, teamNames = [], careers = null } = {}) {
   const T = tables || (doc ? readTables(doc) : []);
   for (const l of lines || []) {
@@ -554,9 +557,35 @@ export function longSpan(text, today) {
  * Why a line should be trimmed tonight, or null to keep it.
  *   { box, today, home: true|false|null (tonight's venue for this team) }
  */
+/**
+ * 0.78: a season total the box scores say this season can't hold yet ("Shot a career-high .671 (403-601 FG) from the
+ * floor" in mid-November; "at least one steal in a career-high 42 games" after 14 games; the user, 11/16). Both were
+ * last season's bullets under a header the reader didn't know. Returns the reason, or null.
+ * Career totals and spans ("in his career", "since 2023-24", "all-time") are left alone.
+ */
+export function cantBeThisSeason(text, { box = null, playerId = null } = {}) {
+  if (!box || !(box.games || []).length) return null;
+  const t = plain(text);
+  if (/\b(?:in|of|for|over) (?:his|her|their) career\b|\bcareer (?:totals?|games|starts|points|rebounds|assists)\b|\ball-time\b|\bsince\b|\b(?:last|past|previous) (?:\w+ )?(?:seasons?|years?)\b|\bhistory\b|\blast season\b/i.test(t)) return null;
+  const k = Object.fromEntries((box.keys || []).map((x, i) => [x, i]));
+  const gp = box.games.length;
+  const m = t.match(/\bcareer[- ](?:high|best) (\d{2,3}) (?:games|times|contests|starts)\b|\b(\d{2,3}) (?:games|times|contests|starts),? (?:a|his|which (?:is|was) a) career[- ](?:high|best)\b|\ba career[- ](?:high|best) (\d{2,3}) times\b/i);
+  if (m) { const n = +(m[1] || m[2] || m[3]); if (n > gp) return `last season's count (${n} games; the team has played ${gp})`; }
+  if (playerId) {
+    const sum = (key) => box.games.reduce((a, g) => a + (g.pl?.[playerId]?.[k[key]] || 0), 0);
+    for (const sh of t.matchAll(/\((\d{2,4})-(?:of-)?(\d{2,4})\s*(FGs?|3FGs?|3PT|3-PT|FTs?)\)/g)) {
+      const att = +sh[2], key = /^3/.test(sh[3]) ? "fg3a" : /^FT/.test(sh[3]) ? "fta" : "fga";
+      const have = sum(key);
+      if (+sh[1] <= att && att >= 40 && att > have * 1.05) return `last season's total (${sh[1]}-${att}; he has ${have} ${key === "fga" ? "field goal attempts" : key === "fta" ? "free throw attempts" : "three-point attempts"} this season)`;
+    }
+  }
+  return null;
+}
+
 export function trimReason(line, { box = null, today, home = null } = {}) {
   const t = plain(line.text);
   const d = line.facts || describe(line.text, line);
+  { const cant = cantBeThisSeason(line.text, { box, playerId: line.playerId }); if (cant) return cant; }
   // Layout damage: a bio-table row ("… on Virginia / USA 8th Season 10/21/26 vs UTA") or two columns read across.
   if (/\b[A-Z][a-z]+(?: [A-Z][a-z]+)? \/ [A-Z]{2,3}\b|\b\d{1,2}(?:st|nd|rd|th) Season\b/.test(t)) return "garbled (a table row)";
   if ((t.match(/\bjoining\b/g) || []).length >= 2 || /\b(?:of|in|to|the|for|and)\s+[A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+(?:Jr|Sr)\.?|\s+I{2,3})?\s+(?:notches|notched|records|recorded|becomes|became|scores|scored|posts|posted|tallies|tallied)\b/.test(t)) return "garbled (two columns read as one)";

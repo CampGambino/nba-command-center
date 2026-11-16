@@ -147,7 +147,7 @@ let P = null, S = null, DATA = {}, mode = "clutch";
 const dash = (v) => (v == null || (typeof v === "number" && Number.isNaN(v)) ? "–" : v);   // the final-two-minutes file has no assists, steals or blocks
 const KEY = {
   clutch: "Clutch time: the last 5 minutes of the 4th quarter or overtime with the score within 5 points (the NBA's definition). Season totals, from ESPN play-by-play.",
-  l2m: "Final 2 minutes: the last two minutes of the 4th quarter or overtime, in games within 3 points at some moment of them (the window of the league's Last Two Minute reports). Season totals from the Game Flow files; assists, steals and blocks aren't counted here. Team W-L is those games' results; +/- is points for and against in those stretches.",
+  l2m: "Final 2 minutes: the last two minutes of the 4th quarter and of every overtime period, each counted on its own when the score was within 3 points at some moment of it (the window of the league's Last Two Minute reports). An overtime game can add two minutes per period; the first three minutes of an overtime are not counted. Season totals from the Game Flow files; assists, steals and blocks aren't counted here. Team W-L is those games' results; +/- is points for and against in those stretches.",
   q4: "4th quarter: all of the 4th quarter, any score (overtime not included). Season totals, from ESPN play-by-play. Team W-L is quarters won and lost (ties not shown).",
 };
 const state = { team: { key: "pm", dir: "best" }, player: { key: "pts", dir: "best" } };

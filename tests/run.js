@@ -765,7 +765,7 @@ const more = {};
     "results: a finished date is complete; an unfinished game 4 days back counts as postponed; tonight's unfinished one is not", JSON.stringify(store.dates));
   asked.length = 0;
   store = await collectResults({ espn: fakeSb, store, through: "2026-10-25" });
-  ok(asked.join() === "2026-10-25", "results: a second run asks ESPN only for dates not yet complete", asked.join());
+  ok(asked.join() === "2026-10-25,2026-10-20" && store.qsweep === 1, "results: a second run asks ESPN for dates not yet complete, and once for each recent finished date's quarter scores (0.78)", asked.join());
   // Stat corrections (0.60): a game's summary is read again once a day for 3 days; a change is noted, a failed re-read keeps the old.
   {
     let pts = 20, fail = false, reads = 0;
@@ -2320,8 +2320,8 @@ await articlesChecks(ok);
   const L = quarterLines(rows, [{ away: "BBB", home: "AAA" }]);
   const a = L.find((l) => l.team === "AAA"), b = L.find((l) => l.team === "BBB");
   ok(M.AAA.gp === 10 && M.AAA.q[2].pf - M.AAA.q[2].pa === -80 && M.AAA.rank[2] === 6 && M.BBB.rank[2] === 1 && M.EEE.q.length === 4
-    && a && a.kind === "qtr" && a.text === "AAA has been outscored by 80 in 3rd quarters (−8.0 a game, the worst in the NBA; lost 10 of 10) and is +90 in the other three combined; tonight's opponent BBB is +80 in 3rd quarters (best)"
-    && b && /^BBB has outscored opponents by 80 in 3rd quarters \(\+8\.0 a game, the best in the NBA; won 10 of 10\) and is −90 in the other three combined; tonight's opponent AAA is −80 in 3rd quarters \(worst\)$/.test(b.text)
+    && a && a.kind === "qtr" && a.text === "AAA has been outscored by 80 in 3rd quarters (−8.0 a game, the worst in the NBA; lost the quarter in 10 of 10 games) and is +90 in the other three quarters combined; tonight's opponent BBB is +80 in 3rd quarters (best)"
+    && b && /^BBB has outscored opponents by 80 in 3rd quarters \(\+8\.0 a game, the best in the NBA; won the quarter in 10 of 10 games\) and is −90 in the other three quarters combined; tonight's opponent AAA is −80 in 3rd quarters \(worst\)$/.test(b.text)
     && !L.some((l) => ["CCC", "DDD", "EEE", "FFF"].includes(l.team)) && quarterLines(rows.slice(0, 9), []).length === 0,
     "quarters (0.72.7): one quarter far out of line with a team's other three, its place in the league, and tonight's opponent in that quarter; even teams and teams with few games get no line", L.map((l) => l.text).join(" | "));
   const { tonightCandidates } = await import("../src/anticipate/tonight.js");
@@ -3343,6 +3343,183 @@ await articlesChecks(ok);
     ok(F.trimReason({ text: "Gobert had 10 rebounds through three quarters of tonight’s game, marking his 37th game with 10+ rebounds through the first three quarters, second in the NBA behind Nikola Jokic (38).", player: "Rudy Gobert", playerId: "7" }, { box, today: "2026-11-16" }) === "a recap from the night of an earlier game (its counts are as of that night)"
       && F.trimReason({ text: "Tonight’s game is the first of four meetings between the teams this season.", player: null }, { box, today: "2026-11-16" }) !== "a recap from the night of an earlier game (its counts are as of that night)",
       "\"tonight's game\" in a recap left from an earlier night is trimmed; a line about tonight's own game is not");
+  }
+}
+
+// ---------- 0.78: the user's second set of 11/16 (20 images): notes that don't hold up, quarter scores, league-wide trackers ----------
+{
+  const N = await import("../src/notes/narrative.js");
+  const F = await import("../src/notes/facts.js");
+  const L = (text, y = 400) => ({ text, y, cells: [{ x0: 40, x1: 560, cx: 300, text }], charX: [] });
+  const players = [{ id: "1", name: "Bilal Coulibaly" }, { id: "2", name: "AJ Dybantsa" }, { id: "3", name: "Deandre Ayton" }, { id: "4", name: "Justin Champagnie" }, { id: "5", name: "Jeremiah Fears" }, { id: "6", name: "Yves Missi" }];
+  const opts = { seasonStart: "2026-10-01", today: "2026-11-16", teamWords: ["Washington", "Wizards"] };
+
+  ok(N.repairLayout("S T E A L S / B L O C K S With five assists at MIN (11/14), Josh Giddey (1,099) passed both Chet Walker (1,097) and Clem Haskins (1,098).") === "With five assists at MIN (11/14), Josh Giddey (1,099) passed both Chet Walker (1,097) and Clem Haskins (1,098)."
+    && N.repairLayout("A J Green scored 20 points.") === "A J Green scored 20 points.", "a letter-spaced heading in front of a sentence is cut off");
+  // "to do so" and a place with no stat say nothing alone.
+  ok(N.dangling("He is only the second Wizard to do so in the opening game of the season since 1973-74, when steals and blocks began being tracked.")
+    && N.dangling("He ranks eighth among all rookies in Wizards history over nine career games."),
+    "points back (0.78): \"the second Wizard to do so\" and \"ranks eighth among all rookies\" (in what?) say nothing alone");
+  ok(!N.dangling("Posted back-to-back 20-point, 10-assist double-doubles to start the season, joining Michael Adams (1991-92) as the only players in franchise history to do so.")
+    && !N.dangling("He ranks third in the NBA in steals per game.") && !N.dangling("Carrington appeared in all 82 games as a rookie during the 2024-25 season, the only rookie to do so.")
+    && !N.dangling("He is in his third season with the Wizards."),
+    "points back (0.78): a sentence that names its own feat or its own stat stands alone");
+  {
+    const dropped = [];
+    const h = N.readHistory({ pages: [{ page: 1, width: 612, lines: [
+      L("Coulibaly recorded four steals and two blocks in the season-opener on 10/21/26 vs. Milwaukee. He is only the second Wizard to do so in the opening game of the season since 1973-74, when steals and blocks began being tracked."),
+      L("Dybantsa has scored 135 points over nine games in his career. He ranks eighth among all rookies in Wizards history over nine career games."),
+      L("Below is a look at where Jeremiah Fears and Derik Queen matchup amongst all NBA sophomores this season."),
+    ] }] }, players, { ...opts, dropped });
+    ok(h.some((x) => /^Coulibaly recorded four steals and two blocks.*He is only the second Wizard to do so/.test(x.text)) && h.some((x) => /^Dybantsa has scored 135 points over nine games in his career\. He ranks eighth/.test(x.text))
+      && !h.some((x) => /^He (?:is only|ranks)/.test(x.text)) && !h.some((x) => /Below is a look/.test(x.text)) && dropped.some((d) => d.reason === "lead-in"),
+      "notes (0.78): each is read with the sentence before it; a table's lead-in (\"Below is a look at where…\") is dropped", h.map((x) => x.text).join(" | "));
+  }
+  // Washington's "2025-26 SEASON HIGHLIGHTS:" covers the bullets under it.
+  {
+    const dropped = [];
+    const h = N.readHistory({ pages: [{ page: 26, width: 612, lines: [
+      L("#9 Justin Champagnie Forward 6-7 211lbs 5 Years Pro"),
+      L("2026-27 SEASON HIGHLIGHTS: • Tied a career-high with 14 rebounds on 10/24 at CHI, his first double-double of the season."),
+      L("2025-26 SEASON HIGHLIGHTS: • Appeared in 69 games (19 starts) on the season."),
+      L("• Recorded at least one steal in a career-high 42 games."),
+      L("• Shot a career-high .671 (403-601 FG) from the floor."),
+    ] }] }, players, { ...opts, dropped });
+    ok(!h.some((x) => /career-high 42 games|403-601/.test(x.text)) && dropped.filter((d) => d.reason === "past-season").length >= 2,
+      "season header (0.78): bullets under \"2025-26 SEASON HIGHLIGHTS:\" are last season's", h.map((x) => x.text).join(" | ") + " // " + dropped.map((d) => d.reason).join(","));
+  }
+  // The backstop: a season total this season can't hold yet.
+  {
+    const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+    const row = keys.map((k) => ({ min: 28, pts: 12, fgm: 5, fga: 8, ftm: 2, fta: 3 }[k] ?? 0));
+    const box = { keys, names: { 3: "Deandre Ayton" }, games: Array.from({ length: 14 }, (_, i) => ({ d: `2026-10-${String(21 + i).padStart(2, "0")}`.replace("2026-10-32", "2026-11-01"), pl: { 3: row } })) };
+    ok(/^last season's total \(403-601; he has 112 field goal attempts this season\)$/.test(F.cantBeThisSeason("Shot a career-high .671 (403-601 FG) from the floor.", { box, playerId: "3" }) || "")
+      && /^last season's count \(42 games; the team has played 14\)$/.test(F.cantBeThisSeason("Recorded at least one steal in a career-high 42 games.", { box, playerId: "4" }) || "")
+      && F.cantBeThisSeason("He is shooting .625 (70-112 FG) from the floor this season.", { box, playerId: "3" }) === null
+      && F.cantBeThisSeason("He has made 403 of 601 shots (403-601 FG) in his career against Brooklyn.", { box, playerId: "3" }) === null
+      && F.cantBeThisSeason("Has scored in double figures in a career-high 11 games in a row.", { box, playerId: "3" }) === null
+      && /^last season's total/.test(F.trimReason({ text: "Shot a career-high .671 (403-601 FG) from the floor.", player: "Deandre Ayton", playerId: "3" }, { box, today: "2026-11-16" }) || ""),
+      "a total this season can't hold: 601 attempts against his 112, a count of 42 games after 14; this season's own totals and career totals are left alone");
+  }
+  // Games missed in a row are not a streak he extends by playing.
+  {
+    const d = F.describe("On 11/14 vs. DEN, returned to the court after missing 11 consecutive games due to a left knee contusion.", { player: "Yves Missi" });
+    const s = F.describe("Has scored in double figures in 11 consecutive games.", { player: "Yves Missi" });
+    ok(d.type !== "streak" && !/Active streak/.test(d.tag) && s.type === "streak" && s.tag === "Active streak · 11", "streak tag: \"after missing 11 consecutive games\" is not an active streak; 11 straight games in double figures is", JSON.stringify([d.type, d.tag, s.type, s.tag]));
+  }
+
+  // Quarter scores are read again (ESPN moved three points of GSW @ HOU from the 3rd quarter to the 2nd after the first read).
+  {
+    const { collectResults: CR, QUARTER_DAYS } = await import("../src/situations/results.js");
+    let aq = [20, 28, 31, 29];
+    const asked = [];
+    const sbd = (d) => ({ ok: true, warnings: [], data: { season: 2027, calendar: ["2026-11-11", "2026-11-16"], games: d === "2026-11-11" ? [{ id: "g1", date: d, seasonType: 2, final: true, homeTri: "HOU", awayTri: "GSW", homeScore: 115, awayScore: 108, homeQ: [35, 21, 29, 30], awayQ: aq, periods: 4 }] : [] } });
+    const espn = { scoreboard: async (d) => { asked.push(d); return sbd(d); }, detail: async () => ({ ok: false, error: "no summary (test)" }) };
+    let st = await CR({ espn, store: null, through: "2026-11-16" });
+    aq = [20, 31, 28, 29];
+    st = await CR({ espn, store: st, through: "2026-11-16" });
+    const row = st.dates["2026-11-11"].games[0];
+    ok(row.aq.join() === "20,31,28,29" && st.requartered.length === 1 && st.requartered[0].was[0].join() === "20,28,31,29" && QUARTER_DAYS === 10, "results (0.78): a game's quarter scores are read again and a change is taken (GSW 28-31 became 31-28)", JSON.stringify([row.aq, st.requartered]));
+    aq = [20, 31, 28, 20];                                    // a line score that doesn't add up to the final: not taken
+    st = await CR({ espn, store: st, through: "2026-11-16" });
+    asked.length = 0;
+    const later = await CR({ espn, store: { ...st, qsweep: 1 }, through: "2026-11-30" });
+    ok(st.dates["2026-11-11"].games[0].aq.join() === "20,31,28,29" && !st.requartered.length && !asked.includes("2026-11-11") && later.dates["2026-11-11"].games[0].aq.join() === "20,31,28,29",
+      "results (0.78): a line score that doesn't add up to the final is not taken; after ten days a date is no longer asked for", asked.join());
+    const { quarterLines } = await import("../src/situations/quarters.js");
+    const tris = ["AAA", "BBB", "CCC", "DDD", "EEE", "FFF"];
+    const rows = [];
+    for (let i = 0; i < 10; i++) { rows.push({ d: `2026-11-${10 + i}`, h: "AAA", a: "BBB", hq: [30, 30, 20, 30, ...(i === 0 ? [10] : [])], aq: [27, 27, 28, 27, ...(i === 0 ? [12] : [])] }); rows.push({ d: `2026-11-${10 + i}`, h: "CCC", a: "DDD", hq: [25, 25, 25, 25], aq: [25, 25, 25, 25] }); rows.push({ d: `2026-11-${10 + i}`, h: "EEE", a: "FFF", hq: [25, 25, 25, 25], aq: [25, 25, 25, 25] }); }
+    const ql = quarterLines(rows, []);
+    ok(tris.length === 6 && /in the other three quarters combined \(overtime not counted\)$/.test(ql.find((l) => l.team === "AAA")?.text || ""), "quarters (0.78): a team that has played overtime is told it isn't counted", ql.map((l) => l.text).join(" | "));
+  }
+
+  // A standing fact is marked, so NBA Live leaves it to the Watch List; the bridge is v14.
+  {
+    const src = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");
+    const sl = fs.readFileSync(path.join(root, "src", "anticipate", "seasonlong.js"), "utf8");
+    ok(/var VERSION = 14;/.test(src) && /return !l\.bg && \(l\.kind !== "foul"/.test(src) && (sl.match(/standing: true/g) || []).length === 2 && /era\|decade\|[^\n]*\n[^\n]*\n[^\n]*standing: true/.test(sl),
+      "bridge v14: a standing fact (\"leads the decade in…\") is marked bg and gets no pre-game card in NBA Live");
+  }
+
+  // Hot and cold shooting over his last games, the whole league; a second kind of shot gone the same way is added.
+  {
+    const { slumpLines, SLUMP } = await import("../src/anticipate/prep.js");
+    const columns = ["date", "opp", "home", "result", "type", "min", "pts", "reb", "ast", "stl", "blk", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "tov"];
+    const day = (y, i) => new Date(Date.UTC(y, 9, 20 + i * 2)).toISOString().slice(0, 10);
+    const season = (y, n) => Array.from({ length: n }, (_, i) => [day(y, i), "BOS", 1, "W", 2, 32, 28, 10, 4, 1, 1, 10, 20, 1, 3, 7, 8, 3]); // 50% FG, 33.3% 3PT
+    const logs = { columns, players: { 1: [...season(2023, 60), ...season(2024, 60), ...season(2025, 60)], 2: [...season(2024, 60), ...season(2025, 60)], 3: [...season(2024, 60), ...season(2025, 60)] } };
+    const g = (i, o) => ({ d: `2026-11-${String(i + 1).padStart(2, "0")}`, team: "PHI", min: 32, pts: 20, reb: 8, ast: 3, stl: 1, blk: 1, fgm: 10, fga: 20, fg3m: 1, fg3a: 3, ftm: 5, fta: 6, tov: 3, ...o });
+    const pg = {
+      1: Array.from({ length: 12 }, (_, i) => g(i, i >= 3 ? { fg3m: i === 5 ? 1 : 0, fg3a: i === 5 ? 1 : 3, ...(i >= 5 ? { fgm: i === 6 ? 8 : 4, fga: i === 6 ? 15 : 13 } : {}) } : {})),   // 1-for-25 from three over 9; 20-for-65 from the field over 5
+      2: Array.from({ length: 12 }, (_, i) => g(i, {})),                                           // his normal
+      3: Array.from({ length: 12 }, (_, i) => g(i, i >= 9 ? { min: 9, fgm: 0, fga: 14 } : {})),    // cold, but in 9 minutes a game
+    };
+    const sl = slumpLines({ pg, logs, names: { 1: "Joel Embiid", 2: "Steady Eddie", 3: "Garbage Time" } });
+    ok(sl.length === 1 && sl[0].kind === "span" && sl[0].key === "slump|1|fg3|cold"
+      && sl[0].text === "Joel Embiid is 1-for-25 from three over his last 9 games (4.0%, since 11/4); he had shot 33.3% for his career before that; also 20-for-65 from the field over his last 5 (49.9% before)" && SLUMP.z === 2.8,
+      "slumps (0.78): the stretch furthest from his own rate, with a second kind of shot gone the same way; a normal stretch and a bench cameo give no line", sl.map((l) => l.text).join(" | "));
+  }
+
+  // Miss runs count more for a bigger name; a player who barely shoots needs a longer one.
+  {
+    const { tonightCandidates: TC, SHOTS } = await import("../src/anticipate/tonight.js");
+    const P = (name, fga) => ({ name, team: "MIA", last: "2026-11-13", gp: 7, fta: 6, fg: 0, fg3: 0, ft: 0, fgMiss: fga, fg3Miss: 0, dryFg: { sec: 2003, fga, from: "2026-10-28", games: 5 }, dryFt: { sec: 0, fga: 0, from: "2026-11-13", games: 1 } });
+    const flow = { shots: { players: { a: P("Dru Smith", 8), b: P("Big Name", 8), c: P("Role Player", 12) }, best: { dryFg: [{ sec: 4476, fga: 13, name: "Terance Mann" }] } } };
+    const watch = { today: "2026-11-16", teams: [], games: [{ id: "1", homeTri: "MIA", awayTri: "HOU" }] };
+    const shots = (stars) => TC({ watch, fouls: flow, prep: stars ? { lines: [], stars } : null }).all.filter((x) => /^shots\|/.test(x.key || ""));
+    const withStars = shots({ "Dru Smith": 0, "Big Name": 0.7, "Role Player": 0.1 }), none = shots(null);
+    const sc = (L, n) => L.find((x) => x.player === n)?.score;
+    ok(none.length === 3 && withStars.length === 2 && !withStars.some((x) => x.player === "Dru Smith") && sc(withStars, "Big Name") > sc(none, "Big Name") + 0.5 && sc(withStars, "Role Player") < sc(none, "Role Player") && SHOTS.minor.dryFgFga === 4,
+      "shot droughts (0.78): 0-for-8 by a player who barely plays is no line (0-for-12 is); the same drought ranks higher for a big name", JSON.stringify(withStars.map((x) => [x.player, x.score])));
+  }
+
+  // A back-to-back counts for a player only when he played both nights.
+  {
+    const R = await import("../src/situations/rest.js");
+    const hb = [40, 85, 12, 34, 15, 20, 10, 33, 25, 8, 5, 13, 20];
+    const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+    const Lr = (pts, min = 34) => keys.map((k) => ({ min, pts, fgm: 8, fga: 18 }[k] ?? 0));
+    const dates = ["2026-11-01", "2026-11-02", "2026-11-04", "2026-11-06", "2026-11-08", "2026-11-09", "2026-11-11", "2026-11-13"];
+    const files = { AAA: { team: "AAA", keys, names: { 1: "Both Nights", 2: "Sat The First" }, games: dates.map((d) => ({ d, opp: "BBB", home: true, pf: 100, pa: 90,
+      pl: { 1: Lr(["2026-11-02", "2026-11-09"].includes(d) ? 12 : 24), 2: Lr(["2026-11-02", "2026-11-09"].includes(d) ? 12 : 24, ["2026-11-01", "2026-11-08"].includes(d) ? 0 : 34) } })) } };
+    const out = R.restData({ games: dates.map((d) => ({ d, h: "AAA", a: "CCC", hs: 100, as: 90, hb, ab: hb })), teamFiles: files, tonight: [], today: "2026-11-14" });
+    ok(out.players.find((x) => x.name === "Both Nights")?.b2bGp === 2 && !out.players.some((x) => x.name === "Sat The First"),
+      "rest, players (0.78): a second night counts only if he played the night before; a player who sat the first night has no back-to-back games", JSON.stringify(out.players.map((p) => [p.name, p.b2bGp, p.restGp])));
+  }
+
+  // 30-point games: the same scorer against the same defense more than once; and again tonight.
+  {
+    const { thirtyAllowed } = await import("../src/situations/vsplayers.js");
+    const G = (d, opp, pts) => ({ d, opp, team: "LAL", home: true, pts });
+    const t = thirtyAllowed({ players: { 1: { id: "1", name: "Luka Doncic", games: [G("2026-10-30", "DET", 41), G("2026-11-08", "DET", 35), G("2026-11-10", "SAC", 33)] }, 2: { id: "2", name: "Austin Reaves", games: [G("2026-10-30", "DET", 31)] } }, teamGp: { DET: 12, SAC: 13, BOS: 13 } });
+    const det = t.teams.find((x) => x.tri === "DET");
+    ok(det.allowed === 3 && det.who[0].name === "Luka Doncic" && det.who[0].n === 2 && det.who[0].pts.join() === "41,35" && det.who[1].n === 1 && det.players.join() === "Luka Doncic,Austin Reaves",
+      "30-point games allowed (0.78): a scorer who did it to the same defense twice is counted twice and marked", JSON.stringify(det.who));
+    const S = await import("../src/anticipate/seasonlong.js");
+    const tris = Array.from({ length: 22 }, (_, i) => `T${String(i).padStart(2, "0")}`);
+    const rows = tris.map((t2, i) => ({ d: "2026-11-01", h: t2, a: i ? tris[i - 1] : "DET", hs: 100, as: 90 })).concat([{ d: "2026-10-30", h: "LAL", a: "DET", hs: 120, as: 110 }, { d: "2026-11-08", h: "DET", a: "LAL", hs: 100, as: 120 }]);
+    const pg = { 1: [{ d: "2026-10-30", team: "LAL", opp: "DET", pts: 41 }, { d: "2026-11-08", team: "LAL", opp: "DET", pts: 35 }, { d: "2026-11-10", team: "LAL", opp: "SAC", pts: 33 }] };
+    const dl = S.defenseLines({ pg, rows, names: { 1: "Luka Doncic" }, slate: [{ away: "DET", home: "LAL" }] }).filter((l) => /^rep30\|/.test(l.key));
+    ok(dl.length === 1 && dl[0].kind === "vsopp" && dl[0].opp === "DET" && dl[0].text === "Luka Doncic has scored 30+ against DET both times this season (41 on 10/30, 35 on 11/8); they meet again tonight"
+      && !S.defenseLines({ pg, rows, names: { 1: "Luka Doncic" }, slate: [{ away: "SAC", home: "LAL" }] }).some((l) => /^rep30\|/.test(l.key)),
+      "30 again (0.78): two 30-point games against tonight's opponent this season is a line on the night they meet again, for anyone", dl.map((l) => l.text).join(" | "));
+  }
+
+  // Career highs raised more than once, the whole league.
+  {
+    const { repeatHighs } = await import("../src/situations/trends.js");
+    const H = (id, name, team, d, prev, pts, rookie = false) => ({ id, name, team, against: "UTA", home: false, d, pts, prev, rookie });
+    const games = [H("1", "Dylan Harper", "SAS", "2026-11-15", 25, 31), H("1", "Dylan Harper", "SAS", "2026-10-31", 24, 25), H("2", "Ajay Mitchell", "OKC", "2026-11-06", 30, 35), H("2", "Ajay Mitchell", "OKC", "2026-10-26", 26, 30),
+      H("3", "Cade Cunningham", "DET", "2026-11-12", 46, 52), H("4", "Darryn Peterson", "UTA", "2026-10-28", 15, 18, true), H("4", "Darryn Peterson", "UTA", "2026-10-23", 9, 15, true), H("4", "Darryn Peterson", "UTA", "2026-11-06", 18, 21, true)];
+    const rp = repeatHighs(games);
+    ok(rp.length === 3 && rp[0].name === "Darryn Peterson" && rp[0].n === 3 && rp[0].rookie && rp[1].name === "Dylan Harper" && rp[1].steps.join() === "24,25,31" && rp[1].last === "2026-11-15" && !rp.some((r) => r.name === "Cade Cunningham"),
+      "career highs (0.78): everyone who has raised his career high more than once this season, with each step", JSON.stringify(rp));
+    const { tonightCandidates: TC } = await import("../src/anticipate/tonight.js");
+    const lines = (home) => TC({ watch: { today: "2026-11-16", teams: [], games: [{ id: "1", homeTri: home, awayTri: "MEM" }] }, trends: { highsAllowed: { teams: [], games, repeat: rp } } }).all.filter((x) => /^highs\|/.test(x.key || ""));
+    const sas = lines("SAS"), uta = lines("UTA");
+    ok(sas.length === 1 && sas[0].kind === "season" && sas[0].text === "Dylan Harper has raised his career high twice this season (24 → 25 → 31, the latest on 11/15): one of 2 players past their rookie season to do it twice (with Ajay Mitchell)" && uta.length === 0,
+      "career highs (0.78): a line for any player past his rookie season who has done it twice or more, when he plays; rookies are left to the page", sas.map((l) => l.text).join(" | "));
   }
 }
 

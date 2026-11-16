@@ -324,9 +324,9 @@ function lastTwoLines(flow, teams) {
  * marks once they are a third of the way there. Thresholds come from this season's scale (11/15, 188 games: the longest
  * runs were 13 field goals, 7 threes and 51 free throws; 75 minutes without a field goal; 252 without a free throw).
  */
-export const SHOTS = { fg: 10, fg3: 6, ft: 30, fgMiss: 10, fg3Miss: 12, dryFgMin: 25, dryFgFga: 8, dryFtMin: 50, dryFtFtaPg: 4, dryFtLongMin: 100, dryFtLongFga: 40, dryFtLongPg: 1.5, days: 6 };
+export const SHOTS = { fg: 10, fg3: 6, ft: 30, fgMiss: 10, fg3Miss: 12, dryFgMin: 25, dryFgFga: 8, dryFtMin: 50, dryFtFtaPg: 4, dryFtLongMin: 100, dryFtLongFga: 40, dryFtLongPg: 1.5, days: 6, minorProm: 0.25, minor: { fgMiss: 4, fg3Miss: 4, dryFgFga: 4 } };
 export const SHOT_RECORDS = { fg: [35, "Wilt Chamberlain, 1967"], fg3: [13, "Brent Price, Terry Mills and Shake Milton"], ft: [97, "Micheal Williams, 1993"] };
-function shotLines(flow, teams, today) {
+function shotLines(flow, teams, today, stars = null) {
   const S = flow?.shots;
   if (!S?.players) return [];
   const out = [];
@@ -340,14 +340,18 @@ function shotLines(flow, teams, today) {
   };
   for (const p of Object.values(S.players)) {
     if (!teams.has(p.team) || !p.last || (today && (Date.parse(today) - Date.parse(p.last)) / 864e5 > SHOTS.days)) continue;
-    const line = (score, text, key) => out.push({ team: p.team, player: p.name, kind: "pstreak", score, text, key: `shots|${p.name}|${key}` });
+    // 0.78 (the user, 11/16, on "Dru Smith has gone 33 minutes without a made field goal (0-for-8…)" ranked 4th: such runs
+    // matter "especially for the top players"). With prominence known (prep stats, 0-1), a miss run or drought counts
+    // more for a bigger name, and a player who barely shoots needs a longer one (SHOTS.minor).
+    const prom = stars ? stars[p.name] ?? 0 : null, minor = prom != null && prom < SHOTS.minorProm;
+    const line = (score, text, key) => out.push({ team: p.team, player: p.name, kind: "pstreak", score: Math.round((score + (prom == null ? 0 : /Miss|dry/.test(key) ? 0.8 * prom - (minor ? 0.4 : 0) : 0.3 * prom)) * 100) / 100, text, key: `shots|${p.name}|${key}` });
     for (const k of ["fg", "fg3", "ft"]) if (p[k] >= SHOTS[k]) line(3.2 + Math.min(1, p[k] / SHOT_RECORDS[k][0]) * 1.5, `${p.name} has made ${p[k]} ${WORD[k]} in a row (since ${md(p[`${k}From`])}): ${scale(k, p[k])}`, k);
-    if (p.fg3Miss >= SHOTS.fg3Miss) line(3.0 + Math.min(0.6, (p.fg3Miss - SHOTS.fg3Miss) / 10), `${p.name} has missed his last ${p.fg3Miss} 3-point attempts (since ${md(p.fg3MissFrom)})`, "fg3Miss");
+    if (p.fg3Miss >= SHOTS.fg3Miss + (minor ? SHOTS.minor.fg3Miss : 0)) line(3.0 + Math.min(0.6, (p.fg3Miss - SHOTS.fg3Miss) / 10), `${p.name} has missed his last ${p.fg3Miss} 3-point attempts (since ${md(p.fg3MissFrom)})`, "fg3Miss");
     const d = p.dryFg, m = Math.round(d.sec / 60);
-    if (m >= SHOTS.dryFgMin && d.fga >= SHOTS.dryFgFga) {
+    if (m >= SHOTS.dryFgMin && d.fga >= SHOTS.dryFgFga + (minor ? SHOTS.minor.dryFgFga : 0)) {
       const top = (S.best?.dryFg || [])[0];
       line(2.9 + Math.min(0.8, d.fga / 20), `${p.name} has gone ${m} minutes on the floor without a made field goal (0-for-${d.fga} since ${md(d.from)}${d.games > 1 ? `, over ${d.games} games` : ""})${top && top.sec > d.sec ? `; this season's longest is ${Math.round(top.sec / 60)} minutes (${top.name}, 0-for-${top.fga})` : ": the longest this season"}`, "dryFg");
-    } else if (p.fgMiss >= SHOTS.fgMiss) line(3.0, `${p.name} has missed his last ${p.fgMiss} shots (since ${md(p.fgMissFrom)})`, "fgMiss");
+    } else if (p.fgMiss >= SHOTS.fgMiss + (minor ? SHOTS.minor.fgMiss : 0)) line(3.0, `${p.name} has missed his last ${p.fgMiss} shots (since ${md(p.fgMissFrom)})`, "fgMiss");
     const f = p.dryFt, fm = Math.round(f.sec / 60), perGame = p.gp ? p.fta / p.gp : 0;
     // A player who is at the line 4+ times a game, from 50 minutes; one who gets there at all (1.5+), from 100 minutes and
     // 40 shots; and whoever holds the season's longest such run while it is still going. (A shooter at 0.2 a game going
@@ -395,6 +399,18 @@ function teamLines(trends, teams) {
     if (!teams.has(t.tri) || t.vets < most) continue;
     const last = t.games.filter((g) => !g.rookie)[0];
     out.push({ team: t.tri, kind: "team", score: 2.4, text: `${t.tri} has allowed ${t.vets} career-high scoring games this season, the most in the NBA${last ? ` (latest: ${last.name} ${last.pts}, ${+last.d.slice(5, 7)}/${+last.d.slice(8, 10)})` : ""}` });
+  }
+  // 0.78: anyone past his rookie season who keeps raising his career high (twice or more this season), on the nights
+  // he plays; the league's count of such players comes with it.
+  const RH = (trends.highsAllowed?.repeat || []).filter((r) => !r.rookie);
+  const rhMax = RH.length ? RH[0].n : 0;
+  const times = (n) => (n === 2 ? "twice" : `${n} times`);
+  for (const r of RH) {
+    if (!teams.has(r.team)) continue;
+    const same = RH.filter((x) => x.n >= r.n && x.id !== r.id), more = RH.filter((x) => x.n > r.n);
+    out.push({ team: r.team, player: r.name, kind: "season", key: `highs|${r.id}`, rare: !more.length && same.length <= 1,
+      score: Math.round((2.8 + 0.4 * (r.n - 2) + (r.n === rhMax ? 0.2 : 0)) * 100) / 100,
+      text: `${r.name} has raised his career high ${times(r.n)} this season (${r.steps.filter((v) => v != null).join(" → ")}, the latest on ${+r.last.slice(5, 7)}/${+r.last.slice(8, 10)}): ${!same.length ? "the only player past his rookie season to do it more than once" : more.length ? `${more.length === 1 ? `only ${more[0].name} has` : `${more.length} players have`} done it more often (rookies aside)` : `one of ${same.length + 1} players past their rookie season to do it ${times(r.n)} (with ${same.slice(0, 3).map((x) => x.name).join(", ")}${same.length > 3 ? "…" : ""})`}` });
   }
   for (const [team, t] of Object.entries(trends.teams || {})) {
     if (!teams.has(team) || !t.streak || t.streak.n < 4 || wl.has(team)) continue;
@@ -510,7 +526,7 @@ function prepStoryLines(prep, teams, games, today) {
   const opp = new Map();
   for (const g of games) { opp.set(g.away, g.home); opp.set(g.home, g.away); }
   return prep.lines.filter((l) => PREP_KINDS.has(l.kind) && teams.has(l.team) && (l.kind !== "vsopp" || opp.get(l.team) === l.opp))
-    .map((l) => ({ team: l.team, player: l.player, kind: l.kind, text: l.text, score: l.score, key: l.key, rare: !!l.rare }));
+    .map((l) => ({ team: l.team, player: l.player, kind: l.kind, text: l.text, score: l.score, key: l.key, rare: !!l.rare, ...(l.standing ? { standing: true } : {}) }));
 }
 
 /**
@@ -558,7 +574,7 @@ export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries =
   const hist = historyLines(facts, teams, watch.today).filter((h) => !recs.some((r) => r.player && r.passing && r.team === h.team
     && new RegExp(`\\b${surname(r.player)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
     && r.passing.split(" and ").some((n) => new RegExp(`\\b${surname(n)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, "")))));
-  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams).filter((l) => !clubLines(leaders, teams).some((c) => c.player === l.player)), ...clubLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today), ...tvLines(national, teams, watch.today), ...restLines(rest, teams, watch.today), ...formLines(form, teams, watch.today), ...foulLines(fouls, teams), ...earlyLines(fouls, teams, watch.today), ...fourthLines(fouls, teams), ...lastTwoLines(fouls, teams), ...shotLines(fouls, teams, watch.today), ...seededLines(fouls, teams), ...prepStoryLines(prep, teams, games, watch.today), ...cupLines(records, teams, watch.today)]
+  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams).filter((l) => !clubLines(leaders, teams).some((c) => c.player === l.player)), ...clubLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today), ...tvLines(national, teams, watch.today), ...restLines(rest, teams, watch.today), ...formLines(form, teams, watch.today), ...foulLines(fouls, teams), ...earlyLines(fouls, teams, watch.today), ...fourthLines(fouls, teams), ...lastTwoLines(fouls, teams), ...shotLines(fouls, teams, watch.today, prep?.stars || null), ...seededLines(fouls, teams), ...prepStoryLines(prep, teams, games, watch.today), ...cupLines(records, teams, watch.today)]
     .flatMap((l) => {
       const st = l.player ? listed.get(`${l.team}|${nameKey(l.player)}`) : null;
       if (st === "Out" || st === "Doubtful") return [];

@@ -63,7 +63,7 @@ export function vsDefenses({ players, teamGp }, top) {
 
 /**
  * 30-point games allowed: one is credited to a defense for every opposing player who reached 30 against it (two in one
- * game count twice). ratings: { tri: { games, drtg } } from ratings.js. -> { teams: [{ tri, allowed, gp, perGame, drtg }], games: [...] }
+ * game count twice). ratings: { tri: { games, drtg } } from ratings.js. -> { teams: [{ tri, allowed, gp, perGame, drtg, players, who }], games: [...] }
  */
 export function thirtyAllowed({ players, teamGp }, ratings = {}) {
   const games = [];
@@ -72,7 +72,12 @@ export function thirtyAllowed({ players, teamGp }, ratings = {}) {
   const tris = new Set([...Object.keys(teamGp), ...Object.keys(ratings), ...Object.values(players).flatMap((p) => p.games.map((g) => g.opp))]);
   const teams = [...tris].map((tri) => {
     const allowed = games.filter((g) => g.against === tri).length, gp = teamGp[tri] || ratings[tri]?.games || 0;
-    return { tri, allowed, gp, perGame: gp ? allowed / gp : null, drtg: ratings[tri]?.drtg ?? null, players: [...new Set(games.filter((g) => g.against === tri).map((g) => g.name))] };
+    // 0.78 (the user, 11/16: "if a player has scored 30 or more points more than once against the same team, please note
+    // how many times"): who = [{ name, n, pts: [each game's points, by date] }], most often first.
+    const mine = games.filter((g) => g.against === tri).sort((a, b) => a.d.localeCompare(b.d));
+    const who = [...new Set(mine.map((g) => g.name))].map((name) => ({ name, n: mine.filter((g) => g.name === name).length, pts: mine.filter((g) => g.name === name).map((g) => g.pts) }))
+      .sort((a, b) => b.n - a.n);
+    return { tri, allowed, gp, perGame: gp ? allowed / gp : null, drtg: ratings[tri]?.drtg ?? null, players: who.map((w) => w.name), who };
   }).sort((a, b) => b.allowed - a.allowed || (b.perGame ?? 0) - (a.perGame ?? 0) || a.tri.localeCompare(b.tri));
   return { teams, games };
 }

@@ -77,7 +77,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 13;
+  var VERSION = 14;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -187,7 +187,8 @@
     if (!T || (state.data && T.today !== state.data.today)) return;
     var g = T.games.find(function (x) { return x.away === sides.away && x.home === sides.home; });
     if (!g) return;
-    g.lines.filter(function (l) { return l.kind !== "foul" || !state.flow; }).slice(0, PRE_PER_GAME).forEach(function (l, n) {
+    // v14 (the user, 11/16): a standing fact ("leads the decade in points, rebounds…": bg) is for the Watch List, not a card here.
+    g.lines.filter(function (l) { return !l.bg && (l.kind !== "foul" || !state.flow); }).slice(0, PRE_PER_GAME).forEach(function (l, n) {
       fire("cc-pre-" + T.today + "-" + sides.away + "-" + sides.home + "-" + n, {
         type: "milestone", icon: ICON[l.kind] || "📌 STORYLINE", text: l.text,
         sub: "Command Center · tonight's storyline (pre-game)",

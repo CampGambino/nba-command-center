@@ -420,6 +420,54 @@ export function alreadyLines({ pg, logs, names }) {
   return out.sort((a, b) => b.score - a.score).slice(0, ALREADY.keep);
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// 9. Hot and cold shooting over his last few games (0.78; the user, 11/16, on a post: "Joel Embiid … is just 1-for-25
+//    from three over his last nine games": "even something like this … looks noteworthy, especially for the top
+//    players"). Every player in the league, threes, field goals and free throws: the stretch of his latest games
+//    (3 to 12) that is furthest from what he normally shoots, when it is far enough (SLUMP.z standard deviations of a
+//    shooter at his own rate) and on enough attempts. His normal is his career rate in the logs before the stretch
+//    (2016-17 on), or this season's before it for a player with little history.
+export const SLUMP = { games: 6, minN: 3, maxN: 12, z: 2.8, also: 2.4, mpg: 18, keep: 40,
+  shots: [["fg3", "fg3m", "fg3a", "from three", 15, 150], ["fg", "fgm", "fga", "from the field", 40, 400], ["ft", "ftm", "fta", "at the line", 15, 150]] };
+export function slumpLines({ pg, logs, names }) {
+  const L = logRows(logs);
+  const prom = prominence(pg, names);
+  const out = [];
+  for (const [id, gs] of Object.entries(pg)) {
+    const name = names[id], n = gs.length;
+    if (!name || n < SLUMP.games) continue;
+    const first = gs[0].d;
+    const past = (L[id] || []).filter((g) => g.type === 2 && g.d < first);
+    let best = null;
+    const byType = {};
+    for (const [key, mk, ak, where, minAtt, minBase] of SLUMP.shots) {
+      for (let N = SLUMP.minN; N <= Math.min(SLUMP.maxN, n - 1); N++) {
+        const win = gs.slice(-N), before = [...past, ...gs.slice(0, -N)];
+        const m = win.reduce((x, g) => x + (g[mk] || 0), 0), a = win.reduce((x, g) => x + (g[ak] || 0), 0);
+        if (a < minAtt || win.reduce((x, g) => x + (g.min || 0), 0) / N < SLUMP.mpg) continue;
+        const bm = before.reduce((x, g) => x + (g[mk] || 0), 0), ba = before.reduce((x, g) => x + (g[ak] || 0), 0);
+        if (ba < minBase) continue;
+        const p0 = bm / ba, z = (m - a * p0) / Math.sqrt(a * p0 * (1 - p0));
+        if (!(Math.abs(z) >= SLUMP.also)) continue;
+        // The stretch starts with a game on the same side of his normal (it isn't padded with an ordinary one).
+        const g0 = win[0], side = (g0[ak] ? g0[mk] / g0[ak] : p0) - p0;
+        if (g0[ak] && Math.sign(side) !== Math.sign(z)) continue;
+        const f = { key, where, N, m, a, p0, z, career: past.length >= 40, from: g0.d };
+        if (!byType[key] || Math.abs(z) > Math.abs(byType[key].z)) byType[key] = f;
+        if (Math.abs(z) >= SLUMP.z && (!best || Math.abs(z) > Math.abs(best.z))) best = f;
+      }
+    }
+    if (!best) continue;
+    const cold = best.z < 0, pr = prom[name] ?? 0;
+    // A second kind of shot gone the same way ("…and is just 1-for-25 from three over his last nine games").
+    const also = Object.values(byType).filter((f) => f.key !== best.key && Math.sign(f.z) === Math.sign(best.z)).sort((x, y) => Math.abs(y.z) - Math.abs(x.z))[0];
+    out.push({ kind: "span", team: gs[n - 1].team, player: name, id, key: `slump|${id}|${best.key}|${cold ? "cold" : "hot"}`,
+      text: `${name} is ${best.m}-for-${best.a} ${best.where} over his last ${best.N} games (${r1(pct(best.m, best.a))}%, since ${md(best.from)}); he ${best.career ? "had shot" : "was at"} ${r1(100 * best.p0)}% ${best.career ? `for his career before that${past[0].d < "2017-08-01" ? " (since 2016-17)" : ""}` : "this season before that"}${also ? `; also ${also.m}-for-${also.a} ${also.where} over his last ${also.N} (${r1(100 * also.p0)}% before)` : ""}`,
+      score: Math.round((2.5 + Math.min(1, (Math.abs(best.z) - SLUMP.z) * 0.4) + 0.7 * pr) * 100) / 100, rare: Math.abs(best.z) >= 4 });
+  }
+  return out.sort((a, b) => b.score - a.score).slice(0, SLUMP.keep);
+}
+
 /** Everyone's prominence (0-1) from this season's minutes and points, for the briefing's ranking. */
 export function prominence(pg, names) {
   const out = {};
@@ -434,7 +482,7 @@ export function prominence(pg, names) {
 
 /** All of it, for scripts/situations.js -> docs/data/prep.json. */
 export function prepLines(args) {
-  const parts = [["season", seasonLines], ["absence", absenceLines], ["run", runLines], ["streak", streakLines], ["vsopp", vsOppLines], ["pace", paceLines], ["own", ownStartLines], ["already", alreadyLines]];
+  const parts = [["season", seasonLines], ["absence", absenceLines], ["run", runLines], ["streak", streakLines], ["vsopp", vsOppLines], ["pace", paceLines], ["own", ownStartLines], ["already", alreadyLines], ["slump", slumpLines]];
   const lines = [], errors = [];
   for (const [k, f] of parts) { try { lines.push(...f(args)); } catch (e) { errors.push(`${k}: ${e.message}`); } }
   return { lines, errors, stars: prominence(args.pg, args.names) };

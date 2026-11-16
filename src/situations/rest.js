@@ -89,12 +89,18 @@ export function restData({ games = [], teamFiles = {}, tonight = [], today = nul
   for (const [tri, f] of Object.entries(teamFiles)) {
     const ix = Object.fromEntries((f.keys || []).map((k, i) => [k, i]));
     const lines = {};
+    // 0.78 (the user, 11/16: "confirm the player plays both games of the back-to-back before counting it… they need to
+    // have played both games"): a second night counts as his back-to-back only if he played the night before too. If he
+    // sat that one out, he was rested, and the game goes with his other games.
+    const byDay = Object.fromEntries((f.games || []).map((g) => [g.d, g]));
+    const dayBefore = (d) => new Date(Date.parse(`${d}T12:00:00Z`) - 864e5).toISOString().slice(0, 10);
     for (const g of f.games || []) {
       const r = idx[`${tri}|${g.d}`];
       if (r == null) continue;
+      const prev = r === 0 ? byDay[dayBefore(g.d)] : null;
       for (const [id, row] of Object.entries(g.pl || {})) {
         if (!(row[ix.min] > 0)) continue;
-        (lines[id] ??= []).push({ b2b: r === 0, pts: row[ix.pts] || 0, min: row[ix.min] || 0, fgm: row[ix.fgm] || 0, fga: row[ix.fga] || 0, reb: row[ix.reb] || 0, ast: row[ix.ast] || 0 });
+        (lines[id] ??= []).push({ b2b: r === 0 && prev?.pl?.[id]?.[ix.min] > 0, pts: row[ix.pts] || 0, min: row[ix.min] || 0, fgm: row[ix.fgm] || 0, fga: row[ix.fga] || 0, reb: row[ix.reb] || 0, ast: row[ix.ast] || 0 });
       }
     }
     for (const [id, L] of Object.entries(lines)) {

@@ -202,7 +202,7 @@ function describe(g, notes) {
  * everything he scored before it: his career high entering the season (careerHighs) and this season's games so far,
  * so a player can set more than one. A rookie's debut is not counted (any total is a career high); his later new
  * bests are, marked as a rookie's.
- * -> { games: [{ id, name, team, against, home, d, pts, prev, rookie }], teams: [{ tri, vets, rookies, games }] }
+ * -> { games: [{ id, name, team, against, home, d, pts, prev, rookie }], teams: [{ tri, vets, rookies, games }], repeat (0.78) }
  */
 export const HIGH_MIN = 10; // a career high of 7 isn't a story
 export function careerHighsAllowed(pg, careers, names = {}) {
@@ -223,5 +223,21 @@ export function careerHighsAllowed(pg, careers, names = {}) {
   const by = {};
   for (const g of games) { const t = (by[g.against] ??= { tri: g.against, vets: 0, rookies: 0, games: [] }); t[g.rookie ? "rookies" : "vets"]++; t.games.push(g); }
   const teams = Object.values(by).sort((a, b) => b.vets - a.vets || b.rookies - a.rookies || a.tri.localeCompare(b.tri));
-  return { games, teams };
+  return { games, teams, repeat: repeatHighs(games) };
+}
+
+/**
+ * Players who have raised their career high more than once this season (0.78; the user, 11/16: "a non-rookie (Dylan
+ * Harper) set his career-high twice already this season, it might be something to monitor if he or anyone else keeps
+ * doing it"). Everyone in the league, rookies marked.
+ * games: careerHighsAllowed's. -> [{ id, name, team, rookie, n, steps: [high entering, each new high], dates, last }], most first.
+ */
+export function repeatHighs(games) {
+  const by = {};
+  for (const g of games || []) (by[g.id] ??= []).push(g);
+  return Object.values(by).filter((L) => L.length >= 2).map((L) => {
+    L = L.slice().sort((a, b) => a.d.localeCompare(b.d));
+    const end = L[L.length - 1];
+    return { id: end.id, name: end.name, team: end.team, rookie: !!end.rookie, n: L.length, steps: [L[0].prev, ...L.map((g) => g.pts)], dates: L.map((g) => g.d), last: end.d };
+  }).sort((a, b) => b.n - a.n || b.last.localeCompare(a.last) || a.name.localeCompare(b.name));
 }

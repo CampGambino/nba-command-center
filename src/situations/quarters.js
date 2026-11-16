@@ -7,7 +7,8 @@
  *     the league that is out of line with the team's other three; and, when tonight's opponent is near the other end in
  *     the same quarter, that too (the predictive half: "the 3rd tonight: worst in the NBA against 2nd-best").
  *
- * rows: the results store's games ({ d, h, a, hq: [points by period], aq }). Overtime periods are left out.
+ * rows: the results store's games ({ d, h, a, hq: [points by period], aq }). Overtime periods are left out, and the
+ * line says so for a team that has played one (0.78).
  */
 export const Q_MIN_GP = 8, Q_MARGIN = 2.5, Q_GAP = 4.5, Q_EDGE = 3;
 const NAMES = ["1st", "2nd", "3rd", "4th"];
@@ -21,6 +22,7 @@ export function quarterMargins(rows) {
     if (!Array.isArray(g.hq) || !Array.isArray(g.aq) || g.hq.length < 4 || g.aq.length < 4) continue;
     const H = team(g.h), A = team(g.a);
     H.gp++; A.gp++;
+    if (g.hq.length > 4) { H.ot = (H.ot || 0) + 1; A.ot = (A.ot || 0) + 1; }
     for (let k = 0; k < 4; k++) {
       const h = g.hq[k] || 0, a = g.aq[k] || 0;
       H.q[k].pf += h; H.q[k].pa += a; A.q[k].pf += a; A.q[k].pa += h;
@@ -55,7 +57,7 @@ export function quarterLines(rows, slate = []) {
     if (!best) continue;
     const { k, net, m, others, bad, place } = best;
     const q = x.q[k];
-    let text = `${t} has ${bad ? "been outscored by" : "outscored opponents by"} ${Math.abs(net)} in ${NAMES[k]} quarters (${m > 0 ? "+" : "−"}${Math.abs(m).toFixed(1)} a game, the ${ord(place)}${bad ? "worst" : "best"} in the NBA; ${bad ? `lost ${q.l}` : `won ${q.w}`} of ${x.gp}) and is ${sg(others)} in the other three combined`;
+    let text = `${t} has ${bad ? "been outscored by" : "outscored opponents by"} ${Math.abs(net)} in ${NAMES[k]} quarters (${m > 0 ? "+" : "−"}${Math.abs(m).toFixed(1)} a game, the ${ord(place)}${bad ? "worst" : "best"} in the NBA; ${bad ? `lost the quarter in ${q.l}` : `won the quarter in ${q.w}`} of ${x.gp} games) and is ${sg(others)} in the other three quarters combined${x.ot ? " (overtime not counted)" : ""}`;
     let score = 3.0 + Math.min(0.8, best.size / 10);
     const o = opp[t], O = o && T[o];
     if (O && O.gp >= Q_MIN_GP) {

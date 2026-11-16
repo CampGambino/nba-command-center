@@ -22,6 +22,7 @@
  * re-read keeps what we had. Changed games are listed in store.corrected (this run only).
  */
 export const RECHECK_DAYS = 3;
+export const QUARTER_DAYS = 10;
 export function rowFromGame(g) {
   if (!g.final || g.seasonType !== 2 || !g.homeTri || !g.awayTri) return null;
   if (g.homeScore == null || g.awayScore == null || g.homeScore === g.awayScore) return null;
@@ -47,8 +48,35 @@ export async function collectResults({ espn, store, through, warnings = [] }) {
     const old = Date.parse(through) - Date.parse(d) >= 3 * 864e5;
     out.dates[d] = { complete: reg.every((g) => g.final) || old, games: rows };
   }
-  // Fill in box totals and clutch scoring for games that don't have them yet, and re-read recent ones.
+  // 0.78: the score by quarter is read again too. The first reading was kept for good, and ESPN moved three points of
+  // GSW @ HOU (11/11) from the 3rd quarter to the 2nd afterwards (the user, 11/16: Houston "+111 in 2nd quarters" where
+  // the league has +108). One scoreboard request a day covers that day's games: every day of the last QUARTER_DAYS on
+  // each build, and the whole season once (out.qsweep).
   out.corrected = [];
+  out.requartered = [];
+  {
+    const sweep = out.qsweep !== 1;
+    let allOk = true;
+    for (const d of Object.keys(out.dates).sort()) {
+      if (d >= through || !out.dates[d].complete || !out.dates[d].games.length) continue;
+      if (!sweep && Date.parse(through) - Date.parse(d) > QUARTER_DAYS * 864e5) continue;
+      const sb = await espn.scoreboard(d);
+      if (!sb.ok) { warnings.push(sb.error); allOk = false; continue; }
+      for (const g of sb.data.games) {
+        const row = out.dates[d].games.find((r) => r.id === g.id);
+        const now = row && rowFromGame(g);
+        if (!now || !Array.isArray(now.hq) || !Array.isArray(now.aq) || now.hq.length < 4 || now.aq.length !== now.hq.length) continue;
+        const sum = (q) => q.reduce((a, b) => a + (b || 0), 0);
+        if (sum(now.hq) !== now.hs || sum(now.aq) !== now.as) continue; // a half-updated line score: wait for the next read
+        if (JSON.stringify([row.hq, row.aq, row.hs, row.as]) === JSON.stringify([now.hq, now.aq, now.hs, now.as])) continue;
+        out.requartered.push({ id: row.id, d, h: row.h, a: row.a, was: [row.aq, row.hq], now: [now.aq, now.hq] });
+        row.hq = now.hq; row.aq = now.aq; row.ot = now.ot;
+        if (row.hs !== now.hs || row.as !== now.as) { row.hs = now.hs; row.as = now.as; row.x = 0; } // a changed final: read the box again
+      }
+    }
+    if (sweep && allOk) out.qsweep = 1;
+  }
+  // Fill in box totals and clutch scoring for games that don't have them yet, and re-read recent ones.
   for (const d of Object.keys(out.dates).sort()) {
     for (const row of out.dates[d].games) {
       const recheck = row.x && row.d < through && Date.parse(through) - Date.parse(row.d) <= RECHECK_DAYS * 864e5 && row.xd !== through;
@@ -114,7 +142,7 @@ export function loadStore(dir, fsImpl) {
     const d = f.match(/^(\d{4}-\d{2}-\d{2})\.json$/)?.[1];
     if (d) dates[d] = JSON.parse(fsImpl.readFileSync(`${dir}/${f}`, "utf8"));
   }
-  return { season: m.season ?? null, names: m.names || {}, dates };
+  return { season: m.season ?? null, names: m.names || {}, qsweep: m.qsweep || undefined, dates };
 }
 
 /** Writes only files whose content changed; returns how many were written. */
@@ -126,7 +154,7 @@ export function saveStore(dir, store, fsImpl) {
     fsImpl.writeFileSync(file, text);
     n++;
   };
-  put(`${dir}/meta.json`, JSON.stringify({ season: store.season, names: store.names || {} }));
+  put(`${dir}/meta.json`, JSON.stringify({ season: store.season, names: store.names || {}, qsweep: store.qsweep || undefined }));
   for (const [d, v] of Object.entries(store.dates)) put(`${dir}/${d}.json`, JSON.stringify(v));
   return n;
 }

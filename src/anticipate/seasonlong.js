@@ -371,6 +371,20 @@ export function defenseLines({ pg, rows, names, slate = [] }) {
         score: 3.6 + (others.length ? 0 : 0.9) + (bar === 40 ? -0.3 : 0), rare: !others.length });
     }
   }
+  // 0.78: the same scorer against the same defense, again tonight. Anyone with two or more 30-point games against
+  // tonight's opponent this season ("if a player has scored 30 or more points more than once against the same team,
+  // please note how many times"; the user, 11/16). Kind vsopp.
+  for (const [id, gs] of Object.entries(pg)) {
+    if (!gs.length) continue;
+    const team = gs[gs.length - 1].team, o = opp.get(team);
+    if (!o) continue;
+    const vs = gs.filter((g) => g.opp === o), big = vs.filter((g) => g.pts >= 30);
+    if (big.length < 2) continue;
+    const name = names[id] || id;
+    out.push({ kind: "vsopp", team, opp: o, player: name, id, key: `rep30|${id}|${o}`,
+      text: `${name} has scored 30+ against ${o} ${big.length === vs.length ? (big.length === 2 ? "both times" : `all ${big.length} times`) : `in ${big.length} of ${vs.length} games`} this season (${big.map((g) => `${g.pts} on ${+g.d.slice(5, 7)}/${+g.d.slice(8, 10)}`).join(", ")}); they meet again tonight`,
+      score: 3.3 + 0.3 * (big.length - 2) + (big.length === vs.length ? 0.2 : 0), rare: big.length >= 3 });
+  }
   return out;
 }
 
@@ -408,7 +422,7 @@ export function eraLines({ pg, logs, names, today }) {
     const say = cats.map((c) => `${ECATS.find((x) => x[0] === c)[1]} (${num(boards[c][0].v)})`).join(", ").replace(/, ([^,]+)$/, " and $1");
     out.push({ kind: "era", team: lastTeam(pg[id]), player: nm(id), id, key: `era|decade|${id}|${cats.join("-")}`,
       text: `${nm(id)} leads the decade (since 1/1/2020, playoffs included) in ${say}: ${cats.length} of the six main totals, among current players`,
-      score: 3.2 + 0.3 * cats.length, rare: cats.length >= 4 });
+      score: 3.2 + 0.3 * cats.length, rare: cats.length >= 4, standing: true }); // standing: nothing about it can change tonight (0.78: not an NBA Live card)
   }
   for (const [c, label, min] of ECATS) {
     const [first, second] = boards[c];
@@ -437,7 +451,7 @@ export function eraLines({ pg, logs, names, today }) {
     const [a, b2, c3] = best.b;
     out.push({ kind: "era", team: lastTeam(season), player: nm(id), id, key: `era|debut|${id}|${best.c}`,
       text: `Most ${best.label} since ${nm(id)} entered the NBA (${md(debut)}/${debut.slice(2, 4)}): ${nm(id)} ${num(a.v)}, ${nm(b2.id)} ${num(b2.v)}${c3 ? `, ${nm(c3.id)} ${num(c3.v)}` : ""} (regular season, current players)`,
-      score: 3.0 + Math.min(1, best.margin * 2), rare: best.margin >= 0.25 });
+      score: 3.0 + Math.min(1, best.margin * 2), rare: best.margin >= 0.25, standing: true });
   }
   return out;
 }

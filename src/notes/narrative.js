@@ -177,8 +177,20 @@ export function readNarrative(doc) {
  * ("…12 points, four rebounds… the first NBA reserve to tally such minimums" says its own).
  */
 const BACK_REF = /\bsuch (?:an? )?(?:instances?|games?|performances?|outings?|contests?|feats?|minimums|totals|numbers|nights?|quarters?|hal(?:f|ves))\b|\bin (?:the|that) group\b|\b(?:during|over|in) th(?:e|at) span\b/i;
-const OWN_FEAT = /(?:\d[\d,.]*|\b(?:one|two|three|four|five|six|seven|eight|nine|ten))\+?(?:-plus)?%?\s*(?:or more\s+)?(?:points?|pts|rebounds?|reb|assists?|ast|steals?|stl|blocks?|blk|threes|3-pointers?|3fgm?|3pm|three-pointers?|turnovers?|minutes?|ppg|rpg|apg|fg%?|games?|wins?)\b|\b(?:double|triple)-doubles?\b/i;
+const OWN_FEAT = /(?:\d[\d,.]*|\b(?:one|two|three|four|five|six|seven|eight|nine|ten))\+?(?:-plus)?%?[\s-]*(?:or more\s+)?(?:points?|pts|rebounds?|reb|assists?|ast|steals?|stl|blocks?|blk|threes|3-pointers?|3fgm?|3pm|three-pointers?|turnovers?|minutes?|ppg|rpg|apg|fg%?|games?|wins?)\b|\b(?:double|triple)-doubles?\b/i;
+// 0.78 (the user, 11/16): "He is only the second Wizard to do so in the opening game of the season since 1973-74" (do what?)
+// and "He ranks eighth among all rookies in Wizards history over nine career games" (in what?).
+const DO_SO = /\b(?:to do so|did so|done so|doing so|do(?:es)? so|(?:accomplish|achieve|reach|match)(?:ed|es)? (?:the|that|this) feat|to do it)\b/i;
+const RANKS = /\b(?:ranks?|ranked|sits?|stands?|is|are|is tied for|tied for)\s+(?:tied for\s+)?(?:T-)?(?:\d{1,3}(?:st|nd|rd|th)|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|10th|tenth)\b(?!\s+(?:season|year|game|start|straight|consecutive|time|player|team|rookie|overall|pick|quarter|half)\b)/i;
+const ANY_STAT = /\b(?:points?|pts|scor\w+|rebound\w*|reb|boards|assists?|ast|dimes|steals?|stl|blocks?|blk|threes|triples|3-?point\w*|three-point\w*|3fg\w*|3pm|3pt|field goals?|fg%?|free throws?|ft%?|ftm|fta|percent\w*|shooting|shots?|minutes|mpg|ppg|rpg|apg|spg|bpg|games (?:played|started)|wins|victories|losses|double-doubles?|triple-doubles?|turnovers?|deflections|charges|dunks|paint|bench|fast[- ]break|second[- ]chance|rating|efficiency|plus[-/]minus|margin|differential|pace|average\w*|streak|starts|made|makes|attempts|usage|true shooting|ts%)\b|%/i;
 export function dangling(s) {
+  const ds = s.match(DO_SO);
+  if (ds) {
+    const before = s.slice(0, ds.index);
+    if (!OWN_FEAT.test(before) && !/\d/.test(before) && before.trim().split(/\s+/).length <= 12) return true;
+  }
+  const rk = s.match(RANKS);
+  if (rk && !ANY_STAT.test(s) && /^(?:He|She|They|It)\b/.test(s)) return true;
   const m = s.match(BACK_REF);
   if (!m) return false;
   const before = s.slice(0, m.index);
@@ -291,6 +303,7 @@ export function repairLayout(s) {
   let t = s.replace(/\s*\d{1,2}\/\d{1,2}\s+(?:at|vs\.?|@)\s+\p{Lu}[\p{L}.]*(?:\s+\p{Lu}[\p{L}.]*)?\s+(?:\d{2,3}-\d{2,3}\s+)?[WL](?:\s+\d{2,3}-\d{2,3})?(?:\s+\d{1,2}:\d{2})?(?:\s+\d{1,3}(?:-\d{1,3})?)+(?=\s|[.,;]|$)/gu, " ");
   t = t.replace(/\s*\b(?:19|20)\d\d-\d\d Game Notes\.?/g, "");
   t = t.replace(/\b(\d{1,2})-\s+of-(\d{1,2})\b/g, "$1-of-$2"); // "shooting 6- of-26" (Houston, 11/15)
+  t = t.replace(/^(?:\p{Lu} ){3,}\p{Lu}(?:\s*[\/&]\s*(?:\p{Lu} ){2,}\p{Lu})*\s+(?=\p{Lu}\p{Ll})/u, ""); // a letter-spaced heading before the sentence ("S T E A L S / B L O C K S With five assists…", Chicago; 0.78)
   t = t.replace(/(\))\s+20\d\d-\d\d\.?$/, "$1."); // the next header's season after the last bullet ("…(70 on 3/24/17) 2026-27.", Phoenix)
   // 0.71: a letter-spaced footer ("2 0 2 6 - 2 7 D A L L A S M A V E R I C K S G A M E N O T E S."), and a page number
   // with the PR accounts ("17 Find us on X: @spurs | Facebook: http://…").
@@ -480,13 +493,13 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
     if (carry && carry.page === b.page && carry.bio) { bioWho = paraWho = sectionWho = carry.who; sinceWho = 0; paraHead = true; }
     else if (carry && carry.page === b.page && carry.dist <= 700) { paraWho = carry.who; sinceWho = carry.dist; paraHead = true; }
     const keep = () => { carry = paraWho && paraHead ? { who: paraWho, page: b.page, dist: sinceWho, bio: !!(bioWho && paraWho === bioWho) } : null; }; // lastWhen: "old" / "current" for the paragraph's last dated sentence // chars of text since paraWho was named // the player this paragraph is about, for its "He..." sentences
-    for (let s of sentences(b.text.replace(/\b((?:19|20)\d\d-\d\d)\s+(SEASON|NOTABLES|Season Highlights|NOTES|Notes)(?=\b|:)/g, "$1\u2060$2")).flatMap((x) => x.split(/\s+(?=(?:19|20)\d\d-\d\d\u2060)|\s+(?=(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s+\p{Lu}|#\s?\d{1,2}\s+\p{Lu})/u).flatMap((y) => y.split(/\s*(?:…|\.{3}|[▪●•\u0000-\u0008\u000b\u000c\u000e-\u001f]|\s[o◦▫+]\s(?=[A-Z]))\s*/u).map((z, k, all) => { let w = k > 0 && /^[a-z]/.test(z) ? z[0].toUpperCase() + z.slice(1) : z; if (k < all.length - 1 && /[\p{L}\d%)]$/u.test(w) && !/\b(?:to|the|a|an|of|and|at|in|with|as|by|for|or|his|their|from|on|was|were|who|that|is|are|which)$/i.test(w)) w += "."; return w; }))).map((x) => x.replace(/\s*\*{2,}.*$/, "").trim())) {
+    for (let s of sentences(b.text.replace(/\b((?:19|20)\d\d-\d\d)\s+(SEASON HIGHLIGHTS|SEASON|NOTABLES|Season Highlights|NOTES|Notes)(?=\b|:)/g, "$1\u2060$2")).flatMap((x) => x.split(/\s+(?=(?:19|20)\d\d-\d\d\u2060)|\s+(?=(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s+\p{Lu}|#\s?\d{1,2}\s+\p{Lu})/u).flatMap((y) => y.split(/\s*(?:…|\.{3}|[▪●•\u0000-\u0008\u000b\u000c\u000e-\u001f]|\s[o◦▫+]\s(?=[A-Z]))\s*/u).map((z, k, all) => { let w = k > 0 && /^[a-z]/.test(z) ? z[0].toUpperCase() + z.slice(1) : z; if (k < all.length - 1 && /[\p{L}\d%)]$/u.test(w) && !/\b(?:to|the|a|an|of|and|at|in|with|as|by|for|or|his|their|from|on|was|were|who|that|is|are|which)$/i.test(w)) w += "."; return w; }))).map((x) => x.replace(/\s*\*{2,}.*$/, "").trim())) {
       sinceWho += s.length + 1;
       { const at = b.text.indexOf(s.slice(0, 25).replace(/\u2060/g, " "), cursor); if (at >= 0) cursor = at; }
       while (bios.length && bios[0].at <= cursor + 5) { bioWho = paraWho = sectionWho = bios.shift().p; sinceWho = 0; lastWhen = null; seasonHdr = null; }
       if (/#\s?\d{1,2}\s+\p{Lu}/u.test(s)) seasonHdr = null; // another player's box starts in this text
       // 0.71: also "2024-25 SEASON:" and "PROFESSIONAL CAREER: 2024-25 SEASON:" (Boston, Dallas), "2026-27 NOTABLES:" (Atlanta).
-      { const sh = s.match(/^(?:[\p{Lu} ]{3,}:\s*)?((?:19|20)\d\d)-(\d\d)\s*(?:\(([^)]{2,30})\)|\u2060?(?:SEASON|NOTABLES|Season Highlights|NOTES|Notes)(?:\s*\([^)]{2,30}\))?)\s*[:–—-]\s*/u);
+      { const sh = s.match(/^(?:[\p{Lu} ]{3,}:\s*)?((?:19|20)\d\d)-(\d\d)\s*(?:\(([^)]{2,30})\)|\u2060?(?:SEASON HIGHLIGHTS|SEASON|NOTABLES|Season Highlights|NOTES|Notes)(?:\s*\([^)]{2,30}\))?)\s*[:–—-]\s*/u);
         if (sh) { seasonHdr = `${sh[1]}-${sh[2]}`; s = s.slice(sh[0].length); if (s) s = s[0].toUpperCase() + s.slice(1); } }
       s = s.replace(/\u2060/g, " ");
       // A header that names a past season over this season's games ("2025-26 SEASON: Made his NBA debut at HOU
@@ -581,6 +594,9 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       if (s.replace(/[^0-9]/g, "").length / s.length > (tableLine ? 0.5 : /\b\d{1,3}-\d{1,3} when\b/.test(s) ? 0.32 : 0.22)) { drop("numbers", s); continue; }
       // Past tense isn't a look ahead ("was the first ... with 200 3PM within 60 games").
       const fwd = FORWARD.test(s) && !/^(?:\S+\s+){0,4}?(?:was|were|became|had)\b/.test(s), hist = HISTORY.test(s), ctxHit = CONTEXT.test(s), trendHit = TREND.test(s);
+      // 0.78: a table's lead-in says nothing without the table ("Below is a look at where Jeremiah Fears and Derik Queen
+      // matchup amongst all NBA sophomores this season."; the user, 11/16).
+      if (/^(?:Below|Here|The following|See below|Listed below|The (?:chart|table|list) below)\b[^.]{0,60}\b(?:is|are|shows?|lists?|details?|breaks? down)\b|^(?:Below|Here) (?:is|are)\b|\b(?:is|are) (?:listed|shown|detailed|broken down) below\b|\ba look at (?:where|how)\b/i.test(s) && !tableLine) { drop("lead-in", s); continue; }
       if (SCHEDULE.test(s)) { drop("schedule", s); continue; }
       if (!fwd && !hist && !ctxHit && !trendHit && !tableLine) { drop("no-signal", s); continue; }
       if (NOT_NBA.test(core) || /\b(?:drafted|draft pick|overall pick|picked \w+(?: overall)?|NBA Draft|Draft Lottery|transferr|left the [A-Z]\w+|(?:with|for) the [A-Z][a-z]+ (?:from|in) (?:19|20)\d\d|All-(?:Big|ACC|SEC|Pac|American)|Ignite|Jayhawks|collegiate)\b/i.test(core)) { drop("background", s); continue; } // background
