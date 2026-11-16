@@ -90,7 +90,73 @@ export function gameFacts(row, c, lite) {
     held: !!(G.leadState && G.leadState[side] && G.leadState[side].held), heldStrict: !!(G.leadState && G.leadState[side] && G.leadState[side].heldStrict),
     maxLead: side ? maxHome : maxAway, maxDown: side ? maxAway : maxHome,
     q: G.per[side].filter((x) => x.p <= 4).map((x) => x.pts), score: side ? hs : as, oppScore: side ? as : hs }));
-  return { ...base, players, teams, closeLate, periods: G.maxP, l2m: lastTwo(pbp, G, tri) };
+  return { ...base, players, teams, closeLate, periods: G.maxP, l2m: lastTwo(pbp, G, tri), shots: shotLog(pbp, G, tri) };
+}
+
+/**
+ * Every shot of a game, per player, in order, each with the seconds he had been on the floor when he took it (0.75; the
+ * user, 11/15: "is there anyway to track consecutive made shots over multiple games… longest time without a made field
+ * goal… longest time played without a free-throw attempt"). -> { id: { name, team, total (court seconds), ev: [[courtSec, "2"|"3"|"F", made]] } }
+ */
+function shotLog(pbp, G, tri) {
+  const A = (pbp.game && pbp.game.actions) || pbp.actions || [];
+  const out = {};
+  const by = {};
+  for (const p of G.players) if (p.played) { by[String(p.id)] = p; out[String(p.id)] = { name: p.name, team: tri[p.side], total: Math.round(p.stints.reduce((n, x) => n + (x.et - x.st), 0)), ev: [] }; }
+  for (const a of A) {
+    const k = a.actionType === "2pt" ? "2" : a.actionType === "3pt" ? "3" : a.actionType === "freethrow" ? "F" : null;
+    const p = k && a.personId ? by[String(a.personId)] : null;
+    const left = p ? clockLeft(a.clock) : null;
+    if (!p || left == null || !a.shotResult) continue;
+    const per = Number(a.period) || 1;
+    const t = per <= 4 ? per * REG_LEN - left : 4 * REG_LEN + (per - 4) * 300 - left;
+    const on = p.stints.reduce((n, x) => n + Math.max(0, Math.min(x.et, t) - x.st), 0);
+    out[String(p.id)].ev.push([Math.round(on), k, a.shotResult === "Made"]);
+  }
+  return out;
+}
+
+/**
+ * Runs that cross games: makes in a row (field goals, threes, free throws), misses in a row, and court time since his
+ * last made field goal and since his last free-throw attempt. Active runs per player (pruned to the notable), and the
+ * season's longest of each for scale.
+ *   games: [{ date, shots: gameFacts().shots }], any order.
+ */
+export const SHOT_KEEP = { fg: 8, fg3: 5, ft: 20, fgMiss: 8, fg3Miss: 9, dryFg: 20 * 60, dryFt: 45 * 60 };
+export function shotStreaks(games) {
+  const P = {}, best = { fg: [], fg3: [], ft: [], dryFg: [], dryFt: [] };
+  const fresh = (date) => ({ sec: 0, fga: 0, from: date, games: 0 });
+  for (const g of [...games].sort((a, b) => String(a.date).localeCompare(String(b.date)))) {
+    for (const [id, x] of Object.entries(g.shots || {})) {
+      const S = P[id] || (P[id] = { name: x.name, team: x.team, last: null, gp: 0, fta: 0, fg: 0, fg3: 0, ft: 0, fgMiss: 0, fg3Miss: 0, dryFg: fresh(g.date), dryFt: fresh(g.date) });
+      S.team = x.team; S.last = g.date; S.gp++; S.fta += x.ev.filter((e) => e[1] === "F").length;
+      const endMake = (k) => { if (S[k] >= SHOT_KEEP[k]) best[k].push({ n: S[k], name: S.name, team: S.team, from: S[`${k}From`], end: g.date }); S[k] = 0; };
+      const endDry = (k, cs, mark) => { const d = S[k]; d.sec += cs - mark; if (d.sec >= SHOT_KEEP[k]) best[k].push({ sec: d.sec, fga: d.fga, name: S.name, team: S.team, from: d.from, end: g.date, games: d.games + 1 }); S[k] = fresh(g.date); };
+      let markFg = 0, markFt = 0;
+      for (const [cs, k, made] of x.ev) {
+        if (k === "F") {
+          endDry("dryFt", cs, markFt); markFt = cs;
+          if (made) { if (!S.ft) S.ftFrom = g.date; S.ft++; } else endMake("ft");
+          continue;
+        }
+        S.dryFt.fga++;
+        if (made) { if (!S.fg) S.fgFrom = g.date; S.fg++; S.fgMiss = 0; endDry("dryFg", cs, markFg); markFg = cs; }
+        else { endMake("fg"); if (!S.fgMiss) S.fgMissFrom = g.date; S.fgMiss++; S.dryFg.fga++; }
+        if (k === "3") { if (made) { if (!S.fg3) S.fg3From = g.date; S.fg3++; S.fg3Miss = 0; } else { endMake("fg3"); if (!S.fg3Miss) S.fg3MissFrom = g.date; S.fg3Miss++; } }
+      }
+      S.dryFg.sec += x.total - markFg; S.dryFg.games++;
+      S.dryFt.sec += x.total - markFt; S.dryFt.games++;
+    }
+  }
+  const players = {};
+  for (const [id, S] of Object.entries(P)) {
+    for (const k of ["fg", "fg3", "ft"]) if (S[k] >= SHOT_KEEP[k]) best[k].push({ n: S[k], name: S.name, team: S.team, from: S[`${k}From`], end: S.last, active: true });
+    for (const k of ["dryFg", "dryFt"]) if (S[k].sec >= SHOT_KEEP[k]) best[k].push({ ...S[k], name: S.name, team: S.team, end: S.last, active: true });
+    if (S.fg >= SHOT_KEEP.fg || S.fg3 >= SHOT_KEEP.fg3 || S.ft >= SHOT_KEEP.ft || S.fgMiss >= SHOT_KEEP.fgMiss || S.fg3Miss >= SHOT_KEEP.fg3Miss || S.dryFg.sec >= SHOT_KEEP.dryFg || S.dryFt.sec >= SHOT_KEEP.dryFt) players[id] = S;
+  }
+  for (const k of ["fg", "fg3", "ft"]) best[k] = best[k].sort((a, b) => b.n - a.n).slice(0, 10);
+  for (const k of ["dryFg", "dryFt"]) best[k] = best[k].sort((a, b) => b.sec - a.sec).slice(0, 10);
+  return { players, best };
 }
 
 /**
@@ -154,6 +220,7 @@ function lastTwo(pbp, G, tri) {
 
 export function flowStats(entries, lite = null) {
   const quarters = [], halves = [], teamQuarters = [], rot = {}, fouls = {}, leads = {}, table = {}, early = [], fourth = {};
+  const shotGames = [];
   const l2m = { games: 0, players: {}, teams: {} };
   const L2K = ["sec", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "tov", "pm"];
   let games = 0;
@@ -196,6 +263,7 @@ export function flowStats(entries, lite = null) {
       if (p.trouble) { Fo.trouble++; Fo.troubleIn.push(F.gameId); }
       if (p.fouledOut) { Fo.out++; Fo.outIn.push(F.gameId); }
     }
+    shotGames.push({ date: F.date, shots: F.shots });
     if (F.l2m) {
       l2m.games++;
       const names = Object.fromEntries(F.players.map((p) => [p.id, p]));
@@ -251,7 +319,7 @@ export function flowStats(entries, lite = null) {
   // Only those who usually play the second half: a rest-day starter pulled at the half is no story.
   const leftEarly = early.filter((e) => { const r = rotation[e.id]; return r && r.starts >= 3 && (r.open3 || 0) >= 0.7 * r.starts; })
     .sort((a, b) => String(b.date).localeCompare(String(a.date)));
-  return { games, leadMin: LEAD_MIN, leadTable: Object.values(table), leftEarly, quarters: top(quarters), halves: top(halves), teamQuarters: top(teamQuarters), rotation, fouls, leads, fourth,
+  return { games, leadMin: LEAD_MIN, leadTable: Object.values(table), leftEarly, quarters: top(quarters), halves: top(halves), teamQuarters: top(teamQuarters), rotation, fouls, leads, fourth, shots: shotStreaks(shotGames),
     l2m: { games: l2m.games, teams: l2m.teams, players: Object.values(l2m.players).map((p) => ({ ...p, sec: Math.round(p.sec), min: Math.round(p.sec / 6) / 10, ast: null, stl: null, blk: null })).sort((a, b) => b.pts - a.pts) } };
 }
 

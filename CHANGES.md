@@ -2,6 +2,34 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.75.0 (2026-11-15): shots across games: makes and misses in a row, court time without a field goal or a free throw
+
+The user (11/15, with a Mavs PR post on Daniel Gafford's consecutive field goals): "is there anyway to track consecutive made shots over multiple games?… field goals, three-pointers, free-throws over a stretch of games… longest time without a made field goal… 25+ consecutive minutes without a field goal, even more detrimental if they have taken a bunch of shots… longest time played without a free-throw attempt… relevant and active trackers, not just based off the season-long stats… I don't know enough to know the ultimate outliers".
+
+### What changed
+- **Every shot, in order, with court time** (`shotLog` in `src/gameflow/stats.js`): from the kept play-by-play, each player's field goals, threes and free throws, made or missed, each with the seconds he had been on the floor when he took it.
+- **Runs that cross games** (`shotStreaks` → `flowstats.json` `shots`): per player, makes in a row (field goals, threes, free throws), misses in a row, court time and attempts since his last made field goal, court time and shots since his last free-throw attempt; each with the date it began. Only what is still going is kept per player; the season's ten longest of each kind are kept for scale (ended or not).
+- **Storylines** (`shotLines` in tonight.js, shown as 🔥 streak watch, for tonight's teams, only while the player has appeared in the last 6 days):
+  - 10+ field goals, 6+ threes or 30+ free throws in a row, with this season's longest and, from a third of the way there, the NBA record (35 field goals, Wilt Chamberlain 1967; 13 threes, Brent Price, Terry Mills and Shake Milton; 97 free throws, Micheal Williams 1993);
+  - 12+ missed threes in a row, or 10+ missed shots;
+  - 25+ minutes on the floor without a made field goal on 8+ attempts, with this season's longest;
+  - without a free-throw attempt: 50+ minutes for a player who is at the line 4+ times a game; 100+ minutes and 40+ shots for one at 1.5+ a game; and the season's longest such run while it is still going.
+
+### The scale this season (188 games), which set the thresholds
+- Longest runs of makes: 13 field goals (Robert Williams III), 7 threes (five players), 51 free throws (Stephen Curry; Austin Reaves is at 33 and going).
+- Longest court time without a made field goal: 75 minutes (Terance Mann, 0-for-13); Rudy Gobert 67 (0-for-15), Mikal Bridges 58 (0-for-13). 25 minutes is common for low-usage players, so the line needs 8 attempts.
+- Without a free-throw attempt: 252 minutes and 74 shots (Sam Hauser). 50 minutes is ordinary for most players (shooters go 150+), so the line depends on how often he usually gets there.
+
+### Tested
+- 779 checks (3 new: runs carrying across three games given in any order, with court time and attempts adding up; the three kinds of line and none once a run is a week old; and, on a real game, every player's shots adding up to his points in the box score, each stamped with court time that never exceeds what he played).
+- Today, league-wide: "Austin Reaves has made 33 free throws in a row (since 11/2): this season's longest is 51 (Stephen Curry); the NBA record is 97 (Micheal Williams, 1993)"; "Morez Johnson Jr. has gone 46 minutes on the floor without a made field goal (0-for-11 since 11/8, over 3 games)…"; "AJ Dybantsa has played 69 minutes without a free-throw attempt (22 shots in that time, since 11/11, over 2 games); he averages 4.3 a game".
+
+### Unproven
+- This season only: the play-by-play isn't kept for earlier seasons, so "longest since…" beyond this season comes only from the three NBA records above (checked on the web 11/15, not from our data).
+- Regular season; a run isn't broken by a missed game. A stat correction re-read within 3 days can change a run after the fact.
+- The numbers are a build behind (the Game Flow step runs last), and they are through last night: NBA Live doesn't yet carry these runs into tonight's game live.
+- Court time rests on working out who is on the floor, which is off in a few stretches.
+
 ## 0.74.0 (2026-11-15): #lineups: context on each confirmed five; a test of a second NBA.com file for speed
 
 The user (11/15), on the night's "Lineup timing" post (median lag 215 s) and the offer of context on lineup alerts: "that'll be a nice addition for context. anyway to close the lag time from confirmed lineup to post in discord?"

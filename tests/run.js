@@ -2247,6 +2247,35 @@ await articlesChecks(ok);
     { rows: [], logs, seasons: null, history, names: { m1: "Mac Cain" }, season: "2026-27" });
   ok(R.found === 1 && R.total === 1 && R.cantReplay === 1 && R.checks[1].found === null, "flag checks (0.70): a post from last season is replayed; one that needs data we don't keep is set apart, not counted a miss", JSON.stringify(R));
 }
+// ---------- 0.75: shots across games: makes and misses in a row, court time without a field goal or a free throw ----------
+{
+  const { shotStreaks } = await import("../src/gameflow/stats.js");
+  const { tonightCandidates } = await import("../src/anticipate/tonight.js");
+  const mk = (name, team, total, ev) => ({ name, team, total, ev });
+  // Hot Hand: 4 straight makes to end game 1, 5 in game 2, 3 to open game 3 (12 in a row, still going); 2 free throws a game, the 1st missed.
+  // Cold One: a make early in game 1, then 0-for-9 over 3 games; Line Man: 5 free-throw trips a game until none in games 2 and 3.
+  const games = [
+    { date: "2026-11-10", shots: { h: mk("Hot Hand", "DAL", 1200, [[100, "2", false], [200, "2", true], [300, "2", true], [400, "F", false], [500, "2", true], [600, "2", true], [700, "F", true]]),
+      c: mk("Cold One", "DAL", 1500, [[60, "2", true], [300, "3", false], [900, "2", false], [1200, "3", false]]), l: mk("Line Man", "DAL", 1800, [[100, "F", true], [300, "F", true], [600, "F", true], [900, "F", true], [1500, "F", true], [1600, "2", true]]) } },
+    { date: "2026-11-12", shots: { h: mk("Hot Hand", "DAL", 1200, [[100, "2", true], [200, "2", true], [300, "2", true], [400, "2", true], [500, "2", true], [600, "F", true], [700, "F", true]]),
+      c: mk("Cold One", "DAL", 1500, [[100, "3", false], [500, "2", false], [1400, "3", false]]), l: mk("Line Man", "DAL", 1800, Array.from({ length: 12 }, (_, i) => [100 + i * 100, "2", i % 2 === 0])) } },
+    { date: "2026-11-14", shots: { h: mk("Hot Hand", "DAL", 1200, [[100, "2", true], [200, "2", true], [300, "2", true]]),
+      c: mk("Cold One", "DAL", 1500, [[100, "2", false], [500, "3", false], [900, "2", false]]), l: mk("Line Man", "DAL", 1800, Array.from({ length: 12 }, (_, i) => [100 + i * 100, "2", i % 2 === 0])) } } ];
+  const S = shotStreaks([games[2], games[0], games[1]]);     // any order in
+  const h = S.players.h, c = S.players.c, l = S.players.l;
+  ok(h.fg === 12 && h.fgFrom === "2026-11-10" && h.ft === 3 && c.fgMiss === 9 && c.fg3Miss === 5 && c.dryFg.fga === 9 && c.dryFg.sec === 1440 + 1500 + 1500 && c.dryFg.games === 3 && c.dryFg.from === "2026-11-10"
+    && l.dryFt.sec === 300 + 1800 + 1800 && l.dryFt.fga === 25 && l.fta === 5 && l.gp === 3 && S.best.fg[0].n === 12 && S.best.fg[0].active && S.best.dryFg[0].name === "Cold One",
+    "shot streaks (0.75): makes in a row carry across games; court time and attempts since the last made field goal and the last free-throw attempt add up over games; the season's longest are kept", JSON.stringify([h.fg, h.ft, c.fgMiss, c.dryFg, l.dryFt, S.best.fg]));
+  const watch = { today: "2026-11-15", teams: [], games: [{ id: "1", homeTri: "DAL", awayTri: "XXX", home: "DAL", away: "XXX" }] };
+  l.fta = 15;                                                 // at the line 5 times a game before it stopped
+  const L = tonightCandidates({ watch, fouls: { shots: S } }).all.filter((x) => /^shots\|/.test(x.key || "")).map((x) => x.text);
+  ok(L.includes("Hot Hand has made 12 field goals in a row (since 11/10): the longest run this season; the NBA record is 35 (Wilt Chamberlain, 1967)")
+    && L.includes("Cold One has gone 74 minutes on the floor without a made field goal (0-for-9 since 11/10, over 3 games): the longest this season")
+    && L.includes("Line Man has played 65 minutes without a free-throw attempt (25 shots in that time, since 11/10, over 3 games); he averages 5.0 a game") && L.length === 3
+    && tonightCandidates({ watch: { ...watch, today: "2026-11-25" }, fouls: { shots: S } }).all.filter((x) => /^shots\|/.test(x.key || "")).length === 0,
+    "storylines (0.75): shots across games: a run of makes with the season's scale and the NBA record, court time without a field goal with the attempts, and without a free throw for a player who usually gets there; nothing once the run is a week old", L.join(" | "));
+}
+
 // ---------- 0.74: the two-source lineup watch (scripts/lineup-sources.js): reading and reporting ----------
 {
   const S = await import("../scripts/lineup-sources.js");
@@ -2899,6 +2928,11 @@ await articlesChecks(ok);
     ok(two.games === 2 && two.quarters.length && two.quarters[0].pts >= two.quarters[two.quarters.length - 1].pts && r1 && r1.gp === 2
       && two.leadTable.length === 2 && two.leadTable.every((t) => t.gp === 2 && t.neverTrailed + t.neverLed <= 2) && S.placeOn([{ pts: 20 }, { pts: 18 }, { pts: 18 }], 18) === 2,
       "game flow stats: season lists best first, rotations over games, the Leads & comebacks table, places on a list (ties share)", JSON.stringify(two.leadTable));
+    // 0.75: every shot of the sample game, per player: his makes add up to his points in the box score.
+    const shotPts = (x) => x.ev.reduce((n, [, k, m]) => n + (m ? (k === "3" ? 3 : k === "2" ? 2 : 1) : 0), 0);
+    const off = Object.entries(Fg.shots).filter(([id, x]) => shotPts(x) !== Gm.players.find((p) => String(p.id) === id).boxPts).map(([, x]) => x.name);
+    ok(off.length === 0 && Object.values(Fg.shots).every((x) => x.ev.every(([cs], i, a) => cs >= 0 && cs <= x.total + 1 && (i === 0 || cs >= a[i - 1][0]))),
+      "game flow stats (0.75): a real game's shots per player add up to his points, each with his court time when he took it (never more than he played, never going backwards)", off.join(", "));
     // 0.72.7: the final two minutes. When the sample game qualifies, the players' points are the teams' points.
     const two2 = Fg.l2m;
     ok(two2 === null || (two2.periods >= 1 && Object.values(two2.players).reduce((n, x) => n + x.pts, 0) === two2.teams[0].pf + two2.teams[1].pf && two2.teams[0].pf === two2.teams[1].pa
