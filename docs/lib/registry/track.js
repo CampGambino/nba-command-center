@@ -89,6 +89,8 @@ export async function todayPlayed({ team, espn, schedule, today }) {
   return out;
 }
 
+export const SMALL_DIFF = 2; // notes vs ESPN: the guide-plus-season count settles only a bigger difference than this
+
 /**
  * @param {object} p
  * @param {string} p.team        our tricode (the notes' team)
@@ -320,7 +322,11 @@ export async function trackMilestones({ team, notesDate, milestones, espn, nba =
         const seasonNow = c.data.rows.filter((r) => r.season === latest).reduce((a, r) => a + (r.stats[m.stat] ?? 0), 0) - (td > 0 && played.inEspn ? td : 0);
         const own = gb + seasonNow;
         t.guide = { base: gb, season: seasonNow, total: own };
-        if (own === espnValue || own === t.current) {
+        // A difference of one or two is not settled this way: a stat correction can sit in one source for a day or two
+        // before the others have it (Sabonis, 11/12: our own count was one high, the notes were right). It stays in
+        // Review, and the note says which of the two our count agrees with.
+        if ((own === espnValue || own === t.current) && Math.abs(espnValue - t.current) <= SMALL_DIFF) t.guide.backs = own === espnValue ? "ESPN" : "the notes";
+        else if (own === espnValue || own === t.current) {
           const notesSay = t.current, espnRight = own === espnValue;
           t.settled = { value: own, by: "the NBA Guide's career total plus this season", notes: notesSay, espn: espnValue, right: espnRight ? "ESPN" : "the notes" };
           t.inconsistent = true;
@@ -339,7 +345,7 @@ export async function trackMilestones({ team, notesDate, milestones, espn, nba =
       }
       t.status = "disagrees";
       const lagging = boxes.length && t.espn.diff === -delta;
-      t.notes.push(`notes${delta ? " + games since" : ""} say ${t.current}, ESPN says ${espnValue} (${t.espn.diff > 0 ? "+" : ""}${t.espn.diff})${lagging ? "; ESPN may not have added the latest game yet" : ""}${v && v.value === t.current ? `; Basketball Reference (through ${v.asOf}) agrees with the notes` : ""}`);
+      t.notes.push(`notes${delta ? " + games since" : ""} say ${t.current}, ESPN says ${espnValue} (${t.espn.diff > 0 ? "+" : ""}${t.espn.diff})${lagging ? "; ESPN may not have added the latest game yet" : ""}${v && v.value === t.current ? `; Basketball Reference (through ${v.asOf}) agrees with the notes` : ""}${t.guide?.backs ? `; the NBA Guide's total plus this season's games (${t.guide.total}) agrees with ${t.guide.backs}, but a difference this small can be a stat correction that hasn't reached every source, so it stays in Review` : ""}`);
     }
   }
 

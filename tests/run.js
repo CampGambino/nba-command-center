@@ -359,6 +359,10 @@ for (const [team, r] of Object.entries(results)) {
       const none = await run(null), probe = await run(() => 0);
       const S = probe.guide?.season;
       const espnWins = await run(() => E - S), notesWin = await run(() => E - 5 - S), neither = await run(() => E - 2 - S);
+      // One apart: not settled either way (a stat correction can be in one source and not yet the others); it says which side our count is on.
+      const oneOff = (await trackMilestones({ team: "CHA", notesDate: "2026-11-09", milestones: [{ ...typo[0], current: E - 1, need: src.target - (E - 1) }], espn, guideBase: () => E - S })).milestones[0].tracking;
+      ok(oneOff.status === "disagrees" && !oneOff.settled && oneOff.guide.backs === "ESPN" && /agrees with ESPN, but a difference this small can be a stat correction/.test(oneOff.notes.join(" ")),
+        "notes vs ESPN (0.80): a difference of one or two is never settled by our own count; it stays in Review and says which side the count is on", JSON.stringify([oneOff.status, oneOff.guide, oneOff.notes]));
       ok(none.status === "disagrees" && probe.status === "disagrees" && neither.status === "disagrees" && !neither.settled
         && espnWins.status === "corrected" && espnWins.current === E && espnWins.need === src.target - E && espnWins.settled.right === "ESPN" && espnWins.inconsistent === true && /ESPN's number is used/.test(espnWins.notes.join(" "))
         && notesWin.status === "corrected" && notesWin.current === E - 5 && notesWin.settled.right === "the notes" && notesWin.inconsistent === true && /the notes' number is used/.test(notesWin.notes.join(" ")),
