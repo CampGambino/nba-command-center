@@ -2,6 +2,39 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.91.0 (2026-11-17): the clean-up: two more pairings settled, scoring by season for every team
+
+Seventh of the seven the user approved on 11/17: "the Spurs', Raptors' and Pelicans' game lists, the 11 pairings that still differ, and the Knicks' team stats by season."
+
+### The pairings that still differed: 11 → 9
+- **Memphis v Utah is 44-69.** Memphis prints 42-69 (a row that does not add up), Utah prints 44-67. Each team's own game list, counted apart, comes to 44-69. Two counts from two teams that agree now settle a pairing where neither print does (`seriesPair`), and the line says so: "counted from both teams' game lists, which agree; their guides print other totals".
+- **Milwaukee v Washington is Washington's 136-99.** Milwaukee's lists lack 1969-70; Washington's were marked short too, but since 0.87 every Washington season adds up. A list that is whole again stands against one that is not.
+- Totals: 383 of 435 confirmed, 9 differ, 43 on one guide.
+- **The nine, and why each stays open:**
+  - Atlanta v Lakers (198 or 199 Lakers wins) and Chicago v Washington (139 or 140): the second number is the Lakers' and Wizards' own lists counted; the same lists cannot confirm themselves, and Atlanta's and Chicago's games do not reach back far enough.
+  - Lakers v Sacramento: the Lakers' list says 288-169, Sacramento prints 289-169, Sacramento's list says 290-167. Three answers.
+  - Atlanta v Denver: Atlanta prints 53-49, Denver 53-46, Denver's games 53-50.
+  - Atlanta v Boston, Atlanta v Detroit, Chicago v Detroit, Detroit v Houston, Detroit v Golden State: no list reaches the first meeting (Detroit's start in 1996, Boston's in 1964, Atlanta's in 1968), and Detroit's and Golden State's records are not all-time.
+
+### Scoring by season, every team
+- The user's Knicks pages (11/17, images 6-9) are the Knicks' team offensive and defensive statistics for 80 seasons. Read alone they would be one team's table.
+- **`src/situations/teamscoring.js`** works out every team's points for and against a game, season by season, from its own games. The Knicks' printed table (`tools/parse-knicks-team-stats.py` → `src/data/knicks-team-seasons-2026-27.json`) fills in their seasons before 1993-94, so theirs goes back to 1946-47.
+- **The check:** in all 32 Knicks seasons where both exist, the averages from the games equal the guide's to a tenth.
+- **A line** (kind era, tonight's teams) when this season's average is the most or fewest in 15 seasons or more, after 12 games: "LAL is scoring 122.8 points a game (14 games): its most in franchise history"; "SAC is allowing 121.2 points a game (13 games): its most since 1961-62 (121.3)". 11 teams have one today, mostly points allowed: scoring is high across the league.
+- `docs/data/teamscoring.json` holds the table.
+
+### Not done
+- **The Spurs', Raptors' and Pelicans' game lists are not read.** ESPN already covers every season in them, none of the nine open pairings involves those teams, and no team's reach would move. Toronto's and New Orleans' lists print dates without a year under season labels, which needs its own reader.
+
+### Tested
+- 951 checks (was 949). New: two counts that agree, one alone, two that differ; a mended list against a short one; scoring by season on made-up games with a printed table in front; the real files (383 / 9 / 43, Memphis v Utah, Milwaukee v Washington, the Knicks' 80 seasons).
+- A full local build and the page check.
+
+### Unproven
+- The scoring lines are early-season averages (12 to 15 games) set against whole seasons.
+- 11 lines league-wide may be too many of one kind; the bar is 15 seasons (`SCORING.back`).
+- Only the Knicks' printed table is read. Other guides print the same table; reading them would take more teams' scoring back before their games start.
+
 ## 0.90.0 (2026-11-17): team single-game marks, the guides' largest margins as a check, six arena records confirmed
 
 Third, fifth and sixth of the seven the user approved on 11/17.
@@ -15,7 +48,7 @@ Third, fifth and sixth of the seven the user approved on 11/17.
 
 ### Per-opponent bests (fifth)
 - **`tools/parse-series-bests.py` → `src/data/series-bests-2026-27.json`:** the largest win and largest loss against each opponent as Phoenix, Philadelphia and Detroit print them (160 margins). Dallas prints a largest win too, but its lines could not be tied to the right opponent (2 of 28 matched the games), so it is left out. San Antonio and New Orleans, which I had named, print these in a layout not read.
-- **As a check on 0.88:** where the whole series is on file, the largest margin counted from the games is the guide's in 115 of 122 cases (Phoenix 37 of 40, Philadelphia 52 of 56, Detroit 26 of 26). In five of the seven misses our game is from 2019 or later and bigger than the print: the guide is out of date.
+- **As a check on 0.88:** where the whole series is on file, the largest margin counted from the games is the guide's in 115 of 122 cases (Phoenix 37 of 40, Philadelphia 52 of 56, Detroit 26 of 26). In four of the seven misses our game is from 2019 or later and bigger than the print: the guide is out of date. (Corrected in 0.91: I first wrote five.)
 - **The rule now (`bestMargins`):** a printed margin stands unless a game since 2016-17 beats it. An older game with a bigger margin than the print is more likely a misprinted score. With no print, the games decide if the whole series is on file. The "Largest wins in the series" line and the Index column follow it, and the column says when a margin is "as its guide prints it".
 
 ### Arena scoring records (sixth)

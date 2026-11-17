@@ -4158,9 +4158,10 @@ await articlesChecks(ok);
     const T2 = seriesTable(RS2, [], "2026-10-01"), c2 = (st) => T2.filter((r) => r.status === st).length, uw = T2.find((r) => r.a === "UTA" && r.b === "WAS"), al = T2.find((r) => r.a === "ATL" && r.b === "LAL");
     const changed = T2.filter((r, i) => r.overall.w !== pairsR[i].overall.w || r.overall.l !== pairsR[i].overall.l).map((r) => r.a + r.b).join();
     const itC = seriesItems(RS2, [], "UTA", "WAS", "2026-11-17")[0];
-    ok(c2("confirmed") === 382 && c2("differs") === 11 && c2("single") === 42 && T2.filter((r) => r.counted).length === 52 && changed === "UTAWAS" && uw.overall.w === 64 && uw.overall.l === 54 && uw.source.join() === "WAS,games"
+    const mu = T2.find((r) => r.a === "MEM" && r.b === "UTA"), mw = T2.find((r) => r.a === "MIL" && r.b === "WAS");
+    ok(c2("confirmed") === 383 && c2("differs") === 9 && c2("single") === 43 && T2.filter((r) => r.counted).length === 53 && changed === "MEMUTA,UTAWAS" && mu.overall.w === 44 && mu.overall.l === 69 && mu.source.join() === "games" && mw.status === "single" && mw.source.join() === "WAS" && uw.overall.w === 64 && uw.overall.l === 54 && uw.source.join() === "WAS,games"
       && al.status === "differs" && RS.guides.LAL.lists && RS.guides.WAS.lists && !RS.guides.UTA.lists && /the Wizards' media guide, and a count of the games agrees/.test(itC.text),
-      "series, the real files (0.87): with the games counted, 382 of 435 pairings are confirmed (330 by both guides, 52 by one guide and the count), 11 still differ (was 35) and 42 rest on one guide (was 70); one record changes, Utah v Washington to Washington's 54-64 (Utah's guide prints 63-54, its own games say 64-54); Atlanta v the Lakers stays open because the Lakers' record is their own lists",
+      "series, the real files (0.87, 0.91): with the games counted, 383 of 435 pairings are confirmed (330 by both guides, 52 by one guide and the count, 1 by the two teams' counts agreeing where neither print does: Memphis v Utah, 44-69), 9 still differ (was 35) and 43 rest on one guide (was 70; Milwaukee v Washington is now Washington's, whose lists are whole again); Utah v Washington is Washington's 54-64; Atlanta v the Lakers stays open because the Lakers' record is their own lists",
       JSON.stringify([c2("confirmed"), c2("differs"), c2("single"), T2.filter((r) => r.counted).length, changed, uw, al.status, itC && itC.text]));
   }
   // 0.88: the older games in the head-to-head lines.
@@ -4198,9 +4199,9 @@ await articlesChecks(ok);
     const T30 = Object.keys(offR).sort(); let nP = 0, nW = 0, nE = 0;
     for (let i = 0; i < 30; i++) for (let j = i + 1; j < 30; j++) { const p = pairHistory({ deep: deepR, official: offR, series: RS3 }, T30[i], T30[j]); if (p) { nP++; nW += p.whole; nE += p.exact; } }
     const lacCha = pairHistory({ deep: deepR, official: offR, series: RS3 }, "CHA", "LAC"), clW = TI(HR, null, "WAS", "CLE", "2026-10-20", pairHistory({ deep: deepR, official: offR, series: RS3 }, "WAS", "CLE"));
-    ok(nP === 435 && nW === 337 && nE === 312 && deepR.seq.LAL.every((g) => g.h === true || g.h === false || g.h === null) && lacCha.from === "1989-90" && !lacCha.whole
+    ok(nP === 435 && nW === 337 && nE === 313 && deepR.seq.LAL.every((g) => g.h === true || g.h === false || g.h === null) && lacCha.from === "1989-90" && !lacCha.whole
       && /^The Cavaliers have won 16 straight against the Wizards, the longest streak by either team in the series \(was 13, the Wizards, 1972-74\)/.test(tx(clW, /16 straight/)),
-      "head-to-head, the real files (0.88): every pairing has games before 2016-17 (ESPN from 1993-94 at the least), 337 back to the first meeting, 312 of those with a count that lands on the printed record; \"The Cavaliers have won 16 straight against the Wizards, the longest streak by either team in the series (was 13, the Wizards, 1972-74)\"",
+      "head-to-head, the real files (0.88): every pairing has games before 2016-17 (ESPN from 1993-94 at the least), 337 back to the first meeting, 313 of those with a count that lands on the record shown; \"The Cavaliers have won 16 straight against the Wizards, the longest streak by either team in the series (was 13, the Wizards, 1972-74)\"",
       JSON.stringify([nP, nW, nE, lacCha.from, clW.map((i) => i.text).slice(0, 4)]));
   }
   // 0.89: "the last time…".
@@ -4246,6 +4247,30 @@ await articlesChecks(ok);
       && lt("GSW", "team", "ast", 20).holder === "Tim Hardaway" && lt("PHI", "team", "pts", 60).holder === "Joel Embiid" && lt("PHI", "team", "pts", 60).date === "2024-01-22" && lt("TOR", "team", "td", 1).date === "2026-04-12" && !LT.some((f) => f.team === "CLE" || f.team === "NYK"),
       "last time, the guides (0.89): 174 feats from the Celtics', Wizards' and Warriors' \"last time\" pages and from lists of every triple-double or 40-point game that run into last season (a list that stops earlier is not used): the last 25-rebound game by a Celtic is Robert Parish's, 1/9/87",
       JSON.stringify([LT.length, lt("BOS", "team", "reb", 25)]));
+  }
+  // 0.91: two teams' counts that agree; a mended list; scoring by season.
+  {
+    const { countedPairs: CP2 } = await import("../src/records/series.js");
+    const g2 = { AAA: { agree: [9, 10] }, BBB: { agree: [9, 10] }, LLL: { agree: [9, 10], lists: true, short: "a season missing" }, MMM: { agree: [9, 10], lists: true, short: "a season missing" } };
+    const ser2 = { through: "2025-26", first: { AAA: 1990, BBB: 1990, LLL: 1990, MMM: 1990 }, guides: g2, teams: { AAA: { BBB: { overall: { w: 42, l: 69 } } }, BBB: { AAA: { overall: { w: 67, l: 44 } } }, LLL: { MMM: { overall: { w: 133, l: 96 } } }, MMM: { LLL: { overall: { w: 99, l: 136 } } } } };
+    const both = seriesPair({ ...ser2, counted: { AAA: { BBB: [{ w: 44, l: 69, by: "AAA" }, { w: 44, l: 69, by: "BBB" }] } } }, "AAA", "BBB"), oneOnly = seriesPair({ ...ser2, counted: { AAA: { BBB: [{ w: 44, l: 69, by: "AAA" }] } } }, "AAA", "BBB");
+    const apart = seriesPair({ ...ser2, counted: { AAA: { BBB: [{ w: 44, l: 69, by: "AAA" }, { w: 43, l: 69, by: "BBB" }] } } }, "AAA", "BBB");
+    const before = seriesPair(ser2, "LLL", "MMM"), after = seriesPair({ ...ser2, counted: { MMM: { LLL: [{ w: 99, l: 136, by: "MMM" }] }, LLL: { MMM: [{ w: 136, l: 99, by: "MMM" }] } } }, "LLL", "MMM");
+    ok(both.status === "confirmed" && both.source.join() === "games" && both.rec.overall.w === 44 && both.rec.overall.l === 69 && both.counted && both.printed.AAA.w === 42 && oneOnly.status === "differs" && apart.status === "differs"
+      && before.status === "differs" && after.status === "single" && after.source.join() === "MMM" && after.rec.overall.w === 136 && after.rec.overall.l === 99,
+      "series (0.91): when neither guide's print is what the games say but the two teams' games, counted apart, come to one record, that record is shown as counted; one count alone, or two that differ, change nothing; a guide whose lists once fell short stands against another short count once its own validated count is the record it is credited with",
+      JSON.stringify([both, oneOnly.status, apart.status, before.status, after]));
+    const { scoringBySeason, scoringLines, SCORING } = await import("../src/situations/teamscoring.js");
+    const mk = (y, n, pf, pa) => Array.from({ length: n }, (_, i) => ({ d: `${y}-11-${String(1 + (i % 28)).padStart(2, "0")}`, pf, pa, opp: "X" }));
+    const deepS = { seq: { AAA: Array.from({ length: 20 }, (_, k) => mk(1995 + k, 41, 100 + (k === 3 ? 20 : 0), 98 - (k === 5 ? 12 : 0))).flat() }, from: { AAA: "1995-96" }, whole: { AAA: false } };
+    const rowsS = Array.from({ length: 12 }, (_, i) => ({ d: `2026-11-${String(i + 1).padStart(2, "0")}`, h: "AAA", a: "BBB", hs: 118, as: 80 }));
+    const TS2 = scoringBySeason({ deep: deepS, history: null, rows: rowsS, printed: { AAA: { offense: { "1990-91": { g: 82, avg: 119.5 } }, defense: { "1990-91": { g: 82, avg: 101 } }, whole: true } } });
+    const SL2 = scoringLines(TS2, ["AAA", "BBB"], { season: "2026-27" }).map((l) => l.text);
+    const KN = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "knicks-team-seasons-2026-27.json"), "utf8"));
+    ok(TS2.AAA.from === "1990-91" && TS2.AAA.whole && TS2.AAA.seasons.length === 22 && TS2.AAA.seasons[0].src === "guide" && SL2.join(" | ") === "AAA is scoring 118.0 points a game (12 games): its most since 1998-99 (120.0) | AAA is allowing 80.0 points a game (12 games): its fewest in franchise history"
+      && SCORING.back === 15 && scoringLines(TS2, ["AAA"], { season: "2026-27" }).every((l) => l.kind === "era" && l.standing) && Object.keys(KN.offense).length === 80 && Object.keys(KN.defense).length === 78 && KN.offense["1995-96"].avg === 97.2 && KN.defense["1996-97"].avg === 92.2,
+      "team scoring (0.91; the user's Knicks pages, 11/17): every team's points for and against a game by season come from its own games, with a guide's printed table for the seasons before them (the Knicks', 80 seasons); a line when this season's average is the most or fewest in 15 seasons or more, with the season that last beat it",
+      JSON.stringify([TS2.AAA.from, TS2.AAA.seasons.length, SL2]));
   }
   // 0.90: team single-game marks, the guides' largest margins as a check, arena records confirmed.
   {

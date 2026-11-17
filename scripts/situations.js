@@ -448,6 +448,18 @@ for (const [tri, games] of Object.entries(perTeam)) {
         const { teamSeasonLines } = await import("../src/situations/teamseasons.js");
         prep.lines.push(...teamSeasonLines(JSON.parse(fs.readFileSync(tsf, "utf8")), st, tonightTeams, { season: +seasonTag.slice(0, 4) }));
       }
+      // 0.91: points for and against a game by season, from each team's own games (and the Knicks' printed table
+      // before theirs start): the most or fewest a team has scored or allowed in 15 seasons or more.
+      try {
+        const { scoringBySeason, scoringLines } = await import("../src/situations/teamscoring.js");
+        const rhf = path.join(root, "src", "data", "nba-results-history.json"), kf = path.join(root, "src", "data", `knicks-team-seasons-${seasonTag}.json`);
+        const printed = fs.existsSync(kf) ? { NYK: { ...JSON.parse(fs.readFileSync(kf, "utf8")), whole: true } } : null;
+        const scoring = scoringBySeason({ deep: await loadDeep(), history: fs.existsSync(rhf) ? JSON.parse(fs.readFileSync(rhf, "utf8")) : null, rows: rows.filter((g) => g.d < today), printed });
+        const sl2 = scoringLines(scoring, [...tonightTeams], { season: seasonTag });
+        prep.lines.push(...sl2);
+        fs.writeFileSync(path.join(root, "docs", "data", "teamscoring.json"), JSON.stringify({ generatedAt: out.generatedAt, through, teams: Object.fromEntries(Object.entries(scoring).map(([t, v]) => [t, { from: v.from, whole: v.whole, seasons: v.seasons.map((x) => [x.season, x.g, Math.round(x.ppg * 10) / 10, Math.round(x.opp * 10) / 10]) }])) }));
+        console.log(`team scoring by season: ${sl2.length} line(s) for tonight's teams`);
+      } catch (e) { prep.errors.push(`team scoring: ${e.message}`); }
     } catch (e) { prep.errors.push(`standings: ${e.message}`); }
     // 0.81: the finder: every player's season cut several ways, kept only where a cut is far out of line with the
     // league. Tonight's teams' findings are candidates; the league's most out-of-line few go to the page as suggestions.

@@ -41,6 +41,10 @@ export function seriesPair(series, a, b) {
   // same lists counted again prove nothing, and only the other team's games can back such a record.
   const hits = (r, t) => !!r && counts.some((c) => c.w === r.w && c.l === r.l && !(series.guides?.[t]?.lists && c.by === t));
   const mine = hits(P.rec.overall, P.source[0]), theirs = !!(P.other && !P.other.bad && hits(P.other.overall, P.other.team));
+  // 0.91: neither print is right, but the two teams' games, counted apart, come to the same record: that record is
+  // shown, as counted (Memphis v Utah: 42-69 and 44-67 in print, 44-69 from each team's own list).
+  const ca = counts.find((c) => c.by === a), cb = counts.find((c) => c.by === b);
+  if (!mine && !theirs && P.status === "differs" && ca && cb && ca.w === cb.w && ca.l === cb.l) return { status: "confirmed", source: ["games"], rec: { overall: { w: ca.w, l: ca.l } }, counted: true, printed: { [a]: series.teams[a][b].overall, [b]: series.teams[b][a].overall } };
   if (mine === theirs) return P;                       // neither, or the two sides' counts back one each
   const { other, weak, ...rest } = P;
   if (mine) return { ...rest, status: "confirmed", source: [P.source[0], "games"], counted: true };
@@ -94,7 +98,10 @@ function printedPair(series, a, b) {
   // could have met earlier. `short`: a guide whose lists leave out a season or a few games.
   const F = series.first || {};
   const era = (t, o) => { const e = series.guides?.[t]?.era; return e && Math.max(F[t] ?? 0, F[o] ?? 0) < Number(e.slice(0, 4)) ? e : null; };
-  const rank = (t, o) => (era(t, o) ? 2 : series.guides?.[t]?.short ? 1 : 0);
+  // 0.91: a guide whose lists once fell short is whole again when its count, from seasons that each add up to the
+  // franchise's record, is the record it is credited with (Washington since 0.87).
+  const mended = (t, o) => (series.counted?.[t]?.[o] || []).some((c) => c.by === t && c.w === series.teams[t][o].overall.w && c.l === series.teams[t][o].overall.l);
+  const rank = (t, o) => (era(t, o) ? 2 : series.guides?.[t]?.short && !mended(t, o) ? 1 : 0);
   const adj = (r) => (r?.adjusted ? { adjusted: r.adjusted } : {});
   if (A && B) {
     const same = A.overall.w === B.overall.l && A.overall.l === B.overall.w;
@@ -154,7 +161,7 @@ export function seriesItems(series, games, away, home, today) {
   if (!n) return items;
   const lead = o.w === o.l ? null : o.w > o.l ? home : away, hi = Math.max(o.w, o.l), lo = Math.min(o.w, o.l);
   const plus = S.adjusted ? (/twice/.test(S.adjusted) ? ", less a season it counted twice" : ", plus last season from our results") : "";
-  const src = S.counted ? `the ${poss(S.source[0])} media guide${plus}, and a count of the games agrees` : S.status === "confirmed" ? "both teams' media guides agree" : S.status === "differs" ? `the ${poss(S.source[0])} media guide${plus}; the ${poss(S.other.team)} has it ${wl(lead === away ? flip(S.other.overall) : S.other.overall)}${S.other.bad ? ", which does not add up" : ""}` : `the ${poss(S.source[0])} media guide${plus}`;
+  const src = S.counted && S.source[0] === "games" ? "counted from both teams' game lists, which agree; their guides print other totals" : S.counted ? `the ${poss(S.source[0])} media guide${plus}, and a count of the games agrees` : S.status === "confirmed" ? "both teams' media guides agree" : S.status === "differs" ? `the ${poss(S.source[0])} media guide${plus}; the ${poss(S.other.team)} has it ${wl(lead === away ? flip(S.other.overall) : S.other.overall)}${S.other.bad ? ", which does not add up" : ""}` : `the ${poss(S.source[0])} media guide${plus}`;
   const there = S.rec.home && S.rec.home.w + S.rec.home.l >= 10 ? `; the ${nick(home)} are ${wl(S.rec.home)} at home in it` : "";
   // What a line may be built on: both guides agreeing, or one well-backed guide's own print (not a row we corrected).
   const solid = !S.era && (S.status === "confirmed" || (S.status === "single" && !S.weak && !S.adjusted));

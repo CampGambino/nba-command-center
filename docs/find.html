@@ -131,6 +131,7 @@ const table = (id, title, words, note, head, rows) => `<details id="${id}" data-
     const wl = (r) => (r ? `${r.w}-${r.l}` : ""), g = series.guides || {};
     const fix = (r) => (r.adjusted ? (/twice/.test(r.adjusted) ? "; a season it counted twice taken out" : "; last season added from our results (the guide's row stopped at 2024-25)") : "");
     const basis = (r) => r.era ? `${r.source[0]}'s guide only, which starts in ${r.era}: not all-time`
+      : r.counted && r.source[0] === "games" ? "counted from both teams' game lists, which agree; neither guide's print does"
       : r.counted ? `${r.source[0]}'s guide${fix(r)}, and a count of the games agrees`
       : r.status === "confirmed" ? "both guides agree" : r.status === "differs" ? `guides differ: ${r.source[0]}'s shown${fix(r)}, ${r.other.team}'s has ${wl(r.other.overall)}${r.other.bad ? " (does not add up)" : ""}${r.weak ? "; neither is well backed by the others" : ""}`
       : `${r.source[0]}'s guide only${fix(r)}${r.weak ? ` (other guides match it in ${(g[r.source[0]] || { agree: [0, 0] }).agree.join(" of ")} pairings)` : ""}`;
