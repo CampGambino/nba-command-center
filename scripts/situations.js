@@ -370,7 +370,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const prep = prepLines({ pg, rows, logs: logsData, seasons: seasonsData, names: store.names || {}, nameKey: keyFn, season: seasonTag, games: slate });
     // Season-long and morning-after lines (0.70): trades, starter/bench, vs MVP season, lineups, record turns, best
     // since Christmas, who has beaten the best teams, month ratings and totals, rookies, last night's unique lines.
-    let lastNight = [];
+    let lastNight = [], zeros = {};
     try {
       const { seasonLongLines } = await import("../src/anticipate/seasonlong.js");
       const hf2 = path.join(root, "src", "data", `nba-history-${seasonTag}.json`);
@@ -378,6 +378,19 @@ for (const [tri, games] of Object.entries(perTeam)) {
       const sl = seasonLongLines({ pg, rows, logs: logsData, seasons: seasonsData, awards: awardsData, names: store.names || {}, nameKey: keyFn, season: seasonTag, slate, today });
       const yday = new Date(Date.parse(`${today}T12:00:00Z`) - 864e5).toISOString().slice(0, 10);
       lastNight = sl.lines.filter((l) => l.kind === "unique" && l.date >= yday).sort((a, b) => b.score - a.score);
+      // 0.82: a first career game without a point, a rebound or an assist (the user, 11/16: Trae Young's first scoreless
+      // game in 512). Last night's go to "From last night"; the players who have never had one go to NBA Live.
+      try {
+        const { zeroCareers, zeroWatch, zeroLines } = await import("../src/anticipate/zeros.js");
+        const { plainName } = await import("../src/anticipate/finder.js");
+        const pcf = path.join(root, "src", "data", `nba-postseason-careers-${seasonTag}.json`);
+        const allStar = fs.existsSync(pcf) ? Object.fromEntries((JSON.parse(fs.readFileSync(pcf, "utf8")).allStarSelections || []).map((x) => [plainName(x.name), x.selections])) : null;
+        const zargs = { pg, logs: logsData, seasons: seasonsData, names: store.names || {}, nameKey: keyFn };
+        const zl = zeroLines({ pg, careersBefore: zeroCareers({ ...zargs, before: yday }), since: yday, allStar, plainName });
+        lastNight = [...zl, ...lastNight].sort((a, b) => b.score - a.score);
+        zeros = zeroWatch(zeroCareers(zargs), new Set(slate.flatMap((g) => [g.away, g.home])));
+        console.log(`firsts: ${zl.length} first game(s) without a point, rebound or assist last night; ${Object.keys(zeros).length} of tonight's players have never had one`);
+      } catch (e) { prep.errors.push(`zeros: ${e.message}`); }
       prep.lines.push(...sl.lines.filter((l) => l.kind !== "unique"));
       prep.errors.push(...sl.errors);
     } catch (e) { prep.errors.push(`season-long: ${e.message}`); }
@@ -418,7 +431,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const byKind = {};
     for (const l of prep.lines) byKind[l.kind] = (byKind[l.kind] || 0) + 1;
     console.log(`prep stats: ${prep.lines.length} lines (${Object.entries(byKind).map(([k, n]) => `${n} ${k}`).join(", ")})${prep.errors.length ? `; errors: ${prep.errors.join("; ")}` : ""}`);
-    fs.writeFileSync(path.join(root, "docs", "data", "prep.json"), JSON.stringify({ generatedAt: out.generatedAt, today, through, lines: prep.lines, stars: prep.stars, lastNight, finds }));
+    fs.writeFileSync(path.join(root, "docs", "data", "prep.json"), JSON.stringify({ generatedAt: out.generatedAt, today, through, lines: prep.lines, stars: prep.stars, lastNight, finds, zeros }));
   } catch (e) { console.error(`prep stats not written: ${e.message}`); }
   // "Did we see it coming?" (0.67): the stats other accounts posted, against what we'd have said that morning.
   try {
@@ -614,7 +627,7 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
       const fresh = Object.entries(all).filter(([, r]) => r.season);
       if (fresh.length) console.log(`arena records: set or tied this season in ${fresh.map(([t, r]) => `${t} (${r.pts})`).join(", ")}`);
     } catch (e) { console.error(`arena records not read: ${e.message}`); }
-    fs.writeFileSync(path.join(root, "docs", "data", "tonight.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, games, defense, stars, situations, arenas }));
+    fs.writeFileSync(path.join(root, "docs", "data", "tonight.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, games, defense, stars, situations, arenas, zeros: args.prep?.zeros || {} }));
     // The briefing (0.66): one ranking over every candidate line, with what was already shown on earlier days.
     try {
       const { tonightCandidates } = await import("../src/anticipate/tonight.js");

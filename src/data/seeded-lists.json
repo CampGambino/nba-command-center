@@ -6,7 +6,10 @@
       "rows": [["Luka Doncic", 33], ["Stephen Curry", 31], ["Devin Booker", 29], ["James Harden", 29], ["Damian Lillard", 24]] },
     { "id": "q25-since-1996", "what": "quarters of 25+ points", "since": "1996-97", "event": { "type": "quarter", "min": 25 },
       "source": "Suns game notes for 11/15/26 (Stathead)", "through": "2026-11-14",
-      "rows": [["Stephen Curry", 8], ["Devin Booker", 6], ["Kobe Bryant", 4], ["Damian Lillard", 4], ["Joel Embiid", 4]] }
+      "rows": [["Stephen Curry", 8], ["Devin Booker", 6], ["Kobe Bryant", 4], ["Damian Lillard", 4], ["Joel Embiid", 4]] },
+    { "id": "g40-age35", "what": "40-point games at age 35 or older", "event": { "type": "game", "min": 40 },
+      "source": "Warriors game notes for 11/16/26", "through": "2026-11-15",
+      "rows": [["Stephen Curry", 16], ["LeBron James", 15], ["Michael Jordan", 12]] }
   ],
   "situations_about": "Game states with a record someone has looked up over many seasons (a paid lookup), shown in NBA Live when a live game enters one. `text` is the record as printed on `asOf`; it is not counted forward (the play-by-play kept here starts in 2026-27). when: ot (an overtime period), period, maxLeft (seconds left in the period), minDown (the margin), roadMin / homeMax (points). playoffs: only in the playoffs (not switched on yet).",
   "situations": [

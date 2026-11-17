@@ -173,14 +173,18 @@ const plainName = (n) => String(n || "").normalize("NFD").replace(/[\u0300-\u036
  *   bigQuarters: flowStats().bigQuarters; teamOf: plain name -> team code, for tonight's slate
  *   -> [{ id, what, since, source, through, min, rows: [{ name, n, added, team }] }], rows best first
  */
-export function seededCounts(lists, bigQuarters, teamOf = {}) {
-  return (lists || []).filter((l) => l.event?.type === "quarter" && l.event.min >= BIG_QUARTER).map((l) => {
+export const BIG_GAME = 40;   // every game of 40+ points is kept, for seeded lists of such games (0.82)
+export function seededCounts(lists, bigQuarters, teamOf = {}, bigGames = []) {
+  // A list counts quarters (20+ points) or whole games (40+ points); `only` in a game list is who can still add to it
+  // (the Warriors' "40-point games by players 35+ years old": only the listed players are that old).
+  return (lists || []).filter((l) => (l.event?.type === "quarter" && l.event.min >= BIG_QUARTER) || (l.event?.type === "game" && l.event.min >= BIG_GAME)).map((l) => {
+    const events = l.event.type === "game" ? bigGames : bigQuarters;
     const rows = l.rows.map(([name, n]) => {
       const k = plainName(name);
-      const added = (bigQuarters || []).filter((q) => plainName(q.name) === k && q.pts >= l.event.min && String(q.date).slice(0, 10) > l.through).length;
+      const added = (events || []).filter((q) => plainName(q.name) === k && q.pts >= l.event.min && String(q.date).slice(0, 10) > l.through).length;
       return { name, n: n + added, added, team: teamOf[k] || null };
     }).sort((a, b) => b.n - a.n);
-    return { id: l.id, what: l.what, since: l.since, source: l.source, through: l.through, min: l.event.min, rows };
+    return { id: l.id, what: l.what, since: l.since || null, source: l.source, through: l.through, min: l.event.min, rows };
   });
 }
 
@@ -285,7 +289,7 @@ function lastTwo(pbp, G, tri) {
 
 export function flowStats(entries, lite = null) {
   const quarters = [], halves = [], teamQuarters = [], rot = {}, fouls = {}, leads = {}, table = {}, early = [], fourth = {};
-  const qsum = {};
+  const qsum = {}, bigGames = [];
   const full = { halves: [], games: [], fives: [] }, swing = {}, led = {};
   const shotGames = [];
   const l2m = { games: 0, players: {}, teams: {} };
@@ -310,6 +314,7 @@ export function flowStats(entries, lite = null) {
       if (!(p.mins > 0)) continue;
       const Q = qsum[p.id] || (qsum[p.id] = { name: p.name, team: p.team, gp: 0, q: [0, 0, 0, 0], pts: 0 });
       Q.team = p.team; Q.gp++; Q.pts += p.pts; p.q.forEach((v, k) => { Q.q[k] += v; });
+      if (p.pts >= BIG_GAME) bigGames.push({ pts: p.pts, id: p.id, name: p.name, team: p.team, date: F.date });   // 0.82: for lists of 40-point games counted forward
     }
     for (const [id, x] of Object.entries(F.swing || {})) {
       const who = F.players.find((p) => p.id === id); if (!who) continue;
@@ -420,15 +425,21 @@ export function flowStats(entries, lite = null) {
     for (let i = gs.length - 1; i >= 0 && !gs[i].won && gs[i].lead >= 10; i--) run.unshift({ lead: gs[i].lead, opp: gs[i].opp, d: gs[i].d });
     let longest = 0, cur = 0;
     for (const g of gs) { cur = !g.won && g.lead >= 10 ? cur + 1 : 0; if (cur > longest) longest = cur; }
+    // 0.82 (the Warriors' notes, 11/16: "four consecutive comeback wins after trailing by 10-or-more points"): the
+    // mirror image, games in a row won after trailing by 10+.
+    const backRun = [];
+    for (let i = gs.length - 1; i >= 0 && gs[i].won && gs[i].down >= 10; i--) backRun.unshift({ down: gs[i].down, opp: gs[i].opp, d: gs[i].d });
+    let longestBack = 0, curB = 0;
+    for (const g of gs) { curB = g.won && g.down >= 10 ? curB + 1 : 0; if (curB > longestBack) longestBack = curB; }
     // 0.81: the same for a lead of LATE_LEAD+ held in the 4th quarter or overtime (the margin entering the 4th counts).
     const late = gs.filter((g) => g.lead4 >= LATE_LEAD), lateDn = gs.filter((g) => g.down4 >= LATE_LEAD);
-    by10[tri] = { gp: gs.length, upW: up.filter((g) => g.won).length, upL: up.filter((g) => !g.won).length, downW: dn.filter((g) => g.won).length, downL: dn.filter((g) => !g.won).length, run, longest, last: gs.length ? gs[gs.length - 1].d : null,
+    by10[tri] = { gp: gs.length, upW: up.filter((g) => g.won).length, upL: up.filter((g) => !g.won).length, downW: dn.filter((g) => g.won).length, downL: dn.filter((g) => !g.won).length, run, longest, backRun, longestBack, last: gs.length ? gs[gs.length - 1].d : null,
       lateW: late.filter((g) => g.won).length, lateLost: late.filter((g) => !g.won).map((g) => ({ lead: g.lead4, opp: g.opp, d: g.d })), lateWon: lateDn.filter((g) => g.won).map((g) => ({ down: g.down4, opp: g.opp, d: g.d })) };
   }
   const byDate = (a, b) => String(b.date).localeCompare(String(a.date));
   full.halves.sort(byDate); full.games.sort(byDate); full.fives.sort(byDate);
   const swingTop = Object.values(swing).filter((x) => x.a >= 2).sort((a, b) => b.m - a.m || a.a - b.a).slice(0, 40);
-  return { games, leadMin: LEAD_MIN, by10, qsum, full, swing: swingTop, leadTable: Object.values(table), leftEarly, bigQuarters, quarters: top(quarters), halves: top(halves), teamQuarters: top(teamQuarters), rotation, fouls, leads, fourth, shots: shotStreaks(shotGames),
+  return { games, leadMin: LEAD_MIN, by10, qsum, bigGames, full, swing: swingTop, leadTable: Object.values(table), leftEarly, bigQuarters, quarters: top(quarters), halves: top(halves), teamQuarters: top(teamQuarters), rotation, fouls, leads, fourth, shots: shotStreaks(shotGames),
     l2m: { games: l2m.games, teams: l2m.teams, players: Object.values(l2m.players).map((p) => ({ ...p, sec: Math.round(p.sec), min: Math.round(p.sec / 6) / 10, ast: null, stl: null, blk: null })).sort((a, b) => b.pts - a.pts) } };
 }
 

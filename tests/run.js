@@ -1867,9 +1867,18 @@ await articlesChecks(ok);
   }
   // Cap: 9 in-play milestones in one game -> 6 cards.
   const many = { id: "g3", status: "live", away: { tricode: "LAL", score: 1 }, home: { tricode: "ATL", score: 1 }, boxscore: { away: Array.from({ length: 9 }, (_, k) => pl(String(100 + k))), home: [] } };
-  watch.teams[0].items.push(...Array.from({ length: 9 }, (_, k) => item({ espnId: String(100 + k), player: `Many ${k}`, need: 50, pTonight: 0.2 + k / 100 })));
+  watch.teams[0].items.push(...Array.from({ length: 9 }, (_, k) => item({ espnId: String(100 + k), player: `Many ${k}`, need: 50, importance: 60, pTonight: 0.2 + k / 100 })));
+  // v18: a mark below importance 50 gets a card only inside NBA Live's own reach (10 points); a big one whenever he plays.
+  watch.teams[0].items.push(item({ espnId: "150", player: "Far Run", need: pl("150").pts + 11, importance: 35 }), item({ espnId: "151", player: "Near Run", need: pl("151").pts + 10, importance: 35 }));
+  many.boxscore.home = [pl("150"), pl("151")];
   const t2 = run({ games: [many] }); await flush(); t2.ctx.runAlertChecks(); await flush();
-  ok([...t2.cards.keys()].filter((k) => /cc-1\d\d-/.test(k)).length === 6, "bridge: at most 6 in-play cards per game");
+  ok([...t2.cards.keys()].filter((k) => /cc-1[0-4]\d-/.test(k)).length === 6, "bridge: at most 6 in-play cards per game");
+  {
+    const one = { id: "g4", status: "live", away: { tricode: "LAL", score: 1 }, home: { tricode: "ATL", score: 1 }, boxscore: { away: [pl("150"), pl("151")], home: [] } };
+    const t3 = run({ games: [one] }); await flush(); t3.ctx.runAlertChecks(); await flush();
+    const k3 = [...t3.cards.keys()];
+    ok(k3.some((k) => /^cc-151-/.test(k)) && !k3.some((k) => /^cc-150-/.test(k)), "bridge v18 (the user, 11/16: 'we wait until the player is closer to the mark'): a run-of-the-mill round number is a card at 10 points to go, not at 11", k3.filter((k) => /cc-15/.test(k)).join(" "));
+  }
   const t3 = run({ games, date: "20261110" }); await flush(); t3.ctx.runAlertChecks(); await flush();
   ok(t3.cards.size === 0 && /NBA Live shows 2026-11-10/.test(t3.el.textContent), "bridge: a Watch List for another night is not used");
   let threw = null;
@@ -3663,8 +3672,8 @@ await articlesChecks(ok);
   {
     const sd = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "seeded-lists.json"), "utf8"));
     const st = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8");
-    ok(sd.situations.length === 4 && sd.situations.filter((x) => !x.playoffs).map((x) => x.id).join() === "ot-down-10,road-100-before-50" && sd.situations.every((x) => x.text && x.asOf && x.when && x.source) && /filter\(\(x\) => !x\.playoffs\)/.test(st) && /defense, stars, situations(?:, arenas)? \}/.test(st)
-      && /var VERSION = 1[5-9];/.test(fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8")),
+    ok(sd.situations.length === 4 && sd.situations.filter((x) => !x.playoffs).map((x) => x.id).join() === "ot-down-10,road-100-before-50" && sd.situations.every((x) => x.text && x.asOf && x.when && x.source) && /filter\(\(x\) => !x\.playoffs\)/.test(st) && /defense, stars, situations\b/.test(st)
+      && /var VERSION = (?:1[5-9]|[2-9]\d);/.test(fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8")),
       "seeded situations (0.79): four looked-up records kept with their date and source; the two that aren't playoff-only go to NBA Live (bridge v15)");
   }
 }
@@ -3783,7 +3792,7 @@ await articlesChecks(ok);
     && tx("late15|DEN|won") === "DEN has won a game it trailed by 15+ in the 4th quarter (19 down to NOP 10/24); teams that far behind in a 4th quarter are 1-14 this season" && !L.some((l) => /^late15\|BOS/.test(l.key)),
     "fourth-quarter leads (0.81): any team that lost a game it led by 15+ in the 4th, or won one it trailed by that much, with the league's record in those games", JSON.stringify(L.map((l) => l.text)));
   const br = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");
-  ok(/var VERSION = 17;/.test(br) && /var LATE_LEAD = 15;/.test(br) && /M\[side\] >= LEAD \|\| late >= LATE_LEAD/.test(br) && /"📉 4TH-QUARTER LEAD LOST"/.test(br) && /function arenaChecks/.test(br) && /find: "🔎 FOUND IN THE NUMBERS"/.test(br),
+  ok(/var VERSION = 1[7-9];/.test(br) && /var LATE_LEAD = 15;/.test(br) && /M\[side\] >= LEAD \|\| late >= LATE_LEAD/.test(br) && /"📉 4TH-QUARTER LEAD LOST"/.test(br) && /function arenaChecks/.test(br) && /find: "🔎 FOUND IN THE NUMBERS"/.test(br),
     "bridge v17: a lead lost is a card from 20 at any time or from 15 held in the 4th quarter; the arena-record card; the finder's label");
 
   // Arena records: the list as sent, with what we could check, and this season's box scores on top.
@@ -3791,7 +3800,7 @@ await articlesChecks(ok);
   const AR = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "arena-records.json"), "utf8"));
   const tris = AR.arenas.map((a) => a.team);
   ok(AR.arenas.length === 30 && new Set(tris).size === 30 && AR.arenas.every((a) => a.arena && a.pts >= 50 && a.holders.length && a.holders.every((h) => h.player && /^\d{4}-\d\d-\d\d$/.test(h.date)) && ["confirmed", "quiz", "corrected", "unconfirmed"].includes(a.check) && (a.check === "confirmed" || a.check === "quiz" || a.note))
-    && AR.arenas.find((a) => a.team === "HOU").holders.length === 1 && AR.arenas.find((a) => a.team === "DET").pts === 53 && AR.arenas.find((a) => a.team === "OKC").check === "unconfirmed" && AR.former.length === 16,
+    && AR.arenas.find((a) => a.team === "HOU").holders.length === 1 && AR.arenas.find((a) => a.team === "DET").pts === 53 && AR.arenas.find((a) => a.team === "OKC").pts === 58 && AR.arenas.find((a) => a.team === "OKC").check === "confirmed" && AR.former.length === 16,
     "arena records (0.81): all 30 buildings, each row marked confirmed / as the quiz has it / corrected / unconfirmed, and every row that isn't as sent says why");
   const line = (side, pts) => [side, 1, 36, pts, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   const g = (d, h, a, pl, n) => ({ id: d + h, d, h, a, hs: 110, as: 100, n, pl });
@@ -3801,7 +3810,7 @@ await articlesChecks(ok);
   const rec = arenaRecords(AR, rowsA, { 1: "Visiting Scorer", 3: "Home Scorer", 4: "Cup Scorer" });
   const at = arenasTonight(rec, ["DET", "BKN"]);
   ok(rec.DET.pts === 53 && rec.DET.holders.length === 2 && rec.DET.holders[1].player === "Visiting Scorer" && rec.DET.holders[1].opp === "DET" && rec.DET.check === "confirmed"
-    && rec.BKN.pts === 58 && rec.BKN.holders.length === 1 && rec.BKN.holders[0].player === "Home Scorer" && rec.BKN.season === true && rec.OKC.pts === 54 && rec.MIA.pts === 83
+    && rec.BKN.pts === 58 && rec.BKN.holders.length === 1 && rec.BKN.holders[0].player === "Home Scorer" && rec.BKN.season === true && rec.OKC.pts === 58 && rec.MIA.pts === 83
     && at.BKN.who === "Home Scorer 11/3/26" && /Little Caesars Arena/.test(at.DET.arena) && /^Anthony Edwards 1\/4\/25 and Visiting Scorer 11\/1\/26$/.test(at.DET.who) && !at.OKC,
     "arena records (0.81): this season's box scores set or tie a building's record (either team's player), games before the list's date and neutral-site games don't", JSON.stringify([rec.DET, rec.BKN, at]));
 
@@ -3859,6 +3868,72 @@ await articlesChecks(ok);
     && coachLine(recC, "UTA") === "Jamahl Mosley is 6-6 all-time against the Jazz as a head coach (67-76 overall, entering 11/16)."
     && /against the Heat as/.test(coachLine({ ...recC, teams: { ...recC.teams, MIA: { w: 10, l: 11 } } }, "MIA")),
     "coach record (0.81): New Orleans' table, where three teams' numbers sit on the line above their names; every nickname takes 'the'", JSON.stringify([recC?.ok, recC?.sum, recC && Object.keys(recC.teams).length]));
+}
+
+// ---------- 0.82: NBA Live cards (fouls, bench, reach), first scoreless game, Warriors' notes, lists of games ----------
+{
+  const br = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");
+  ok(/var VERSION = 18;/.test(br) && /function foulTime\(game, id, n\)/.test(br) && /foulTime\(game, p\.id, pf\) \|\| at\(/.test(br) && /var benchFor = function/.test(br) && /per <= 2 && \(pf >= 2 \|\| state\.ftShown/.test(br)
+    && /var BIG_IMPORTANCE = 50;/.test(br) && /var REACH = \{ pts: 10, fg3m: 3, reb: 4, ast: 4, stl: 3, blk: 3,/.test(br) && /i\.importance < BIG_IMPORTANCE && \(i\.need - v\) > reachOf\(i\.stat\)/.test(br) && /function zeroChecks/.test(br),
+    "bridge v18: a foul's own time from the play-by-play; no bench card for a starter sitting with two fouls in the first half; a milestone below importance 50 only within NBA Live's reach; the still-scoreless card");
+  // The bridge's foul clock, run on a made-up play list (newest first, as NBA Live keeps it).
+  {
+    const src = br.slice(br.indexOf("  function foulTime(game, id, n) {"), br.indexOf("  function feedReached(game, qtr) {"));
+    const foulTime = new Function(`${src}; return foulTime;`)();
+    const plays = [{ badge: "foul", playerId: "7", qtr: "Q2", clock: "9:44", desc: "X shooting foul" }, { badge: "foul", playerId: "7", qtr: "Q1", clock: "3:10", desc: "X technical foul" },
+      { badge: "foul", playerId: "9", qtr: "Q1", clock: "5:00", desc: "Y personal foul" }, { badge: "foul", playerId: "7", qtr: "Q1", clock: "6:15", desc: "X personal foul" }, { badge: "foul", playerId: "7", qtr: "Q1", clock: "10:02", desc: "X offensive foul" }];
+    ok(foulTime({ plays }, "7", 1) === "Q1 10:02" && foulTime({ plays }, "7", 2) === "Q1 6:15" && foulTime({ plays }, "7", 3) === "Q2 9:44" && foulTime({ plays }, "7", 4) === null && foulTime({ plays: [] }, "7", 1) === null,
+      "bridge v18: the time of a player's nth personal foul is read from the play-by-play (technicals not counted), whenever the card is drawn");
+  }
+
+  // A first career game without a point, rebound or assist.
+  const { zeroCareers, zeroWatch, zeroLines, ZERO } = await import("../src/anticipate/zeros.js");
+  const logs = { columns: ["date", "opp", "home", "result", "type", "min", "pts", "reb", "ast"], players: {
+    1: Array.from({ length: 200 }, (_, i) => [`2024-01-${String((i % 28) + 1).padStart(2, "0")}`, "BOS", 1, "W", 2, 34, 22 + (i % 5), 3, 9]),      // never scoreless
+    2: [...Array.from({ length: 199 }, () => ["2024-01-01", "BOS", 1, "W", 2, 30, 18, 4, 2]), ["2024-02-01", "BOS", 1, "L", 2, 12, 0, 1, 0], ["2024-04-20", "BOS", 1, "L", 3, 30, 0, 1, 0]],  // one scoreless game already
+    3: Array.from({ length: 300 }, () => ["2019-01-01", "BOS", 1, "W", 2, 33, 25, 8, 4]) } };
+  const seasonsZ = { keys: ["season", "g", "min", "pts", "reb", "ast"], players: { "Never Blanked": [["2021-22", 100, 3400, 2300, 300, 900], ["2022-23", 100, 3400, 2300, 300, 900]],
+    "Blanked Once": [["2021-22", 100, 3000, 1800, 400, 200], ["2022-23", 100, 3000, 1800, 400, 200]], "Old Hand": [["2010-11", 400, 14000, 10000, 3200, 1600], ["2016-17", 300, 10000, 7500, 2400, 1200]] } };
+  const gz = (d, pts, o = {}) => ({ d, team: "WAS", opp: "HOU", min: 26, pts, reb: 1, ast: 8, fgm: 0, fga: 5, ...o });
+  const pgZ = { 1: [gz("2026-11-12", 37, { fgm: 8 }), gz("2026-11-15", 0)], 2: [gz("2026-11-15", 0, { ast: 1 })], 3: [gz("2026-11-15", 0, { ast: 3, reb: 6 })], 4: [gz("2026-11-15", 0)] };
+  const namesZ = { 1: "Never Blanked", 2: "Blanked Once", 3: "Old Hand", 4: "A Rookie" };
+  const beforeZ = zeroCareers({ pg: pgZ, logs, seasons: seasonsZ, names: namesZ, before: "2026-11-15" });
+  const zl = zeroLines({ pg: pgZ, careersBefore: beforeZ, since: "2026-11-15", allStar: { "never blanked": 4 }, plainName: (x) => x.toLowerCase() }).map((l) => l.text);
+  const nowZ = zeroCareers({ pg: pgZ, logs, seasons: seasonsZ, names: namesZ });
+  ok(zl.length === 2 && zl.includes("Never Blanked (4-time All-Star) was held scoreless for the first time in his career (202 games): 0-for-5 with 8 assists and 1 rebound in 26 minutes vs HOU")
+    && zl.includes("Old Hand was held scoreless for the first time since at least 2016-17 (301 games): 0-for-5 with 3 assists and 6 rebounds in 26 minutes vs HOU")
+    && beforeZ[1].stats.ast && !beforeZ[1].stats.reb && !beforeZ[4] && beforeZ[2].stats.pts.zeros === 1
+    && !zeroWatch(nowZ, new Set(["WAS"]))[1].stats.includes("pts") && zeroWatch(nowZ, new Set(["WAS"]))[1].stats.includes("ast") && zeroWatch(beforeZ, new Set(["WAS"]))[1].stats.includes("pts") && !zeroWatch(beforeZ, new Set(["BOS"]))[1] && ZERO.games === 150,
+    "firsts (0.82): a first scoreless game is said with the career games behind it ('since at least 2016-17' when the career is older than the logs); an earlier one, a playoff game or a rookie says nothing; NBA Live gets who has never had one",
+    JSON.stringify([zl, beforeZ[2], zeroWatch(nowZ, null)]));
+
+  // A list of whole games counted forward, and games in a row won after trailing by 10+.
+  const S2 = await import("../src/gameflow/stats.js");
+  const T2 = await import("../src/anticipate/tonight.js");
+  const sd = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "seeded-lists.json"), "utf8"));
+  const sc = S2.seededCounts(sd.lists, [], { "stephen curry": "GSW", "lebron james": "LAL" }, [{ name: "LeBron James", pts: 41, date: "2026-11-20" }, { name: "LeBron James", pts: 44, date: "2026-11-01" }, { name: "Stephen Curry", pts: 39, date: "2026-11-21" }]);
+  const g35 = sc.find((l) => l.id === "g40-age35");
+  const sl = T2.seededLines({ seeded: [g35] }, new Set(["LAL", "GSW"])).map((l) => l.text);
+  ok(g35 && g35.rows.map((r) => `${r.name} ${r.n}`).join("|") === "Stephen Curry 16|LeBron James 16|Michael Jordan 12" && sl.length === 2 && sl.some((t) => /^LeBron James has 16 40-point games at age 35 or older, tied with Stephen Curry for the most; the next one puts him alone in first\. From the Warriors' notes, counted forward here from 11\/15$/.test(t)) && S2.BIG_GAME === 40,
+    "seeded lists (0.82): a list of whole games (40-point games at 35 or older, from the Warriors' notes) is counted forward from the day after it was printed", JSON.stringify([g35, sl]));
+  const byB = (o) => ({ gp: 9, upW: 3, upL: 1, downW: 4, downL: 2, run: [], longest: 0, last: "2026-11-05", lateW: 1, lateLost: [], lateWon: [], backRun: [], longestBack: 1, ...o });
+  const fb = { by10: { GSW: byB({ backRun: [{ down: 25, opp: "LAL", d: "2026-10-30" }, { down: 11, opp: "LAC", d: "2026-11-01" }, { down: 17, opp: "PHX", d: "2026-11-02" }], longestBack: 3 }), MIA: byB({}) } };
+  const bl = T2.flowTeamLines(fb, new Set(["GSW", "MIA"]), "2026-11-05").filter((l) => /^back10/.test(l.key)).map((l) => l.text);
+  ok(bl.length === 1 && bl[0] === "GSW has won its last 3 games after trailing by 10+ (25 down to LAL 10/30, 11 down to LAC 11/1, 17 down to PHX 11/2); a fourth straight tonight would be the longest such run in the NBA this season",
+    "comeback runs (0.82): any team's games in a row won after trailing by 10+, and what tonight would make of it", JSON.stringify(bl));
+
+  // The Warriors' notes: a team's history line said in the present, with an earlier occurrence named for comparison.
+  const N = await import("../src/notes/narrative.js");
+  const L = (text) => ({ text, cells: [{ x0: 40, x1: 560, cx: 300, text }], charX: [] });
+  const doc = { pages: [{ page: 9, width: 612, lines: [
+    L("In four consecutive games (Oct. 30 - Nov. 5) the Warriors won after trailing by 10-or-more points. According to the Elias Sports Bureau, this is just the second time in the play-by-play era (1997-98) the Warriors have had four consecutive comeback wins after trailing by 10-or-more points, the other time coming from Feb. 26 to Mar. 3, 2023."),
+    L("This season's Warriors are the first team to start a season 0-3 and then win their next eight games."),
+    L("In 2019 the Warriors won 57 games, which was the most in the Western Conference that season and the third time since 2015 they had done so.")] }] };
+  const dropped = [];
+  const h = N.readHistory(doc, [{ id: "3975", name: "Stephen Curry" }], { seasonStart: "2026-10-01", today: "2026-11-16", teamWords: ["Golden State", "Warriors"], dropped });
+  ok(h.some((x) => /^According to the Elias Sports Bureau, this is just the second time in the play-by-play era/.test(x.text) && !x.player) && h.some((x) => /first team to start a season 0-3/.test(x.text)) && !h.some((x) => /In 2019 the Warriors won 57/.test(x.text)),
+    "notes (0.82): 'the second time in the play-by-play era' is history, a team's present-tense line is current, and the earlier occurrence it names for comparison doesn't date it; an old season's line still isn't current",
+    JSON.stringify([h.map((x) => x.text.slice(0, 80)), dropped.map((d) => [d.reason, d.text.slice(0, 60)])]));
 }
 
 // ---------- snapshot ----------

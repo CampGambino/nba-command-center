@@ -95,7 +95,7 @@ try {
     if (fs.existsSync(sf)) {
       const plain = (n) => String(n || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z ]/g, "").replace(/\s+/g, " ").trim();
       const teamOf = Object.fromEntries(Object.values(S.rotation || {}).map((r) => [plain(r.name), r.team]));
-      S.seeded = seededCounts(JSON.parse(fs.readFileSync(sf, "utf8")).lists, S.bigQuarters, teamOf);
+      S.seeded = seededCounts(JSON.parse(fs.readFileSync(sf, "utf8")).lists, S.bigQuarters, teamOf, S.bigGames);
     }
   } catch (e) { console.error("seeded lists:", e.message); }
   const { l2m, ...rest } = S;

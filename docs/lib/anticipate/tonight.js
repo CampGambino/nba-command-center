@@ -342,6 +342,12 @@ export function flowTeamLines(flow, teams, today = null) {
       out.push({ team: t, kind: "team", key: `blown10|${t}`, rare: next > seasonLongest, score: 3.2 + 0.4 * (n - 2) + (next > seasonLongest ? 0.3 : 0),
         text: `${t} has lost its last ${n} games after leading by 10+ (${x.run.map((g) => `${g.lead} vs ${g.opp} ${md(g.d)}`).join(", ")}); a ${ordinalWord(next)} straight tonight would ${next > seasonLongest ? "be the longest such run in the NBA this season" : next === seasonLongest ? `tie the season's longest (${seasonLongest})` : `leave it short of the season's longest (${seasonLongest})`}` });
     }
+    // 0.82: games in a row won after trailing by 10+ (the Warriors' notes: four straight, 10/30 to 11/5).
+    if ((x.backRun || []).length >= BY10.run) {
+      const nb = x.backRun.length, best = tris.reduce((m, o) => Math.max(m, B[o].longestBack || 0), 0);
+      out.push({ team: t, kind: "team", key: `back10|${t}`, rare: nb >= 3, score: 3.2 + 0.4 * (nb - 2) + (nb + 1 > best ? 0.3 : 0),
+        text: `${t} has won its last ${nb} games after trailing by 10+ (${x.backRun.map((g) => `${g.down} down to ${g.opp} ${md(g.d)}`).join(", ")}); a ${ordinalWord(nb + 1)} straight tonight would ${nb + 1 > best ? "be the longest such run in the NBA this season" : `tie the season's longest (${best})`}` });
+    }
     // 0.81: a lead of 15+ held in the 4th quarter and lost (or won back), with the league's record in such games.
     if ((x.lateLost || []).length || (x.lateWon || []).length) {
       const W = tris.reduce((a, o) => a + (B[o].lateW || 0), 0), L = tris.reduce((a, o) => a + (B[o].lateLost || []).length, 0);
@@ -452,7 +458,7 @@ export function seededLines(flow, teams) {
       const where = tied.length ? `tied with ${tied.map((x) => x.name).join(" and ")} for ${place === 1 ? "the most" : ord(place)}` : place === 1 ? "the most" : `${ord(place)}-most`;
       const next = tied.length ? `the next one puts him alone in ${place === 1 ? "first" : ord(place)}` : above.n - r.n === 1 ? `the next one ties ${above.name} (${above.n})` : `two more tie ${above.name} (${above.n})`;
       out.push({ team: r.team, player: r.name, kind: "era", score: 2.8 + (L.min >= 25 ? 0.2 : 0) + (tied.length || above.n - r.n === 1 ? 0.3 : 0), key: `seed|${L.id}|${r.name}`,
-        text: `${r.name} has ${r.n} ${L.what} since ${L.since}, ${where}; ${next}. From the ${L.source.replace(/ game notes.*$/, "")}' notes, counted forward here from ${Number(L.through.slice(5, 7))}/${Number(L.through.slice(8, 10))}` });
+        text: `${r.name} has ${r.n} ${L.what}${L.since ? ` since ${L.since}` : ""}, ${where}; ${next}. From the ${L.source.replace(/ game notes.*$/, "")}' notes, counted forward here from ${Number(L.through.slice(5, 7))}/${Number(L.through.slice(8, 10))}` });
     });
   }
   return out;

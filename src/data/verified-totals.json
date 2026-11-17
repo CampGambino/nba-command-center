@@ -83,6 +83,7 @@
     {"player": "DeAndre Jordan", "stat": "blk", "scope": "career", "value": 1581, "asOf": "2026-11-14", "season": 3},
     {"player": "DeAndre Jordan", "stat": "reb", "scope": "career", "value": 10885, "asOf": "2026-11-14", "season": 24},
     {"player": "Kelly Oubre Jr.", "stat": "pts", "scope": "career", "value": 9529, "asOf": "2026-11-15", "season": 128},
+    {"player": "Anthony Davis", "stat": "reb", "scope": "career", "value": 8760, "asOf": "2026-11-15", "season": 123},
     {"player": "Dolph Schayes", "stat": "ftm", "scope": "career", "value": 6712, "asOf": "2026-11-16", "season": 0}
   ]
 }

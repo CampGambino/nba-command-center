@@ -346,7 +346,11 @@ function sentences(text) {
  * players: [{ id, name }] of the team, to tie a line to a player (named in it, or under his page heading).
  * -> [{ page, text, kind, player, playerId, when: "season" | "older" | null, score }]
  */
-const HISTORY = /\b(?:in (?:NBA|league|franchise|team|club|[A-Z][a-z]+) history|all-time|(?:first|only|second|third|fourth|fifth|\d+(?:st|nd|rd|th)) (?:player|rookie|team|teenager|guard|center|forward|duo|trio|pair|teammates?|players|teams|coach|starter|reserve|\w+ to)\b|since (?:the )?(?:19|20)\d\d|(?:most|fewest|longest|highest|lowest|best|worst)\b[^.]{0,60}\b(?:since|ever|in (?:NBA|franchise|team|league|club) history|by any|of any)|youngest|oldest|fastest|quickest|(?:NBA|franchise|team|league|club|single-game|season|career|rookie|all-time)[- ]records?\b|record for (?:the )?most)/i;
+// 0.82 (the Warriors' notes): history said another way ("the second time in the play-by-play era", "the fifth time in
+// his career", "according to the Elias Sports Bureau"). Used only when a sentence has no league-context or trend
+// signal of its own, so a line already read as one of those keeps its kind (and its test for being current).
+const HISTORY_ALSO = /\b(?:first|only|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d+(?:st|nd|rd|th)) time (?:in|since|ever)\b|\bplay-by-play era\b|\bElias Sports Bureau\b/i;
+const HISTORY = /\b(?:in (?:NBA|league|franchise|team|club|[A-Z][a-z]+) history|all-time|(?:first|only|second|third|fourth|fifth|\d+(?:st|nd|rd|th)) (?:player|rookie|team|teenager|guard|center|forward|duo|trio|pair|teammates?|players|teams|coach|starter|reserve|\w+ to)\b|since (?:the )?(?:19|20)\d\d|(?:most|fewest|longest|highest|lowest|best|worst|largest|biggest|smallest)\b[^.]{0,60}\b(?:since|ever|in (?:NBA|franchise|team|league|club) history|by any|of any)|youngest|oldest|fastest|quickest|(?:NBA|franchise|team|league|club|single-game|season|career|rookie|all-time)[- ]records?\b|record for (?:the )?most)/i;
 // League context (0.48, from the user's picks in the Wizards' 11/12 notes): ranks in the league this season, exclusive
 // clubs, active streaks, races on a list, and the series with tonight's opponent. Not history, but what the user flags.
 const CONTEXT = /\bamong(?:st)? (?:all )?(?:NBA|league|qualified)\b|\b(?:leads?|led|leading)\s+(?:all\s+|the\s+)?(?:NBA|league)\b|\blead(?:s|ing)? the (?:NBA|league)\b|\b(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d+(?:st|nd|rd|th))\s+in (?:the )?(?:NBA|league)\b|\b(?:(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d+(?:st|nd|rd|th))[- ])?(?:most|highest|lowest|fewest|least|best|longest)\b[^.;]{0,90}?\b(?:in the (?:NBA|league)|of any (?:team|player)|by any (?:team|player)|league-wide|among (?:all )?(?:NBA|qualified|active))|\bone of the top\b[^.;]{0,40}\bin the (?:NBA|league)\b|\bone of (?:two|three|four|five|six|seven|eight|nine|ten|\d+) (?:players|teams|guards|forwards|centers|rookies|duos|trios)\b|\b(?:the )?only (?:[\w-]+ )?(?:player|team|rookie|duo|trio)s? in the (?:NBA|league)\b|\bas the only\b|\b\d{2,} (?:consecutive|straight) (?:[\w-]+ ){0,2}(?:games|starts|contests)\b|\b(?:longest|current) active\b|\bactive streak\b|\bonly\b[^.;]{0,80}\bmore\b[^.;]{0,60}\bthan\b|\bsecond only to\b|\bbehind only\b|\bowns the most\b|\bseason series\b|\bseries (?:history|between)\b|\bthis season['’]s series\b|\b(?:last|past) (?:\w+ )?meetings\b/i;
@@ -562,7 +566,11 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       { const named = subjectOf(s), early = named || headWho; if (early) { paraWho = sectionWho = early; sinceWho = s.length + 1; paraHead = !named; if (bioWho && early !== bioWho) bioWho = null; } }
       keep();
       // A span of seasons running through last season ("each of the past three seasons (2023-26)") is a run still going, not an old date.
-      const core = s.replace(SINCE_CLAUSE, "").replace(/\b((?:19|20)\d\d)-(\d\d)\b/g, (m, a, b) => (seasonStart && +b - +a.slice(2) >= 2 && 2000 + +b >= +seasonStart.slice(0, 4) ? "these seasons" : m));
+      // 0.82: an earlier occurrence named for comparison is not when the line happened ("…, the other time coming from
+      // Feb. 26 to Mar. 3, 2023", "…largest deficit to overcome since March 1, 2015 at Boston when they won…").
+      const core = s.replace(SINCE_CLAUSE, "").replace(/[,;]\s*(?:with )?the (?:only )?(?:other|last|previous|most recent)(?: such)? (?:times?|instances?|occasions?|occurrences?|one)\b.*$/i, "")
+        .replace(/\bsince (?:(?:a|an|the) )?(?:[\w'’-]+ ){0,6}?(?:on )?(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)[a-z]*\.? \d{1,2}, (?:19|20)\d\d\b.*$/i, "")
+        .replace(/\b(era|tracked|recorded|kept)\s*\((?:since\s+)?(?:19|20)\d\d(?:-\d\d)?\)/i, "$1").replace(/\b((?:19|20)\d\d)-(\d\d)\b/g, (m, a, b) => (seasonStart && +b - +a.slice(2) >= 2 && 2000 + +b >= +seasonStart.slice(0, 4) ? "these seasons" : m));
       // A stats sidebar's cell read into the sentence ("(10-14 MINS 31 at TOR 11/11/26 FG…") doesn't date it (0.71).
       const ownDates = seasonStart ? datesOf(core.replace(/\b(?:MINS|PTS|REBS?|TREB|ASTS?|STLS?|BLKS?|DREB|OREB|FGM|FGA|3PM|FTM|FTA)\s+\d+\s+(?:times\s+\([^)]*\)?|(?:at|vs\.?|@)\s+[A-Z]{2,4}\s+\d{1,2}\/\d{1,2}\/\d{2,4})/g, " ").replace(/^\d{1,2}\/\d{1,2}\/\d{2,4}\)\s*|\s\d{1,2}\/\d{1,2}\/\d{2,4}\)\s/g, " ")) : [];
       const prevWhen = lastWhen;
@@ -593,7 +601,7 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       if (/\b(?:are|is) (?:currently|all|still) on the (?:team|roster)\b|\bcurrently on the (?:team|roster)\b/i.test(s)) { drop("roster", s); continue; }
       if (s.replace(/[^0-9]/g, "").length / s.length > (tableLine ? 0.5 : /\b\d{1,3}-\d{1,3} when\b/.test(s) ? 0.32 : 0.22)) { drop("numbers", s); continue; }
       // Past tense isn't a look ahead ("was the first ... with 200 3PM within 60 games").
-      const fwd = FORWARD.test(s) && !/^(?:\S+\s+){0,4}?(?:was|were|became|had)\b/.test(s), hist = HISTORY.test(s), ctxHit = CONTEXT.test(s), trendHit = TREND.test(s);
+      const fwd = FORWARD.test(s) && !/^(?:\S+\s+){0,4}?(?:was|were|became|had)\b/.test(s), ctxHit = CONTEXT.test(s), trendHit = TREND.test(s), hist = HISTORY.test(s) || (!ctxHit && !trendHit && HISTORY_ALSO.test(s));
       // 0.78: a table's lead-in says nothing without the table ("Below is a look at where Jeremiah Fears and Derik Queen
       // matchup amongst all NBA sophomores this season."; the user, 11/16).
       if (/^(?:Below|Here|The following|See below|Listed below|The (?:chart|table|list) below)\b[^.]{0,60}\b(?:is|are|shows?|lists?|details?|breaks? down)\b|^(?:Below|Here) (?:is|are)\b|\b(?:is|are) (?:listed|shown|detailed|broken down) below\b|\ba look at (?:where|how)\b/i.test(s) && !tableLine) { drop("lead-in", s); continue; }
@@ -683,7 +691,7 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       // (Until 0.76 any mention of the team in the 120 characters before counted, which credited a player's bullet
       // to the team: "Scored a career-high 14 points in a career-best 21 minutes…" in Milwaukee's notes.)
       const teamHead = !!topic;
-      const team = !who && (teamHead || (teamRe && teamRe.test(plain(s))) || ((ctxHit || trendHit || tableLine) && teamMid && teamMid.test(plain(s))) || they || (matchup && SERIES.test(s)));
+      const team = !who && (teamHead || (teamRe && teamRe.test(plain(s))) || ((ctxHit || trendHit || tableLine || hist) && teamMid && teamMid.test(plain(s))) || they || (matchup && SERIES.test(s)));
       if (!who && !team) { drop("no-who", s); continue; }
       const kind = fwd ? (PASSY.test(s) ? "pass" : "next") : hist ? "record" : ctxHit ? "context" : "trend";
       if (boxOld && !thisSeason && !CURRENT.test(s)) { drop("box-not-this-season", s); continue; }
@@ -703,7 +711,10 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       const seriesRun = matchup && /\b(?:each of the (?:past|last)|(?:past|last) (?:\w+ )?(?:season series|meetings)|straight (?:meetings|games against))\b/i.test(s);
       // League context in the present tense ("They have the highest rate…", "Davis owns the most blocks…") is as of tonight.
       const presentCtx = (kind === "context" || kind === "trend" || ctxHit) && /\b(?:is|are|has|have|leads?|ranks?|owns?|sits?|remains?|holds?|joins?)\b/.test(core);
-      const current = thisSeason || boxCurrent || standing || seriesRun || presentCtx || CURRENT.test(s) || (kind !== "record" && kind !== "context");
+      // 0.82: a team's history line said in the present ("this is just the second time in the play-by-play era the
+      // Warriors have had four consecutive comeback wins…") is as of now, like a player's standing fact.
+      const teamNow = !who && !!team && kind === "record" && /\bthis (?:is|was|marks|marked) (?:just |only )?the (?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d+(?:st|nd|rd|th)) time\b/i.test(core);
+      const current = thisSeason || boxCurrent || standing || seriesRun || presentCtx || teamNow || CURRENT.test(s) || (kind !== "record" && kind !== "context");
       if (!current) { drop("not-current", s); continue; }
       // In the regular season before April, a postseason, an All-Star break or a games count past tonight's is last season's.
       if (today && !dayThisSeason && !thisSeason) {
