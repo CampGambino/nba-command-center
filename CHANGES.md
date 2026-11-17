@@ -48,6 +48,13 @@ The user (11/17, 3:26 PM) sent seven images: the Jazz's "top individual performa
 - The 28 games where two guides disagree on the winner, the six unread head-to-head pages and Horford's defensive rebounds are not started.
 - NBA Live has no card for these (bridge v21 unchanged).
 
+### After the release, the same day (tools only, nothing the site shows changes)
+- The two checks used for 0.95 were scratch files and would have gone with the chat. They are tools now:
+  - `node tools/check-team-records.mjs [file] [TRI ...]`: each guide's printed points marks beside the marks counted from the games on file. Today: **75 of 90 equal**; the rest are prints older than a team's game list, the Lakers' shot-clock rule, and Charlotte's stale 146.
+  - `NODE_USE_ENV_PROXY=1 node tools/check-scoring-types.mjs [games] [--dir <folder>]`: the play-by-play counts against ESPN's team totals. Run on all 205 games: paint equal in 327 of 410 team-games (0.44 a game off), off turnovers equal in 381 (0.13 off), two games whose player numbers are not used (NOP @ UTA 10/23, LAL @ DET 11/8).
+- Tested: both run as above. Not covered by `tests/run.js` (they need the season's results and, for the second, ESPN).
+- The workflow has read all 205 games (two builds); the published edges for 11/17 are the same twelve the local build produced.
+
 ## 0.94.0 (2026-11-17): every open doubt looked up; 428 series confirmed; Standings tab; the notes and finder lines the user marked
 
 The user (11/17, 2:06 PM) sent Basketball Reference's box scores for the two games I had flagged and not looked up, and wrote: "that is the type of due diligence I require and expect from you. always checking and double checking and cross refencing to make sure this is as accurate and clean as possible." Then seven screenshots of the pages and a request for a Standings tab.
