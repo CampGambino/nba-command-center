@@ -30,6 +30,61 @@ const trusted = (series, t) => { const g = series?.guides?.[t]?.agree; return !!
 
 /** The pairing through 2025-26, from `a`'s side: { status, source, rec: { overall, home, road, neutral }, other, weak }. */
 export function seriesPair(series, a, b) {
+  const P = printedPair(series, a, b);
+  if (!P || P.status === "confirmed") return P;
+  // 0.87: a third opinion where the two guides do not settle it. Twenty-two guides print their games, so many pairings
+  // can be counted game by game (countedPairs below). A count that lands exactly on a printed record confirms it: on
+  // the one already shown, or on the other guide's, which is then the one shown. A count that lands on neither
+  // changes nothing.
+  const counts = series?.counted?.[a]?.[b] || [];
+  // Four guides have no table by opponent, so their "record" is already a count of their own lists (`lists`): the
+  // same lists counted again prove nothing, and only the other team's games can back such a record.
+  const hits = (r, t) => !!r && counts.some((c) => c.w === r.w && c.l === r.l && !(series.guides?.[t]?.lists && c.by === t));
+  const mine = hits(P.rec.overall, P.source[0]), theirs = !!(P.other && !P.other.bad && hits(P.other.overall, P.other.team));
+  if (mine === theirs) return P;                       // neither, or the two sides' counts back one each
+  const { other, weak, ...rest } = P;
+  if (mine) return { ...rest, status: "confirmed", source: [P.source[0], "games"], counted: true };
+  const O = printedPair({ ...series, teams: { [a]: {}, [b]: {}, [other.team]: { [other.team === a ? b : a]: series.teams[other.team][other.team === a ? b : a] } } }, a, b);
+  return O ? { status: "confirmed", source: [other.team, "games"], rec: O.rec, counted: true, ...(O.adjusted ? { adjusted: O.adjusted } : {}) } : P;
+}
+
+/**
+ * Every pairing that can be counted game by game through `through` (the guides' last season), from the games the
+ * build already trusts: each team's seasons before 2016-17 that add up to the franchise's record (deepSeqs) and our
+ * own results since. A team's count against an opponent is whole only if its games go back to the first season the
+ * two could have met. -> { A: { B: [{ w, l, by }, ...] } }: one count from each side that can make it, seen from A
+ * (`by`: whose games were counted).
+ */
+export function countedPairs({ deep, history, official, through }) {
+  const out = {};
+  if (!deep?.seq || !history?.games || !official) return out;
+  const first = Object.fromEntries(Object.entries(official).map(([t, rows]) => [t, rows[0][0]]));
+  const rec = {}, add = (x, y, won) => { const r = ((rec[x] ??= {})[y] ??= { w: 0, l: 0 }); won ? r.w++ : r.l++; };
+  for (const [t, gs] of Object.entries(deep.seq)) for (const g of gs) if (g.opp && first[g.opp]) add(t, g.opp, g.pf > g.pa);
+  const cols = history.columns, at = (k) => cols.indexOf(k);
+  const seasonOf = (d) => { const y = Number(d.slice(0, 4)) - (Number(d.slice(5, 7)) >= 8 && !(d >= "2020-07-01" && d <= "2020-10-31") ? 0 : 1); return `${y}-${String(y + 1).slice(2)}`; };
+  const recent = {}, addR = (x, y, won) => { const r = ((recent[x] ??= {})[y] ??= { w: 0, l: 0 }); won ? r.w++ : r.l++; };
+  for (const g of history.games) {
+    const d = String(g[at("date")]).slice(0, 10);
+    if (g[at("type")] !== 2 || CUP_FINALS.has(d) || (through && seasonOf(d) > through)) continue;
+    const h = g[at("home")], a = g[at("away")], hw = g[at("homeScore")] > g[at("awayScore")];
+    addR(h, a, hw); addR(a, h, !hw);
+  }
+  for (const x of Object.keys(first)) for (const y of Object.keys(first)) {
+    if (x === y || !deep.from?.[x]) continue;
+    const start = [first[x], first[y]].sort()[1];
+    if (deep.from[x] > start) continue;                  // x's games do not reach the first season the two could meet
+    const o = rec[x]?.[y] || { w: 0, l: 0 }, n = recent[x]?.[y] || { w: 0, l: 0 };
+    const c = { w: o.w + n.w, l: o.l + n.l };
+    (((out[x] ??= {})[y] ??= [])).push({ ...c, by: x });
+    (((out[y] ??= {})[x] ??= [])).push({ w: c.l, l: c.w, by: x });
+  }
+  return out;
+}
+const CUP_FINALS = new Set(["2023-12-09", "2024-12-17", "2025-12-16"]);
+
+/** What the two guides print, before any count of the games. */
+function printedPair(series, a, b) {
   const A = series?.teams?.[a]?.[b], B = series?.teams?.[b]?.[a];
   if (!A && !B) return null;
   // B's record seen from A: its home games are A's road games.
@@ -99,7 +154,7 @@ export function seriesItems(series, games, away, home, today) {
   if (!n) return items;
   const lead = o.w === o.l ? null : o.w > o.l ? home : away, hi = Math.max(o.w, o.l), lo = Math.min(o.w, o.l);
   const plus = S.adjusted ? (/twice/.test(S.adjusted) ? ", less a season it counted twice" : ", plus last season from our results") : "";
-  const src = S.status === "confirmed" ? "both teams' media guides agree" : S.status === "differs" ? `the ${poss(S.source[0])} media guide${plus}; the ${poss(S.other.team)} has it ${wl(lead === away ? flip(S.other.overall) : S.other.overall)}${S.other.bad ? ", which does not add up" : ""}` : `the ${poss(S.source[0])} media guide${plus}`;
+  const src = S.counted ? `the ${poss(S.source[0])} media guide${plus}, and a count of the games agrees` : S.status === "confirmed" ? "both teams' media guides agree" : S.status === "differs" ? `the ${poss(S.source[0])} media guide${plus}; the ${poss(S.other.team)} has it ${wl(lead === away ? flip(S.other.overall) : S.other.overall)}${S.other.bad ? ", which does not add up" : ""}` : `the ${poss(S.source[0])} media guide${plus}`;
   const there = S.rec.home && S.rec.home.w + S.rec.home.l >= 10 ? `; the ${nick(home)} are ${wl(S.rec.home)} at home in it` : "";
   // What a line may be built on: both guides agreeing, or one well-backed guide's own print (not a row we corrected).
   const solid = !S.era && (S.status === "confirmed" || (S.status === "single" && !S.weak && !S.adjusted));
@@ -129,7 +184,7 @@ export function seriesTable(series, games, today) {
     const S = seriesNow(series, games, T[i], T[j], today);
     if (!S) continue;
     out.push({ a: T[i], b: T[j], status: S.status, weak: !!S.weak, source: S.source, overall: S.rec.overall, home: S.rec.home || null, road: S.rec.road || null, other: S.other || null, added: S.added,
-      ...(S.era ? { era: S.era } : {}), ...(S.adjusted ? { adjusted: S.adjusted } : {}) });
+      ...(S.era ? { era: S.era } : {}), ...(S.adjusted ? { adjusted: S.adjusted } : {}), ...(S.counted ? { counted: true } : {}) });
   }
   return out;
 }

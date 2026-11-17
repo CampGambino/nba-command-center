@@ -6,8 +6,8 @@
  *
  * Two sources reach behind 2016-17:
  *   older   ESPN's regular-season results, 1993-94 to 2015-16 (src/data/nba-results-older.json.gz), all teams
- *   guide   every game four team media guides list season by season (src/data/guide-games-2026-27.json.gz):
- *           the Lakers from 1948-49, Golden State from 1962-63, Milwaukee from 1968-69, Washington from 1961-62
+ *   guide   every game the team media guides list, by season or against each opponent
+ *           (src/data/guide-games-2026-27.json.gz): four guides in 0.86, twenty-two in 0.87
  *
  * A season is used only if its wins and losses equal the franchise's record (src/data/nba-team-seasons-2026-27.json),
  * from either source, ESPN first. A team's games then start at the earliest season from which every season since is
@@ -51,6 +51,7 @@ export function deepSeqs({ older = null, guide = null, official = null } = {}) {
     const s = seasonOf(d), k = `${d}|${[t, opp].sort().join("|")}`;
     if (!opp || s < first || s >= END || have.has(k)) continue;
     // A day either side is the same game filed under another time zone's date.
+    if (Number.isNaN(Date.parse(d))) continue;          // a misprinted date
     const near = [-1, 1].some((o) => have.has(`${new Date(Date.parse(d) + o * 864e5).toISOString().slice(0, 10)}|${[t, opp].sort().join("|")}`));
     if (near) continue;
     have.add(k);
@@ -58,13 +59,49 @@ export function deepSeqs({ older = null, guide = null, official = null } = {}) {
     if (!!won !== pf > pa) { [pf, pa] = [pa, pf]; if (pf === pa) { if (won) pf++; else pa++; } }
     (((extra[t] ??= {})[s] ??= [])).push({ d, pf, pa, opp }); (((extra[opp] ??= {})[s] ??= [])).push({ d, pf: pa, pa: pf, opp: t });
   }
+  // 0.87: twenty-two guides now print their games, so most games are listed twice, once by each team. A season that
+  // does not add up from one source is built opponent by opponent instead: against each opponent, whichever source
+  // lists the most games is used (ESPN, the team's own guide, or that opponent's guide), which mends a game one guide
+  // left out or a date it misprinted. Like every other route it only counts if the wins and losses come out to the
+  // franchise's record. Teams whose own guide prints no games (New York, Houston, Cleveland, Oklahoma City, Detroit,
+  // Toronto) are built this way from their opponents' lists alone, where those cover every opponent.
+  const mirror = {}; // team -> season -> opponent -> games, as the opponent's guide lists them
+  for (const [t, gs] of Object.entries(guide?.teams || {})) for (const [d, , opp, , won, pf0, pa0] of gs) {
+    const s = seasonOf(d);
+    if (!opp || s >= END) continue;
+    let pf = pf0, pa = pa0;
+    if (!!won !== pf > pa) { [pf, pa] = [pa, pf]; if (pf === pa) { if (won) pf++; else pa++; } }
+    ((((mirror[opp] ??= {})[s] ??= {})[t] ??= [])).push({ d, pf: pa, pa: pf, opp: t });
+  }
+  const byOpp = (gs) => { const o = {}; for (const g of gs) (o[g.opp ?? ""] ??= []).push(g); return o; };
+  // `most`: against each opponent, the source listing the most games. Otherwise the first source in `order` that lists
+  // any (which drops a game one guide filed against the wrong opponent).
+  const merged = (t, s, order, most) => {
+    const [espn = [], own = []] = cand[t]?.[s] || [];
+    const src = { espn: byOpp(espn), own: byOpp(own), other: mirror[t]?.[s] || {} };
+    const out = [];
+    for (const o of new Set(order.flatMap((k) => Object.keys(src[k])))) {
+      if (o === "") { out.push(...(src.own[""] || [])); continue; } // a franchise that no longer exists: only the team's own guide has it
+      let best = [];
+      for (const k of order) if ((src[k][o] || []).length > best.length && (most || !best.length)) best = src[k][o];
+      out.push(...best);
+    }
+    return out;
+  };
+  out.mended = {}; // team -> seasons that only add up when built opponent by opponent
   for (const [t, rows] of Object.entries(official)) {
     const record = Object.fromEntries(rows.map(([s, w, l]) => [s, [w, l]]));
     const seasons = rows.map((r) => r[0]).filter((s) => s < END).sort().reverse(); // newest first
     const good = [];
+    const fits = (gs, s) => gs.length && gs.filter((g) => g.pf > g.pa).length === record[s][0] && gs.filter((g) => g.pf < g.pa).length === record[s][1] && gs.length === record[s][0] + record[s][1];
     for (const s of seasons) {
       const [espn = [], own = []] = cand[t]?.[s] || [];
-      const pick = [espn, own, extra[t]?.[s] ? [...espn, ...extra[t][s]] : []].find((gs) => gs.length && gs.filter((g) => g.pf > g.pa).length === record[s][0] && gs.filter((g) => g.pf < g.pa).length === record[s][1] && gs.length === record[s][0] + record[s][1]);
+      let pick = [espn, own, extra[t]?.[s] ? [...espn, ...extra[t][s]] : []].find((gs) => fits(gs, s));
+      if (!pick) {
+        const orders = [["espn", "own", "other"], ["espn", "other", "own"], ["own", "other", "espn"], ["other", "own", "espn"]];
+        pick = [...orders.map((o) => [o, true]), ...orders.map((o) => [o, false])].map(([o, most]) => merged(t, s, o, most)).find((gs) => fits(gs, s));
+        if (pick) (out.mended[t] ??= []).push(s);
+      }
       if (!pick) break;
       good.push([s, pick]);
     }

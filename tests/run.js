@@ -3987,14 +3987,34 @@ await articlesChecks(ok);
     && /since 2014-15/.test(t0(S1, /^AAA has held opponents under 95/) || ""),
     "streak watch (0.86; the user, 11/17: \"these can be more accurate now\"): with the deeper games a streak is measured against the team's own window (\"since at least 2014-15\") and finds the earlier one where there is one (a run that began in the older games); counts across the league use the shared window; without them nothing changes",
     JSON.stringify([S0.map((l) => l.text), S1.map((l) => l.text)]));
+  // 0.87: a season built opponent by opponent. EEE's own guide lists 3 of its 4 games in 2012-13 (it left out one
+  // against FFF, which FFF's guide has) and files a fourth against GGG that GGG's guide does not have and the record
+  // has no room for. HHH prints no games at all: its 2012-13 is its opponents' lists (FFF's and GGG's).
+  {
+    const off = { EEE: [["2012-13", 2, 2]], FFF: [["2012-13", 3, 1]], GGG: [["2012-13", 1, 1]], HHH: [["2012-13", 1, 2]], III: [["2012-13", 2, 1]] };
+    const g2 = { teams: {
+      EEE: [["2012-11-01", "Eff", "FFF", "H", 1, 100, 90], ["2012-11-05", "Gee", "GGG", "H", 1, 100, 90], ["2012-11-09", "Gee", "GGG", "A", 0, 90, 100], ["2012-11-12", "Gee", "GGG", "A", 1, 99, 98]],
+      FFF: [["2012-11-01", "Eee", "EEE", "A", 0, 90, 100], ["2012-11-03", "Eee", "EEE", "H", 1, 100, 90], ["2012-11-20", "Aitch", "HHH", "H", 1, 100, 90], ["2012-11-22", "Aitch", "HHH", "A", 1, 100, 90]],
+      GGG: [["2012-11-05", "Eee", "EEE", "A", 0, 90, 100], ["2012-11-09", "Eee", "EEE", "H", 1, 100, 90], ["2012-11-25", "Aitch", "HHH", "H", 0, 90, 100]],
+      III: [["2012-11-02", "Jay", null, "H", 1, 100, 90], ["2012-11-04", "Jay", null, "H", 1, 100, 90]] } };   // III: a game short and nobody else lists it
+    const DM = deepSeqs({ older: { games: [] }, guide: g2, official: off });
+    ok(DM.from.EEE === "2012-13" && DM.seq.EEE.length === 4 && DM.seq.EEE.filter((g) => g.pf > g.pa).length === 2 && !DM.seq.EEE.some((g) => g.d === "2012-11-12") && DM.seq.EEE.some((g) => g.d === "2012-11-03" && g.opp === "FFF" && g.pf === 90)
+      && DM.mended.EEE.join() === "2012-13" && DM.from.FFF === "2012-13" && !DM.mended.FFF && DM.from.HHH === "2012-13" && DM.seq.HHH.map((g) => `${g.d.slice(5)}${g.pf > g.pa ? "W" : "L"}${g.opp}`).join(" ") === "11-20LFFF 11-22LFFF 11-25WGGG"
+      && DM.mended.HHH.join() === "2012-13" && DM.from.III === "2016-17" && !DM.seq.III,
+      "deep history (0.87): a season that does not add up from one source is built opponent by opponent, from whichever list has that opponent's games (a game the team's own guide left out comes from the opponent's guide; one it filed against the wrong team goes); a team whose guide prints no games is built from its opponents' lists; a season that still does not come to the franchise's record is not used",
+      JSON.stringify([DM.from, DM.mended, DM.seq.EEE, DM.seq.HHH]));
+  }
   // The real files: how far each team goes.
   const zl = await import("node:zlib");
   const gzr = (f) => JSON.parse(zl.gunzipSync(fs.readFileSync(path.join(root, "src", "data", f))));
   const OLD = gzr("nba-results-older.json.gz");
   const DR = deepSeqs({ older: OLD, guide: gzr("guide-games-2026-27.json.gz"), official: JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-team-seasons-2026-27.json"), "utf8")).teams });
-  ok(OLD.games.length === 26947 && OLD.complete["1999-00"] === false && Object.values(OLD.complete).filter(Boolean).length === 22 && DR.league === "2000-01" && DR.from.LAL === "1948-49" && DR.whole.LAL && DR.from.GSW === "1962-63" && DR.from.MIL === "1970-71"
-    && DR.from.WAS === "1987-88" && DR.from.SAS === "1993-94" && DR.from.BOS === "2000-01" && DR.whole.NOP && !DR.whole.BOS && DR.seq.LAL[0].d === "1948-11-04",
-    "deep history, the real files: ESPN's 1993-94 to 2015-16 (every season complete but 1999-00); every team from 2000-01, San Antonio and the Clippers from 1993-94, Washington 1987-88, Milwaukee 1970-71, Golden State 1962-63, the Lakers from their first game",
+  const wholeR = Object.keys(DR.whole).filter((t) => DR.whole[t]).sort().join(" ");
+  ok(OLD.games.length === 26947 && OLD.complete["1999-00"] === false && Object.values(OLD.complete).filter(Boolean).length === 22 && DR.league === "1993-94" && DR.from.LAL === "1948-49" && DR.whole.LAL && DR.from.GSW === "1962-63" && DR.from.MIL === "1970-71"
+    && DR.from.SAC === "1948-49" && DR.from.PHI === "1949-50" && DR.from.WAS === "1961-62" && DR.from.UTA === "1974-75" && DR.from.DEN === "1976-77" && DR.from.IND === "1976-77" && DR.from.BKN === "1976-77" && DR.from.DAL === "1980-81"
+    && DR.from.CHI === "1979-80" && DR.from.BOS === "1988-89" && DR.from.ATL === "1989-90" && DR.from.PHX === "1969-70" && DR.from.POR === "1972-73" && DR.from.SAS === "1993-94" && DR.from.NYK === "1993-94" && DR.from.DET === "1993-94"
+    && wholeR === "BKN DAL DEN IND LAL MEM MIN NOP PHI SAC TOR UTA WAS" && !DR.whole.BOS && DR.seq.LAL[0].d === "1948-11-04" && DR.seq.SAC[0].d.startsWith("1948-11") && DR.mended.WAS.length === 3 && DR.seq.NYK.filter((g) => g.d >= "1999-10-01" && g.d < "2000-05-01").length === 82,
+    "deep history, the real files (0.87: twenty-two guides' game lists, was four): every team from 1993-94 (was 2000-01: the games ESPN lacks in 1999-00 are in the guides, Detroit at New York on 4/18/00 in Detroit's list); thirteen franchises whole, among them Sacramento from 1948-49, Philadelphia from 1949-50 and Washington from 1961-62; Utah, Denver, Indiana, Brooklyn and Dallas from their first NBA season; Chicago 1979-80, Boston 1988-89, Atlanta 1989-90",
     JSON.stringify([OLD.games.length, DR.league, DR.from]));
 }
 
@@ -4107,6 +4127,42 @@ await articlesChecks(ok);
     && adjR.length === 73 && adjR.filter((r) => /twice/.test(r.adjusted)).length === 5 && !RS.teams.SAS.ATL.overall.streak && pairsR.every((r) => r.overall && r.overall.w + r.overall.l > 0),
     "series data (0.85): all 30 guides and all 435 pairings, 330 confirmed from both sides; the Lakers' count from their game lists mirrors Boston's printed 169-135; Denver's and the Knicks' rows stopped at 2024-25 and are brought up with our results; the Kings' misprint is marked",
     JSON.stringify([Object.keys(RS.teams).length, pairsR.length, cnt("confirmed"), cnt("differs"), adjR.length, adjR.filter((r) => /twice/.test(r.adjusted)).length, RS.guides.GSW]));
+  // 0.87: a count of the games as a third opinion.
+  {
+    const { countedPairs } = await import("../src/records/series.js");
+    const ser = { through: "2025-26", first: { AAA: 1990, BBB: 1990, CCC: 1990, DDD: 1990, LLL: 1990 }, guides: { AAA: { agree: [9, 10] }, BBB: { agree: [8, 10] }, CCC: { agree: [9, 10] }, DDD: { agree: [9, 10] }, LLL: { agree: [9, 10], lists: true } },
+      teams: { AAA: { BBB: { overall: { w: 12, l: 8 } }, CCC: { overall: { w: 5, l: 5 } }, LLL: { overall: { w: 3, l: 3 } } }, BBB: { AAA: { overall: { w: 9, l: 12 }, home: { w: 6, l: 5 }, road: { w: 3, l: 7 } } }, DDD: { AAA: { overall: { w: 7, l: 2 } } }, LLL: { AAA: { overall: { w: 4, l: 3 } } } } };
+    const P0 = seriesPair(ser, "AAA", "BBB");
+    const withC = (c) => ({ ...ser, counted: c });
+    const mineP = seriesPair(withC({ AAA: { BBB: [{ w: 12, l: 8, by: "AAA" }] } }), "AAA", "BBB"), theirP = seriesPair(withC({ AAA: { BBB: [{ w: 12, l: 9, by: "BBB" }] } }), "AAA", "BBB");
+    const noneP = seriesPair(withC({ AAA: { BBB: [{ w: 13, l: 9, by: "AAA" }] } }), "AAA", "BBB"), bothP = seriesPair(withC({ AAA: { BBB: [{ w: 12, l: 8, by: "AAA" }, { w: 12, l: 9, by: "BBB" }] } }), "AAA", "BBB");
+    const oneP = seriesPair(withC({ AAA: { DDD: [{ w: 2, l: 7, by: "AAA" }] } }), "AAA", "DDD"), selfL = seriesPair(withC({ AAA: { LLL: [{ w: 3, l: 4, by: "LLL" }] } }), "AAA", "LLL"), otherL = seriesPair(withC({ AAA: { LLL: [{ w: 3, l: 4, by: "AAA" }] } }), "AAA", "LLL");
+    ok(P0.status === "differs" && mineP.status === "confirmed" && mineP.counted && mineP.source.join() === "AAA,games" && mineP.rec.overall.w === 12 && mineP.rec.overall.l === 8 && !mineP.other
+      && theirP.status === "confirmed" && theirP.source.join() === "BBB,games" && theirP.rec.overall.w === 12 && theirP.rec.overall.l === 9 && theirP.rec.home.w === 7 && theirP.rec.road.l === 6
+      && noneP.status === "differs" && bothP.status === "differs" && oneP.status === "confirmed" && oneP.source.join() === "DDD,games" && oneP.rec.overall.w === 2
+      && selfL.status === "differs" && otherL.status === "confirmed" && otherL.source.join() === "LLL,games" && otherL.rec.overall.l === 4,
+      "series (0.87): a count of the games settles a pairing only by landing exactly on a printed record: on the one shown (confirmed, that guide and the games), on the other guide's (that one is shown instead, with its home and road splits), on neither or on one each (unchanged); a single guide's record is confirmed the same way; a guide whose record was itself counted from its lists is not confirmed by those same lists, only by the other team's games",
+      JSON.stringify([mineP, theirP, noneP.status, bothP.status, oneP, selfL.status, otherL]));
+    // countedPairs: XXX's games reach its first season, YYY's do not; a Cup final and a later season are left out.
+    const deepT = { seq: { XXX: [{ d: "2010-11-01", pf: 100, pa: 90, opp: "YYY" }, { d: "2011-11-01", pf: 90, pa: 100, opp: "YYY" }, { d: "2011-11-03", pf: 100, pa: 90, opp: "GONE" }], YYY: [{ d: "2015-11-01", pf: 100, pa: 90, opp: "XXX" }] }, from: { XXX: "2010-11", YYY: "2015-16" } };
+    const histT = { columns: ["date", "home", "away", "homeScore", "awayScore", "type"], games: [["2020-01-05", "XXX", "YYY", 110, 100, 2], ["2021-02-05", "YYY", "XXX", 110, 100, 2], ["2023-12-09", "XXX", "YYY", 110, 100, 2], ["2022-04-20", "XXX", "YYY", 110, 100, 3], ["2026-11-01", "XXX", "YYY", 110, 100, 2]] };
+    const CP = countedPairs({ deep: deepT, history: histT, official: { XXX: [["2010-11", 1, 0]], YYY: [["2005-06", 1, 0]] }, through: "2025-26" });
+    ok(JSON.stringify(CP.XXX.YYY) === JSON.stringify([{ w: 2, l: 2, by: "XXX" }]) && JSON.stringify(CP.YYY.XXX) === JSON.stringify([{ w: 2, l: 2, by: "XXX" }]) && Object.keys(countedPairs({})).length === 0,
+      "series (0.87): a pairing is counted from a team's games only if they reach the first season the two could have met (XXX's do, YYY's start too late), with our results since 2016-17 added: regular season only, no Cup final, nothing past the guides' last season",
+      JSON.stringify(CP));
+    // The real files.
+    const zl = await import("node:zlib"); const { deepSeqs } = await import("../src/situations/deepseq.js");
+    const gzr = (f) => JSON.parse(zl.gunzipSync(fs.readFileSync(path.join(root, "src", "data", f))));
+    const offR = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-team-seasons-2026-27.json"), "utf8")).teams;
+    const RS2 = { ...RS, counted: countedPairs({ deep: deepSeqs({ older: gzr("nba-results-older.json.gz"), guide: gzr("guide-games-2026-27.json.gz"), official: offR }), history: JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-results-history.json"), "utf8")), official: offR, through: RS.through }) };
+    const T2 = seriesTable(RS2, [], "2026-10-01"), c2 = (st) => T2.filter((r) => r.status === st).length, uw = T2.find((r) => r.a === "UTA" && r.b === "WAS"), al = T2.find((r) => r.a === "ATL" && r.b === "LAL");
+    const changed = T2.filter((r, i) => r.overall.w !== pairsR[i].overall.w || r.overall.l !== pairsR[i].overall.l).map((r) => r.a + r.b).join();
+    const itC = seriesItems(RS2, [], "UTA", "WAS", "2026-11-17")[0];
+    ok(c2("confirmed") === 382 && c2("differs") === 11 && c2("single") === 42 && T2.filter((r) => r.counted).length === 52 && changed === "UTAWAS" && uw.overall.w === 64 && uw.overall.l === 54 && uw.source.join() === "WAS,games"
+      && al.status === "differs" && RS.guides.LAL.lists && RS.guides.WAS.lists && !RS.guides.UTA.lists && /the Wizards' media guide, and a count of the games agrees/.test(itC.text),
+      "series, the real files (0.87): with the games counted, 382 of 435 pairings are confirmed (330 by both guides, 52 by one guide and the count), 11 still differ (was 35) and 42 rest on one guide (was 70); one record changes, Utah v Washington to Washington's 54-64 (Utah's guide prints 63-54, its own games say 64-54); Atlanta v the Lakers stays open because the Lakers' record is their own lists",
+      JSON.stringify([c2("confirmed"), c2("differs"), c2("single"), T2.filter((r) => r.counted).length, changed, uw, al.status, itC && itC.text]));
+  }
   // Every game four guides list season by season (tools/guide_games.py): each season's wins and losses must be the
   // franchise's own record (the NBA Guide's standings).
   {
@@ -4122,6 +4178,13 @@ await articlesChecks(ok);
       right[t] = `${all.filter((sn) => by[sn] && by[sn].join("-") === TSn[t][sn]).length}/${all.length}/${gs.length}`;
     }
     const lalBos = GGm.teams.LAL.filter((g) => g[2] === "BOS"), first = GGm.teams.LAL[0];
+    const nT = Object.keys(GGm.teams).length, nG = Object.values(GGm.teams).reduce((n, gs) => n + gs.length, 0), part = (t) => right[t].split("/").slice(0, 2).join("/");
+    ok(nT === 23 && nG === 93468 && part("SAC") === "65/78" && part("PHI") === "63/77" && part("DEN") === "33/50" && part("BKN") === "49/50" && part("UTA") === "44/52" && part("MIN") === "27/37"
+      && GGm.teams.SAC[0][0].startsWith("1948-11") && GGm.teams.BOS.some((g) => g[0] === "1969-11-15" && g[2] === "NYK" && g[3] === "A" && g[4] === 0 && g[5] === 98 && g[6] === 113)
+      && GGm.teams.DET.some((g) => g[0].startsWith("1999-") && g[2] === "NYK") && GGm.teams.PHX.some((g) => g[0] === "1968-11-14" && g[2] === "DET" && g[3] === "N")
+      && GGm.teams.IND.every((g) => g[0] < "1976-10-01" || g[2]) && !GGm.teams.NYK && !GGm.teams.HOU && !GGm.teams.CLE,
+      "guide games (0.87): nineteen more guides' games (season pages, or the lists against each opponent in Boston's, Indiana's, Dallas', Orlando's and Detroit's), 23 guides in all; 93,468 games; seasons that add up on their own: Sacramento 65 of 78, Philadelphia 63 of 77, Brooklyn 49 of 50; a third-site game is neutral (Phoenix v Detroit in Tucson, 11/14/68); New York, Houston and Cleveland print none",
+      JSON.stringify([nT, nG, right]));
     ok(right.LAL === "78/78/6168" && right.GSW === "64/64/5164" && right.MIL === "55/58/4603" && right.WAS === "58/65/5246" && lalBos.filter((g) => g[4]).length === 135 && lalBos.length === 304
       && first[0] === "1948-11-04" && first[1] === "Baltimore" && first[2] === null && first[3] === "A" && first[4] === 1 && first[5] === 84 && first[6] === 72
       && GGm.teams.GSW.some((g) => g[0] === "1962-10-27" && g[1] === "Chicago" && g[2] === "WAS" && g[3] === "A") && GGm.teams.MIL.some((g) => g[0] === "1968-10-19" && g[2] === "ATL"),

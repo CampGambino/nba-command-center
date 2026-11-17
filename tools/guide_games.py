@@ -14,6 +14,7 @@ An opponent is printed by its city of that season ("Cincinnati", "St. Louis", "S
 out from the name and the season (FRANCHISE below). A game at a third site ("Boston at Syracuse", "Detroit (Mad.)")
 is neutral.
 """
+import datetime
 import re
 
 MON = {m: i + 1 for i, m in enumerate(["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"])}
@@ -71,12 +72,22 @@ ALIAS = {"philidelphia": "philadelphia", "philadephia": "philadelphia", "phila":
          "kc": "kansas city", "k c": "kansas city", "tri cities": "tri-cities", "st louis": "st. louis", "saint louis": "st. louis", "new orleans oklahoma city": "new orleans oklahoma city",
          "laclippers": "la clippers", "lalakers": "los angeles", "cin": "cincinnati", "san fran": "san francisco", "roch": "rochester", "balt": "baltimore", "clevland": "cleveland", "sd": "san diego", "syr": "syracuse",
          "chi": "chicago", "stlouis": "st. louis", "san anotnio": "san antonio", "bos": "boston", "porltand": "portland", "seatle": "seattle", "philadlephia": "philadelphia", "washingoton": "washington",
-         "minnestoa": "minnesota", "miilwaukee": "milwaukee", "newjersey": "new jersey", "no oklacity": "new orleans oklahoma city", "no okl city": "new orleans oklahoma city", "oklahoma": "oklahoma city", "booklyn": "brooklyn"}
+         "minnestoa": "minnesota", "anderson duffey": "anderson", "rockets": "houston", "st louis hawks": "st. louis", "san": "san antonio", "phl": "philadelphia", "brookyln": "brooklyn", "phoenox": "phoenix", "se attle": "seattle", "n orleans okc": "new orleans oklahoma city", "vsutah": "utah", "no okla cit": "new orleans oklahoma city", "no ok city": "new orleans oklahoma city", "atutah": "utah", "atmemphis": "memphis", "phila": "philadelphia", "det": "detroit", "sea": "seattle", "atl": "atlanta", "mil": "milwaukee", "buf": "buffalo", "phi": "philadelphia", "cle": "cleveland", "hou": "houston", "por": "portland", "phx": "phoenix",
+         "kansas": "kansas city", "golden": "golden state", "no okla": "new orleans oklahoma city", "new yor": "new york", "philadel": "philadelphia", "charlottee": "charlotte", "minneso": "minnesota", "philadelia": "philadelphia", "clevelad": "cleveland",
+         "chiago": "chicago", "oklahaoma city": "oklahoma city", "chicago bulls": "chicago", "new orl": "new orleans", "san ant": "san antonio", "atlanta hawks": "atlanta", "tri city": "tri-cities", "san fran": "san francisco", "balt": "baltimore", "wash": "washington", "charltotte": "charlotte", "miammi": "miami", "detoit": "detroit", "la clipper": "la clippers", "oklahoma cit": "oklahoma city", "nok hornets": "new orleans oklahoma city",
+         "sanantonio": "san antonio", "phoneix": "phoenix", "miani": "miami", "neworleans": "new orleans", "newyork": "new york", "tri city": "tri-cities", "tri": "tri-cities", "cinc": "cincinnati", "chiacgo": "chicago", "kc omaha": "kansas city", "miilwaukee": "milwaukee", "newjersey": "new jersey", "no oklacity": "new orleans oklahoma city", "no okl city": "new orleans oklahoma city", "oklahoma": "oklahoma city", "booklyn": "brooklyn"}
+FRANCHISE["min"] = [(0, 1959, "LAL"), (1989, 9999, "MIN")]
 FRANCHISE["ind"] = [(0, 1952, None), (1976, 9999, "IND")]
 FRANCHISE["new orleans oklahoma city"] = [(0, 9999, "NOP")]
 FRANCHISE["washington"] = [(0, 1950, None), (1973, 9999, "WAS")]          # the Bucks' guide calls the 1973-74 Capital Bullets Washington
 
+CODES = {"ATL", "BOS", "BKN", "CHA", "CHI", "CLE", "DAL", "DEN", "DET", "GSW", "HOU", "IND", "LAC", "LAL", "MEM", "MIA", "MIL", "MIN", "NOP", "NYK", "OKC", "ORL", "PHI", "PHX", "POR", "SAC", "SAS", "TOR", "UTA", "WAS"}
+OLD_CODES = {"NJN": "BKN", "NJ": "BKN", "SEA": "OKC", "VAN": "MEM", "NOH": "NOP", "NOK": "NOP", "NO": "NOP", "WSB": "WAS", "GS": "GSW", "SA": "SAS", "NY": "NYK", "PHO": "PHX", "UTAH": "UTA", "KCK": "SAC", "SDC": "LAC", "CHH": "CHA", "BRK": "BKN", "WSH": "WAS", "NOR": "NOP"}
+
 def franchise(name, season, own):
+    code = name.replace("*", "").strip().upper()
+    if code in CODES and code != own and name.strip().isupper(): return code if not (code == "CHA" and 2002 <= y0(season) <= 2003) else None
+    if code in OLD_CODES and name.strip().isupper() and OLD_CODES[code] != own: return OLD_CODES[code]
     n = norm(name.replace("*", "")); n = ALIAS.get(n, n)
     n = re.sub(r"^(?:the )", "", n)
     if own == "LAL" and n in ("los angeles", "l.a.", "la") and y0(season) >= 1984: return "LAC"
@@ -92,7 +103,7 @@ def opp_site(raw):
     s = re.sub(r"^vs\.?\s+", "", s, flags=re.I)
     road = bool(re.match(r"^(?:at\s+|@\s*)", s, re.I)); s = re.sub(r"^(?:at\s+|@\s*)", "", s, flags=re.I)
     par = re.search(r"\(([^)]*)\)", s); s = re.sub(r"\s*\([^)]*\)", "", s).strip()
-    third = re.match(r"^(.+?)\s+(?:at|@)\s+(.+)$", s, re.I)
+    third = re.match(r"^(.+?)\s*(?:\sat\s+|@\s*)(.+)$", s, re.I)
     if third: return third.group(1).strip(), "N"
     if par and not re.fullmatch(r"\d?\s*OT|OT\d?", par.group(1).strip(), re.I): return s, "N"
     return s, ("A" if road else "H")
@@ -105,12 +116,227 @@ def season_pages(text, head):
         if m: out.append((m.group(1), p))
     return out
 
-def games(tri, text):
+# ---- 0.87: more guides. Each reader walks the guide's season pages and hands every game to row(). ----
+def _pages(text, head, where=1200):
+    """(season, page) for each page whose first `where` characters match `head` (season in group 1, or groups 1 and 2 as "1967"-"1968")."""
+    for p in text.split("\f"):
+        m = re.search(head, p[:where] if where else p)
+        if m: yield m, p
+
+def _mon(x): return MON.get(x[:3].lower())
+
+def read_uta(text, row, full):
+    a = re.compile(r"^\s*(?:\d+\s+)?(\d{1,2})/(\d{1,2})/\d{2}\s+(.+?)\s+([WL])\*{0,3}\s+(\d{2,3})\s*[-–]\s*(\d{2,3})", re.M)
+    b = re.compile(r"^\s*([A-Z][a-z]{2})\s+(\d{1,2})\s+(.+?)\s+([WL])\s+(\d{2,3})\s*[-–]\s*(\d{2,3})", re.M)
+    for p in text.split("\f"):
+        h = re.search(r"(?i)(\d{4})-(\d{2,4}) (?:Utah|New Orleans) Jazz \(\d+-\d+", p) or re.search(r"(?i)(\d{4})-(\d{2,4}) (?:Utah|New Orleans) Jazz\b(?! FINAL| PRESEASON| Roster| IN-SEASON)", p)
+        if not h: continue
+        p = re.split(r"(?i)\n[^\n]*(?:PLAYOFFS|PRESEASON|IN-SEASON TOURNAMENT)\b", p[h.start():])[0]
+        for m in a.finditer(p): row(full(h.group(1), h.group(2)), int(m.group(1)), int(m.group(2)), m.group(3), m.group(4), m.group(5), m.group(6), None)
+        for m in b.finditer(p):
+            if _mon(m.group(1)): row(full(h.group(1), h.group(2)), _mon(m.group(1)), int(m.group(2)), m.group(3), m.group(4), m.group(5), m.group(6), None)
+
+def read_sac(text, row, full):
+    rx = re.compile(r"(?<![\d/])\d{1,2}\s+(?:(\d{1,2})/(\d{1,2})|([A-Z][a-z]{2})\s+(\d{1,2}))\s+(\d{2,3})-(\d{2,3})\*{0,5}\s+(?:[+\-–]?\d+\s+)?(?:\dOT\s+)?([A-Za-z@][^\d\n]*?)\s*([WL])\s+(\d+)-(\d+)")
+    for h, p in _pages(text, r"(\d{4}-\d{2}) (?:ROCHESTER ROYALS|CINCINNATI ROYALS|KANSAS CITY[- /]OMAHA KINGS|KANSAS CITY KINGS|SACRAMENTO KINGS|GAME-BY-GAME)", 600):
+        for line in p.split("\n"):
+            for m in rx.finditer(line):
+                mo, d = (int(m.group(1)), int(m.group(2))) if m.group(1) else (_mon(m.group(3)), int(m.group(4)))
+                if mo: row(h.group(1), mo, d, m.group(7), m.group(8), m.group(5), m.group(6), (m.group(9), m.group(10)))
+
+def read_phi(text, row, full):
+    rx = re.compile(r"(\d{1,2})/(\d{1,2})(?:/\d{2})?\s+([WL])\s+(\d{2,3})\s+(\d{2,3})\s+\*{0,5}((?:at |vs\.? )?[A-Z][A-Za-z.]+(?: [A-Z][A-Za-z.]+){0,2})")
+    for h, p in _pages(text, r"(\d{4})-(\d{2,4}) (?:SEASON STATISTICS|GAME-BY-GAME RESULTS)", 0):
+        for line in p.split("\n"):
+            for m in rx.finditer(line): row(full(h.group(1), h.group(2)), int(m.group(1)), int(m.group(2)), m.group(6), m.group(3), m.group(4), m.group(5), None)
+
+NICK = {"HAWKS": "ATL", "CELTICS": "BOS", "NETS": "BKN", "HORNETS": "CHA", "BOBCATS": "CHA", "BULLS": "CHI", "CAVALIERS": "CLE", "MAVERICKS": "DAL", "NUGGETS": "DEN", "PISTONS": "DET", "WARRIORS": "GSW",
+        "ROCKETS": "HOU", "PACERS": "IND", "CLIPPERS": "LAC", "LAKERS": "LAL", "GRIZZLIES": "MEM", "HEAT": "MIA", "BUCKS": "MIL", "TIMBERWOLVES": "MIN", "PELICANS": "NOP", "KNICKS": "NYK", "THUNDER": "OKC",
+        "MAGIC": "ORL", "76ERS": "PHI", "SIXERS": "PHI", "SUNS": "PHX", "TRAIL BLAZERS": "POR", "BLAZERS": "POR", "KINGS": "SAC", "SPURS": "SAS", "RAPTORS": "TOR", "JAZZ": "UTA", "WIZARDS": "WAS",
+        "KNICKERBOCKERS": "NYK", "PHILADELPHIA": "PHI", "SUPERSONICS": "OKC", "SONICS": "OKC", "BULLETS": "WAS", "BRAVES": "LAC", "ROYALS": "SAC"}
+
+def dated(row, y2, m, d, opp, site, letter, pf, pa, name=""):
+    """A row from an all-time list against one opponent: the printed date carries the year."""
+    y = int(y2); y = y if y > 100 else (1900 + y if y >= 46 else 2000 + y)
+    y0_ = y if int(m) >= 9 else y - 1
+    row(f"{y0_}-{str(y0_ + 1)[2:]}", int(m), int(d), name or opp, letter, pf, pa, None, {"H": "H", "A": "A", "N": "N", "R": "A"}.get(site), opp)
+
+def read_bos(text, row, full):
+    rx = re.compile(r"(\d{1,2})/(\d{1,2})/(\d{2})\*{0,3}\s+([HAN])\s+([WL])\s+(\d{2,3})\s+(\d{2,3})")
+    opp = None
+    for line in text.split("\n"):
+        h = re.search(r"CELTICS VS\. (.+?) (GAME-BY-GAME RESULTS|OPPONENT SERIES)", line)
+        if h: opp = NICK.get(h.group(1).strip()) if h.group(2).startswith("GAME") else None
+        elif re.search(r"PLAYOFF", line): opp = None
+        if opp:
+            for m in rx.finditer(line): dated(row, m.group(3), m.group(1), m.group(2), opp, m.group(4), m.group(5), m.group(6), m.group(7))
+
+DATE = r"(?:(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?|([A-Z][a-z]{2,8})\.?\s*(\d{1,2}))"
+OPP = r"((?:at |vs\.? |@ ?)?[A-Za-z][A-Za-z.'/@ -]*?(?:\s*\([^)]*\))?)"
+SC = r"\*{0,3}(\d{2,3})\s*[-–]\s*(\d{2,3})"
+
+def _md(m, i=1):
+    """(month, day, year or None) from a DATE match whose first group is group i."""
+    if m.group(i): return int(m.group(i)), int(m.group(i + 1)), m.group(i + 2)
+    return _mon(m.group(i + 3)), int(m.group(i + 4)), None
+
+def _by_season(text, head, rows, row, full, where=0, start=None, stop=None, lines=True):
+    """Season pages: `head` names the season; each rx in `rows` is (regex, order) where order maps names to group numbers."""
+    for h, p in _pages(text, head, where):
+        if start and start in p: p = p[p.index(start):]
+        if stop and re.search(stop, p): p = p[:re.search(stop, p).start()]
+        season = full(h.group(1), h.group(2))
+        for rx, g in rows:
+            for m in rx.finditer(p):
+                mo, d, _ = _md(m, g["date"])
+                if not mo: continue
+                row(season, mo, d, m.group(g["opp"]), m.group(g["wl"]) if g.get("wl") else None, m.group(g["pf"]), m.group(g["pa"]), (m.group(g["rec"]), m.group(g["rec"] + 1)) if g.get("rec") else None)
+
+def read_atl(text, row, full):
+    rx = re.compile(DATE + r"\*{0,3}\s+(?:\([#*\dA-Z]+\)\s*)*" + OPP + r"\s+([WL])\s+(\d{2,3})\s+(\d{2,3})\*{0,3}\s+(\d+)-(\d+)")
+    _by_season(text, r"YEARLY RESULTS: (\d{4})\s*-\s*(\d{2,4})", [(rx, {"date": 1, "opp": 6, "wl": 7, "pf": 8, "pa": 9, "rec": 10})], row, full)
+
+def read_bkn(text, row, full):
+    a = re.compile(r"(?m)^\s*" + DATE + r"\s+" + OPP + r"\s+" + SC + r"\*{0,3}(?:\s*\([^)]*\))?\s*([WL])\s+(\d+)-(\d+)")
+    b = re.compile(r"(?m)^\s*" + DATE + r"\s+" + OPP + r"\s+([WL])\s+" + SC)
+    _by_season(text, r"(?i)(\d{4})-(\d{2,4}) SEASON RESULTS", [(a, {"date": 1, "opp": 6, "pf": 7, "pa": 8, "wl": 9, "rec": 10}), (b, {"date": 1, "opp": 6, "wl": 7, "pf": 8, "pa": 9})], row, full)
+
+def read_chi(text, row, full):
+    rx = re.compile(r"(?m)^\s*\d+\s+" + DATE + r"\s+([WL])\s+" + OPP + r"\s+" + SC + r"(?:\s*\([^)]*\))?\*{0,3}\s+(\d+)-(\d+)")
+    _by_season(text, r"(\d{4})/(\d{2,4}) CHICAGO BULLS", [(rx, {"date": 1, "wl": 6, "opp": 7, "pf": 8, "pa": 9, "rec": 10})], row, full)
+
+def read_den(text, row, full):
+    rx = re.compile(r"(?m)^\s*\d+\s+" + DATE + r"\s+" + OPP + r"\s+([WL])\s+" + SC)
+    _by_season(text, r"(\d{4})-(\d{2}) GAME-BY-GAME RESULTS \(\d+-\d+\)", [(rx, {"date": 1, "opp": 6, "wl": 7, "pf": 8, "pa": 9})], row, full)
+
+def read_phx(text, row, full):
+    rx = re.compile(DATE + r"\s+" + OPP + r"\s+[\d,]+\s+" + SC + r"\*{0,3}(?:\s*\([^)]*\))?\s+(\d+)-\s*(\d+)\s+([WL])\b")
+    season = None
+    for p in text.split("\f"):
+        h = re.search(r"(?m)^(?:Review)?\s+(\d{2})-(\d{2})\s*$", p[:1500])
+        if h:
+            y = int(h.group(1)); y = 1900 + y if y >= 46 else 2000 + y; season = f"{y}-{h.group(2)}"; continue
+        if not season or "OPPONENT" not in p[:600]: continue
+        for m in rx.finditer(p):
+            mo, d, _ = _md(m, 1)
+            if mo: row(season, mo, d, m.group(6), m.group(11), m.group(7), m.group(8), (m.group(9), m.group(10)))
+        season = None
+
+def read_por(text, row, full):
+    rx = re.compile(r"(?m)^\s*\d+\.\s+" + DATE + r"\s+(?:\(\w\)\s*)?" + OPP + r"\s+" + SC + r"\*{0,3}(?:\s*\([^)]*\))?\s+([WL])\s+(\d+)-(\d+)")
+    _by_season(text, r"(?m)^\s*(\d{4})-(\d{2,4})\s*$", [(rx, {"date": 1, "opp": 6, "pf": 7, "pa": 8, "wl": 9, "rec": 10})], row, full, where=300)
+
+def read_lac(text, row, full):
+    rx = re.compile(r"(\d{1,2})/(\d{1,2})/(\d{2})\s+" + OPP + r"\s+([WL])\s+" + SC)
+    for h, p in _pages(text, r"\d{4}-\d{2} (?:BUFFALO BRAVES|SAN DIEGO CLIPPERS|LOS ANGELES CLIPPERS|LA CLIPPERS)", 400):
+        for m in rx.finditer(p): dated(row, m.group(3), m.group(1), m.group(2), None, None, m.group(5), m.group(6), m.group(7), m.group(4))
+
+def _nick(name):
+    n = name.strip().upper()
+    for k in sorted(NICK, key=len, reverse=True):
+        if n.endswith(k): return NICK[k]
+    return None
+
+def read_cha(text, row, full, official=None):
+    """Season pages carry no season label of their own. They run backwards from the latest season, so each page takes
+    the next season back whose final record is the one the page's list ends on (or within three games of it)."""
+    rx = re.compile(r"(?m)^\s*\d+\s+" + DATE + r"\s+" + SC + r"\*{0,3}\s+(@?)\s*([A-Z]{2,4})\s+([WL])\s+(\d+)-(\d+)")
+    seasons = sorted(official or {}); j = 0
+    for p in reversed(text.split("\f")):
+        ms = list(rx.finditer(p))
+        if len(ms) < 40: continue
+        last = max(((int(m.group(11)), int(m.group(12))) for m in ms), key=sum)
+        k = next((i for i in range(j, len(seasons)) if abs(official[seasons[i]][0] - last[0]) + abs(official[seasons[i]][1] - last[1]) <= 3), None)
+        if k is None: continue
+        j = k + 1
+        for m in ms:
+            mo, d, _ = _md(m, 1)
+            row(seasons[k], mo, d, m.group(9), m.group(10), m.group(6), m.group(7), (m.group(11), m.group(12)), "A" if m.group(8) else "H")
+
+def read_mia(text, row, full):
+    rx = re.compile(r"(?m)^\s*\d+\.\s+" + DATE + r"\s+" + OPP + r"\s+" + SC + r"\*{0,3}(?:\s*\([^)]*\))?\s+([WL])\s+(\d+)-(\d+)")
+    _by_season(text, r"(\d{4})-(\d{2}) GAME BY GAME", [(rx, {"date": 1, "opp": 6, "pf": 7, "pa": 8, "wl": 9, "rec": 10})], row, full, where=400)
+
+def read_min(text, row, full):
+    rx = re.compile(r"(?<![\d/])\d{1,2}\s+" + DATE + r"\s+" + OPP + r"\s+([WL])\s*" + SC + r"\*{0,3}(?:\s*\([^)]*\))?\s+(\d+)-(\d+)")
+    _by_season(text, r"(?m)^\s*(\d{4})-(\d{2,4})\s*\n\s*DAY-BY-DAY", [(rx, {"date": 1, "opp": 6, "wl": 7, "pf": 8, "pa": 9, "rec": 10})], row, full, where=1500)
+
+def read_mem(text, row, full):
+    rx = re.compile(r"(?m)^\s*" + DATE + r"\s+" + OPP + r"\s+([WL])\s+(\d{2,3})\s+(\d{2,3})(?:\(\d?ot\))?\s+\d+-\d+\s+\d+-\d+\s+(\d+)-(\d+)")
+    season = None
+    for p in text.split("\f"):
+        ms = list(rx.finditer(p))
+        h = re.search(r"(?m)^\s*(\d{4})-(\d{2})\s", p[:1500])
+        if len(ms) >= 40 and season:
+            for m in ms:
+                mo, d, _ = _md(m, 1)
+                if mo: row(season, mo, d, m.group(6), m.group(7), m.group(8), m.group(9), (m.group(10), m.group(11)))
+            season = None
+        elif h: season = f"{h.group(1)}-{h.group(2)}"
+
+def _colmajor(page, rx, gap=14):
+    """Matches on a multi-column page in reading order: down each column, then the next column."""
+    ms = [(i, m) for i, line in enumerate(page.split("\n")) for m in rx.finditer(line)]
+    xs = sorted({m.start() for _, m in ms}); cols = []
+    for x in xs:
+        if not cols or x - cols[-1][-1] > gap: cols.append([x])
+        else: cols[-1].append(x)
+    col = {x: k for k, c in enumerate(cols) for x in c}
+    return sorted(ms, key=lambda im: (col[im[1].start()], im[0]))
+
+def read_ind(text, row, full):
+    rx = re.compile(r"(\*?)\s*(\d{1,2})/(\d{1,2})/(\d{2})\s+([WL])\s+" + SC + r"|(PLAYOFFS)")
+    for p in text.split("\f"):
+        ls = [l.strip() for l in p.split("\n") if l.strip()]
+        if len(ls) < 3 or ls[0] != "OPPONENTS" or "SERIES RESULTS" not in p[:1500]: continue
+        opp = _nick(ls[1]); live = True
+        for _, m in _colmajor(p, rx):
+            if m.group(8): live = False
+            elif opp and live: dated(row, m.group(4), m.group(2), m.group(3), opp, "H" if m.group(1) else "A", m.group(5), m.group(6), m.group(7))
+
+def read_dal(text, row, full):
+    rx = re.compile(r"(\d{1,2})/(\d{1,2})/(\d{2,4})\s+([A-Z]{2,4})\s+([WL])\s+" + SC)
+    opp = None
+    for line in text.split("\n"):
+        h = re.search(r"MAVERICKS VS\. (.+?) OPPONENT SERIES", line)
+        if h: opp = NICK.get(h.group(1).strip())
+        elif re.search(r"PLAYOFF (?:SERIES|RESULTS|HISTORY)", line): opp = None
+        if opp:
+            for m in rx.finditer(line): dated(row, m.group(3), m.group(1), m.group(2), opp, "H" if m.group(4) == "DAL" else "A", m.group(5), m.group(6), m.group(7))
+
+def read_det(text, row, full):
+    """Detroit lists its games against each opponent since 1996-97 only."""
+    rx = re.compile(r"(\d{1,2})/(\d{1,2})/(\d{2,4})\s+([A-Z]{2,4})\s+([WL])\s+" + SC)
+    opp = None
+    for line in text.split("\n"):
+        h = re.search(r"PISTONS VS\. (.+?) -- SEASON-BY-SEASON SINCE", line)
+        if h: opp = NICK.get(h.group(1).strip())
+        elif re.search(r"SERIES INFORMATION|PLAYOFF", line): opp = None
+        if opp:
+            for m in rx.finditer(line): dated(row, m.group(3), m.group(1), m.group(2), opp, "H" if m.group(4) == "DET" else "A", m.group(5), m.group(6), m.group(7))
+
+def read_orl(text, row, full):
+    rx = re.compile(r"(\d{1,2})/(\d{1,2})/(\d{2})\s+([A-Z][A-Za-z. ]+?)\s+([WL])\s+" + SC)
+    opp = None
+    for line in text.split("\n"):
+        h = re.search(r"ALL-TIME (PLAYOFF )?SERIES: ORLANDO VS\. (.+)", line)
+        if h: opp = None if h.group(1) else _nick(h.group(2))
+        if opp:
+            for m in rx.finditer(line): dated(row, m.group(3), m.group(1), m.group(2), opp, "H" if m.group(4).strip() == "Orlando" else "A", m.group(5), m.group(6), m.group(7))
+
+READERS = {"DET": read_det, "CHA": read_cha, "MIA": read_mia, "MIN": read_min, "MEM": read_mem, "IND": read_ind, "DAL": read_dal, "ORL": read_orl, "BOS": read_bos, "ATL": read_atl, "BKN": read_bkn, "CHI": read_chi, "DEN": read_den, "PHX": read_phx, "POR": read_por, "LAC": read_lac, "UTA": read_uta, "SAC": read_sac, "PHI": read_phi}
+
+SCORE_FIRST = {"ATL": True}        # guides that print their own score first, where a letter and score that agree outrank a misprinted running record
+
+def games(tri, text, official=None):
     """Rows are read per season page, then settled: the running record printed beside each game says who won."""
     seasons = {}
-    def row(season, month, day, raw, letter, pf, pa, rec):
-        seasons.setdefault(season, []).append({"m": month, "d": day, "raw": raw, "letter": letter, "pf": int(pf), "pa": int(pa), "rec": (int(rec[0]), int(rec[1])) if rec and rec[0] is not None else None})
-    full = lambda a, b: f"{a}-{str(int(a) + 1)[2:]}" if len(b) == 4 else f"{a}-{b}"      # "1999-2000" -> "1999-00"
+    def row(season, month, day, raw, letter, pf, pa, rec, site=None, opp=None):
+        if day > 31: day //= 10          # "11/40 (#)": a footnote digit printed against the day
+        try: datetime.date(2000 if month == 2 and day == 29 else 2001, month, day)
+        except ValueError: return         # a date that does not exist: the row is not used
+        seasons.setdefault(season, []).append({"m": month, "d": day, "raw": raw, "letter": letter, "pf": int(pf), "pa": int(pa), "rec": (int(rec[0]), int(rec[1])) if rec and rec[0] is not None else None, "site": site, "opp": opp})
+    full = lambda a, b=None: f"{a}-{str(int(a) + 1)[2:]}"      # "1999-2000", "1999/20" -> "1999-00": the first year names the season
     if tri == "GSW":
         for p in text.split("\f"):
             h = re.search(r"(\d{4})-(\d{2,4}) GAME-BY-GAME RESULTS", p)
@@ -145,6 +371,8 @@ def games(tri, text):
             for line in p[i:].split("\n"):
                 for m in rx.finditer(line):
                     if m.group(1)[:3].lower() in MON: row(h.group(1), MON[m.group(1)[:3].lower()], int(m.group(2)), m.group(3), m.group(4), m.group(5), m.group(6), (m.group(7), m.group(8)))
+    elif tri in READERS:
+        READERS[tri](text, row, full, official) if tri == "CHA" else READERS[tri](text, row, full)
     out = []
     # A season printed twice under two headings (the Bucks' 1970-71 list also sits under 1969-70): the earlier label is dropped.
     sig = {k: tuple((r["m"], r["d"], r["pf"], r["pa"]) for r in v) for k, v in seasons.items()}
@@ -153,18 +381,22 @@ def games(tri, text):
         if nxt in sig and sig[k] == sig[nxt]: del seasons[k]
     for season, rows in sorted(seasons.items()):
         when = lambda r: ((r["m"] - 8) % 12, r["d"])
+        if rows and rows[0]["opp"]:                     # all-time lists against one opponent: a block printed twice is read once
+            seen = set(); rows[:] = [r for r in rows if not ((k := (r["m"], r["d"], r["opp"], r["pf"], r["pa"])) in seen or seen.add(k))]
         every = all(x["rec"] for x in rows)
         rows.sort(key=(lambda r: (sum(r["rec"]), when(r))) if every else when)
         prev = (0, 0)
         for r in rows:
             won = r["letter"] == "W" if r["letter"] else r["pf"] > r["pa"]
+            agree = r["letter"] and r["pf"] != r["pa"] and (r["pf"] > r["pa"]) == won and SCORE_FIRST.get(tri)     # the letter and an own-score-first score say the same thing
             if r["rec"]:
-                if r["rec"] == (prev[0] + 1, prev[1]): won = True
+                if agree: pass
+                elif r["rec"] == (prev[0] + 1, prev[1]): won = True
                 elif r["rec"] == (prev[0], prev[1] + 1): won = False
                 prev = r["rec"]
             else: prev = (prev[0] + won, prev[1] + (not won))
             nm, site = opp_site(r["raw"])
-            out.append({"season": season, "date": iso(season, r["m"], r["d"]), "name": nm, "opp": franchise(nm, season, tri), "site": site, "won": won, "pf": r["pf"], "pa": r["pa"]})
+            out.append({"season": season, "date": iso(season, r["m"], r["d"]), "name": nm, "opp": r["opp"] or franchise(nm, season, tri), "site": r["site"] or site, "won": won, "pf": r["pf"], "pa": r["pa"]})
     return out
 
 def fill(tri, gs, history, first="2016-17"):
@@ -194,7 +426,7 @@ def tally(gs):
     for g in sorted(gs, key=lambda g: g["date"]):
         if not g["opp"]: continue
         r = out.setdefault(g["opp"], {k: {"w": 0, "l": 0, "streak": 0} for k in ("overall", "home", "road", "neutral")})
-        for k in ("overall", {"H": "home", "A": "road", "N": "neutral"}[g["site"]]):
+        for k in ("overall",) + (({"H": "home", "A": "road", "N": "neutral"}[g["site"]],) if g["site"] in "HAN" else ()):
             x = r[k]; x["w" if g["won"] else "l"] += 1
             x["streak"] = (x["streak"] + 1 if x["streak"] > 0 else 1) if g["won"] else (x["streak"] - 1 if x["streak"] < 0 else -1)
             x["lastW" if g["won"] else "lastL"] = g["date"]

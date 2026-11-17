@@ -13,6 +13,9 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
+// 0.87: the deep history is built for the streak watch and used again for the all-time series further down.
+const deepShared = { deep: null, official: null };
+
 if ((process.env.HTTPS_PROXY || process.env.https_proxy) && !process.env.NODE_USE_ENV_PROXY) {
   const r = spawnSync(process.execPath, ["--no-warnings", ...process.argv.slice(1)], { stdio: "inherit", env: { ...process.env, NODE_USE_ENV_PROXY: "1" } });
   process.exit(r.status ?? 1);
@@ -466,11 +469,13 @@ for (const [tri, games] of Object.entries(perTeam)) {
     let deep = null;
     try {
       const zl = await import("node:zlib"); const { deepSeqs } = await import("../src/situations/deepseq.js");
+      deepShared.official = fs.existsSync(path.join(root, "src", "data", "nba-team-seasons-2026-27.json")) ? JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-team-seasons-2026-27.json"), "utf8")).teams : null;
       const gz = (f) => { const p = path.join(root, "src", "data", f); return fs.existsSync(p) ? JSON.parse(zl.gunzipSync(fs.readFileSync(p))) : null; };
       const sf = path.join(root, "src", "data", "nba-team-seasons-2026-27.json");
       deep = deepSeqs({ older: gz("nba-results-older.json.gz"), guide: gz("guide-games-2026-27.json.gz"), official: fs.existsSync(sf) ? JSON.parse(fs.readFileSync(sf, "utf8")).teams : null });
       const fr = {}; for (const [t, s] of Object.entries(deep.from)) (fr[s] ??= []).push(t);
       console.log(`deep history: every team from ${deep.league}; further back: ${Object.entries(fr).filter(([s]) => s < deep.league).sort().map(([s, ts]) => `${ts.join(", ")} from ${s}`).join("; ") || "none"}`);
+      deepShared.deep = deep;
     } catch (e) { console.error(`deep history not used: ${e.message}`); deep = null; }
     watchLines = streakWatch({ history: fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null, rows, today, deep });
     console.log(`team streak watch: ${watchLines.length} lines`);
@@ -591,11 +596,13 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
     const series = serName ? JSON.parse(fs.readFileSync(path.join(root, "src", "data", serName), "utf8")) : null;
     if (series) {
       try {
-        const { seriesTable } = await import("../src/records/series.js");
+        const { seriesTable, countedPairs } = await import("../src/records/series.js");
+        // 0.87: pairings that can be counted game by game settle some the two guides leave open.
+        if (deepShared.deep && history) series.counted = countedPairs({ deep: deepShared.deep, history, official: deepShared.official, through: series.through });
         const sg = rows.filter((g) => !g.cupFinal && g.hs > 0 && g.as > 0).map((g) => ({ d: g.d, home: g.h, away: g.a, hs: g.hs, as: g.as, neutral: !!g.n }));
         const table = seriesTable(series, sg, today);
         fs.writeFileSync(path.join(root, "docs", "data", "series.json"), JSON.stringify({ generatedAt: out.generatedAt, through, guidesThrough: series.through, guides: series.guides, pairs: table }));
-        console.log(`series: ${table.length} of 435 pairings from ${Object.keys(series.guides || {}).length} team guides (${table.filter((r) => r.status === "confirmed").length} confirmed by both guides, ${table.filter((r) => r.status === "differs").length} where they differ)`);
+        console.log(`series: ${table.length} of 435 pairings from ${Object.keys(series.guides || {}).length} team guides (${table.filter((r) => r.status === "confirmed" && !r.counted).length} confirmed by both guides, ${table.filter((r) => r.counted).length} by one guide and a count of the games, ${table.filter((r) => r.status === "differs").length} where they differ)`);
       } catch (e) { console.error(`series not written: ${e.message}`); }
     }
     const m = matchups({ history, logs, teamFiles, tonight, today, series });

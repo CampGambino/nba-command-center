@@ -2,6 +2,51 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.87.0 (2026-11-17): the other guides' game lists: 23 guides, 93,468 games; all-time series settled by counting
+
+The user (11/17, 9:12 AM): "what can be updated or elevated without connection to the computer?" I offered the remaining guides' game lists, "since they improve the streak and start lines and the all-time series together". The user (9:19 AM): "please start there".
+
+### What the guides print
+- **Nineteen more guides are read** (`tools/guide_games.py`), on top of the Lakers, Warriors, Bucks and Wizards from 0.85: 93,468 regular-season games in 23 guides (was 21,181 in four).
+  - A page of results for each season: Atlanta (from 1968-69), Brooklyn (1976-77), Charlotte (1988-89), Chicago (1979-80), Denver (1976-77), the Clippers (1970-71), Memphis, Miami, Minnesota, Philadelphia (1949-50), Phoenix (1968-69), Portland (1970-71), Sacramento (1948-49), Utah (1974-75).
+  - A list against each opponent instead: Boston (the lists start between 1957 and 1970 depending on the opponent), Dallas, Indiana, Orlando, and Detroit (since 1996-97 only).
+- **Not read:** New York, Houston and Oklahoma City print no regular-season game lists in the text. Cleveland's are picture pages. San Antonio's start in 2004-05, Toronto's and New Orleans' cover years ESPN already has.
+- Every season read is checked against the franchise's record (the NBA Guide's standings). Seasons that add up on their own: Sacramento 65 of 78, Philadelphia 63 of 77, Brooklyn 49 of 50, Utah 44 of 52, Atlanta 42 of 58, Chicago 41 of 47, the Clippers 43 of 56, Phoenix 38 of 58, Portland 38 of 56, Denver 33 of 50, Dallas 28 of 46, Indiana 28 of 50, Boston 24 of 69. Most misses are one game: a row the guide left out, or a misprint.
+- **Two guides, one game.** Of 28,733 games before 2016-17 listed by a guide whose opponent also prints lists, 27,264 are in both lists. The winner is the same in 27,235 of them and the score in 26,979.
+- Charlotte's season pages carry no season label: they run backwards from the latest, and each is matched to the season whose final record its list ends on.
+
+### Team streaks and starts: further back again
+- **A season that does not add up from one source is now built opponent by opponent** (`src/situations/deepseq.js`): against each opponent, the games come from whichever of ESPN, the team's own guide or that opponent's guide lists them. This mends a game one guide left out and drops one it filed against the wrong team. It counts only if the wins and losses come to the franchise's record. 30 seasons are mended this way.
+- A team whose guide prints nothing is built from its opponents' lists where they cover every opponent. That is what fixes 1999-00, the season ESPN is 23 games short: every one of those games is in at least one guide's list (Detroit at New York on 4/18/00, which neither team's season pages print, is in Detroit's list against the Knicks).
+- **How far each team now goes** (0.86 in brackets):
+  - To the franchise's first season: Sacramento 1948-49 (2000-01), Philadelphia 1949-50 (2000-01), Washington 1961-62 (1987-88), Utah 1974-75, Brooklyn, Denver and Indiana 1976-77, Dallas 1980-81, Minnesota 1989-90, Memphis and Toronto 1995-96 (all 2000-01); the Lakers and New Orleans as before.
+  - Part of the way: Phoenix 1969-70, Portland 1972-73, Chicago 1979-80, Boston 1988-89, Atlanta and Charlotte 1989-90, Miami 1991-92, the Clippers and Orlando 1992-93 (all 2000-01 or 1993-94 before); Golden State 1962-63 and Milwaukee 1970-71 unchanged.
+  - 1993-94 (ESPN's first season): Cleveland, Detroit, Houston, New York, Oklahoma City, San Antonio.
+- **Counts across the league now start in 1993-94** (was 2000-01). On 11/17: "WAS has allowed 135+ in 3 straight: 11 other teams since 1993-94; only DAL 2025-26, NOP 2026-27 went 4+".
+- A start line now finds older seasons: "SAC is 1-12: its worst start through 13 games since 1990-91 (1-12)".
+
+### All-time series: counting the games as a third opinion
+- Where the two guides print different records, or only one prints one, the pairing is now counted game by game where it can be (`countedPairs` in `src/records/series.js`): a team's validated seasons before 2016-17 plus our results since, used only if that team's games reach the first season the two could have met.
+- A count settles a pairing only by landing exactly on a printed record. On the one shown: confirmed. On the other guide's: that record is shown instead. On neither: nothing changes.
+- **Result: 382 of 435 pairings confirmed** (330 by both guides, 52 by one guide and the count). **11 still differ (was 35)** and 42 rest on one guide alone (was 70). In 39 of the 52 the count comes from the other team's games; in 13 from the same guide's own list.
+- One record changes: Utah v Washington is 64-54 (Utah's table prints 63-54; Utah's own game list and Washington's both say 64-54).
+- The four guides whose record was itself counted from their lists (Lakers, Warriors, Bucks, Wizards) are not confirmed by those same lists, only by the other team's games.
+- A line built on such a pairing says so: "the Timberwolves' media guide, and a count of the games agrees". The lookup table's Basis column says the same.
+- Still differing: ATL-BOS, ATL-DEN, ATL-DET, ATL-LAL, CHI-DET, CHI-WAS, DET-GSW, DET-HOU, LAL-SAC, MEM-UTA, MIL-WAS.
+
+### Tested
+- 941 checks (was 936). New: a made-up league where one guide leaves a game out, files one against the wrong team, and one team prints nothing; the count as a third opinion in each of its outcomes; what a count may use (regular season, no Cup final, nothing past the guides' last season); the real files (each team's reach, 382/11/42, the Utah v Washington record, the games file).
+- A full local build and the page check ("all pages OK").
+
+### Unproven
+- A mended season is checked by its wins and losses only. Two errors that cancel out would pass.
+- Where the reach stops, the guide's text is a game short against a team with no list of its own (Atlanta 1988-89 has 81 rows; the same in Boston 1987-88, Charlotte 1988-89, the Clippers 1991-92, Miami 1990-91, Orlando 1991-92, Phoenix 1968-69, Portland 1971-72). Cleveland's picture pages (230-296) may hold what is missing: they need the PDF from the PC.
+- Chicago's guide has no game lists before 1979-80, Boston's none before the late 1950s, and New York, Houston, Oklahoma City, Detroit (before 1996) and San Antonio (before 2004) none at all.
+- Portland's guide prints 1996-97 under the heading 1997-98 and has no 1997-98 list.
+- A count that lands on a printed record from the same guide's own list shows the guide agrees with itself; it is weaker than the 39 backed by the other team's games.
+- Home, road and neutral in the new lists are read but not used for anything yet.
+- `src/data/guide-games-2026-27.json.gz` is 705 KB (was 160 KB).
+
 ## 0.86.0 (2026-11-17): streaks and starts measured against 26 to 78 seasons; a line about another James
 
 The user (11/17, 1:37 AM), on the Lakers' notes card ("New: Bronny James · Sion James is 37 steals away from 100 career steals", "New: Ziaire Williams · Grant Williams is 2 points away from 3,000 career points"): "I think the wires got crossed because of the last names". And on the streak and start lines ending "since at least 2016-17": "I think these can be more accurate now that the full season game-by-game records are mostly known".

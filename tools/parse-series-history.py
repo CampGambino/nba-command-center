@@ -346,11 +346,21 @@ def main():
     seasons_file = os.path.join(os.path.dirname(sys.argv[3]), "nba-team-seasons-2026-27.json") if len(sys.argv) > 3 else None
     official = {t: {s: (w, l) for s, w, l in rows} for t, rows in json.load(open(seasons_file))["teams"].items()} if seasons_file and os.path.exists(seasons_file) else {}
     eye = json.load(open(os.path.join(here, "series-read-by-eye.json")))
-    lists = {}
+    lists = {}; listed = {}
     for f in sorted(glob.glob(os.path.join(d, "*.txt"))):
         name = os.path.basename(f)[8:-16]; tri = FILE.get(name)
         if not tri: print("?", name); continue
         text = open(f, encoding="utf8", errors="replace").read()
+        if tri in GG.READERS:
+            # 0.87: these guides also print their games (by season, or against each opponent). The tables above stay the
+            # record for the all-time series; the games go to the file below, for streaks and starts.
+            gs = GG.games(tri, text, official.get(tri))
+            by = {}
+            for g in gs:
+                x = by.setdefault(g["season"], [0, 0]); x[0 if g["won"] else 1] += 1
+            right = [s for s, wl in official.get(tri, {}).items() if tuple(by.get(s, (0, 0))) == wl]
+            listed[tri] = gs
+            print(f"{tri} game lists: {len(gs)} games in {len(by)} seasons from {min(by)}; {len(right)} seasons add up to the franchise's record on their own")
         if tri in LISTS:
             gs = GG.games(tri, text)
             filled = GG.fill(tri, gs, hist) if hist else []
@@ -470,10 +480,11 @@ def main():
         # Every game the four guides list, kept for counting anything else later: [date, opponent as printed, franchise, H|A|N, won, for, against].
         import gzip
         with gzip.open(sys.argv[4], "wt", encoding="utf8") as fh:
-            json.dump({"note": "Regular-season games as four team media guides list them season by season (tools/guide_games.py). Seasons marked from our results are ESPN's.",
+            lists = {**listed, **lists}
+            json.dump({"note": "Regular-season games as the team media guides list them, season by season or against each opponent (tools/guide_games.py). Seasons marked from our results are ESPN's.",
                        "columns": ["date", "name", "opp", "site", "won", "pf", "pa"],
                        "teams": {t: [[g["date"], g["name"], g["opp"], g["site"], 1 if g["won"] else 0, g["pf"], g["pa"]] for g in sorted(gs, key=lambda g: g["date"])] for t, gs in lists.items()}}, fh, separators=(",", ":"))
     if len(sys.argv) > 2:
         json.dump({"through": "2025-26", "source": "team media guides for 2026-27 (regular season), read by tools/parse-series-history.py",
-                   "first": FIRST, "guides": {t: {"agree": agree.get(t, [0, 0]), **({"note": NOTE[t]} if t in NOTE else {}), **({"era": ERA[t]} if t in ERA else {}), **({"short": SHORT[t]} if t in SHORT else {})} for t in sorted(res)}, "teams": res}, open(sys.argv[2], "w"), separators=(",", ":"))
+                   "first": FIRST, "guides": {t: {"agree": agree.get(t, [0, 0]), **({"note": NOTE[t]} if t in NOTE else {}), **({"era": ERA[t]} if t in ERA else {}), **({"short": SHORT[t]} if t in SHORT else {}), **({"lists": True} if t in LISTS else {})} for t in sorted(res)}, "teams": res}, open(sys.argv[2], "w"), separators=(",", ":"))
 main()
