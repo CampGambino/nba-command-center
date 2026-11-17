@@ -137,6 +137,8 @@ def scan(streams, state, marker, heading_like, out, prep=None, on_stream=None):
                 if not lab and state.get("label_after") and i + 1 < len(lines) and LABEL.fullmatch(lines[i + 1]): state["period"] = period_of(lines[i + 1])
             elif lab: state["value"] = None; continue      # "Game 1.000 ...": a percentage or a total, not a count
             d = DATED.search(rest)
+            if d and not v and not lab and re.search(r"(?:^|\s{2,})[+\-]?\d{1,3}[*#]?\s{2,}\S", rest[:d.start()]):
+                state["value"] = None; continue             # 0.99: "West Coast  162  Golden State at Denver", "Most, 0 Missed  28  LAL": a row of its own, not a tie
             if not d or state["value"] is None or not (state["side"] and state["kind"] and state["stat"] and state["period"]): continue
             out.append({"side": state["side"], "stat": state["stat"], "kind": state["kind"], "period": state["period"], "value": state["value"],
                         "opp": re.sub(r"^(?:\(\d+\)\s*)?(?:(?:Several|\w+|\d+x?) times[.,;:]?\s*)?(?:(?:Most recent(?:ly)?|last|MR)[:,]?\s*)?", "", rest[:d.start()].strip(" ,;("), flags=re.I).strip(" ,;"), "date": iso2(d.group(1))})
@@ -231,11 +233,12 @@ def read_mil(pages):
     def marker(l, s):
         m = re.match(r"^(Most|Fewest)(?:, (Half|Quarter))?\s+(?=\d)", l)
         if m: s["kind"] = m.group(1).lower(); return f"{m.group(2) or 'Game'} {l[m.end():]}"
-        if re.match(r"^(Highest|Lowest|Best|Worst)\b", l): s["period"] = s["value"] = None; return ""
+        if re.match(r"^(Highest|Lowest|Best|Worst|Most, 0|Most DQs)\b", l): s["period"] = s["value"] = None; return ""
         return None
     for p in pages:
         if not re.search(r"^\s*TEAM RECORDS\s*\n\s*BUCKS\s+OPPONENTS", p): continue
         state = {"side": None, "kind": None, "stat": None, "period": None, "value": None}
+        p = re.sub(r"\b(\d\d)/(\d\d)(\d\d)\b", r"\1/\2/\3", p)          # "04/0924": a slash is missing (4/9/24, as on the rows around it)
         scan(columns(p, re.compile(r"(?<=\s{3})(?:Most|Fewest)\b")), state, marker, UPPER, out, on_stream=lambda i, s: s.update(side="team" if i == 0 else "opp", stat=None, period=None, value=None))
     return out
 
@@ -603,7 +606,8 @@ READERS = {
 }
 
 _vf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "team-records-verified.json")
-VERIFIED = json.load(open(_vf))["marks"] if os.path.exists(_vf) else {}
+_V = json.load(open(_vf)) if os.path.exists(_vf) else {}
+VERIFIED, REDATE, DROP, REVALUE = _V.get("marks", {}), _V.get("redate", {}), _V.get("drop", {}), _V.get("revalue", {})
 
 def main():
     d = sys.argv[1]; teams = {}
@@ -615,6 +619,18 @@ def main():
         for v in VERIFIED.get(tri, []):
             k = (v["side"], v["stat"], v["kind"], v["period"]); checked[k] = v["by"]
             rows = [r for r in rows if not ((r.get("side", "team"), r["stat"], r["kind"], r["period"]) == k and r["date"] == v["date"] and r["value"] != v["value"])]
+        # 0.99: looked up in ESPN's box scores (tools/check-team-marks.mjs): a wrong date, a game that is not this mark, a wrong number
+        K = lambda r: (r.get("side", "team"), r["stat"], r["kind"], r["period"]); KV = lambda v: (v["side"], v["stat"], v["kind"], v["period"]); used = 0
+        for v in REDATE.get(tri, []):
+            for r in rows:
+                if K(r) == KV(v) and r["date"] == v["from"]: r["date"] = v["to"]; r["fixed"] = v["by"]; used += 1
+        for v in DROP.get(tri, []):
+            n = len(rows); rows = [r for r in rows if not (K(r) == KV(v) and r["date"] == v["date"])]; used += n - len(rows)
+        for v in REVALUE.get(tri, []):
+            for r in rows:
+                if K(r) == KV(v) and r["date"] == v["date"]: r["value"] = v["value"]; r["fixed"] = v["by"]; used += 1
+        want = len(REDATE.get(tri, [])) + len(DROP.get(tri, [])) + len(REVALUE.get(tri, []))
+        if used < want: print(f"   {tri}: {want - used} correction(s) in team-records-verified.json found no row")
         if os.environ.get("SHOW") == tri:
             for r in rows: print("   ", r.get("side", "team"), r["kind"], r["stat"], r["period"], r["value"], "|", r["opp"], "|", r["date"])
         # The mark for a stat and period is the highest (or lowest) value printed; ties share it.

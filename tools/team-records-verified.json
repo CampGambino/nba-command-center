@@ -1,9 +1,308 @@
 {
- "note": "Team marks a guide prints two ways, looked up in an outside source. The row with the other value is dropped and the mark says who checked it.",
+ "note": "Team marks a guide prints two ways, looked up in an outside source. The row with the other value is dropped and the mark says who checked it. 0.99: `redate` is a game the guide prints under a wrong date (the right one found in ESPN's box scores); `drop` is a printed game that is not this mark (the box score has the number on the other side, or the guide marks it as a playoff game); `revalue` is a number another guide and the box score both correct.",
  "marks": {
   "BOS": [
-   {"side": "team", "stat": "fgm", "kind": "most", "period": "game", "date": "1959-02-27", "value": 72, "by": "Basketball Reference's box score (the user's screenshot, 11/17/26): 72 field goals in the 173-139 win over Minneapolis; p. 198's 77 is a misprint"},
-   {"side": "team", "stat": "fta", "kind": "most", "period": "game", "date": "1954-11-28", "value": 65, "by": "Basketball Reference's box score: 56 of 65 free throws at Minneapolis; p. 198's 66 is a misprint"}
+   {
+    "side": "team",
+    "stat": "fgm",
+    "kind": "most",
+    "period": "game",
+    "date": "1959-02-27",
+    "value": 72,
+    "by": "Basketball Reference's box score (the user's screenshot, 11/17/26): 72 field goals in the 173-139 win over Minneapolis; p. 198's 77 is a misprint"
+   },
+   {
+    "side": "team",
+    "stat": "fta",
+    "kind": "most",
+    "period": "game",
+    "date": "1954-11-28",
+    "value": 65,
+    "by": "Basketball Reference's box score: 56 of 65 free throws at Minneapolis; p. 198's 66 is a misprint"
+   }
+  ]
+ },
+ "redate": {
+  "BOS": [
+   {
+    "side": "opp",
+    "stat": "tov",
+    "kind": "fewest",
+    "period": "game",
+    "from": "2024-04-02",
+    "to": "2025-04-02",
+    "by": "Boston did not play on 4/2/24; Miami was in Boston on 4/2/25 (ESPN's box score: 5 turnovers, a team turnover included)"
+   },
+   {
+    "side": "opp",
+    "stat": "tov",
+    "kind": "fewest",
+    "period": "game",
+    "from": "2024-03-29",
+    "to": "2025-03-29",
+    "by": "Boston was in Atlanta on 3/28/24; it played at San Antonio on 3/29/25 (ESPN's box score: 5, a team turnover included)"
+   },
+   {
+    "side": "opp",
+    "stat": "tov",
+    "kind": "fewest",
+    "period": "game",
+    "from": "2024-02-10",
+    "to": "2025-02-10",
+    "by": "Boston played at Miami on 2/10/25 (ESPN's box score: Miami 4 turnovers), not 2/10/24"
+   }
+  ],
+  "NYK": [
+   {
+    "side": "opp",
+    "stat": "fg3m",
+    "kind": "most",
+    "period": "game",
+    "from": "2024-11-22",
+    "to": "2024-10-22",
+    "by": "the Knicks were not in Boston on 11/22/24; ESPN's box score for 10/22/24 has Boston's 29 threes"
+   }
+  ],
+  "POR": [
+   {
+    "side": "opp",
+    "stat": "fg3m",
+    "kind": "most",
+    "period": "game",
+    "from": "2025-12-24",
+    "to": "2025-12-14",
+    "by": "no games were played on 12/24/25; ESPN's box score for 12/14/25 has Golden State's 24 threes in Portland"
+   }
+  ],
+  "ATL": [
+   {
+    "side": "opp",
+    "stat": "fg3a",
+    "kind": "most",
+    "period": "game",
+    "from": "2021-06-16",
+    "to": "2021-05-16",
+    "by": "ESPN's box score for 5/16/21 has Houston's 63 attempts in Atlanta (the guide's own arena page has 5/16/2021)"
+   }
+  ],
+  "PHX": [
+   {
+    "side": "opp",
+    "stat": "fg3a",
+    "kind": "most",
+    "period": "game",
+    "from": "2019-04-17",
+    "to": "2019-04-07",
+    "by": "ESPN's box score for 4/7/19 has Houston's 57 attempts against Phoenix"
+   }
+  ],
+  "MIN": [
+   {
+    "side": "team",
+    "stat": "ast",
+    "kind": "fewest",
+    "period": "game",
+    "from": "1996-12-10",
+    "to": "1996-11-10",
+    "by": "Minnesota was home to Houston on 12/10/96; ESPN's box score for 11/10/96 at the Clippers has its 6 assists"
+   }
+  ],
+  "HOU": [
+   {
+    "side": "opp",
+    "stat": "ast",
+    "kind": "fewest",
+    "period": "game",
+    "from": "2003-12-29",
+    "to": "2002-12-29",
+    "by": "ESPN's box score for 12/29/02 has New Orleans' 7 assists in Houston (14 on 12/29/03)"
+   },
+   {
+    "side": "team",
+    "stat": "pf",
+    "kind": "fewest",
+    "period": "game",
+    "from": "2003-12-01",
+    "to": "2002-12-01",
+    "by": "Houston did not play on 12/1/03; ESPN's box score for 12/1/02 at Sacramento has its 7 fouls"
+   },
+   {
+    "side": "team",
+    "stat": "blk",
+    "kind": "fewest",
+    "period": "game",
+    "from": "2025-03-05",
+    "to": "2025-03-04",
+    "by": "Houston played at Indiana on 3/4/25"
+   }
+  ],
+  "GSW": [
+   {
+    "side": "team",
+    "stat": "ast",
+    "kind": "most",
+    "period": "game",
+    "from": "2026-04-09",
+    "to": "2023-04-09",
+    "by": "Golden State was home to the Lakers on 4/9/26; ESPN's box score for 4/9/23 at Portland (157-101) has its 47 assists"
+   }
+  ],
+  "MEM": [
+   {
+    "side": "opp",
+    "stat": "fg3a",
+    "kind": "fewest",
+    "period": "game",
+    "from": "1995-02-05",
+    "to": "1995-12-05",
+    "by": "the franchise first played in November 1995; ESPN's box score for 12/5/95 has Phoenix's 1 attempt"
+   }
+  ],
+  "SAS": [
+   {
+    "side": "opp",
+    "stat": "oreb",
+    "kind": "fewest",
+    "period": "game",
+    "from": "2022-02-26",
+    "to": "2022-10-26",
+    "by": "San Antonio was in Miami on 2/26/22; ESPN's box score for 10/26/22 at Minnesota has the Timberwolves without an offensive rebound"
+   }
+  ]
+ },
+ "drop": {
+  "BOS": [
+   {
+    "side": "team",
+    "stat": "fg3m",
+    "kind": "fewest",
+    "period": "game",
+    "date": "2003-02-11",
+    "by": "ESPN's box score: Boston made 7; it was Seattle that made none (0-12)"
+   },
+   {
+    "side": "team",
+    "stat": "fg3m",
+    "kind": "fewest",
+    "period": "game",
+    "date": "2003-01-15",
+    "by": "ESPN's box score: Boston made 7; it was Atlanta that made none (0-9)"
+   },
+   {
+    "side": "opp",
+    "stat": "fg3a",
+    "kind": "fewest",
+    "period": "game",
+    "date": "2001-11-24",
+    "by": "ESPN's box score: Washington attempted 8 and made none; the list under 'attempted' is games without a made three"
+   },
+   {
+    "side": "opp",
+    "stat": "fg3a",
+    "kind": "fewest",
+    "period": "game",
+    "date": "1998-04-17",
+    "by": "ESPN's box score: Cleveland attempted 9 and made none; the list under 'attempted' is games without a made three"
+   },
+   {
+    "side": "opp",
+    "stat": "fg3a",
+    "kind": "fewest",
+    "period": "game",
+    "date": "1998-03-27",
+    "by": "ESPN's box score: New Jersey attempted 5 and made none; the list under 'attempted' is games without a made three"
+   },
+   {
+    "side": "opp",
+    "stat": "fg3a",
+    "kind": "fewest",
+    "period": "game",
+    "date": "1998-01-15",
+    "by": "ESPN's box score: Vancouver attempted 7 and made none; the list under 'attempted' is games without a made three"
+   },
+   {
+    "side": "opp",
+    "stat": "fg3a",
+    "kind": "fewest",
+    "period": "game",
+    "date": "1997-12-17",
+    "by": "ESPN's box score: Toronto attempted 5 and made none; the list under 'attempted' is games without a made three"
+   },
+   {
+    "side": "team",
+    "stat": "blk",
+    "kind": "fewest",
+    "period": "game",
+    "date": "2025-02-20",
+    "by": "ESPN's box score: Boston had 6 blocks; Philadelphia had none"
+   },
+   {
+    "side": "team",
+    "stat": "blk",
+    "kind": "fewest",
+    "period": "game",
+    "date": "2023-10-25",
+    "by": "ESPN's box score: Boston had 11 blocks; New York had none"
+   },
+   {
+    "side": "team",
+    "stat": "blk",
+    "kind": "fewest",
+    "period": "game",
+    "date": "2003-04-06",
+    "by": "ESPN's box score: Boston had 6 blocks; Washington had none (the guide lists the same night under opponents too)"
+   },
+   {
+    "side": "team",
+    "stat": "blk",
+    "kind": "fewest",
+    "period": "game",
+    "date": "2003-03-19",
+    "by": "ESPN's box score: Boston had 6 blocks at Indiana"
+   }
+  ],
+  "DAL": [
+   {
+    "side": "team",
+    "stat": "fta",
+    "kind": "fewest",
+    "period": "game",
+    "date": "2021-03-15",
+    "by": "ESPN's box score: Dallas shot 25 free throws; the Clippers shot 5 (3-5)"
+   }
+  ],
+  "ORL": [
+   {
+    "side": "opp",
+    "stat": "blk",
+    "kind": "fewest",
+    "period": "game",
+    "date": "2025-12-27",
+    "by": "ESPN's box score: Denver had 3 blocks; Orlando had none"
+   }
+  ],
+  "POR": [
+   {
+    "side": "team",
+    "stat": "fgm",
+    "kind": "fewest",
+    "period": "game",
+    "date": "1999-06-04",
+    "by": "the guide's own footnote: the 1999 Western Conference Finals, not a regular-season game"
+   }
+  ]
+ },
+ "revalue": {
+  "IND": [
+   {
+    "side": "opp",
+    "stat": "ast",
+    "kind": "fewest",
+    "period": "game",
+    "date": "2012-03-13",
+    "value": 5,
+    "by": "Portland's guide and ESPN's box score both have Portland with 5 assists; Indiana's guide prints 6"
+   }
   ]
  }
 }

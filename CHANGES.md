@@ -37,6 +37,40 @@ A new chat picked up "Next, in order" from the handoff. The PC folder could not 
 ### Unproven
 - The guide-games fixes have not been through a real rebuild (see above). Dallas's 1986-87 becoming usable may change a few deep streak counts; that is expected.
 
+## 0.99.0 (2026-11-17): a second source for the team marks (ESPN's box scores, and one guide against another); 17 guide misprints and two reader faults corrected
+
+"Next, in order", item 1: until now only the points marks were checked. `tools/check-team-marks.mjs` checks every game mark three ways: the date is a game that team played; where two guides print the same night (one team's most, the other's "most by an opponent") they agree; and ESPN's box score for the game has the same number (team totals exist from 1993-94; they are saved once, outside the repo).
+
+### What it found in the readers (mine, since 0.93)
+- **Sub-rows read as ties.** The Warriors' "West Coast 162 … Golden State at Denver" and "Shot Clock Era 64 …" rows, the Bucks' "Most, 0 Missed 28 LAL" and "Most DQs 4 …", two Pistons rows, two Clippers rows and one Mavericks row were attached to the mark above them as a second game. The numbers were right; the game lists were not (29 bogus games). `scan()` now treats a row that carries a label and a number of its own as another row. The Bucks' fewest fouls (4) had been dated by the "Most DQs" row; its own row prints "04/0924" (4/9/24, like the rows around it).
+
+### What it found in the guides (each in `tools/team-records-verified.json` with its source)
+- **Wrong dates, 14 games** (`redate`; the right night found in ESPN's box scores): Boston's three "fewest turnovers by an opponent" games printed /24 for /25; the Knicks' 29 threes allowed "Nov. 22, 2024" (Oct. 22); Portland's 24 threes allowed "12/24/25" (12/14; no games on the 24th); Atlanta's 63 attempts allowed "6/16/21" (5/16); Phoenix's 57 allowed "4/17/19" (4/7); Minnesota's 6 assists "12/10/96" (11/10); Houston's 7 assists allowed "12/29/03" and 7 fouls "12/1/03" (both 2002) and a no-block game a day late; the Warriors' 47 assists "4/9/26" (4/9/23, the 157-101 game in Portland); Memphis's 1 attempt allowed "2/5/1995", before the franchise existed (12/5/95); San Antonio's no-offensive-rebound game "02/26/22", when it was in Miami (10/26/22 at Minnesota).
+- **Games that are not the mark, 14** (`drop`): in Boston's lists, two "no threes made" games and four "no blocks" games were the opponent's (the box scores have Boston with 7 threes and 6 or 11 blocks), and five games under "fewest three-pointers attempted by an opponent" are games with none made (8, 9, 5, 7 and 5 attempts); Dallas's 5 free throw attempts on 3/15/21 were the Clippers'; Orlando's opponents page repeats the Magic's own "fewest blocks" lines; Portland's 19 field goals on 6/4/99 is a playoff game by the guide's own footnote.
+- **A wrong number, 1** (`revalue`): Indiana prints 6 assists for Portland on 3/13/12; Portland's guide and the box score have 5.
+
+### Where it stands
+- 1,717 printed games behind 1,381 game marks. 1,659 fall on a day that team played; 5 do not (below); 53 are older than our game lists or in a gap of them.
+- **Two guides, one night: 236 of 239 agree.** The three: Boston's 2 turnovers against Denver's 3 for the same team on 1/19/24 (ESPN: 3 with a team turnover, so both are right); and two old ones, below.
+- **ESPN, since 1993-94: 910 of 989 the same**, 5 more within a team turnover or two (older ESPN pages give one turnover number with team turnovers in it), 64 with no usable totals (all of 2017-18 is scrambled on ESPN: no fouls, 22 blocks), **10 differ and are not settled**.
+- Non-points printed games with a second source: **1,112 of 1,599**. Of the 487 without, 438 are before 1993-94.
+
+### Not settled (asked of the user: Basketball Reference's team totals for these games)
+- Brooklyn's 61 three-point attempts "Oklahoma City 2/26/25" (ESPN: 36 that night; no Nets-Thunder game since has 61).
+- Indiana's 21 rebounds at Cleveland 12/9/06 (ESPN 34); Charlotte's 21 at Seattle 2/27/95 (ESPN 24); Washington's 14 defensive rebounds "vs. Utah" 3/31/08, a game played in Utah (ESPN 9); Denver's 22 rebounds at Detroit 3/18/08 (ESPN's page is broken).
+- 7 fouls, Denver v Orlando 1/9/13: both guides print it, ESPN has 14 for each team.
+- Turnovers: Dallas's opponents' 30 (Washington, 2/10/94; ESPN 26) and 3 (Cleveland, 3/2/95; ESPN 8); Memphis's opponents' 4 at Seattle 1/17/03 (ESPN 7).
+- Two guides against each other: Boston's rebounds on 12/24/60 (109 in Boston's guide, 112 in Detroit's); Detroit's blocks on 1/19/80 (21 in Detroit's guide, 18 in Houston's).
+- Dates no game was played: Charlotte's "vs. Cleveland 4/4/88" (before its first game, which was against Cleveland on 11/4/88); the three others are neutral-site or pre-list games.
+
+### Tested
+- `node tests/run.js` 964 pass (the team-records test now checks eight of the corrections); `tools/check-pages.py` all pages OK; `NODE_USE_ENV_PROXY=1 node tools/check-team-marks.mjs --dir <folder>` as above (about 1,900 ESPN pages on the first run, none after).
+
+### Unproven
+- Half, quarter and overtime marks have no second source (a box score has none).
+- A game between 1993-94 and today that beats a printed mark would not be seen: only the printed games were looked up, not every game.
+- Ties printed under a "Fewest Game" row (the Warriors' 8 assists, three games) are still read as one game.
+
 ## 0.98.0 (2026-11-17): team records from all 30 guides (Cleveland); all 30 Basketball Reference head-to-head pages checked; two more tiebreakers named
 
 The user (5:36 PM) sent screenshots of the six head-to-head pages I had not reached (Hawks, Clippers, Timberwolves, Spurs, Grizzlies, Heat) and said to start on the Cavaliers' guide.
