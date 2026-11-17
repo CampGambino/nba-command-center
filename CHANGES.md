@@ -2,6 +2,56 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.92.0 (2026-11-17): the user's 18 screenshots: Cleveland read from its picture pages, six season pages mended, Lakers v Kings settled
+
+The user (11/17, 12:26 PM) sent screenshots of the pages I had listed, four Basketball Reference spreadsheets, and on the team records pages: "you make the first pass to at least determine if you can read the text. you also have access to the pdfs".
+
+### Cleveland's results (images 1-2)
+- The Cavaliers' history pages are pictures. Each season has a "Cleveland Cavaliers Results" page (PDF pp. 232 to 342, even pages). I staged the PDF from the PC, rendered each results page at 300 dpi, cropped it to the columns Date to Record, and read it with OCR (`tools/read-cavaliers-results.py` → `tools/cavaliers-results-ocr.json`; `read_cle` in guide_games.py).
+- OCR misreads a slash or a letter here and there, so a row is taken from its numbers: the two scores and the running record. A date token like "1114" is decoded as 11/4 or 11/14 by what fits between the clean dates around it.
+- **49 of 56 seasons add up to the franchise's record, and every season from 1970-71 to 1992-93 does.** Cleveland's games now reach its first season.
+
+### The six season pages (images 3-10)
+- **Hawks 1988-89:** the row is printed "11/210 at Houston"; the stray digit broke the date. Read as 11/21.
+- **Hornets 1988-89:** game 46 is printed "L1" for "L".
+- **Heat 1990-91:** games 53 and 54 (2/22 Philadelphia, 2/24 New York) are on the page but not in the text. Added from the screenshot (`tools/guide-games-by-eye.json`).
+- **Clippers 1991-92:** not a missing game but an extra one: "4/8/92 Seattle" sits on the 1981-82 page and is a misprinted year. A date ten years off its page is now moved back.
+- **Suns 1968-69:** two games in Tucson (1/29 Milwaukee, 3/15 San Diego) lost their opponent in the text. Added from the screenshot.
+- **Blazers 1971-72:** "3/9( n) Houston @ Seattle" broke the date.
+- **Reach now:** 19 franchises to their first season (was 13). New: Cleveland, Charlotte, Miami, Phoenix, Portland, the Clippers (whose 1971-72 is mended by Cleveland's list). Atlanta reaches 1968-69, as far as its guide prints.
+
+### Portland (images 11-14, and the spreadsheet)
+- The guide goes from 1995-96 to a page headed 1997-98 whose list is the **1996-97** season: it matches Basketball Reference's 1996-97 schedule (the file the user sent) in 80 of 82 games, the other two differing by one digit of a score. It is now filed as 1996-97, and the one score the text ran together ("12199") is taken from Basketball Reference (121-99 at Phoenix, 3/5/97).
+- **1997-98's own list is not in the guide.** ESPN has that season, so nothing is lost.
+
+### Milwaukee (images 15-16)
+- The page headed "1969-70 Milwaukee Bucks" is the 1970-71 season: 66-16, Oscar Robertson, NBA champions, and the same game list the guide prints again under 1970-71. **1969-70 (56-26) is still not in the guide.** A Basketball Reference schedule for 1969-70 would fill it.
+
+### Lakers v Kings (image 17 and the three spreadsheets)
+- Basketball Reference has 289-169, which includes the Lakers' win on 11/4/26. **Through 2025-26 it is 288-169: the Lakers' count, not the Kings' printed 289-169.** All 419 games before 2016-17 are in the Lakers' guide with the same date and result.
+- `src/data/series-verified.json` holds records checked outside the guides; `seriesPair` lets one name the guide that is right. The line reads "the Lakers' media guide, and Basketball Reference agrees".
+- The Kings' own list has two results turned round (3/3/56, 3/4/59) and one game against the Lakers that Basketball Reference does not have (12/21/85).
+- **Totals: 390 of 435 confirmed, 8 differ, 37 on one guide.**
+
+### Team records pages: the first pass
+- **They are text in every guide I located, not pictures.** Located in 20 guides (pages in `claude/team-guide-inventory.md`); not yet found in Brooklyn, Charlotte, Cleveland, Houston, Indiana, Memphis, New Orleans, New York, Oklahoma City, Orlando, Portland, Toronto, Washington, where the wording differs.
+- Three kinds of layout: one record a line (Philadelphia); "Game / Half / Quarter, value, opponent, date" rows in two columns (Lakers, Suns, Timberwolves, Spurs, Mavericks); label and value on separate lines (Kings, Bulls, Hawks).
+- **Philadelphia is read** (`tools/parse-team-records.py` → `src/data/team-game-records-2026-27.json`): 32 marks, among them 163 points, 53 in a quarter, 24 threes, 97 rebounds. A team that reaches a printed mark last night gets a line (`boxRecordLines`), from the box score and quarter scores.
+
+### A correction
+- I listed the Nuggets', Pelicans' and Suns' leader lists as unconfirmed. They were checked on 11/14. The Nuggets page the user sent (image 18) was not needed for that.
+
+### Tested
+- 953 checks (was 951). New: an outside check in its three outcomes and on Lakers v Kings; a printed team mark reached in a game and in a quarter; the games file (Cleveland's first game, the added Heat, Suns and Blazers rows, the Hawks date, the Clippers year); each team's reach.
+- A full local build and the page check.
+
+### Unproven
+- **Cleveland's dates:** 126 of its 4,263 dates were ambiguous in the OCR and set by order, 49 of them in 1991-92. The order of games and the results are checked by each season's total; an individual date can be days off.
+- Cleveland's scores are OCR too: a misread digit that does not change who won would pass.
+- The Hawks' 11/210 could be 11/20 or 11/21.
+- Team records are read for one guide of 30.
+- Seven Cleveland seasons since 1993-94 do not add up from the OCR (ESPN covers them).
+
 ## 0.91.0 (2026-11-17): the clean-up: two more pairings settled, scoring by season for every team
 
 Seventh of the seven the user approved on 11/17: "the Spurs', Raptors' and Pelicans' game lists, the 11 pairings that still differ, and the Knicks' team stats by season."

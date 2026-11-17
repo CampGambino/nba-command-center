@@ -31,7 +31,20 @@ const trusted = (series, t) => { const g = series?.guides?.[t]?.agree; return !!
 /** The pairing through 2025-26, from `a`'s side: { status, source, rec: { overall, home, road, neutral }, other, weak }. */
 export function seriesPair(series, a, b) {
   const P = printedPair(series, a, b);
-  if (!P || P.status === "confirmed") return P;
+  if (!P) return P;
+  // 0.92: a record looked up outside the guides (src/data/series-verified.json; Basketball Reference pages the user
+  // sends). It names the guide that is right, or stands alone if neither is.
+  const V = (series?.verified || []).find((v) => (v.a === a && v.b === b) || (v.a === b && v.b === a));
+  if (V && P.status !== "confirmed") {
+    const w = V.a === a ? V.w : V.l, l = V.a === a ? V.l : V.w, same = (r) => !!r && r.w === w && r.l === l, { other: o_, weak: w_, ...keep } = P;
+    if (same(P.rec.overall)) return { ...keep, status: "confirmed", source: [P.source[0], "check"], checked: V.by };
+    if (P.other && same(P.other.overall)) {
+      const O = printedPair({ ...series, teams: { [a]: {}, [b]: {}, [P.other.team]: { [P.other.team === a ? b : a]: series.teams[P.other.team][P.other.team === a ? b : a] } } }, a, b);
+      if (O) return { status: "confirmed", source: [P.other.team, "check"], rec: O.rec, checked: V.by, ...(O.adjusted ? { adjusted: O.adjusted } : {}) };
+    }
+    return { status: "confirmed", source: ["check"], rec: { overall: { w, l } }, checked: V.by };
+  }
+  if (P.status === "confirmed") return P;
   // 0.87: a third opinion where the two guides do not settle it. Twenty-two guides print their games, so many pairings
   // can be counted game by game (countedPairs below). A count that lands exactly on a printed record confirms it: on
   // the one already shown, or on the other guide's, which is then the one shown. A count that lands on neither
@@ -161,7 +174,7 @@ export function seriesItems(series, games, away, home, today) {
   if (!n) return items;
   const lead = o.w === o.l ? null : o.w > o.l ? home : away, hi = Math.max(o.w, o.l), lo = Math.min(o.w, o.l);
   const plus = S.adjusted ? (/twice/.test(S.adjusted) ? ", less a season it counted twice" : ", plus last season from our results") : "";
-  const src = S.counted && S.source[0] === "games" ? "counted from both teams' game lists, which agree; their guides print other totals" : S.counted ? `the ${poss(S.source[0])} media guide${plus}, and a count of the games agrees` : S.status === "confirmed" ? "both teams' media guides agree" : S.status === "differs" ? `the ${poss(S.source[0])} media guide${plus}; the ${poss(S.other.team)} has it ${wl(lead === away ? flip(S.other.overall) : S.other.overall)}${S.other.bad ? ", which does not add up" : ""}` : `the ${poss(S.source[0])} media guide${plus}`;
+  const src = S.checked ? (S.source[0] === "check" ? `${S.checked}; neither guide prints it` : `the ${poss(S.source[0])} media guide${plus}, and ${S.checked} agrees`) : S.counted && S.source[0] === "games" ? "counted from both teams' game lists, which agree; their guides print other totals" : S.counted ? `the ${poss(S.source[0])} media guide${plus}, and a count of the games agrees` : S.status === "confirmed" ? "both teams' media guides agree" : S.status === "differs" ? `the ${poss(S.source[0])} media guide${plus}; the ${poss(S.other.team)} has it ${wl(lead === away ? flip(S.other.overall) : S.other.overall)}${S.other.bad ? ", which does not add up" : ""}` : `the ${poss(S.source[0])} media guide${plus}`;
   const there = S.rec.home && S.rec.home.w + S.rec.home.l >= 10 ? `; the ${nick(home)} are ${wl(S.rec.home)} at home in it` : "";
   // What a line may be built on: both guides agreeing, or one well-backed guide's own print (not a row we corrected).
   const solid = !S.era && (S.status === "confirmed" || (S.status === "single" && !S.weak && !S.adjusted));
@@ -191,7 +204,7 @@ export function seriesTable(series, games, today) {
     const S = seriesNow(series, games, T[i], T[j], today);
     if (!S) continue;
     out.push({ a: T[i], b: T[j], status: S.status, weak: !!S.weak, source: S.source, overall: S.rec.overall, home: S.rec.home || null, road: S.rec.road || null, other: S.other || null, added: S.added,
-      ...(S.era ? { era: S.era } : {}), ...(S.adjusted ? { adjusted: S.adjusted } : {}), ...(S.counted ? { counted: true } : {}) });
+      ...(S.era ? { era: S.era } : {}), ...(S.adjusted ? { adjusted: S.adjusted } : {}), ...(S.counted ? { counted: true } : {}), ...(S.checked ? { checked: S.checked } : {}) });
   }
   return out;
 }

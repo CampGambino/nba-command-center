@@ -1,0 +1,81 @@
+{
+ "note": "Game rows a guide's text lost but its page shows, read from screenshots the user sent. Each row: the team's own points first. Checked by the season then adding up to the franchise's record.",
+ "rows": {
+  "MIA": [
+   {
+    "season": "1990-91",
+    "date": "1991-02-22",
+    "name": "PHILADELPHIA",
+    "site": "H",
+    "won": false,
+    "pf": 96,
+    "pa": 103,
+    "rec": [
+     15,
+     37
+    ],
+    "seen": "the user's screenshot of p. 397, 11/17/26: game 53"
+   },
+   {
+    "season": "1990-91",
+    "date": "1991-02-24",
+    "name": "NEW YORK",
+    "site": "H",
+    "won": false,
+    "pf": 92,
+    "pa": 108,
+    "rec": [
+     15,
+     38
+    ],
+    "seen": "the user's screenshot of p. 397, 11/17/26: game 54"
+   }
+  ],
+  "PHX": [
+   {
+    "season": "1968-69",
+    "date": "1969-01-29",
+    "name": "MIL. @TUCSON",
+    "site": "N",
+    "won": true,
+    "pf": 111,
+    "pa": 107,
+    "rec": [
+     11,
+     42
+    ],
+    "seen": "the user's screenshot of p. 178, 11/17/26"
+   },
+   {
+    "season": "1968-69",
+    "date": "1969-03-15",
+    "name": "S.D. @TUCSON",
+    "site": "N",
+    "won": false,
+    "pf": 124,
+    "pa": 141,
+    "rec": [
+     16,
+     62
+    ],
+    "seen": "the user's screenshot of p. 178, 11/17/26"
+   }
+  ],
+  "POR": [
+   {
+    "season": "1996-97",
+    "date": "1997-03-05",
+    "name": "Phoenix",
+    "site": "A",
+    "won": true,
+    "pf": 121,
+    "pa": 99,
+    "rec": [
+     33,
+     28
+    ],
+    "seen": "Basketball Reference's 1996-97 Trail Blazers schedule, sent by the user 11/17/26 (the guide's text has the score run together: \"12199\")"
+   }
+  ]
+ }
+}

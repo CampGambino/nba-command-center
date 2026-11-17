@@ -57,6 +57,9 @@ FRANCHISE = {
     "washington": [(0, 1950, None), (1974, 9999, "WAS")], "baltimore": [(0, 1954, None), (1963, 1972, "WAS")], "capital": [(0, 9999, "WAS")],
     "providence": [(0, 9999, None)], "anderson": [(0, 9999, None)], "sheboygan": [(0, 9999, None)], "waterloo": [(0, 9999, None)], "pittsburgh": [(0, 9999, None)],
 }
+import json as _json, os as _os
+_eye = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "guide-games-by-eye.json")
+BY_EYE = _json.load(open(_eye))["rows"] if _os.path.exists(_eye) else {}
 UNKNOWN = {}
 
 def norm(name):
@@ -72,7 +75,7 @@ ALIAS = {"philidelphia": "philadelphia", "philadephia": "philadelphia", "phila":
          "kc": "kansas city", "k c": "kansas city", "tri cities": "tri-cities", "st louis": "st. louis", "saint louis": "st. louis", "new orleans oklahoma city": "new orleans oklahoma city",
          "laclippers": "la clippers", "lalakers": "los angeles", "cin": "cincinnati", "san fran": "san francisco", "roch": "rochester", "balt": "baltimore", "clevland": "cleveland", "sd": "san diego", "syr": "syracuse",
          "chi": "chicago", "stlouis": "st. louis", "san anotnio": "san antonio", "bos": "boston", "porltand": "portland", "seatle": "seattle", "philadlephia": "philadelphia", "washingoton": "washington",
-         "minnestoa": "minnesota", "anderson duffey": "anderson", "rockets": "houston", "st louis hawks": "st. louis", "san": "san antonio", "phl": "philadelphia", "brookyln": "brooklyn", "phoenox": "phoenix", "se attle": "seattle", "n orleans okc": "new orleans oklahoma city", "vsutah": "utah", "no okla cit": "new orleans oklahoma city", "no ok city": "new orleans oklahoma city", "atutah": "utah", "atmemphis": "memphis", "phila": "philadelphia", "det": "detroit", "sea": "seattle", "atl": "atlanta", "mil": "milwaukee", "buf": "buffalo", "phi": "philadelphia", "cle": "cleveland", "hou": "houston", "por": "portland", "phx": "phoenix",
+         "minnestoa": "minnesota", "laa lakers": "los angeles", "laa clippers": "la clippers", "llc clippers": "la clippers", "lndiana": "indiana", "lindiana": "indiana", "aatlanta": "atlanta", "utaha": "utah", "gssww": "golden state", "gsw": "golden state", "sac": "sacramento", "was": "washington", "anderson duffey": "anderson", "rockets": "houston", "st louis hawks": "st. louis", "san": "san antonio", "phl": "philadelphia", "brookyln": "brooklyn", "phoenox": "phoenix", "se attle": "seattle", "n orleans okc": "new orleans oklahoma city", "vsutah": "utah", "no okla cit": "new orleans oklahoma city", "no ok city": "new orleans oklahoma city", "atutah": "utah", "atmemphis": "memphis", "phila": "philadelphia", "det": "detroit", "sea": "seattle", "atl": "atlanta", "mil": "milwaukee", "buf": "buffalo", "phi": "philadelphia", "cle": "cleveland", "hou": "houston", "por": "portland", "phx": "phoenix",
          "kansas": "kansas city", "golden": "golden state", "no okla": "new orleans oklahoma city", "new yor": "new york", "philadel": "philadelphia", "charlottee": "charlotte", "minneso": "minnesota", "philadelia": "philadelphia", "clevelad": "cleveland",
          "chiago": "chicago", "oklahaoma city": "oklahoma city", "chicago bulls": "chicago", "new orl": "new orleans", "san ant": "san antonio", "atlanta hawks": "atlanta", "tri city": "tri-cities", "san fran": "san francisco", "balt": "baltimore", "wash": "washington", "charltotte": "charlotte", "miammi": "miami", "detoit": "detroit", "la clipper": "la clippers", "oklahoma cit": "oklahoma city", "nok hornets": "new orleans oklahoma city",
          "sanantonio": "san antonio", "phoneix": "phoenix", "miani": "miami", "neworleans": "new orleans", "newyork": "new york", "tri city": "tri-cities", "tri": "tri-cities", "cinc": "cincinnati", "chiacgo": "chicago", "kc omaha": "kansas city", "miilwaukee": "milwaukee", "newjersey": "new jersey", "no oklacity": "new orleans oklahoma city", "no okl city": "new orleans oklahoma city", "oklahoma": "oklahoma city", "booklyn": "brooklyn"}
@@ -193,7 +196,8 @@ def _by_season(text, head, rows, row, full, where=0, start=None, stop=None, line
                 row(season, mo, d, m.group(g["opp"]), m.group(g["wl"]) if g.get("wl") else None, m.group(g["pf"]), m.group(g["pa"]), (m.group(g["rec"]), m.group(g["rec"] + 1)) if g.get("rec") else None)
 
 def read_atl(text, row, full):
-    rx = re.compile(DATE + r"\*{0,3}\s+(?:\([#*\dA-Z]+\)\s*)*" + OPP + r"\s+([WL])\s+(\d{2,3})\s+(\d{2,3})\*{0,3}\s+(\d+)-(\d+)")
+    # The day can carry a stray digit ("11/210 at Houston", 1988-89; the user's screenshot of p. 157, 11/17): row() trims it.
+    rx = re.compile(DATE.replace(r"(\d{1,2})/(\d{1,2})", r"(\d{1,2})/(\d{1,3})", 1) + r"\*{0,3}\s+(?:\([#*\dA-Z]+\)\s*)*" + OPP + r"\s+([WL])\s+(\d{2,3})\s+(\d{2,3})\*{0,3}\s+(\d+)-(\d+)")
     _by_season(text, r"YEARLY RESULTS: (\d{4})\s*-\s*(\d{2,4})", [(rx, {"date": 1, "opp": 6, "wl": 7, "pf": 8, "pa": 9, "rec": 10})], row, full)
 
 def read_bkn(text, row, full):
@@ -210,7 +214,7 @@ def read_den(text, row, full):
     _by_season(text, r"(\d{4})-(\d{2}) GAME-BY-GAME RESULTS \(\d+-\d+\)", [(rx, {"date": 1, "opp": 6, "wl": 7, "pf": 8, "pa": 9})], row, full)
 
 def read_phx(text, row, full):
-    rx = re.compile(DATE + r"\s+" + OPP + r"\s+[\d,]+\s+" + SC + r"\*{0,3}(?:\s*\([^)]*\))?\s+(\d+)-\s*(\d+)\s+([WL])\b")
+    rx = re.compile(DATE + r"\s+" + OPP + r"\s+[\d,]+\s+" + SC + r"[*^]{0,4}(?:\s*\([^)]*\))?\s+(\d+)-\s*(\d+)\s+([WL])\b")      # "130-128^": overtime (p. 178)
     season = None
     for p in text.split("\f"):
         h = re.search(r"(?m)^(?:Review)?\s+(\d{2})-(\d{2})\s*$", p[:1500])
@@ -223,13 +227,29 @@ def read_phx(text, row, full):
         season = None
 
 def read_por(text, row, full):
-    rx = re.compile(r"(?m)^\s*\d+\.\s+" + DATE + r"\s+(?:\(\w\)\s*)?" + OPP + r"\s+" + SC + r"\*{0,3}(?:\s*\([^)]*\))?\s+([WL])\s+(\d+)-(\d+)")
-    _by_season(text, r"(?m)^\s*(\d{4})-(\d{2,4})\s*$", [(rx, {"date": 1, "opp": 6, "pf": 7, "pa": 8, "wl": 9, "rec": 10})], row, full, where=300)
+    rx = re.compile(r"(?m)^\s*\d+\.\s+" + DATE + r"\s*(?:\(\s*\w\s*\)\s*)?" + OPP + r"\s+" + SC + r"\*{0,3}(?:\s*\([^)]*\))?\s+([WL])\s+(\d+)-(\d+)")      # "76.  3/9( n) Houston @ Seattle"
+    # The guide jumps from 1995-96 to a page headed 1997-98 whose list is the 1996-97 season (it opens 11/1 at Vancouver and
+    # ends 49-33; Basketball Reference's 1996-97 schedule, sent by the user on 11/17, is the same 82 games). 1997-98's own
+    # list is not in the guide.
+    relabel = lambda a, b=None: "1996-97" if full(a, b) == "1997-98" else full(a, b)
+    _by_season(text, r"(?m)^\s*(\d{4})-(\d{2,4})\s*$", [(rx, {"date": 1, "opp": 6, "pf": 7, "pa": 8, "wl": 9, "rec": 10})], row, relabel, where=300)
 
 def read_lac(text, row, full):
     rx = re.compile(r"(\d{1,2})/(\d{1,2})/(\d{2})\s+" + OPP + r"\s+([WL])\s+" + SC)
     for h, p in _pages(text, r"\d{4}-\d{2} (?:BUFFALO BRAVES|SAN DIEGO CLIPPERS|LOS ANGELES CLIPPERS|LA CLIPPERS)", 400):
-        for m in rx.finditer(p): dated(row, m.group(3), m.group(1), m.group(2), None, None, m.group(5), m.group(6), m.group(7), m.group(4))
+        ms = list(rx.finditer(p))
+        # A page holds two seasons side by side. A date ten years out ("4/8/92" on the 1981-82 page) is a misprinted year.
+        def start(m): y = int(m.group(3)); y = 1900 + y if y >= 46 else 2000 + y; return y if int(m.group(1)) >= 9 else y - 1
+        count = {}
+        for m in ms: count[start(m)] = count.get(start(m), 0) + 1
+        home = {y for y, n in count.items() if n >= 20}
+        for m in ms:
+            yy = int(m.group(3))
+            if home and start(m) not in home:
+                fix = [d for d in (-10, 10) if start(m) + d in home]
+                if not fix: continue
+                yy = (yy + fix[0]) % 100
+            dated(row, yy, m.group(1), m.group(2), None, None, m.group(5), m.group(6), m.group(7), m.group(4))
 
 def _nick(name):
     n = name.strip().upper()
@@ -240,7 +260,7 @@ def _nick(name):
 def read_cha(text, row, full, official=None):
     """Season pages carry no season label of their own. They run backwards from the latest season, so each page takes
     the next season back whose final record is the one the page's list ends on (or within three games of it)."""
-    rx = re.compile(r"(?m)^\s*\d+\s+" + DATE + r"\s+" + SC + r"\*{0,3}\s+(@?)\s*([A-Z]{2,4})\s+([WL])\s+(\d+)-(\d+)")
+    rx = re.compile(r"(?m)^\s*\d+\s+" + DATE + r"\s+" + SC + r"\*{0,3}\s+(@?)\s*([A-Z]{2,4})\s+([WL])\d?\s+(\d+)-(\d+)")      # "CLE  L1  12-34": a stray digit (1988-89, game 46)
     seasons = sorted(official or {}); j = 0
     for p in reversed(text.split("\f")):
         ms = list(rx.finditer(p))
@@ -324,7 +344,15 @@ def read_orl(text, row, full):
         if opp:
             for m in rx.finditer(line): dated(row, m.group(3), m.group(1), m.group(2), opp, "H" if m.group(4).strip() == "Orlando" else "A", m.group(5), m.group(6), m.group(7))
 
-READERS = {"DET": read_det, "CHA": read_cha, "MIA": read_mia, "MIN": read_min, "MEM": read_mem, "IND": read_ind, "DAL": read_dal, "ORL": read_orl, "BOS": read_bos, "ATL": read_atl, "BKN": read_bkn, "CHI": read_chi, "DEN": read_den, "PHX": read_phx, "POR": read_por, "LAC": read_lac, "UTA": read_uta, "SAC": read_sac, "PHI": read_phi}
+def read_cle(text, row, full):
+    """Cleveland's results are picture pages (PDF pp. 232-342): read by OCR into tools/cavaliers-results-ocr.json
+    (tools/read-cavaliers-results.py), not from the guide's text."""
+    f = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "cavaliers-results-ocr.json")
+    if not _os.path.exists(f): return
+    for season, rows in _json.load(open(f))["seasons"].items():
+        for d, raw, won, pf, pa, guess in rows: row(season, int(d[5:7]), int(d[8:10]), raw, "W" if won else "L", pf, pa, None)
+
+READERS = {"CLE": read_cle, "DET": read_det, "CHA": read_cha, "MIA": read_mia, "MIN": read_min, "MEM": read_mem, "IND": read_ind, "DAL": read_dal, "ORL": read_orl, "BOS": read_bos, "ATL": read_atl, "BKN": read_bkn, "CHI": read_chi, "DEN": read_den, "PHX": read_phx, "POR": read_por, "LAC": read_lac, "UTA": read_uta, "SAC": read_sac, "PHI": read_phi}
 
 SCORE_FIRST = {"ATL": True}        # guides that print their own score first, where a letter and score that agree outrank a misprinted running record
 
@@ -332,7 +360,7 @@ def games(tri, text, official=None):
     """Rows are read per season page, then settled: the running record printed beside each game says who won."""
     seasons = {}
     def row(season, month, day, raw, letter, pf, pa, rec, site=None, opp=None):
-        if day > 31: day //= 10          # "11/40 (#)": a footnote digit printed against the day
+        while day > 31: day //= 10       # "11/40 (#)", "11/210": a stray digit printed against the day
         try: datetime.date(2000 if month == 2 and day == 29 else 2001, month, day)
         except ValueError: return         # a date that does not exist: the row is not used
         seasons.setdefault(season, []).append({"m": month, "d": day, "raw": raw, "letter": letter, "pf": int(pf), "pa": int(pa), "rec": (int(rec[0]), int(rec[1])) if rec and rec[0] is not None else None, "site": site, "opp": opp})
@@ -373,6 +401,9 @@ def games(tri, text, official=None):
                     if m.group(1)[:3].lower() in MON: row(h.group(1), MON[m.group(1)[:3].lower()], int(m.group(2)), m.group(3), m.group(4), m.group(5), m.group(6), (m.group(7), m.group(8)))
     elif tri in READERS:
         READERS[tri](text, row, full, official) if tri == "CHA" else READERS[tri](text, row, full)
+    # Rows the text lost but the page shows (read from the user's screenshots; tools/guide-games-by-eye.json).
+    for r in BY_EYE.get(tri, []):
+        seasons.setdefault(r["season"], []).append({"m": int(r["date"][5:7]), "d": int(r["date"][8:10]), "raw": r["name"], "letter": "W" if r["won"] else "L", "pf": r["pf"], "pa": r["pa"], "rec": tuple(r["rec"]) if r.get("rec") else None, "site": r["site"], "opp": None})
     out = []
     # A season printed twice under two headings (the Bucks' 1970-71 list also sits under 1969-70): the earlier label is dropped.
     sig = {k: tuple((r["m"], r["d"], r["pf"], r["pa"]) for r in v) for k, v in seasons.items()}

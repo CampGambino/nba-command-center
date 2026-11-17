@@ -1,0 +1,14 @@
+{
+ "note": "All-time records checked against an outside source. A row gives the record through `through`, seen from `a`.",
+ "pairs": [
+  {
+   "a": "LAL",
+   "b": "SAC",
+   "w": 288,
+   "l": 169,
+   "through": "2025-26",
+   "by": "Basketball Reference",
+   "source": "Basketball Reference's head-to-head page and its list of all 458 games, sent by the user on 11/17/26: 289-169 including the Lakers' win on 11/4/26, so 288-169 through 2025-26. All 419 games before 2016-17 are in the Lakers' guide with the same date and result."
+  }
+ ]
+}

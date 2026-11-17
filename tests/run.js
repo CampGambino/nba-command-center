@@ -4012,9 +4012,9 @@ await articlesChecks(ok);
   const wholeR = Object.keys(DR.whole).filter((t) => DR.whole[t]).sort().join(" ");
   ok(OLD.games.length === 26947 && OLD.complete["1999-00"] === false && Object.values(OLD.complete).filter(Boolean).length === 22 && DR.league === "1993-94" && DR.from.LAL === "1948-49" && DR.whole.LAL && DR.from.GSW === "1962-63" && DR.from.MIL === "1970-71"
     && DR.from.SAC === "1948-49" && DR.from.PHI === "1949-50" && DR.from.WAS === "1961-62" && DR.from.UTA === "1974-75" && DR.from.DEN === "1976-77" && DR.from.IND === "1976-77" && DR.from.BKN === "1976-77" && DR.from.DAL === "1980-81"
-    && DR.from.CHI === "1979-80" && DR.from.BOS === "1988-89" && DR.from.ATL === "1989-90" && DR.from.PHX === "1969-70" && DR.from.POR === "1972-73" && DR.from.SAS === "1993-94" && DR.from.NYK === "1993-94" && DR.from.DET === "1993-94"
-    && wholeR === "BKN DAL DEN IND LAL MEM MIN NOP PHI SAC TOR UTA WAS" && !DR.whole.BOS && DR.seq.LAL[0].d === "1948-11-04" && DR.seq.SAC[0].d.startsWith("1948-11") && DR.mended.WAS.length === 3 && DR.seq.NYK.filter((g) => g.d >= "1999-10-01" && g.d < "2000-05-01").length === 82,
-    "deep history, the real files (0.87: twenty-two guides' game lists, was four): every team from 1993-94 (was 2000-01: the games ESPN lacks in 1999-00 are in the guides, Detroit at New York on 4/18/00 in Detroit's list); thirteen franchises whole, among them Sacramento from 1948-49, Philadelphia from 1949-50 and Washington from 1961-62; Utah, Denver, Indiana, Brooklyn and Dallas from their first NBA season; Chicago 1979-80, Boston 1988-89, Atlanta 1989-90",
+    && DR.from.CHI === "1979-80" && DR.from.BOS === "1988-89" && DR.from.ATL === "1968-69" && DR.from.PHX === "1968-69" && DR.from.POR === "1970-71" && DR.from.CLE === "1970-71" && DR.from.LAC === "1970-71" && DR.from.SAS === "1993-94" && DR.from.NYK === "1993-94" && DR.from.DET === "1993-94"
+    && wholeR === "BKN CHA CLE DAL DEN IND LAC LAL MEM MIA MIN NOP PHI PHX POR SAC TOR UTA WAS" && !DR.whole.BOS && DR.seq.LAL[0].d === "1948-11-04" && DR.seq.SAC[0].d.startsWith("1948-11") && DR.mended.WAS.length === 3 && DR.seq.NYK.filter((g) => g.d >= "1999-10-01" && g.d < "2000-05-01").length === 82,
+    "deep history, the real files (0.87, 0.92): every team from 1993-94 (the games ESPN lacks in 1999-00 are in the guides); nineteen franchises whole (0.92 adds Cleveland from its picture pages, and Charlotte, Miami, Phoenix, Portland and the Clippers once the rows the user's screenshots showed were read), among them Sacramento from 1948-49, Philadelphia from 1949-50 and Washington from 1961-62; Atlanta from 1968-69, Chicago 1979-80, Boston 1988-89",
     JSON.stringify([OLD.games.length, DR.league, DR.from]));
 }
 
@@ -4159,9 +4159,9 @@ await articlesChecks(ok);
     const changed = T2.filter((r, i) => r.overall.w !== pairsR[i].overall.w || r.overall.l !== pairsR[i].overall.l).map((r) => r.a + r.b).join();
     const itC = seriesItems(RS2, [], "UTA", "WAS", "2026-11-17")[0];
     const mu = T2.find((r) => r.a === "MEM" && r.b === "UTA"), mw = T2.find((r) => r.a === "MIL" && r.b === "WAS");
-    ok(c2("confirmed") === 383 && c2("differs") === 9 && c2("single") === 43 && T2.filter((r) => r.counted).length === 53 && changed === "MEMUTA,UTAWAS" && mu.overall.w === 44 && mu.overall.l === 69 && mu.source.join() === "games" && mw.status === "single" && mw.source.join() === "WAS" && uw.overall.w === 64 && uw.overall.l === 54 && uw.source.join() === "WAS,games"
+    ok(c2("confirmed") === 389 && c2("differs") === 9 && c2("single") === 37 && T2.filter((r) => r.counted).length === 59 && changed === "MEMUTA,UTAWAS" && mu.overall.w === 44 && mu.overall.l === 69 && mu.source.join() === "games" && mw.status === "single" && mw.source.join() === "WAS" && uw.overall.w === 64 && uw.overall.l === 54 && uw.source.join() === "WAS,games"
       && al.status === "differs" && RS.guides.LAL.lists && RS.guides.WAS.lists && !RS.guides.UTA.lists && /the Wizards' media guide, and a count of the games agrees/.test(itC.text),
-      "series, the real files (0.87, 0.91): with the games counted, 383 of 435 pairings are confirmed (330 by both guides, 52 by one guide and the count, 1 by the two teams' counts agreeing where neither print does: Memphis v Utah, 44-69), 9 still differ (was 35) and 43 rest on one guide (was 70; Milwaukee v Washington is now Washington's, whose lists are whole again); Utah v Washington is Washington's 54-64; Atlanta v the Lakers stays open because the Lakers' record is their own lists",
+      "series, the real files (0.87, 0.91, 0.92): with the games counted, 389 of 435 pairings are confirmed (330 by both guides, 58 by one guide and the count, 1 by the two teams' counts agreeing where neither print does: Memphis v Utah, 44-69), 9 still differ (was 35) and 37 rest on one guide (was 70; Milwaukee v Washington is now Washington's, whose lists are whole again); Utah v Washington is Washington's 54-64; Atlanta v the Lakers stays open because the Lakers' record is their own lists",
       JSON.stringify([c2("confirmed"), c2("differs"), c2("single"), T2.filter((r) => r.counted).length, changed, uw, al.status, itC && itC.text]));
   }
   // 0.88: the older games in the head-to-head lines.
@@ -4199,9 +4199,9 @@ await articlesChecks(ok);
     const T30 = Object.keys(offR).sort(); let nP = 0, nW = 0, nE = 0;
     for (let i = 0; i < 30; i++) for (let j = i + 1; j < 30; j++) { const p = pairHistory({ deep: deepR, official: offR, series: RS3 }, T30[i], T30[j]); if (p) { nP++; nW += p.whole; nE += p.exact; } }
     const lacCha = pairHistory({ deep: deepR, official: offR, series: RS3 }, "CHA", "LAC"), clW = TI(HR, null, "WAS", "CLE", "2026-10-20", pairHistory({ deep: deepR, official: offR, series: RS3 }, "WAS", "CLE"));
-    ok(nP === 435 && nW === 337 && nE === 313 && deepR.seq.LAL.every((g) => g.h === true || g.h === false || g.h === null) && lacCha.from === "1989-90" && !lacCha.whole
+    ok(nP === 435 && nW === 393 && nE === 363 && deepR.seq.LAL.every((g) => g.h === true || g.h === false || g.h === null) && lacCha.from === "1988-89" && lacCha.whole
       && /^The Cavaliers have won 16 straight against the Wizards, the longest streak by either team in the series \(was 13, the Wizards, 1972-74\)/.test(tx(clW, /16 straight/)),
-      "head-to-head, the real files (0.88): every pairing has games before 2016-17 (ESPN from 1993-94 at the least), 337 back to the first meeting, 313 of those with a count that lands on the record shown; \"The Cavaliers have won 16 straight against the Wizards, the longest streak by either team in the series (was 13, the Wizards, 1972-74)\"",
+      "head-to-head, the real files (0.88): every pairing has games before 2016-17 (ESPN from 1993-94 at the least), 393 back to the first meeting, 363 of those with a count that lands on the record shown; \"The Cavaliers have won 16 straight against the Wizards, the longest streak by either team in the series (was 13, the Wizards, 1972-74)\"",
       JSON.stringify([nP, nW, nE, lacCha.from, clW.map((i) => i.text).slice(0, 4)]));
   }
   // 0.89: "the last time…".
@@ -4247,6 +4247,27 @@ await articlesChecks(ok);
       && lt("GSW", "team", "ast", 20).holder === "Tim Hardaway" && lt("PHI", "team", "pts", 60).holder === "Joel Embiid" && lt("PHI", "team", "pts", 60).date === "2024-01-22" && lt("TOR", "team", "td", 1).date === "2026-04-12" && !LT.some((f) => f.team === "CLE" || f.team === "NYK"),
       "last time, the guides (0.89): 174 feats from the Celtics', Wizards' and Warriors' \"last time\" pages and from lists of every triple-double or 40-point game that run into last season (a list that stops earlier is not used): the last 25-rebound game by a Celtic is Robert Parish's, 1/9/87",
       JSON.stringify([LT.length, lt("BOS", "team", "reb", 25)]));
+  }
+  // 0.92: an outside check on a pairing; a printed box-score mark reached.
+  {
+    const base = { through: "2025-26", guides: { AAA: { agree: [9, 10] }, BBB: { agree: [9, 10] } }, teams: { AAA: { BBB: { overall: { w: 288, l: 169 }, home: { w: 160, l: 60 } } }, BBB: { AAA: { overall: { w: 169, l: 289 } } } } };
+    const v = (w, l) => seriesPair({ ...base, verified: [{ a: "BBB", b: "AAA", w, l, by: "Basketball Reference" }] }, "AAA", "BBB");
+    const vA = v(169, 288), vB = v(169, 289), vN = v(170, 290), VR = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "series-verified.json"), "utf8")).pairs;
+    const ls = seriesPair({ ...RS, verified: VR }, "LAL", "SAC");
+    ok(seriesPair(base, "AAA", "BBB").status === "differs" && vA.status === "confirmed" && vA.source.join() === "AAA,check" && vA.rec.overall.w === 288 && vA.rec.home.w === 160 && vA.checked === "Basketball Reference" && !vA.other
+      && vB.source.join() === "BBB,check" && vB.rec.overall.w === 289 && vN.source.join() === "check" && vN.rec.overall.w === 290 && vN.rec.overall.l === 170
+      && ls.status === "confirmed" && ls.source.join() === "LAL,check" && ls.rec.overall.w === 288 && ls.rec.overall.l === 169 && seriesPair(RS, "LAL", "SAC").status === "differs",
+      "series (0.92; the user's Basketball Reference page for Lakers v Kings, 11/17): a record looked up outside the guides names the guide that is right, or stands alone when neither is; Lakers v Kings is the Lakers' 288-169 through 2025-26 (the page's 289-169 counts this season's game), not the Kings' 289-169",
+      JSON.stringify([vA, vB.source, vN, ls.source, ls.rec.overall]));
+    const { boxRecordLines } = await import("../src/records/teamgame.js");
+    const { TEAM_BOX_KEYS: TK2 } = await import("../src/espn/parse.js"), tb2 = (o) => TK2.map((k) => o[k] || 0);
+    const recs = { teams: { AAA: [{ stat: "ast", kind: "most", period: "game", value: 45, games: [{ opp: "X", date: "1989-03-03" }] }, { stat: "pts", kind: "most", period: "quarter", value: 51, games: [{ opp: "Y", date: "1963-03-02" }, { opp: "Z", date: "2026-03-25" }] }, { stat: "reb", kind: "fewest", period: "game", value: 20, games: [{ opp: "X", date: "1990-01-01" }] }] } };
+    const BL = boxRecordLines(recs, [{ d: "2026-11-16", h: "AAA", a: "BBB", hs: 150, as: 100, hq: [30, 52, 40, 28], aq: [25, 25, 25, 25], hb: tb2({ ast: 46, oreb: 5, dreb: 10 }), ab: tb2({ ast: 50 }) }, { d: "2026-11-10", h: "AAA", a: "BBB", hs: 100, as: 90, hb: tb2({ ast: 47 }), ab: tb2({}) }], "2026-11-16", "2026-11-17").map((l) => l.text);
+    const TR = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "team-game-records-2026-27.json"), "utf8")).teams, tr = (st, pd) => TR.PHI.find((m) => m.stat === st && m.period === pd && m.kind === "most");
+    ok(BL.length === 2 && BL.includes("AAA had 46 assists on 11/16 (BBB): the most in a game in franchise history, by its media guide (was 45, 3/3/89)") && BL.includes("AAA had 52 points in a quarter on 11/16 (BBB): the most in a quarter in franchise history, by its media guide (was 51, 3/2/63 and 1 more)")
+      && Object.keys(TR).join() === "PHI" && tr("pts", "game").value === 163 && tr("pts", "game").games[0].date === "1963-03-10" && tr("pts", "quarter").value === 53 && tr("fg3m", "game").value === 24 && tr("fg3m", "game").games.length === 2 && tr("reb", "game").value === 97,
+      "team records (0.92): a guide's printed team marks (Philadelphia's page is the first read: 163 points, 53 in a quarter, 24 threes twice, 97 rebounds) are checked against last night's box scores and quarter scores; reaching one is a line",
+      JSON.stringify([BL, TR.PHI.length]));
   }
   // 0.91: two teams' counts that agree; a mended list; scoring by season.
   {
@@ -4313,11 +4334,12 @@ await articlesChecks(ok);
     }
     const lalBos = GGm.teams.LAL.filter((g) => g[2] === "BOS"), first = GGm.teams.LAL[0];
     const nT = Object.keys(GGm.teams).length, nG = Object.values(GGm.teams).reduce((n, gs) => n + gs.length, 0), part = (t) => right[t].split("/").slice(0, 2).join("/");
-    ok(nT === 23 && nG === 93468 && part("SAC") === "65/78" && part("PHI") === "63/77" && part("DEN") === "33/50" && part("BKN") === "49/50" && part("UTA") === "44/52" && part("MIN") === "27/37"
+    ok(nT === 24 && nG === 97736 && part("CLE") === "49/56" && GGm.teams.CLE[0][0] === "1970-10-14" && GGm.teams.MIA.some((g) => g[0] === "1991-02-22" && g[4] === 0) && GGm.teams.PHX.some((g) => g[0] === "1969-01-29" && g[3] === "N" && g[2] === "MIL")
+      && GGm.teams.POR.some((g) => g[0] === "1997-03-05" && g[4] === 1 && g[5] === 121) && GGm.teams.ATL.some((g) => g[0] === "1988-11-21" && g[2] === "HOU") && !GGm.teams.LAC.some((g) => g[0] === "1992-04-08") && GGm.teams.LAC.some((g) => g[0] === "1982-04-08" && g[2] === "OKC") && part("SAC") === "65/78" && part("PHI") === "63/77" && part("DEN") === "33/50" && part("BKN") === "49/50" && part("UTA") === "44/52" && part("MIN") === "27/37"
       && GGm.teams.SAC[0][0].startsWith("1948-11") && GGm.teams.BOS.some((g) => g[0] === "1969-11-15" && g[2] === "NYK" && g[3] === "A" && g[4] === 0 && g[5] === 98 && g[6] === 113)
       && GGm.teams.DET.some((g) => g[0].startsWith("1999-") && g[2] === "NYK") && GGm.teams.PHX.some((g) => g[0] === "1968-11-14" && g[2] === "DET" && g[3] === "N")
-      && GGm.teams.IND.every((g) => g[0] < "1976-10-01" || g[2]) && !GGm.teams.NYK && !GGm.teams.HOU && !GGm.teams.CLE,
-      "guide games (0.87): nineteen more guides' games (season pages, or the lists against each opponent in Boston's, Indiana's, Dallas', Orlando's and Detroit's), 23 guides in all; 93,468 games; seasons that add up on their own: Sacramento 65 of 78, Philadelphia 63 of 77, Brooklyn 49 of 50; a third-site game is neutral (Phoenix v Detroit in Tucson, 11/14/68); New York, Houston and Cleveland print none",
+      && GGm.teams.IND.every((g) => g[0] < "1976-10-01" || g[2]) && !GGm.teams.NYK && !GGm.teams.HOU,
+      "guide games (0.87, 0.92): 24 guides, 97,736 games; 0.92 adds Cleveland's picture pages read by OCR (49 of 56 seasons add up on their own) and the rows the user's screenshots of 11/17 showed the text had lost or garbled (two Heat games of 1990-91, two Suns games of 1968-69 in Tucson, a Blazers score, a Hawks date, a Clippers year); a third-site game is neutral; New York and Houston print none",
       JSON.stringify([nT, nG, right]));
     ok(right.LAL === "78/78/6168" && right.GSW === "64/64/5164" && right.MIL === "55/58/4603" && right.WAS === "58/65/5246" && lalBos.filter((g) => g[4]).length === 135 && lalBos.length === 304
       && first[0] === "1948-11-04" && first[1] === "Baltimore" && first[2] === null && first[3] === "A" && first[4] === 1 && first[5] === 84 && first[6] === 72

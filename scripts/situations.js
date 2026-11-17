@@ -422,7 +422,11 @@ for (const [tri, games] of Object.entries(perTeam)) {
         // 0.90: each team's single-game marks from the same games (most and fewest points, largest win and loss).
         const { teamGameRecords, recordLines } = await import("../src/records/teamgame.js");
         const teamGame = teamGameRecords({ deep: await loadDeep(), history: fs.existsSync(rhf) ? JSON.parse(fs.readFileSync(rhf, "utf8")) : null, rows });
-        const rl = recordLines(teamGame, yday, today), setNow = new Set(rl.map((l) => `${l.team}|${l.date}`));
+        // 0.92: the box-score marks a guide prints (a reader per guide; Philadelphia so far).
+        const tgf = path.join(root, "src", "data", `team-game-records-${seasonTag}.json`);
+        const { boxRecordLines } = await import("../src/records/teamgame.js");
+        const bl = fs.existsSync(tgf) ? boxRecordLines(JSON.parse(fs.readFileSync(tgf, "utf8")), rows, yday, today) : [];
+        const rl = [...bl, ...recordLines(teamGame, yday, today).filter((l) => !bl.some((b) => b.team === l.team && b.date === l.date && /\|pts\|game$/.test(b.key) && /\|most$/.test(l.key)))], setNow = new Set(rl.map((l) => `${l.team}|${l.date}`));
         // A team mark says it all: the "first since" line for the same team and night is dropped.
         const fl = firstSince(feats, yday, today).filter((l) => l.player || !setNow.has(`${l.team}|${l.date}`));
         lastNight = [...rl, ...fl, ...lastNight].sort((a, b) => b.score - a.score);
@@ -638,6 +642,8 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
       try {
         const { seriesTable, countedPairs } = await import("../src/records/series.js");
         // 0.87: pairings that can be counted game by game settle some the two guides leave open.
+        const svf = path.join(root, "src", "data", "series-verified.json");
+        if (fs.existsSync(svf)) series.verified = JSON.parse(fs.readFileSync(svf, "utf8")).pairs;
         if (deepShared.deep && history) series.counted = countedPairs({ deep: deepShared.deep, history, official: deepShared.official, through: series.through });
         const sg = rows.filter((g) => !g.cupFinal && g.hs > 0 && g.as > 0).map((g) => ({ d: g.d, home: g.h, away: g.a, hs: g.hs, as: g.as, neutral: !!g.n }));
         const table = seriesTable(series, sg, today);
@@ -653,7 +659,7 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
           }
         }
         fs.writeFileSync(path.join(root, "docs", "data", "series.json"), JSON.stringify({ generatedAt: out.generatedAt, through, guidesThrough: series.through, guides: series.guides, pairs: table }));
-        console.log(`series: ${table.length} of 435 pairings from ${Object.keys(series.guides || {}).length} team guides (${table.filter((r) => r.status === "confirmed" && !r.counted).length} confirmed by both guides, ${table.filter((r) => r.counted).length} by one guide and a count of the games, ${table.filter((r) => r.status === "differs").length} where they differ)`);
+        console.log(`series: ${table.length} of 435 pairings from ${Object.keys(series.guides || {}).length} team guides (${table.filter((r) => r.status === "confirmed" && !r.counted && !r.checked).length} confirmed by both guides, ${table.filter((r) => r.counted).length} by a count of the games, ${table.filter((r) => r.checked).length} by an outside check, ${table.filter((r) => r.status === "differs").length} where they differ)`);
       } catch (e) { console.error(`series not written: ${e.message}`); }
     }
     const m = matchups({ history, logs, teamFiles, tonight, today, series, deep: deepShared.deep, official: deepShared.official, bests: seriesBests });

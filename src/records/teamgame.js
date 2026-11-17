@@ -60,3 +60,33 @@ export function recordLines(records, since, today = null) {
   }
   return out.sort((a, b) => b.score - a.score);
 }
+
+/**
+ * 0.92: the marks only a box score carries (rebounds, assists, threes, steals, blocks in a game; points in a quarter
+ * or half), as a guide prints them (src/data/team-game-records-2026-27.json; Philadelphia so far, a reader per guide).
+ * A game on or after `since` that reaches one is a line.
+ */
+const BOX = ["fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "oreb", "dreb", "ast", "stl", "blk", "tov", "pf"];
+const WORD = { pts: "points", fgm: "field goals", fga: "field goal attempts", fg3m: "threes", fg3a: "three-point attempts", ftm: "free throws", fta: "free throw attempts", reb: "rebounds", ast: "assists", stl: "steals", blk: "blocks", tov: "turnovers" };
+export function boxRecordLines(records, rows, since, today = null) {
+  const out = [];
+  for (const g of rows || []) {
+    if (!(g.hs > 0 && g.as > 0) || g.d < since || (today && g.d >= today)) continue;
+    for (const [t, opp, pts, box, q] of [[g.h, g.a, g.hs, g.hb, g.hq], [g.a, g.h, g.as, g.ab, g.aq]]) {
+      for (const m of records?.teams?.[t] || []) {
+        if (m.kind !== "most" || !WORD[m.stat]) continue;
+        let v = null, where = "in a game";
+        if (m.period === "game") v = m.stat === "pts" ? pts : !Array.isArray(box) ? null : m.stat === "reb" ? (box[6] || 0) + (box[7] || 0) : box[BOX.indexOf(m.stat)];
+        else if (m.stat === "pts" && Array.isArray(q) && q.length >= 4) {
+          if (m.period === "quarter") { v = Math.max(...q.slice(0, 4)); where = "in a quarter"; }
+          else if (m.period === "half") { v = Math.max(q[0] + q[1], q[2] + q[3]); where = "in a half"; }
+        }
+        if (v == null || v < m.value) continue;
+        const was = m.games[0];
+        out.push({ kind: "unique", team: t, player: null, date: g.d, key: `teambox|${t}|${m.stat}|${m.period}`, score: 4.4,
+          text: `${t} had ${v} ${WORD[m.stat]} ${where === "in a game" ? "" : `${where} `}on ${mdy(g.d).replace(/\/\d\d$/, "")} (${opp}): ${v > m.value ? "the most" : "tying the most"} ${where} in franchise history, by its media guide (${v > m.value ? "was" : "also"} ${m.value}, ${mdy(was.date)}${m.games.length > 1 ? ` and ${m.games.length - 1} more` : ""})`.replace(/\s+/g, " ") });
+      }
+    }
+  }
+  return out;
+}
