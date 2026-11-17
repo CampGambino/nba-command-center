@@ -2,6 +2,11 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.85.1 (2026-11-17): the all-time line on a crowded game
+
+- The first build with all 435 pairings showed no all-time line for NYK @ TOR: a game's matchup items were cut to the top twelve by score and the all-time line, a reference line with a low score, fell off. It is now kept whatever the count.
+- Tested: 932 checks. Unproven: seen in the data file only after the next build.
+
 ## 0.85.0 (2026-11-17): the last six guides (435 of 435 pairings), 21,181 games read from four of them
 
 The user (11/17, 12:51 AM) sent the pages I had not found: the Knicks' "Year-By-Year Versus Opponents" tables; a Hawks page ("ATLANTA ALL-TIME RECORD vs. BOSTON… check every other page in the pdf starting at 295 for the Nets"); "starting page 236 of the warriors pdf and then every other page provides yearly records against teams"; "page 136 of lakers pdf"; "page 118 starts Bucks yearly schedule records"; "wizards pdf for game-by-game schedule results starts page 171". And on the Records tab: "does the drop down mean only those teams have records or that those teams are the only ones with players on pace to break a record… teams are missing". And: "are there any other missing data points or unreadble pdf text?"

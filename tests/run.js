@@ -4080,6 +4080,8 @@ await articlesChecks(ok);
   const MU = mu({ history: { games: [] }, logs: null, teamFiles: {}, tonight: [{ id: "g", away: "LAL", home: "BOS" }], today: "2026-11-17", series: SR });
   ok(MU[0].items.some((i) => /^All-time: the Lakers lead the Celtics 100-99/.test(i.text)) && !mu({ history: { games: [] }, logs: null, teamFiles: {}, tonight: [{ id: "g", away: "LAL", home: "BOS" }], today: "2026-11-17" })[0].items.length,
     "matchups (0.84): the all-time series joins tonight's matchup items when the guides' file is there");
+  ok(/g\.items\.slice\(12\)\.filter\(\(i\) => i\.series\)/.test(fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8")),
+    "matchups (0.85.1): the all-time series line survives the twelve-item cut (NYK @ TOR on 11/17 had lost it)");
   const rcd = fs.readFileSync(path.join(root, "docs", "records.html"), "utf8");
   ok(/const ALL30 = \[/.test(rcd) && /\(no one on pace\)/.test(rcd) && /Every team's season records are on file/.test(rcd),
     "Records (0.85; the user, 11/17: \"teams are missing\" from the drop-down): the on-pace table's team list has all 30 teams and says when a team has no one on pace");

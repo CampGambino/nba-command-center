@@ -589,7 +589,7 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
       } catch (e) { console.error(`series not written: ${e.message}`); }
     }
     const m = matchups({ history, logs, teamFiles, tonight, today, series });
-    fs.writeFileSync(path.join(root, "docs", "data", "matchups.json"), JSON.stringify({ generatedAt: out.generatedAt, today, window: history?.seasons || null, games: m.map((g) => ({ ...g, items: g.items.slice(0, 12) })) }));
+    fs.writeFileSync(path.join(root, "docs", "data", "matchups.json"), JSON.stringify({ generatedAt: out.generatedAt, today, window: history?.seasons || null, games: m.map((g) => ({ ...g, items: [...g.items.slice(0, 12), ...g.items.slice(12).filter((i) => i.series)] })) }));   // 0.85.1: the all-time series line is kept even on a game with more than twelve items
     console.log(`matchups: ${m.reduce((a, g) => a + g.items.length, 0)} items for ${m.length} games tonight${history ? "" : " (no results back-fill yet)"}${logs ? "" : " (no player logs back-fill yet)"}`);
   } catch (e) { console.error(`matchups not written: ${e.message}`); }
 }
