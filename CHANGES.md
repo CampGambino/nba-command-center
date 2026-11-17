@@ -37,7 +37,7 @@ A new chat picked up "Next, in order" from the handoff. The PC folder could not 
 ### Unproven
 - The guide-games fixes have not been through a real rebuild (see above). Dallas's 1986-87 becoming usable may change a few deep streak counts; that is expected.
 
-## 0.99.0 (2026-11-17): a second source for the team marks (ESPN's box scores, and one guide against another); 17 guide misprints and two reader faults corrected
+## 0.99.0 (2026-11-17): a second source for the team marks (ESPN's box scores, and one guide against another); 29 guide errors (14 wrong dates, 14 games that are not the mark, 1 wrong number) and a reader fault corrected
 
 "Next, in order", item 1: until now only the points marks were checked. `tools/check-team-marks.mjs` checks every game mark three ways: the date is a game that team played; where two guides print the same night (one team's most, the other's "most by an opponent") they agree; and ESPN's box score for the game has the same number (team totals exist from 1993-94; they are saved once, outside the repo).
 
