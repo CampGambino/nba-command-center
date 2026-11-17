@@ -601,11 +601,22 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
         if (deepShared.deep && history) series.counted = countedPairs({ deep: deepShared.deep, history, official: deepShared.official, through: series.through });
         const sg = rows.filter((g) => !g.cupFinal && g.hs > 0 && g.as > 0).map((g) => ({ d: g.d, home: g.h, away: g.a, hs: g.hs, as: g.as, neutral: !!g.n }));
         const table = seriesTable(series, sg, today);
+        // 0.88: each pairing's older games, where they are on file: the longest streak and largest win each way.
+        if (deepShared.deep) {
+          const { pairHistory, pairSummary } = await import("../src/records/pairs.js");
+          const { meetings } = await import("../src/records/matchup.js");
+          for (const r of table) {
+            const past = pairHistory({ deep: deepShared.deep, official: deepShared.official, series }, r.a, r.b);
+            if (!past) continue;
+            const sum = pairSummary([...past.games, ...meetings(history, teamFiles, r.a, r.b)].filter((m) => m.d < today), r.a, r.b);
+            if (sum) r.hist = { from: past.from, whole: past.whole, exact: past.exact, ...sum };
+          }
+        }
         fs.writeFileSync(path.join(root, "docs", "data", "series.json"), JSON.stringify({ generatedAt: out.generatedAt, through, guidesThrough: series.through, guides: series.guides, pairs: table }));
         console.log(`series: ${table.length} of 435 pairings from ${Object.keys(series.guides || {}).length} team guides (${table.filter((r) => r.status === "confirmed" && !r.counted).length} confirmed by both guides, ${table.filter((r) => r.counted).length} by one guide and a count of the games, ${table.filter((r) => r.status === "differs").length} where they differ)`);
       } catch (e) { console.error(`series not written: ${e.message}`); }
     }
-    const m = matchups({ history, logs, teamFiles, tonight, today, series });
+    const m = matchups({ history, logs, teamFiles, tonight, today, series, deep: deepShared.deep, official: deepShared.official });
     fs.writeFileSync(path.join(root, "docs", "data", "matchups.json"), JSON.stringify({ generatedAt: out.generatedAt, today, window: history?.seasons || null, games: m.map((g) => ({ ...g, items: [...g.items.slice(0, 12), ...g.items.slice(12).filter((i) => i.series)] })) }));   // 0.85.1: the all-time series line is kept even on a game with more than twelve items
     console.log(`matchups: ${m.reduce((a, g) => a + g.items.length, 0)} items for ${m.length} games tonight${history ? "" : " (no results back-fill yet)"}${logs ? "" : " (no player logs back-fill yet)"}`);
   } catch (e) { console.error(`matchups not written: ${e.message}`); }

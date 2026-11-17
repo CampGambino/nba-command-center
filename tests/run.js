@@ -4163,6 +4163,46 @@ await articlesChecks(ok);
       "series, the real files (0.87): with the games counted, 382 of 435 pairings are confirmed (330 by both guides, 52 by one guide and the count), 11 still differ (was 35) and 42 rest on one guide (was 70); one record changes, Utah v Washington to Washington's 54-64 (Utah's guide prints 63-54, its own games say 64-54); Atlanta v the Lakers stays open because the Lakers' record is their own lists",
       JSON.stringify([c2("confirmed"), c2("differs"), c2("single"), T2.filter((r) => r.counted).length, changed, uw, al.status, itC && itC.text]));
   }
+  // 0.88: the older games in the head-to-head lines.
+  {
+    const { pairHistory, runsOf, margins, pairSummary } = await import("../src/records/pairs.js");
+    const { teamItems: TI } = await import("../src/records/matchup.js");
+    const { countedPairs } = await import("../src/records/series.js");
+    // PPP v QQQ, both from 2000-01. Before 2016-17: QQQ won six straight (2001-03), then PPP four. Since: PPP seven more.
+    const old = [];
+    for (let i = 0; i < 6; i++) old.push({ d: `200${1 + (i >> 1)}-0${1 + (i % 2)}-10`, pf: 90, pa: 100 + (i === 2 ? 40 : 0), opp: "QQQ", h: i % 2 === 0 });
+    for (let i = 0; i < 4; i++) old.push({ d: `201${0 + i}-03-10`, pf: 100, pa: 95, opp: "QQQ", h: i < 3 ? true : null });
+    const deepP = { seq: { PPP: old }, from: { PPP: "2000-01" } }, offP = { PPP: [["2000-01", 1, 1]], QQQ: [["2000-01", 1, 1]] };
+    const histP = { columns: ["date", "home", "away", "homeScore", "awayScore", "type"], games: Array.from({ length: 7 }, (_, i) => [`20${17 + i}-01-05`, i % 2 ? "QQQ" : "PPP", i % 2 ? "PPP" : "QQQ", i % 2 ? 99 : 111, i % 2 ? 105 : 100, 2]) };
+    const serP = { through: "2025-26", guides: { PPP: { agree: [9, 10] }, QQQ: { agree: [9, 10] } }, teams: { PPP: { QQQ: { overall: { w: 11, l: 6 } } }, QQQ: { PPP: { overall: { w: 6, l: 11 } } } } };
+    serP.counted = countedPairs({ deep: deepP, history: histP, official: offP, through: "2025-26" });
+    const pastP = pairHistory({ deep: deepP, official: offP, series: serP }, "QQQ", "PPP");
+    const itsP = TI(histP, null, "QQQ", "PPP", "2026-11-17", pastP), itsOld = TI(histP, null, "QQQ", "PPP", "2026-11-17");
+    const tx = (its, re) => (its.find((i) => re.test(i.text)) || {}).text || "";
+    const short = pairHistory({ deep: { seq: { PPP: old.slice(6) }, from: { PPP: "2009-10" } }, official: offP, series: serP }, "QQQ", "PPP"), itsS = TI(histP, null, "QQQ", "PPP", "2026-11-17", short);
+    ok(pastP.games.length === 10 && pastP.whole && pastP.exact && pastP.by === "PPP" && pastP.from === "2000-01" && pastP.games[0].home === "PPP" && pastP.games[1].home === "QQQ" && pastP.games[9].neutral === true
+      && runsOf(pastP.games).map((r) => `${r.w}${r.n}`).join() === "QQQ6,PPP4" && margins(pastP.games).QQQ.m === 50 && margins([{ d: "1990-01-01", home: "A", winner: "A", hs: 190, as: 100 }]).A === undefined
+      && tx(itsP, /11 straight/) === "The PPP have won 11 straight against the QQQ, the longest streak by either team in the series (was 6, the QQQ, 2001-03) (last: 111-100 on 1/5/23)."
+      && tx(itsOld, /7 straight/).startsWith("The PPP have won 7 straight against the QQQ, every meeting (last")
+      && tx(itsP, /straight at home/) === "The PPP have won 7 straight at home against the QQQ; the QQQ last won there on 1/10/03." && /Largest wins in the series: the PPP by 11 \(111-100 on 1\/5\/17\); the QQQ by 50 \(140-90 on 1\/10\/02\)/.test(tx(itsP, /Largest wins/))
+      && !short.whole && !short.exact && short.from === "2009-10" && /have won 11 straight against the QQQ, every meeting since 2009-10 \(last/.test(tx(itsS, /11 straight/)) && !tx(itsS, /Largest wins/)
+      && pairHistory({ deep: { seq: {}, from: {} }, official: offP }, "QQQ", "PPP") === null && pairSummary(pastP.games, "PPP", "QQQ").streak.QQQ.n === 6,
+      "head-to-head (0.88; the user, 11/16: \"easier to check past records and streaks against opponents\"): a pairing's games before 2016-17 join the lines, so a streak is placed in the series (\"the longest streak by either team in the series (was 6…)\"), a home streak says when the visitors last won there, a game at a third site is not a home game, and the largest win each way is given; with only part of the series on file it says \"since 2009-10\" and claims no series record; a margin that could not be real is not used",
+      JSON.stringify([pastP.games.length, pastP.whole, pastP.exact, itsP.map((i) => i.text), itsS.map((i) => i.text)]));
+    // The real files, with no games from this season.
+    const zl = await import("node:zlib"); const { deepSeqs } = await import("../src/situations/deepseq.js");
+    const gzr = (f) => JSON.parse(zl.gunzipSync(fs.readFileSync(path.join(root, "src", "data", f))));
+    const offR = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-team-seasons-2026-27.json"), "utf8")).teams, HR = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-results-history.json"), "utf8"));
+    const deepR = deepSeqs({ older: gzr("nba-results-older.json.gz"), guide: gzr("guide-games-2026-27.json.gz"), official: offR });
+    const RS3 = { ...RS, counted: countedPairs({ deep: deepR, history: HR, official: offR, through: RS.through }) };
+    const T30 = Object.keys(offR).sort(); let nP = 0, nW = 0, nE = 0;
+    for (let i = 0; i < 30; i++) for (let j = i + 1; j < 30; j++) { const p = pairHistory({ deep: deepR, official: offR, series: RS3 }, T30[i], T30[j]); if (p) { nP++; nW += p.whole; nE += p.exact; } }
+    const lacCha = pairHistory({ deep: deepR, official: offR, series: RS3 }, "CHA", "LAC"), clW = TI(HR, null, "WAS", "CLE", "2026-10-20", pairHistory({ deep: deepR, official: offR, series: RS3 }, "WAS", "CLE"));
+    ok(nP === 435 && nW === 337 && nE === 312 && deepR.seq.LAL.every((g) => g.h === true || g.h === false || g.h === null) && lacCha.from === "1989-90" && !lacCha.whole
+      && /^The Cavaliers have won 16 straight against the Wizards, the longest streak by either team in the series \(was 13, the Wizards, 1972-74\)/.test(tx(clW, /16 straight/)),
+      "head-to-head, the real files (0.88): every pairing has games before 2016-17 (ESPN from 1993-94 at the least), 337 back to the first meeting, 312 of those with a count that lands on the printed record; \"The Cavaliers have won 16 straight against the Wizards, the longest streak by either team in the series (was 13, the Wizards, 1972-74)\"",
+      JSON.stringify([nP, nW, nE, lacCha.from, clW.map((i) => i.text).slice(0, 4)]));
+  }
   // Every game four guides list season by season (tools/guide_games.py): each season's wins and losses must be the
   // franchise's own record (the NBA Guide's standings).
   {

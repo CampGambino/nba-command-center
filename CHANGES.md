@@ -2,6 +2,31 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.88.0 (2026-11-17): head-to-head streaks measured against the whole series
+
+The user (11/17, 10:15 AM), on the list of seven things that can be done from the guide text without the PC: "You can do all seven". This is the first: the user's 11/16 point that the team guides "could make it easier to check past records and streaks against opponents".
+
+### What changed
+- **The head-to-head lines had started in 2016-17.** They now use every game between the two teams that 0.87 can vouch for (`src/records/pairs.js`, `pairHistory`): one team's validated seasons before 2016-17, with who was at home.
+- All 435 pairings have older games (ESPN from 1993-94 at the least). 337 go back to the first meeting. In 312 of those the count of the games lands on the printed all-time record, and only those may claim a series record.
+- **A series streak of 5 or more is placed in the series:** "The Knicks have won 14 straight against the Raptors, the longest streak by either team in the series (was 9, the Raptors, 2018-20)". Short of a series record: "their longest ever against them", or "their longest since a run of 15 that ended in 1995". With only part of the series on file: "their longest since at least 1989-90".
+- **A line the morning it can happen:** "A win tonight would be the X's 12th straight over the Y, matching the longest streak by either team in the series".
+- **A home or road streak of 6 or more says when it last went the other way:** "The Knicks have won 8 straight road games against the Raptors; the Raptors last beat them at home on 1/22/23." A game at a third site, or in the 2020 bubble, is not a home game.
+- **The largest win each way**, when the whole series is on file: "Largest wins in the series: the Lakers by 41 (107-66 on 3/12/02); the Hornets by 20 (109-89 on 2/14/11)." A printed score that could not be real (a margin over 68 before 2021, a score under 30 or over 200) is not used.
+- "8 of the last 10", season-series streaks and "every meeting" now reach back the same way and say what they are out of ("in the series' history", or "since 1989-90").
+- **Index page:** the all-time series table has three more columns: longest streak each way, largest win each way, and how many games are on file since when.
+- `deepSeqs` keeps where each game was played (`h`: home, road, or a third site).
+
+### Tested
+- 943 checks (was 941). New: a made-up pairing (a series record, the visitors' last win, a third-site game, an impossible margin, a partial window); the real files (435 / 337 / 312, and the Cavaliers' 16 straight over Washington against the Wizards' 13 of 1972-74).
+- A full local build and the page check. Tonight's lines include the two Knicks at Raptors lines quoted above.
+
+### Unproven
+- An old streak is only as right as the game list under it. The 312 pairings are checked by their total, not game by game; where two guides list the same game they name the same winner 99.9% of the time.
+- A game a guide files on the wrong date could split or join a streak without changing the count.
+- "Home" is the home team in any building, not one arena.
+- Player head-to-head lines still start in 2016-17.
+
 ## 0.87.0 (2026-11-17): the other guides' game lists: 23 guides, 93,468 games; all-time series settled by counting
 
 The user (11/17, 9:12 AM): "what can be updated or elevated without connection to the computer?" I offered the remaining guides' game lists, "since they improve the streak and start lines and the all-time series together". The user (9:19 AM): "please start there".

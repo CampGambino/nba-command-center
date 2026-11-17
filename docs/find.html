@@ -134,11 +134,16 @@ const table = (id, title, words, note, head, rows) => `<details id="${id}" data-
       : r.counted ? `${r.source[0]}'s guide${fix(r)}, and a count of the games agrees`
       : r.status === "confirmed" ? "both guides agree" : r.status === "differs" ? `guides differ: ${r.source[0]}'s shown${fix(r)}, ${r.other.team}'s has ${wl(r.other.overall)}${r.other.bad ? " (does not add up)" : ""}${r.weak ? "; neither is well backed by the others" : ""}`
       : `${r.source[0]}'s guide only${fix(r)}${r.weak ? ` (other guides match it in ${(g[r.source[0]] || { agree: [0, 0] }).agree.join(" of ")} pairings)` : ""}`;
+    // 0.88: from the games themselves, where they are on file.
+    const span = (x) => (x.start.slice(0, 4) === x.end.slice(0, 4) ? x.end.slice(0, 4) : `${x.start.slice(0, 4)}-${x.end.slice(2, 4)}`), dmy = (d) => `${md(d)}/${d.slice(2, 4)}`;
+    const runs = (r) => (r.hist ? [r.a, r.b].map((t) => (r.hist.streak[t] ? `${t} ${r.hist.streak[t].n} (${span(r.hist.streak[t])})` : `${t} none`)).join(" · ") : "");
+    const wins = (r) => (r.hist ? [r.a, r.b].map((t) => (r.hist.margin[t] ? `${t} by ${r.hist.margin[t].m} (${r.hist.margin[t].hi}-${r.hist.margin[t].lo}, ${dmy(r.hist.margin[t].d)})` : `${t} none`)).join(" · ") : "");
+    const onFile = (r) => (r.hist ? `${r.hist.games} since ${r.hist.whole ? "the first meeting" : r.hist.from}${r.hist.exact ? ", count matches the record" : ""}` : "");
     out.push(table("t-series", "All-time series between every pair of teams (regular season)", "all-time series head-to-head record vs opponent against history media guide home road streak last win last loss",
       `${series.pairs.length} of 435 pairings, from ${Object.keys(g).length} team media guides through ${series.guidesThrough}, plus this season`,
-      ["Pairing", "All-time", "First team at home", "First team on the road", "Streak (first team)", "Last win / last loss (first team)", "Basis"],
+      ["Pairing", "All-time", "First team at home", "First team on the road", "Streak (first team)", "Last win / last loss (first team)", "Longest streak each way", "Largest win each way", "Games on file", "Basis"],
       series.pairs.map((r) => [`${r.a} vs ${r.b}`, wl(r.overall), wl(r.home), wl(r.road), r.overall.streak == null ? "" : `${r.overall.streak > 0 ? "W" : "L"}${Math.abs(r.overall.streak)}`,
-        r.overall.lastW || r.overall.lastL ? `${r.overall.lastW ? md(r.overall.lastW) + "/" + r.overall.lastW.slice(2, 4) : "—"} / ${r.overall.lastL ? md(r.overall.lastL) + "/" + r.overall.lastL.slice(2, 4) : "—"}` : "", basis(r)])));
+        r.overall.lastW || r.overall.lastL ? `${r.overall.lastW ? md(r.overall.lastW) + "/" + r.overall.lastW.slice(2, 4) : "—"} / ${r.overall.lastL ? md(r.overall.lastL) + "/" + r.overall.lastL.slice(2, 4) : "—"}` : "", runs(r), wins(r), onFile(r), basis(r)])));
   }
   if (flow && flow.seeded) for (const L of flow.seeded) out.push(table(`t-${L.id}`, `${L.what[0].toUpperCase()}${L.what.slice(1)}${L.since ? ` since ${L.since}` : ""}`, "seeded list counted forward notes", `${L.source}, counted forward from ${md(L.through)}`, ["Player", "Count", "Added since"], L.rows.map((r) => [r.name, r.n, r.added || ""])));
   if (prep && prep.finds) out.push(table("t-finds", "Found in the numbers: the longer list", "finder absurd out of line all-star whole teams through three quarters team only team without combined gap", "the Watch List shows eight", ["Team", "Who", "What"], prep.finds.map((f) => [f.team, f.player || "the team", f.text])));

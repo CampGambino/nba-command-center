@@ -13,7 +13,7 @@
  * from either source, ESPN first. A team's games then start at the earliest season from which every season since is
  * right: one bad season (ESPN's 1999-00, the Bucks' missing 1969-70) is where "since at least" has to stop.
  *
- *   deepSeqs({ older, guide, official }) -> { seq: { TRI: [{ d, pf, pa, opp }] }, from: { TRI: "2000-01" },
+ *   deepSeqs({ older, guide, official }) -> { seq: { TRI: [{ d, pf, pa, opp, h }] }, from: { TRI: "2000-01" },
  *                                             whole: { TRI: true|false }, league: "2000-01" }
  * `whole`: the games reach the franchise's first season, so "in franchise history" can be said.
  * `league`: the season from which every team is covered (or did not exist yet): the window for league-wide counts.
@@ -21,6 +21,9 @@
 import { seasonOf } from "./streakwatch.js";
 
 const END = "2016-17"; // the main back-fill starts here
+// 0.88: where a game was played, from the team's side: true at home, false on the road, null at a third site.
+const at = (site) => (site === "H" ? true : site === "A" ? false : null);
+const flip = (h) => (h == null ? null : !h);
 
 export function deepSeqs({ older = null, guide = null, official = null } = {}) {
   const out = { seq: {}, from: {}, whole: {}, league: END };
@@ -30,16 +33,16 @@ export function deepSeqs({ older = null, guide = null, official = null } = {}) {
   for (const [d, h, a, hs, as] of older?.games || []) {
     const s = seasonOf(d);
     if (s >= END) continue;
-    put(h, s, 0, { d, pf: hs, pa: as, opp: a }); put(a, s, 0, { d, pf: as, pa: hs, opp: h });
+    put(h, s, 0, { d, pf: hs, pa: as, opp: a, h: true }); put(a, s, 0, { d, pf: as, pa: hs, opp: h, h: false });
   }
   // A guide's result is settled by its running record; where the printed score says the opposite (a misprint or the
   // two numbers in the other order, a handful of games) the score is turned to agree with the result.
-  for (const [t, gs] of Object.entries(guide?.teams || {})) for (const [d, , opp, , won, pf0, pa0] of gs) {
+  for (const [t, gs] of Object.entries(guide?.teams || {})) for (const [d, , opp, site, won, pf0, pa0] of gs) {
     const s = seasonOf(d);
     if (s >= END) continue;
     let pf = pf0, pa = pa0;
     if (!!won !== pf > pa) { [pf, pa] = [pa, pf]; if (pf === pa) { if (won) pf++; else pa++; } }
-    put(t, s, 1, { d, pf, pa, opp });
+    put(t, s, 1, { d, pf, pa, opp, h: at(site) });
   }
   // A game ESPN lacks may be in one of the four guides' lists (it is the other team's game too). Where a team's ESPN
   // season does not add up on its own, it is tried again with such games added: this mends 1999-00 for the teams
@@ -47,7 +50,7 @@ export function deepSeqs({ older = null, guide = null, official = null } = {}) {
   const extra = {};
   const have = new Set((older?.games || []).map(([d, h, a]) => `${d}|${[h, a].sort().join("|")}`));
   const first = (older?.games || []).length ? seasonOf(older.games[0][0]) : END;
-  for (const [t, gs] of Object.entries(guide?.teams || {})) for (const [d, , opp, , won, pf0, pa0] of gs) {
+  for (const [t, gs] of Object.entries(guide?.teams || {})) for (const [d, , opp, site, won, pf0, pa0] of gs) {
     const s = seasonOf(d), k = `${d}|${[t, opp].sort().join("|")}`;
     if (!opp || s < first || s >= END || have.has(k)) continue;
     // A day either side is the same game filed under another time zone's date.
@@ -57,7 +60,7 @@ export function deepSeqs({ older = null, guide = null, official = null } = {}) {
     have.add(k);
     let pf = pf0, pa = pa0;
     if (!!won !== pf > pa) { [pf, pa] = [pa, pf]; if (pf === pa) { if (won) pf++; else pa++; } }
-    (((extra[t] ??= {})[s] ??= [])).push({ d, pf, pa, opp }); (((extra[opp] ??= {})[s] ??= [])).push({ d, pf: pa, pa: pf, opp: t });
+    (((extra[t] ??= {})[s] ??= [])).push({ d, pf, pa, opp, h: at(site) }); (((extra[opp] ??= {})[s] ??= [])).push({ d, pf: pa, pa: pf, opp: t, h: flip(at(site)) });
   }
   // 0.87: twenty-two guides now print their games, so most games are listed twice, once by each team. A season that
   // does not add up from one source is built opponent by opponent instead: against each opponent, whichever source
@@ -66,12 +69,12 @@ export function deepSeqs({ older = null, guide = null, official = null } = {}) {
   // franchise's record. Teams whose own guide prints no games (New York, Houston, Cleveland, Oklahoma City, Detroit,
   // Toronto) are built this way from their opponents' lists alone, where those cover every opponent.
   const mirror = {}; // team -> season -> opponent -> games, as the opponent's guide lists them
-  for (const [t, gs] of Object.entries(guide?.teams || {})) for (const [d, , opp, , won, pf0, pa0] of gs) {
+  for (const [t, gs] of Object.entries(guide?.teams || {})) for (const [d, , opp, site, won, pf0, pa0] of gs) {
     const s = seasonOf(d);
     if (!opp || s >= END) continue;
     let pf = pf0, pa = pa0;
     if (!!won !== pf > pa) { [pf, pa] = [pa, pf]; if (pf === pa) { if (won) pf++; else pa++; } }
-    ((((mirror[opp] ??= {})[s] ??= {})[t] ??= [])).push({ d, pf: pa, pa: pf, opp: t });
+    ((((mirror[opp] ??= {})[s] ??= {})[t] ??= [])).push({ d, pf: pa, pa: pf, opp: t, h: flip(at(site)) });
   }
   const byOpp = (gs) => { const o = {}; for (const g of gs) (o[g.opp ?? ""] ??= []).push(g); return o; };
   // `most`: against each opponent, the source listing the most games. Otherwise the first source in `order` that lists

@@ -16,6 +16,7 @@
  */
 import { TEAMS } from "../teams.js";
 import { seriesItems } from "./series.js";
+import { pairHistory, runsOf, margins } from "./pairs.js";
 
 const FIRST = "2016-17";
 const START = "2016-10-01";
@@ -29,6 +30,9 @@ const avg = (rows, i) => rows.reduce((a, r) => a + (r[i] || 0), 0) / rows.length
 const r1 = (x) => (Math.round(x * 10) / 10).toFixed(1);
 const C = { date: 0, opp: 1, home: 2, res: 3, type: 4, min: 5, pts: 6, reb: 7, ast: 8, stl: 9, blk: 10, fg3m: 11 };
 const STAT = { pts: ["points", 5], reb: ["rebounds", 3], ast: ["assists", 3] };
+// 0.88: a series streak is placed in the series' history from 5 straight; "last won there" is added from 6 at one site.
+export const STREAK = { context: 5, there: 6 };
+const poss = (t) => { const n = nick(t); return n.endsWith("s") ? `${n}'` : `${n}'s`; };
 
 /** Every game between two teams, oldest first: { d, home, away, hs, as, type, winner }. */
 export function meetings(history, teamFiles, a, b) {
@@ -56,18 +60,41 @@ function tailRun(list, key) {
   return [w, n];
 }
 
-export function teamItems(history, teamFiles, away, home, today) {
-  const all = meetings(history, teamFiles, away, home).filter((m) => m.d < today);
+/**
+ * `past` (0.88): the two teams' games before 2016-17 (pairHistory), so a streak is measured against the series as far
+ * back as it is known, not against ten seasons. Without it everything is as before, "since 2016-17".
+ */
+export function teamItems(history, teamFiles, away, home, today, past = null) {
+  const all = [...(past?.games || []), ...meetings(history, teamFiles, away, home)].filter((m) => m.d < today);
   const reg = all.filter((m) => m.type === 2);
   const items = [];
   if (!reg.length) return items;
-  const since = reg[0].d.slice(0, 10) < "2016-11-15" ? ` since ${FIRST}` : "";
+  // What "every meeting" is out of: the whole series, or the window on file.
+  const since = past ? (past.whole ? " in the series' history" : ` since ${past.from}`) : reg[0].d.slice(0, 10) < "2016-11-15" ? ` since ${FIRST}` : "";
+  const mdy = (d) => `${md(d)}/${d.slice(2, 4)}`, yr = (d) => d.slice(0, 4);
   // A run of straight wins in the series.
   const [w, n] = tailRun(reg, (m) => m.winner);
   if (n >= 3) {
     const l = w === away ? home : away;
     const every = n === reg.length ? `, every meeting${since}` : "";
-    items.push({ kind: "matchup", team: w, text: `The ${nick(w)} have won ${n} straight against the ${nick(l)}${every} (last: ${reg[reg.length - 1].hs > reg[reg.length - 1].as ? `${reg[reg.length - 1].hs}-${reg[reg.length - 1].as}` : `${reg[reg.length - 1].as}-${reg[reg.length - 1].hs}`} on ${md(reg[reg.length - 1].d)}${seasonOf(reg[reg.length - 1].d) !== seasonOf(today) ? `/${reg[reg.length - 1].d.slice(2, 4)}` : ""}).`, tag: `Series streak · ${n}`, score: 1.5 + 0.3 * Math.min(n, 20), active: true });
+    // 0.88: where the run stands in the series. "The longest by either team" needs every game and a count that
+    // lands on the printed record (`exact`); short of that it is "since at least" the first season on file.
+    let place = "", bump = 0;
+    if (past && n >= STREAK.context && n < reg.length) {
+      const prior = runsOf(reg).slice(0, -1), mine = prior.filter((r) => r.w === w);
+      const top = [...prior].sort((x, y) => y.n - x.n)[0], myTop = [...mine].sort((x, y) => y.n - x.n)[0];
+      const span = (r) => (yr(r.start) === yr(r.end) ? yr(r.end) : `${yr(r.start)}-${yr(r.end).slice(2)}`);
+      const back = [...mine].reverse().find((r) => r.n >= n);
+      if (past.exact && (!top || n > top.n)) { place = `, the longest streak by either team in the series${top ? ` (was ${top.n}, the ${nick(top.w)}, ${span(top)})` : ""}`; bump = 0.8; }
+      else if (past.exact && n === top.n) { place = `, matching the longest streak by either team in the series (the ${nick(top.w)}, ${span(top)})`; bump = 0.6; }
+      else if (!myTop || n > myTop.n) { place = past.exact ? ", their longest ever against them" : `, their longest since at least ${past.from}`; bump = 0.5; }
+      else if (back) place = `, their longest since a run of ${back.n} that ended in ${yr(back.end)}`;
+      // What tonight would make of it.
+      if (past.exact && top && (n + 1 === top.n || n === top.n)) items.push({ kind: "matchup", team: w, tag: "Series record", score: 2.4, active: true,
+        text: `A win tonight would be the ${poss(w)} ${n + 1}th straight over the ${nick(l)}, ${n === top.n ? "the longest streak by either team in the series" : `matching the longest streak by either team in the series (the ${nick(top.w)}, ${span(top)})`}.` });
+    }
+    const lastG = reg[reg.length - 1];
+    items.push({ kind: "matchup", team: w, text: `The ${nick(w)} have won ${n} straight against the ${nick(l)}${every}${place} (last: ${lastG.hs > lastG.as ? `${lastG.hs}-${lastG.as}` : `${lastG.as}-${lastG.hs}`} on ${md(lastG.d)}${seasonOf(lastG.d) !== seasonOf(today) ? `/${lastG.d.slice(2, 4)}` : ""}).`, tag: `Series streak · ${n}`, score: 1.5 + 0.3 * Math.min(n, 20) + bump, active: true });
   }
   // The recent meetings, when one-sided: at least the last 10, and further back for as long as it stays
   // 80%+ (the user, 11/13: don't cut a longer run off at 10). "13-3 in the last 16 meetings".
@@ -85,11 +112,21 @@ export function teamItems(history, teamFiles, away, home, today) {
     }
   }
   // Tonight's arena.
-  const there = reg.filter((m) => m.home === home);
+  // Not a home game: one a guide lists at a third site, or one in the 2020 bubble (0.88).
+  const there = reg.filter((m) => m.home === home && !m.neutral && !(m.d >= "2020-07-01" && m.d <= "2020-10-31"));
   const [vw, vn] = tailRun(there, (m) => m.winner);
   if (vn >= 4) {
-    const text = vw === home ? `The ${nick(home)} have won ${vn} straight at home against the ${nick(away)}.` : `The ${nick(away)} have won ${vn} straight road games against the ${nick(home)}.`;
+    let text = vw === home ? `The ${nick(home)} have won ${vn} straight at home against the ${nick(away)}.` : `The ${nick(away)} have won ${vn} straight road games against the ${nick(home)}.`;
+    // 0.88: when the other side last won there, where the games on file reach that far.
+    const lost = vn < there.length ? there[there.length - vn - 1] : null;
+    if (past && lost && vn >= STREAK.there) text = text.replace(/\.$/, vw === home ? `; the ${nick(away)} last won there on ${mdy(lost.d)}.` : `; the ${nick(home)} last beat them at home on ${mdy(lost.d)}.`);
     items.push({ kind: "matchup", team: vw, text: vn === there.length ? text.replace(/\.$/, `, every game there${since}.`) : text, tag: `${vw === home ? "Home" : "Road"} streak · ${vn}`, score: 1.2 + 0.25 * Math.min(vn, 12), active: true });
+  }
+  // 0.88: the largest margin each way, when the whole series is on file.
+  if (past?.whole) {
+    const mg = margins(reg), say = (t) => (mg[t] ? `the ${nick(t)} by ${mg[t].m} (${mg[t].hi}-${mg[t].lo} on ${mdy(mg[t].d)})` : null);
+    const parts = [say(home), say(away)].filter(Boolean);
+    if (parts.length === 2) items.push({ kind: "matchup", team: home, tag: "Series margins", score: 0.9, text: `Largest wins in the series: ${parts.join("; ")}.` });
   }
   // Season series, completed seasons.
   const cur = seasonOf(today);
@@ -214,11 +251,11 @@ export function regulars(teamFiles, tri) {
   return out;
 }
 
-export function matchups({ history, logs, teamFiles, tonight, today, series = null }) {
+export function matchups({ history, logs, teamFiles, tonight, today, series = null, deep = null, official = null }) {
   // 0.84: the all-time series from the team media guides (through last season) plus this season's meetings.
   const y = Number(String(today).slice(0, 4)) - (Number(String(today).slice(5, 7)) >= 8 ? 0 : 1), seasonStart = `${y}-08-01`;
   return (tonight || []).map((g) => {
-    const items = [...teamItems(history, teamFiles, g.away, g.home, today)];
+    const items = [...teamItems(history, teamFiles, g.away, g.home, today, deep ? pairHistory({ deep, official, series }, g.away, g.home) : null)];
     if (series) {
       const season = meetings(history, teamFiles, g.away, g.home).filter((m) => m.type === 2 && m.d >= seasonStart && m.d < today);
       items.push(...seriesItems(series, season, g.away, g.home, today));
