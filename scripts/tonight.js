@@ -61,7 +61,25 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
   const { readPdf } = await import("../src/notes/pdf-layout.js");
   const { readHistory } = await import("../src/notes/narrative.js");
   const { annotate, trimLines } = await import("../src/notes/facts.js");
-  const { readCoachRecord, coachLine } = await import("../src/notes/formats/coach-record.js");
+  const { readCoachRecord, coachLine, fromTenures } = await import("../src/notes/formats/coach-record.js");
+  const ctf = path.join(root, "src", "data", "coach-tenures.json");
+  const coachTenures = fs.existsSync(ctf) ? JSON.parse(fs.readFileSync(ctf, "utf8")).coaches || {} : {};
+  // Every regular-season game we hold (2016-17 on, and this season's store as the last build left it), read once if needed.
+  let coachGamesCache = null;
+  const coachGames = async () => {
+    if (coachGamesCache) return coachGamesCache;
+    const out = [];
+    try {
+      const H = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-results-history.json"), "utf8"));
+      const CUP = new Set(["2023-12-09", "2024-12-17", "2025-12-16"]);     // Cup title games count in no record
+      for (const r of H.games) if (r[5] === 2 && !CUP.has(r[0])) out.push({ d: r[0], h: r[1], a: r[2], hs: r[3], as: r[4] });
+      const { loadStore, allGames } = await import("../src/situations/results.js");
+      const { cupFinal } = await import("../src/situations/standings.js");
+      const rows = allGames(loadStore(path.join(root, "history", "results"), fs)), cup = cupFinal(rows);
+      for (const g of rows) if (g !== cup) out.push({ d: g.d, h: g.h, a: g.a, hs: g.hs, as: g.as });
+    } catch (err) { console.log(`  coach games not read: ${err.message}`); }
+    return (coachGamesCache = out);
+  };
   const modelFile = path.join(root, "src", "data", "fact-model.json");
   const model = fs.existsSync(modelFile) ? JSON.parse(fs.readFileSync(modelFile, "utf8")) : null;
   const { TEAMS } = await import("../src/teams.js");
@@ -103,7 +121,10 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
       // 0.76: the head coach's record against tonight's opponent, from the "ALL-TIME RECORD VS. THE NBA" table (only when
       // the table reads whole and adds up to his career record).
       try {
-        const cl = coachLine(readCoachRecord(doc), e.opp);
+        let crec = readCoachRecord(doc);
+        // 0.83: no table by opponent in his notes: count it from our results if we know his teams and it adds up.
+        if (crec && !crec.ok && coachTenures[crec.coach]) crec = fromTenures(crec, coachTenures[crec.coach].tenures, await coachGames(), today);
+        const cl = coachLine(crec, e.opp);
         if (cl) hist.push({ page: null, text: cl, kind: "context", player: null, playerId: null, team: true, matchup: true, how: "team", resolved: false, boxGame: null, when: "season", score: 2.6 });
       } catch (err) { console.log(`  ${e.team} coach record: ${err.message}`); }
       const read = annotate(hist, { doc, box, model, teamNames: [T.city, T.nick, e.team].filter(Boolean), careers });

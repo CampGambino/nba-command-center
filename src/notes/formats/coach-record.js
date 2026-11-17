@@ -54,12 +54,37 @@ export function readCoachRecord(doc) {
   return null;
 }
 
+/**
+ * 0.83: a coach whose notes print no table (Chicago prints the heading and two totals for Tiago Splitter, nothing by
+ * opponent; the user, 11/16: "I don't see his records vs. every team"). When we know which teams he has coached and
+ * when (src/data/coach-tenures.json) and hold every one of those games, the record by opponent is counted from the
+ * results. It is used only if the count adds up to the career record his notes print: the same check as a table.
+ *
+ * rec: readCoachRecord's result (coach, career); tenures: [{ team, from, to? }]; games: [{ d, h, a, hs, as }] regular
+ * season, Cup title games already out; before: today (the notes are entering today).
+ */
+export function fromTenures(rec, tenures, games, before) {
+  if (!rec || !rec.career || !Array.isArray(tenures) || !tenures.length) return rec;
+  const teams = {};
+  for (const g of games || []) {
+    if (g.hs == null || g.as == null || g.d >= before) continue;
+    for (const t of tenures) {
+      if (g.d < t.from || (t.to && g.d > t.to) || (g.h !== t.team && g.a !== t.team)) continue;
+      const home = g.h === t.team, opp = home ? g.a : g.h, won = home ? g.hs > g.as : g.as > g.hs;
+      const r = (teams[opp] ??= { w: 0, l: 0 });
+      if (won) r.w++; else r.l++;
+    }
+  }
+  const sum = Object.values(teams).reduce((a, r) => ({ w: a.w + r.w, l: a.l + r.l }), { w: 0, l: 0 });
+  return { ...rec, teams, sum, ok: sum.w === rec.career.w && sum.l === rec.career.l, counted: true };
+}
+
 /** The line for tonight: his record against tonight's opponent. Null when the table didn't read whole. */
 export function coachLine(rec, opp) {
   const r = rec?.ok ? rec.teams[opp] : null;
   const T = TEAMS[opp];
-  if (!r || !T || r.w + r.l < 4) return null;
+  if (!r || !T || r.w + r.l < (rec.counted ? 2 : 4)) return null;   // a second-year coach has met few teams four times
   const who = `the ${T.nick}`;   // "the Heat", "the Jazz": every nickname takes the article
   const tot = rec.career || rec.sum;
-  return `${rec.coach} is ${r.w}-${r.l} all-time against ${who} as a head coach (${tot.w.toLocaleString("en-US")}-${tot.l.toLocaleString("en-US")} overall${rec.entering ? `, entering ${rec.entering}` : ""}).`;
+  return `${rec.coach} is ${r.w}-${r.l} all-time against ${who} as a head coach (${tot.w.toLocaleString("en-US")}-${tot.l.toLocaleString("en-US")} overall${rec.entering ? `, entering ${rec.entering}` : ""}${rec.counted ? "; counted from our results, which add up to the record his notes print" : ""}).`;
 }

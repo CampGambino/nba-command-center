@@ -2,6 +2,37 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.83.0 (2026-11-16): cards file in by time, bench counts, Splitter's record by opponent, the Index page
+
+The user (11/16, 10:11 PM): "the command center alerts feel pinned to the top when most should filter in chronologically… there are exceptions, but when a player got in foul trouble doesn't meet that threshold… also, the text in the foul trouble alerts is too much. the details can go on the back of the card"; on NBA Live's BENCH IMPACT card: "maybe there is a way to track if this a common occurrence, which it generally shouldn't be"; on the Bulls' coach page: "I don't see his records vs. every team"; on pages for the newer facts: "it would be nice to have a central area, which I think we have but everything is displaced and sometimes hard to find".
+
+### NBA Live (bridge v19)
+- **Why our cards sat on top.** NBA Live orders its panel by tier first and time second, and records and milestones are the top tier. Every season card from the bridge (foul trouble, fouled out, bench and rotation cards, lead context, season-best quarters, count checks) had been sent as a "milestone". They are now routine cards and file in by when they happened. Still top tier: milestones and records, a full game, an "almost never" state, first-30-allowed, the scoreless card. A lead lost sits with NBA Live's comeback cards.
+- **A card keeps its moment.** NBA Live re-stamps a card to the player's latest play whenever its text or numbers change, so a card with tonight's points on it floated back up on every basket. The bridge now hands back the time a card first fired unless it has become a different card ("4 FROM" to "🎉", "STILL SCORELESS" to "FIRST SCORELESS GAME").
+- **Foul trouble, shorter.** Front: "Julius Randle (BKN) — 5th foul, Q4 9:02", the foul count, and "2 of 12 games this season". Back (tap to flip): the season count in words, tonight's points and minutes, and the rule. The card is filed at the time of the foul. (NBA Live's own hint under any card with a back reads "tap for all-time"; that wording is NBA Live's.)
+- **Bench impact.** NBA Live's BENCH IMPACT / BENCH DOMINANCE card now carries how often that has been the final result: "PHX's bench has outscored its starters in 2 of 12 games this season; 24 of 394 team games league-wide" (`src/situations/bench.js`, `tonight.json` `bench`). It is the second NBA Live card the bridge adds to.
+
+### A coach's record by opponent, counted
+- **0.81 said Chicago's table was a picture. It isn't there at all:** the Bulls print the heading and two totals for Tiago Splitter, nothing by opponent (the user's picture of the page).
+- So it is counted: `src/data/coach-tenures.json` lists the teams a coach has led and when (Splitter: Portland from its second game of 2025-26, Chicago this season), `fromTenures` counts his games from our results, and the line is used only when the count adds up to the career record the notes print. It does: 45-48, across 29 opponents. "Tiago Splitter is 1-1 all-time against the Cavaliers as a head coach (45-48 overall, entering 11/16; counted from our results, which add up to the record his notes print)". A counted line shows from two meetings (a table's from four).
+- Only a coach whose whole head-coaching career is since 2016-17 can be counted this way.
+
+### The Index page (`docs/find.html`, in every page's nav)
+- One searchable list of every view of the site (36 rows: each page, tab and section), each with what its numbers run through and when it was last rebuilt, read from the data file itself; a row turns amber when its data is over a day old.
+- Under it, the season tables that until now existed only as Watch List lines on the day a team played, read from the same files the alerts use: record when leading or trailing by 10+ and by 15+ in the 4th with the current and longest runs; shots to tie or take the lead late; full halves and games; benches over starters; the most points in each building (`docs/data/arenas.json`, new); the seeded lists; the finder's longer list; tonight's players who have never had a scoreless game.
+- Search covers both: "comeback" leaves Game Flow's leads tab and opens the leads table.
+
+### Tested
+- 909 checks (was 902), 79 Worker checks. New: the bridge's `fire` run alone (anchor kept, dropped when the label changes or a time is given); the foul card's front, back and type in the stand-in; NBA Live's bench card through the stand-in; bench counts; a coach's counted record (a game before his tenure, after it, and today's left out; a count that doesn't add up is not used); the Index page lists every page and every page links to it.
+- Bridge v19 inside the newest NBA Live with IND @ PHI (11/15) replayed live: a foul-trouble card read "VJ Edgecombe (PHI) — 5th foul, Q4 1:53", stamped Q4 1:53, and sat below five newer NBA Live cards.
+- Splitter's count against the Bulls' notes of 11/16: 45-48. `tools/check-pages.py`: all pages OK with the Index page and the eleventh nav link.
+
+### Unproven
+- The ordering was seen in one replay near the end of a game, not over a whole live night with several games going.
+- The bench line is the season's count of finished games; NBA Live's card fires on the score at that moment, which happens more often than it lasts.
+- The Index's list of views is written by hand: a new page or tab has to be added to it (a test checks every page file is listed, not every tab).
+- The bench-card and foul-card wording has not been seen on the user's screen.
+
 ## 0.82.0 (2026-11-16): NBA Live card fixes, first scoreless game, the Warriors' notes, Paycom corrected
 
 The user (11/16, 8:33 PM), eleven images from tonight's games and the Warriors' notes: "alex sarr in foul trouble means that's why he's not in during his normal time. is there a way to capture that so both alerts aren't active?"; "it makes sense to display the time the foul trouble occurred instead of telling me it's the end of the quarter"; on "11 points from 5,000 points career": "we wait until the player is closer to the mark before alerting in the program. can you check the rules from nba live. i'll make exceptions for big milestones, but this is pretty run of the mill"; a Basketball Reference page for Anthony Davis; "someone's first career scoreless game, especially given the price tag, name recognition, and accolades"; boxes from the Warriors' notes; and a Basketball Reference search confirming the arena record in Oklahoma City.
@@ -78,7 +109,7 @@ The user (11/16, 7:34 PM): "losing a 15-point lead in the 4th quarter is notewor
 
 ### Coach's record against tonight's opponent
 - **New Orleans (Jamahl Mosley)** now reads: three teams' numbers print on the line above their names with another table's row after them; the table adds up to his 193-229. Tonight: "Jamahl Mosley is … all-time against the Warriors as a head coach".
-- **Chicago (Tiago Splitter):** the notes print the heading, but the table under it is not text in the file (most likely a picture), so there is nothing to read. Not fixed.
+- **Chicago (Tiago Splitter):** the notes print the heading, but the table under it is not text in the file (most likely a picture), so there is nothing to read. Not fixed. (Wrong guess: the Bulls print no table by opponent at all. Counted from our results in 0.83.)
 - "against Heat" is "against the Heat".
 
 ### Tested

@@ -621,13 +621,19 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
     let arenas = {};
     try {
       const { arenaRecords, arenasTonight } = await import("../src/records/arena.js");
-      const all = arenaRecords(JSON.parse(fs.readFileSync(path.join(root, "src", "data", "arena-records.json"), "utf8")), rows, store.names || {});
+      const arenaData = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "arena-records.json"), "utf8"));
+      const all = arenaRecords(arenaData, rows, store.names || {});
       const neutral = new Set((sb.ok ? sb.data.games : []).filter((g) => g.neutral).map((g) => g.homeTri));
       arenas = arenasTonight(all, (watch.games || []).map((g) => g.homeTri).filter((t) => !neutral.has(t)));
+      fs.writeFileSync(path.join(root, "docs", "data", "arenas.json"), JSON.stringify({ generatedAt: out.generatedAt, through, asOf: arenaData.asOf, arenas: all }));   // 0.83: for the Index page
       const fresh = Object.entries(all).filter(([, r]) => r.season);
       if (fresh.length) console.log(`arena records: set or tied this season in ${fresh.map(([t, r]) => `${t} (${r.pts})`).join(", ")}`);
     } catch (e) { console.error(`arena records not read: ${e.message}`); }
-    fs.writeFileSync(path.join(root, "docs", "data", "tonight.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, games, defense, stars, situations, arenas, zeros: args.prep?.zeros || {} }));
+    // 0.83: how often a bench has outscored its own starters over a whole game, by team and league-wide, for NBA Live's
+    // BENCH IMPACT card (the user, 11/16: "maybe there is a way to track if this is a common occurrence").
+    let bench = null;
+    try { const { benchOverStarters } = await import("../src/situations/bench.js"); bench = benchOverStarters(rows); } catch (e) { console.error(`bench counts not made: ${e.message}`); }
+    fs.writeFileSync(path.join(root, "docs", "data", "tonight.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, games, defense, stars, situations, arenas, zeros: args.prep?.zeros || {}, bench }));
     // The briefing (0.66): one ranking over every candidate line, with what was already shown on earlier days.
     try {
       const { tonightCandidates } = await import("../src/anticipate/tonight.js");

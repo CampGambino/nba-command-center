@@ -77,7 +77,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 18;
+  var VERSION = 19;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -267,7 +267,7 @@
         if (coveredByNbaLive(i)) {
           if (i.tracking === "disagrees" && game.status === "live" && p && (p.min || 0) >= 1) {
             fire("cc-count-" + i.espnId + "-" + i.stat + "-" + i.target, {
-              type: "milestone", icon: "🧮 COUNT CHECK",
+              type: "streak", icon: "🧮 COUNT CHECK",
               text: i.player + " (" + i.team + ") — the team's notes have " + Number(i.current).toLocaleString() + " " + (i.label || i.stat) + " entering tonight; ESPN's total differs",
               sub: "Command Center · " + (i.review && i.review[0] ? i.review[0] : "sources disagree") + " · NBA Live's ladder uses ESPN's total",
               live: true, gameId: game.id, gameTag: tag, gameScore: scr,
@@ -778,6 +778,16 @@
   // quarter is among the season's best, its season place goes on the front and the season's list under its all-time
   // list on the back. Anything unexpected and the card goes through exactly as NBA Live made it.
   function decorate(key, card) {
+    // v19: NBA Live's BENCH IMPACT / BENCH DOMINANCE card (bench-<game>-<side>) gets how often that has been the
+    // final result this season, for the team and the league (the user, 11/16: "maybe there is a way to track if this
+    // is a common occurrence, which it generally shouldn't be"). tonight.json `bench`.
+    var bm = /^bench-([^-]+)-(away|home)$/.exec(String(key));
+    if (bm && card && !card.ended) {
+      var Bn = state.tonight && state.tonight.bench, bg = (games() || []).filter(function (g) { return g && String(g.id) === bm[1]; })[0];
+      var bt = bg && bg[bm[2]] ? tri(bg[bm[2]].tricode) : null, mine = Bn && bt && Bn.teams ? Bn.teams[bt] : null;
+      if (!Bn || !mine || !Bn.gp) return card;
+      return Object.assign({}, card, { sub: (card.sub ? card.sub + " · " : "") + "Command Center · " + bt + "'s bench has outscored its starters in " + mine.n + " of " + mine.gp + " games this season; " + Bn.n + " of " + Bn.gp + " team games league-wide" });
+    }
     var m = /^qexp-([^-]+)-([^-]+)-(\d+)$/.exec(String(key));
     if (!m || !card || !state.flow) return card;
     var k = Number(m[3]), game = (games() || []).filter(function (g) { return g && String(g.id) === m[1]; })[0];
@@ -820,14 +830,14 @@
   }
   // v18: when his nth personal foul was called, from the play-by-play ("Q1 6:15"); null when the feed doesn't show it.
   // (The user, 11/16: a card read "2nd foul, end of the 1st" midway through the 2nd for a foul midway through the 1st.)
-  function foulTime(game, id, n) {
+  function foulTime(game, id, n, asPlay) {
     var P = game.plays || [], mine = [];
     for (var k = 0; k < P.length; k++) if (P[k] && P[k].badge === "foul" && String(P[k].playerId) === String(id) && !/technical|flagrant foul type 2 ejection|defensive 3-seconds|delay/i.test(P[k].desc || "")) mine.push(P[k]);
     if (mine.length < n) return null;
     var num = function (x) { var q = /^OT/.test(x.qtr) ? 4 + Number(String(x.qtr).slice(2)) : Number(String(x.qtr).slice(1)), m = /^(\d+):(\d+)/.exec(String(x.clock || "")); return q * 10000 - (m ? Number(m[1]) * 60 + Number(m[2]) : Math.round(parseFloat(x.clock) || 0)); };
     mine.sort(function (a, b) { return num(a) - num(b) || (a.seqNum || 0) - (b.seqNum || 0); });
     var f = mine[n - 1];
-    return f && f.qtr ? f.qtr + " " + (f.clock || "") : null;
+    return f && f.qtr ? (asPlay ? f : f.qtr + " " + (f.clock || "")) : null;
   }
   function feedReached(game, qtr) { var P = game.plays || []; for (var k = 0; k < P.length; k++) if (P[k] && P[k].qtr === qtr) return true; return false; }
   function flowChecks(game, sides, box, tag, scr) {
@@ -849,7 +859,13 @@
     var now = live ? elapsedNow(game) : null;
     var court = live ? onCourtNow(game) : null;
     var stl = function (pairs) { return typeof fmtAlertStatLine === "function" ? fmtAlertStatLine(pairs) : ""; };
-    var base = function (extra) { return Object.assign({ type: "milestone", live: live, gameId: game.id, gameTag: tag, gameScore: scr }, extra); };
+    // v19 (the user, 11/16: "the command center alerts feel pinned to the top when most should filter in
+    // chronologically… when a player got in foul trouble doesn't meet that threshold"): NBA Live sorts by tier before
+    // time, and every season card had been sent as a "milestone" (its top tier). Now a season card is routine
+    // ("streak": it files in by when it happened) unless it says otherwise: `rare` for the ones that almost never
+    // happen, "clutch" for a lead lost.
+    var base = function (extra) { return Object.assign({ type: "streak", live: live, gameId: game.id, gameTag: tag, gameScore: scr }, extra); };
+    var rare = function (extra) { return base(Object.assign({ type: "milestone" }, extra)); };
     var through = F.games ? " (" + F.games + " games through last night, and tonight's)" : "";
     var S = seasonLists();
     // v18: is this starter sitting past his usual first-half return with two or more fouls? (Then the fouls are why.)
@@ -921,7 +937,7 @@
         var regular = p.starter || (R && R.gp >= 3 && ((R.starts || 0) * 2 >= R.gp || (R.mpg || 0) >= 25));
         if (pf >= 6) {
           fire("cc-fo-" + p.id + "-" + game.id, base({ icon: "🚫 FOULED OUT",
-            text: name + " (" + team + ") — fouled out" + (at("cc-fo-" + p.id + "-" + game.id) ? " " + at("cc-fo-" + p.id + "-" + game.id) : "") + " · " + (Fo.out ? "his " + ord(Fo.out + 1) + " foul-out this season" : "his first foul-out this season") + " · " + (p.pts || 0) + " pts in " + Math.round(p.min || 0) + " min",
+            text: name + " (" + team + ") — fouled out" + (foulTime(game, p.id, 6) ? ", " + foulTime(game, p.id, 6) : at("cc-fo-" + p.id + "-" + game.id) ? " " + at("cc-fo-" + p.id + "-" + game.id) : "") + " · " + (Fo.out ? "his " + ord(Fo.out + 1) + " foul-out this season" : "his first foul-out this season"),
             statLine: stl([[pf, "FOULS"]]), sub: "Command Center · Game Flow files" + through }));
           return;
         }
@@ -931,9 +947,17 @@
         var sitting = benchFor(p);
         if (!live || !regular || per < 1 || (pf <= Math.min(per, 4) && !sitting)) return;
         state.ftShown[game.id + "|" + p.id] = per;
-        fire("cc-ft-" + p.id + "-" + game.id, base({ icon: "⚠️ FOUL TROUBLE",
-          text: name + " (" + team + ") — " + ord(pf) + " foul, " + (foulTime(game, p.id, pf) || at("cc-ft-" + p.id + "-" + pf)) + benchNote(p) + " · " + (Fo.trouble ? "in early foul trouble in " + Fo.trouble + " of " + (Fo.gp || "?") + " games this season" + (Fo.out ? ", fouled out " + (Fo.out === 1 ? "once" : Fo.out + " times") : "") : "first time in early foul trouble this season"),
-          statLine: stl([[pf, "FOULS"], [p.pts || 0, "PTS"], [Math.round(p.min || 0), "MIN"]]), sub: "Command Center · fouls above the period number (2 in the 1st, 3 by the half, 4 in the 3rd, 5 in the 4th)" }));
+        // v19 (the user, 11/16: "the text in the foul trouble alerts is too much. the details can go on the back of the
+        // card"): the front says who, which foul and when; the season count, tonight's line and the rule are on the back.
+        // The card is filed at the time of the foul itself.
+        var fp = foulTime(game, p.id, pf, true), when = fp ? fp.qtr + " " + (fp.clock || "") : at("cc-ft-" + p.id + "-" + pf);
+        var season = Fo.trouble ? "In early foul trouble in " + Fo.trouble + " of " + (Fo.gp || "?") + " games this season" + (Fo.out ? ", fouled out " + (Fo.out === 1 ? "once" : Fo.out + " times") : "") : "First time in early foul trouble this season" + (Fo.gp ? " (" + Fo.gp + " games)" : "");
+        var rows = [season, "Tonight: " + (p.pts || 0) + " points in " + Math.round(p.min || 0) + " minutes", "Early foul trouble: more fouls than the period number (2 in the 1st, 3 by the half, 4 in the 3rd, 5 in the 4th)"];
+        var ft = { icon: "⚠️ FOUL TROUBLE", text: name + " (" + team + ") — " + ord(pf) + " foul, " + when + benchNote(p),
+          statLine: stl([[pf, "FOULS"]]), sub: "Command Center · " + (Fo.trouble ? Fo.trouble + " of " + (Fo.gp || "?") + " games this season" : "first time this season"),
+          backHtml: '<div class="alert-back-title">' + escH("⚠️ Foul trouble · " + name) + "</div>" + rows.map(function (r) { return '<div class="alert-back-play">' + escH(r) + "</div>"; }).join("") };
+        if (fp && typeof playToAbsT === "function") { var ft0 = playToAbsT(fp); if (typeof ft0 === "number") { ft.t = ft0; if (fp.wallClock) ft.wt = fp.wallClock; } }
+        fire("cc-ft-" + p.id + "-" + game.id, base(ft));
       });
       // 3. Rotation watch (live): a starter still out well past his usual return, or not out for the 3rd.
       // A regular reserve still waiting 3+ minutes past his usual first check-in (DNP or injury news often follows).
@@ -1015,7 +1039,7 @@
         // The whole game.
         if (per >= 4 && now >= 4 * QTR - IRON_GAME) roster.forEach(function (p) {
           if (!p.starter || !onNow(p) || subOut(p.id, null) || !agree(p, now)) return;
-          fire("cc-iron-" + p.id + "-" + game.id, base({ icon: "🦾 HASN'T LEFT THE GAME",
+          fire("cc-iron-" + p.id + "-" + game.id, rare({ icon: "🦾 HASN'T LEFT THE GAME",
             text: (p.name || ("#" + p.id)) + " (" + team + ") has played every second so far (" + mmss(now) + ")" + (per > 4 ? ", overtime included" : "") + " · " + fullGamesText,
             statLine: stl([[Math.round(p.min || 0), "MIN"], [p.pts || 0, "PTS"]]), sub: "Command Center · no substitution out in the play-by-play · ends when he comes out" }));
         });
@@ -1045,7 +1069,7 @@
       if (game.status === "final") roster.forEach(function (p) {
         var k = "cc-iron-" + p.id + "-" + game.id;
         if (!state.keys[k] || state.done[k] || subOut(p.id, null)) return;
-        fire(k, base({ icon: "🦾 FULL GAME",
+        fire(k, rare({ icon: "🦾 FULL GAME",
           text: (p.name || ("#" + p.id)) + " (" + team + ") played every second of the game (" + Math.round(p.min || 0) + " minutes) · " + (FULL.games.length ? "the " + ord(FULL.games.length + 1) + " full game by any player this season" : "the first full game by any player this season (" + seasonGames + " games before tonight)"),
           statLine: stl([[Math.round(p.min || 0), "MIN"], [p.pts || 0, "PTS"]]), sub: "Command Center · no substitution out in the play-by-play" }));
       });
@@ -1062,7 +1086,7 @@
       if (w.homeMax != null && h0 > w.homeMax) return;
       var lead = a0 > h0 ? sides.away : sides.home, trail = a0 > h0 ? sides.home : sides.away;
       var head = w.roadMin != null ? sides.away + " have " + a0 + ", " + sides.home + " have " + h0 : trail + " trail " + lead + " by " + m + (per > 4 ? " in overtime" : " with " + mmss(Math.max(0, left)) + " left in the " + qName(Math.min(per, 4)));
-      fire("cc-sit-" + S0.id + "-" + game.id, base({ icon: "🧮 ALMOST NEVER", text: head + " · " + S0.text, statLine: stl([[m, "MARGIN"]]),
+      fire("cc-sit-" + S0.id + "-" + game.id, rare({ icon: "🧮 ALMOST NEVER", text: head + " · " + S0.text, statLine: stl([[m, "MARGIN"]]),
         sub: "Command Center · a record looked up on " + md(S0.asOf) + "/" + String(S0.asOf).slice(2, 4) + ", not counted since" }));
     });
     // 4. Leads: a big lead with each side's season record at that size (v10: from 20, in steps of 5), and a lead lost.
@@ -1116,7 +1140,7 @@
           var mine = ((B[team] && B[team].lateLost) || []).length;
           bits2.push("led by " + late + " in the 4th quarter" + (lw + ll ? ": before tonight, teams leading by " + LATE_LEAD + "+ in a 4th quarter were " + lw + "-" + ll + " this season" : "") + (mine ? "; " + team + "'s " + ord(mine + 1) + " such loss" : ""));
         }
-        fire("cc-blown-" + game.id + "-" + team, base({ icon: late >= LATE_LEAD ? "📉 4TH-QUARTER LEAD LOST" : "📉 LEAD LOST",
+        fire("cc-blown-" + game.id + "-" + team, base({ type: "clutch", icon: late >= LATE_LEAD ? "📉 4TH-QUARTER LEAD LOST" : "📉 LEAD LOST",
           text: team + " lost a " + M[side] + "-point lead to " + other + " · " + bits2.join(" · "),
           statLine: late >= LATE_LEAD ? stl([[late, "4TH-QTR LEAD LOST"]]) : stl([[M[side], "LEAD LOST"]]), sub: "Command Center · Game Flow files" + through }));
       }
@@ -1157,7 +1181,7 @@
     });
     if (!who.length) return;
     who.sort(function (a, b) { return b.trouble / b.gp - a.trouble / a.gp; });
-    fire("cc-foulwatch-" + game.id, { type: "milestone", icon: "⚠️ FOUL WATCH",
+    fire("cc-foulwatch-" + game.id, { type: "streak", icon: "⚠️ FOUL WATCH",
       text: who.map(function (f) { return f.name + " (" + f.team + ") early foul trouble in " + f.trouble + " of " + f.gp + (f.out ? ", fouled out " + f.out + "x" : ""); }).join(" · "),
       sub: "Command Center · fouls above the period number (2 in the 1st, 3 by the half…) this season, from the Game Flow files",
       live: false, gameId: game.id, gameTag: tag, gameScore: "Pre-game" });
@@ -1167,6 +1191,12 @@
   // NBA Live updates a card in place when its key repeats; count distinct cards, not calls.
   function fire(key, card) {
     if (state.done[key]) return;            // a card ended for good (a rotation card once he came back)
+    // v19: NBA Live re-stamps a card to the player's latest play whenever its text or numbers change, which floated
+    // our cards back up on every basket. A card keeps the moment it first fired, unless it has become a different
+    // card (its label changed: "4 FROM" to "🎉", "STILL SCORELESS" to "FIRST SCORELESS GAME") or was given its own time.
+    var ex = typeof ALERT_STORIES !== "undefined" && ALERT_STORIES.get(key);
+    var label = function (x) { return String(x || "").replace(/[\d,]+/g, "#"); };
+    if (ex && card && card.t == null && card.wt == null && label(ex.icon) === label(card.icon)) card = Object.assign({}, card, { t: ex.t, wt: ex.wt });
     fireStory(key, card); state.keys[key] = 1; state.fired = Object.keys(state.keys).length;
   }
 

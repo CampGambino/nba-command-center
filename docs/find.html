@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NBA Command Center · Index</title>
+<style>
+  :root { --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a; --text: #e8eaef; --muted: #9aa3b2; --faint: #6b7383; --accent: #4f9cf7; --good: #3fbf7f; --warn: #e5a93b; --bad: #e5604f; --radius: 12px; }
+  @media (prefers-color-scheme: light) { :root { --bg: #f5f6f8; --panel: #fff; --panel2: #f0f2f5; --line: #e1e4ea; --text: #161a22; --muted: #5b6474; --faint: #8a93a3; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 18px 16px 8px; max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  nav { display: flex; flex-wrap: wrap; row-gap: 4px; gap: 14px; margin-top: 6px; font-size: 13.5px; }
+  nav a { color: var(--muted); text-decoration: none; padding-bottom: 2px; }
+  nav a.on { color: var(--text); border-bottom: 2px solid var(--accent); }
+  main { max-width: 980px; margin: 0 auto; padding: 0 12px 40px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 22px 4px 8px; }
+  .key { color: var(--muted); font-size: 13px; margin: 6px 4px 10px; }
+  input#q { width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font-size: 16px; margin-top: 12px; }
+  ul.dir { list-style: none; margin: 0; padding: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+  ul.dir li { padding: 9px 12px; border-top: 1px solid var(--line); display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  ul.dir li:first-child { border-top: 0; }
+  ul.dir a { color: var(--text); font-weight: 650; text-decoration: none; } ul.dir a:hover { color: var(--accent); }
+  ul.dir .d { color: var(--muted); font-size: 13.5px; flex: 1 1 320px; }
+  ul.dir .f { color: var(--faint); font-size: 12px; white-space: nowrap; } ul.dir .f.old { color: var(--warn); }
+  details { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); margin: 8px 0; }
+  summary { padding: 10px 12px; cursor: pointer; font-weight: 650; } summary span { color: var(--faint); font-weight: 400; font-size: 12.5px; margin-left: 8px; }
+  .tw { overflow-x: auto; padding: 0 8px 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; } th, td { padding: 5px 8px; border-top: 1px solid var(--line); text-align: left; white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; border-top: 0; } td.n { text-align: right; font-variant-numeric: tabular-nums; } td.w { white-space: normal; }
+  .empty { color: var(--muted); padding: 10px 12px; font-size: 13.5px; }
+  b.bad { color: var(--bad); } b.good { color: var(--good); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Index</h1>
+  <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a href="clutch.html">Clutch</a><a href="players.html">With / without</a><a href="trends.html">Streaks &amp; outliers</a><a href="leaders.html">Team leaders</a><a href="defenses.html">vs top teams</a><a href="national.html">National TV</a><a href="gameflow.html">Game Flow</a><a href="records.html">Records</a><a class="on" href="find.html">Index</a></nav>
+  <div class="sub" id="sub">Where everything is, and how fresh it is.</div>
+</header>
+<main>
+  <input id="q" type="search" placeholder="Search: clutch, back-to-back, arena, standings, comeback, a team code…" autocomplete="off">
+  <div class="key">Every view of the Command Center in one list. Each row says what its numbers run through and when they were last rebuilt; a row turns amber when its data is more than a day old. Nothing here is a copy: the tables at the bottom read the same files the alerts do.</div>
+  <h2>Views</h2>
+  <ul class="dir" id="dir"></ul>
+  <h2>Season tables with no page of their own</h2>
+  <div class="key">Facts that so far showed up only as a Watch List line on the day a team played.</div>
+  <div id="tables"></div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const md = (d) => (d ? `${+String(d).slice(5, 7)}/${+String(d).slice(8, 10)}` : "");
+// Every view: [title, link, what it holds, data file its freshness is read from, extra words to search by].
+const VIEWS = [
+  ["The briefing", "./#briefing", "Tonight's ten biggest storylines across every game and source, deep cuts, last night, and what the finder turned up league-wide", "briefing.json", "top storylines votes found in the numbers from last night"],
+  ["Did we see it coming?", "./#briefing", "Posts from other accounts replayed against what our lines said that morning", "flag-checks.json", "posts tweets hit rate"],
+  ["Tonight's storylines by game", "./", "Each game's lines: milestones, streaks, rest, injuries, leads, fouls", "tonight.json", "game cards"],
+  ["Milestones and records in reach tonight", "./", "Every chase with its chance tonight; the full list under it", "watch.json", "milestones passes round numbers chance"],
+  ["Matchups tonight", "./#matchups", "Head-to-head history with tonight's opponent, players against it", "matchups.json", "series head to head"],
+  ["History in tonight's notes", "./#history", "What all the team game notes say today, kept or trimmed with the reason", "notes-facts.json", "game notes elias franchise history coach record"],
+  ["Team situations", "situations.html", "Every team's record by situation (home, road, rest, conference, division, TV, weekday, month), the unusual ones first", "situations.json", "splits records unusual"],
+  ["Standings and magic numbers", "situations.html#standings", "Both conferences with clinch and elimination numbers", "standings.json", "playoff play-in clinch seed games back"],
+  ["Rest and back-to-backs", "situations.html#rest", "Teams and players on the second night, with a sortable table", "rest.json", "b2b rest days"],
+  ["Clutch", "clutch.html", "Last five minutes within five: teams and players", "clutch-players.json", "close games late"],
+  ["Fourth quarters", "clutch.html?mode=q4", "Fourth-quarter scoring: teams and players", "q4-players.json", "4th quarter"],
+  ["Final two minutes", "clutch.html?mode=l2m", "The last two minutes of the 4th and overtime in games within three", "l2m-players.json", "l2m last two minutes"],
+  ["With / without", "players.html", "A team with and without a player; one player with or without another", "teams/BOS.json", "on off absence injured out"],
+  ["Streaks and outliers", "trends.html", "Outlier games, career and season highs, team offense and defense streaks", "trends.json", "career high season high streak"],
+  ["Streak watch", "trends.html#watch", "What tonight would make of each team's run; season starts", "trends.json", "winning streak losing streak start"],
+  ["Hot and cold", "trends.html#form", "Players' stretches against their own rates", "form.json", "slump shooting hot hand"],
+  ["Team leaders", "leaders.html", "Who leads each team, 50-40-90 watch", "leaders.json", "leaders shooting"],
+  ["vs top teams", "defenses.html", "Records against the best teams and defenses", "games.json", "winning teams top defenses"],
+  ["Players vs top defenses", "defenses.html?view=players", "Scoring against the top defenses", "games.json", ""],
+  ["30-point games allowed", "defenses.html?view=thirty", "Which defenses have given up 30 and 40, and to whom (×2 for repeats)", "trends.json", "30 point 40 point allowed"],
+  ["Career highs allowed", "defenses.html?view=highs", "Career highs set against each defense; players who raised theirs more than once", "trends.json", "career high allowed"],
+  ["National TV", "national.html", "National games confirmed against ESPN, flexes, team records by network", "national.json", "tv flex nbc espn prime peacock"],
+  ["Game Flow: a single game", "gameflow.html", "Score flow, rotations and stints for any game", "flow/index.json", "play by play rotation chart"],
+  ["Game Flow: season rotation", "gameflow.html?view=season", "A team's usual substitution pattern", "flowstats.json", "rotation minutes check in"],
+  ["Game Flow: assists", "gameflow.html?view=board", "Who assists whom; the assist leaderboard", "flowstats.json", "assist network"],
+  ["Game Flow: scoring highs", "gameflow.html?view=highs", "Best quarters and halves", "flowstats.json", "20 point quarter half"],
+  ["Game Flow: three-point range", "gameflow.html?view=range", "Shot profile and tonight's three-point matchups", "flowstats.json", "3pt threes distance"],
+  ["Game Flow: leads and comebacks", "gameflow.html?view=streaks", "Never trailed, never led, leads lost and won back", "flowstats.json", "blown lead comeback wire to wire"],
+  ["Game Flow: on / off court", "gameflow.html?view=splits", "A team with a player on and off the floor", "flowstats.json", "on off plus minus"],
+  ["Records: tonight", "records.html", "All-time, franchise and Cup marks someone can reach tonight", "records.json", "all-time list pass"],
+  ["Records: within reach", "records.html#reach", "Every mark in range this season, biggest first", "records.json", "headliners"],
+  ["Records: all-time lists", "records.html#lists", "Career lists to 40th in twelve stats", "records.json", "career leaders"],
+  ["Records: franchise", "records.html#franchise", "Every player's totals with all 30 franchises", "records.json", "franchise leaders team history"],
+  ["Records: this season", "records.html#season", "Season pace against records; best quarters and halves; leads lost", "records.json", "pace season record"],
+  ["Records: NBA Cup", "records.html#cup", "Cup careers, standings, Cup games against the rest of the season", "records.json", "in-season tournament"],
+  ["Records: record book and checks", "records.html#book", "The Elias record book; where our totals and the guides disagree", "records.json", "errata verified basketball reference"],
+];
+const NEEDS = [...new Set(VIEWS.map((v) => v[3]))];
+const FRESH = {};
+function ago(iso) { const m = (Date.now() - Date.parse(iso)) / 60000; return m < 90 ? `${Math.max(1, Math.round(m))} min ago` : m < 36 * 60 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`; }
+function renderDir() {
+  const q = $("q").value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const rows = VIEWS.filter((v) => q.every((w) => `${v[0]} ${v[2]} ${v[4]}`.toLowerCase().includes(w)));
+  $("dir").innerHTML = rows.map((v) => { const f = FRESH[v[3]];
+    const fr = f ? `<span class="f${f.old ? " old" : ""}" title="${esc(v[3])}">${f.through ? `through ${md(f.through)} · ` : ""}built ${esc(ago(f.at))}</span>` : `<span class="f">…</span>`;
+    return `<li><a href="${v[1]}">${esc(v[0])}</a><span class="d">${esc(v[2])}</span>${fr}</li>`; }).join("") || `<li class="empty">Nothing matches. The season tables below are searched too.</li>`;
+  document.querySelectorAll("#tables details").forEach((d) => { const hit = !q.length || q.every((w) => d.dataset.words.includes(w) || d.textContent.toLowerCase().includes(w)); d.style.display = hit ? "" : "none"; if (q.length && hit) d.open = true; });
+}
+const get = (f) => fetch(`data/${f}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+const table = (id, title, words, note, head, rows) => `<details id="${id}" data-words="${esc(words)}"><summary>${esc(title)}<span>${esc(note)}</span></summary><div class="tw">${rows.length ? `<table><tr>${head.map((h) => `<th>${esc(h)}</th>`).join("")}</tr>${rows.map((r) => `<tr>${r.map((c, i) => `<td class="${typeof c === "number" || /^\d+-\d+$/.test(String(c)) ? "n" : i === r.length - 1 ? "w" : ""}">${c === null || c === undefined ? "" : String(c).startsWith("<") ? c : esc(c)}</td>`).join("")}</tr>`).join("")}</table>` : `<div class="empty">None so far this season.</div>`}</div></details>`;
+(async () => {
+  const [health, flow, tonight, arenas, prep] = await Promise.all([get("health.json"), get("flowstats.json"), get("tonight.json"), get("arenas.json"), get("prep.json")]);
+  // Freshness: each file's own build time and "through" date.
+  await Promise.all(NEEDS.map(async (f) => { const j = f === "flowstats.json" ? flow : f === "tonight.json" ? tonight : await get(f); if (!j) return;
+    const at = j.generatedAt || j.at || (health && health.at); if (!at) return;
+    FRESH[f] = { at, through: j.through || null, old: Date.now() - Date.parse(at) > 26 * 3600e3 }; renderDir(); }));
+  if (health) $("sub").textContent = `Where everything is, and how fresh it is. Last full build ${ago(health.at)}${(health.steps || []).some((s) => !s.ok) ? " (a step failed: see the Watch List)" : ""}.`;
+  const out = [], asOf = flow ? `${flow.games} games through last night` : "";
+  if (flow && flow.by10) {
+    const B = flow.by10, T = Object.keys(B).sort();
+    out.push(table("t-leads", "Record when leading or trailing by 10+, and by 15+ in the 4th quarter", "lead blown comeback trailing 10 15 fourth quarter", asOf,
+      ["Team", "Led by 10+", "Trailed by 10+", "Led by 15+ in the 4th", "Lost after leading by 10+ (now / longest)", "Won after trailing by 10+ (now / longest)", "15+ leads lost or won back in a 4th"],
+      T.map((t) => { const x = B[t]; return [t, `${x.upW}-${x.upL}`, `${x.downW}-${x.downL}`, `${x.lateW ?? 0}-${(x.lateLost || []).length}`, `${(x.run || []).length} / ${x.longest || 0}`, `${(x.backRun || []).length} / ${x.longestBack ?? 0}`,
+        [...(x.lateLost || []).map((g) => `lost: ${g.lead} up on ${g.opp} ${md(g.d)}`), ...(x.lateWon || []).map((g) => `won: ${g.down} down to ${g.opp} ${md(g.d)}`)].join("; ")]; })));
+  }
+  if (flow && flow.swing) out.push(table("t-swing", "Shots to tie or take the lead in the last 90 seconds", "late shots tie lead clutch go-ahead", asOf, ["Player", "Team", "Made", "Taken", "Games"], flow.swing.map((x) => [x.name, x.team, x.m, x.a, x.gp])));
+  if (flow && flow.full) out.push(table("t-full", "Full halves and full games played", "iron man never sat full half full game", asOf, ["Player", "Team", "What", "Date", "Line"],
+    [...(flow.full.games || []).map((x) => [x.name, x.team, `full game${x.ot ? ` (${x.ot} OT)` : ""} vs ${x.opp}`, md(x.date), `${x.pts} pts in ${x.min} min`]), ...(flow.full.halves || []).map((x) => [x.name, x.team, `${x.h === 2 ? "2nd" : "1st"} half vs ${x.opp}`, md(x.date), `${x.pts} pts in ${x.min} min`])]));
+  if (tonight && tonight.bench) out.push(table("t-bench", "Benches that outscored their own starters", "bench impact reserves starters", `${tonight.bench.n} of ${tonight.bench.gp} team games this season`, ["Team", "Bench", "Starters", "Opponent", "Date"], (tonight.bench.list || []).map((x) => [x.team, x.bench, x.starters, x.opp, md(x.d)])));
+  if (arenas && arenas.arenas) out.push(table("t-arena", "Most points by a player in each building", "arena record building scoring", `a list of ${md(arenas.asOf)}/${String(arenas.asOf).slice(2, 4)} plus every game since`, ["Team", "Arena", "Points", "Who", "Checked"],
+    Object.entries(arenas.arenas).sort((a, b) => b[1].pts - a[1].pts).map(([t, r]) => [t, r.arena, r.pts, r.holders.map((h) => `${h.player} vs ${h.opp} ${md(h.date)}/${h.date.slice(2, 4)}`).join(" and "), r.check === "confirmed" ? "confirmed" : r.check === "corrected" ? "corrected from the list" : "as the list has it"])));
+  if (flow && flow.seeded) for (const L of flow.seeded) out.push(table(`t-${L.id}`, `${L.what[0].toUpperCase()}${L.what.slice(1)}${L.since ? ` since ${L.since}` : ""}`, "seeded list counted forward notes", `${L.source}, counted forward from ${md(L.through)}`, ["Player", "Count", "Added since"], L.rows.map((r) => [r.name, r.n, r.added || ""])));
+  if (prep && prep.finds) out.push(table("t-finds", "Found in the numbers: the longer list", "finder absurd out of line all-star whole teams through three quarters", "the Watch List shows eight", ["Team", "Player", "What"], prep.finds.map((f) => [f.team, f.player, f.text])));
+  if (prep && prep.zeros) out.push(table("t-zeros", "Tonight's players who have never had a scoreless (or rebound-less, assist-less) game", "scoreless zero first career", "for NBA Live's still-scoreless card", ["Player", "Games", "Never without"], Object.values(prep.zeros).sort((a, b) => b.games - a.games).map((z) => [z.name, `${z.games}${z.full ? "" : " since 2016-17"}`, z.stats.map((k) => ({ pts: "a point", reb: "a rebound", ast: "an assist" }[k])).join(", ")])));
+  $("tables").innerHTML = out.join("") || `<div class="empty">The season files aren't built yet.</div>`;
+  renderDir();
+})();
+$("q").addEventListener("input", renderDir);
+if (location.hash.length > 1) { $("q").value = decodeURIComponent(location.hash.slice(1)); }
+renderDir();
+</script>
+</body>
+</html>

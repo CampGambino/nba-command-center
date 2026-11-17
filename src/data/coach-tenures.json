@@ -1,0 +1,6 @@
+{
+  "about": "Head coaches whose game notes print no record by opponent, with the teams they have coached and when. The record by opponent is counted from our results (2016-17 on) and used only when it adds up to the career record the notes print. Only coaches whose whole head-coaching career is since 2016-17 can be listed.",
+  "coaches": {
+    "Tiago Splitter": { "source": "Bulls game notes for 11/16/26 (2025-26 Trail Blazers 42-39, 2026-27 Bulls); our results: Portland was 42-39 after its first game of 2025-26", "tenures": [{ "team": "POR", "from": "2025-10-23", "to": "2026-06-30" }, { "team": "CHI", "from": "2026-10-01" }] }
+  }
+}

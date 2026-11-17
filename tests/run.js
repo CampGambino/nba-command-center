@@ -1977,7 +1977,9 @@ await articlesChecks(ok);
   ok(c6("cc-sh-60-1") && /30 points in the 1st half so far: tied for the 2nd-most in a half this season \(most: 33, Luka Doncic/.test(c6("cc-sh-60-1").text),
     "bridge v5: a half among the season's best ('so far' until it ends)", c6("cc-sh-60-1") && c6("cc-sh-60-1").text);
   ok(c6("cc-tq-g5-GSW-1") && /45 points in the 1st quarter vs HOU: the 3rd-most by a team in a quarter this season/.test(c6("cc-tq-g5-GSW-1").text), "bridge v5: a team quarter among the season's 5 best", c6("cc-tq-g5-GSW-1") && c6("cc-tq-g5-GSW-1").text);
-  ok(c6("cc-ft-52-g5") && c6("cc-ft-52-g5").text === "Foul Guy (GSW) — 3rd foul, Q2 8:00 · in early foul trouble in 8 of 12 games this season, fouled out once" && !c6("cc-ft-54-g5"),
+  // v19: the front is who, which foul and when; the season count is on the sub line and the back; a routine card, not a milestone.
+  ok(c6("cc-ft-52-g5") && c6("cc-ft-52-g5").text === "Foul Guy (GSW) — 3rd foul, Q2 8:00" && /8 of 12 games this season/.test(c6("cc-ft-52-g5").sub) && /In early foul trouble in 8 of 12 games this season, fouled out once/.test(c6("cc-ft-52-g5").backHtml) && /Tonight: \d+ points in \d+ minutes/.test(c6("cc-ft-52-g5").backHtml)
+    && c6("cc-ft-52-g5").type === "streak" && !/PTS|MIN/.test(c6("cc-ft-52-g5").statLine || "") && !c6("cc-ft-54-g5"),
     "bridge v5: foul trouble (3 fouls in the 2nd) with his season record, tonight's game left out (a later build can hold it); a bench player with no rotation history doesn't get one", c6("cc-ft-52-g5") && c6("cc-ft-52-g5").text);
   ok(c6("cc-ret-50-g5-h1") && c6("cc-ret-50-g5-h1").text === "Sits Long (GSW) hasn't come back in · usually returns to open the 2nd quarter (median of 9 starts) · out since Q1 4:24" && !c6("cc-ret-51-g5-h1"),
     "bridge v5: a starter 4+ minutes past his usual return (to open Q2) gets a rotation card; one whose usual return is later doesn't", c6("cc-ret-50-g5-h1") && c6("cc-ret-50-g5-h1").text);
@@ -2142,6 +2144,13 @@ await articlesChecks(ok);
     flowData = null;
     await flush(); tF.ctx.runAlertChecks(); await flush();
     ok(tF.cards.get("qexp-gX-80-4")?.sub === "" && tF.cards.get("other-key")?.sub === "c", "bridge v9: without the season file, and for every other card, NBA Live's cards pass through unchanged");
+    // v19: NBA Live's bench card picks up how often a bench has finished ahead of its starters (tonight.json `bench`).
+    tonightData.bench = { gp: 394, n: 24, teams: { GSW: { gp: 13, n: 2 }, HOU: { gp: 12, n: 0 } } };
+    const tG = run({ games: mk(), extra: { runAlertChecks: function () { this.fireStory("bench-gX-away", { type: "streak", icon: "📋 BENCH IMPACT", text: "GS bench outscoring starters", sub: "", gameId: "gX" }); this.fireStory("bench-gY-away", { icon: "📋 BENCH IMPACT", text: "LAL bench outscoring starters", sub: "", gameId: "gY" }); } } });
+    await flush(); tG.ctx.runAlertChecks(); await flush();
+    delete tonightData.bench;
+    ok(tG.cards.get("bench-gX-away")?.sub === "Command Center · GSW's bench has outscored its starters in 2 of 13 games this season; 24 of 394 team games league-wide" && tG.cards.get("bench-gX-away").text === "GS bench outscoring starters" && tG.cards.get("bench-gY-away")?.sub === "",
+      "bridge v19: NBA Live's BENCH IMPACT card says how often that has been the final result, for the team and the league; a team with no count passes through unchanged", JSON.stringify([tG.cards.get("bench-gX-away")?.sub, tG.cards.get("bench-gY-away")?.sub]));
   }
   flowData = null;
 }
@@ -3873,12 +3882,12 @@ await articlesChecks(ok);
 // ---------- 0.82: NBA Live cards (fouls, bench, reach), first scoreless game, Warriors' notes, lists of games ----------
 {
   const br = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");
-  ok(/var VERSION = 18;/.test(br) && /function foulTime\(game, id, n\)/.test(br) && /foulTime\(game, p\.id, pf\) \|\| at\(/.test(br) && /var benchFor = function/.test(br) && /per <= 2 && \(pf >= 2 \|\| state\.ftShown/.test(br)
+  ok(/var VERSION = (?:18|19|[2-9]\d);/.test(br) && /function foulTime\(game, id, n, asPlay\)/.test(br) && /foulTime\(game, p\.id, pf, true\)/.test(br) && /var benchFor = function/.test(br) && /per <= 2 && \(pf >= 2 \|\| state\.ftShown/.test(br)
     && /var BIG_IMPORTANCE = 50;/.test(br) && /var REACH = \{ pts: 10, fg3m: 3, reb: 4, ast: 4, stl: 3, blk: 3,/.test(br) && /i\.importance < BIG_IMPORTANCE && \(i\.need - v\) > reachOf\(i\.stat\)/.test(br) && /function zeroChecks/.test(br),
     "bridge v18: a foul's own time from the play-by-play; no bench card for a starter sitting with two fouls in the first half; a milestone below importance 50 only within NBA Live's reach; the still-scoreless card");
   // The bridge's foul clock, run on a made-up play list (newest first, as NBA Live keeps it).
   {
-    const src = br.slice(br.indexOf("  function foulTime(game, id, n) {"), br.indexOf("  function feedReached(game, qtr) {"));
+    const src = br.slice(br.indexOf("  function foulTime(game, id, n, asPlay) {"), br.indexOf("  function feedReached(game, qtr) {"));
     const foulTime = new Function(`${src}; return foulTime;`)();
     const plays = [{ badge: "foul", playerId: "7", qtr: "Q2", clock: "9:44", desc: "X shooting foul" }, { badge: "foul", playerId: "7", qtr: "Q1", clock: "3:10", desc: "X technical foul" },
       { badge: "foul", playerId: "9", qtr: "Q1", clock: "5:00", desc: "Y personal foul" }, { badge: "foul", playerId: "7", qtr: "Q1", clock: "6:15", desc: "X personal foul" }, { badge: "foul", playerId: "7", qtr: "Q1", clock: "10:02", desc: "X offensive foul" }];
@@ -3934,6 +3943,56 @@ await articlesChecks(ok);
   ok(h.some((x) => /^According to the Elias Sports Bureau, this is just the second time in the play-by-play era/.test(x.text) && !x.player) && h.some((x) => /first team to start a season 0-3/.test(x.text)) && !h.some((x) => /In 2019 the Warriors won 57/.test(x.text)),
     "notes (0.82): 'the second time in the play-by-play era' is history, a team's present-tense line is current, and the earlier occurrence it names for comparison doesn't date it; an old season's line still isn't current",
     JSON.stringify([h.map((x) => x.text.slice(0, 80)), dropped.map((d) => [d.reason, d.text.slice(0, 60)])]));
+}
+
+// ---------- 0.83: cards file in by time, bench over starters, a coach's record counted, the Index page ----------
+{
+  const br = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");
+  ok(/var VERSION = 19;/.test(br) && /Object\.assign\(\{ type: "streak", live: live/.test(br) && /var rare = function/.test(br) && /rare\(\{ icon: "🦾 FULL GAME"/.test(br) && /type: "clutch", icon: late >= LATE_LEAD/.test(br) && /type: "streak", icon: "🧮 COUNT CHECK"/.test(br),
+    "bridge v19 (the user, 11/16: Command Center alerts 'feel pinned to the top'): season cards are routine in NBA Live's ordering; only a full game, an almost-never state, records and milestones take the top tier");
+  // The bridge's fire(), run alone: a card keeps the moment it first fired until it becomes a different card.
+  {
+    const i = br.indexOf("  function fire(key, card) {"), src = br.slice(i, br.indexOf("\n  }\n", i) + 5);
+    const sent = [];
+    const fire = new Function("state", "ALERT_STORIES", "fireStory", `${src}; return fire;`)({ done: { gone: 1 }, keys: {} },
+      new Map([["k", { icon: "🎯 11 FROM 5,000", t: 400, wt: 9000 }], ["z", { icon: "😶 STILL SCORELESS", t: 2200, wt: 5 }]]), (k, c) => sent.push([k, c]));
+    fire("k", { icon: "🎯 9 FROM 5,000", text: "a" }); fire("k", { icon: "🎉 5,000", text: "b" }); fire("k", { icon: "🎯 9 FROM 5,000", t: 7 }); fire("z", { icon: "😶 FIRST SCORELESS GAME" }); fire("new", { icon: "x" }); fire("gone", { icon: "x" });
+    ok(sent.length === 5 && sent[0][1].t === 400 && sent[0][1].wt === 9000 && sent[1][1].t === undefined && sent[2][1].t === 7 && sent[2][1].wt === undefined && sent[3][1].t === undefined && sent[4][1].t === undefined,
+      "bridge v19: a card re-drawn with new numbers keeps the time it first fired (NBA Live would re-stamp it to his latest play); a card that has become something else, or has its own time, does not", JSON.stringify(sent.map((x) => [x[0], x[1].t, x[1].wt])));
+  }
+
+  // Benches that outscore their own starters, over whole games.
+  const { benchOverStarters } = await import("../src/situations/bench.js");
+  const ln = (side, starter, pts) => [side, starter, 30, pts];
+  const five = (side, pts) => Object.fromEntries(Array.from({ length: 5 }, (_, i) => [`${side}s${i}`, ln(side, 1, pts)]));
+  const gB = (d, h, a, hb, ab) => ({ d, h, a, hs: 100, as: 90, pl: { ...five(0, 10), ...five(1, 10), hb: ln(0, 0, hb), ab: ln(1, 0, ab) } });
+  const BN = benchOverStarters([gB("2026-11-01", "PHX", "LAL", 60, 20), gB("2026-11-03", "PHX", "DEN", 50, 51), gB("2026-11-05", "MIL", "PHX", 10, 78), { d: "2026-11-06", h: "BOS", a: "NYK", hs: 100, as: 90, pl: { x: ln(0, 0, 99) } }]);
+  ok(BN.gp === 6 && BN.n === 3 && BN.teams.PHX.gp === 3 && BN.teams.PHX.n === 2 && BN.teams.PHX.last.d === "2026-11-05" && BN.teams.PHX.last.bench === 78 && BN.teams.DEN.n === 1 && BN.teams.LAL.n === 0 && !BN.teams.BOS && BN.list[0].team === "PHX" && BN.list.length === 3,
+    "bench (0.83): how often a team's reserves outscored its five starters over a whole game, by team and league-wide; a box score with no starters marked is left out", JSON.stringify(BN));
+
+  // A coach with no table in his notes: his record by opponent counted from the results, used only if it adds up.
+  const { fromTenures, coachLine } = await import("../src/notes/formats/coach-record.js");
+  const recS = { coach: "New Coach", entering: "11/16", teams: {}, career: { w: 3, l: 2 }, ok: false };
+  const gms = [{ d: "2025-10-22", h: "POR", a: "MIN", hs: 90, as: 100 },                                   // before he took over
+    { d: "2025-10-24", h: "POR", a: "GSW", hs: 110, as: 100 }, { d: "2025-11-01", h: "DEN", a: "POR", hs: 120, as: 100 }, { d: "2026-01-05", h: "POR", a: "DEN", hs: 105, as: 100 },
+    { d: "2026-10-22", h: "POR", a: "DEN", hs: 80, as: 100 },                                              // Portland after he left
+    { d: "2026-10-23", h: "CHI", a: "DEN", hs: 100, as: 90 }, { d: "2026-11-10", h: "CLE", a: "CHI", hs: 110, as: 100 }, { d: "2026-11-16", h: "CLE", a: "CHI", hs: 110, as: 100 }];   // today's game not counted
+  const ten = [{ team: "POR", from: "2025-10-23", to: "2026-06-30" }, { team: "CHI", from: "2026-10-01" }];
+  const cnt = fromTenures(recS, ten, gms, "2026-11-16"), off = fromTenures({ ...recS, career: { w: 4, l: 2 } }, ten, gms, "2026-11-16");
+  ok(cnt.ok && cnt.counted && cnt.teams.DEN.w === 2 && cnt.teams.DEN.l === 1 && cnt.teams.CLE.l === 1 && !cnt.teams.MIN && cnt.sum.w === 3 && cnt.sum.l === 2
+    && coachLine(cnt, "DEN") === "New Coach is 2-1 all-time against the Nuggets as a head coach (3-2 overall, entering 11/16; counted from our results, which add up to the record his notes print)."
+    && !off.ok && coachLine(off, "DEN") === null && fromTenures(recS, [], gms, "2026-11-16") === recS,
+    "coach record (0.83): no table in the notes (Chicago): the record by opponent is counted from the games of his tenures, and used only when it adds up to the career record the notes print", JSON.stringify([cnt.teams, cnt.sum, off.ok]));
+  const CT = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "coach-tenures.json"), "utf8"));
+  ok(Object.values(CT.coaches).every((c) => c.source && c.tenures.length && c.tenures.every((t) => /^[A-Z]{3}$/.test(t.team) && /^\d{4}-\d\d-\d\d$/.test(t.from) && t.from >= "2016-10-01")),
+    "coach record (0.83): every listed tenure starts inside the seasons we hold game by game, with its source");
+
+  // The Index page lists every page of the site and reads the season files itself.
+  const fh = fs.readFileSync(path.join(root, "docs", "find.html"), "utf8");
+  const pages = fs.readdirSync(path.join(root, "docs")).filter((f) => f.endsWith(".html") && f !== "find.html");
+  ok(pages.every((f) => f === "index.html" ? /\["[^"]+", "\.\/[#"]/.test(fh) : fh.includes(`"${f}`)) && pages.every((f) => fs.readFileSync(path.join(root, "docs", f), "utf8").includes('href="find.html"'))
+    && /get\("flowstats\.json"\)/.test(fh) && /get\("arenas\.json"\)/.test(fh) && /built \$\{esc\(ago\(f\.at\)\)\}/.test(fh),
+    "index page (0.83): every page of the site is in its list and links to it; each row shows how fresh its data is; the season tables read the live files", pages.join(","));
 }
 
 // ---------- snapshot ----------
