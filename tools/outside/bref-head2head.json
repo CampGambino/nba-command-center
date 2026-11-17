@@ -1,5 +1,5 @@
 {
-"note": "Basketball Reference's head-to-head pages (basketball-reference.com/teams/<TEAM>/head2head.html), read on 11/17/26: each team's regular-season record against each current franchise, as the page stood when read (it includes the 2026-27 games played by then; pages are cached, so some are a few days behind others). 24 of the 30 pages were read (Memphis's and Miami's copies were a season old; Atlanta's, the Clippers', Minnesota's and San Antonio's were not reached), which covers every pairing but the 15 among those six. The pages count the ABA games of the four ABA teams against each other, and a division tiebreaker as a game. Used only to check the guides' all-time series records (tools/check-series-outside.mjs).",
+"note": "Basketball Reference's head-to-head pages (basketball-reference.com/teams/<TEAM>/head2head.html), read on 11/17/26: each team's regular-season record against each current franchise, as the page stood when read (it includes the 2026-27 games played by then; pages are cached, so some are a few days behind others). 24 pages were read by fetch on 11/17/26; the other six (Atlanta, the Clippers, Minnesota, San Antonio, Memphis, Miami) are the user's screenshots of the same day, 5:36 PM ET, so all 30 pages and every pairing are covered. The pages count the ABA games of the four ABA teams against each other, and a division tiebreaker as a game. Used only to check the guides' all-time series records (tools/check-series-outside.mjs).",
 "read": "2026-11-17",
 "pages": {
 "HOU": {
@@ -2832,6 +2832,714 @@
 "WAS": [
 51,
 38
+]
+},
+"ATL": {
+"BOS": [
+153,
+247
+],
+"BKN": [
+112,
+92
+],
+"CHA": [
+75,
+68
+],
+"CHI": [
+122,
+145
+],
+"CLE": [
+135,
+116
+],
+"DAL": [
+49,
+41
+],
+"DEN": [
+53,
+50
+],
+"DET": [
+223,
+231
+],
+"GSW": [
+152,
+153
+],
+"HOU": [
+82,
+88
+],
+"IND": [
+114,
+101
+],
+"LAC": [
+83,
+53
+],
+"LAL": [
+146,
+201
+],
+"MEM": [
+36,
+24
+],
+"MIA": [
+62,
+85
+],
+"MIL": [
+123,
+122
+],
+"MIN": [
+43,
+28
+],
+"NOP": [
+27,
+23
+],
+"NYK": [
+204,
+195
+],
+"OKC": [
+72,
+75
+],
+"ORL": [
+79,
+65
+],
+"PHI": [
+202,
+203
+],
+"PHX": [
+65,
+77
+],
+"POR": [
+63,
+65
+],
+"SAC": [
+167,
+162
+],
+"SAS": [
+45,
+62
+],
+"TOR": [
+54,
+59
+],
+"UTA": [
+57,
+59
+],
+"WAS": [
+175,
+155
+]
+},
+"LAC": {
+"ATL": [
+53,
+83
+],
+"BOS": [
+47,
+97
+],
+"BKN": [
+50,
+54
+],
+"CHA": [
+46,
+25
+],
+"CHI": [
+61,
+70
+],
+"CLE": [
+61,
+81
+],
+"DAL": [
+79,
+102
+],
+"DEN": [
+88,
+112
+],
+"DET": [
+57,
+73
+],
+"GSW": [
+105,
+140
+],
+"HOU": [
+94,
+130
+],
+"IND": [
+41,
+61
+],
+"LAL": [
+89,
+160
+],
+"MEM": [
+61,
+54
+],
+"MIA": [
+34,
+42
+],
+"MIL": [
+57,
+74
+],
+"MIN": [
+71,
+69
+],
+"NOP": [
+37,
+46
+],
+"NYK": [
+68,
+75
+],
+"OKC": [
+87,
+153
+],
+"ORL": [
+39,
+34
+],
+"PHI": [
+64,
+80
+],
+"PHX": [
+103,
+145
+],
+"POR": [
+98,
+151
+],
+"SAC": [
+113,
+125
+],
+"SAS": [
+58,
+136
+],
+"TOR": [
+30,
+31
+],
+"UTA": [
+91,
+117
+],
+"WAS": [
+57,
+77
+]
+},
+"MIN": {
+"ATL": [
+28,
+43
+],
+"BOS": [
+24,
+47
+],
+"BKN": [
+42,
+29
+],
+"CHA": [
+26,
+44
+],
+"CHI": [
+31,
+41
+],
+"CLE": [
+28,
+44
+],
+"DAL": [
+66,
+78
+],
+"DEN": [
+61,
+92
+],
+"DET": [
+36,
+36
+],
+"GSW": [
+60,
+79
+],
+"HOU": [
+58,
+86
+],
+"IND": [
+29,
+43
+],
+"LAC": [
+69,
+71
+],
+"LAL": [
+46,
+90
+],
+"MEM": [
+60,
+56
+],
+"MIA": [
+37,
+36
+],
+"MIL": [
+37,
+36
+],
+"NOP": [
+42,
+41
+],
+"NYK": [
+32,
+38
+],
+"OKC": [
+50,
+94
+],
+"ORL": [
+28,
+46
+],
+"PHI": [
+34,
+36
+],
+"PHX": [
+49,
+85
+],
+"POR": [
+51,
+93
+],
+"SAC": [
+73,
+65
+],
+"SAS": [
+46,
+97
+],
+"TOR": [
+22,
+39
+],
+"UTA": [
+59,
+92
+],
+"WAS": [
+31,
+40
+]
+},
+"SAS": {
+"ATL": [
+62,
+45
+],
+"BOS": [
+60,
+47
+],
+"BKN": [
+111,
+62
+],
+"CHA": [
+46,
+26
+],
+"CHI": [
+62,
+42
+],
+"CLE": [
+66,
+43
+],
+"DAL": [
+122,
+87
+],
+"DEN": [
+172,
+142
+],
+"DET": [
+67,
+39
+],
+"GSW": [
+120,
+74
+],
+"HOU": [
+122,
+102
+],
+"IND": [
+110,
+88
+],
+"LAC": [
+136,
+58
+],
+"LAL": [
+97,
+99
+],
+"MEM": [
+79,
+43
+],
+"MIA": [
+47,
+30
+],
+"MIL": [
+56,
+47
+],
+"MIN": [
+97,
+46
+],
+"NOP": [
+59,
+30
+],
+"NYK": [
+60,
+47
+],
+"OKC": [
+106,
+91
+],
+"ORL": [
+51,
+24
+],
+"PHI": [
+62,
+47
+],
+"PHX": [
+106,
+92
+],
+"POR": [
+101,
+94
+],
+"SAC": [
+133,
+70
+],
+"TOR": [
+40,
+20
+],
+"UTA": [
+121,
+94
+],
+"WAS": [
+70,
+37
+]
+},
+"MEM": {
+"ATL": [
+24,
+36
+],
+"BOS": [
+20,
+40
+],
+"BKN": [
+33,
+28
+],
+"CHA": [
+26,
+29
+],
+"CHI": [
+27,
+34
+],
+"CLE": [
+21,
+38
+],
+"DAL": [
+43,
+77
+],
+"DEN": [
+42,
+72
+],
+"DET": [
+32,
+29
+],
+"GSW": [
+53,
+61
+],
+"HOU": [
+48,
+74
+],
+"IND": [
+26,
+35
+],
+"LAC": [
+54,
+61
+],
+"LAL": [
+41,
+72
+],
+"MIA": [
+27,
+32
+],
+"MIL": [
+32,
+27
+],
+"MIN": [
+56,
+60
+],
+"NOP": [
+45,
+47
+],
+"NYK": [
+28,
+30
+],
+"OKC": [
+35,
+78
+],
+"ORL": [
+32,
+27
+],
+"PHI": [
+30,
+29
+],
+"PHX": [
+48,
+64
+],
+"POR": [
+50,
+63
+],
+"SAC": [
+55,
+60
+],
+"SAS": [
+43,
+79
+],
+"TOR": [
+30,
+31
+],
+"UTA": [
+46,
+69
+],
+"WAS": [
+34,
+26
+]
+},
+"MIA": {
+"ATL": [
+85,
+62
+],
+"BOS": [
+54,
+90
+],
+"BKN": [
+85,
+61
+],
+"CHA": [
+83,
+51
+],
+"CHI": [
+67,
+69
+],
+"CLE": [
+83,
+55
+],
+"DAL": [
+40,
+40
+],
+"DEN": [
+35,
+43
+],
+"DET": [
+75,
+62
+],
+"GSW": [
+37,
+39
+],
+"HOU": [
+44,
+35
+],
+"IND": [
+60,
+78
+],
+"LAC": [
+42,
+34
+],
+"LAL": [
+34,
+43
+],
+"MEM": [
+32,
+27
+],
+"MIL": [
+78,
+58
+],
+"MIN": [
+36,
+37
+],
+"NOP": [
+30,
+21
+],
+"NYK": [
+68,
+76
+],
+"OKC": [
+31,
+45
+],
+"ORL": [
+81,
+66
+],
+"PHI": [
+77,
+68
+],
+"PHX": [
+35,
+40
+],
+"POR": [
+31,
+44
+],
+"SAC": [
+49,
+27
+],
+"SAS": [
+30,
+47
+],
+"TOR": [
+65,
+47
+],
+"UTA": [
+38,
+41
+],
+"WAS": [
+104,
+48
 ]
 }
 }

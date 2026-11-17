@@ -15,7 +15,8 @@ numbers of the stats this season's box scores carry are kept.
 of their own; all six are text (I had four of them down as "not found": I had searched for one layout's wording).
 A mark the guide gives with no game ("Done 2 times") is kept with times and no games.
 Not read: ATL (three columns run together), DEN (DEN / OPP rows), MEM (three stats across each row), SAC; CLE is pictures.
-0.97: ATL, DEN, MEM and SAC read (29 guides); CLE is pictures.
+0.97: ATL, DEN, MEM and SAC read (29 guides).
+0.98: CLE read: its records pages are text (pp. 174-175), not pictures as noted before. All 30.
 """
 import glob, json, os, re, sys
 
@@ -530,6 +531,19 @@ def read_atl(pages):
     for p in pages[119:123]: scan(three_columns(p), state, marker, TITLE, out, prep=prep)
     return out
 
+def cle_prep(lines):
+    """Cleveland: long dates; "Road Game" is not a period; and one block the text scrambles (p. 175: "31", "31", then the two
+    opponents, then the two dates, each on a line of its own) is put back into rows."""
+    ls = [re.sub(r"\s*\((?:Reg|\d ?OT|(?:1st|2nd|3rd|4th) [HQ])\)", "", longdate(l)) for l in lines if l]; out = []; i = 0
+    val = lambda l: re.fullmatch(r"\d{1,3}", l); opp = lambda l: re.match(r"^(?:@|vs\.|at)\s", l) and not DATED.search(l); day = lambda l: re.fullmatch(r"\d{1,2}/\d{1,2}/\d{4}", l)
+    while i < len(ls):
+        n = 0
+        while i + n < len(ls) and val(ls[i + n]): n += 1
+        if n and i + 3 * n <= len(ls) and all(opp(ls[i + n + k]) for k in range(n)) and all(day(ls[i + 2 * n + k]) for k in range(n)):
+            out += [f"{ls[i + k]}   {ls[i + n + k]}   {ls[i + 2 * n + k]}" for k in range(n)]; i += 3 * n; continue
+        out.append("ROAD GAME" if ls[i] == "Road Game" else ls[i]); i += 1
+    return out
+
 def sac_prep(lines):
     """Sacramento: long dates ("Feb. 24, 2023"), "Game (+ 2OT)" labels, "12+" values and "twice, last vs. Houston"."""
     out = []
@@ -579,6 +593,8 @@ READERS = {
     "MIA": ("Heat", read_mia),
     # 0.97: the Kings-Royals franchise pages (pp. 119-120 the Kings, 126-127 opponents); pp. 113-117 are the Sacramento years only.
     "ATL": ("Atlanta-Hawks", read_atl),
+    # 0.98: text after all (pp. 174-175), highs only: "CAVALIERS ONE GAME", then "OPPONENTS ONE GAME" (seen from Cleveland: "@ Memphis").
+    "CLE": ("Cleveland-Cavaliers", by_marker(174, 175, [(r"^CAVALIERS ONE GAME$", "team", "most"), (r"^OPPONENTS ONE GAME$", "opp", "most")], prep=cle_prep)),
     "DEN": ("Denver-Nuggets", read_den),
     "MEM": ("Memphis-Grizzlies", read_mem),
     "SAC": ("Sacramento-Kings", by_marker(119, 127, [(r"^KINGS-ROYALS TEAM RECORDS$", "team", "none"), (r"^OPPONENT TEAM RECORDS$", "opp", "none"), (r"^OPPONENT TEAM RECORDS \(MOST\)$", "opp", "most"),

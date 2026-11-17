@@ -485,7 +485,7 @@
    "b": "PHI",
    "w": 214,
    "l": 267,
-   "note": "one more 76ers win than both guides print (214-266); probably the 1956 division tiebreaker, which Basketball Reference's table counts as a game"
+   "note": "one more 76ers win than both guides print (214-266): the Eastern Division third-place tiebreaker of 3/15/56 (Syracuse 82, New York 77), which Basketball Reference's table counts as a game"
   },
   {
    "a": "ATL",
@@ -507,6 +507,13 @@
    "w": 152,
    "l": 153,
    "note": "counts the protested game of 11/28/52 (a Hawks win, replayed 3/11/53), which its own box score says does not count toward team records; without it it is 151-153"
+  },
+  {
+   "a": "LAL",
+   "b": "SAC",
+   "w": 289,
+   "l": 169,
+   "note": "one more Lakers win than the Lakers' lists and the Kings' own game lists (288-169): the Central Division first-place tiebreaker of 3/21/50 (Minneapolis at Rochester, a Lakers win), which Basketball Reference's table counts as a game"
   }
  ]
 }

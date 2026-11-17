@@ -37,6 +37,29 @@ A new chat picked up "Next, in order" from the handoff. The PC folder could not 
 ### Unproven
 - The guide-games fixes have not been through a real rebuild (see above). Dallas's 1986-87 becoming usable may change a few deep streak counts; that is expected.
 
+## 0.98.0 (2026-11-17): team records from all 30 guides (Cleveland); all 30 Basketball Reference head-to-head pages checked; two more tiebreakers named
+
+The user (5:36 PM) sent screenshots of the six head-to-head pages I had not reached (Hawks, Clippers, Timberwolves, Spurs, Grizzlies, Heat) and said to start on the Cavaliers' guide.
+
+### Team records: 30 of 30 guides, 2,849 marks (was 29, 2,784)
+- **Cleveland** (PDF pp. 174-175, text): "CAVALIERS ONE GAME" and "OPPONENTS ONE GAME", highs only, with Game / Half / Quarter / Overtime rows. 65 marks. "Road Game" is not a period and is skipped; "(Reg)", "(4 OT)", "(1st H)" are taken off the opponent; one block the text scrambles (opponents' offensive rebounds: "31", "31", then the two opponents, then the two dates) is put back into rows (`cle_prep`).
+- **The check:** both printed points marks equal the games, value and date (154 and 153, the four-overtime game of 1/29/80). Over the five guides added today, 17 of 18.
+- The other 29 guides are unchanged.
+
+### Head-to-head: every Basketball Reference page is now on file
+- The six pages are in `tools/outside/bref-head2head.json` (30 pages). The 15 pairings among those six mirror each other, and all of each page's confirmed pairings agree with ours (22 of 22, 28 of 28, 27 of 27, 25 of 25, 29 of 29, 28 of 28) once this season's games are taken off (each page dates to 11/16).
+- **Of 378 pairings confirmed before any outside check, 376 equal Basketball Reference.** The other two are tiebreakers its table counts as games, now named and looked up instead of "probably":
+  - **Knicks v 76ers** (214-267 there, 214-266 by both guides): the Eastern Division third-place tiebreaker of 3/15/56, Syracuse 82, New York 77.
+  - **Lakers v Kings** (289-169 there, 288-169 by the Lakers' lists and the Kings' own games): the Central Division first-place tiebreaker of 3/21/50, Minneapolis at Rochester, a Lakers win.
+- So every difference between our 435 records and Basketball Reference's tables is one of: five tiebreakers (1950, two in 1956, two in 1957), one protested game (11/28/52), the ABA years of the four ABA teams, or a guide that starts late.
+
+### Tested
+- `node tests/run.js` 964 pass (the team-records test checks 30 guides and Cleveland's marks); `tools/check-pages.py` all pages OK; `node tools/check-series-outside.mjs` as above.
+
+### Unproven
+- Marks other than points have no second source yet (next).
+- Cleveland, Detroit and Philadelphia print no lows.
+
 ## 0.97.1 (2026-11-17): the extra Hawks v Warriors game found (a protested game); Cleveland's records pages are text
 
 - **Hawks v Warriors, 151-153, is now explained.** The user sent Stathead's game-by-game list through 1963-64. It has seven games in 1952-53 where the others have six. The extra one in Basketball Reference's total is **11/28/52, Milwaukee 78, Philadelphia 77 (2OT, at Chicago): protested and replayed on 3/11/53** (Philadelphia 72-69 in overtime, at Pittsburgh). Basketball Reference's own box score and both teams' 1952-53 game logs carry the note "does not count toward team records", but its head-to-head table counts it. Officially 1952-53 is 4-2 and the series 151-153. No open difference with an outside source is left.
