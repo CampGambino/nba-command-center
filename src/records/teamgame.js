@@ -46,7 +46,7 @@ export function teamGameRecords({ deep, history, rows, printed = null }) {
     for (const [k, [val, sign]] of Object.entries(KINDS)) {
       let best = null, prev = null, doubt = null;
       const pk = PRINTED[k], pm = newFrom && pk ? (printed.teams?.[t] || []).find((m) => m.stat === "pts" && m.period === "game" && m.kind === pk[1] && (m.side || "team") === pk[0]) : null;
-      if (pm) best = { v: pm.value, d: pm.games.map((x) => x.date).sort().pop(), opp: null, score: null };
+      if (pm && pm.games.length) best = { v: pm.value, d: pm.games.map((x) => x.date).sort().pop(), opp: null, score: null };
       for (const g of gs) {
         const v = val(g);
         // A game before this season that beats the print. From our own results (2016-17 on) it is the mark and the guide
@@ -109,13 +109,14 @@ export function boxRecordLines(records, rows, since, today = null) {
         if (!WORD[m.stat] || m.period === "ot" || (m.stat === "pts" && m.period === "game") || !["most", "fewest"].includes(m.kind)) continue;
         const side = m.side || "team", v = boxValue(m, side === "team" ? mine : theirs);
         if (v == null) continue;
-        const key = `${t}|${side}|${m.kind}|${m.stat}|${m.period}`, cur = run.get(key) || { v: m.value, d: m.games[0].date, n: m.games.length }, sign = m.kind === "most" ? 1 : -1;
+        const key = `${t}|${side}|${m.kind}|${m.stat}|${m.period}`, cur = run.get(key) || { v: m.value, d: m.games[0]?.date || null, n: m.games.length, times: m.times || null }, sign = m.kind === "most" ? 1 : -1;
         if (sign * v < sign * cur.v) continue;
         const beat = v !== cur.v;
         if (!beat && m.kind === "fewest" && (v === 0 || !TIE_FEWEST.has(m.stat))) continue;
         if (g.d >= since) {
           const where = m.period === "game" ? "in a game" : `in a ${m.period}`, sup = m.kind === "most" ? "the most" : "the fewest", scope = records.scopes?.[t] || "in franchise history";
-          const was = `(${beat ? "was" : "also"} ${cur.v}, ${mdy(cur.d)}${cur.n > 1 ? ` and ${cur.n - 1} more` : ""})`, day = mdy(g.d).replace(/\/\d\d$/, "");
+          // 0.95: a mark the guide gives with no game ("Done 2 times") has a value and how often, no date.
+          const was = `(${beat ? "was" : "also"} ${cur.v}, ${cur.d ? `${mdy(cur.d)}${cur.n > 1 ? ` and ${cur.n - 1} more` : ""}` : cur.times || "no game given"})`, day = mdy(g.d).replace(/\/\d\d$/, "");
           const word = v === 1 ? WORD[m.stat].replace(/s$/, "") : WORD[m.stat];
           const text = side === "team"
             ? `${t} had ${v} ${word} ${m.period === "game" ? "" : `${where} `}on ${day} (${opp}): ${beat ? sup : `tying ${sup}`} ${where} ${scope}, by its media guide ${was}`
@@ -131,7 +132,7 @@ export function boxRecordLines(records, rows, since, today = null) {
 
 /** The printed marks as rows for the finder: [team, stat, most, fewest, most by an opponent, fewest by an opponent]. */
 export function boxTable(records) {
-  const out = [], cell = (ms, side, kind, stat, period) => { const m = ms.find((x) => (x.side || "team") === side && x.kind === kind && x.stat === stat && x.period === period); return m ? `${m.value}${m.doubt ? "?" : ""} (${mdy(m.games[0].date)}${m.games.length > 1 ? ` +${m.games.length - 1}` : ""})` : ""; };
+  const out = [], cell = (ms, side, kind, stat, period) => { const m = ms.find((x) => (x.side || "team") === side && x.kind === kind && x.stat === stat && x.period === period); return m ? `${m.value}${m.doubt ? "?" : ""} (${m.games.length ? `${mdy(m.games[0].date)}${m.games.length > 1 ? ` +${m.games.length - 1}` : ""}` : m.times || "no game given"})` : ""; };
   for (const t of Object.keys(records?.teams || {}).sort()) {
     const ms = records.teams[t];
     for (const [stat, period, label] of [["pts", "game", "points"], ["pts", "half", "points in a half"], ["pts", "quarter", "points in a quarter"], ["reb", "game", "rebounds"], ...BOX.map((k) => [k, "game", WORD[k]])]) {

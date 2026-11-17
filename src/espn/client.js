@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { readTeams, readRoster, readSchedule, readBox, readCareer, readGameLog, readInjuries, readScoreboard, readGameDetail } from "./parse.js";
+import { readGameMisc } from "./misc.js";
 
 /**
  * ESPN client with an on-disk cache under <dataDir>/espn/.
@@ -111,6 +112,9 @@ export function createEspn({ dataDir, fetchImpl = fetch, now = () => Date.now(),
       if (r.ok && !r.data.final && r.fromCache) return wrap(`detail-${eventId}`, `${BASE}/summary?event=${eventId}`, 60e3, (d) => d, readGameDetail);
       return r;
     },
+    // 0.95: scoring by type for a game whose detail was kept before that was read (the same summary, its own cache
+    // key: a cached detail is the reduced one and has no play-by-play left to read again).
+    misc: (eventId) => wrap(`misc-${eventId}`, `${BASE}/summary?event=${eventId}`, Infinity, (d) => d, (j) => ({ final: j?.header?.competitions?.[0]?.status?.type?.completed === true, misc: readGameMisc(j) })),
     scoreboard: (isoDate) => wrap(`scoreboard-${isoDate}`, `${BASE}/scoreboard?dates=${isoDate.replace(/-/g, "")}`, 10 * 60e3, readScoreboard),
     injuries: () => wrap("injuries", `${BASE}/injuries`, 1 * HOUR, readInjuries, SHRINK.injuries),
     // Past seasons don't change: cache for a week. `season` is the ending year (2026 = 2025-26).

@@ -11,8 +11,10 @@ it is the most or fewest by an opponent, doubt: [values] when the guide prints t
 numbers of the stats this season's box scores carry are kept.
 
 0.93: 19 guides are read. PHI has its own reader; the rest share one scanner (scan) and differ in a few facts each.
-Not read: ATL (three columns run together), DEN (DEN / OPP rows), MEM (three stats across each row), TOR (points only),
-SAC; not found in the text: CLE (pictures), IND, MIA, NYK, UTA, WAS.
+0.95: 25. Utah (points only, p. 116), Toronto (points only, p. 275), Indiana, New York, Washington and Miami have readers
+of their own; all six are text (I had four of them down as "not found": I had searched for one layout's wording).
+A mark the guide gives with no game ("Done 2 times") is kept with times and no games.
+Not read: ATL (three columns run together), DEN (DEN / OPP rows), MEM (three stats across each row), SAC; CLE is pictures.
 """
 import glob, json, os, re, sys
 
@@ -249,6 +251,143 @@ def read_bos(pages):
     for p in pages[196:200]: scan(columns(p, anchor, 40), state, marker, UPPER, out)
     return out
 
+# ---- 0.95: six more guides, each laid out its own way (Utah, Toronto, Indiana, New York, Washington, Miami) ----
+LONGD = re.compile(r"\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?,?\s+(\d{1,2}),\s*(\d{4})\b")
+longdate = lambda l: LONGD.sub(lambda m: f"{MONTH[m.group(1)]}/{int(m.group(2))}/{m.group(3)}", l)
+undot = lambda l: re.sub(r"(?:\s*\.){3,}\s*", "   ", l)
+ANY = re.compile(r"(?<=\s{3})\S")
+NUMROW = re.compile(r"^(\d{1,3})\s{2,}(.+?)\s+(\d{1,2}/\d{1,2}/\d{2,4})(?!\d)")
+TIEROW = re.compile(r"^((?:vs\.?|at|@)\s.+?)\s+(\d{1,2}/\d{1,2}/\d{2,4})(?!\d)")
+row = lambda st, v, opp, d: {"side": st["side"], "stat": st["stat"], "kind": st["kind"], "period": st["period"], "value": v, "opp": re.sub(r"\s*\((?:1st|2nd|3rd|4th)[^)]*\)|\s*\(\d?OT\)", "", opp).strip(" ,;"), "date": iso(d)}
+
+def stat_of(head):
+    """A heading as (stat, period): "POINTS IN A QUARTER", "1st Half Points", "3-Pt. Field Goals Att.", "Assists, Game"."""
+    t = head.lower().replace("defense rebounds", "defensive rebounds").replace("att.", "att")
+    period = "quarter" if re.search(r"\bquarter\b", t) else "half" if re.search(r"\bhalf\b", t) else "ot" if re.search(r"\bovertime\b", t) else "game"
+    if re.search(r"\b(?:double|triple|quadruple) overtime\b|without a miss|consecutive|%|pct|percentage", t): return None, None
+    t = re.sub(r"\b(?:in an?|1st|2nd|3rd|4th|quarter|half|overtime|game)\b|,", " ", t)
+    return HEAD.get(norm_head(t)[1]), period
+
+def read_uta(pages):
+    """Utah: p. 116, four lists of games (the Jazz's most and fewest points, and the most and fewest they allowed)."""
+    SEC = {"MOST JAZZ POINTS SCORED": ("team", "most"), "FEWEST JAZZ POINTS SCORED": ("team", "fewest"), "MOST JAZZ POINTS ALLOWED": ("opp", "most"), "FEWEST JAZZ POINTS ALLOWED": ("opp", "fewest")}
+    out = []; sec = None
+    for p in pages:
+        if "JAZZ POINTS SCORED/ALLOWED" not in p[:300]: continue
+        for l in p.split("\n"):
+            t = l.strip()
+            if t in SEC: sec = SEC[t]; continue
+            m = re.match(r"^(\d{2,3})\s+(.+?)\s+(\d{1,2}/\d{1,2}/\d{2,4})\s", t)
+            if sec and m: out.append({"side": sec[0], "stat": "pts", "kind": sec[1], "period": "game", "value": int(m.group(1)), "opp": m.group(2).strip(), "date": iso(m.group(3))})
+    return out
+
+def read_tor(pages):
+    """Toronto: p. 275, "TOP SINGLE GAME PERFORMANCES (TEAM)": Toronto's lists on the left, opponents' on the right, points only."""
+    out = []
+    for p in pages:
+        if not re.search(r"TOP SINGLE GAME\s+PERFORMANCES \(TEAM\)", p[:400]): continue
+        kind = {"team": None, "opp": None}
+        for l in p.split("\n"):
+            l = l.replace("\t", " ")
+            for m in re.finditer(r"(MOST POINTS|FEWEST POINTS|HIGHEST|LOWEST|MOST|FEWEST)[A-Z0-9 %\-]*", l):
+                kind["team" if m.start() < 60 else "opp"] = {"MOST POINTS": "most", "FEWEST POINTS": "fewest"}.get(m.group(1))
+            for m in re.finditer(r"(?<![.\d])(\d{2,3})\.{3,}\s*(?:\dX\s*[-–]\s*last:\s*)?((?:at|vs\.)\s[^.]+?)\.{2,}\s*([A-Z][a-z]+ \d{1,2}, \d{4})", l):
+                side = "team" if m.start() < 80 else "opp"
+                if kind[side]: out.append({"side": side, "stat": "pts", "kind": kind[side], "period": "game", "value": int(m.group(1)), "opp": m.group(2).strip(), "date": iso(longdate(m.group(3)))})
+    return out
+
+def read_ind(pages):
+    """Indiana: pp. 187-190, "SINGLE GAME TEAM RECORDS": under each stat, "Pacers High: 65" and the games under it, then
+    Low, Opponents High and Low. The "(Home)" and "(at Indiana)" rows repeat a part of the same marks and are left out."""
+    out = []; st = {"side": None, "kind": None, "stat": None, "period": "game", "value": None}
+    for p in pages:
+        if "SINGLE GAME TEAM RECORDS" not in p[:500]: continue
+        for stream in columns(p, ANY, 150):
+            for l in stream:
+                t = undot(l).strip()
+                if not t: continue
+                m = re.match(r"^(Pacers|Opponents) (High|Low)( \([^)]*\))?:\s*(\d{1,3})?$", t)
+                if m:
+                    ok = not m.group(3) and m.group(4) is not None
+                    st.update(side=("team" if m.group(1) == "Pacers" else "opp") if ok else None, kind="most" if m.group(2) == "High" else "fewest", value=int(m.group(4)) if ok else None); continue
+                g = re.match(r"^(?:(vs\.|at)\s+)?(.+?)\s+(\d{1,2}/\d{1,2}/\d{2,4})$", t)
+                if g and st["side"] and st["stat"] and st["value"] is not None: out.append(row(st, st["value"], " ".join(x for x in (g.group(1), g.group(2)) if x), g.group(3))); continue
+                if UPPER(t) and not g: st.update(stat=stat_of(t)[0], side=None, value=None)
+    return out
+
+def read_nyk(pages):
+    """New York: p. 108, "Team Highs & Lows": one row a stat with its high and its low, the Knicks' and then opponents'.
+    (p. 109 is the same for the present Garden only.) A mark "Done 2 times" has a value and no game."""
+    out = []
+    for p in pages:
+        if not re.search(r"Team Highs & Lows\s*\n", p[:600]) or "At Present MSG" in p[:600]: continue
+        side = None
+        for l in p.split("\n"):
+            t = re.sub(r"\*+", "", longdate(l.replace("\t", " "))).strip()
+            if t == "Knickerbockers": side = "team"; continue
+            if t == "Opponents": side = "opp"; continue
+            m = re.match(r"^([A-Z0-9][A-Za-z0-9.\- ,]*?)\s{2,}(\d{1,3})\s+(.*)$", t)
+            if not m or not side: continue
+            stat, period = stat_of(m.group(1))
+            if not stat: continue
+            ONE = r"((?:at|vs\.)\s.+?)\s+(\d{1,2}/\d{1,2}/\d{4})|(Done (?:many|twice|\w+ times))"
+            hi = re.match(ONE, m.group(3)); rest = m.group(3)[hi.end():] if hi else ""
+            lo = re.match(r"\s+(\d{1,3})\s+(?:" + ONE + ")", rest) if hi else None
+            for kind, v, g in (("most", m.group(2), hi), ("fewest", lo.group(1) if lo else None, lo)):
+                if not g: continue
+                opp, d, times = g.groups()[-3:]
+                if d: out.append({"side": side, "stat": stat, "kind": kind, "period": period, "value": int(v), "opp": opp.strip(), "date": iso(d)})
+                elif int(v) > 0 and not re.search(r"many", times): out.append({"side": side, "stat": stat, "kind": kind, "period": period, "value": int(v), "opp": None, "date": None, "times": times[5:]})
+    return out
+
+def heads_and_rows(streams, st, marker, out):
+    """Guides that print a stat heading in capitals and then "value   opponent   date" rows, ties on rows of their own."""
+    for stream in streams:
+        for l in stream:
+            t = longdate(undot(l.replace("\t", " "))).strip()
+            if not t or marker(t, st): continue
+            m = NUMROW.match(t)
+            if m: st["value"] = int(m.group(1))
+            g = m or (TIEROW.match(t) if st["value"] is not None else None)
+            if g:
+                if st["side"] and st["kind"] and st["stat"] and st["period"]: out.append(row(st, st["value"], g.group(2) if m else g.group(1), g.group(3) if m else g.group(2)))
+                continue
+            if UPPER(t) and not re.search(r"\d{2}", t): stat, period = stat_of(t); st.update(stat=stat, period=period if stat else None, value=None)
+            elif re.match(r"^\d", t): st["value"] = None                 # a row with no game ("0   Many times"): its ties are not this mark's
+
+def read_was(pages):
+    """Washington: pp. 129-132, two columns read down then across: "WIZARDS SINGLE GAME / HIGHS", "/ LOWS", "OPPONENT SINGLE
+    GAME / HIGHS", "/ LOWS"; then both teams combined and the present arena, which are not these marks."""
+    out = []; st = {"side": None, "kind": None, "stat": None, "period": None, "value": None, "next": None}
+    def marker(t, s):
+        if re.match(r"^WIZARDS SINGLE GAME", t): s.update(next="team", side=None, stat=None); return True
+        if re.match(r"^OPPONENTS? SINGLE", t): s.update(next="opp", side=None, stat=None); return True
+        if re.match(r"^(TWO TEAMS COMBINED|COMBINED|CAPITAL ONE ARENA|EITHER TEAM|BOTH TEAMS|NOTABLE GAMES)", t): s.update(next=None, side=None, stat=None); return True
+        if t in ("HIGHS", "LOWS", "GAME HIGHS", "GAME LOWS"): s.update(side=s["next"], kind="most" if t.endswith("HIGHS") else "fewest", stat=None, value=None); return True
+        return t in ("TEAM RECORDS", "GAME")
+    for p in pages[128:132]: heads_and_rows(columns(p, ANY, 50), st, marker, out)
+    return out
+
+def read_mia(pages):
+    """Miami: "RECORDS – HEAT" (pp. 156-165) and "OPPONENT RECORDS – TEAM" (pp. 169-177): a stat in capitals, then SEASON,
+    GAME, 1ST HALF ... 4TH QUARTER, each with HIGH(S) and LOW(S) lists. The words down the page edge are the guide's tabs."""
+    out = []; st = {"side": None, "kind": None, "stat": None, "period": None, "value": None}
+    def marker(t, s):
+        m = re.match(r"^(SEASON|GAME|(?:1ST|2ND) HALF|(?:1ST|2ND|3RD|4TH) QUARTER|OVERTIME(?: TOTAL)?|(?:SINGLE|DOUBLE|TRIPLE) OVERTIME)$", t)
+        if m: s.update(period={"GAME": "game", "SEASON": None, "OVERTIME": None, "OVERTIME TOTAL": None}.get(t, "half" if "HALF" in t else "quarter" if "QUARTER" in t else None), kind=None, value=None); return True
+        if t in ("HIGH", "HIGHS", "LOW", "LOWS"): s.update(kind="most" if t.startswith("HIGH") else "fewest", value=None); return True
+        if UPPER(t) and not re.search(r"\d{2}", t):
+            stat = stat_of(t)[0] if not re.search(r"QUARTER|HALF|OVERTIME", t) else None
+            s.update(stat=stat, period=None, kind=None, value=None); return True
+        return not re.match(r"^\d", t) and not TIEROW.match(t)       # the tab words (Management, Players, ...)
+    for p in pages:
+        top = p[:300]
+        side = "opp" if re.search(r"OPPONENT RECORDS\s+[–-]\s+TEAM", top) else "team" if re.search(r"^\s*RECORDS\s+[–-]\s+HEAT", top) else None
+        if not side: continue
+        st.update(side=side)
+        heads_and_rows(columns(p, ANY, 60), st, marker, out)
+    return out
+
 M = lambda *names: (r"^(?:" + "|".join(names) + r")$", "off", "none")
 READERS = {
     "PHI": ("Philadelphia-76ers", read_phi),
@@ -282,6 +421,12 @@ READERS = {
                                            (r"^TEAM HIGH\b", "same", "most"), (r"^TEAM LOW\b", "same", "fewest")], kind_per_stat=True, anchor=re.compile(r"(?<=\s{3})(?:INDIVIDUAL|TEAM HIGH|TEAM LOW)\b"), min_x=60)),
     "MIL": ("Bucks", read_mil),
     "BOS": ("Celtics", read_bos),
+    "UTA": ("Jazz", read_uta),
+    "TOR": ("Raptors", read_tor),
+    "IND": ("Pacers", read_ind),
+    "NYK": ("Knicks", read_nyk),
+    "WAS": ("Wizards", read_was),
+    "MIA": ("Heat", read_mia),
 }
 
 _vf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "team-records-verified.json")
@@ -311,8 +456,8 @@ def main():
         doubt = {}
         for r in rows:
             k = (r.get("side", "team"), r["stat"], r["kind"], r["period"])
-            if r["period"] == "game" and any(x["date"] == r["date"] for x in best[k]) and r["value"] != best[k][0]["value"]: doubt.setdefault(k, set()).update({r["value"], best[k][0]["value"]})
-        teams[tri] = [dict({"stat": k[1], "kind": k[2], "period": k[3], "value": v[0]["value"], "games": [{"opp": x["opp"], "date": x["date"]} for x in v]}, **({"side": "opp"} if k[0] == "opp" else {}), **({"doubt": sorted(doubt[k])} if k in doubt else {}), **({"checked": checked[k]} if k in checked else {})) for k, v in best.items()]
+            if r["period"] == "game" and r["date"] and any(x["date"] == r["date"] for x in best[k]) and r["value"] != best[k][0]["value"]: doubt.setdefault(k, set()).update({r["value"], best[k][0]["value"]})
+        teams[tri] = [dict({"stat": k[1], "kind": k[2], "period": k[3], "value": v[0]["value"], "games": [{"opp": x["opp"], "date": x["date"]} for x in v if x["date"]]}, **({"times": v[0]["times"]} if not v[0]["date"] and v[0].get("times") else {}), **({"side": "opp"} if k[0] == "opp" else {}), **({"doubt": sorted(doubt[k])} if k in doubt else {}), **({"checked": checked[k]} if k in checked else {})) for k, v in best.items()]
         for k, vals in doubt.items(): print(f"   {tri} prints one game twice with two values: {k} {sorted(vals)}")
         g = lambda side, kind: ", ".join(f"{m['stat']} {m['value']}" for m in teams[tri] if m["period"] == "game" and m["kind"] == kind and m.get("side", "team") == side)
         print(f"{tri}: {len(rows)} rows, {len(teams[tri])} marks\n   most: {g('team', 'most')}\n   fewest: {g('team', 'fewest')}\n   opp most: {g('opp', 'most')}\n   opp fewest: {g('opp', 'fewest')}")

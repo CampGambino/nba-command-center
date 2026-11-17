@@ -668,7 +668,20 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
       } catch (e) { console.error(`series not written: ${e.message}`); }
     }
     const m = matchups({ history, logs, teamFiles, tonight, today, series, deep: deepShared.deep, official: deepShared.official, bests: seriesBests });
-    fs.writeFileSync(path.join(root, "docs", "data", "matchups.json"), JSON.stringify({ generatedAt: out.generatedAt, today, window: history?.seasons || null, games: m.map((g) => ({ ...g, items: [...g.items.slice(0, 12), ...g.items.slice(12).filter((i) => i.series)] })) }));   // 0.85.1: the all-time series line is kept even on a game with more than twelve items
+    // 0.95 (the user, 11/17): what is lopsided between tonight's opponents by the type of scoring (paint, fast break,
+    // second chance, off turnovers) and against the top defenses (src/situations/edges.js). The lines join each game's
+    // matchup items (EDGE.perGame of them, the page shows them first); the whole table goes to docs/data/edges.json.
+    try {
+      const { edges, EDGE } = await import("../src/situations/edges.js");
+      const E = edges({ rows, names: store.names || {}, tonight, teamFiles });
+      for (const g of m) {
+        const mine = (E.games.find((x) => x.away === g.away && x.home === g.home)?.items || []).slice(0, EDGE.perGame);
+        g.items = [...g.items, ...mine].sort((a, b) => b.score - a.score);
+      }
+      fs.writeFileSync(path.join(root, "docs", "data", "edges.json"), JSON.stringify({ generatedAt: out.generatedAt, today, through, ...E }));
+      console.log(`edges: ${E.covered} of ${E.total} games have scoring by type; ${E.table.length} teams ranked; ${E.games.reduce((a, g) => a + g.items.length, 0)} lopsided matchups tonight`);
+    } catch (e) { console.error(`edges not written: ${e.message}`); }
+    fs.writeFileSync(path.join(root, "docs", "data", "matchups.json"), JSON.stringify({ generatedAt: out.generatedAt, today, window: history?.seasons || null, games: m.map((g) => ({ ...g, items: [...g.items.slice(0, 12), ...g.items.slice(12).filter((i) => i.series || i.edge)] })) }));   // 0.85.1: the all-time series line is kept even on a game with more than twelve items
     console.log(`matchups: ${m.reduce((a, g) => a + g.items.length, 0)} items for ${m.length} games tonight${history ? "" : " (no results back-fill yet)"}${logs ? "" : " (no player logs back-fill yet)"}`);
   } catch (e) { console.error(`matchups not written: ${e.message}`); }
 }
@@ -776,7 +789,7 @@ for (const f of fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^n
 fs.mkdirSync(path.join(root, "docs", "lib", "anticipate"), { recursive: true });
 for (const f of ["tonight.js", "briefing.js", "learn.js", "buzz.js"]) fs.copyFileSync(path.join(root, "src", "anticipate", f), path.join(root, "docs", "lib", "anticipate", f));
 fs.mkdirSync(path.join(root, "docs", "lib", "espn"), { recursive: true });
-for (const f of ["parse.js", "pbp.js"]) fs.copyFileSync(path.join(root, "src", "espn", f), path.join(root, "docs", "lib", "espn", f));
+for (const f of ["parse.js", "pbp.js", "misc.js"]) fs.copyFileSync(path.join(root, "src", "espn", f), path.join(root, "docs", "lib", "espn", f));
 const after = Object.values(store.dates).filter((d) => d.complete).length;
 const flags = Object.values(sit.teams).reduce((a, t) => a + t.flags.length, 0);
 console.log(`situations through ${through}: ${rows.length} games (${after - before} new dates), ${Object.keys(sit.teams).length} teams, ${flags} flags, ${tonight.length} games tonight${warnings.length ? `; ${warnings.length} warnings` : ""}`);

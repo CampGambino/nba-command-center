@@ -59,7 +59,7 @@ const VIEWS = [
   ["Did we see it coming?", "./#briefing", "Posts from other accounts replayed against what our lines said that morning", "flag-checks.json", "posts tweets hit rate"],
   ["Tonight's storylines by game", "./", "Each game's lines: milestones, streaks, rest, injuries, leads, fouls", "tonight.json", "game cards"],
   ["Milestones and records in reach tonight", "./", "Every chase with its chance tonight; the full list under it", "watch.json", "milestones passes round numbers chance"],
-  ["Matchups tonight", "./#matchups", "Head-to-head history with tonight's opponent, players against it", "matchups.json", "series head to head"],
+  ["Matchups tonight", "./#matchups", "Lopsided matchups first (scoring by type, outliers against a top-5 defense), then head-to-head history with tonight's opponent and players against it", "matchups.json", "series head to head edge lopsided paint"],
   ["History in tonight's notes", "./#history", "What all the team game notes say today, kept or trimmed with the reason", "notes-facts.json", "game notes elias franchise history coach record"],
   ["Team situations", "situations.html", "Every team's record by situation (home, road, rest, conference, division, TV, weekday, month): tonight's matchups and the unusual ones", "situations.json", "splits records unusual"],
   ["Standings and magic numbers", "standings.html#standings", "Both conferences with clinch and elimination numbers", "standings.json", "playoff play-in clinch seed games back"],
@@ -75,6 +75,7 @@ const VIEWS = [
   ["vs top teams", "defenses.html", "Records against the best teams and defenses", "games.json", "winning teams top defenses"],
   ["Players vs top defenses", "defenses.html?view=players", "Scoring against the top defenses", "games.json", ""],
   ["30-point games allowed", "defenses.html?view=thirty", "Which defenses have given up 30 and 40, and to whom (×2 for repeats)", "trends.json", "30 point 40 point allowed"],
+  ["Scoring by type", "defenses.html?view=types", "Points in the paint, on the fast break, off turnovers and on second chances, scored and allowed, with the players who lead; tonight's lopsided matchups", "edges.json", "paint fast break fastbreak second chance points off turnovers pitp matchup edge lopsided"],
   ["Career highs allowed", "defenses.html?view=highs", "Career highs set against each defense; players who raised theirs more than once", "trends.json", "career high allowed"],
   ["National TV", "national.html", "National games confirmed against ESPN, flexes, team records by network", "national.json", "tv flex nbc espn prime peacock"],
   ["Game Flow: a single game", "gameflow.html", "Score flow, rotations and stints for any game", "flow/index.json", "play by play rotation chart"],
@@ -169,7 +170,7 @@ const table = (id, title, words, note, head, rows) => `<details id="${id}" data-
         Object.keys(lasttime.teamGame).sort().map((t) => { const r = lasttime.teamGame[t], k = r.marks; return [t, `${r.window.from || "2016-17"}${r.window.whole ? "*" : ""}`, mk(k.most), mk(k.fewest), mk(k.allowed), mk(k.held), mk(k.win), mk(k.loss)]; })));
     }
     if (lasttime.teamBox && lasttime.teamBox.length) out.push(table("t-teambox", "Team single-game records, as the media guides print them", "team record most fewest rebounds assists threes steals blocks turnovers quarter half opponent franchise single-game box",
-      "19 guides read so far; the date is the game, +n more games share the mark, a question mark means the guide prints that game with two values", ["Team", "Stat", "Most", "Fewest", "Most by an opponent", "Fewest by an opponent"], lasttime.teamBox));
+      "25 guides read so far (Utah and Toronto print points only); the date is the game, +n more games share the mark, a question mark means the guide prints that game with two values", ["Team", "Stat", "Most", "Fewest", "Most by an opponent", "Fewest by an opponent"], lasttime.teamBox));
     if (lasttime.teamBoxSeason && lasttime.teamBoxSeason.length) out.push(table("t-teamrec-season", "Team single-game records set or tied this season", "team record set tied this season franchise most fewest opponent", "from the two tables above; a record set early and beaten later shows both", ["Date", "Team", "What"], lasttime.teamBoxSeason.map((l) => [md(l.date), l.team, l.text])));
     if (lasttime.season && lasttime.season.length) out.push(table("t-firstsince", "First time in three years or more, this season", "first since last time rare", "from the table above", ["Date", "Team", "What"], lasttime.season.map((l) => [md(l.date), l.team, l.text])));
   }

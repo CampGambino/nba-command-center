@@ -12,6 +12,9 @@
  *        cp = clutch-time player lines (see espn/pbp.js; names in store.names),
  *        q4 = 4th-quarter player lines (same shape), pl = every player's box line.
  *        A summary whose box doesn't add up to the final score is not used.
+ *        0.95, scoring by type (espn/misc.js): m = [home, away], each [paint, fast break, off turnovers, second
+ *        chance]; mp = { espnId: [0 home | 1 away, paint, second chance, off turnovers] } when the play-by-play
+ *        count agrees with ESPN's paint totals (mq = 1), else no mp (mq = 0).
  *
  * A date is complete once every regular-season game on it is final (or it is
  * 3+ days old: a game still not final then was postponed). A date ESPN
@@ -114,12 +117,29 @@ export async function collectResults({ espn, store, through, warnings = [] }) {
           if (x.name) (out.names ??= {})[id] = x.name;
         }
       }
+      if (g.misc) setMisc(row, g.misc);
       row.x = 1;
       if (recheck) { row.xd = through; if (JSON.stringify([row.hb, row.ab, row.pl]) !== before) out.corrected.push(row.id); }
       else row.xd = through;
     }
   }
+  // 0.95: games read before scoring by type was kept get it from the same summary, MISC_BACKFILL a run (a summary is
+  // ~450 KB), newest first so the season's ranks fill in from the games that matter most.
+  let left = typeof espn.misc === "function" ? MISC_BACKFILL : 0;
+  for (const row of allGames(out).filter((r) => r.x && !r.m).reverse()) {
+    if (left-- <= 0) break;
+    const r = await espn.misc(row.id);
+    if (!r.ok) { warnings.push(r.error); continue; }
+    if (r.data.final && r.data.misc) setMisc(row, r.data.misc);
+  }
   return out;
+}
+export const MISC_BACKFILL = Number(globalThis.process?.env?.NCC_MISC_BACKFILL) || 130;
+function setMisc(row, misc) {
+  if (!misc.home || !misc.away || misc.home.slice(0, 3).some((v) => v == null) || misc.away.slice(0, 3).some((v) => v == null)) return;
+  row.m = [misc.home, misc.away];
+  row.mq = misc.ok ? 1 : 0;
+  if (misc.ok && misc.players) row.mp = misc.players; else delete row.mp;
 }
 
 /** Points from box totals: 2 per field goal, 1 more per three, 1 per free throw. */

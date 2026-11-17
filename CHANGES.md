@@ -2,6 +2,52 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.95.0 (2026-11-17): lopsided matchups on the Watch List (scoring by type, outliers against a top-5 defense); two more series closed; six more guides' team records; the League column once; every value in the count dropdowns
+
+The user (11/17, 3:26 PM) sent seven images: the Jazz's "top individual performances" page, Stathead's head-to-head totals for Hawks v Warriors and Celtics v Pistons, tonight's matchup cards ("the far right column is the same column for every team"), a Top-N dropdown ("1-10 as an option ... across the command center for those drop down menus that skip"), and the league's team and player pages for points in the paint, fast break, second chance and off turnovers ("if there are teams on opposite ends facing each other, that'll be a matchup advantage"; "the watch list page should highlight lopsided matchups"; "the big outliers should be noted in the watch list if they are facing a team in the top 5 that night").
+
+### Two corrections of mine
+- **The Jazz do print team single-game marks.** I had said pp. 94-141 held none and put p. 115 down as overtime records. The page after it (the guide's own p. 116; its contents page says 115) is "Jazz Points Scored/Allowed": the most and fewest points for and against, with the games. It is read now. Pages 137-141, which the user pointed to, are individual lists (scoring, rebounds, assists, steals, blocks, triple-doubles, 20-20 games); their top lines were already the Jazz's franchise single-game records (the file cites "Jazz guide pp. 137-138"); the full lists are not read.
+- **Four guides' team records pages were text all along** (Indiana, New York, Washington, Miami): said on 11/17 at 3:00 PM, done here.
+
+### The two series (images 2-3)
+- **Celtics v Pistons is 257-144 through 2025-26.** Stathead has 257-145 today, which includes Detroit's win of 10/20/26. I then read Land of Basketball's game-by-game list: the same 401 games, 36-28 against Fort Wayne through 1956-57. The Celtics' guide prints 258-144, one Celtics win too many, in the Fort Wayne years (37-28). The Pistons' guide (Detroit only) agrees with both from 1957-58.
+- **Hawks v Warriors is 151-153.** Stathead and Basketball Reference's page both have 152-153 (305 games). Land of Basketball's game list has 304 games and 151-153, the Hawks' guide's record, and from 1962-63 it is the Warriors' guide's list game for game (109-94). Two game-by-game sources against one total, and that total has run a game over its own game list before (Lakers v Kings), so 151-153 is shown as confirmed with Basketball Reference's figure beside it. **Not located:** which game Basketball Reference adds. It is before 1962-63 (42-59 against 43-59), where no guide lists games; its standings pages did not show their team-by-team tables to me.
+- **Now 430 of 435 confirmed** (345 by both guides, 37 by the other team's games, 48 by an outside source), 3 differ, 2 rest on one guide (Denver v Indiana, Oklahoma City v Philadelphia).
+
+### Lopsided matchups (images 5-7)
+- **The source is ESPN, not NBA.com** (the standing rule: no NBA.com stats as a data source). ESPN's box score prints each team's points in the paint and fast-break points, and "points conceded off turnovers", which is the other team's points off turnovers. It prints no second-chance points, so those are counted from the play-by-play (`src/espn/misc.js`). The user's screenshots are used only to check the numbers.
+- **How close.** For the nine teams on the user's screenshot, paint, fast-break and off-turnover points scored and allowed are within 0.0 to 0.4 a game of the league's page; counted second-chance points are 0.11 a game off on average. Three counting rules were tried against it; the first ran 0.22 high (a chance left open after a made basket), and fixing a wrongly credited and-one and dead-ball "rebounds" after technical free throws brought it to 0.05.
+- **Players** (`mp` on each game): paint, second-chance and off-turnover points counted from the play-by-play. Checked against ESPN's own team totals over all 205 games (410 team-games): paint equal in 327 and 0.44 a game off on average; off turnovers equal in 381. Against the user's player screenshot: Antetokounmpo 17.7 paint (17.9 there), Wembanyama 15.1 (15.3), Sengun 14.2 (14.2), Wagner 14.2 (14.2), Jokic 14.0 (14.0), Johnson 12.4 (12.4); second chance Antetokounmpo 5.8 (5.8), Wembanyama 4.7 (4.7), Davis 4.5 (4.5), Kessler 3.8 (4.2). Two games whose paint count is more than 4 from ESPN's are left out of the player numbers. **There is no player number for fast-break points**: that is a scorer's call the play-by-play does not carry.
+- **What is an edge** (`src/situations/edges.js`, cut-offs in `EDGE`, all first guesses): a top-5 offense in a category against a bottom-5 defense in it, or a bottom-5 offense against a top-5 defense; a player in the league's top 10 in paint, second-chance or off-turnover points against a team that allows the most of it (named on his team's line when the team has the edge too, so nothing is said twice); and, against one of the top 5 defenses tonight, the players among the 10 biggest drops or rises against that group (4+ points) and a team among the 5 biggest. A category in which many teams share a number has no ends. A player's line weighs with his role, as the other matchup lines do.
+- **Where:** first and marked in "Matchups tonight" on the Watch List (up to five a game); the whole table, the player leaders and every edge of the night under **vs top teams → Scoring by type** (new view; `docs/data/edges.json`). The edges are candidates for "Tonight's storylines" and the Discord digest like any other matchup line; tonight none outranked the lines already there.
+- **Tonight (11/17):** Barnes against the Knicks (15.0 in 2 games against the top 5 defenses, 26.9 otherwise), the Raptors' offense against them (97.2 per 100 against 114.7), the Knicks' second chances (18.2, the most) against Toronto (17.0 allowed, 5th most), the Lakers' points off turnovers (24.4, the most; Dončić 6.5, the most) against Charlotte (22.1 allowed, 3rd most), the Hornets' paint scoring (37.2, the fewest) against the Lakers (43.4 allowed, 5th fewest), the Spurs' second chances against Detroit.
+- **Back-fill:** games already on file get their numbers from the same summaries, 130 a build, newest first. Nothing is ranked until 80% of a team's games are read, so the list appears after the second build.
+
+### Pages
+- **Tonight's matchups (image 4):** the league's win rate in each spot is one line above the cards; the column is gone from every card.
+- **Dropdowns (image 5):** the top defenses and top records pickers offer 1 to 10; clutch minimum games 1-5; national games 1+ to 5+; "within N points" 1-5; record chases within 1 to 10 games. Minute thresholds (15 / 20 / 25) are not counts and are unchanged.
+- `tools/sync-standings.py` writes standings.html from situations.html (they are one file with another view).
+
+### Team records: 25 guides (was 19)
+- New readers: **Utah** and **Toronto** (points only), **Indiana**, **New York**, **Washington**, **Miami**. 2,273 marks (was 1,988).
+- **Cross-check:** for Indiana, Miami, Toronto, Utah and Washington all four points marks (most, fewest, most allowed, fewest allowed) equal the marks counted from the game lists, value and date. The Knicks' fewest and fewest allowed do; their most (152, 1959) and most allowed (169, 3/2/62) are older than their game list (1993-94). Two guides confirm each other twice: Utah's fewest allowed and Miami's 56 are the same night (12/18/01), Toronto's fewest allowed and Miami's fewest are 3/19/08.
+- A mark the guide gives with no game ("Done 2 times": the Knicks' 29 offensive rebounds, 102 rebounds, 15 blocks) is kept with how often and no date; a record line against it says "(was 29, 2 times)".
+- Washington's "two teams combined" lists (317 points, 253 field-goal attempts) were first read as opponents' marks; the heading is on two lines. Caught on the first print, fixed.
+
+### Tested
+- `node tests/run.js`: **964** pass (was 958); `node tests/articles-only.js`: 79; `tools/check-pages.py`: all pages OK, the new view included, on a full local build (205 of 205 games read, 30 teams ranked, 12 edges for tonight's five games). Screenshots of the three changed pages looked at.
+- New tests: an invented game through the reader (the and-one, the rebound between free throws, a travel and a charge as turnovers, a two outside the lane, the "conceded" line read from the other team); edges on an invented league (both directions, leaders folded into the team line, no edge where every team has the same number, nothing while the season is half read); a mark without a game; the pages.
+
+### Unproven
+- The edge cut-offs (top/bottom 5, top 10 players, 4 points, five lines a game) are guesses; tonight's list is the first look.
+- Second-chance points are a count, 0.1 a game from the league's figures on nine teams; the other 21 teams were not on the screenshot.
+- Against the top 5 defenses many samples are 2 or 3 games this early; the line says how many.
+- Hawks v Warriors: the extra game in Basketball Reference's total is not found.
+- Team records still unread: Atlanta, Denver, Memphis, Sacramento (text), Cleveland (pictures). Marks other than points have no second source except Boston's two.
+- The 28 games where two guides disagree on the winner, the six unread head-to-head pages and Horford's defensive rebounds are not started.
+- NBA Live has no card for these (bridge v21 unchanged).
+
 ## 0.94.0 (2026-11-17): every open doubt looked up; 428 series confirmed; Standings tab; the notes and finder lines the user marked
 
 The user (11/17, 2:06 PM) sent Basketball Reference's box scores for the two games I had flagged and not looked up, and wrote: "that is the type of due diligence I require and expect from you. always checking and double checking and cross refencing to make sure this is as accurate and clean as possible." Then seven screenshots of the pages and a request for a Standings tab.

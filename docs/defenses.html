@@ -110,11 +110,11 @@
   <div class="sub" id="sub">Loading…</div>
 </header>
 <main>
-  <div class="controls"><span class="toggle" id="view"><button data-v="teams" class="on">Teams vs the top</button><button data-v="players">Players vs top defenses</button><button data-v="thirty">30-point games allowed</button><button data-v="highs">Career highs allowed</button></span></div>
+  <div class="controls"><span class="toggle" id="view"><button data-v="teams" class="on">Teams vs the top</button><button data-v="players">Players vs top defenses</button><button data-v="thirty">30-point games allowed</button><button data-v="highs">Career highs allowed</button><button data-v="types">Scoring by type</button></span></div>
   <section id="v-teams">
   <div class="controls">
     <span class="toggle" id="by"><button data-b="record" class="on">Best records</button><button data-b="defense">Best defenses</button></span>
-    <label>Top <select id="n"><option>3</option><option>4</option><option selected>5</option><option>8</option><option>10</option><option value="winning">all winning teams</option></select> <span id="nWord">records</span></label>
+    <label>Top <select id="n"><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option value="winning">all winning teams</option></select> <span id="nWord">records</span></label>
     <span class="toggle" id="dir"><button data-d="best" class="on">Best first</button><button data-d="worst">Worst first</button></span>
     <label>Sorted by <b id="sortName"></b>. Click a column to sort; click again to flip.</label>
   </div>
@@ -122,7 +122,7 @@
   <div class="scroll"><table id="all"></table></div>
   </section>
   <section id="v-players" hidden>
-    <div class="controls"><label>Top <select id="pn"><option>3</option><option>5</option><option selected>8</option><option>10</option></select> defenses</label>
+    <div class="controls"><label>Top <select id="pn"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option selected>8</option><option>9</option><option>10</option></select> defenses</label>
       <span class="toggle" id="pside"><button data-s="fall" class="on">Falls off most</button><button data-s="hold">Holds up best</button></span>
       <select id="pteam"><option value="">All teams</option></select></div>
     <div class="key" id="pkey"></div>
@@ -141,6 +141,16 @@
     <h2 style="font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:22px 4px 10px">Every career high this season</h2>
     <div class="key" id="hrepeat"></div>
     <div class="scroll"><table id="hgames"></table></div>
+  </section>
+  <section id="v-types" hidden>
+    <div class="controls"><span class="toggle" id="tyside"><button data-s="f" class="on">Scored</button><button data-s="a">Allowed</button></span>
+      <label>Sorted by <b id="tysort"></b>. Click a column to sort.</label></div>
+    <div class="key" id="tykey"></div>
+    <div id="tyedges"></div>
+    <div class="scroll"><table id="tytab"></table></div>
+    <h2 style="font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:22px 4px 10px">Players: the league's leaders</h2>
+    <div class="key">Counted from the play-by-play (a made two inside the lane; points on a possession after his team's offensive rebound; points on the possession after the other team's turnover). There is no player number for fast-break points: that is a scorer's call the play-by-play does not carry. A player needs half his team's games.</div>
+    <div class="scroll"><table id="typl"></table></div>
   </section>
 </main>
 <footer id="foot"></footer>
@@ -247,7 +257,7 @@ document.querySelectorAll("#by button").forEach((b) => b.onclick = () => {
 });
 $("n").onchange = render;
 // ---- Players vs top defenses and 30-point games allowed (moved from GameFlow, 11/13): every team's box scores ----
-let view = ["players", "thirty", "highs"].includes(q.get("view")) ? q.get("view") : "teams", PG = null, pside = "fall", hwho = "vets", HA = null;
+let view = ["players", "thirty", "highs", "types"].includes(q.get("view")) ? q.get("view") : "teams", PG = null, pside = "fall", hwho = "vets", HA = null;
 async function teamFiles() {
   if (PG) return PG;
   const tris = [...new Set(D.games.flatMap((g) => [g.h, g.a]))].sort();
@@ -305,13 +315,37 @@ async function renderHighs() {
 document.querySelectorAll("#hwho button").forEach((b) => b.onclick = () => { hwho = b.dataset.w; document.querySelectorAll("#hwho button").forEach((x) => x.classList.toggle("on", x === b)); renderHighs(); });
 function showView() {
   document.querySelectorAll("#view button").forEach((b) => b.classList.toggle("on", b.dataset.v === view));
-  for (const v of ["teams", "players", "thirty", "highs"]) $(`v-${v}`).hidden = v !== view;
+  for (const v of ["teams", "players", "thirty", "highs", "types"]) $(`v-${v}`).hidden = v !== view;
   const u = new URL(location.href); if (view === "teams") u.searchParams.delete("view"); else u.searchParams.set("view", view); history.replaceState(null, "", u);
   if (!D) return;
   if (view === "players") renderPlayers().catch((e) => { $("pkey").textContent = "Couldn't load the box scores: " + e.message; });
   if (view === "thirty") renderThirty().catch((e) => { $("tkey").textContent = "Couldn't load the box scores: " + e.message; });
   if (view === "highs") renderHighs().catch((e) => { $("hkey").textContent = "Couldn't load the career highs: " + e.message; });
+  if (view === "types") renderTypes().catch((e) => { $("tykey").textContent = "Couldn't load the scoring by type: " + e.message; });
 }
+// 0.95 (the user, 11/17): points in the paint, on the fast break, off turnovers and on second chances, scored and
+// allowed, and which of tonight's games set one end of the league against the other (docs/data/edges.json).
+let TY = null, tyside = "f", tykey = 0;
+const TYCOLS = ["Paint", "Fast break", "Off turnovers", "Second chance"];
+async function renderTypes() {
+  if (!TY) TY = await fetch("data/edges.json", { cache: "no-store" }).then((r) => r.json());
+  const of = TY.teams, end = 5;
+  if (!TY.table || !TY.table.length) { $("tykey").textContent = `Scoring by type is still being read: ${TY.covered || 0} of ${TY.total || 0} games so far. It fills in over the next build or two.`; $("tytab").innerHTML = ""; $("typl").innerHTML = ""; $("tyedges").innerHTML = ""; return; }
+  $("tykey").innerHTML = `Per game through ${TY.through}, ${TY.covered} of ${TY.total} games. Paint and fast-break points are ESPN's box-score lines; points off turnovers are the other team's "points conceded off turnovers" line; second-chance points are counted from the play-by-play (ESPN prints none). The small number is the rank counted from the most. <b class="hi">Green</b>: top ${end} for the side shown (${tyside === "f" ? "scores the most" : "allows the fewest"}); <b class="lo">red</b>: bottom ${end}. An edge on the Watch List is a top-${end} offense against a bottom-${end} defense in the same column, or the reverse.`;
+  const rows = TY.table.slice().sort((a, b) => (tyside === "f" ? b.f[tykey] - a.f[tykey] : a.a[tykey] - b.a[tykey]) || a.team.localeCompare(b.team));
+  $("tysort").textContent = `${TYCOLS[tykey]} ${tyside === "f" ? "scored, most first" : "allowed, fewest first"}`;
+  const cls = (r, side) => (side === "f" ? (r <= end ? "hi" : r > of - end ? "lo" : "") : (r > of - end ? "hi" : r <= end ? "lo" : ""));
+  $("tytab").innerHTML = `<tr><th>Team</th><th class="num">GP</th>${TYCOLS.map((c, i) => `<th class="num sortable" data-i="${i}" style="cursor:pointer">${c}</th>`).join("")}</tr>` +
+    rows.map((t) => `<tr><td><b>${t.team}</b></td><td class="num">${t.gp}</td>${TYCOLS.map((c, i) => { const r = t[tyside + "r"][i]; return `<td class="num"><span class="${cls(r, tyside)}">${t[tyside][i].toFixed(1)}</span> <span class="team">${r}</span></td>`; }).join("")}</tr>`).join("");
+  document.querySelectorAll("#tytab th.sortable").forEach((th) => th.onclick = () => { tykey = Number(th.dataset.i); renderTypes(); });
+  const L = TY.leaders || {}, n = 12, col = (k) => (L[k] || []).slice(0, n);
+  const cell = (p) => (p ? `<td>${p.rank}. <b>${p.name}</b> <span class="team">${p.team}</span></td><td class="num">${p.v.toFixed(1)}</td>` : "<td></td><td></td>");
+  $("typl").innerHTML = `<tr><th>Paint</th><th class="num">a game</th><th>Second chance</th><th class="num">a game</th><th>Off turnovers</th><th class="num">a game</th></tr>` +
+    Array.from({ length: n }, (_, i) => `<tr>${cell(col("paint")[i])}${cell(col("sc")[i])}${cell(col("pot")[i])}</tr>`).join("");
+  const G = (TY.games || []).filter((g) => g.items.length);
+  $("tyedges").innerHTML = TY.today && G.length ? `<div class="key"><b>Lopsided tonight</b> (top ${TY.topDefenses?.length || 5} defenses: ${(TY.topDefenses || []).join(", ")}):<br>${G.map((g) => `<b>${g.away} @ ${g.home}</b>: ${g.items.map((i) => i.text).join(" ")}`).join("<br>")}</div>` : "";
+}
+document.querySelectorAll("#tyside button").forEach((b) => b.onclick = () => { tyside = b.dataset.s; document.querySelectorAll("#tyside button").forEach((x) => x.classList.toggle("on", x === b)); renderTypes(); });
 document.querySelectorAll("#view button").forEach((b) => b.onclick = () => { view = b.dataset.v; showView(); });
 document.querySelectorAll("#pside button").forEach((b) => b.onclick = () => { pside = b.dataset.s; document.querySelectorAll("#pside button").forEach((x) => x.classList.toggle("on", x === b)); renderPlayers(); });
 $("pn").onchange = () => renderPlayers(); $("pteam").onchange = () => renderPlayers();

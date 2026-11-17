@@ -4196,11 +4196,11 @@ await articlesChecks(ok);
     const mu = T2.find((r) => r.a === "MEM" && r.b === "UTA"), mw = T2.find((r) => r.a === "MIL" && r.b === "WAS"), am = T2.find((r) => r.a === "ATL" && r.b === "MIL");
     const SV = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "series-verified.json"), "utf8")), T2v = seriesTable({ ...RS2, verified: SV.pairs, outside: SV.notes }, [], "2026-10-01"), cv = (st) => T2v.filter((r) => r.status === st).length, fv = (a, b) => T2v.find((r) => r.a === a && r.b === b);
     ok(c2("confirmed") === 382 && c2("differs") === 12 && c2("single") === 41 && T2.filter((r) => r.counted).length === 37 && changed === "MEMUTA" && am.status === "confirmed" && am.source.join() === "MIL,games" && am.overall.w === 122 && am.overall.l === 122
-      && cv("confirmed") === 428 && cv("differs") === 3 && cv("single") === 4 && T2v.filter((r) => r.checked).length === 46 && T2v.filter((r) => r.status === "differs").map((r) => r.a + r.b).join() === "ATLDET,ATLLAL,DETGSW"
+      && cv("confirmed") === 430 && cv("differs") === 3 && cv("single") === 2 && T2v.filter((r) => r.checked).length === 48 && fv("ATL", "GSW").overall.w === 151 && fv("ATL", "GSW").overall.l === 153 && fv("ATL", "GSW").source.join() === "ATL,check" && fv("ATL", "GSW").outside.w === 152 && fv("BOS", "DET").overall.w === 257 && fv("BOS", "DET").overall.l === 144 && fv("BOS", "DET").source.join() === "check" && !fv("BOS", "DET").outside && T2v.filter((r) => r.status === "differs").map((r) => r.a + r.b).join() === "ATLDET,ATLLAL,DETGSW"
       && fv("GSW", "WAS").source.join() === "WAS,check" && fv("GSW", "WAS").overall.w === 122 && fv("CHA", "OKC").source.join() === "check" && fv("CHA", "OKC").overall.l === 46 && fv("ATL", "DEN").overall.l === 50 && fv("LAL", "SAC").overall.w === 288
       && fv("NYK", "PHI").status === "confirmed" && fv("NYK", "PHI").outside.l === 267 && fv("ATL", "LAL").outside.w === 146 && !fv("BOS", "LAL").outside && mu.overall.w === 44 && mu.overall.l === 69 && mu.source.join() === "games" && mw.status === "confirmed" && mw.source.join() === "MIL,WAS" && mw.overall.w === 136 && mw.overall.l === 99 && uw.overall.w === 64 && uw.overall.l === 54 && uw.source.join() === "WAS,games"
       && al.status === "differs" && RS.guides.LAL.lists && RS.guides.WAS.lists && !RS.guides.UTA.lists && /the Wizards' media guide, and a count of the games agrees/.test(itC.text),
-      "series, the real files (0.87 to 0.94): 345 pairings are confirmed by both guides and 37 more by the other team's games (Memphis v Utah, 44-69, by the two counts where neither print is right; Hawks v Bucks is 122-122 once the Hawks' misprinted 3/1/74 is corrected). 0.94: with 24 of Basketball Reference's head-to-head pages read, 428 are confirmed (46 by that check), 3 differ (Atlanta v Detroit, Atlanta v the Lakers, Detroit v Golden State) and 4 rest on one guide; where the page settles nothing (a tiebreaker counted as a game, a guide that starts late) its figure is carried beside the record; Milwaukee v Washington is 136-99 by both; Utah v Washington is Washington's 54-64; Atlanta v the Lakers stays open because the Lakers' record is their own lists",
+      "series, the real files (0.87 to 0.94): 345 pairings are confirmed by both guides and 37 more by the other team's games (Memphis v Utah, 44-69, by the two counts where neither print is right; Hawks v Bucks is 122-122 once the Hawks' misprinted 3/1/74 is corrected). 0.94: with 24 of Basketball Reference's head-to-head pages read, 428 were confirmed (46 by that check); 0.95: 430 (Celtics v Pistons 257-144 by Stathead and Land of Basketball's game list, where the Celtics' guide prints 258; Hawks v Warriors 151-153 by the Hawks' guide and Land of Basketball's game list, Basketball Reference's 152 carried beside it), 3 differ (Atlanta v Detroit, Atlanta v the Lakers, Detroit v Golden State) and 2 rest on one guide; where the page settles nothing (a tiebreaker counted as a game, a guide that starts late) its figure is carried beside the record; Milwaukee v Washington is 136-99 by both; Utah v Washington is Washington's 54-64; Atlanta v the Lakers stays open because the Lakers' record is their own lists",
       JSON.stringify([c2("confirmed"), c2("differs"), c2("single"), T2.filter((r) => r.counted).length, changed, uw, al.status, itC && itC.text]));
   }
   // 0.88: the older games in the head-to-head lines.
@@ -4313,12 +4313,15 @@ await articlesChecks(ok);
       && !BL.some((t) => /assists|steals|150 points/.test(t)) && BL10.includes("AAA had 47 assists on 11/10 (BBB): the most in a game in franchise history, by its media guide (was 45, 3/3/89)") && !BL10.some((t) => /46 assists/.test(t)),
       "team records (0.92, 0.93): a guide's printed marks are checked against the season's box scores in order, so 46 assists a week after 47 is not a record (0.92 said it was); 0.93 adds the fewest and an opponent's most and fewest; a second night without a steal is not a line; points in a game are left to the score-based marks",
       JSON.stringify([BL, BL10]));
-    ok(Object.keys(TR).length === 19 && tr("PHI", "pts", "game").value === 163 && tr("PHI", "pts", "quarter").value === 53 && tr("PHI", "fg3m", "game").games.length === 2 && tr("LAL", "pts", "game").value === 162 && tr("LAL", "pts", "game").games[0].date === "1972-03-19" && tr("LAL", "pts", "game", "most", "opp").value === 173
+    ok(Object.keys(TR).length === 25 && tr("UTA", "pts", "game").value === 154 && tr("UTA", "pts", "game").games.length === 2 && tr("UTA", "pts", "game", "fewest", "opp").games[0].date === "2001-12-18" && tr("MIA", "pts", "game", "fewest").games[0].date === "2008-03-19" && tr("TOR", "pts", "game", "fewest", "opp").value === 54
+      && tr("IND", "pts", "game").value === 162 && tr("IND", "ast", "game").value === 50 && tr("IND", "fgm", "game", "fewest", "opp").value === 20 && tr("NYK", "pts", "game", "most", "opp").value === 169 && tr("NYK", "pts", "game", "most", "opp").games[0].date === "1962-03-02" && tr("NYK", "oreb", "game").value === 29 && tr("NYK", "oreb", "game").games.length === 0 && tr("NYK", "oreb", "game").times === "2 times" && tr("NYK", "pts", "quarter").value === 53
+      && tr("WAS", "pts", "game").value === 161 && tr("WAS", "pts", "game", "most", "opp").value === 162 && tr("WAS", "pts", "half").games.length === 2 && tr("MIA", "pts", "game").value === 153 && tr("MIA", "pts", "game", "fewest", "opp").value === 49 && tr("MIA", "pts", "quarter").value === 53 && tr("MIA", "blk", "game").value === 15
+      && tr("PHI", "pts", "game").value === 163 && tr("PHI", "pts", "quarter").value === 53 && tr("PHI", "fg3m", "game").games.length === 2 && tr("LAL", "pts", "game").value === 162 && tr("LAL", "pts", "game").games[0].date === "1972-03-19" && tr("LAL", "pts", "game", "most", "opp").value === 173
       && tr("MIN", "pts", "game").value === 151 && tr("CHI", "pts", "game", "fewest").value === 49 && tr("DAL", "pts", "game").value === 156 && tr("DAL", "pts", "game", "most", "opp").value === 153 && tr("GSW", "fgm", "game", "fewest").value === 23 && tr("POR", "fgm", "game", "fewest").value === 19
       && tr("MIL", "pts", "game", "most", "opp").value === 171 && tr("OKC", "fgm", "game", "fewest").value === 20 && tr("NOP", "pts", "game").games[0].date === "2026-04-07" && tr("ORL", "fga", "game").games.length === 2 && tr("DET", "pts", "game").value === 186 && tr("LAC", "pts", "game", "fewest").value === 63
       && tr("BOS", "fgm", "game").value === 72 && !tr("BOS", "fgm", "game").doubt && /Basketball Reference/.test(tr("BOS", "fgm", "game").checked) && tr("BOS", "fta", "game").value === 65 && tr("PHX", "reb", "game", "fewest", "opp").value === 19 && tr("CHA", "fg3m", "game", "most", "opp").value === 28 && tr("SAS", "pts", "game").value === 171 && tr("BKN", "pts", "half", "fewest").value === 24 && tr("HOU", "pts", "game", "most", "opp").value === 165
-      && TRF.scopes.OKC === "in Oklahoma City history (since 2008-09)" && Object.values(TR).flat().length > 1900,
-      "team records, the real file (0.93): 19 guides' team records pages are read (each lays them out its own way: rows with a label, a label on the line above or below, a 'Low' row, sub-headings, bands, dotted leaders): the Lakers' 162 and the 173 scored on them, Dallas's 156 in double overtime, Golden State's 'Fewest Game' rows, Portland's 'Field Goals / Made'; Boston prints one night as 72 and as 77 field goals, and the box score (the user's screenshot, 11/17) says 72, so the 77 is dropped; the Thunder's marks are Oklahoma City's only",
+      && TRF.scopes.OKC === "in Oklahoma City history (since 2008-09)" && Object.values(TR).flat().length > 2200,
+      "team records, the real file (0.93, 0.95): 25 guides' team records pages are read (0.95 adds Utah and Toronto, points only, and Indiana, New York, Washington and Miami; Washington's 'two teams combined' lists are not an opponent's marks; a Knicks mark 'Done 2 times' has a value and no game; Utah's fewest allowed and Miami's fewest are the same night in both guides) (each lays them out its own way: rows with a label, a label on the line above or below, a 'Low' row, sub-headings, bands, dotted leaders): the Lakers' 162 and the 173 scored on them, Dallas's 156 in double overtime, Golden State's 'Fewest Game' rows, Portland's 'Field Goals / Made'; Boston prints one night as 72 and as 77 field goals, and the box score (the user's screenshot, 11/17) says 72, so the 77 is dropped; the Thunder's marks are Oklahoma City's only",
       JSON.stringify([Object.keys(TR), Object.values(TR).flat().length, tr("BOS", "fgm", "game")]));
     const { teamGameRecords: TGR3, recordLines: RL3, boxTable } = await import("../src/records/teamgame.js");
     const deepP = { seq: { AAA: [{ d: "1990-11-10", pf: 160, pa: 120, opp: "Q" }, { d: "1993-03-26", pf: 107, pa: 155, opp: "DDD" }, ...Array.from({ length: 420 }, (_, i) => ({ d: `2010-01-${String((i % 28) + 1).padStart(2, "0")}`, pf: 100, pa: 99, opp: "CCC" }))] }, from: { AAA: "1988-89" }, whole: { AAA: true } };
@@ -4433,7 +4436,7 @@ await articlesChecks(ok);
   const MU = mu({ history: { games: [] }, logs: null, teamFiles: {}, tonight: [{ id: "g", away: "LAL", home: "BOS" }], today: "2026-11-17", series: SR });
   ok(MU[0].items.some((i) => /^All-time: the Lakers lead the Celtics 100-99/.test(i.text)) && !mu({ history: { games: [] }, logs: null, teamFiles: {}, tonight: [{ id: "g", away: "LAL", home: "BOS" }], today: "2026-11-17" })[0].items.length,
     "matchups (0.84): the all-time series joins tonight's matchup items when the guides' file is there");
-  ok(/g\.items\.slice\(12\)\.filter\(\(i\) => i\.series\)/.test(fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8")),
+  ok(/g\.items\.slice\(12\)\.filter\(\(i\) => i\.series \|\| i\.edge\)/.test(fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8")),
     "matchups (0.85.1): the all-time series line survives the twelve-item cut (NYK @ TOR on 11/17 had lost it)");
   const rcd = fs.readFileSync(path.join(root, "docs", "records.html"), "utf8");
   ok(/const ALL30 = \[/.test(rcd) && /\(no one on pace\)/.test(rcd) && /Every team's season records are on file/.test(rcd),
@@ -4499,6 +4502,66 @@ await articlesChecks(ok);
 }
 
 // ---------- snapshot ----------
+// ---------- 0.95: scoring by type, matchup edges, the League row, every value in the count dropdowns ----------
+{
+  const { readGameMisc } = await import("../src/espn/misc.js");
+  const { edges, teamTypes, playerTypes, place, EDGE } = await import("../src/situations/edges.js");
+  const { boxRecordLines: BRL5, boxTable: BT5 } = await import("../src/records/teamgame.js");
+  // One invented game: home team 1, away team 2. ESPN's "turnoverPoints" is what a team CONCEDED off its turnovers.
+  const P = (type, team, o = {}) => ({ type: { text: type }, team: { id: team }, participants: o.who ? [{ athlete: { id: o.who } }] : [], scoringPlay: !!o.pts, scoreValue: o.pts || 0, shootingPlay: !!o.shot, coordinate: o.xy ? { x: o.xy[0], y: o.xy[1] } : undefined });
+  const plays = [
+    P("Jump Shot", "1", { shot: 1, who: "a" }), P("Offensive Rebound", "1", { who: "b" }), P("Layup Shot", "1", { shot: 1, pts: 2, who: "b", xy: [25, 1] }),      // second chance 2, paint 2
+    P("Free Throw - 1 of 1", "1", { pts: 1, who: "b" }),                                                                                                         // the and-one of that basket: second chance 3
+    P("Bad Pass\nTurnover", "2", { who: "x" }), P("Jump Shot", "1", { shot: 1, pts: 3, who: "a", xy: [10, 22] }),                                                 // off a turnover 3
+    P("Traveling", "1", { who: "a" }), P("Driving Layup Shot", "2", { shot: 1, pts: 2, who: "x", xy: [27, 3] }),                                                  // a travel is a turnover: 2 off it, in the paint
+    P("Jump Shot", "2", { shot: 1, who: "y" }), P("Defensive Rebound", "1", { who: "a" }), P("Pullup Jump Shot", "1", { shot: 1, pts: 2, who: "a", xy: [36, 9] }), // a two outside the lane: no paint
+    P("Shooting Foul", "2", { who: "y" }), P("Free Throw - 1 of 2", "1", { who: "b" }), P("Offensive Rebound", "1"), P("Free Throw - 2 of 2", "1", { pts: 1, who: "b" }), // the "rebound" between free throws is no second chance
+    P("Offensive Charge", "2", { who: "y" }), P("Hook Shot", "1", { shot: 1, pts: 2, who: "b", xy: [22, 6] }),                                                    // a charge is a turnover: 2 off it, in the paint
+    P("End Period", ""),
+  ];
+  const game = (paintH, paintA) => ({ header: { competitions: [{ status: { type: { completed: true } }, competitors: [{ homeAway: "home", team: { id: "1" } }, { homeAway: "away", team: { id: "2" } }] }] },
+    boxscore: { teams: [{ team: { id: "1" }, statistics: [{ name: "pointsInPaint", displayValue: String(paintH) }, { name: "fastBreakPoints", displayValue: "5" }, { name: "turnoverPoints", displayValue: "2" }] },
+      { team: { id: "2" }, statistics: [{ name: "pointsInPaint", displayValue: String(paintA) }, { name: "fastBreakPoints", displayValue: "0" }, { name: "turnoverPoints", displayValue: "5" }] }] }, plays });
+  const M = readGameMisc(game(4, 2)), M2 = readGameMisc(game(14, 2));
+  ok(JSON.stringify(M.home) === "[4,5,5,3]" && JSON.stringify(M.away) === "[2,0,2,0]" && M.ok && JSON.stringify(M.players.b) === "[0,4,3,2]" && JSON.stringify(M.players.a) === "[0,0,0,3]" && JSON.stringify(M.players.x) === "[1,2,0,2]" && !M.players.y
+    && JSON.stringify(M.counted) === '{"home":[4,5],"away":[2,2]}' && !M2.ok && M2.players === null && M2.home[0] === 14,
+    "scoring by type (0.95): paint and fast break are ESPN's lines; a team's points off turnovers are the OTHER team's 'points conceded' line; second chance is counted from the plays (the and-one of a putback counts, a rebound between two free throws does not; a travel and a charge are turnovers); a made two outside the lane is not paint; when the count of paint points is far from ESPN's, the team totals stand and the players' are not used", JSON.stringify([M, M2.ok]));
+  // Edges: 30 invented teams; T01 scores the most in the paint and T30 allows the most; T30 scores the fewest and T01 allows the fewest.
+  const tris = Array.from({ length: 30 }, (_, i) => `T${String(i + 1).padStart(2, "0")}`), rows = [], ix = (t) => tris.indexOf(t), hb5 = [40, 85, 10, 30, 20, 25, 10, 30, 25, 8, 5, 13, 20];
+  // Everyone plays everyone once. A team's paint points: its own level (60, 59, ... 31) plus what its opponent gives up (0 to 14.5); every other category is the same number for all.
+  for (let i = 0; i < 30; i++) for (let j = i + 1; j < 30; j++) {
+    const h = tris[i], a = tris[j], paint = (t, o) => 60 - ix(t) + ix(o) / 2;
+    rows.push({ id: `g${i}-${j}`, d: "2026-11-01", h, a, hs: 110, as: 100, hb: hb5, ab: hb5, m: [[paint(h, a), 12, 15, 14], [paint(a, h), 12, 15, 14]], mq: 1,
+      pl: { [`p${h}`]: [0, 1, 34, 25], [`p${a}`]: [1, 1, 34, 25] }, mp: { [`p${h}`]: [0, (60 - ix(h)) / 3, 2, 3], [`p${a}`]: [1, (60 - ix(a)) / 3, 2, 3] } });
+  }
+  const names = Object.fromEntries(tris.map((t) => [`p${t}`, `Player ${t}`]));
+  const TT = teamTypes(rows), PT = playerTypes(rows, names);
+  const E = edges({ rows, names, tonight: [{ away: "T01", home: "T30" }, { away: "T14", home: "T15" }] });
+  const e0 = E.games[0].items, off = e0.find((i) => i.cat === "paint" && i.team === "T01"), def = e0.find((i) => i.cat === "paint" && i.team === "T01" && /fewest/.test(i.text));
+  ok(TT.n === 30 && TT.teams.T01.fr[0] === 1 && TT.teams.T30.fr[0] === 30 && PT.rows.find((p) => p.id === "pT01").r[0] === 1 && place(1, 30) === "the most" && place(4, 30) === "4th most" && place(28, 30) === "3rd fewest" && place(30, 30) === "the fewest"
+    && off && /^The T01 score [\d.]+ points in the paint a game \(the most\); the T30 allow [\d.]+ \((?:the most|\d\w\w most)\)\. Player T01 scores [\d.]+ \(the most in the NBA\)\.$/.test(off.text) && off.edge && off.lopsided && off.kind === "matchup" && /^Paint edge · T01$/.test(off.tag)
+    && e0.some((i) => i.cat === "paint" && i.team === "T01" && /^The T30 score .*\(the fewest\); the T01 allow [\d.]+ \(the fewest\)\.$/.test(i.text)) && !e0.some((i) => i.player) && e0.every((i) => i.cat === "paint") && !E.games[1].items.length
+    && E.table.length === 30 && E.leaders.paint[0].name === "Player T01" && !("fb" in E.leaders) && EDGE.end === 5,
+    "matchup edges (0.95): a top-5 offense in a category against a bottom-5 defense in it is an edge for the offense, with its own league leaders named on the same line and not on lines of their own; a bottom-5 offense against a top-5 defense is the defense's; two mid-table teams have none; a category in which every team has the same number has no ends, so no edge; ranks in words; no player list for fast-break points", JSON.stringify([e0.map((i) => i.text), E.games[1].items.length]));
+  // A team with too few games read is not ranked, so a half-read season shows nothing rather than skewed ranks.
+  const half = rows.map((g, i) => (i % 3 ? { ...g, m: undefined, mq: undefined, mp: undefined } : g));
+  ok(Object.keys(teamTypes(half).teams).length === 0 && edges({ rows: half, names, tonight: [{ away: "T01", home: "T30" }] }).games[0].items.filter((i) => i.cat !== "topdef").length === 0,
+    "matchup edges (0.95): while the season's games are still being read (under 80% of a team's games) nothing is ranked or said");
+  // A printed mark with no game ("Done 2 times"): the record line and the table say how often, not a date.
+  const recs = { teams: { AAA: [{ stat: "oreb", kind: "most", period: "game", value: 29, games: [], times: "2 times" }] } };
+  const bx = (oreb) => [40, 85, 10, 30, 20, 25, oreb, 30, 25, 8, 5, 13, 20];
+  const L5 = BRL5(recs, [{ d: "2026-11-10", h: "AAA", a: "BBB", hs: 110, as: 100, hb: bx(30), ab: bx(9), hq: [28, 27, 28, 27], aq: [25, 25, 25, 25] }], "2026-11-01", "2026-11-17").map((l) => l.text);
+  ok(L5.length === 1 && /^AAA had 30 offensive rebounds on 11\/10 \(BBB\): the most in a game in franchise history, by its media guide \(was 29, 2 times\)$/.test(L5[0]) && BT5(recs).some((r) => r[0] === "AAA" && r[2] === "29 (2 times)"),
+    "team records (0.95): a mark the guide gives without a game is still a mark", JSON.stringify([L5, BT5(recs)]));
+  // Pages.
+  const rd5 = (f) => fs.readFileSync(path.join(root, "docs", f), "utf8"), sit5 = rd5("situations.html"), def5 = rd5("defenses.html"), idx5 = rd5("index.html");
+  const every = (html, id, n) => { const m = html.match(new RegExp(`<select id="${id}">(.*?)</select>`)); return !!m && Array.from({ length: n }, (_, i) => i + 1).every((k) => new RegExp(`<option[^>]*>${k}(?:\\+| games?)?</option>`).test(m[1])); };
+  ok(/id="leagueRow"/.test(sit5) && !/>League<\/th>/.test(sit5.split("$(\"tonight\").innerHTML")[1].split("</table>")[0]) && every(def5, "n", 10) && every(def5, "pn", 10) && every(rd5("clutch.html"), "mingp", 5) && every(rd5("records.html"), "games", 10)
+    && /data-v="types"/.test(def5) && /li\.edge/.test(idx5) && /i\.edge \? ' class="edge"'/.test(idx5) && fs.existsSync(path.join(root, "docs", "lib", "espn", "misc.js"))
+    && fs.readFileSync(path.join(root, "docs", "lib", "espn", "misc.js"), "utf8") === fs.readFileSync(path.join(root, "src", "espn", "misc.js"), "utf8"),
+    "pages (0.95): the league's win rates are said once above tonight's matchup cards, not as a column on each; the Top-N and count dropdowns offer every value (1-10 for the top defenses and records); the vs top teams page has a Scoring by type view; the Watch List marks the lopsided lines; the page's copy of the reader is the build's");
+}
+
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });
 const brief = (m) => [m.player, m.kind, m.stat, m.scope, m.current, m.target, m.need, m.status, m.passing?.player || ""].join(" | ");

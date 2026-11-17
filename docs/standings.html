@@ -71,7 +71,7 @@
   .match h3 { margin: 0 0 6px; font-size: 15px; }
   .match table { border: 0; background: transparent; table-layout: fixed; }
   .match td, .match th { padding: 5px 6px; font-size: 13px; }
-  .match col.l { width: 42%; } .match col.t { width: 19%; } .match col.b { width: 20%; }
+  .match col.l { width: 50%; } .match col.t { width: 25%; }
   .matches { grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); }
   @media (max-width: 600px) { .match td, .match th { padding: 5px 4px; font-size: 12.5px; } }
   .match th.c, .match td.c { text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -118,6 +118,7 @@
 
   <div class="v-situations">
   <h2>Tonight's matchups</h2>
+  <div class="key" id="leagueRow"></div>
   <div class="matches" id="tonight"></div>
 
   <h2>Most unusual records</h2>
@@ -201,18 +202,23 @@ function render() {
   const by = Object.fromEntries(teams.map((t) => [t.code, t]));
   $("sub").textContent = `${S.season ? `${S.season - 1}-${String(S.season).slice(2)} regular season` : "This season"} · ${S.games} games through ${S.through} · from ESPN results and play-by-play`;
 
+  // 0.95 (the user, 11/17): the league's win rate in each spot is the same for every game, so it is said once, above
+  // the cards, and not as a column on each of them.
+  const lg = MATCH.map(([k0, label0]) => [vsKey(k0), label0]).filter(([k]) => k !== "all" && S.baseline[k]).map(([k, label]) => `${label} <b>${Math.round(S.baseline[k].pct * 100)}%</b>`);
+  $("leagueRow").innerHTML = S.tonight.length && lg.length ? `<b>League:</b> how often any team wins in that spot this season. ${lg.join(" · ")}` : "";
+  $("leagueRow").hidden = !(S.tonight.length && lg.length);
   $("tonight").innerHTML = S.tonight.length ? S.tonight.map((g) => {
     const a = by[g.away], h = by[g.home];
     if (!a || !h) return "";
     const time = g.start ? new Date(g.start).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
-    const rows = MATCH.map(([k0, label0]) => [vsKey(k0), oppMode === "then" && VS.includes(k0) ? `${label0} (at the time)` : label0]).map(([k, label]) => `<tr><td>${label}</td>${cell(a, k, "c")}${cell(h, k, "c")}<td class="c base">${S.baseline[k] && k !== "all" ? Math.round(S.baseline[k].pct * 100) + "%" : ""}</td></tr>`).join("");
+    const rows = MATCH.map(([k0, label0]) => [vsKey(k0), oppMode === "then" && VS.includes(k0) ? `${label0} (at the time)` : label0]).map(([k, label]) => `<tr><td>${label}</td>${cell(a, k, "c")}${cell(h, k, "c")}</tr>`).join("");
     const notes = [...a.flags.map((f) => `${g.away} ${f.text}`), ...h.flags.map((f) => `${g.home} ${f.text}`)];
     return `<div class="match"><h3>${g.away} @ ${g.home} <span class="team">${time}</span></h3>
-      <table><colgroup><col class="l"><col class="t"><col class="t"><col class="b"></colgroup>
-      <tr><th></th><th class="c team-h">${g.away}</th><th class="c team-h">${g.home}</th><th class="c base" title="how often any team wins in that situation">League</th></tr>${rows}
-      <tr><td>Clutch +/-</td>${cell(a, "clutchNet", "c")}${cell(h, "clutchNet", "c")}<td></td></tr>
-      <tr><td>Streak</td><td class="c">${a.streak || "–"}</td><td class="c">${h.streak || "–"}</td><td></td></tr>
-      <tr><td>Last 10</td><td class="c">${wl(a.last10)}</td><td class="c">${wl(h.last10)}</td><td></td></tr></table>
+      <table><colgroup><col class="l"><col class="t"><col class="t"></colgroup>
+      <tr><th></th><th class="c team-h">${g.away}</th><th class="c team-h">${g.home}</th></tr>${rows}
+      <tr><td>Clutch +/-</td>${cell(a, "clutchNet", "c")}${cell(h, "clutchNet", "c")}</tr>
+      <tr><td>Streak</td><td class="c">${a.streak || "–"}</td><td class="c">${h.streak || "–"}</td></tr>
+      <tr><td>Last 10</td><td class="c">${wl(a.last10)}</td><td class="c">${wl(h.last10)}</td></tr></table>
       ${notes.length ? `<div class="meta flag">${notes.map(esc).join("<br>")}</div>` : ""}</div>`;
   }).join("") : `<div class="empty">No games tonight.</div>`;
 

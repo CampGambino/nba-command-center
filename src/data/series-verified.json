@@ -414,6 +414,24 @@
    "through": "2025-26",
    "by": "Basketball Reference",
    "source": "Basketball Reference's head-to-head pages, read 11/17/26, less the 2026-27 games played by then (tools/check-series-outside.mjs)"
+  },
+  {
+   "a": "BOS",
+   "b": "DET",
+   "w": 257,
+   "l": 144,
+   "through": "2025-26",
+   "by": "Basketball Reference and Land of Basketball",
+   "source": "Stathead (Basketball Reference) head-to-head, the user's screenshot 11/17/26: 257-145 with the Pistons' win of 10/20/26, so 257-144 through 2025-26; Land of Basketball's game-by-game list has the same 401 games (36-28 against Fort Wayne through 1956-57, then the Pistons' own guide's 221-116). The Celtics' guide prints 258-144: one Celtics win too many, in the Fort Wayne years (37-28)"
+  },
+  {
+   "a": "ATL",
+   "b": "GSW",
+   "w": 151,
+   "l": 153,
+   "through": "2025-26",
+   "by": "Land of Basketball",
+   "source": "Land of Basketball's game-by-game list, read 11/17/26: 304 games, 151-153, the Hawks' guide's record; from 1962-63 it is the Warriors' own guide's list game for game (109-94), and before that 42-59"
   }
  ],
  "notes": [
@@ -453,18 +471,11 @@
    "note": "the whole franchise, Seattle included; the Thunder's guide (23-10) covers Oklahoma City only and the 76ers' guide prints no record"
   },
   {
-   "a": "BOS",
-   "b": "DET",
-   "w": 257,
-   "l": 144,
-   "note": "one fewer Celtics win than the Celtics' guide prints (258-144); not looked into"
-  },
-  {
    "a": "ATL",
    "b": "GSW",
    "w": 152,
    "l": 153,
-   "note": "one more Hawks win than the Hawks' guide prints (151-153); not looked into"
+   "note": "one more Hawks win than the Hawks' guide and Land of Basketball's game list (151-153); its table has run a game over its own game list before (Lakers v Kings), and the extra game is before 1962-63, where no guide lists games; not located"
   }
  ]
 }

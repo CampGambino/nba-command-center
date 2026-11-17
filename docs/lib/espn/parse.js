@@ -1,5 +1,6 @@
 import { teamFromText } from "../teams.js";
 import { clutchPlayers, windowPlayers, WINDOWS } from "./pbp.js";
+import { readGameMisc } from "./misc.js";
 
 /**
  * Pure readers for ESPN's public JSON (site.api.espn.com / site.web.api.espn.com).
@@ -353,6 +354,8 @@ export function readGameDetail(json) {
     clutchPlayers: scoreOk && clutch ? clutchPlayers(json, { homeId, awayId }) : null,
     q4Players: scoreOk ? windowPlayers(json, { homeId, awayId }, WINDOWS.q4) : null,
     players: readPlayerBox(json, homeId),
+    // 0.95: scoring by type (misc.js): paint, fast break, off turnovers, second chance.
+    misc: readGameMisc(json),
   };
 }
 
