@@ -420,18 +420,18 @@ for (const [tri, games] of Object.entries(perTeam)) {
         const feats = [...(fs.existsSync(ltf) ? advance(JSON.parse(fs.readFileSync(ltf, "utf8")), rows, store.names || {}) : []),
           ...scoreFeats({ deep: await loadDeep(), history: fs.existsSync(rhf) ? JSON.parse(fs.readFileSync(rhf, "utf8")) : null, rows })];
         // 0.90: each team's single-game marks from the same games (most and fewest points, largest win and loss).
-        const { teamGameRecords, recordLines } = await import("../src/records/teamgame.js");
-        const teamGame = teamGameRecords({ deep: await loadDeep(), history: fs.existsSync(rhf) ? JSON.parse(fs.readFileSync(rhf, "utf8")) : null, rows });
-        // 0.92: the box-score marks a guide prints (a reader per guide; Philadelphia so far).
-        const tgf = path.join(root, "src", "data", `team-game-records-${seasonTag}.json`);
-        const { boxRecordLines } = await import("../src/records/teamgame.js");
-        const bl = fs.existsSync(tgf) ? boxRecordLines(JSON.parse(fs.readFileSync(tgf, "utf8")), rows, yday, today) : [];
-        const rl = [...bl, ...recordLines(teamGame, yday, today).filter((l) => !bl.some((b) => b.team === l.team && b.date === l.date && /\|pts\|game$/.test(b.key) && /\|most$/.test(l.key)))], setNow = new Set(rl.map((l) => `${l.team}|${l.date}`));
+        // 0.93: where a guide prints the mark (19 guides), the print is the mark through last season; the box-score marks
+        // (rebounds, threes, a quarter's points, an opponent's) come from the same file.
+        const { teamGameRecords, recordLines, boxRecordLines, boxTable } = await import("../src/records/teamgame.js");
+        const tgf = path.join(root, "src", "data", `team-game-records-${seasonTag}.json`), printed = fs.existsSync(tgf) ? JSON.parse(fs.readFileSync(tgf, "utf8")) : null;
+        const teamGame = teamGameRecords({ deep: await loadDeep(), history: fs.existsSync(rhf) ? JSON.parse(fs.readFileSync(rhf, "utf8")) : null, rows, printed });
+        const bl = printed ? boxRecordLines(printed, rows, yday, today) : [];
+        const rl = [...bl, ...recordLines(teamGame, yday, today)], setNow = new Set(rl.map((l) => `${l.team}|${l.date}`));
         // A team mark says it all: the "first since" line for the same team and night is dropped.
         const fl = firstSince(feats, yday, today).filter((l) => l.player || !setNow.has(`${l.team}|${l.date}`));
         lastNight = [...rl, ...fl, ...lastNight].sort((a, b) => b.score - a.score);
         lastTime = { feats, watch: watchList(feats, [...new Set(slate.flatMap((g) => [g.away, g.home]))], today) };
-        fs.writeFileSync(path.join(root, "docs", "data", "lasttime.json"), JSON.stringify({ generatedAt: out.generatedAt, through, teamGame, feats: feats.filter((f) => f.last), season: firstSince(feats, `${Number(seasonTag.slice(0, 4))}-08-01`, today).map((l) => ({ date: l.date, team: l.team, text: l.text })) }));
+        fs.writeFileSync(path.join(root, "docs", "data", "lasttime.json"), JSON.stringify({ generatedAt: out.generatedAt, through, teamGame, teamBox: printed ? boxTable(printed) : [], teamBoxSeason: [...(printed ? boxRecordLines(printed, rows, `${Number(seasonTag.slice(0, 4))}-08-01`, today) : []), ...recordLines(teamGame, `${Number(seasonTag.slice(0, 4))}-08-01`, today)].sort((a, b) => (a.date < b.date ? 1 : -1)).map((l) => ({ date: l.date, team: l.team, text: l.text })), feats: feats.filter((f) => f.last), season: firstSince(feats, `${Number(seasonTag.slice(0, 4))}-08-01`, today).map((l) => ({ date: l.date, team: l.team, text: l.text })) }));
         console.log(`last time: ${feats.length} feats on file; ${fl.length} first-since line(s) from last night`);
       } catch (e) { console.error(`last-time lines not made: ${e.message}`); }
       prep.lines.push(...sl.lines.filter((l) => l.kind !== "unique"));

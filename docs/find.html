@@ -159,12 +159,15 @@ const table = (id, title, words, note, head, rows) => `<details id="${id}" data-
       rowsL.map((f) => [f.team, who(f), WORD[f.stat](f.n), dm(f.last.date), f.last.holder || "", [f.last.score, f.last.opp].filter(Boolean).join(", ")])));
     // 0.90: each team's single-game marks from its own games.
     if (lasttime.teamGame) {
-      const mk = (m) => (m ? `${m.v} (${m.score}${m.opp ? `, ${m.opp}` : ""}, ${dm(m.d)})` : "");
+      const mk = (m) => (m ? `${m.v}${m.source === "guide" ? "†" : ""} (${m.score ? `${m.score}${m.opp ? `, ${m.opp}` : ""}, ` : ""}${dm(m.d)})${m.doubt ? ` [a game on file has ${m.doubt.v}, ${dm(m.doubt.d)}]` : ""}` : "");
       out.push(table("t-teamgame", "Team single-game marks", "team record most points in a game fewest allowed largest win loss margin franchise history single-game",
-        "from each team's own games as far back as they are on file; an asterisk means back to the franchise's first season",
+        "from each team's own games as far back as they are on file; an asterisk means back to the franchise's first season; a dagger means the mark is the one its media guide prints, moved only by this season's games",
         ["Team", "Games since", "Most points", "Fewest points", "Most allowed", "Fewest allowed", "Largest win", "Largest loss"],
         Object.keys(lasttime.teamGame).sort().map((t) => { const r = lasttime.teamGame[t], k = r.marks; return [t, `${r.window.from || "2016-17"}${r.window.whole ? "*" : ""}`, mk(k.most), mk(k.fewest), mk(k.allowed), mk(k.held), mk(k.win), mk(k.loss)]; })));
     }
+    if (lasttime.teamBox && lasttime.teamBox.length) out.push(table("t-teambox", "Team single-game records, as the media guides print them", "team record most fewest rebounds assists threes steals blocks turnovers quarter half opponent franchise single-game box",
+      "19 guides read so far; the date is the game, +n more games share the mark, a question mark means the guide prints that game with two values", ["Team", "Stat", "Most", "Fewest", "Most by an opponent", "Fewest by an opponent"], lasttime.teamBox));
+    if (lasttime.teamBoxSeason && lasttime.teamBoxSeason.length) out.push(table("t-teamrec-season", "Team single-game records set or tied this season", "team record set tied this season franchise most fewest opponent", "from the two tables above; a record set early and beaten later shows both", ["Date", "Team", "What"], lasttime.teamBoxSeason.map((l) => [md(l.date), l.team, l.text])));
     if (lasttime.season && lasttime.season.length) out.push(table("t-firstsince", "First time in three years or more, this season", "first since last time rare", "from the table above", ["Date", "Team", "What"], lasttime.season.map((l) => [md(l.date), l.team, l.text])));
   }
   if (flow && flow.seeded) for (const L of flow.seeded) out.push(table(`t-${L.id}`, `${L.what[0].toUpperCase()}${L.what.slice(1)}${L.since ? ` since ${L.since}` : ""}`, "seeded list counted forward notes", `${L.source}, counted forward from ${md(L.through)}`, ["Player", "Count", "Added since"], L.rows.map((r) => [r.name, r.n, r.added || ""])));

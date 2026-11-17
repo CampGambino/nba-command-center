@@ -401,15 +401,16 @@ def games(tri, text, official=None):
                     if m.group(1)[:3].lower() in MON: row(h.group(1), MON[m.group(1)[:3].lower()], int(m.group(2)), m.group(3), m.group(4), m.group(5), m.group(6), (m.group(7), m.group(8)))
     elif tri in READERS:
         READERS[tri](text, row, full, official) if tri == "CHA" else READERS[tri](text, row, full)
-    # Rows the text lost but the page shows (read from the user's screenshots; tools/guide-games-by-eye.json).
-    for r in BY_EYE.get(tri, []):
-        seasons.setdefault(r["season"], []).append({"m": int(r["date"][5:7]), "d": int(r["date"][8:10]), "raw": r["name"], "letter": "W" if r["won"] else "L", "pf": r["pf"], "pa": r["pa"], "rec": tuple(r["rec"]) if r.get("rec") else None, "site": r["site"], "opp": None})
     out = []
     # A season printed twice under two headings (the Bucks' 1970-71 list also sits under 1969-70): the earlier label is dropped.
     sig = {k: tuple((r["m"], r["d"], r["pf"], r["pa"]) for r in v) for k, v in seasons.items()}
     for k in sorted(seasons):
         nxt = f"{int(k[:4]) + 1}-{str(int(k[:4]) + 2)[2:]}"
         if nxt in sig and sig[k] == sig[nxt]: del seasons[k]
+    # Rows the text lost but the page shows, and seasons the guide does not print (tools/guide-games-by-eye.json): added after
+    # the doubled heading is dropped, so the Bucks' real 1969-70 does not sit on top of the 1970-71 list printed under its name.
+    for r in BY_EYE.get(tri, []):
+        seasons.setdefault(r["season"], []).append({"m": int(r["date"][5:7]), "d": int(r["date"][8:10]), "raw": r["name"], "letter": "W" if r["won"] else "L", "pf": r["pf"], "pa": r["pa"], "rec": tuple(r["rec"]) if r.get("rec") else None, "site": r["site"], "opp": None})
     for season, rows in sorted(seasons.items()):
         when = lambda r: ((r["m"] - 8) % 12, r["d"])
         if rows and rows[0]["opp"]:                     # all-time lists against one opponent: a block printed twice is read once

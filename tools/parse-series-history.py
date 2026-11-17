@@ -327,7 +327,7 @@ LISTS = ("GSW", "LAL", "MIL", "WAS")      # no table by opponent: counted from t
 # What a guide's own count leaves out or adds, where we know it (the mirror check is how each was found).
 NOTE = {"OKC": "Oklahoma City years only (since 2008-09)", "DET": "Detroit years only (since 1957-58)", "DEN": "includes ABA games against the former ABA teams",
         "GSW": "counted from its game lists, which start in 1962-63 (San Francisco); the Philadelphia years are not listed", "LAL": "counted from its game lists, 1948-49 on",
-        "MIL": "counted from its game lists; 1969-70 is not printed (1970-71 is printed twice), 2019-20 and 2020-21 are from our results", "WAS": "counted from its game lists, 1961-62 on",
+        "MIL": "counted from its game lists; 1969-70 is not printed (1970-71 is printed twice under both headings) and is from Basketball Reference, 2019-20 and 2020-21 are from our results", "WAS": "counted from its game lists, 1961-62 on",
         "ATL": "its tables are pictures in the PDF: read from page images and checked by eye", "NYK": "overall records only (a year-by-year table)"}
 ERA = {"OKC": "2008-09", "DET": "1957-58", "GSW": "1962-63"}      # a guide whose records start here, not at the franchise's first season
 # Each franchise's first NBA season (its first year), to tell when a late-starting count still holds a whole series.
@@ -336,7 +336,7 @@ FIRST = {"ATL": 1949, "BOS": 1946, "BKN": 1976, "CHA": 1988, "CHI": 1966, "CLE":
 def cut(t, o):
     """True when t's guide starts after the two franchises could first have met, so its count against o is not whole."""
     return t in ERA and max(FIRST[t], FIRST[o]) < int(ERA[t][:4])
-SHORT = {"MIL": "1969-70 is not in its lists", "WAS": "seven seasons of its lists are a game short in the text"}
+SHORT = {"WAS": "seven seasons of its lists are a game short in the text"}
 
 def main():
     d = sys.argv[1]; res = {}

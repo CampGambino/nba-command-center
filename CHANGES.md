@@ -2,6 +2,44 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.93.0 (2026-11-17): the Bucks' 1969-70 season; team records pages read in 19 guides
+
+The user (11/17, 12:58 PM) sent Basketball Reference's 1969-70 Bucks schedule and said "proceed with your next steps". The next steps I had named were the team-records readers and finding the pages in the guides where I had not.
+
+### Milwaukee 1969-70
+- The 82 games (56-26) are added from the user's file (`tools/guide-games-by-eye.json`, each row marked as Basketball Reference's). Six were at a third site (St. Louis, Madison twice, Cleveland, Houston, Portland).
+- The guide prints 1970-71 under the 1969-70 heading, and that doubled list is dropped before the real season is added (`games()` in guide_games.py; it was added before, which would have put 164 games in the season).
+- **Milwaukee's games now reach its first season: 20 franchises are whole (was 19).**
+- The Bucks' all-time records against each team are counted from their lists, so a whole list moves the series: **399 of 435 pairings confirmed (340 by both guides, 58 by a count, 1 by the outside check), 8 differ, 28 rest on one guide (was 390 / 8 / 37).** Atlanta v Milwaukee is settled as Atlanta's printed 121-123. Head-to-head histories: 399 reach the first meeting (was 393), 371 with a count that lands on the record shown (was 363).
+
+### Team records pages
+- A second search (rows that start Game / Half / Quarter and end in a date) found the pages in 12 more guides than the first pass did. Located now: 24 guides. `claude/team-guide-inventory.md` has the page numbers.
+- **Read: 19 guides, 1,988 marks** (`tools/parse-team-records.py` → `src/data/team-game-records-2026-27.json`): PHI, LAL, MIN, PHX, SAS, DAL, BKN, CHA, HOU, OKC, GSW, DET, CHI, POR, NOP, ORL, LAC, MIL, BOS. Each mark: stat, most or fewest, game / half / quarter, value, the game(s), and whether it is the team's or an opponent's.
+- One scanner reads 18 of them; a guide differs in a few facts: which pages, one column or two, which lines say "team highs", "lows", "opponents", and where the row label sits (on the row; on the line above in Chicago, Boston and Portland; on the line below in Dallas). Oddities handled: Oklahoma City's "Low" row, Golden State's "Fewest Game" row and "West Coast" rows, Portland's "Field Goals" then "Made", Charlotte's pages in bands, Orlando's dates in brackets, New Orleans' "7-Apr-26", Detroit's rows that carry a team mark and an individual one, Milwaukee's "Most, Half".
+- **Not read:** ATL (three columns run together in the text), DEN (rows of DEN / OPP), MEM (three stats across each row), TOR (points only), SAC. **Not found in the text:** CLE (pictures), IND, MIA, NYK, UTA, WAS.
+
+### How the marks are used
+- **A team's most and fewest points, and most and fewest allowed, are now the guide's printed mark where there is one** (`teamGameRecords({ printed })`), moved only by this season's games. Before, they were counted from the games on file, which for Detroit, Boston, San Antonio and others start in 1993-94 or later (Detroit's 186 in 1983 was outside them).
+- **Box-score marks** (rebounds, assists, threes, steals, blocks, turnovers, fouls, free throws in a game; points in a quarter or half): a game that reaches one is a line on the Watch List the next morning. New in 0.93: the fewest, and the most and fewest by an opponent.
+- **A fault in 0.92 is fixed:** it compared last night with the printed mark only, so a mark already raised this season would have been "broken" again by a lower number. The season is now walked in order.
+- Two finder tables: every printed mark by team and stat, and the team records set or tied this season. Eight so far, among them Charlotte's 56 three-point attempts on 10/30 (was 52) and Indiana's one offensive rebound at Dallas on 11/9 (the fewest by a Mavericks opponent).
+
+### What the check found
+- For each guide the printed points marks were compared with the same four marks counted from the games: **53 agree.** The ones that do not: marks older than the games on file (Boston, Detroit, Golden State, San Antonio, Orlando's 155, Houston's 165 allowed), and the Lakers' fewest, which their guide starts at the shot clock.
+- **Charlotte:** its 1992-93 season page prints a 107-155 loss at Detroit on 3/26/93; its records page says no opponent has passed 146. The 155 is kept as a doubt beside the mark and cannot become the record. I have not looked the game up.
+- **Boston** prints the same night (2/27/59) as 72 field goals on p. 197 and 77 on p. 198, and 65 and 66 free throw attempts for 11/28/54. The harder number is kept, so a record is never claimed on the easier one, and the mark carries both.
+- The Thunder's marks are Oklahoma City's only (since 2008-09) and say so.
+
+### Tested
+- `node tests/run.js`: 955 pass (was 953). New: the season walk (46 assists a week after 47 is not a record), opponent and fewest lines, the printed mark as the base with a doubted game, 25 values from the real file across 17 guides, the Bucks' 82 games.
+- Full local build and `tools/check-pages.py`.
+
+### Unproven
+- Only the points marks have a second source. The other stats were checked for plausible ranges (one fault found and fixed: the Suns' fewest rebounds by an opponent read as 1) and by eye on a sample.
+- Some "fewest" sections are short where rows wrap (Suns, Blazers' opponents). New Orleans' 33 fouls by an opponent looks low for 24 seasons; it is what the page prints.
+- No live card yet: NBA Live does not watch team marks during a game. That needs a bridge change (v22) and a refresh on the PC.
+- Individual single-game records on the same pages are not read by this scanner (the older franchise file covers players).
+
 ## 0.92.0 (2026-11-17): the user's 18 screenshots: Cleveland read from its picture pages, six season pages mended, Lakers v Kings settled
 
 The user (11/17, 12:26 PM) sent screenshots of the pages I had listed, four Basketball Reference spreadsheets, and on the team records pages: "you make the first pass to at least determine if you can read the text. you also have access to the pdfs".
