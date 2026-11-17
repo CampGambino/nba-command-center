@@ -4034,20 +4034,55 @@ await articlesChecks(ok);
     && /the Rockets' media guide; the Kings' has it 43-103, which does not add up\)$/.test(X5[0].text),
     "series (0.84.1): a misprinted record loses to one that adds up; a guide counting only its current city's years is 'since', not all-time, and does not contradict a full count; a row corrected with last season's results is shown but never built on",
     JSON.stringify([X1, X2, X3, X4, X5]));
+  // 0.85: a count that starts late is whole against a franchise that did not exist before it started, and cut short
+  // only against an older one; of two counts that each leave something out, the bigger is used.
+  const SY = { through: "2025-26", first: { GSW: 1946, CHI: 1966, LAL: 1948, MIL: 1968, WAS: 1961 }, guides: { GSW: { agree: [19, 20], era: "1962-63" }, CHI: { agree: [9, 10] }, LAL: { agree: [9, 10] }, MIL: { agree: [5, 10], short: "x" }, WAS: { agree: [5, 10], short: "y" } }, teams: {
+    GSW: { CHI: { overall: { w: 83, l: 87 } }, LAL: { overall: { w: 127, l: 209 } }, WAS: { overall: { w: 112, l: 86 } } }, CHI: { GSW: { overall: { w: 87, l: 83 } } }, LAL: { GSW: { overall: { w: 268, l: 178 } }, MIL: { overall: { w: 87, l: 63 } } },
+    WAS: { GSW: { overall: { w: 86, l: 121 } }, MIL: { overall: { w: 99, l: 136 } } }, MIL: { LAL: { overall: { w: 60, l: 84 } }, WAS: { overall: { w: 133, l: 96 } } } } };
+  const Y1 = seriesPair(SY, "GSW", "CHI"), Y2 = seriesPair(SY, "GSW", "LAL"), Y3 = seriesPair(SY, "GSW", "WAS"), Y4 = seriesPair(SY, "MIL", "LAL"), Y5 = seriesPair(SY, "MIL", "WAS");
+  ok(Y1.status === "confirmed" && Y2.status === "single" && Y2.source[0] === "LAL" && Y2.rec.overall.w === 178 && !Y2.era && Y3.status === "single" && Y3.source[0] === "WAS" && Y3.rec.overall.w === 121
+    && Y4.status === "single" && Y4.source[0] === "LAL" && Y4.rec.overall.w === 63 && Y5.status === "differs" && Y5.source[0] === "WAS" && Y5.rec.overall.w === 136 && Y5.other.team === "MIL",
+    "series (0.85): Golden State's lists (from 1962-63) are a whole count against Chicago (1966) but not against the Lakers or Washington (1961), where the fuller count stands; a list missing a season yields to a full one; of two short counts the bigger is used",
+    JSON.stringify([Y1.status, Y2, Y3, Y4, Y5]));
   // The file read from the guides (tools/parse-series-history.py): the checks that were run on it, kept as facts.
   const RS = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-series-history-2026-27.json"), "utf8"));
   const pairsR = seriesTable(RS, [], "2026-10-01"), cnt = (st) => pairsR.filter((r) => r.status === st).length;
   const adjR = Object.values(RS.teams).flatMap((t) => Object.values(t)).filter((r) => r.adjusted);
-  ok(Object.keys(RS.teams).length === 24 && pairsR.length === 418 && cnt("confirmed") === 225 && cnt("differs") === 21 && RS.teams.BOS.LAL.overall.w === 169 && RS.teams.BOS.LAL.overall.l === 135 && RS.teams.BOS.LAL.home.w === 85
-    && RS.teams.DEN.BOS.overall.w === 42 && RS.teams.DEN.BOS.adjusted && RS.guides.DEN.agree.join("/") === "19/22" && RS.guides.OKC.era === "2008-09" && RS.guides.DET.era === "1957-58" && RS.teams.SAC.HOU.bad
-    && adjR.length === 40 && adjR.filter((r) => /twice/.test(r.adjusted)).length === 4 && !RS.teams.SAS.ATL.overall.streak && pairsR.every((r) => r.overall && r.overall.w + r.overall.l > 0),
-    "series data (0.84.1): 24 guides, 418 of 435 pairings, 225 confirmed from both sides; Denver's rows stopped at 2024-25 and are brought up with our results (40 rows corrected in all, 4 of them Utah's double count); the Kings' misprint is marked",
-    JSON.stringify([Object.keys(RS.teams).length, pairsR.length, cnt("confirmed"), cnt("differs"), adjR.length, RS.guides.DEN]));
+  ok(Object.keys(RS.teams).length === 30 && pairsR.length === 435 && cnt("confirmed") === 330 && cnt("differs") === 35 && RS.teams.BOS.LAL.overall.w === 169 && RS.teams.BOS.LAL.overall.l === 135 && RS.teams.BOS.LAL.home.w === 85
+    && RS.teams.LAL.BOS.overall.w === 135 && RS.teams.LAL.BOS.overall.l === 169 && RS.teams.DEN.BOS.overall.w === 42 && RS.teams.DEN.BOS.adjusted && RS.guides.OKC.era === "2008-09" && RS.guides.DET.era === "1957-58" && RS.guides.GSW.era === "1962-63" && RS.guides.MIL.short
+    && RS.guides.GSW.agree.join("/") === "19/20" && RS.teams.ATL.BOS.overall.l === 251 && RS.teams.NYK.ATL.overall.w === 195 && RS.teams.NYK.ATL.adjusted && RS.teams.SAC.HOU.bad && RS.first.OKC === 1967
+    && adjR.length === 73 && adjR.filter((r) => /twice/.test(r.adjusted)).length === 5 && !RS.teams.SAS.ATL.overall.streak && pairsR.every((r) => r.overall && r.overall.w + r.overall.l > 0),
+    "series data (0.85): all 30 guides and all 435 pairings, 330 confirmed from both sides; the Lakers' count from their game lists mirrors Boston's printed 169-135; Denver's and the Knicks' rows stopped at 2024-25 and are brought up with our results; the Kings' misprint is marked",
+    JSON.stringify([Object.keys(RS.teams).length, pairsR.length, cnt("confirmed"), cnt("differs"), adjR.length, adjR.filter((r) => /twice/.test(r.adjusted)).length, RS.guides.GSW]));
+  // Every game four guides list season by season (tools/guide_games.py): each season's wins and losses must be the
+  // franchise's own record (the NBA Guide's standings).
+  {
+    const zl = await import("node:zlib");
+    const GGm = JSON.parse(zl.gunzipSync(fs.readFileSync(path.join(root, "src", "data", "guide-games-2026-27.json.gz"))));
+    const TSn = Object.fromEntries(Object.entries(JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-team-seasons-2026-27.json"), "utf8")).teams).map(([t, rows]) => [t, Object.fromEntries(rows.map(([sn, w, l]) => [sn, `${w}-${l}`]))]));
+    const seasonOfD = (d) => { const y = Number(d.slice(0, 4)) - (Number(d.slice(5, 7)) >= 8 && !(d >= "2020-07-01" && d <= "2020-10-31") ? 0 : 1); return `${y}-${String(y + 1).slice(2)}`; };
+    const right = {};
+    for (const [t, gs] of Object.entries(GGm.teams)) {
+      const by = {};
+      for (const g of gs) { const sn = seasonOfD(g[0]); (by[sn] ??= [0, 0])[g[4] ? 0 : 1]++; }
+      const from = Object.keys(by).sort()[0], all = Object.keys(TSn[t]).filter((sn) => sn >= from);
+      right[t] = `${all.filter((sn) => by[sn] && by[sn].join("-") === TSn[t][sn]).length}/${all.length}/${gs.length}`;
+    }
+    const lalBos = GGm.teams.LAL.filter((g) => g[2] === "BOS"), first = GGm.teams.LAL[0];
+    ok(right.LAL === "78/78/6168" && right.GSW === "64/64/5164" && right.MIL === "55/58/4603" && right.WAS === "58/65/5246" && lalBos.filter((g) => g[4]).length === 135 && lalBos.length === 304
+      && first[0] === "1948-11-04" && first[1] === "Baltimore" && first[2] === null && first[3] === "A" && first[4] === 1 && first[5] === 84 && first[6] === 72
+      && GGm.teams.GSW.some((g) => g[0] === "1962-10-27" && g[1] === "Chicago" && g[2] === "WAS" && g[3] === "A") && GGm.teams.MIL.some((g) => g[0] === "1968-10-19" && g[2] === "ATL"),
+      "guide games (0.85): 21,181 games from four guides' season lists; every Lakers season since 1948-49 and every Warriors season since 1962-63 adds up to the franchise's record; a city is mapped to the franchise of that season (Chicago in 1962 is the Zephyrs, now Washington; the 1948 Baltimore Bullets are no one)",
+      JSON.stringify(right));
+  }
   // Through matchups(): the series line arrives with the others.
   const { matchups: mu } = await import("../src/records/matchup.js");
   const MU = mu({ history: { games: [] }, logs: null, teamFiles: {}, tonight: [{ id: "g", away: "LAL", home: "BOS" }], today: "2026-11-17", series: SR });
   ok(MU[0].items.some((i) => /^All-time: the Lakers lead the Celtics 100-99/.test(i.text)) && !mu({ history: { games: [] }, logs: null, teamFiles: {}, tonight: [{ id: "g", away: "LAL", home: "BOS" }], today: "2026-11-17" })[0].items.length,
     "matchups (0.84): the all-time series joins tonight's matchup items when the guides' file is there");
+  const rcd = fs.readFileSync(path.join(root, "docs", "records.html"), "utf8");
+  ok(/const ALL30 = \[/.test(rcd) && /\(no one on pace\)/.test(rcd) && /Every team's season records are on file/.test(rcd),
+    "Records (0.85; the user, 11/17: \"teams are missing\" from the drop-down): the on-pace table's team list has all 30 teams and says when a team has no one on pace");
   const ix = fs.readFileSync(path.join(root, "docs", "find.html"), "utf8");
   ok(/get\("series\.json"\)/.test(ix) && /t-series/.test(ix) && /both guides agree/.test(ix) && /not all-time/.test(ix) && /last season added from our results/.test(ix), "Index (0.84): the all-time series lookup, with the basis of each row");
 }

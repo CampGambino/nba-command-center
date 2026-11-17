@@ -1,0 +1,17 @@
+{
+  "note": "Records that are pictures in a team guide's PDF, so absent from its text. Read from page images (OCR, then every row checked by eye against the rendered page), 11/17/26. Each row is the franchise's TOTALS line: home, road, neutral, total. Where the printed home/road/neutral cells do not add up to the printed total, only the total is kept (split: false).",
+  "ATL": {
+    "source": "2026-27 Atlanta Hawks Media Guide, 'ATLANTA ALL-TIME RECORD vs. <TEAM>', PDF pages 293-349 (odd pages); the user pointed to them with a picture of the Boston page",
+    "records": {
+      "BOS": [96, 91, 43, 135, 14, 25, 153, 251], "BKN": [null, null, null, null, null, null, 111, 92], "CHA": [44, 28, 30, 40, 0, 0, 74, 68], "CHI": [71, 60, 49, 81, 2, 3, 122, 144],
+      "CLE": [81, 41, 53, 75, 0, 0, 134, 116], "DAL": [28, 17, 21, 24, 0, 0, 49, 41], "DEN": [null, null, null, null, null, null, 53, 49], "DET": [85, 88, 93, 83, 14, 11, 192, 182],
+      "GSW": [null, null, null, null, null, null, 151, 153], "HOU": [56, 28, 26, 58, 0, 0, 82, 86], "IND": [null, null, null, null, null, null, 113, 101], "LAC": [47, 21, 36, 31, 0, 1, 83, 53],
+      "LAL": [null, null, null, null, null, null, 145, 198], "MEM": [20, 11, 16, 13, 0, 0, 36, 24], "MIA": [41, 31, 21, 53, 0, 0, 62, 84], "MIL": [77, 45, 43, 75, 1, 3, 121, 123],
+      "MIN": [27, 9, 16, 19, 0, 0, 43, 28], "NOP": [15, 9, 12, 13, 0, 0, 27, 22], "NYK": [null, null, null, null, null, null, 204, 195], "OKC": [null, null, null, null, null, null, 72, 75],
+      "ORL": [48, 23, 30, 42, 0, 0, 78, 65], "PHI": [114, 58, 62, 100, 12, 17, 188, 175], "PHX": [42, 26, 20, 50, 3, 1, 65, 77], "POR": [42, 21, 21, 43, 0, 1, 63, 65],
+      "SAC": [null, null, null, null, null, null, 167, 162], "SAS": [29, 24, 16, 38, 0, 0, 45, 62], "TOR": [28, 29, 26, 30, 0, 0, 54, 59], "UTA": [35, 22, 20, 36, 2, 1, 57, 59],
+      "WAS": [null, null, null, null, null, null, 173, 155]
+    },
+    "printedButNotAddingUp": { "BKN": "69-30, 42-60, 0-0", "DEN": "37-13, 16-36, 0-1", "GSW": "90-46, 45-85, 16-23", "IND": "72-35, 40-67, 1-0", "NYK": "110-63, 69-101, 12-6", "OKC": "44-99, 27-45, 1-0", "SAC": "93-33, 49-77, 11-15", "WAS": "110-50, 58-100, 7-5", "LAL": "home, road and neutral cells are blank on the totals line" }
+  }
+}

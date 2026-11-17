@@ -211,7 +211,7 @@
     <select id="pkind"><option value="">Totals and per game</option><option value="total">Season totals (pace)</option><option value="perGame">Per game</option></select>
     <select id="pstat"><option value="">All stats</option><option value="pts">Points</option><option value="reb">Rebounds</option><option value="ast">Assists</option><option value="stl">Steals</option><option value="blk">Blocks</option><option value="fg3m">3-pointers</option></select>
     <select id="pteam"><option value="">All teams</option></select>
-    <span class="key">Players on track for a top-3 season in their team's history (his games for that team only). Pace: his total plus his rate per team game over the games left, so missed games count against it. Per game: once he has played 70% of the team's games. Early-season paces move a lot.</span>
+    <span class="key">Every team's season records are on file; this table lists only the players on track for a top-3 season in their team's history (his games for that team only). Pace: his total plus his rate per team game over the games left, so missed games count against it. Per game: once he has played 70% of the team's games. Early-season paces move a lot.</span>
   </div>
   <div class="scroll"><table id="pace"></table></div>
   </section>
@@ -351,7 +351,7 @@ function renderPace() {
   const k = $("pkind").value, st = $("pstat").value, tm = $("pteam").value;
   const rows = (D.seasonPace || []).filter((x) => (!k || x.kind === k) && (!st || x.stat === st) && (!tm || x.team === tm));
   $("pace").innerHTML = `<tr><th>Player</th><th class="what">What</th><th class="num">Now</th><th class="num">Pace</th><th class="num">Place</th><th class="num">GP / team</th></tr>` + (rows.length ? rows.map((x) => `<tr><td><b>${esc(x.who)}</b> <span class="team">${esc(x.team)}</span>${aw(x.who)}${x.place === 1 ? ` <span class="tag record">franchise record</span>` : ""}</td><td class="what">${esc(x.text.replace(/^[^:]+: /, ""))}</td><td class="num">${x.kind === "perGame" ? x.avg.toFixed(1) : fmt(x.now)}</td><td class="num">${x.kind === "total" ? fmt(x.pace) : "–"}</td><td class="num">${x.place}</td><td class="num">${x.games}/${x.teamGames}</td></tr>`).join("")
-    : `<tr><td colspan=6 class="empty">No one is on pace for a top-3 season yet.</td></tr>`);
+    : `<tr><td colspan=6 class="empty">${tm ? `No ${tm} player is on pace for a top-3 season in the team's history yet. Every team's season records are on file; this table only lists players on track for one.` : "No one is on pace for a top-3 season yet."}</td></tr>`);
 }
 function renderFranchise() {
   const rows = D.franchise?.[$("fteam").value]?.[$("fstat").value] || [];
@@ -445,7 +445,12 @@ Promise.all([fetch("data/records.json", { cache: "no-store" }).then((r) => r.jso
   ["fteam", "fstat"].forEach((id) => $(id).addEventListener("input", renderFranchise));
   renderFranchise();
   $("gstat").addEventListener("input", renderFgame); renderFgame();
-  $("pteam").innerHTML += [...new Set((d.seasonPace || []).map((x) => x.team))].sort().map((t) => `<option>${t}</option>`).join("");
+  // 0.85 (the user, 11/17: "does the drop down mean only those teams have records…? teams are missing"): the list had
+  // only the teams with a player on pace, which read as if the others had no records. All 30 are listed; a team with
+  // nobody on pace says so.
+  const ALL30 = ["ATL", "BKN", "BOS", "CHA", "CHI", "CLE", "DAL", "DEN", "DET", "GSW", "HOU", "IND", "LAC", "LAL", "MEM", "MIA", "MIL", "MIN", "NOP", "NYK", "OKC", "ORL", "PHI", "PHX", "POR", "SAC", "SAS", "TOR", "UTA", "WAS"];
+  const paceTeams = new Set((d.seasonPace || []).map((x) => x.team));
+  $("pteam").innerHTML += ALL30.map((t) => `<option value="${t}">${t}${paceTeams.has(t) ? "" : " (no one on pace)"}</option>`).join("");
   ["pkind", "pstat", "pteam"].forEach((id) => $(id).addEventListener("input", renderPace));
   renderPace();
   renderCtx();

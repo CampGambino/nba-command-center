@@ -34,27 +34,33 @@ export function seriesPair(series, a, b) {
   if (!A && !B) return null;
   // B's record seen from A: its home games are A's road games.
   const fromB = B ? { overall: flip(B.overall), home: flip(B.road), road: flip(B.home), neutral: flip(B.neutral) } : null;
-  const era = (t) => series.guides?.[t]?.era || null;
+  // A guide that starts late (`era`: Detroit 1957-58, Golden State's lists 1962-63, Oklahoma City 2008-09) still holds
+  // a whole series against a franchise that did not exist before then: its count is cut short only when the two
+  // could have met earlier. `short`: a guide whose lists leave out a season or a few games.
+  const F = series.first || {};
+  const era = (t, o) => { const e = series.guides?.[t]?.era; return e && Math.max(F[t] ?? 0, F[o] ?? 0) < Number(e.slice(0, 4)) ? e : null; };
+  const rank = (t, o) => (era(t, o) ? 2 : series.guides?.[t]?.short ? 1 : 0);
   const adj = (r) => (r?.adjusted ? { adjusted: r.adjusted } : {});
   if (A && B) {
     const same = A.overall.w === B.overall.l && A.overall.l === B.overall.w;
     if (same) return { status: "confirmed", source: [a, b], rec: { ...fromB, ...A } };
     const games = (r) => r.overall.w + r.overall.l;
-    // One guide counts only its current city's years (Detroit, Oklahoma City) and so has fewer games: it does not
-    // contradict the other, it measures less. The full count stands alone.
-    for (const [short, full, S, F] of [[a, b, A, B], [b, a, B, A]]) {
-      if (era(short) && !era(full) && games(S) < games(F)) return { status: "single", source: [full], rec: full === a ? A : fromB, weak: !trusted(series, full), ...adj(F) };
+    // The guide that measures less and has fewer games does not contradict the other: the fuller count stands alone.
+    for (const [short, full, S, Fu] of [[a, b, A, B], [b, a, B, A]]) {
+      if (rank(short, full) > rank(full, short) && games(S) < games(Fu)) return { status: "single", source: [full], rec: full === a ? A : fromB, weak: !!Fu.bad || !trusted(series, full), ...(era(full, short) ? { era: era(full, short) } : {}), ...adj(Fu) };
     }
     // A record that does not add up (a misprint) loses to one that does; otherwise lean on the guide other guides
     // agree with more often.
     const ta = series.guides?.[a]?.agree || [0, 1], tb = series.guides?.[b]?.agree || [0, 1];
-    const useA = !!A.bad !== !!B.bad ? !A.bad : ta[0] / (ta[1] || 1) >= tb[0] / (tb[1] || 1);
+    const bothLess = rank(a, b) > 0 && rank(b, a) > 0;          // two counts that each leave something out: the bigger one is nearer
+    const useA = !!A.bad !== !!B.bad ? !A.bad : bothLess ? games(A) >= games(B) : ta[0] / (ta[1] || 1) >= tb[0] / (tb[1] || 1);
     const used = useA ? A : B;
     return { status: "differs", source: [useA ? a : b], rec: useA ? A : fromB, other: { team: useA ? b : a, overall: useA ? fromB.overall : A.overall, ...((useA ? B : A).bad ? { bad: true } : {}) }, weak: !!used.bad || !trusted(series, useA ? a : b), ...adj(used) };
   }
   const one = A ? a : b, R = A || B;
   // A single guide that starts at its current city's first season: the record is real but not all-time.
-  return { status: "single", source: [one], rec: A || fromB, weak: !!R.bad || !trusted(series, one), ...(era(one) ? { era: era(one) } : {}), ...adj(R) };
+  const other = A ? b : a;
+  return { status: "single", source: [one], rec: A || fromB, weak: !!R.bad || !trusted(series, one), ...(era(one, other) ? { era: era(one, other) } : {}), ...adj(R) };
 }
 
 /**

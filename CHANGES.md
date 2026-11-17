@@ -2,6 +2,32 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.85.0 (2026-11-17): the last six guides (435 of 435 pairings), 21,181 games read from four of them
+
+The user (11/17, 12:51 AM) sent the pages I had not found: the Knicks' "Year-By-Year Versus Opponents" tables; a Hawks page ("ATLANTA ALL-TIME RECORD vs. BOSTON… check every other page in the pdf starting at 295 for the Nets"); "starting page 236 of the warriors pdf and then every other page provides yearly records against teams"; "page 136 of lakers pdf"; "page 118 starts Bucks yearly schedule records"; "wizards pdf for game-by-game schedule results starts page 171". And on the Records tab: "does the drop down mean only those teams have records or that those teams are the only ones with players on pace to break a record… teams are missing". And: "are there any other missing data points or unreadble pdf text?"
+
+### All-time series: every pairing
+- **Knicks:** the totals rows of the year-by-year table are in the guide's text (`parse_nyk`; overall records only). The grand total printed at the end equals the sum of the columns. Its rows stop at 2024-25, like Denver's (the table's 2025-26 line is printed out of line and not added in): last season is added from our results.
+- **Hawks:** the 29 opponent pages are pictures in the PDF, which is why the text had nothing. The pages were rendered, read by OCR, and every totals row checked by eye against the page (`tools/series-read-by-eye.json`). On eight pages the printed home, road and neutral cells do not add up to the printed total (the Nets page: 69-30, 42-60, 0-0 beside 111-92); for those only the total is kept, and what is printed is recorded in the file.
+- **Warriors, Lakers, Bucks, Wizards:** none prints a table by opponent, so each is counted from its season-by-season game lists (`tools/guide_games.py`): 21,181 games, each with date, opponent as printed, site and score, kept in `src/data/guide-games-2026-27.json.gz`. An opponent is printed as its city of that season, so "Chicago" in 1962 is the Zephyrs (now Washington), "St. Louis" in 1960 the Hawks, "San Diego" in 1969 the Rockets and in 1980 the Clippers; teams that folded are left out. The Knicks' own chronology note (the user's second image) agrees with the mapping.
+- **Checked against each franchise's record, season by season** (the NBA Guide's standings): Lakers 78 of 78 seasons since 1948-49, Warriors 64 of 64 since 1962-63, Wizards 58 of 65, Bucks 55 of 58. The Bucks' guide prints 1970-71 twice and 1969-70 not at all, and has no lists for 2019-20 and 2020-21 (those two are from our results); in nine Wizards and Bucks seasons the text is a game or two short. Seasons since 2016-17 that did not add up were replaced with our own results (four).
+- **Result:** 30 guides, 435 of 435 pairings; 427 printed or counted from both sides, 330 of them the same. The Lakers' count against Boston from 304 listed games is 135-169, exactly Boston's printed 169-135. Golden State's counts match the other guide in 19 of the 20 pairings where its lists cover the whole series.
+- **A late-starting count is whole against a newer franchise.** Golden State's lists begin in 1962-63, so they are short against the nine older franchises and complete against the twenty that came later; the same reasoning now applies to Detroit (1957-58). `series.first` holds each franchise's first season. A guide whose lists leave out a season (`short`: Milwaukee, Washington) yields to a full count, and of two short counts the bigger is used.
+- The four list teams' records come with current streaks and last-win and last-loss dates, counted from the games. Against our own results since 2016-17: 1,323 of 1,333 streaks across all guides equal ours exactly, 2,418 of 2,427 dates match.
+- A record counted from game lists is never "corrected" for a missing 2025-26: the lists have that season in them.
+
+### Records tab
+- The team list above "Franchise season records, on pace" held only the teams with a player on pace, which read as if the others had no records. It now lists all 30 and marks a team with no one on pace; the note and the empty message say every team's season records are on file.
+
+### Tested
+- 931 checks (was 928), all pages OK. New: the whole file's counts; each of the four guides' game lists against the franchise's season records; the Lakers-Celtics count; city-to-franchise cases; the late-start and missing-season rules; the Records list.
+
+### Unproven
+- The Hawks' rows are as read from pictures: 21 of 26 comparable pairings match the other guide, which is the only outside check on the reading.
+- Where a Wizards or Bucks season is a game short, one opponent's count is one game off; the other guide's number is used wherever there is one.
+- The mapping of a city to a franchise was written by hand; 20 games across the four guides could not be placed (misprints such as "S Portland").
+- Which guide is right in the 35 pairings that still differ is not known.
+
 ## 0.84.1 (2026-11-17): eleven more team guides, and what the cross-check really said about Denver
 
 The user (11/16, 11:45 PM): "continue" (after "I'll continue with the 17 guides next").

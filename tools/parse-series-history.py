@@ -277,6 +277,22 @@ def parse_mia(text):
         out[opp] = {"overall": {"w": v[0], "l": v[1]}, "home": {"w": v[2], "l": v[3]}, "road": {"w": v[4], "l": v[5]}}
     return out
 
+def parse_nyk(text):
+    """New York: "Year-By-Year Versus Opponents", two half-tables whose "Totals:" rows run in the order of the column heads (alphabetical by city); overall only."""
+    out = {}
+    order = [["ATL", "BOS", "BKN", "CHA", "CHI", "CLE", "DAL", "DEN", "DET", "GSW", "HOU", "IND", "LAC", "LAL", "MEM"],
+             ["MIA", "MIL", "MIN", "NOP", "OKC", "ORL", "PHI", "PHX", "POR", "SAC", "SAS", "TOR", "UTA", "WAS", None, None]]     # then defunct teams and the grand total
+    i = text.find("Year-By-Year Versus Opponents, 1987-88 through present")
+    rows = [re.findall(r"(\d[\d,]*)-(\d[\d,]*)", l) for l in (text[i:].split("\n") if i >= 0 else []) if re.match(r"\s*Totals:", l)][:2]
+    if len(rows) != 2 or [len(r) for r in rows] != [15, 16]: return out
+    for names, r in zip(order, rows):
+        for t, (w, l) in zip(names, r):
+            if t: out[t] = {"overall": {"w": int(w.replace(",", "")), "l": int(l.replace(",", ""))}}
+    # The grand total printed at the end must equal the sum of the columns.
+    gw, gl = [int(x.replace(",", "")) for x in rows[1][-1]]; dw, dl = [int(x.replace(",", "")) for x in rows[1][-2]]
+    if (sum(r["overall"]["w"] for r in out.values()) + dw, sum(r["overall"]["l"] for r in out.values()) + dl) != (gw, gl): return {}
+    return out
+
 def parse_okc(text):
     """Oklahoma City: "ALL-TIME OKLAHOMA CITY VS. ATLANTA", a row a season, then "Totals 12-5 9-8 -- 21-13" (home, away, neutral, total). Oklahoma City years only."""
     out = {}
@@ -306,18 +322,56 @@ def parse_min(text):
     return out
 
 OWN = {"UTA": parse_uta, "ORL": parse_orl, "IND": parse_ind, "SAS": parse_sas, "TOR": parse_tor, "CHA": parse_cha, "MEM": parse_mem, "HOU": parse_hou, "PHI": parse_phi,
-       "LAC": parse_lac, "NOP": parse_nop, "OKC": parse_okc, "MIN": parse_min, "MIA": parse_mia}
+       "LAC": parse_lac, "NOP": parse_nop, "OKC": parse_okc, "MIN": parse_min, "MIA": parse_mia, "NYK": parse_nyk}
+LISTS = ("GSW", "LAL", "MIL", "WAS")      # no table by opponent: counted from the guide's season-by-season game lists (guide_games.py)
 # What a guide's own count leaves out or adds, where we know it (the mirror check is how each was found).
-NOTE = {"OKC": "Oklahoma City years only (since 2008-09)", "DET": "Detroit years only (since 1957-58)", "DEN": "includes ABA games against the former ABA teams"}
-ERA = {"OKC": "2008-09", "DET": "1957-58"}      # a guide whose records start here, not at the franchise's first season
+NOTE = {"OKC": "Oklahoma City years only (since 2008-09)", "DET": "Detroit years only (since 1957-58)", "DEN": "includes ABA games against the former ABA teams",
+        "GSW": "counted from its game lists, which start in 1962-63 (San Francisco); the Philadelphia years are not listed", "LAL": "counted from its game lists, 1948-49 on",
+        "MIL": "counted from its game lists; 1969-70 is not printed (1970-71 is printed twice), 2019-20 and 2020-21 are from our results", "WAS": "counted from its game lists, 1961-62 on",
+        "ATL": "its tables are pictures in the PDF: read from page images and checked by eye", "NYK": "overall records only (a year-by-year table)"}
+ERA = {"OKC": "2008-09", "DET": "1957-58", "GSW": "1962-63"}      # a guide whose records start here, not at the franchise's first season
+# Each franchise's first NBA season (its first year), to tell when a late-starting count still holds a whole series.
+FIRST = {"ATL": 1949, "BOS": 1946, "BKN": 1976, "CHA": 1988, "CHI": 1966, "CLE": 1970, "DAL": 1980, "DEN": 1976, "DET": 1948, "GSW": 1946, "HOU": 1967, "IND": 1976, "LAC": 1970, "LAL": 1948,
+         "MEM": 1995, "MIA": 1988, "MIL": 1968, "MIN": 1989, "NOP": 2002, "NYK": 1946, "OKC": 1967, "ORL": 1989, "PHI": 1949, "PHX": 1968, "POR": 1970, "SAC": 1948, "SAS": 1976, "TOR": 1995, "UTA": 1974, "WAS": 1961}
+def cut(t, o):
+    """True when t's guide starts after the two franchises could first have met, so its count against o is not whole."""
+    return t in ERA and max(FIRST[t], FIRST[o]) < int(ERA[t][:4])
+SHORT = {"MIL": "1969-70 is not in its lists", "WAS": "seven seasons of its lists are a game short in the text"}
 
 def main():
     d = sys.argv[1]; res = {}
+    here = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, here)
+    import guide_games as GG
+    hist = json.load(open(sys.argv[3])) if len(sys.argv) > 3 else None
+    seasons_file = os.path.join(os.path.dirname(sys.argv[3]), "nba-team-seasons-2026-27.json") if len(sys.argv) > 3 else None
+    official = {t: {s: (w, l) for s, w, l in rows} for t, rows in json.load(open(seasons_file))["teams"].items()} if seasons_file and os.path.exists(seasons_file) else {}
+    eye = json.load(open(os.path.join(here, "series-read-by-eye.json")))
+    lists = {}
     for f in sorted(glob.glob(os.path.join(d, "*.txt"))):
         name = os.path.basename(f)[8:-16]; tri = FILE.get(name)
         if not tri: print("?", name); continue
         text = open(f, encoding="utf8", errors="replace").read()
-        got = (OWN[tri](text) if tri in OWN else {}) or parse(text)
+        if tri in LISTS:
+            gs = GG.games(tri, text)
+            filled = GG.fill(tri, gs, hist) if hist else []
+            fixed = GG.repair(tri, gs, hist, official.get(tri, {})) if hist else []
+            by = {}
+            for g in gs:
+                x = by.setdefault(g["season"], [0, 0]); x[0 if g["won"] else 1] += 1
+            first = min(by); off = [s for s, wl in official.get(tri, {}).items() if s >= first and tuple(by.get(s, (0, 0))) != wl]
+            lists[tri] = gs
+            got = GG.tally(gs)
+            print(f"{tri} game lists: {len(gs)} games from {first}; {len([s for s in official.get(tri, {}) if s >= first]) - len(off)} of {len([s for s in official.get(tri, {}) if s >= first])} seasons add up to the franchise's record"
+                  + (f"; not: {', '.join(off)}" if off else "") + (f"; from our results: {', '.join(sorted(set(filled + fixed)))}" if filled or fixed else ""))
+        elif tri in eye:
+            got = {}
+            for o, v in eye[tri]["records"].items():
+                rec = {"overall": {"w": v[6], "l": v[7]}}
+                if v[0] is not None: rec.update({"home": {"w": v[0], "l": v[1]}, "road": {"w": v[2], "l": v[3]}}); 
+                if v[0] is not None and v[4] + v[5]: rec["neutral"] = {"w": v[4], "l": v[5]}
+                got[o] = rec
+        else:
+            got = (OWN[tri](text) if tri in OWN else {}) or parse(text)
         got.pop(tri, None)
         if got: res[tri] = got
         print(f"{tri} {len(got):2d} opponents")
@@ -333,8 +387,8 @@ def main():
     # Last season's meetings, from our own results: where two guides differ by exactly that season series, one of them
     # either stopped a season early or counted the season twice. That one is corrected, and the correction recorded.
     last = {}
-    if len(sys.argv) > 3:
-        H = json.load(open(sys.argv[3])); cols = H["columns"]
+    if hist:
+        H = hist; cols = H["columns"]
         for g in H["games"]:
             g = dict(zip(cols, g))
             if g["type"] != 2 or not ("2025-10-01" <= g["date"][:10] <= "2026-04-30") or g["date"][:10] == "2025-12-16": continue
@@ -371,10 +425,12 @@ def main():
             if (dw, dl) == (0, 0) or x["w"] + x["l"] == 0: continue
             more, fewer = (a, b) if (dw, dl) == (x["w"], x["l"]) else (b, a) if (dw, dl) == (-x["w"], -x["l"]) else (None, None)
             if not more or "adjusted" in res[more][fewer] or "adjusted" in res[fewer][more]: continue
-            if base.get(more, 0) < 0.5 <= base.get(fewer, 0): shift(more, fewer, -1, "2025-26 was counted twice in this row")
-            else: shift(fewer, more, +1, "2025-26 was missing from this row")
+            # A record counted from a guide's own game lists has last season in it, checked against the franchise's
+            # record: it is never the one corrected, and a match with last season's series there is a coincidence.
+            if base.get(more, 0) < 0.5 <= base.get(fewer, 0) and more not in LISTS: shift(more, fewer, -1, "2025-26 was counted twice in this row")
+            elif fewer not in LISTS: shift(fewer, more, +1, "2025-26 was missing from this row")
     # 3. Every other row of a guide whose compared rows were nearly all a season short (Denver's) gets last season
-    #    added too, even where no second guide prints the pairing.
+    #    added too, whatever the other guide says (0.85: the Knicks' table is the second such guide).
     short = {}
     for t, o, why in fixed:
         if "missing" in why: short[t] = short.get(t, 0) + 1
@@ -382,7 +438,7 @@ def main():
     whole = {t for t, n in short.items() if n >= 8 and n >= 0.75 * compared[t]}
     for t in sorted(whole):
         for o in sorted(res[t]):
-            if "adjusted" not in res[t][o] and (t, o) in last and not (o in res and t in res[o]):
+            if "adjusted" not in res[t][o] and (t, o) in last:
                 shift(t, o, +1, "2025-26 added: this guide's rows stop a season early")
     for t in res:
         for r in res[t].values(): r.pop("through", None)
@@ -406,11 +462,18 @@ def main():
     agree = {}
     for a in res:
         for b, r in res[a].items():
-            if b in res and a in res[b]:
+            if b in res and a in res[b] and not cut(a, b) and not cut(b, a):      # a count that starts late is not a disagreement
                 o = res[b][a]["overall"]; m = (r["overall"]["w"], r["overall"]["l"]) == (o["l"], o["w"])
                 x = agree.setdefault(a, [0, 0]); x[1] += 1; x[0] += m
     print("mirrored / compared:", " ".join(f"{t} {v[0]}/{v[1]}" for t, v in sorted(agree.items())))
+    if len(sys.argv) > 4:
+        # Every game the four guides list, kept for counting anything else later: [date, opponent as printed, franchise, H|A|N, won, for, against].
+        import gzip
+        with gzip.open(sys.argv[4], "wt", encoding="utf8") as fh:
+            json.dump({"note": "Regular-season games as four team media guides list them season by season (tools/guide_games.py). Seasons marked from our results are ESPN's.",
+                       "columns": ["date", "name", "opp", "site", "won", "pf", "pa"],
+                       "teams": {t: [[g["date"], g["name"], g["opp"], g["site"], 1 if g["won"] else 0, g["pf"], g["pa"]] for g in sorted(gs, key=lambda g: g["date"])] for t, gs in lists.items()}}, fh, separators=(",", ":"))
     if len(sys.argv) > 2:
         json.dump({"through": "2025-26", "source": "team media guides for 2026-27 (regular season), read by tools/parse-series-history.py",
-                   "guides": {t: {"agree": agree.get(t, [0, 0]), **({"note": NOTE[t]} if t in NOTE else {}), **({"era": ERA[t]} if t in ERA else {})} for t in sorted(res)}, "teams": res}, open(sys.argv[2], "w"), separators=(",", ":"))
+                   "first": FIRST, "guides": {t: {"agree": agree.get(t, [0, 0]), **({"note": NOTE[t]} if t in NOTE else {}), **({"era": ERA[t]} if t in ERA else {}), **({"short": SHORT[t]} if t in SHORT else {})} for t in sorted(res)}, "teams": res}, open(sys.argv[2], "w"), separators=(",", ":"))
 main()
