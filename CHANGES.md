@@ -32,10 +32,17 @@ A new chat picked up "Next, in order" from the handoff. The PC folder could not 
 
 ### Tested
 - The series table recomputed with the real files: 435 confirmed, 53 by an outside check; the 0.95 test is updated to that.
-- **`node tests/run.js` was not run**: it needs `samples/`, which is on the PC. Run it first thing once the folder is connected.
+- `node tests/run.js` was not run at first (`samples/` is on the PC); see 0.96.1.
 
 ### Unproven
 - The guide-games fixes have not been through a real rebuild (see above). Dallas's 1986-87 becoming usable may change a few deep streak counts; that is expected.
+
+## 0.96.1 (2026-11-17): the guide-game corrections applied; tests run
+
+The user connected the PC folder and gave GitHub access (4:40 PM). 0.96.0 was pushed as it was, then:
+- `src/data/guide-games-2026-27.json.gz` rebuilt from the guide text with 0.96's fixes. **Exactly the nine intended rows changed** (Royals 3/3/56, 3/4/56, 3/4/59, 3/7/59; Mavericks 1/17/87; Heat 2/21/00, 2/23/00; Nationals 12/9 and 12/10/59 moved to 12/8 and 12/9, neutral); the other 97,810 games and the series file are byte-for-byte the same. Two guides now disagree on the winner in 17 games, all in seasons that are not used.
+- **Two independent confirmations fell out of it:** with the Royals' swapped results corrected, a count of the Kings' own game lists comes to the Lakers' 288-169 (until now Basketball Reference was its only second source), and Pistons v Heat's games now land exactly on its record. Before the outside checks: 383 confirmed, 11 differ, 41 single, 38 by a count; with them, all 435.
+- Tested: `node tests/run.js` **964 pass** (two counts updated: 383/11/41/38 and 358 exact pair histories), `tests/articles-only.js` 79, `tools/check-pages.py` all pages OK.
 
 ## 0.95.0 (2026-11-17): lopsided matchups on the Watch List (scoring by type, outliers against a top-5 defense); two more series closed; six more guides' team records; the League column once; every value in the count dropdowns
 
