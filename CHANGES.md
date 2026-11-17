@@ -2,13 +2,54 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.84.0 (2026-11-16): NBA Live's timing rule stands, the finder for teams, all-time series from the team guides
+
+The user (11/16, 10:55 PM), on v19's "a card keeps its original time": "especially for constantly changing alerts like scoring alerts such as controlling the game. I don't want the first alert to be stuck in the queue even as the player is scoring more points. it'll get lost in the shuffle that way. tell me you didn't completely override the guideline"; on the foul card: "redundancy telling me he has 4 fouls twice" and "why am i told how many points he has? this is a foul trouble alert"; "for finder thresholds, tell me the thresholds and also implement it for team stats"; "did you completely mine the team PDF folder… was that a thorough check or just based on my instructions?… that information could make it easier to check past records and streaks against opponents rather than relying on the current game notes"; and on presserwire.com: "are you able to scrape and see how it has all this information and if we can utilize any of it?"
+
+### NBA Live (bridge v20)
+- **v19 did override NBA Live's rule, for every Command Center card.** (NBA Live's own cards, CONTROLLING THE GAME among them, were never touched: the bridge only stamps cards it fires.) A milestone countdown that moved from "4 FROM" to "3 FROM" stayed filed where it first fired. That is undone: a Command Center card whose text or numbers change goes to NBA Live with no time of its own, and NBA Live moves it up to the player's latest play, as it does its own.
+- **What still keeps its moment:** a foul-trouble or foul-out card (the time of the foul, given outright), and three rotation cards marked `hold` (hasn't checked in, still on the bench, not out for the 3rd), which are about one moment and only tick.
+- **Foul trouble:** the "4 FOULS" stat line is gone (the front already says "4th foul, Q3 9:12"), and so is "Tonight: 10 points in 19 minutes" on the back. The back is fouls only: when each of tonight's came ("Q1 8:02 · Q1 3:15 · Q2 9:00 · Q3 9:12"), the season count with foul-outs, and the rule. FOULED OUT loses its "6 FOULS" line the same way.
+
+### The finder, for teams (`src/anticipate/teamfinder.js`)
+The same idea as the player finder: every team's season is cut many ways and a cut is listed only when it is far from the other 29.
+- **tgap:** first or last in a stat by more than the next nine teams are spread (28 lists: points, points allowed, margin, each quarter's scoring and margin, threes made, taken and allowed, three shooting percentages, free throws, rebounds, assists, steals, blocks, turnovers both ways, fouls, bench points). "CHA score the fewest in 4th quarters (21.1 points a game), 4.6 fewer than the next team (MIL): a wider gap than the one across the next nine teams (1.3)."
+- **tpart:** one quarter or half against everyone's whole games. "BOS outscore opponents by 11.3 points in first halves alone: only 2 other teams have a better margin over a whole game."
+- **tcount:** a kind of game one team has piled up (21 kinds: 130-point games, 20 threes, 30 assists, wins by 20, 40-point quarters…), kept only when the team is alone in front: at least 4, 1.5 times the next team, 2 more than it. "NOP have 6 games allowing 130+: no other team has more than 4."
+- **tonly:** the one team (or two) without something at least 28 of the other 29 have. "NOP are the only team that hasn't made 15 threes in a game this season."
+- A first cut of tcount ("more than ten other teams combined") listed 39 lines, most of them ties for the lead in a count half the league had none of; tightened to the rule above (2 lines).
+- Team findings join the players' on the Watch List's "Found in the numbers", in the briefing and as pre-game cards; a vote on one counts for its test and its cut. 13 team findings on 11/16.
+- **Thresholds, all first guesses.** Players: on the league's lists with 60% of his team's games and at least 5; a piece of his scoring that would rank top 10 (top 25 for a half-game piece); more of a kind of game than 24 whole teams with at least 3 of his own; a lead at least as big as 2nd-to-10th; top 12 without an All-Star selection. Teams: as above, from 5 games.
+
+### All-time series from the team media guides
+- **Asked whether the team PDFs were fully mined: no.** Until now they were used for two things: the franchise leader pages (as a check on our lists, 0.46) and the single-game records pages for six stats (0.47). Everything else was untouched; it followed the requests, not a sweep.
+- **What a sweep shows (all 30 guides as text):** every guide has, in its own layout, a section on each opponent. Thirteen are read now (`tools/parse-series-history.py` → `src/data/nba-series-history-2026-27.json`): the regular-season record against each opponent overall, at home and on the road, and in ten of them the current streaks and the dates of the last win and loss. 294 of the 435 pairings.
+- **Checked three ways.** (1) Each record adds up (home + road + neutral = overall): 318 of 371. (2) Against our own results since 2016-17: 860 of 867 streaks equal ours exactly and 1,727 of 1,732 last-win/last-loss dates match; the six streaks that differ are all in Detroit's guide. (3) Against each other: 77 pairings are printed by both teams; 52 mirror.
+- **The guides do not all agree, and that is kept, not hidden.** Denver's tables match no other guide (0 of 11), Utah's 2 of 12, Detroit's count only the Detroit years (7 of 12); the other ten guides back each other up in all but two pairings. Each pairing is `confirmed` (both guides mirror), `differs` (both shown), or from one guide, marked weak when that guide is mirrored less than 75% of the time.
+- **Where it shows:** tonight's matchups get "All-time: the Celtics lead the Magic 80-58 in the regular season; the Celtics are 52-18 at home in it (through 11/15/26; both teams' media guides agree)", counted forward with this season's games (`src/records/series.js`); a win that would be a team's 100th (200th…) against an opponent, and a series tonight would tie or tip, are their own lines, only from confirmed or well-backed records. The Index page has the whole table with each row's basis.
+
+### Presser Wire (looked at, nothing built)
+- It publishes notes from press conferences: by its own account, automated transcripts of public press-conference video, quotes checked against the transcript, each note linked to its post on X and the video. No feed or API is offered, and its terms ask not to copy the site wholesale or scrape it in bulk; linking is welcome. So nothing reads it. Options are in the reply to the user.
+
+### Tested
+- 927 checks (was 909), 79 Worker checks, all pages OK. New: `fire` alone (a countdown passes through untimed; a held card keeps its time until it changes); only three cards are held; the foul card has no stat line and no points; the team finder on a made-up league with four planted oddities (one test each, plus the family rule and the five-game floor); series pairing, counting forward, the lines and the table; the real series file's counts.
+- Three team findings re-counted separately from the box scores (Charlotte's 4th quarters, New Orleans without a 15-three game, Charlotte without a 30-assist game): all match.
+- A full local build: 34 findings (13 about teams); series lines on five of the night's eight games (three pairings have no guide read yet).
+
+### Unproven
+- v20's ordering has not been seen in NBA Live (v19's replay is the last one watched).
+- Team-finder thresholds are guesses; nothing has been voted on.
+- Seventeen guides' opponent sections are not read yet (ATL, CHA, GSW, HOU, LAC, LAL, MEM, MIA, MIL, MIN, NOP, NYK, OKC, PHI, SAS, TOR, WAS). All are text, each in a different layout. 141 pairings have no all-time record until they are.
+- Which guide is right where two differ is not known; "backed up by other guides" is a measure of consistency, not proof. Whether the guides count Cup title games in these records is not known either.
+- The guides' game-by-game results against every opponent (Boston's go back to 1946) are not read. They are what would let us count any all-time streak ourselves.
+
 ## 0.83.0 (2026-11-16): cards file in by time, bench counts, Splitter's record by opponent, the Index page
 
 The user (11/16, 10:11 PM): "the command center alerts feel pinned to the top when most should filter in chronologically… there are exceptions, but when a player got in foul trouble doesn't meet that threshold… also, the text in the foul trouble alerts is too much. the details can go on the back of the card"; on NBA Live's BENCH IMPACT card: "maybe there is a way to track if this a common occurrence, which it generally shouldn't be"; on the Bulls' coach page: "I don't see his records vs. every team"; on pages for the newer facts: "it would be nice to have a central area, which I think we have but everything is displaced and sometimes hard to find".
 
 ### NBA Live (bridge v19)
 - **Why our cards sat on top.** NBA Live orders its panel by tier first and time second, and records and milestones are the top tier. Every season card from the bridge (foul trouble, fouled out, bench and rotation cards, lead context, season-best quarters, count checks) had been sent as a "milestone". They are now routine cards and file in by when they happened. Still top tier: milestones and records, a full game, an "almost never" state, first-30-allowed, the scoreless card. A lead lost sits with NBA Live's comeback cards.
-- **A card keeps its moment.** NBA Live re-stamps a card to the player's latest play whenever its text or numbers change, so a card with tonight's points on it floated back up on every basket. The bridge now hands back the time a card first fired unless it has become a different card ("4 FROM" to "🎉", "STILL SCORELESS" to "FIRST SCORELESS GAME").
+- **A card keeps its moment.** NBA Live re-stamps a card to the player's latest play whenever its text or numbers change, so a card with tonight's points on it floated back up on every basket. The bridge now hands back the time a card first fired unless it has become a different card ("4 FROM" to "🎉", "STILL SCORELESS" to "FIRST SCORELESS GAME"). (Too broad: it also froze countdowns that had moved closer. Narrowed to three rotation cards in 0.84.)
 - **Foul trouble, shorter.** Front: "Julius Randle (BKN) — 5th foul, Q4 9:02", the foul count, and "2 of 12 games this season". Back (tap to flip): the season count in words, tonight's points and minutes, and the rule. The card is filed at the time of the foul. (NBA Live's own hint under any card with a back reads "tap for all-time"; that wording is NBA Live's.)
 - **Bench impact.** NBA Live's BENCH IMPACT / BENCH DOMINANCE card now carries how often that has been the final result: "PHX's bench has outscored its starters in 2 of 12 games this season; 24 of 394 team games league-wide" (`src/situations/bench.js`, `tonight.json` `bench`). It is the second NBA Live card the bridge adds to.
 

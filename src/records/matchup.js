@@ -15,6 +15,7 @@
  * Everything says its window: "since 2016-17" (the first season on file), or "in his career" when his first game is in it.
  */
 import { TEAMS } from "../teams.js";
+import { seriesItems } from "./series.js";
 
 const FIRST = "2016-17";
 const START = "2016-10-01";
@@ -213,9 +214,15 @@ export function regulars(teamFiles, tri) {
   return out;
 }
 
-export function matchups({ history, logs, teamFiles, tonight, today }) {
+export function matchups({ history, logs, teamFiles, tonight, today, series = null }) {
+  // 0.84: the all-time series from the team media guides (through last season) plus this season's meetings.
+  const y = Number(String(today).slice(0, 4)) - (Number(String(today).slice(5, 7)) >= 8 ? 0 : 1), seasonStart = `${y}-08-01`;
   return (tonight || []).map((g) => {
     const items = [...teamItems(history, teamFiles, g.away, g.home, today)];
+    if (series) {
+      const season = meetings(history, teamFiles, g.away, g.home).filter((m) => m.type === 2 && m.d >= seasonStart && m.d < today);
+      items.push(...seriesItems(series, season, g.away, g.home, today));
+    }
     // A player's lines weigh with his role: 0.8 for a 6-point player, 1.0 at 15, 1.2 at 24+ points a game this season.
     for (const [t, o] of [[g.away, g.home], [g.home, g.away]]) for (const p of regulars(teamFiles, t)) {
       const role = 0.8 + Math.min(0.4, Math.max(0, (p.ppg - 6) / 45));

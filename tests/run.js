@@ -1978,8 +1978,8 @@ await articlesChecks(ok);
     "bridge v5: a half among the season's best ('so far' until it ends)", c6("cc-sh-60-1") && c6("cc-sh-60-1").text);
   ok(c6("cc-tq-g5-GSW-1") && /45 points in the 1st quarter vs HOU: the 3rd-most by a team in a quarter this season/.test(c6("cc-tq-g5-GSW-1").text), "bridge v5: a team quarter among the season's 5 best", c6("cc-tq-g5-GSW-1") && c6("cc-tq-g5-GSW-1").text);
   // v19: the front is who, which foul and when; the season count is on the sub line and the back; a routine card, not a milestone.
-  ok(c6("cc-ft-52-g5") && c6("cc-ft-52-g5").text === "Foul Guy (GSW) — 3rd foul, Q2 8:00" && /8 of 12 games this season/.test(c6("cc-ft-52-g5").sub) && /In early foul trouble in 8 of 12 games this season, fouled out once/.test(c6("cc-ft-52-g5").backHtml) && /Tonight: \d+ points in \d+ minutes/.test(c6("cc-ft-52-g5").backHtml)
-    && c6("cc-ft-52-g5").type === "streak" && !/PTS|MIN/.test(c6("cc-ft-52-g5").statLine || "") && !c6("cc-ft-54-g5"),
+  ok(c6("cc-ft-52-g5") && c6("cc-ft-52-g5").text === "Foul Guy (GSW) — 3rd foul, Q2 8:00" && /8 of 12 games this season/.test(c6("cc-ft-52-g5").sub) && /In early foul trouble in 8 of 12 games this season, fouled out once/.test(c6("cc-ft-52-g5").backHtml) && !/points in \d+ minutes/.test(c6("cc-ft-52-g5").backHtml)
+    && c6("cc-ft-52-g5").type === "streak" && !c6("cc-ft-52-g5").statLine && !c6("cc-ft-54-g5"),
     "bridge v5: foul trouble (3 fouls in the 2nd) with his season record, tonight's game left out (a later build can hold it); a bench player with no rotation history doesn't get one", c6("cc-ft-52-g5") && c6("cc-ft-52-g5").text);
   ok(c6("cc-ret-50-g5-h1") && c6("cc-ret-50-g5-h1").text === "Sits Long (GSW) hasn't come back in · usually returns to open the 2nd quarter (median of 9 starts) · out since Q1 4:24" && !c6("cc-ret-51-g5-h1"),
     "bridge v5: a starter 4+ minutes past his usual return (to open Q2) gets a rotation card; one whose usual return is later doesn't", c6("cc-ret-50-g5-h1") && c6("cc-ret-50-g5-h1").text);
@@ -3536,7 +3536,7 @@ await articlesChecks(ok);
   {
     const src = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");
     const sl = fs.readFileSync(path.join(root, "src", "anticipate", "seasonlong.js"), "utf8");
-    ok(/var VERSION = 1[4-9];/.test(src) && /return !l\.bg && \(l\.kind !== "foul"/.test(src) && (sl.match(/standing: true/g) || []).length === 2 && /era\|decade\|[^\n]*\n[^\n]*\n[^\n]*standing: true/.test(sl),
+    ok(/var VERSION = (?:1[4-9]|[2-9]\d);/.test(src) && /return !l\.bg && \(l\.kind !== "foul"/.test(src) && (sl.match(/standing: true/g) || []).length === 2 && /era\|decade\|[^\n]*\n[^\n]*\n[^\n]*standing: true/.test(sl),
       "bridge v14: a standing fact (\"leads the decade in…\") is marked bg and gets no pre-game card in NBA Live");
   }
 
@@ -3801,7 +3801,7 @@ await articlesChecks(ok);
     && tx("late15|DEN|won") === "DEN has won a game it trailed by 15+ in the 4th quarter (19 down to NOP 10/24); teams that far behind in a 4th quarter are 1-14 this season" && !L.some((l) => /^late15\|BOS/.test(l.key)),
     "fourth-quarter leads (0.81): any team that lost a game it led by 15+ in the 4th, or won one it trailed by that much, with the league's record in those games", JSON.stringify(L.map((l) => l.text)));
   const br = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");
-  ok(/var VERSION = 1[7-9];/.test(br) && /var LATE_LEAD = 15;/.test(br) && /M\[side\] >= LEAD \|\| late >= LATE_LEAD/.test(br) && /"📉 4TH-QUARTER LEAD LOST"/.test(br) && /function arenaChecks/.test(br) && /find: "🔎 FOUND IN THE NUMBERS"/.test(br),
+  ok(/var VERSION = (?:1[7-9]|[2-9]\d);/.test(br) && /var LATE_LEAD = 15;/.test(br) && /M\[side\] >= LEAD \|\| late >= LATE_LEAD/.test(br) && /"📉 4TH-QUARTER LEAD LOST"/.test(br) && /function arenaChecks/.test(br) && /find: "🔎 FOUND IN THE NUMBERS"/.test(br),
     "bridge v17: a lead lost is a card from 20 at any time or from 15 held in the 4th quarter; the arena-record card; the finder's label");
 
   // Arena records: the list as sent, with what we could check, and this season's box scores on top.
@@ -3945,20 +3945,115 @@ await articlesChecks(ok);
     JSON.stringify([h.map((x) => x.text.slice(0, 80)), dropped.map((d) => [d.reason, d.text.slice(0, 60)])]));
 }
 
+// ---------- 0.84: the finder for teams ----------
+{
+  const { teamFindings, teamLines, TEAM } = await import("../src/anticipate/teamfinder.js");
+  const { finderLines } = await import("../src/anticipate/finder.js");
+  const T30 = ["ATL", "BOS", "BKN", "CHA", "CHI", "CLE", "DAL", "DEN", "DET", "GSW", "HOU", "IND", "LAC", "LAL", "MEM", "MIA", "MIL", "MIN", "NOP", "NYK", "OKC", "ORL", "PHI", "PHX", "POR", "SAC", "SAS", "TOR", "UTA", "WAS"];
+  // Fifteen pairings, six games each: ordinary scores a point or two apart, then four planted oddities.
+  // ATL beats MIA 130-100 every night behind a 40-25 first quarter; BOS make 20 threes a game (ORL did it twice,
+  // nobody else has); BKN never reach 30 assists (everyone else always does); CHA score 70 (so NOP win by 31).
+  const line = (side, starter, pts, o = {}) => [side, starter, 30, pts, o.fgm ?? 40, o.fga ?? 88, o.fg3m ?? 10, 30, 15, 20, 44, o.ast ?? 30, 13, 7, 5, 10, 34, 20, 0];
+  const rowsT = [];
+  for (let i = 0; i < 15; i++) for (let k = 0; k < 6; k++) {
+    const h = T30[i], a = T30[i + 15];
+    let hs = 100 + i, as = 98 + i, hq = [25, 25, 25, 25 + i], aq = [25, 25, 24, 24 + i];
+    if (h === "ATL") { hs = 130; as = 100; hq = [40, 30, 30, 30]; aq = [25, 25, 25, 25]; }
+    if (h === "CHA") { hs = 70; hq = [18, 18, 17, 17]; }
+    const box = (t, side, pts) => ({ [`${t}s`]: line(side, 1, pts - 20, { fg3m: t === "BOS" || (t === "ORL" && k < 2) ? 20 : 10, ast: t === "BKN" ? 20 : 30 }), [`${t}b`]: line(side, 0, 20, { fgm: 0, fga: 0, fg3m: 0, ast: 0 }) });
+    rowsT.push({ id: `${h}${k}`, d: `2026-11-${String(k + 1).padStart(2, "0")}`, h, a, hs, as, hq, aq, pl: { ...box(h, 0, hs), ...box(a, 1, as) } });
+  }
+  const TL = teamLines(rowsT);
+  const TF = teamFindings({ rows: rowsT }), tf = (re) => TF.filter((f) => re.test(f.key));
+  const partA = tf(/^find\|tpart\|ATL\|/), partO = tf(/^find\|tpart\|MIA\|/), cntB = tf(/^find\|tcount\|BOS\|t/), onlyB = tf(/^find\|tonly\|BKN\|/), gapC = tf(/^find\|tgap\|CHA\|/);
+  ok(TL.ATL.length === 6 && TL.ATL[0].pts === 130 && TL.ATL[0].opts === 100 && TL.ATL[0].bench === 20 && TL.MIA[0].q[0] === 25 && TL.MIA[0].oq[0] === 40 && TL.BOS[0].box.fg3m === 20 && TL.BOS[0].obox.fg3m === 10,
+    "team finder (0.84): one line per team per game with its points, quarters, box totals and bench points, and the opponent's beside them");
+  ok(partA.length === 1 && partA[0].text === "ATL outscore opponents by 15.0 points in 1st quarters alone: only 1 other team has a better margin over a whole game (ATL's own: +30.0)"
+    && partO.length === 1 && /^MIA are outscored by 15\.0 points in 1st quarters alone: only 1 other team has a worse margin/.test(partO[0].text),
+    "team finder: one quarter of a team's games measured against everyone's whole games, at both ends (the user, 11/16: \"also implement it for team stats\")", JSON.stringify([partA, partO].map((x) => x.map((f) => f.text))));
+  ok(cntB.length === 1 && cntB[0].text === "BOS have 6 games with 20+ threes this season: no other team has more than 2, and it is more than every other team combined (28 teams have none)" && cntB[0].rare
+    && !tf(/^find\|tcount\|ORL\|/).length,
+    "team finder: a kind of game one team has piled up, only when it is alone in front (1.5 times the next team and two more); 20+ and 15+ threes are one family, said once", JSON.stringify(cntB.map((f) => f.text)));
+  ok(onlyB.length === 1 && onlyB[0].text === "BKN are the only team that hasn't had 30 assists in a game this season (the other 29 have 174 such games between them)",
+    "team finder: the one team without something every other team has", JSON.stringify(onlyB.map((f) => f.text)));
+  ok(gapC.length === 1 && /^CHA .*: a wider gap than the one across the next nine teams \(/.test(gapC[0].text) && /than the next team \(/.test(gapC[0].text),
+    "team finder: last (or first) in a stat by more than the next nine teams are spread; one gap line a team, the widest", JSON.stringify(gapC.map((f) => f.text)));
+  ok(TF.every((f) => f.kind === "find" && f.player === null && /^find\|t(?:gap|part|count|only)\|[A-Z]{3}\|/.test(f.key) && f.score >= 2.9 && f.score <= 4) && TEAM.games === 5 && TEAM.count.least === 4 && TEAM.only.others === 28
+    && teamFindings({ rows: rowsT.filter((g) => g.d <= "2026-11-04") }).length === 0,
+    "team finder: findings have the player finder's shape (votes and the briefing treat them alike); nothing before a team has five games");
+  const FL = finderLines({ pg: {}, rows: rowsT }, new Set(["ATL", "WAS"]), { top: 50 });
+  ok(FL.teamFinds === TF.length && FL.lines.length && FL.lines.every((f) => f.team === "ATL" || f.team === "WAS") && new Set(FL.league.map((f) => f.team)).size === FL.league.length && FL.league.some((f) => f.team === "CHA"),
+    "finder (0.84): team findings join the players' in one list, one line a team; tonight's teams' findings are candidates", JSON.stringify(FL.league.map((f) => f.key)));
+  const { features } = await import("../src/anticipate/learn.js");
+  ok(features(cntB[0]).includes("find:tcount") && features(cntB[0]).includes("who:team") && features(cntB[0]).some((x) => /^find:tcount:t\d+$/.test(x)),
+    "learn (0.84): a vote on a team finding counts for its test and its cut", JSON.stringify(features(cntB[0])));
+}
+
+// ---------- 0.84: all-time series from the team media guides ----------
+{
+  const { seriesPair, seriesNow, seriesItems, seriesTable, TRUST } = await import("../src/records/series.js");
+  const SR = { through: "2025-26", guides: { BOS: { agree: [9, 10] }, LAL: { agree: [9, 10] }, DEN: { agree: [0, 10] } }, teams: {
+    BOS: { LAL: { overall: { w: 99, l: 100, streak: 2, lastW: "2026-02-22", lastL: "2025-01-23" }, home: { w: 60, l: 40, streak: 1, lastW: "2025-12-05", lastL: "2024-02-01" }, road: { w: 39, l: 60, streak: 1 } },
+      DEN: { overall: { w: 62, l: 42, streak: -2 }, home: { w: 41, l: 11 }, road: { w: 21, l: 31 } } },
+    LAL: { BOS: { overall: { w: 100, l: 99 }, home: { w: 60, l: 39 }, road: { w: 40, l: 60 } } },
+    DEN: { BOS: { overall: { w: 40, l: 62 }, home: { w: 30, l: 21 }, road: { w: 10, l: 41 } }, UTA: { overall: { w: 50, l: 50 }, home: { w: 30, l: 20 }, road: { w: 20, l: 30 } } } } };
+  const P1 = seriesPair(SR, "LAL", "BOS"), P2 = seriesPair(SR, "DEN", "BOS"), P3 = seriesPair(SR, "UTA", "DEN");
+  ok(P1.status === "confirmed" && P1.rec.overall.w === 100 && P1.rec.home.w === 60 && P2.status === "differs" && P2.source[0] === "BOS" && P2.rec.overall.w === 42 && P2.rec.overall.l === 62 && P2.rec.home.w === 31 && P2.other.team === "DEN" && P2.other.overall.w === 40 && !P2.weak
+    && P3.status === "single" && P3.weak && P3.rec.overall.w === 50 && P3.rec.home.w === 30 && P3.rec.home.l === 20 && !seriesPair(SR, "NYK", "MIA") && TRUST === 0.75,
+    "series (0.84): a pairing both guides print is confirmed when they mirror; when they differ the guide other guides back up more is used and the other kept; one guide alone is marked weak if the others rarely match it",
+    JSON.stringify([P1, P2, P3]));
+  const season = [{ d: "2026-11-01", home: "BOS", away: "LAL", hs: 110, as: 100 }, { d: "2026-11-20", home: "LAL", away: "BOS", hs: 120, as: 100 }];
+  const N1 = seriesNow(SR, season, "BOS", "LAL", "2026-11-17");
+  ok(N1.added === 1 && N1.rec.overall.w === 100 && N1.rec.overall.l === 100 && N1.rec.overall.streak === 3 && N1.rec.overall.lastW === "2026-11-01" && N1.rec.home.w === 61 && N1.rec.home.streak === 2 && N1.rec.road.w === 39,
+    "series: this season's meetings before today are added to the guide's record, streak and last-win date (a later game is not)", JSON.stringify(N1.rec));
+  const I0 = seriesItems(SR, [], "LAL", "BOS", "2026-11-17"), I1 = seriesItems(SR, season, "LAL", "BOS", "2026-11-17"), I2 = seriesItems(SR, [], "BOS", "DEN", "2026-11-17"), I3 = seriesItems(SR, [], "DEN", "UTA", "2026-11-17");
+  ok(I0[0].text === "All-time: the Lakers lead the Celtics 100-99 in the regular season; the Celtics are 60-40 at home in it (through 11/16/26; both teams' media guides agree)" && I0[0].score === 2
+    && I0.some((i) => i.text === "A win tonight would be the Celtics' 100th in the regular season against the Lakers (both teams' media guides agree)" && i.score === 2.3)
+    && I0.some((i) => i.text === "A win tonight would tie the all-time series for the Celtics (99-100 against the Lakers)")
+    && I1[0].text.startsWith("All-time: the Celtics and Lakers are tied 100-100") && I1.some((i) => i.text === "The winner tonight takes the lead in the all-time series (tied 100-100)") && I1.every((i) => i.kind === "matchup"),
+    "series: tonight's matchup gets the all-time record with its basis, a win that would be a 100th, and a series that tonight would tie or tip", JSON.stringify([...I0, ...I1].map((i) => i.text)));
+  ok(I2.length === 1 && I2[0].text === "All-time: the Celtics lead the Nuggets 62-42 in the regular season; the Nuggets are 31-21 at home in it (through 11/16/26; the Celtics' media guide; the Nuggets' has it 62-40)" && I2[0].score === 1
+    && I3.length === 1 && I3[0].score === 1 && I3[0].weak && /tied 50-50/.test(I3[0].text) && !seriesItems(SR, [], "NYK", "MIA", "2026-11-17").length,
+    "series: where the two guides differ both numbers are said and nothing is built on it; a weak single-guide record is listed but never promoted; no guide, no line", JSON.stringify([...I2, ...I3].map((i) => [i.score, i.text])));
+  const N2 = seriesNow(SR, [{ d: "2026-11-02", home: "DEN", away: "BOS", hs: 120, as: 110 }], "BOS", "DEN", "2026-11-17");
+  ok(N2.rec.overall.l === 43 && N2.other.overall.l === 41 && N2.other.overall.w === 62 && SR.teams.DEN.BOS.overall.w === 40, "series: the guide that differs is counted forward with the one that is used (and the file's own numbers are left alone)", JSON.stringify(N2));
+  const TB = seriesTable(SR, season, "2026-11-17");
+  ok(TB.length === 3 && TB[0].a === "BOS" && TB[0].b === "DEN" && TB.find((r) => r.b === "LAL").overall.w === 100 && TB.find((r) => r.a === "DEN" && r.b === "UTA").weak, "series: the lookup table has one row a pairing, counted forward", JSON.stringify(TB.map((r) => [r.a, r.b, r.status])));
+  // The file read from the guides (tools/parse-series-history.py): the checks that were run on it, kept as facts.
+  const RS = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-series-history-2026-27.json"), "utf8"));
+  const pairsR = seriesTable(RS, [], "2026-10-01"), cnt = (st) => pairsR.filter((r) => r.status === st).length;
+  ok(Object.keys(RS.teams).length === 13 && pairsR.length === 294 && cnt("confirmed") === 52 && cnt("differs") === 25 && RS.teams.BOS.LAL.overall.w === 169 && RS.teams.BOS.LAL.overall.l === 135 && RS.teams.BOS.LAL.home.w === 85
+    && RS.guides.DEN.agree[0] === 0 && RS.guides.UTA.agree[0] === 2 && RS.guides.PHX.agree.join("/") === "11/12" && pairsR.every((r) => r.overall && r.overall.w + r.overall.l > 0),
+    "series data: 13 guides, 294 of 435 pairings; 52 confirmed from both sides; Denver's and Utah's tables are the ones the other guides don't back up", JSON.stringify([Object.keys(RS.teams).length, pairsR.length, cnt("confirmed"), cnt("differs"), RS.guides]));
+  // Through matchups(): the series line arrives with the others.
+  const { matchups: mu } = await import("../src/records/matchup.js");
+  const MU = mu({ history: { games: [] }, logs: null, teamFiles: {}, tonight: [{ id: "g", away: "LAL", home: "BOS" }], today: "2026-11-17", series: SR });
+  ok(MU[0].items.some((i) => /^All-time: the Lakers lead the Celtics 100-99/.test(i.text)) && !mu({ history: { games: [] }, logs: null, teamFiles: {}, tonight: [{ id: "g", away: "LAL", home: "BOS" }], today: "2026-11-17" })[0].items.length,
+    "matchups (0.84): the all-time series joins tonight's matchup items when the guides' file is there");
+  const ix = fs.readFileSync(path.join(root, "docs", "find.html"), "utf8");
+  ok(/get\("series\.json"\)/.test(ix) && /t-series/.test(ix) && /both guides agree/.test(ix), "Index (0.84): the all-time series lookup, with the basis of each row");
+}
+
 // ---------- 0.83: cards file in by time, bench over starters, a coach's record counted, the Index page ----------
 {
   const br = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");
-  ok(/var VERSION = 19;/.test(br) && /Object\.assign\(\{ type: "streak", live: live/.test(br) && /var rare = function/.test(br) && /rare\(\{ icon: "🦾 FULL GAME"/.test(br) && /type: "clutch", icon: late >= LATE_LEAD/.test(br) && /type: "streak", icon: "🧮 COUNT CHECK"/.test(br),
+  ok(/var VERSION = (?:19|[2-9]\d);/.test(br) && /Object\.assign\(\{ type: "streak", live: live/.test(br) && /var rare = function/.test(br) && /rare\(\{ icon: "🦾 FULL GAME"/.test(br) && /type: "clutch", icon: late >= LATE_LEAD/.test(br) && /type: "streak", icon: "🧮 COUNT CHECK"/.test(br),
     "bridge v19 (the user, 11/16: Command Center alerts 'feel pinned to the top'): season cards are routine in NBA Live's ordering; only a full game, an almost-never state, records and milestones take the top tier");
-  // The bridge's fire(), run alone: a card keeps the moment it first fired until it becomes a different card.
+  // The bridge's fire(), run alone. v20 (the user, 11/16: "I don't want the first alert to be stuck in the queue even as
+  // the player is scoring more points... tell me you didn't completely override the guideline"): NBA Live's rule stands,
+  // so a card with new numbers goes through with no time of its own and NBA Live moves it up. Only a card marked
+  // `hold` keeps the moment it first fired, and only while it is the same card.
   {
     const i = br.indexOf("  function fire(key, card) {"), src = br.slice(i, br.indexOf("\n  }\n", i) + 5);
     const sent = [];
     const fire = new Function("state", "ALERT_STORIES", "fireStory", `${src}; return fire;`)({ done: { gone: 1 }, keys: {} },
-      new Map([["k", { icon: "🎯 11 FROM 5,000", t: 400, wt: 9000 }], ["z", { icon: "😶 STILL SCORELESS", t: 2200, wt: 5 }]]), (k, c) => sent.push([k, c]));
-    fire("k", { icon: "🎯 9 FROM 5,000", text: "a" }); fire("k", { icon: "🎉 5,000", text: "b" }); fire("k", { icon: "🎯 9 FROM 5,000", t: 7 }); fire("z", { icon: "😶 FIRST SCORELESS GAME" }); fire("new", { icon: "x" }); fire("gone", { icon: "x" });
-    ok(sent.length === 5 && sent[0][1].t === 400 && sent[0][1].wt === 9000 && sent[1][1].t === undefined && sent[2][1].t === 7 && sent[2][1].wt === undefined && sent[3][1].t === undefined && sent[4][1].t === undefined,
-      "bridge v19: a card re-drawn with new numbers keeps the time it first fired (NBA Live would re-stamp it to his latest play); a card that has become something else, or has its own time, does not", JSON.stringify(sent.map((x) => [x[0], x[1].t, x[1].wt])));
+      new Map([["k", { icon: "🎯 11 FROM 5,000", t: 400, wt: 9000 }], ["b", { icon: "🔄 STILL ON THE BENCH", t: 900, wt: 77 }]]), (k, c) => sent.push([k, c]));
+    fire("k", { icon: "🎯 9 FROM 5,000", text: "a" }); fire("b", { hold: true, icon: "🔄 STILL ON THE BENCH", text: "later" }); fire("b", { hold: true, icon: "🔄 NOT OUT FOR THE 3RD" });
+    fire("b", { hold: true, icon: "🔄 STILL ON THE BENCH", t: 7 }); fire("new", { hold: true, icon: "x" }); fire("gone", { icon: "x" });
+    ok(sent.length === 5 && sent[0][1].t === undefined && sent[0][1].wt === undefined && sent[1][1].t === 900 && sent[1][1].wt === 77 && sent[2][1].t === undefined && sent[3][1].t === 7 && sent[3][1].wt === undefined && sent[4][1].t === undefined && sent.every((x) => !("hold" in x[1])),
+      "bridge v20: a countdown that moves closer is left to NBA Live, which moves it up; a held card keeps the time it first fired until it becomes a different card or is given its own time", JSON.stringify(sent.map((x) => [x[0], x[1].t, x[1].wt])));
+    ok((br.match(/base\(\{ hold: true, icon: "🔄 /g) || []).length === 3 && (br.match(/hold: true/g) || []).length === 3,
+      "bridge v20: only the three rotation cards (hasn't checked in, still on the bench, not out for the 3rd) are held");
   }
 
   // Benches that outscore their own starters, over whole games.

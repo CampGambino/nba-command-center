@@ -106,7 +106,7 @@ function renderDir() {
 const get = (f) => fetch(`data/${f}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 const table = (id, title, words, note, head, rows) => `<details id="${id}" data-words="${esc(words)}"><summary>${esc(title)}<span>${esc(note)}</span></summary><div class="tw">${rows.length ? `<table><tr>${head.map((h) => `<th>${esc(h)}</th>`).join("")}</tr>${rows.map((r) => `<tr>${r.map((c, i) => `<td class="${typeof c === "number" || /^\d+-\d+$/.test(String(c)) ? "n" : i === r.length - 1 ? "w" : ""}">${c === null || c === undefined ? "" : String(c).startsWith("<") ? c : esc(c)}</td>`).join("")}</tr>`).join("")}</table>` : `<div class="empty">None so far this season.</div>`}</div></details>`;
 (async () => {
-  const [health, flow, tonight, arenas, prep] = await Promise.all([get("health.json"), get("flowstats.json"), get("tonight.json"), get("arenas.json"), get("prep.json")]);
+  const [health, flow, tonight, arenas, prep, series] = await Promise.all([get("health.json"), get("flowstats.json"), get("tonight.json"), get("arenas.json"), get("prep.json"), get("series.json")]);
   // Freshness: each file's own build time and "through" date.
   await Promise.all(NEEDS.map(async (f) => { const j = f === "flowstats.json" ? flow : f === "tonight.json" ? tonight : await get(f); if (!j) return;
     const at = j.generatedAt || j.at || (health && health.at); if (!at) return;
@@ -126,8 +126,19 @@ const table = (id, title, words, note, head, rows) => `<details id="${id}" data-
   if (tonight && tonight.bench) out.push(table("t-bench", "Benches that outscored their own starters", "bench impact reserves starters", `${tonight.bench.n} of ${tonight.bench.gp} team games this season`, ["Team", "Bench", "Starters", "Opponent", "Date"], (tonight.bench.list || []).map((x) => [x.team, x.bench, x.starters, x.opp, md(x.d)])));
   if (arenas && arenas.arenas) out.push(table("t-arena", "Most points by a player in each building", "arena record building scoring", `a list of ${md(arenas.asOf)}/${String(arenas.asOf).slice(2, 4)} plus every game since`, ["Team", "Arena", "Points", "Who", "Checked"],
     Object.entries(arenas.arenas).sort((a, b) => b[1].pts - a[1].pts).map(([t, r]) => [t, r.arena, r.pts, r.holders.map((h) => `${h.player} vs ${h.opp} ${md(h.date)}/${h.date.slice(2, 4)}`).join(" and "), r.check === "confirmed" ? "confirmed" : r.check === "corrected" ? "corrected from the list" : "as the list has it"])));
+  // 0.84: the all-time series each team's media guide prints, counted forward. "Basis" says how far to lean on a row.
+  if (series && series.pairs) {
+    const wl = (r) => (r ? `${r.w}-${r.l}` : ""), g = series.guides || {};
+    const basis = (r) => r.status === "confirmed" ? "both guides agree" : r.status === "differs" ? `guides differ: ${r.source[0]}'s shown, ${r.other.team}'s has ${wl(r.other.overall)}${r.weak ? " (neither is a guide the others back up)" : ""}`
+      : `${r.source[0]}'s guide only${r.weak ? ` (other guides match it in ${(g[r.source[0]] || { agree: [0, 0] }).agree.join(" of ")} pairings)` : ""}`;
+    out.push(table("t-series", "All-time series between every pair of teams (regular season)", "all-time series head-to-head record vs opponent against history media guide home road streak last win last loss",
+      `${series.pairs.length} of 435 pairings, from ${Object.keys(g).length} team media guides through ${series.guidesThrough}, plus this season`,
+      ["Pairing", "All-time", "First team at home", "First team on the road", "Streak (first team)", "Last win / last loss (first team)", "Basis"],
+      series.pairs.map((r) => [`${r.a} vs ${r.b}`, wl(r.overall), wl(r.home), wl(r.road), r.overall.streak == null ? "" : `${r.overall.streak > 0 ? "W" : "L"}${Math.abs(r.overall.streak)}`,
+        r.overall.lastW || r.overall.lastL ? `${r.overall.lastW ? md(r.overall.lastW) + "/" + r.overall.lastW.slice(2, 4) : "—"} / ${r.overall.lastL ? md(r.overall.lastL) + "/" + r.overall.lastL.slice(2, 4) : "—"}` : "", basis(r)])));
+  }
   if (flow && flow.seeded) for (const L of flow.seeded) out.push(table(`t-${L.id}`, `${L.what[0].toUpperCase()}${L.what.slice(1)}${L.since ? ` since ${L.since}` : ""}`, "seeded list counted forward notes", `${L.source}, counted forward from ${md(L.through)}`, ["Player", "Count", "Added since"], L.rows.map((r) => [r.name, r.n, r.added || ""])));
-  if (prep && prep.finds) out.push(table("t-finds", "Found in the numbers: the longer list", "finder absurd out of line all-star whole teams through three quarters", "the Watch List shows eight", ["Team", "Player", "What"], prep.finds.map((f) => [f.team, f.player, f.text])));
+  if (prep && prep.finds) out.push(table("t-finds", "Found in the numbers: the longer list", "finder absurd out of line all-star whole teams through three quarters team only team without combined gap", "the Watch List shows eight", ["Team", "Who", "What"], prep.finds.map((f) => [f.team, f.player || "the team", f.text])));
   if (prep && prep.zeros) out.push(table("t-zeros", "Tonight's players who have never had a scoreless (or rebound-less, assist-less) game", "scoreless zero first career", "for NBA Live's still-scoreless card", ["Player", "Games", "Never without"], Object.values(prep.zeros).sort((a, b) => b.games - a.games).map((z) => [z.name, `${z.games}${z.full ? "" : " since 2016-17"}`, z.stats.map((k) => ({ pts: "a point", reb: "a rebound", ast: "an assist" }[k])).join(", ")])));
   $("tables").innerHTML = out.join("") || `<div class="empty">The season files aren't built yet.</div>`;
   renderDir();

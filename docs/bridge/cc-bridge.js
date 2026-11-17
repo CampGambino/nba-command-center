@@ -77,7 +77,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 19;
+  var VERSION = 20;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -938,7 +938,7 @@
         if (pf >= 6) {
           fire("cc-fo-" + p.id + "-" + game.id, base({ icon: "🚫 FOULED OUT",
             text: name + " (" + team + ") — fouled out" + (foulTime(game, p.id, 6) ? ", " + foulTime(game, p.id, 6) : at("cc-fo-" + p.id + "-" + game.id) ? " " + at("cc-fo-" + p.id + "-" + game.id) : "") + " · " + (Fo.out ? "his " + ord(Fo.out + 1) + " foul-out this season" : "his first foul-out this season"),
-            statLine: stl([[pf, "FOULS"]]), sub: "Command Center · Game Flow files" + through }));
+            statLine: "", sub: "Command Center · Game Flow files" + through }));
           return;
         }
         // v18 (the user, 11/16: "alex sarr in foul trouble means that's why he's not in… so both alerts aren't active"):
@@ -952,9 +952,12 @@
         // The card is filed at the time of the foul itself.
         var fp = foulTime(game, p.id, pf, true), when = fp ? fp.qtr + " " + (fp.clock || "") : at("cc-ft-" + p.id + "-" + pf);
         var season = Fo.trouble ? "In early foul trouble in " + Fo.trouble + " of " + (Fo.gp || "?") + " games this season" + (Fo.out ? ", fouled out " + (Fo.out === 1 ? "once" : Fo.out + " times") : "") : "First time in early foul trouble this season" + (Fo.gp ? " (" + Fo.gp + " games)" : "");
-        var rows = [season, "Tonight: " + (p.pts || 0) + " points in " + Math.round(p.min || 0) + " minutes", "Early foul trouble: more fouls than the period number (2 in the 1st, 3 by the half, 4 in the 3rd, 5 in the 4th)"];
+        // v20 (the user, 11/16: "why am i told how many points he has? this is a foul trouble alert" and "redundancy
+        // telling me he has 4 fouls twice"): the back holds only fouls: when each of tonight's came, the season, the rule.
+        var times = []; for (var fn = 1; fn <= pf; fn++) { var ftm = foulTime(game, p.id, fn); if (ftm) times.push(ftm); }
+        var rows = (times.length === pf && pf > 1 ? ["Tonight's fouls: " + times.join(" · ")] : []).concat([season, "Early foul trouble: more fouls than the period number (2 in the 1st, 3 by the half, 4 in the 3rd, 5 in the 4th)"]);
         var ft = { icon: "⚠️ FOUL TROUBLE", text: name + " (" + team + ") — " + ord(pf) + " foul, " + when + benchNote(p),
-          statLine: stl([[pf, "FOULS"]]), sub: "Command Center · " + (Fo.trouble ? Fo.trouble + " of " + (Fo.gp || "?") + " games this season" : "first time this season"),
+          statLine: "", sub: "Command Center · " + (Fo.trouble ? Fo.trouble + " of " + (Fo.gp || "?") + " games this season" : "first time this season"),
           backHtml: '<div class="alert-back-title">' + escH("⚠️ Foul trouble · " + name) + "</div>" + rows.map(function (r) { return '<div class="alert-back-play">' + escH(r) + "</div>"; }).join("") };
         if (fp && typeof playToAbsT === "function") { var ft0 = playToAbsT(fp); if (typeof ft0 === "number") { ft.t = ft0; if (fp.wallClock) ft.wt = fp.wallClock; } }
         fire("cc-ft-" + p.id + "-" + game.id, base(ft));
@@ -980,7 +983,7 @@
         if (!R || R.in1 == null || !R.n || R.n.in1 < 5 || R.n.in1 < 0.7 * (R.gp - (R.starts || 0))) return;
         if (now < R.in1 + LATE_RETURN || now >= 2 * QTR) return;
         var name = p.name || ("#" + p.id);
-        fire("cc-in-" + p.id + "-" + game.id, base({ icon: "🔄 HASN'T CHECKED IN",
+        fire("cc-in-" + p.id + "-" + game.id, base({ hold: true, icon: "🔄 HASN'T CHECKED IN",
           text: name + " (" + team + ") hasn't played yet · usually checks in by " + clockAt(R.in1) + " (median of " + R.n.in1 + " games off the bench)",
           statLine: stl([[0, "MIN"]]), sub: "Command Center · usual rotation from the Game Flow files · a DNP or injury may follow" }));
       });
@@ -995,14 +998,14 @@
         // v7: not for a starter who already came back and is on a second rest.
         if (per <= 2 && (pf >= 2 || state.ftShown[game.id + "|" + p.id])) { dropCard("cc-ret-" + p.id + "-" + game.id + "-h1"); }   // v18: the foul-trouble card says it
         else if (per <= 2 && R.back != null && R.n && R.n.back >= 5 && R.n.back >= 0.6 * R.starts && now >= R.back + LATE_RETURN && now < 2 * QTR && !cameBackIn(game, p.id)) {
-          fire("cc-ret-" + p.id + "-" + game.id + "-h1", base({ icon: "🔄 STILL ON THE BENCH",
+          fire("cc-ret-" + p.id + "-" + game.id + "-h1", base({ hold: true, icon: "🔄 STILL ON THE BENCH",
             text: name + " (" + team + ") hasn't come back in" + why + " · usually returns " + (R.back % QTR === 0 ? clockAt(R.back) : "by " + clockAt(R.back)) + " (median of " + R.n.back + " starts)" + outText,
             statLine: stl([[Math.round(p.min || 0), "MIN"], [p.pts || 0, "PTS"]]), sub: "Command Center · usual rotation from the Game Flow files · worth a look for an injury" }));
         }
         // v7: only if the play-by-play has reached the 3rd and hasn't shown him on the floor in it. Before, a starter who
         // opened the 3rd and sat inside its first six minutes got this card ("didn't start the 3rd · out since Q3 6:53").
         if (per === 3 && now >= 2 * QTR + 60 && now < 2 * QTR + 360 && (R.open3 || 0) >= 0.8 * R.starts && R.starts >= 5 && feedReached(game, "Q3") && !onFloorIn(game, p.id, "Q3")) {
-          fire("cc-ret-" + p.id + "-" + game.id + "-h2", base({ icon: "🔄 NOT OUT FOR THE 3RD",
+          fire("cc-ret-" + p.id + "-" + game.id + "-h2", base({ hold: true, icon: "🔄 NOT OUT FOR THE 3RD",
             text: name + " (" + team + ") didn't start the 3rd quarter" + why + " · he opened the 3rd in " + R.open3 + " of " + R.starts + " starts this season" + outText,
             statLine: stl([[Math.round(p.min || 0), "MIN"], [p.pts || 0, "PTS"]]), sub: "Command Center · usual rotation from the Game Flow files · worth a look for an injury" }));
         }
@@ -1191,12 +1194,18 @@
   // NBA Live updates a card in place when its key repeats; count distinct cards, not calls.
   function fire(key, card) {
     if (state.done[key]) return;            // a card ended for good (a rotation card once he came back)
-    // v19: NBA Live re-stamps a card to the player's latest play whenever its text or numbers change, which floated
-    // our cards back up on every basket. A card keeps the moment it first fired, unless it has become a different
-    // card (its label changed: "4 FROM" to "🎉", "STILL SCORELESS" to "FIRST SCORELESS GAME") or was given its own time.
+    // v20 (the user, 11/16, on v19's blanket rule: "I don't want the first alert to be stuck in the queue even as the
+    // player is scoring more points... tell me you didn't completely override the guideline"): NBA Live's own rule
+    // stands. A card whose text or numbers change is re-stamped to the player's latest play and moves up: a countdown
+    // getting closer, a record chase, a quarter still growing. Only a card marked `hold` (something that happened at
+    // one moment and whose small print merely ticks: a starter still on the bench) keeps the time it first fired,
+    // and only while its label is the same. v19 had done that to every Command Center card.
     var ex = typeof ALERT_STORIES !== "undefined" && ALERT_STORIES.get(key);
     var label = function (x) { return String(x || "").replace(/[\d,]+/g, "#"); };
-    if (ex && card && card.t == null && card.wt == null && label(ex.icon) === label(card.icon)) card = Object.assign({}, card, { t: ex.t, wt: ex.wt });
+    if (card && card.hold) {
+      var held = ex && card.t == null && card.wt == null && label(ex.icon) === label(card.icon);
+      card = Object.assign({}, card, held ? { t: ex.t, wt: ex.wt } : {}); delete card.hold;
+    }
     fireStory(key, card); state.keys[key] = 1; state.fired = Object.keys(state.keys).length;
   }
 

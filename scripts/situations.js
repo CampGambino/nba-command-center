@@ -423,10 +423,10 @@ for (const [tri, games] of Object.entries(perTeam)) {
       let allStars = null;
       try { const { plainName } = await import("../src/anticipate/finder.js"); const pc = path.join(root, "src", "data", `nba-postseason-careers-${seasonTag}.json`);
         if (fs.existsSync(pc)) allStars = new Set((JSON.parse(fs.readFileSync(pc, "utf8")).allStarSelections || []).map((x) => plainName(x.name))); } catch { /* no list: that test is skipped */ }
-      const F = finderLines({ pg, names: store.names || {}, qsum, teamGp, allStars }, new Set(slate.flatMap((g) => [g.away, g.home])), { top: 20 });
+      const F = finderLines({ pg, names: store.names || {}, qsum, teamGp, allStars, rows: rows.filter((g) => !g.cupFinal) }, new Set(slate.flatMap((g) => [g.away, g.home])), { top: 24 });
       prep.lines.push(...F.lines);
       finds = F.league;
-      console.log(`finder: ${F.n} finding(s) league-wide, ${F.lines.length} about tonight's teams${Object.keys(qsum).length ? "" : " (no quarter scoring yet: the Game Flow step of the last build)"}`);
+      console.log(`finder: ${F.n} finding(s) league-wide (${F.teamFinds} about teams), ${F.lines.length} about tonight's teams${Object.keys(qsum).length ? "" : " (no quarter scoring yet: the Game Flow step of the last build)"}`);
     } catch (e) { prep.errors.push(`finder: ${e.message}`); }
     const byKind = {};
     for (const l of prep.lines) byKind[l.kind] = (byKind[l.kind] || 0) + 1;
@@ -576,7 +576,19 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
     const zlib = await import("node:zlib");
     const history = fs.existsSync(histFile) ? JSON.parse(fs.readFileSync(histFile, "utf8")) : null;
     const logs = fs.existsSync(logFile) ? JSON.parse(zlib.gunzipSync(fs.readFileSync(logFile))) : null;
-    const m = matchups({ history, logs, teamFiles, tonight, today });
+    // 0.84: the all-time series each team's media guide prints (tools/parse-series-history.py), counted forward.
+    const serName = fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^nba-series-history-\d{4}-\d{2}\.json$/.test(f)).sort().pop();
+    const series = serName ? JSON.parse(fs.readFileSync(path.join(root, "src", "data", serName), "utf8")) : null;
+    if (series) {
+      try {
+        const { seriesTable } = await import("../src/records/series.js");
+        const sg = rows.filter((g) => !g.cupFinal && g.hs > 0 && g.as > 0).map((g) => ({ d: g.d, home: g.h, away: g.a, hs: g.hs, as: g.as, neutral: !!g.n }));
+        const table = seriesTable(series, sg, today);
+        fs.writeFileSync(path.join(root, "docs", "data", "series.json"), JSON.stringify({ generatedAt: out.generatedAt, through, guidesThrough: series.through, guides: series.guides, pairs: table }));
+        console.log(`series: ${table.length} of 435 pairings from ${Object.keys(series.guides || {}).length} team guides (${table.filter((r) => r.status === "confirmed").length} confirmed by both guides, ${table.filter((r) => r.status === "differs").length} where they differ)`);
+      } catch (e) { console.error(`series not written: ${e.message}`); }
+    }
+    const m = matchups({ history, logs, teamFiles, tonight, today, series });
     fs.writeFileSync(path.join(root, "docs", "data", "matchups.json"), JSON.stringify({ generatedAt: out.generatedAt, today, window: history?.seasons || null, games: m.map((g) => ({ ...g, items: g.items.slice(0, 12) })) }));
     console.log(`matchups: ${m.reduce((a, g) => a + g.items.length, 0)} items for ${m.length} games tonight${history ? "" : " (no results back-fill yet)"}${logs ? "" : " (no player logs back-fill yet)"}`);
   } catch (e) { console.error(`matchups not written: ${e.message}`); }

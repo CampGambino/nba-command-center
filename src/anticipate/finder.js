@@ -27,6 +27,7 @@
  * league (the suggestions), and the ones about tonight's teams become storyline candidates (kind `find`).
  * Thresholds are first guesses: the votes on these lines are what should move them.
  */
+import { teamFindings } from "./teamfinder.js";
 export const QUALIFY = { share: 0.6, games: 5 };       // on the league's lists: 60% of his team's games, at least 5
 export const PART = { top: 10, half: 25, max: 2 };     // a piece that would rank this high; at most two pieces in a line
 export const TEAMS = { min: 24, least: 3 };            // more than this many of the other 29 teams, with at least 3 of his own
@@ -133,10 +134,19 @@ export function findings({ pg, names = {}, qsum = {}, teamGp = {}, allStars = nu
   return out.sort((a, b) => b.surprise - a.surprise);
 }
 
-/** Tonight's teams' findings as storyline candidates, and the league's most out-of-line few for the page. */
+/**
+ * Tonight's teams' findings as storyline candidates, and the league's most out-of-line few for the page.
+ * 0.84: with `rows` (the season's games) the team finder (teamfinder.js) runs too, and both kinds share the list:
+ * one line a player and one a team, most surprising first.
+ */
 export function finderLines(args, teams, { top = 8 } = {}) {
-  const all = findings(args);
-  const seen = new Set(), league = [];
-  for (const f of all) { if (seen.has(f.player)) continue; seen.add(f.player); league.push(f); if (league.length >= top) break; }
-  return { lines: all.filter((f) => teams.has(f.team)), league, n: all.length };
+  const all = [...findings(args), ...(args.rows ? teamFindings({ rows: args.rows }) : [])].sort((a, b) => b.surprise - a.surprise);
+  const seen = new Set(), said = new Set(), league = [];
+  for (const f of all) {
+    const who = f.player || f.team;
+    if (seen.has(who) || said.has(f.text)) continue;
+    seen.add(who); said.add(f.text); league.push(f);
+    if (league.length >= top) break;
+  }
+  return { lines: all.filter((f) => teams.has(f.team)), league, n: all.length, teamFinds: all.filter((f) => !f.player).length };
 }
