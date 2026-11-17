@@ -4019,19 +4019,37 @@ await articlesChecks(ok);
   ok(N2.rec.overall.l === 43 && N2.other.overall.l === 41 && N2.other.overall.w === 62 && SR.teams.DEN.BOS.overall.w === 40, "series: the guide that differs is counted forward with the one that is used (and the file's own numbers are left alone)", JSON.stringify(N2));
   const TB = seriesTable(SR, season, "2026-11-17");
   ok(TB.length === 3 && TB[0].a === "BOS" && TB[0].b === "DEN" && TB.find((r) => r.b === "LAL").overall.w === 100 && TB.find((r) => r.a === "DEN" && r.b === "UTA").weak, "series: the lookup table has one row a pairing, counted forward", JSON.stringify(TB.map((r) => [r.a, r.b, r.status])));
+  // 0.84.1: a misprint loses to a record that adds up; a guide that starts at its current city's first season does not
+  // contradict a full count, and alone it is "since", not all-time; a row we corrected is shown but nothing is built on it.
+  const SX = { through: "2025-26", guides: { HOU: { agree: [9, 10] }, SAC: { agree: [9, 10] }, OKC: { agree: [0, 10], era: "2008-09" }, BOS: { agree: [9, 10] }, DEN: { agree: [9, 10] }, UTA: { agree: [9, 10] } }, teams: {
+    HOU: { SAC: { overall: { w: 143, l: 103 }, home: { w: 80, l: 43 }, road: { w: 63, l: 60 } } }, SAC: { HOU: { overall: { w: 103, l: 43 }, home: { w: 65, l: 55 }, road: { w: 36, l: 87 }, bad: true } },
+    OKC: { BOS: { overall: { w: 19, l: 17 }, home: { w: 10, l: 8 }, road: { w: 9, l: 9 } }, ATL: { overall: { w: 21, l: 13 }, home: { w: 12, l: 5 }, road: { w: 9, l: 8 } } },
+    BOS: { OKC: { overall: { w: 80, l: 69 }, home: { w: 41, l: 29 }, road: { w: 39, l: 40 } } },
+    DEN: { NYK: { overall: { w: 50, l: 50 }, home: { w: 30, l: 20 }, road: { w: 20, l: 30 }, adjusted: "2025-26 added: this guide's rows stop a season early" } } } };
+  const X1 = seriesPair(SX, "SAC", "HOU"), X2 = seriesPair(SX, "BOS", "OKC"), X3 = seriesItems(SX, [], "OKC", "ATL", "2026-11-17"), X4 = seriesItems(SX, [], "NYK", "DEN", "2026-11-17"), X5 = seriesItems(SX, [], "HOU", "SAC", "2026-11-17");
+  ok(X1.status === "differs" && X1.source[0] === "HOU" && X1.rec.overall.w === 103 && X1.rec.overall.l === 143 && X1.other.bad && !X1.weak
+    && X2.status === "single" && X2.source[0] === "BOS" && X2.rec.overall.w === 80 && !X2.other && !X2.era
+    && X3.length === 1 && X3[0].text === "Since 2008-09 (as far back as the Thunder's guide counts): the Thunder lead the Hawks 21-13 in the regular season; the Hawks are 8-9 at home in it (through 11/16/26; the Thunder's media guide)" && X3[0].score === 1
+    && X4.length === 1 && X4[0].score === 1 && /tied 50-50 in the regular season.*the Nuggets' media guide, plus last season from our results\)$/.test(X4[0].text)
+    && /the Rockets' media guide; the Kings' has it 43-103, which does not add up\)$/.test(X5[0].text),
+    "series (0.84.1): a misprinted record loses to one that adds up; a guide counting only its current city's years is 'since', not all-time, and does not contradict a full count; a row corrected with last season's results is shown but never built on",
+    JSON.stringify([X1, X2, X3, X4, X5]));
   // The file read from the guides (tools/parse-series-history.py): the checks that were run on it, kept as facts.
   const RS = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-series-history-2026-27.json"), "utf8"));
   const pairsR = seriesTable(RS, [], "2026-10-01"), cnt = (st) => pairsR.filter((r) => r.status === st).length;
-  ok(Object.keys(RS.teams).length === 13 && pairsR.length === 294 && cnt("confirmed") === 52 && cnt("differs") === 25 && RS.teams.BOS.LAL.overall.w === 169 && RS.teams.BOS.LAL.overall.l === 135 && RS.teams.BOS.LAL.home.w === 85
-    && RS.guides.DEN.agree[0] === 0 && RS.guides.UTA.agree[0] === 2 && RS.guides.PHX.agree.join("/") === "11/12" && pairsR.every((r) => r.overall && r.overall.w + r.overall.l > 0),
-    "series data: 13 guides, 294 of 435 pairings; 52 confirmed from both sides; Denver's and Utah's tables are the ones the other guides don't back up", JSON.stringify([Object.keys(RS.teams).length, pairsR.length, cnt("confirmed"), cnt("differs"), RS.guides]));
+  const adjR = Object.values(RS.teams).flatMap((t) => Object.values(t)).filter((r) => r.adjusted);
+  ok(Object.keys(RS.teams).length === 24 && pairsR.length === 418 && cnt("confirmed") === 225 && cnt("differs") === 21 && RS.teams.BOS.LAL.overall.w === 169 && RS.teams.BOS.LAL.overall.l === 135 && RS.teams.BOS.LAL.home.w === 85
+    && RS.teams.DEN.BOS.overall.w === 42 && RS.teams.DEN.BOS.adjusted && RS.guides.DEN.agree.join("/") === "19/22" && RS.guides.OKC.era === "2008-09" && RS.guides.DET.era === "1957-58" && RS.teams.SAC.HOU.bad
+    && adjR.length === 40 && adjR.filter((r) => /twice/.test(r.adjusted)).length === 4 && !RS.teams.SAS.ATL.overall.streak && pairsR.every((r) => r.overall && r.overall.w + r.overall.l > 0),
+    "series data (0.84.1): 24 guides, 418 of 435 pairings, 225 confirmed from both sides; Denver's rows stopped at 2024-25 and are brought up with our results (40 rows corrected in all, 4 of them Utah's double count); the Kings' misprint is marked",
+    JSON.stringify([Object.keys(RS.teams).length, pairsR.length, cnt("confirmed"), cnt("differs"), adjR.length, RS.guides.DEN]));
   // Through matchups(): the series line arrives with the others.
   const { matchups: mu } = await import("../src/records/matchup.js");
   const MU = mu({ history: { games: [] }, logs: null, teamFiles: {}, tonight: [{ id: "g", away: "LAL", home: "BOS" }], today: "2026-11-17", series: SR });
   ok(MU[0].items.some((i) => /^All-time: the Lakers lead the Celtics 100-99/.test(i.text)) && !mu({ history: { games: [] }, logs: null, teamFiles: {}, tonight: [{ id: "g", away: "LAL", home: "BOS" }], today: "2026-11-17" })[0].items.length,
     "matchups (0.84): the all-time series joins tonight's matchup items when the guides' file is there");
   const ix = fs.readFileSync(path.join(root, "docs", "find.html"), "utf8");
-  ok(/get\("series\.json"\)/.test(ix) && /t-series/.test(ix) && /both guides agree/.test(ix), "Index (0.84): the all-time series lookup, with the basis of each row");
+  ok(/get\("series\.json"\)/.test(ix) && /t-series/.test(ix) && /both guides agree/.test(ix) && /not all-time/.test(ix) && /last season added from our results/.test(ix), "Index (0.84): the all-time series lookup, with the basis of each row");
 }
 
 // ---------- 0.83: cards file in by time, bench over starters, a coach's record counted, the Index page ----------

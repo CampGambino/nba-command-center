@@ -2,6 +2,31 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.84.1 (2026-11-17): eleven more team guides, and what the cross-check really said about Denver
+
+The user (11/16, 11:45 PM): "continue" (after "I'll continue with the 17 guides next").
+
+### All-time series: 24 guides, 418 of 435 pairings (was 13 and 294)
+- **Eleven more readers** in `tools/parse-series-history.py`, one per layout: Charlotte, Houston, the Clippers, Memphis, Miami, Minnesota, New Orleans, Oklahoma City, Philadelphia, San Antonio, Toronto. 270 pairings are now printed by both teams.
+- **0.84 said Denver's tables "match no other guide". The reason is plainer: every Denver row stops at 2024-25.** The tool now takes last season's meetings from our own results (`src/data/nba-results-history.json`): where two guides differ by exactly that season series, one of them is a season short, or counted the season twice. With 2025-26 added, Denver mirrors 19 of 22. Denver's seven rows that no second guide prints get the season added too, and say so.
+- **Forty rows corrected that way, each marked `adjusted`:** 29 a season short (Denver's 19 compared rows, six of San Antonio's, whose own season lists stop at "24-25", and single rows of Detroit, the Clippers, Memphis and Sacramento), 7 Denver rows no second guide prints, and 4 where Utah counted 2025-26 twice (against Boston, Charlotte, Cleveland and Dallas). Which side is wrong is decided by how well each guide is otherwise backed up, never to make a poorly backed guide's row the standard.
+- **After that, 225 of 270 two-sided pairings mirror.** Of the 45 that don't: 21 are Oklahoma City's, whose guide counts only the Oklahoma City years, and 7 Detroit's (Detroit years only); those are no longer called disagreements, the full count stands and the short one is not quoted against it. 9 are Utah's (off by one or two with no pattern found). The other 8: Denver's ABA games against the Nets and Spurs, a Kings misprint ("103-43" against Houston, where the Rockets have 103-143), three more Kings rows (against Charlotte, Miami and New Orleans), and IND-POR and MIN-POR.
+- **New marks on a record:** `bad` (does not add up: 21 rows; it loses to a record that does), `era` on a guide (Oklahoma City 2008-09, Detroit 1957-58: alone, its record reads "Since 2008-09 (as far back as the Thunder's guide counts)", not "All-time"), `adjusted`.
+- **Nothing is built on a corrected row.** A 100th-win line or a series-tied line needs both guides agreeing, or one well-backed guide's own print.
+- **San Antonio's streaks and last-win dates are not kept:** against our results 21 of them were out of date. The other streak-carrying guides: 976 of 985 streaks equal ours exactly; the nine that don't are six of Detroit's, one of the Clippers' and two that run past the start of our results.
+
+### Not found
+- **Six guides print no regular-season record by opponent that I could find:** Atlanta, Golden State, the Lakers, Milwaukee, New York, Washington. (The Lakers and Warriors print it for the playoffs only.) The 15 pairings among those six, plus IND-LAL and NYK-ORL, are the 17 still missing. Golden State prints every game of every season since 1962-63, so its side could be counted; the others would need their game lists found or a page from the user.
+
+### Tested
+- 928 checks (was 927). New: a misprinted record loses to one that adds up; a guide counting only its current city's years neither contradicts a full count nor passes as all-time; a corrected row is shown with its correction and never promoted; the real file's counts (24 guides, 418 pairings, 225 confirmed, 40 corrected of which 4 are double counts, Denver 19 of 22).
+- The page test with the new table: all pages OK.
+
+### Unproven
+- "A season short" is inferred from an exact match with last season's series, checked against a second guide in 33 of the 40 rows. For Denver's seven unmatched rows it rests on the other 19.
+- Rows of other guides may be a season short where no second guide prints the pairing; nothing can show it.
+- Whether these records count NBA Cup title games is still unknown.
+
 ## 0.84.0 (2026-11-16): NBA Live's timing rule stands, the finder for teams, all-time series from the team guides
 
 The user (11/16, 10:55 PM), on v19's "a card keeps its original time": "especially for constantly changing alerts like scoring alerts such as controlling the game. I don't want the first alert to be stuck in the queue even as the player is scoring more points. it'll get lost in the shuffle that way. tell me you didn't completely override the guideline"; on the foul card: "redundancy telling me he has 4 fouls twice" and "why am i told how many points he has? this is a foul trouble alert"; "for finder thresholds, tell me the thresholds and also implement it for team stats"; "did you completely mine the team PDF folder… was that a thorough check or just based on my instructions?… that information could make it easier to check past records and streaks against opponents rather than relying on the current game notes"; and on presserwire.com: "are you able to scrape and see how it has all this information and if we can utilize any of it?"
@@ -25,7 +50,7 @@ The same idea as the player finder: every team's season is cut many ways and a c
 - **Asked whether the team PDFs were fully mined: no.** Until now they were used for two things: the franchise leader pages (as a check on our lists, 0.46) and the single-game records pages for six stats (0.47). Everything else was untouched; it followed the requests, not a sweep.
 - **What a sweep shows (all 30 guides as text):** every guide has, in its own layout, a section on each opponent. Thirteen are read now (`tools/parse-series-history.py` → `src/data/nba-series-history-2026-27.json`): the regular-season record against each opponent overall, at home and on the road, and in ten of them the current streaks and the dates of the last win and loss. 294 of the 435 pairings.
 - **Checked three ways.** (1) Each record adds up (home + road + neutral = overall): 318 of 371. (2) Against our own results since 2016-17: 860 of 867 streaks equal ours exactly and 1,727 of 1,732 last-win/last-loss dates match; the six streaks that differ are all in Detroit's guide. (3) Against each other: 77 pairings are printed by both teams; 52 mirror.
-- **The guides do not all agree, and that is kept, not hidden.** Denver's tables match no other guide (0 of 11), Utah's 2 of 12, Detroit's count only the Detroit years (7 of 12); the other ten guides back each other up in all but two pairings. Each pairing is `confirmed` (both guides mirror), `differs` (both shown), or from one guide, marked weak when that guide is mirrored less than 75% of the time.
+- **The guides do not all agree, and that is kept, not hidden.** Denver's tables match no other guide (0 of 11; 0.84.1 found why: its rows stop at 2024-25), Utah's 2 of 12, Detroit's count only the Detroit years (7 of 12); the other ten guides back each other up in all but two pairings. Each pairing is `confirmed` (both guides mirror), `differs` (both shown), or from one guide, marked weak when that guide is mirrored less than 75% of the time.
 - **Where it shows:** tonight's matchups get "All-time: the Celtics lead the Magic 80-58 in the regular season; the Celtics are 52-18 at home in it (through 11/15/26; both teams' media guides agree)", counted forward with this season's games (`src/records/series.js`); a win that would be a team's 100th (200th…) against an opponent, and a series tonight would tie or tip, are their own lines, only from confirmed or well-backed records. The Index page has the whole table with each row's basis.
 
 ### Presser Wire (looked at, nothing built)
