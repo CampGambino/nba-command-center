@@ -430,8 +430,8 @@
    "w": 151,
    "l": 153,
    "through": "2025-26",
-   "by": "Land of Basketball",
-   "source": "Land of Basketball's game-by-game list, read 11/17/26: 304 games, 151-153, the Hawks' guide's record; from 1962-63 it is the Warriors' own guide's list game for game (109-94), and before that 42-59"
+   "by": "Land of Basketball and Basketball Reference",
+   "source": "151-153: the Hawks' guide's record and Land of Basketball's count (304 games); from 1962-63 it is the Warriors' own guide's list game for game (109-94), and before that 42-59. Basketball Reference's 152-153 counts the game of 11/28/52 (Milwaukee 78, Philadelphia 77, 2OT, at Chicago), which was protested and replayed on 3/11/53 (Philadelphia 72-69, OT, at Pittsburgh); its own box score and both teams' 1952-53 game logs say that game 'does not count toward team records'. Found from Stathead's game-by-game list (the user's file, 11/17/26; tools/outside/stathead-atl-gsw-to-1963-64.json): it has seven games in 1952-53 where the official count is six (4-2)"
   },
   {
    "a": "ATL",
@@ -506,7 +506,7 @@
    "b": "GSW",
    "w": 152,
    "l": 153,
-   "note": "one more Hawks win than the Hawks' guide and Land of Basketball's game list (151-153); its table has run a game over its own game list before (Lakers v Kings), and the extra game is before 1962-63, where no guide lists games; not located"
+   "note": "counts the protested game of 11/28/52 (a Hawks win, replayed 3/11/53), which its own box score says does not count toward team records; without it it is 151-153"
   }
  ]
 }

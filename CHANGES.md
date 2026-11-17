@@ -37,6 +37,14 @@ A new chat picked up "Next, in order" from the handoff. The PC folder could not 
 ### Unproven
 - The guide-games fixes have not been through a real rebuild (see above). Dallas's 1986-87 becoming usable may change a few deep streak counts; that is expected.
 
+## 0.97.1 (2026-11-17): the extra Hawks v Warriors game found (a protested game); Cleveland's records pages are text
+
+- **Hawks v Warriors, 151-153, is now explained.** The user sent Stathead's game-by-game list through 1963-64. It has seven games in 1952-53 where the others have six. The extra one in Basketball Reference's total is **11/28/52, Milwaukee 78, Philadelphia 77 (2OT, at Chicago): protested and replayed on 3/11/53** (Philadelphia 72-69 in overtime, at Pittsburgh). Basketball Reference's own box score and both teams' 1952-53 game logs carry the note "does not count toward team records", but its head-to-head table counts it. Officially 1952-53 is 4-2 and the series 151-153. No open difference with an outside source is left.
+- A side finding, which changes no count: Land of Basketball's list (and Stats Crew's) has the voided 11/28/52 game and lacks 1/22/53 (Milwaukee 106, Philadelphia 100, OT), for which Basketball Reference has a full box score. Both come to 4-2.
+- The 24 games of 1962-63 and 1963-64 on Stathead's list equal the Warriors' guide's list (date, site, score). The list is kept in `tools/outside/stathead-atl-gsw-to-1963-64.json`.
+- **A correction of mine:** Cleveland's team records are not pictures. They are text on PDF pp. 174 ("CAVALIERS ONE GAME") and 175 ("OPPONENTS ONE GAME"); pp. 170-171 are individual records, 176 the arena, 193-200 the playoffs. The picture pages 386-392 are jerseys and logos. The reader is next.
+- Tested: `node tests/run.js` (the series test reads this file).
+
 ## 0.97.0 (2026-11-17): team records from 29 guides (Atlanta, Denver, Memphis, Sacramento)
 
 "Next, in order", item 1. Four more guides' team single-game records are read: **2,784 marks** (was 2,273). The 25 guides read before are unchanged, value for value.
