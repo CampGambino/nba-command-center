@@ -124,7 +124,7 @@
 <body>
 <header>
   <h1>NBA Command Center</h1>
-  <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a href="clutch.html">Clutch</a><a href="players.html">With / without</a><a class="on" href="trends.html">Streaks &amp; outliers</a><a href="leaders.html">Team leaders</a><a href="defenses.html">vs top teams</a><a href="national.html">National TV</a><a href="gameflow.html">Game Flow</a><a href="records.html">Records</a><a href="find.html">Index</a></nav>
+  <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a href="standings.html">Standings</a><a href="clutch.html">Clutch</a><a href="players.html">With / without</a><a class="on" href="trends.html">Streaks &amp; outliers</a><a href="leaders.html">Team leaders</a><a href="defenses.html">vs top teams</a><a href="national.html">National TV</a><a href="gameflow.html">Game Flow</a><a href="records.html">Records</a><a href="find.html">Index</a></nav>
   <div class="sub" id="sub">Loading…</div>
 </header>
 <main>
@@ -142,6 +142,7 @@
     <select id="steam"><option value="">All teams</option></select>
     <span class="toggle" id="sorder"><button data-o="notable" class="on">Most notable</button><button data-o="long">Longest</button></span>
     <span class="toggle" id="sdir"><button data-d="best" class="on">Top first</button><button data-d="worst">Bottom first</button></span>
+    <span class="toggle" id="sgroup" title="One row a player and stat: his 30+, 25+ and 20+ point streaks are one row, the others listed beside it"><button data-g="on" class="on">One row a stat</button><button data-g="player" title="One row a player: his most notable streak, the rest beside it">One row a player</button><button data-g="off">Every streak</button></span>
   </div>
   <div class="scroll"><table id="streaks"></table></div>
 
@@ -174,7 +175,7 @@ import { formRows, formRuns, FLOORS, STATS } from "./lib/situations/form.js";
 const teamCell = (x) => x.was ? `${x.team === "FA" ? "<i>no team</i>" : x.team} <span class="team" title="${x.team === "FA" ? "waived" : "moved"}${x.moved ? ` ${x.moved}` : ""}; these numbers are from ${x.was}">from ${x.was}</span>` : x.team;
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-let T = null, kind = "all", sdir = "best", sorder = "notable", tkey = "streak", tdir = "best";
+let T = null, kind = "all", sdir = "best", sorder = "notable", sgroup = "on", tkey = "streak", tdir = "best";
 // "Most notable": length weighted by how hard the bar is, so 6 straight 30-point games
 // rank above 12 straight 10-point games.
 const WEIGHT = { pts10: 0.4, three: 0.4, pts20: 1.2, threes3: 1.5, reb10: 1.5, ast8: 1.8, dd: 1.8, pts25: 2, pts30: 3 };
@@ -208,8 +209,14 @@ function renderStreaks() {
   const cat = $("cat").value, team = $("steam").value, sign = sdir === "best" ? 1 : -1;
   const val = sorder === "notable" ? notable : (s) => s.length;
   const list = T.streaks.filter((s) => (!cat || s.key === cat) && (!team || s.team === team)).sort((a, b) => sign * (val(b) - val(a)) || b.length - a.length || a.name.localeCompare(b.name));
+  // 0.94 (the user, 11/17: "this table is pretty long. is there a way to group certain categories"): a player's streaks in
+  // one stat (30+, 25+ and 20+ points; a three and 3+ threes) are one row, led by whichever sorts first; the rest sit beside it.
+  const fam = (k) => (/^pts/.test(k) ? "pts" : /^three/.test(k) ? "three" : /^reb/.test(k) ? "reb" : /^ast/.test(k) ? "ast" : k);
+  let rows = list;
+  if (sgroup !== "off" && !cat) { const lead = new Map(); rows = []; for (const x of list) { const g = sgroup === "player" ? x.id : `${x.id}|${fam(x.key)}`; if (lead.has(g)) lead.get(g).also.push(x); else { const r = { ...x, also: [] }; lead.set(g, r); rows.push(r); } } }
+  const also = (r) => (r.also && r.also.length ? ` <span class="small" style="color:var(--muted)">also ${r.also.map((x) => `${esc(sgroup === "player" ? x.label : x.label.replace(/ (?:points|rebounds|assists|threes)$/, ""))} (${x.length})`).join(", ")}</span>` : "");
   $("streaks").innerHTML = `<tr><th>Player</th><th>Team</th><th>Streak</th><th class="num">Games</th><th class="num">His games this season</th><th class="num">Since</th><th class="num">Season best</th></tr>` +
-    (list.map((s) => `<tr><td><b>${esc(s.name)}</b></td><td>${teamCell(s)}</td><td>${esc(s.label)}</td><td class="num"><b>${s.length}</b></td><td class="num">${s.ofGames}${s.length === s.ofGames ? " (every game)" : ""}</td><td class="num">${day(s.since)}</td><td class="num">${s.seasonBest}${s.seasonBest > s.length ? "" : " (active)"}</td></tr>`).join("") || `<tr><td class="empty" colspan="7">No streaks match.</td></tr>`);
+    (rows.map((s) => `<tr><td><b>${esc(s.name)}</b></td><td>${teamCell(s)}</td><td>${esc(s.label)}${also(s)}</td><td class="num"><b>${s.length}</b></td><td class="num">${s.ofGames}${s.length === s.ofGames ? " (every game)" : ""}</td><td class="num">${day(s.since)}</td><td class="num">${s.seasonBest}${s.seasonBest > s.length ? "" : " (active)"}</td></tr>`).join("") || `<tr><td class="empty" colspan="7">No streaks match.</td></tr>`);
 }
 // [key, header, sort value, cell, group]: group "o" = their own scoring, "d" = their defence (the opponents' points).
 const TCOLS = [
@@ -241,11 +248,13 @@ function sync() {
   document.querySelectorAll("#kind button").forEach((b) => b.classList.toggle("on", b.dataset.k === kind));
   document.querySelectorAll("#sdir button").forEach((b) => b.classList.toggle("on", b.dataset.d === sdir));
   document.querySelectorAll("#sorder button").forEach((b) => b.classList.toggle("on", b.dataset.o === sorder));
+  document.querySelectorAll("#sgroup button").forEach((b) => b.classList.toggle("on", b.dataset.g === sgroup));
   document.querySelectorAll("#tdir button").forEach((b) => b.classList.toggle("on", b.dataset.d === tdir));
 }
 document.querySelectorAll("#kind button").forEach((b) => b.onclick = () => { kind = b.dataset.k; sync(); renderOutliers(); });
 document.querySelectorAll("#sdir button").forEach((b) => b.onclick = () => { sdir = b.dataset.d; sync(); renderStreaks(); });
 document.querySelectorAll("#sorder button").forEach((b) => b.onclick = () => { sorder = b.dataset.o; sync(); renderStreaks(); });
+document.querySelectorAll("#sgroup button").forEach((b) => b.onclick = () => { sgroup = b.dataset.g; sync(); renderStreaks(); });
 document.querySelectorAll("#tdir button").forEach((b) => b.onclick = () => { tdir = b.dataset.d; sync(); renderTeams(); });
 
 // ---- Hot and cold (GameFlow's hot hand, 0.56): docs/data/form.json ----

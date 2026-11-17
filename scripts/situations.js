@@ -478,7 +478,12 @@ for (const [tri, games] of Object.entries(perTeam)) {
       let allStars = null;
       try { const { plainName } = await import("../src/anticipate/finder.js"); const pc = path.join(root, "src", "data", `nba-postseason-careers-${seasonTag}.json`);
         if (fs.existsSync(pc)) allStars = new Set((JSON.parse(fs.readFileSync(pc, "utf8")).allStarSelections || []).map((x) => plainName(x.name))); } catch { /* no list: that test is skipped */ }
-      const F = finderLines({ pg, names: store.names || {}, qsum, teamGp, allStars, rows: rows.filter((g) => !g.cupFinal) }, new Set(slate.flatMap((g) => [g.away, g.home])), { top: 24 });
+      // 0.94: who has led the league before (the NBA Guide's yearly leaders), and who is a rookie (no game logs before this
+      // season and no career line in the guide): a leader's line says what is new about him, and a rookie is never "not an All-Star".
+      let leaders = null, rookies = null;
+      try { const hf2 = path.join(root, "src", "data", `nba-history-${seasonTag}.json`); if (fs.existsSync(hf2)) leaders = JSON.parse(fs.readFileSync(hf2, "utf8")).leaders || null; } catch { /* the leader line is skipped */ }
+      try { const careers = new Set(Object.keys(seasonsData?.players || {}).map(keyFn)); rookies = new Set(Object.keys(pg).filter((id) => store.names?.[id] && !(logsData?.players?.[id] || []).length && !careers.has(keyFn(store.names[id])))); } catch { /* no rookie list: nobody is treated as one */ }
+      const F = finderLines({ pg, names: store.names || {}, qsum, teamGp, allStars, leaders, rookies, rows: rows.filter((g) => !g.cupFinal) }, new Set(slate.flatMap((g) => [g.away, g.home])), { top: 24 });
       prep.lines.push(...F.lines);
       finds = F.league;
       console.log(`finder: ${F.n} finding(s) league-wide (${F.teamFinds} about teams), ${F.lines.length} about tonight's teams${Object.keys(qsum).length ? "" : " (no quarter scoring yet: the Game Flow step of the last build)"}`);
@@ -643,7 +648,7 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
         const { seriesTable, countedPairs } = await import("../src/records/series.js");
         // 0.87: pairings that can be counted game by game settle some the two guides leave open.
         const svf = path.join(root, "src", "data", "series-verified.json");
-        if (fs.existsSync(svf)) series.verified = JSON.parse(fs.readFileSync(svf, "utf8")).pairs;
+        if (fs.existsSync(svf)) { const sv = JSON.parse(fs.readFileSync(svf, "utf8")); series.verified = sv.pairs; series.outside = sv.notes || []; }
         if (deepShared.deep && history) series.counted = countedPairs({ deep: deepShared.deep, history, official: deepShared.official, through: series.through });
         const sg = rows.filter((g) => !g.cupFinal && g.hs > 0 && g.as > 0).map((g) => ({ d: g.d, home: g.h, away: g.a, hs: g.hs, as: g.as, neutral: !!g.n }));
         const table = seriesTable(series, sg, today);

@@ -30,6 +30,12 @@ const trusted = (series, t) => { const g = series?.guides?.[t]?.agree; return !!
 
 /** The pairing through 2025-26, from `a`'s side: { status, source, rec: { overall, home, road, neutral }, other, weak }. */
 export function seriesPair(series, a, b) {
+  const R = settledPair(series, a, b), N = R && (series?.outside || []).find((v) => (v.a === a && v.b === b) || (v.a === b && v.b === a));
+  // 0.94: what Basketball Reference's head-to-head page has where it settles nothing (a tiebreaker counted as a game, a
+  // guide that starts later than the franchise): shown beside the record, never instead of it.
+  return N ? { ...R, outside: { w: N.a === a ? N.w : N.l, l: N.a === a ? N.l : N.w, note: N.note } } : R;
+}
+function settledPair(series, a, b) {
   const P = printedPair(series, a, b);
   if (!P) return P;
   // 0.92: a record looked up outside the guides (src/data/series-verified.json; Basketball Reference pages the user
@@ -52,7 +58,10 @@ export function seriesPair(series, a, b) {
   const counts = series?.counted?.[a]?.[b] || [];
   // Four guides have no table by opponent, so their "record" is already a count of their own lists (`lists`): the
   // same lists counted again prove nothing, and only the other team's games can back such a record.
-  const hits = (r, t) => !!r && counts.some((c) => c.w === r.w && c.l === r.l && !(series.guides?.[t]?.lists && c.by === t));
+  // 0.94: nor does any guide's own game list confirm its own table. The Hawks' table (121-123 against Milwaukee) and
+  // the Hawks' list agreed with each other and were both wrong: they share a misprinted result (3/1/74). Only the other
+  // team's games can back a record.
+  const hits = (r, t) => !!r && counts.some((c) => c.w === r.w && c.l === r.l && c.by !== t);
   const mine = hits(P.rec.overall, P.source[0]), theirs = !!(P.other && !P.other.bad && hits(P.other.overall, P.other.team));
   // 0.91: neither print is right, but the two teams' games, counted apart, come to the same record: that record is
   // shown, as counted (Memphis v Utah: 42-69 and 44-67 in print, 44-69 from each team's own list).
@@ -204,7 +213,7 @@ export function seriesTable(series, games, today) {
     const S = seriesNow(series, games, T[i], T[j], today);
     if (!S) continue;
     out.push({ a: T[i], b: T[j], status: S.status, weak: !!S.weak, source: S.source, overall: S.rec.overall, home: S.rec.home || null, road: S.rec.road || null, other: S.other || null, added: S.added,
-      ...(S.era ? { era: S.era } : {}), ...(S.adjusted ? { adjusted: S.adjusted } : {}), ...(S.counted ? { counted: true } : {}), ...(S.checked ? { checked: S.checked } : {}) });
+      ...(S.era ? { era: S.era } : {}), ...(S.adjusted ? { adjusted: S.adjusted } : {}), ...(S.counted ? { counted: true } : {}), ...(S.checked ? { checked: S.checked } : {}), ...(S.outside ? { outside: S.outside } : {}) });
   }
   return out;
 }

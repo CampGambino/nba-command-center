@@ -37,7 +37,7 @@
 <body>
 <header>
   <h1>Index</h1>
-  <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a href="clutch.html">Clutch</a><a href="players.html">With / without</a><a href="trends.html">Streaks &amp; outliers</a><a href="leaders.html">Team leaders</a><a href="defenses.html">vs top teams</a><a href="national.html">National TV</a><a href="gameflow.html">Game Flow</a><a href="records.html">Records</a><a class="on" href="find.html">Index</a></nav>
+  <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a href="standings.html">Standings</a><a href="clutch.html">Clutch</a><a href="players.html">With / without</a><a href="trends.html">Streaks &amp; outliers</a><a href="leaders.html">Team leaders</a><a href="defenses.html">vs top teams</a><a href="national.html">National TV</a><a href="gameflow.html">Game Flow</a><a href="records.html">Records</a><a class="on" href="find.html">Index</a></nav>
   <div class="sub" id="sub">Where everything is, and how fresh it is.</div>
 </header>
 <main>
@@ -61,9 +61,9 @@ const VIEWS = [
   ["Milestones and records in reach tonight", "./", "Every chase with its chance tonight; the full list under it", "watch.json", "milestones passes round numbers chance"],
   ["Matchups tonight", "./#matchups", "Head-to-head history with tonight's opponent, players against it", "matchups.json", "series head to head"],
   ["History in tonight's notes", "./#history", "What all the team game notes say today, kept or trimmed with the reason", "notes-facts.json", "game notes elias franchise history coach record"],
-  ["Team situations", "situations.html", "Every team's record by situation (home, road, rest, conference, division, TV, weekday, month), the unusual ones first", "situations.json", "splits records unusual"],
-  ["Standings and magic numbers", "situations.html#standings", "Both conferences with clinch and elimination numbers", "standings.json", "playoff play-in clinch seed games back"],
-  ["Rest and back-to-backs", "situations.html#rest", "Teams and players on the second night, with a sortable table", "rest.json", "b2b rest days"],
+  ["Team situations", "situations.html", "Every team's record by situation (home, road, rest, conference, division, TV, weekday, month): tonight's matchups and the unusual ones", "situations.json", "splits records unusual"],
+  ["Standings and magic numbers", "standings.html#standings", "Both conferences with clinch and elimination numbers", "standings.json", "playoff play-in clinch seed games back"],
+  ["Rest and back-to-backs", "standings.html#rest", "Teams and players on the second night, with a sortable table", "rest.json", "b2b rest days"],
   ["Clutch", "clutch.html", "Last five minutes within five: teams and players", "clutch-players.json", "close games late"],
   ["Fourth quarters", "clutch.html?mode=q4", "Fourth-quarter scoring: teams and players", "q4-players.json", "4th quarter"],
   ["Final two minutes", "clutch.html?mode=l2m", "The last two minutes of the 4th and overtime in games within three", "l2m-players.json", "l2m last two minutes"],
@@ -130,7 +130,10 @@ const table = (id, title, words, note, head, rows) => `<details id="${id}" data-
   if (series && series.pairs) {
     const wl = (r) => (r ? `${r.w}-${r.l}` : ""), g = series.guides || {};
     const fix = (r) => (r.adjusted ? (/twice/.test(r.adjusted) ? "; a season it counted twice taken out" : "; last season added from our results (the guide's row stopped at 2024-25)") : "");
-    const basis = (r) => r.era ? `${r.source[0]}'s guide only, which starts in ${r.era}: not all-time`
+    // 0.94: what Basketball Reference's head-to-head page has where it settles nothing, beside the basis.
+    const outside = (r) => (r.outside ? `; Basketball Reference has ${r.outside.w}-${r.outside.l} (${r.outside.note})` : "");
+    const basis = (r) => basis0(r) + outside(r);
+    const basis0 = (r) => r.era ? `${r.source[0]}'s guide only, which starts in ${r.era}: not all-time`
       : r.checked ? (r.source[0] === "check" ? `${r.checked}; neither guide prints it` : `${r.source[0]}'s guide${fix(r)}, and ${r.checked} agrees`)
       : r.counted && r.source[0] === "games" ? "counted from both teams' game lists, which agree; neither guide's print does"
       : r.counted ? `${r.source[0]}'s guide${fix(r)}, and a count of the games agrees`
@@ -159,7 +162,7 @@ const table = (id, title, words, note, head, rows) => `<details id="${id}" data-
       rowsL.map((f) => [f.team, who(f), WORD[f.stat](f.n), dm(f.last.date), f.last.holder || "", [f.last.score, f.last.opp].filter(Boolean).join(", ")])));
     // 0.90: each team's single-game marks from its own games.
     if (lasttime.teamGame) {
-      const mk = (m) => (m ? `${m.v}${m.source === "guide" ? "†" : ""} (${m.score ? `${m.score}${m.opp ? `, ${m.opp}` : ""}, ` : ""}${dm(m.d)})${m.doubt ? ` [a game on file has ${m.doubt.v}, ${dm(m.doubt.d)}]` : ""}` : "");
+      const mk = (m) => (m ? `${m.v}${m.source === "guide" ? "†" : ""} (${m.score ? `${m.score}${m.opp ? `, ${m.opp}` : ""}, ` : ""}${dm(m.d)})${m.behind != null ? ` [the guide still prints ${m.behind}]` : ""}${m.doubt ? ` [a game on file has ${m.doubt.v}, ${dm(m.doubt.d)}]` : ""}` : "");
       out.push(table("t-teamgame", "Team single-game marks", "team record most points in a game fewest allowed largest win loss margin franchise history single-game",
         "from each team's own games as far back as they are on file; an asterisk means back to the franchise's first season; a dagger means the mark is the one its media guide prints, moved only by this season's games",
         ["Team", "Games since", "Most points", "Fewest points", "Most allowed", "Fewest allowed", "Largest win", "Largest loss"],

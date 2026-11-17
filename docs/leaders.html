@@ -112,7 +112,7 @@
 <body>
 <header>
   <h1>NBA Command Center</h1>
-  <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a href="clutch.html">Clutch</a><a href="players.html">With / without</a><a href="trends.html">Streaks &amp; outliers</a><a class="on" href="leaders.html">Team leaders</a><a href="defenses.html">vs top teams</a><a href="national.html">National TV</a><a href="gameflow.html">Game Flow</a><a href="records.html">Records</a><a href="find.html">Index</a></nav>
+  <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a href="standings.html">Standings</a><a href="clutch.html">Clutch</a><a href="players.html">With / without</a><a href="trends.html">Streaks &amp; outliers</a><a class="on" href="leaders.html">Team leaders</a><a href="defenses.html">vs top teams</a><a href="national.html">National TV</a><a href="gameflow.html">Game Flow</a><a href="records.html">Records</a><a href="find.html">Index</a></nav>
   <div class="sub" id="sub">Loading…</div>
 </header>
 <main>
@@ -141,21 +141,24 @@
   <div class="key" id="gkey"></div>
   <div class="scroll"><table id="games" class="grid"></table></div>
 
-  <h2>Shooting lines: 50 / 40 / 90</h2>
-  <div class="intro">Who is right around 50% from the field, 40% on threes or 90% from the line, and how many shots from crossing it.</div>
+  <h2>50-40-90 watch</h2>
+  <div class="intro">Players at all three lines or within 5 points of them (added up), closest first.</div>
+  <div class="controls">
+    <span class="toggle" id="squal"><button data-q="q" class="on">Qualified</button><button data-q="all">All</button></span>
+  </div>
+  <div class="scroll"><table id="club"></table></div>
+  <!-- 0.94 (the user, 11/17: "I haven't had a reason to use it. I care more about the players in the 50-40-90 watch table"): folded away under the watch table. -->
+  <details id="shootbox" style="margin-top:18px"><summary style="cursor:pointer;color:var(--muted);font-size:13.5px">One line at a time: who is near 50%, 40% or 90%, and how many shots from crossing it</summary>
+  <div class="intro">Uses the Qualified / All choice above.</div>
   <div class="controls">
     <select id="sline"></select>
     <select id="swin"><option value="1">Within 1 point</option><option value="2" selected>Within 2 points</option><option value="3">Within 3 points</option><option value="5">Within 5 points</option></select>
     <span class="toggle" id="sside"><button data-s="both" class="on">Both sides</button><button data-s="above">Just above</button><button data-s="below">Just below</button></span>
-    <span class="toggle" id="squal"><button data-q="q" class="on">Qualified</button><button data-q="all">All</button></span>
     <span class="toggle" id="ssort"><button data-s="gap" class="on">Closest to the line</button><button data-s="shots">Fewest shots away</button></span>
     <select id="steam"><option value="">All teams</option></select>
   </div>
   <div class="scroll"><table id="shoot"></table></div>
-
-  <h2>50-40-90 watch</h2>
-  <div class="intro">Players at all three lines or within 5 points of them (added up), closest first. Uses the Qualified / All choice above.</div>
-  <div class="scroll"><table id="club"></table></div>
+  </details>
 </main>
 <footer id="foot"></footer>
 <script type="module">

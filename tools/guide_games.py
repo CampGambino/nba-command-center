@@ -60,6 +60,7 @@ FRANCHISE = {
 import json as _json, os as _os
 _eye = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "guide-games-by-eye.json")
 BY_EYE = _json.load(open(_eye))["rows"] if _os.path.exists(_eye) else {}
+FIXES = _json.load(open(_eye)).get("fixes", {}) if _os.path.exists(_eye) else {}
 UNKNOWN = {}
 
 def norm(name):
@@ -377,6 +378,7 @@ def games(tri, text, official=None):
     elif tri == "MIL":
         rx = re.compile(r"^\s*\d+\s+(?:(\d{1,2})/(\d{1,2})(?:/\d{2})?|([A-Z][a-z]{2})\.?\s*(\d{1,2}))\s+(.+?)\s+([WL])\s*,?\s*(\d{2,3})\s*-\s*(\d{2,3})(?:\s*\([^)]*\))?\*?[\s\u200b]+(\d+)-(\d+)", re.M)
         for p in text.split("\f"):
+            p = re.sub(r"^(\s*\d+\s+)(\d{1,2})(\d{2})(\s+[@A-Za-z])", r"\1\2/\3\4", p, flags=re.M)      # "69    325    Atlanta": the slash is missing (3/25/01)
             h = re.search(r"(\d{4}-\d{2}) MILWAUKEE BUCKS", p[:400])
             ms = list(rx.finditer(p)) if h else []
             if len(ms) < 20: continue
@@ -397,6 +399,7 @@ def games(tri, text, official=None):
             h = re.search(r"(\d{4}-\d{2}) (?:CHICAGO PACKERS|CHICAGO ZEPHYRS|BALTIMORE BULLETS|CAPITAL BULLETS|WASHINGTON BULLETS|WASHINGTON WIZARDS)", p[:900]); i = p.find("GAME-BY-GAME RESULTS")
             if not h or i < 0: continue
             for line in p[i:].split("\n"):
+                line = re.sub(r"[A-Z][a-z]{2,8}\.?\s*\d{1,2}\s+(?:vs\.?|at|@)\s*[A-Za-z. ]+?\s+PPD\b", " ", line)      # "Jan. 22  @ Milwaukee  PPD": postponed, no score
                 for m in rx.finditer(line):
                     if m.group(1)[:3].lower() in MON: row(h.group(1), MON[m.group(1)[:3].lower()], int(m.group(2)), m.group(3), m.group(4), m.group(5), m.group(6), (m.group(7), m.group(8)))
     elif tri in READERS:
@@ -409,6 +412,9 @@ def games(tri, text, official=None):
         if nxt in sig and sig[k] == sig[nxt]: del seasons[k]
     # Rows the text lost but the page shows, and seasons the guide does not print (tools/guide-games-by-eye.json): added after
     # the doubled heading is dropped, so the Bucks' real 1969-70 does not sit on top of the 1970-71 list printed under its name.
+    for fx in FIXES.get(tri, []):                          # a result the guide prints wrong, looked up outside it
+        for r in seasons.get(fx["season"], []):
+            if (r["m"], r["d"]) == (int(fx["date"][5:7]), int(fx["date"][8:10])): r.update(force=fx["won"], letter="W" if fx["won"] else "L", pf=fx["pf"], pa=fx["pa"])
     for r in BY_EYE.get(tri, []):
         seasons.setdefault(r["season"], []).append({"m": int(r["date"][5:7]), "d": int(r["date"][8:10]), "raw": r["name"], "letter": "W" if r["won"] else "L", "pf": r["pf"], "pa": r["pa"], "rec": tuple(r["rec"]) if r.get("rec") else None, "site": r["site"], "opp": None})
     for season, rows in sorted(seasons.items()):
@@ -416,16 +422,33 @@ def games(tri, text, official=None):
         if rows and rows[0]["opp"]:                     # all-time lists against one opponent: a block printed twice is read once
             seen = set(); rows[:] = [r for r in rows if not ((k := (r["m"], r["d"], r["opp"], r["pf"], r["pa"])) in seen or seen.add(k))]
         every = all(x["rec"] for x in rows)
-        rows.sort(key=(lambda r: (sum(r["rec"]), when(r))) if every else when)
+        if every:
+            # Rows are put in the order of their running record. One record with a misprinted digit ("33-33" between 33-22
+            # and 33-24) would send its game to the end of the season: where the games either side of it by date are one
+            # apart on each side, it keeps its place by date.
+            bydate = sorted(rows, key=when)
+            for r in bydate: r["_n"] = sum(r["rec"])
+            for k, r in enumerate(bydate):
+                if r["_n"] != k + 1 and 0 < k < len(bydate) - 1 and sum(bydate[k - 1]["rec"]) == k and sum(bydate[k + 1]["rec"]) == k + 2: r["_n"] = k + 1
+            rows.sort(key=lambda r: (r["_n"], when(r)))
+        else: rows.sort(key=when)
         prev = (0, 0)
-        for r in rows:
+        for i, r in enumerate(rows):
             won = r["letter"] == "W" if r["letter"] else r["pf"] > r["pa"]
             agree = r["letter"] and r["pf"] != r["pa"] and (r["pf"] > r["pa"]) == won and SCORE_FIRST.get(tri)     # the letter and an own-score-first score say the same thing
-            if r["rec"]:
-                if agree: pass
-                elif r["rec"] == (prev[0] + 1, prev[1]): won = True
-                elif r["rec"] == (prev[0], prev[1] + 1): won = False
-                prev = r["rec"]
+            if r.get("force") is not None:                 # looked up outside the guide (tools/guide-games-by-eye.json, "fixes"): the guide's own count runs on
+                won = r["force"]; prev = r["rec"] or (prev[0] + won, prev[1] + (not won))
+            elif r["rec"]:
+                nxt = rows[i + 1]["rec"] if i + 1 < len(rows) else None
+                after = lambda c: nxt in ((c[0] + 1, c[1]), (c[0], c[1] + 1))
+                if agree: prev = r["rec"]
+                elif r["rec"] == (prev[0] + 1, prev[1]): won = True; prev = r["rec"]
+                elif r["rec"] == (prev[0], prev[1] + 1): won = False; prev = r["rec"]
+                elif nxt and after((prev[0] + 1, prev[1])) != after((prev[0], prev[1] + 1)):
+                    # The record does not follow the one before it, but the next row's does follow one of the two it could
+                    # have been: one digit of this record is misprinted (the Wizards' "33-33" for 33-23 on 2/22/15).
+                    won = after((prev[0] + 1, prev[1])); prev = (prev[0] + won, prev[1] + (not won))
+                else: prev = r["rec"]
             else: prev = (prev[0] + won, prev[1] + (not won))
             nm, site = opp_site(r["raw"])
             out.append({"season": season, "date": iso(season, r["m"], r["d"]), "name": nm, "opp": r["opp"] or franchise(nm, season, tri), "site": r["site"] or site, "won": won, "pf": r["pf"], "pa": r["pa"]})

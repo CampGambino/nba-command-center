@@ -3861,6 +3861,40 @@ await articlesChecks(ok);
       && findings({ pg: pgF, names: namesF, qsum: qsumF, teamGp: teamGpF }).every((f) => f.test !== "noas"),
       "finder (0.81): the highest-ranked scorer, rebounder or passer who has never been an All-Star, from the NBA Guide's selection counts; names match without accents or Jr.", JSON.stringify(NA));
   }
+  // 0.94 (the user, 11/17): a rookie is never "not an All-Star", and a league leader gets what is new about him.
+  {
+    const { plainName } = await import("../src/anticipate/finder.js");
+    const AS = new Set(Object.values(namesF).filter((n) => n !== "Scorer BKN" && n !== "Lone Passer").map(plainName));
+    const idOf = (n) => Object.keys(namesF).find((k) => namesF[k] === n);
+    const leadersF = { ast: [{ season: "2024-25", player: "Old Passer", value: 11.6 }, { season: "2025-26", player: "Other Passer", value: 10.7 }], pts: [{ season: "2025-26", player: "Absurd Scorer", value: 33.1 }] };
+    const F1 = findings({ pg: pgF, names: namesF, qsum: qsumF, teamGp: teamGpF, allStars: AS, leaders: leadersF, rookies: new Set() });
+    const F2 = findings({ pg: pgF, names: namesF, qsum: qsumF, teamGp: teamGpF, allStars: AS, leaders: leadersF, rookies: new Set([idOf("Lone Passer"), idOf("Scorer BKN")]) });
+    const t1 = F1.filter((f) => f.test === "first" || f.test === "noas").map((f) => f.text), t2 = F2.filter((f) => f.test === "first" || f.test === "noas").map((f) => f.text);
+    ok(t1.includes("Lone Passer leads the NBA in assists (11.0 assists a game): he has never led the league in assists (last season's leader: Other Passer, 10.7)") && !t1.some((t) => /Lone Passer.*All-Star/.test(t))
+      && t1.some((t) => /^Scorer BKN is \dth in the NBA in scoring .* and has never been an All-Star/.test(t)) && !t1.some((t) => /^Absurd Scorer leads the NBA in scoring .*never led/.test(t))
+      && t2.includes("Lone Passer leads the NBA in assists (11.0 assists a game) as a rookie (last season's leader: Other Passer, 10.7)") && !t2.some((t) => /All-Star/.test(t) && /Lone Passer|Scorer BKN/.test(t)),
+      "finder (0.94; the user, 11/17: a rookie \"wouldn't have been able to be\" an All-Star, and of the assists leader \"since he's never led the league in assists per game before, it is notable that he is now\"): the league leader in a stat who has never led it gets that line, from the NBA Guide's yearly leaders; a past leader gets none; nobody in his first season is called 'never an All-Star'; a rookie leading says 'as a rookie'",
+      JSON.stringify([t1, t2]));
+  }
+  // 0.94 (the user's 'DET notes' line, 11/17): two bullets that ran together are two lines, and a feat gets its game's date.
+  {
+    const { readHistory, splitBullets } = await import("../src/notes/narrative.js");
+    const { statClaims: SC } = await import("../src/notes/boxscore.js");
+    const Ln = (text) => ({ text, cells: [{ x0: 40, x1: 560, cx: 300, text }], charX: [] });
+    const keysN = ["min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"], rowN = (o) => keysN.map((k) => o[k] || 0);
+    const playersN = [{ id: "1", name: "Cade Cunningham" }, { id: "2", name: "Duncan Robinson" }, { id: "3", name: "Jalen Duren" }];
+    const boxN = { keys: keysN, names: { 1: "Cade Cunningham", 2: "Duncan Robinson" }, games: [{ d: "2026-11-15", opp: "PHI", pl: { 1: rowN({ pts: 30, ftm: 14, fta: 14 }), 2: rowN({ pts: 8, fg3m: 2 }) } }, { d: "2026-11-13", opp: "CHI", pl: { 1: rowN({ pts: 22, ftm: 5, fta: 7 }) } }] };
+    const docN = { pages: [{ page: 1, width: 612, lines: [Ln("• Cade Cunningham made all 14 of his free throws, the most he has made without a miss in his career Duncan Robinson knocked down two three-point field goals and his 47 treys are tied for the fourth most in the league this season.")] }] };
+    const hN = readHistory(docN, playersN, { seasonStart: "2026-10-01", today: "2026-11-17", teamWords: ["Detroit", "Pistons"], box: boxN }).map((x) => [x.player, x.text]);
+    const fullN = playersN.map((p) => ({ ...p, re: new RegExp(`\\b${p.name}\\b`, "i") }));
+    ok(hN.length === 2 && hN[0][0] === "Cade Cunningham" && hN[0][1] === "Cade Cunningham made all 14 of his free throws, the most he has made without a miss in his career (11/15 vs. PHI)."
+      && hN[1][0] === "Duncan Robinson" && /^Duncan Robinson knocked down two three-point field goals/.test(hN[1][1]) && !/Cunningham/.test(hN[1][1])
+      && splitBullets("Cade Cunningham scored 30 points and handed out 10 assists, joining Jalen Duren as the only Pistons with such a game this season and the first since 2019.", fullN).length === 1
+      && splitBullets("Cade Cunningham and Jalen Duren combined for 60 points, the most by a Pistons duo since Isiah Thomas and Joe Dumars had 62 in 1990 in a win.", fullN).length === 1
+      && JSON.stringify(SC("made all 14 of his free throws")) === JSON.stringify([{ stat: "ftm", n: 14 }, { stat: "fta", n: 14 }]),
+      "notes (0.94; the user, 11/17: \"this looks like a merge, but it also doesn't tell me when cade made those free throws\"): a bullet with no full stop that ran into the next player's bullet is cut at his name, each line keeps its own player, and a feat told without a date gets the date of the one box score it matches; a name after 'joining' or 'and' is not a new bullet",
+      JSON.stringify(hN));
+  }
   // Votes on finder lines teach it by test and by cut.
   const { features } = await import("../src/anticipate/learn.js");
   ok(["kind:find", "find:part", "find:part:q3", "find:part:noft"].every((f) => features(part, {}).includes(f)) && features({ kind: "season", key: "x|y", text: "" }, {}).every((f) => !f.startsWith("find:")),
@@ -4013,7 +4047,7 @@ await articlesChecks(ok);
   ok(OLD.games.length === 26947 && OLD.complete["1999-00"] === false && Object.values(OLD.complete).filter(Boolean).length === 22 && DR.league === "1993-94" && DR.from.LAL === "1948-49" && DR.whole.LAL && DR.from.GSW === "1962-63" && DR.from.MIL === "1968-69" && DR.whole.MIL
     && DR.from.SAC === "1948-49" && DR.from.PHI === "1949-50" && DR.from.WAS === "1961-62" && DR.from.UTA === "1974-75" && DR.from.DEN === "1976-77" && DR.from.IND === "1976-77" && DR.from.BKN === "1976-77" && DR.from.DAL === "1980-81"
     && DR.from.CHI === "1979-80" && DR.from.BOS === "1988-89" && DR.from.ATL === "1968-69" && DR.from.PHX === "1968-69" && DR.from.POR === "1970-71" && DR.from.CLE === "1970-71" && DR.from.LAC === "1970-71" && DR.from.SAS === "1993-94" && DR.from.NYK === "1993-94" && DR.from.DET === "1993-94"
-    && wholeR === "BKN CHA CLE DAL DEN IND LAC LAL MEM MIA MIL MIN NOP PHI PHX POR SAC TOR UTA WAS" && !DR.whole.BOS && DR.seq.LAL[0].d === "1948-11-04" && DR.seq.SAC[0].d.startsWith("1948-11") && DR.mended.WAS.length === 3 && DR.seq.NYK.filter((g) => g.d >= "1999-10-01" && g.d < "2000-05-01").length === 82,
+    && wholeR === "BKN CHA CLE DAL DEN IND LAC LAL MEM MIA MIL MIN NOP PHI PHX POR SAC TOR UTA WAS" && !DR.whole.BOS && DR.seq.LAL[0].d === "1948-11-04" && DR.seq.SAC[0].d.startsWith("1948-11") && DR.mended.WAS.length === 2 && DR.seq.NYK.filter((g) => g.d >= "1999-10-01" && g.d < "2000-05-01").length === 82,
     "deep history, the real files (0.87, 0.92, 0.93): every team from 1993-94 (the games ESPN lacks in 1999-00 are in the guides); twenty franchises whole (0.92 adds Cleveland from its picture pages, and Charlotte, Miami, Phoenix, Portland and the Clippers once the rows the user's screenshots showed were read; 0.93 adds Milwaukee with the 1969-70 season its guide does not print, from the Basketball Reference schedule the user sent), among them Sacramento from 1948-49, Philadelphia from 1949-50 and Washington from 1961-62; Atlanta from 1968-69, Chicago 1979-80, Boston 1988-89",
     JSON.stringify([OLD.games.length, DR.league, DR.from]));
 }
@@ -4121,11 +4155,11 @@ await articlesChecks(ok);
   const RS = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-series-history-2026-27.json"), "utf8"));
   const pairsR = seriesTable(RS, [], "2026-10-01"), cnt = (st) => pairsR.filter((r) => r.status === st).length;
   const adjR = Object.values(RS.teams).flatMap((t) => Object.values(t)).filter((r) => r.adjusted);
-  ok(Object.keys(RS.teams).length === 30 && pairsR.length === 435 && cnt("confirmed") === 340 && cnt("differs") === 38 && RS.teams.BOS.LAL.overall.w === 169 && RS.teams.BOS.LAL.overall.l === 135 && RS.teams.BOS.LAL.home.w === 85
+  ok(Object.keys(RS.teams).length === 30 && pairsR.length === 435 && cnt("confirmed") === 345 && cnt("differs") === 37 && RS.teams.BOS.LAL.overall.w === 169 && RS.teams.BOS.LAL.overall.l === 135 && RS.teams.BOS.LAL.home.w === 85
     && RS.teams.LAL.BOS.overall.w === 135 && RS.teams.LAL.BOS.overall.l === 169 && RS.teams.DEN.BOS.overall.w === 42 && RS.teams.DEN.BOS.adjusted && RS.guides.OKC.era === "2008-09" && RS.guides.DET.era === "1957-58" && RS.guides.GSW.era === "1962-63" && !RS.guides.MIL.short && RS.guides.MIL.lists
     && RS.guides.GSW.agree.join("/") === "20/20" && RS.teams.ATL.BOS.overall.l === 251 && RS.teams.NYK.ATL.overall.w === 195 && RS.teams.NYK.ATL.adjusted && RS.teams.SAC.HOU.bad && RS.first.OKC === 1967
     && adjR.length === 73 && adjR.filter((r) => /twice/.test(r.adjusted)).length === 5 && !RS.teams.SAS.ATL.overall.streak && pairsR.every((r) => r.overall && r.overall.w + r.overall.l > 0),
-    "series data (0.85, 0.93): all 30 guides and all 435 pairings, 340 confirmed from both sides (330 before the Bucks' 1969-70 season was added to their lists in 0.93); the Lakers' count from their game lists mirrors Boston's printed 169-135; Denver's and the Knicks' rows stopped at 2024-25 and are brought up with our results; the Kings' misprint is marked",
+    "series data (0.85, 0.93, 0.94): all 30 guides and all 435 pairings, 345 confirmed from both sides (330 before the Bucks' 1969-70 season was added to their lists in 0.93; 340 before the Wizards' postponed-game rows and a misprinted record were read right in 0.94); the Lakers' count from their game lists mirrors Boston's printed 169-135; Denver's and the Knicks' rows stopped at 2024-25 and are brought up with our results; the Kings' misprint is marked",
     JSON.stringify([Object.keys(RS.teams).length, pairsR.length, cnt("confirmed"), cnt("differs"), adjR.length, adjR.filter((r) => /twice/.test(r.adjusted)).length, RS.guides.GSW]));
   // 0.87: a count of the games as a third opinion.
   {
@@ -4134,14 +4168,15 @@ await articlesChecks(ok);
       teams: { AAA: { BBB: { overall: { w: 12, l: 8 } }, CCC: { overall: { w: 5, l: 5 } }, LLL: { overall: { w: 3, l: 3 } } }, BBB: { AAA: { overall: { w: 9, l: 12 }, home: { w: 6, l: 5 }, road: { w: 3, l: 7 } } }, DDD: { AAA: { overall: { w: 7, l: 2 } } }, LLL: { AAA: { overall: { w: 4, l: 3 } } } } };
     const P0 = seriesPair(ser, "AAA", "BBB");
     const withC = (c) => ({ ...ser, counted: c });
-    const mineP = seriesPair(withC({ AAA: { BBB: [{ w: 12, l: 8, by: "AAA" }] } }), "AAA", "BBB"), theirP = seriesPair(withC({ AAA: { BBB: [{ w: 12, l: 9, by: "BBB" }] } }), "AAA", "BBB");
-    const noneP = seriesPair(withC({ AAA: { BBB: [{ w: 13, l: 9, by: "AAA" }] } }), "AAA", "BBB"), bothP = seriesPair(withC({ AAA: { BBB: [{ w: 12, l: 8, by: "AAA" }, { w: 12, l: 9, by: "BBB" }] } }), "AAA", "BBB");
+    const mineP = seriesPair(withC({ AAA: { BBB: [{ w: 12, l: 8, by: "BBB" }] } }), "AAA", "BBB"), theirP = seriesPair(withC({ AAA: { BBB: [{ w: 12, l: 9, by: "AAA" }] } }), "AAA", "BBB");
+    const ownP = seriesPair(withC({ AAA: { BBB: [{ w: 12, l: 8, by: "AAA" }] } }), "AAA", "BBB");
+    const noneP = seriesPair(withC({ AAA: { BBB: [{ w: 13, l: 9, by: "AAA" }] } }), "AAA", "BBB"), bothP = seriesPair(withC({ AAA: { BBB: [{ w: 12, l: 8, by: "BBB" }, { w: 12, l: 9, by: "AAA" }] } }), "AAA", "BBB");
     const oneP = seriesPair(withC({ AAA: { DDD: [{ w: 2, l: 7, by: "AAA" }] } }), "AAA", "DDD"), selfL = seriesPair(withC({ AAA: { LLL: [{ w: 3, l: 4, by: "LLL" }] } }), "AAA", "LLL"), otherL = seriesPair(withC({ AAA: { LLL: [{ w: 3, l: 4, by: "AAA" }] } }), "AAA", "LLL");
     ok(P0.status === "differs" && mineP.status === "confirmed" && mineP.counted && mineP.source.join() === "AAA,games" && mineP.rec.overall.w === 12 && mineP.rec.overall.l === 8 && !mineP.other
       && theirP.status === "confirmed" && theirP.source.join() === "BBB,games" && theirP.rec.overall.w === 12 && theirP.rec.overall.l === 9 && theirP.rec.home.w === 7 && theirP.rec.road.l === 6
-      && noneP.status === "differs" && bothP.status === "differs" && oneP.status === "confirmed" && oneP.source.join() === "DDD,games" && oneP.rec.overall.w === 2
+      && ownP.status === "differs" && noneP.status === "differs" && bothP.status === "differs" && oneP.status === "confirmed" && oneP.source.join() === "DDD,games" && oneP.rec.overall.w === 2
       && selfL.status === "differs" && otherL.status === "confirmed" && otherL.source.join() === "LLL,games" && otherL.rec.overall.l === 4,
-      "series (0.87): a count of the games settles a pairing only by landing exactly on a printed record: on the one shown (confirmed, that guide and the games), on the other guide's (that one is shown instead, with its home and road splits), on neither or on one each (unchanged); a single guide's record is confirmed the same way; a guide whose record was itself counted from its lists is not confirmed by those same lists, only by the other team's games",
+      "series (0.87, 0.94): a count of the games settles a pairing only by landing exactly on a printed record: on the one shown (confirmed, that guide and the games), on the other guide's (that one is shown instead, with its home and road splits), on neither or on one each (unchanged); a single guide's record is confirmed the same way; 0.94: a guide's own game list never confirms its own table (the Hawks' table and list shared a misprint against Milwaukee), only the other team's games do",
       JSON.stringify([mineP, theirP, noneP.status, bothP.status, oneP, selfL.status, otherL]));
     // countedPairs: XXX's games reach its first season, YYY's do not; a Cup final and a later season are left out.
     const deepT = { seq: { XXX: [{ d: "2010-11-01", pf: 100, pa: 90, opp: "YYY" }, { d: "2011-11-01", pf: 90, pa: 100, opp: "YYY" }, { d: "2011-11-03", pf: 100, pa: 90, opp: "GONE" }], YYY: [{ d: "2015-11-01", pf: 100, pa: 90, opp: "XXX" }] }, from: { XXX: "2010-11", YYY: "2015-16" } };
@@ -4159,9 +4194,13 @@ await articlesChecks(ok);
     const changed = T2.filter((r, i) => r.overall.w !== pairsR[i].overall.w || r.overall.l !== pairsR[i].overall.l).map((r) => r.a + r.b).join();
     const itC = seriesItems(RS2, [], "UTA", "WAS", "2026-11-17")[0];
     const mu = T2.find((r) => r.a === "MEM" && r.b === "UTA"), mw = T2.find((r) => r.a === "MIL" && r.b === "WAS"), am = T2.find((r) => r.a === "ATL" && r.b === "MIL");
-    ok(c2("confirmed") === 398 && c2("differs") === 9 && c2("single") === 28 && T2.filter((r) => r.counted).length === 58 && changed === "ATLMIL,MEMUTA,UTAWAS" && am.source.join() === "ATL,games" && mu.overall.w === 44 && mu.overall.l === 69 && mu.source.join() === "games" && mw.status === "confirmed" && mw.source.join() === "MIL,WAS" && mw.overall.w === 136 && mw.overall.l === 99 && uw.overall.w === 64 && uw.overall.l === 54 && uw.source.join() === "WAS,games"
+    const SV = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "series-verified.json"), "utf8")), T2v = seriesTable({ ...RS2, verified: SV.pairs, outside: SV.notes }, [], "2026-10-01"), cv = (st) => T2v.filter((r) => r.status === st).length, fv = (a, b) => T2v.find((r) => r.a === a && r.b === b);
+    ok(c2("confirmed") === 382 && c2("differs") === 12 && c2("single") === 41 && T2.filter((r) => r.counted).length === 37 && changed === "MEMUTA" && am.status === "confirmed" && am.source.join() === "MIL,games" && am.overall.w === 122 && am.overall.l === 122
+      && cv("confirmed") === 428 && cv("differs") === 3 && cv("single") === 4 && T2v.filter((r) => r.checked).length === 46 && T2v.filter((r) => r.status === "differs").map((r) => r.a + r.b).join() === "ATLDET,ATLLAL,DETGSW"
+      && fv("GSW", "WAS").source.join() === "WAS,check" && fv("GSW", "WAS").overall.w === 122 && fv("CHA", "OKC").source.join() === "check" && fv("CHA", "OKC").overall.l === 46 && fv("ATL", "DEN").overall.l === 50 && fv("LAL", "SAC").overall.w === 288
+      && fv("NYK", "PHI").status === "confirmed" && fv("NYK", "PHI").outside.l === 267 && fv("ATL", "LAL").outside.w === 146 && !fv("BOS", "LAL").outside && mu.overall.w === 44 && mu.overall.l === 69 && mu.source.join() === "games" && mw.status === "confirmed" && mw.source.join() === "MIL,WAS" && mw.overall.w === 136 && mw.overall.l === 99 && uw.overall.w === 64 && uw.overall.l === 54 && uw.source.join() === "WAS,games"
       && al.status === "differs" && RS.guides.LAL.lists && RS.guides.WAS.lists && !RS.guides.UTA.lists && /the Wizards' media guide, and a count of the games agrees/.test(itC.text),
-      "series, the real files (0.87, 0.91, 0.92, 0.93): with the games counted, 398 of 435 pairings are confirmed (340 by both guides, 57 by one guide and the count, 1 by the two teams' counts agreeing where neither print does: Memphis v Utah, 44-69), 9 still differ and 28 rest on one guide (was 37 before the Bucks' lists were whole; Milwaukee v Washington is 136-99 by both); Utah v Washington is Washington's 54-64; Atlanta v the Lakers stays open because the Lakers' record is their own lists",
+      "series, the real files (0.87 to 0.94): 345 pairings are confirmed by both guides and 37 more by the other team's games (Memphis v Utah, 44-69, by the two counts where neither print is right; Hawks v Bucks is 122-122 once the Hawks' misprinted 3/1/74 is corrected). 0.94: with 24 of Basketball Reference's head-to-head pages read, 428 are confirmed (46 by that check), 3 differ (Atlanta v Detroit, Atlanta v the Lakers, Detroit v Golden State) and 4 rest on one guide; where the page settles nothing (a tiebreaker counted as a game, a guide that starts late) its figure is carried beside the record; Milwaukee v Washington is 136-99 by both; Utah v Washington is Washington's 54-64; Atlanta v the Lakers stays open because the Lakers' record is their own lists",
       JSON.stringify([c2("confirmed"), c2("differs"), c2("single"), T2.filter((r) => r.counted).length, changed, uw, al.status, itC && itC.text]));
   }
   // 0.88: the older games in the head-to-head lines.
@@ -4199,9 +4238,9 @@ await articlesChecks(ok);
     const T30 = Object.keys(offR).sort(); let nP = 0, nW = 0, nE = 0;
     for (let i = 0; i < 30; i++) for (let j = i + 1; j < 30; j++) { const p = pairHistory({ deep: deepR, official: offR, series: RS3 }, T30[i], T30[j]); if (p) { nP++; nW += p.whole; nE += p.exact; } }
     const lacCha = pairHistory({ deep: deepR, official: offR, series: RS3 }, "CHA", "LAC"), clW = TI(HR, null, "WAS", "CLE", "2026-10-20", pairHistory({ deep: deepR, official: offR, series: RS3 }, "WAS", "CLE"));
-    ok(nP === 435 && nW === 399 && nE === 371 && deepR.seq.LAL.every((g) => g.h === true || g.h === false || g.h === null) && lacCha.from === "1988-89" && lacCha.whole
+    ok(nP === 435 && nW === 399 && nE === 356 && deepR.seq.LAL.every((g) => g.h === true || g.h === false || g.h === null) && lacCha.from === "1988-89" && lacCha.whole
       && /^The Cavaliers have won 16 straight against the Wizards, the longest streak by either team in the series \(was 13, the Wizards, 1972-74\)/.test(tx(clW, /16 straight/)),
-      "head-to-head, the real files (0.88, 0.93): every pairing has games before 2016-17 (ESPN from 1993-94 at the least), 399 back to the first meeting, 371 of those with a count that lands on the record shown; \"The Cavaliers have won 16 straight against the Wizards, the longest streak by either team in the series (was 13, the Wizards, 1972-74)\"",
+      "head-to-head, the real files (0.88, 0.93): every pairing has games before 2016-17 (ESPN from 1993-94 at the least), 399 back to the first meeting, 356 of those with a count that lands on the record shown before the outside check (fewer than in 0.93, because a guide's own list no longer confirms its own table); \"The Cavaliers have won 16 straight against the Wizards, the longest streak by either team in the series (was 13, the Wizards, 1972-74)\"",
       JSON.stringify([nP, nW, nE, lacCha.from, clW.map((i) => i.text).slice(0, 4)]));
   }
   // 0.89: "the last time…".
@@ -4277,9 +4316,9 @@ await articlesChecks(ok);
     ok(Object.keys(TR).length === 19 && tr("PHI", "pts", "game").value === 163 && tr("PHI", "pts", "quarter").value === 53 && tr("PHI", "fg3m", "game").games.length === 2 && tr("LAL", "pts", "game").value === 162 && tr("LAL", "pts", "game").games[0].date === "1972-03-19" && tr("LAL", "pts", "game", "most", "opp").value === 173
       && tr("MIN", "pts", "game").value === 151 && tr("CHI", "pts", "game", "fewest").value === 49 && tr("DAL", "pts", "game").value === 156 && tr("DAL", "pts", "game", "most", "opp").value === 153 && tr("GSW", "fgm", "game", "fewest").value === 23 && tr("POR", "fgm", "game", "fewest").value === 19
       && tr("MIL", "pts", "game", "most", "opp").value === 171 && tr("OKC", "fgm", "game", "fewest").value === 20 && tr("NOP", "pts", "game").games[0].date === "2026-04-07" && tr("ORL", "fga", "game").games.length === 2 && tr("DET", "pts", "game").value === 186 && tr("LAC", "pts", "game", "fewest").value === 63
-      && tr("BOS", "fgm", "game").doubt.join() === "72,77" && tr("PHX", "reb", "game", "fewest", "opp").value === 19 && tr("CHA", "fg3m", "game", "most", "opp").value === 28 && tr("SAS", "pts", "game").value === 171 && tr("BKN", "pts", "half", "fewest").value === 24 && tr("HOU", "pts", "game", "most", "opp").value === 165
+      && tr("BOS", "fgm", "game").value === 72 && !tr("BOS", "fgm", "game").doubt && /Basketball Reference/.test(tr("BOS", "fgm", "game").checked) && tr("BOS", "fta", "game").value === 65 && tr("PHX", "reb", "game", "fewest", "opp").value === 19 && tr("CHA", "fg3m", "game", "most", "opp").value === 28 && tr("SAS", "pts", "game").value === 171 && tr("BKN", "pts", "half", "fewest").value === 24 && tr("HOU", "pts", "game", "most", "opp").value === 165
       && TRF.scopes.OKC === "in Oklahoma City history (since 2008-09)" && Object.values(TR).flat().length > 1900,
-      "team records, the real file (0.93): 19 guides' team records pages are read (each lays them out its own way: rows with a label, a label on the line above or below, a 'Low' row, sub-headings, bands, dotted leaders): the Lakers' 162 and the 173 scored on them, Dallas's 156 in double overtime, Golden State's 'Fewest Game' rows, Portland's 'Field Goals / Made', Boston printing one night as 72 and as 77 field goals; the Thunder's marks are Oklahoma City's only",
+      "team records, the real file (0.93): 19 guides' team records pages are read (each lays them out its own way: rows with a label, a label on the line above or below, a 'Low' row, sub-headings, bands, dotted leaders): the Lakers' 162 and the 173 scored on them, Dallas's 156 in double overtime, Golden State's 'Fewest Game' rows, Portland's 'Field Goals / Made'; Boston prints one night as 72 and as 77 field goals, and the box score (the user's screenshot, 11/17) says 72, so the 77 is dropped; the Thunder's marks are Oklahoma City's only",
       JSON.stringify([Object.keys(TR), Object.values(TR).flat().length, tr("BOS", "fgm", "game")]));
     const { teamGameRecords: TGR3, recordLines: RL3, boxTable } = await import("../src/records/teamgame.js");
     const deepP = { seq: { AAA: [{ d: "1990-11-10", pf: 160, pa: 120, opp: "Q" }, { d: "1993-03-26", pf: 107, pa: 155, opp: "DDD" }, ...Array.from({ length: 420 }, (_, i) => ({ d: `2010-01-${String((i % 28) + 1).padStart(2, "0")}`, pf: 100, pa: 99, opp: "CCC" }))] }, from: { AAA: "1988-89" }, whole: { AAA: true } };
@@ -4291,6 +4330,25 @@ await articlesChecks(ok);
       && RL3(TG3, "2026-11-10", "2026-11-11").every((l) => !/scored/.test(l.text)) && lalRow[2] === "162 (3/19/72)" && lalRow[4] === "173 (2/27/59)" && bt.length > 300,
       "team records (0.93): where the guide prints the mark it is the mark through last season and only this season's games move it; a game on file that beats the print (Charlotte's season page has a 107-155 loss; its records page says no opponent has passed 146) is shown as a doubt and never becomes the record; the finder table has a row a team and stat",
       JSON.stringify([m3.most, m3.allowed, lalRow, bt.length]));
+  }
+  // 0.94: our own results override a guide page that is behind; the Standings tab; pages and grouping on the long tables.
+  {
+    const { teamGameRecords: TGR4 } = await import("../src/records/teamgame.js");
+    const prB = { through: "2025-26", scopes: {}, teams: { AAA: [{ stat: "pts", kind: "most", period: "game", value: 146, side: "opp", games: [{ opp: "R", date: "2021-11-27" }] }] } };
+    const deepB = { seq: { AAA: [{ d: "1993-03-26", pf: 107, pa: 155, opp: "DDD" }] }, from: { AAA: "1988-89" }, whole: { AAA: true } };
+    const histB = { columns: ["date", "home", "away", "homeScore", "awayScore", "type"], games: [["2025-11-14", "MMM", "AAA", 147, 134, 2], ["2025-11-20", "AAA", "MMM", 120, 110, 2]] };
+    const mB = TGR4({ deep: deepB, history: histB, rows: [], printed: prB }).AAA.marks.allowed;
+    const sit = fs.readFileSync(path.join(root, "docs", "situations.html"), "utf8"), stn = fs.readFileSync(path.join(root, "docs", "standings.html"), "utf8");
+    const same = stn.replace('<body data-view="standings">', '<body data-view="situations">').replace("<title>NBA Command Center · Standings</title>", "<title>NBA Command Center · Team situations</title>")
+      .replace('<a href="situations.html">Team situations</a><a class="on" href="standings.html">Standings</a>', '<a class="on" href="situations.html">Team situations</a><a href="standings.html">Standings</a>') === sit;
+    const pagesH = fs.readdirSync(path.join(root, "docs")).filter((f) => f.endsWith(".html")), navOk = pagesH.every((f) => /href="standings\.html"[^>]*>Standings<\/a>/.test(fs.readFileSync(path.join(root, "docs", f), "utf8")));
+    const tr2 = fs.readFileSync(path.join(root, "docs", "trends.html"), "utf8"), nat = fs.readFileSync(path.join(root, "docs", "national.html"), "utf8"), ldr = fs.readFileSync(path.join(root, "docs", "leaders.html"), "utf8"), idx = fs.readFileSync(path.join(root, "docs", "index.html"), "utf8");
+    ok(mB.v === 147 && mB.d === "2025-11-14" && mB.behind === 146 && mB.doubt.v === 155 && same && navOk && pagesH.length === 12
+      && /body\[data-view="situations"\] \.v-standings, body\[data-view="standings"\] \.v-situations \{ display: none; \}/.test(sit) && sit.indexOf('<div class="v-standings">') < sit.indexOf("<h2>All teams</h2>") && sit.indexOf("Most unusual records") < sit.indexOf('<div class="v-standings">')
+      && /id="sgroup"/.test(tr2) && /sgroup !== "off" && !cat/.test(tr2) && /data-g="player"/.test(tr2) && /const PER = 25/.test(nat) && /id="ppager"/.test(nat) && ldr.indexOf("<h2>50-40-90 watch</h2>") < ldr.indexOf('<details id="shootbox"') && !/<h2>Shooting lines/.test(ldr)
+      && /"standings\.html#rest"/.test(idx) && /"standings\.html#standings"/.test(idx),
+      "0.94: a game from our own results that beats a guide's printed mark is the mark and the page is noted as behind (Milwaukee's 147 on Charlotte, 11/14/25; the guide still says 146), while an older listed game stays a doubt; the four standings tables are on their own Standings tab (the same file as Team situations, kept in step), every page links to it; the streaks table can show one row a player and stat, the national TV table has pages of 25, and the shooting-lines table is folded away under the 50-40-90 watch",
+      JSON.stringify([mB, same, navOk, pagesH.length]));
   }
   // 0.91: two teams' counts that agree; a mended list; scoring by season.
   {
@@ -4357,14 +4415,14 @@ await articlesChecks(ok);
     }
     const lalBos = GGm.teams.LAL.filter((g) => g[2] === "BOS"), first = GGm.teams.LAL[0];
     const nT = Object.keys(GGm.teams).length, nG = Object.values(GGm.teams).reduce((n, gs) => n + gs.length, 0), part = (t) => right[t].split("/").slice(0, 2).join("/");
-    ok(nT === 24 && nG === 97818 && GGm.teams.MIL.filter((g) => g[0] >= "1969-10-01" && g[0] < "1970-04-01").length === 82 && GGm.teams.MIL.filter((g) => g[0] >= "1969-10-01" && g[0] < "1970-04-01" && g[4]).length === 56 && GGm.teams.MIL.some((g) => g[0] === "1970-03-15" && g[2] === "CHI" && g[3] === "N") && part("CLE") === "49/56" && GGm.teams.CLE[0][0] === "1970-10-14" && GGm.teams.MIA.some((g) => g[0] === "1991-02-22" && g[4] === 0) && GGm.teams.PHX.some((g) => g[0] === "1969-01-29" && g[3] === "N" && g[2] === "MIL")
+    ok(nT === 24 && nG === 97819 && GGm.teams.MIL.some((g) => g[0] === "2001-03-25" && g[2] === "ATL" && g[4] === 1) && GGm.teams.WAS.some((g) => g[0] === "2021-04-09" && g[2] === "GSW" && g[4] === 1) && GGm.teams.WAS.some((g) => g[0] === "2015-02-24" && g[2] === "GSW" && g[4] === 0) && GGm.teams.WAS.some((g) => g[0] === "2015-02-22" && g[4] === 0) && GGm.teams.ATL.some((g) => g[0] === "1974-03-01" && g[4] === 1 && g[5] === 105) && GGm.teams.ATL.some((g) => g[0] === "1974-01-13" && g[4] === 0) && GGm.teams.CHA.some((g) => g[0] === "1993-03-26" && g[6] === 115) && GGm.teams.MIL.filter((g) => g[0] >= "1969-10-01" && g[0] < "1970-04-01").length === 82 && GGm.teams.MIL.filter((g) => g[0] >= "1969-10-01" && g[0] < "1970-04-01" && g[4]).length === 56 && GGm.teams.MIL.some((g) => g[0] === "1970-03-15" && g[2] === "CHI" && g[3] === "N") && part("CLE") === "49/56" && GGm.teams.CLE[0][0] === "1970-10-14" && GGm.teams.MIA.some((g) => g[0] === "1991-02-22" && g[4] === 0) && GGm.teams.PHX.some((g) => g[0] === "1969-01-29" && g[3] === "N" && g[2] === "MIL")
       && GGm.teams.POR.some((g) => g[0] === "1997-03-05" && g[4] === 1 && g[5] === 121) && GGm.teams.ATL.some((g) => g[0] === "1988-11-21" && g[2] === "HOU") && !GGm.teams.LAC.some((g) => g[0] === "1992-04-08") && GGm.teams.LAC.some((g) => g[0] === "1982-04-08" && g[2] === "OKC") && part("SAC") === "65/78" && part("PHI") === "63/77" && part("DEN") === "33/50" && part("BKN") === "49/50" && part("UTA") === "44/52" && part("MIN") === "27/37"
       && GGm.teams.SAC[0][0].startsWith("1948-11") && GGm.teams.BOS.some((g) => g[0] === "1969-11-15" && g[2] === "NYK" && g[3] === "A" && g[4] === 0 && g[5] === 98 && g[6] === 113)
       && GGm.teams.DET.some((g) => g[0].startsWith("1999-") && g[2] === "NYK") && GGm.teams.PHX.some((g) => g[0] === "1968-11-14" && g[2] === "DET" && g[3] === "N")
       && GGm.teams.IND.every((g) => g[0] < "1976-10-01" || g[2]) && !GGm.teams.NYK && !GGm.teams.HOU,
-      "guide games (0.87, 0.92, 0.93): 24 guides, 97,818 games (0.93: the Bucks' 1969-70, 82 games, 56-26, from Basketball Reference); 0.92 adds Cleveland's picture pages read by OCR (49 of 56 seasons add up on their own) and the rows the user's screenshots of 11/17 showed the text had lost or garbled (two Heat games of 1990-91, two Suns games of 1968-69 in Tucson, a Blazers score, a Hawks date, a Clippers year); a third-site game is neutral; New York and Houston print none",
+      "guide games (0.87, 0.92, 0.93, 0.94): 24 guides, 97,819 games (0.93: the Bucks' 1969-70, 82 games, 56-26, from Basketball Reference; 0.94: a Bucks date printed '325', the Wizards' postponed rows and a record misprinted '33-33' read right, and five results the guides print wrong corrected from box scores and the other team's guide: Charlotte 107-115 at Detroit 3/26/93, four on the Hawks' 1973-74 page); 0.92 adds Cleveland's picture pages read by OCR (49 of 56 seasons add up on their own) and the rows the user's screenshots of 11/17 showed the text had lost or garbled (two Heat games of 1990-91, two Suns games of 1968-69 in Tucson, a Blazers score, a Hawks date, a Clippers year); a third-site game is neutral; New York and Houston print none",
       JSON.stringify([nT, nG, right]));
-    ok(right.LAL === "78/78/6168" && right.GSW === "64/64/5164" && right.MIL === "56/58/4685" && right.WAS === "58/65/5246" && lalBos.filter((g) => g[4]).length === 135 && lalBos.length === 304
+    ok(right.LAL === "78/78/6168" && right.GSW === "64/64/5164" && right.MIL === "56/58/4686" && right.WAS === "60/65/5246" && lalBos.filter((g) => g[4]).length === 135 && lalBos.length === 304
       && first[0] === "1948-11-04" && first[1] === "Baltimore" && first[2] === null && first[3] === "A" && first[4] === 1 && first[5] === 84 && first[6] === 72
       && GGm.teams.GSW.some((g) => g[0] === "1962-10-27" && g[1] === "Chicago" && g[2] === "WAS" && g[3] === "A") && GGm.teams.MIL.some((g) => g[0] === "1968-10-19" && g[2] === "ATL"),
       "guide games (0.85): 21,181 games from four guides' season lists; every Lakers season since 1948-49 and every Warriors season since 1962-63 adds up to the franchise's record; a city is mapped to the franchise of that season (Chicago in 1962 is the Zephyrs, now Washington; the 1948 Baltimore Bullets are no one)",

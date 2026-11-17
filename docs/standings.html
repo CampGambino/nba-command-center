@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NBA Command Center · Standings</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a;
+    --text: #e8eaef; --muted: #9aa3b2; --faint: #6b7383;
+    --accent: #4f9cf7; --good: #3fbf7f; --warn: #e5a93b; --bad: #e5604f; --live: #ff4d6d;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg: #f5f6f8; --panel: #fff; --panel2: #f0f2f5; --line: #e1e4ea; --text: #161a22; --muted: #5b6474; --faint: #8a93a3; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 18px 16px 8px; max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  main { max-width: 980px; margin: 0 auto; padding: 0 12px 40px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 22px 4px 10px; }
+  .games { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 6px; }
+  .game { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; min-width: 170px; }
+  .game .teams { font-weight: 650; }
+  .game .state { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .game.live { border-color: var(--live); }
+  .game.live .state { color: var(--live); font-weight: 600; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: grid; grid-template-columns: 58px 1fr; gap: 12px; }
+  .card.hit { border-color: var(--good); }
+  .pct { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 16px;
+         background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--panel2) 0); position: relative; }
+  .pct::before { content: ""; position: absolute; inset: 6px; background: var(--panel); border-radius: 50%; }
+  .pct span { position: relative; }
+  .card.hit .pct { background: var(--good); }
+  .card.hit .pct::before { background: var(--good); }
+  .card.hit .pct span { color: #fff; }
+  .who { font-weight: 650; }
+  .team { color: var(--faint); font-weight: 500; font-size: 12px; margin-left: 4px; }
+  .what { margin-top: 2px; }
+  .meta { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .chip { font-size: 11.5px; padding: 2px 7px; border-radius: 999px; background: var(--panel2); color: var(--muted); border: 1px solid var(--line); }
+  .chip.review { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+  .chip.out { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
+  .chip.dtd { color: var(--warn); }
+  .chip.live { color: var(--live); border-color: var(--live); font-weight: 600; }
+  .chip.hit { color: var(--good); border-color: var(--good); font-weight: 600; }
+  details { margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+  summary { cursor: pointer; color: var(--faint); }
+  details ul { margin: 4px 0 0 16px; padding: 0; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 13.5px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; background: var(--panel2); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 2px 10px; }
+  select, input[type=search] { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 14px; }
+  label { color: var(--muted); font-size: 13px; }
+  button { background: var(--panel); color: var(--accent); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 14px; cursor: pointer; }
+  .empty { color: var(--faint); padding: 12px 4px; }
+  footer { color: var(--faint); font-size: 12px; max-width: 980px; margin: 0 auto; padding: 0 16px 30px; }
+  .warn-banner { background: color-mix(in srgb, var(--warn) 12%, var(--panel)); border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); border-radius: var(--radius); padding: 10px 12px; font-size: 13px; margin: 10px 0; }
+  @media (max-width: 600px) { .hide-sm { display: none; } }
+  nav { display: flex; flex-wrap: wrap; row-gap: 4px; gap: 14px; margin-top: 6px; font-size: 13.5px; }
+  nav a { color: var(--muted); text-decoration: none; padding-bottom: 2px; }
+  nav a.on { color: var(--text); border-bottom: 2px solid var(--accent); }
+  .match { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
+  .match h3 { margin: 0 0 6px; font-size: 15px; }
+  .match table { border: 0; background: transparent; table-layout: fixed; }
+  .match td, .match th { padding: 5px 6px; font-size: 13px; }
+  .match col.l { width: 42%; } .match col.t { width: 19%; } .match col.b { width: 20%; }
+  .matches { grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); }
+  @media (max-width: 600px) { .match td, .match th { padding: 5px 4px; font-size: 12.5px; } }
+  .match th.c, .match td.c { text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .match th.c.team-h { color: var(--text); font-weight: 700; font-size: 13px; }
+  .match td.base, .match th.base { color: var(--faint); }
+  th.num { text-align: right; }
+  .matches { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 10px; }
+  .scroll { overflow-x: auto; border-radius: var(--radius); }
+  .scroll table { min-width: 860px; }
+  th.sort { cursor: pointer; }
+  th.sort.on { color: var(--accent); }
+  .hi { color: var(--good); }
+  .lo { color: var(--bad); }
+  .hi.strong, .lo.strong { font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+  .flag { color: var(--warn); }
+  .key { color: var(--muted); font-size: 12.5px; margin: 0 4px 8px; }
+  .key b.hi, .key b.lo { font-weight: 650; }
+  .toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .toggle button { border: 0; border-radius: 0; padding: 5px 10px; font-size: 13px; color: var(--muted); }
+  .toggle button.on { background: var(--accent); color: #fff; }
+  .odd { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 0; margin: 0; list-style: none; }
+  .odd li { padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .odd li:last-child { border-bottom: 0; }
+  .odd .luck { color: var(--faint); font-size: 12px; white-space: nowrap; }
+  .odd li { display: flex; gap: 12px; align-items: flex-start; }
+  .odd .ut { min-width: 38px; padding-top: 2px; }
+  .odd .us { flex: 1; }
+  .odd details { padding: 2px 0; }
+  .odd summary { cursor: pointer; }
+  .odd .glist { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 6px 0 4px 14px; }
+  .odd .g { font-size: 12px; padding: 2px 7px; border-radius: 10px; border: 1px solid var(--line); white-space: nowrap; }
+  .odd .g.w b { color: var(--good, #2e9e5b); } .odd .g.l b { color: var(--bad, #d0453a); }
+  body[data-view="situations"] .v-standings, body[data-view="standings"] .v-situations { display: none; }
+</style>
+</head>
+<body data-view="standings">
+<header>
+  <h1>NBA Command Center</h1>
+  <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a class="on" href="standings.html">Standings</a><a href="clutch.html">Clutch</a><a href="players.html">With / without</a><a href="trends.html">Streaks &amp; outliers</a><a href="leaders.html">Team leaders</a><a href="defenses.html">vs top teams</a><a href="national.html">National TV</a><a href="gameflow.html">Game Flow</a><a href="records.html">Records</a><a href="find.html">Index</a></nav>
+  <div class="sub" id="sub">Loading…</div>
+</header>
+<main>
+  <div class="key"><b class="hi">Green</b> / <b class="lo">red</b>: better / worse than a team with this record usually does in that spot. Luck would explain it less than 1 time in 10. <b>Bold, underlined</b>: less than 1 time in 100. Hover a record for the expected wins.</div>
+
+  <div class="v-situations">
+  <h2>Tonight's matchups</h2>
+  <div class="matches" id="tonight"></div>
+
+  <h2>Most unusual records</h2>
+  <ul class="odd" id="unusual"></ul>
+
+  </div>
+  <!-- 0.94 (the user, 11/17): the standings tables have their own tab. standings.html is this same file with data-view="standings"; tests keep the two in step. -->
+  <div class="v-standings">
+  <h2>All teams</h2>
+  <div class="controls">
+    <span class="toggle" id="dir"><button data-d="best" class="on">Best first</button><button data-d="worst">Worst first</button></span>
+    <span class="toggle" id="oppMode" title="Which opponent record decides the vs >.500 / .500 / <.500 columns"><button data-m="now" class="on">Opp. record today</button><button data-m="then">At the time</button></span>
+    <label>Sorted by <b id="sortName">Overall</b>. Click a column to sort by it.</label>
+  </div>
+  <div class="scroll"><table id="all"></table></div>
+
+  <h2 id="standings">Standings &amp; magic numbers</h2>
+  <div class="controls"><span class="toggle" id="sconf"><button data-c="East" class="on">East</button><button data-c="West">West</button></span></div>
+  <div class="key">Magic number: its wins plus the named team's losses that clinch the place (a playoff berth = top six; Play-In = top ten). Out: its losses plus the named team's wins that rule the place out. A tie-break is counted only once the season series is won, so a number is never too small. Teams level on record are ordered by head-to-head, then conference record, then point differential. It goes on the Watch List when a number is 5 or less.</div>
+  <div class="scroll"><table id="stab"></table></div>
+
+  <h2 id="rest">Rest &amp; back-to-backs</h2>
+  <div class="controls"><span class="toggle" id="rview"><button data-v="teams" class="on">Teams</button><button data-v="players">Players</button><button data-v="league">League</button></span><label id="rallw" hidden><input type="checkbox" id="rall"> every regular</label><select id="rteam" hidden><option value="">All teams</option></select><input type="search" id="rname" placeholder="Player" hidden style="width:150px"><label id="rb2bw" hidden><input type="checkbox" id="rb2b"> on a back-to-back tonight</label><label id="rtonight"></label></div>
+  <div class="key" id="rkey"></div>
+  <div class="scroll"><table id="rtab"></table></div>
+  <div id="rtab2wrap" style="margin-top:12px"><div class="key" id="rtab2key"></div><div class="scroll"><table id="rtab2"></table></div></div>
+  </div>
+</main>
+<footer id="foot"></footer>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+// "vs .500" appears only when some team's opponent was exactly .500 (today, or at the time, per the toggle).
+const BASE_COLS = [["home", "Home"], ["road", "Road"], ["vsEast", "vs East"], ["vsWest", "vs West"], ["vsDiv", "Division"], ["vsAbove", "vs &gt;.500"], ["vs500", "vs .500"], ["vsBelow", "vs &lt;.500"],
+  ["vsTop3", "vs top 3"], ["vsTop4", "vs top 4"], ["vsTop5", "vs top 5"],
+  ["clutch", "Clutch"], ["clutchNet", "Clutch +/-"], ["close", "≤3 pts"], ["ot", "OT"],
+  ["trailHalf", "Trail half"], ["leadHalf", "Lead half"], ["trail3", "Trail after 3"], ["lead3", "Lead after 3"]];
+const MATCH = [["all", "Overall"], ["home", "Home"], ["road", "Road"], ["vsAbove", "vs teams over .500"], ["vsTop5", "vs top-5 records"],
+  ["clutch", "Clutch games"], ["close", "Decided by 3 or fewer"], ["trailHalf", "Trailing at half"], ["trail3", "Trailing after 3"], ["lead3", "Leading after 3"]];
+const VS = ["vsAbove", "vs500", "vsBelow"];
+let S = null, sortKey = "all", dir = "best", oppMode = "now";
+// The vs-.500 keys follow the toggle: "vsAbove" (today) or "vsAboveThen" (going into the game).
+const vsKey = (k) => (VS.includes(k) && oppMode === "then" ? `${k}Then` : k);
+const has500 = () => Object.values(S.teams).some((t) => { const r = t.splits[vsKey("vs500")]; return r && r.w + r.l > 0; });
+function colsNow() {
+  return BASE_COLS.filter(([k]) => k !== "vs500" || has500()).map(([k, l]) => [vsKey(k), oppMode === "then" && VS.includes(k) ? `${l}<br><small>at the time</small>` : l]);
+}
+let COLS = BASE_COLS;
+const names = () => Object.fromEntries([["all", "Overall"], ["streak", "Streak"], ["last10", "Last 10"], ...colsNow().map(([k, l]) => [k, l.replace("&gt;", ">").replace("&lt;", "<").replace(/<br>.*$/, "")])]);
+
+const wl = (r) => (r && r.w + r.l ? `${r.w}-${r.l}` : "–");
+const signed = (n) => (n > 0 ? `+${n}` : String(n));
+// Colour by a fixed rule, the same for every team and every day:
+// luck explains it less than 1 in 10 -> green/red; less than 1 in 100 (4+ games) -> also bold.
+function mark(t, k) {
+  const r = t.splits[k], L = t.luck?.[k];
+  if (!r || !L || r.w + r.l < 3 || L.p >= 0.1) return "";
+  const c = L.direction === "better" ? "hi" : "lo";
+  return L.p <= 0.01 && r.w + r.l >= 4 ? `${c} strong` : c;
+}
+const cell = (t, k, align = "num") => {
+  if (k === "clutchNet") return `<td class="${align}" title="points scored minus allowed in clutch time, ${t.clutchGames} games read">${t.clutchGames ? signed(t.clutchNet) : "–"}</td>`;
+  const c = mark(t, k), r = t.splits[k], e = t.expected?.[k], L = t.luck?.[k];
+  const tip = e != null && r ? `a team with this record would win about ${e} of ${r.w + r.l}${L ? ` · luck explains it about 1 time in ${Math.max(1, Math.round(1 / L.p))}` : ""}` : "";
+  return `<td class="${align} ${c}" title="${tip}">${wl(r)}</td>`;
+};
+
+// Sort value for "best": higher is better. Teams with no games in that spot always go last.
+function value(t, k) {
+  if (k === "streak") return t.streak ? (t.streak[0] === "W" ? 1 : -1) * Number(t.streak.slice(1)) : null;
+  if (k === "last10") return t.last10.w + t.last10.l ? t.last10.w / (t.last10.w + t.last10.l) : null;
+  if (k === "clutchNet") return t.clutchGames ? t.clutchNet : null;
+  const r = t.splits[k];
+  return r && r.w + r.l ? r.w / (r.w + r.l) + (r.w + r.l) * 1e-6 * (r.w > r.l ? 1 : -1) : null;
+}
+
+function render() {
+  COLS = colsNow();
+  if (sortKey && !COLS.some(([k]) => k === sortKey) && !["all", "streak", "last10"].includes(sortKey)) sortKey = "all"; // a column that's gone
+  const teams = Object.entries(S.teams).map(([code, t]) => ({ code, ...t }));
+  const by = Object.fromEntries(teams.map((t) => [t.code, t]));
+  $("sub").textContent = `${S.season ? `${S.season - 1}-${String(S.season).slice(2)} regular season` : "This season"} · ${S.games} games through ${S.through} · from ESPN results and play-by-play`;
+
+  $("tonight").innerHTML = S.tonight.length ? S.tonight.map((g) => {
+    const a = by[g.away], h = by[g.home];
+    if (!a || !h) return "";
+    const time = g.start ? new Date(g.start).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
+    const rows = MATCH.map(([k0, label0]) => [vsKey(k0), oppMode === "then" && VS.includes(k0) ? `${label0} (at the time)` : label0]).map(([k, label]) => `<tr><td>${label}</td>${cell(a, k, "c")}${cell(h, k, "c")}<td class="c base">${S.baseline[k] && k !== "all" ? Math.round(S.baseline[k].pct * 100) + "%" : ""}</td></tr>`).join("");
+    const notes = [...a.flags.map((f) => `${g.away} ${f.text}`), ...h.flags.map((f) => `${g.home} ${f.text}`)];
+    return `<div class="match"><h3>${g.away} @ ${g.home} <span class="team">${time}</span></h3>
+      <table><colgroup><col class="l"><col class="t"><col class="t"><col class="b"></colgroup>
+      <tr><th></th><th class="c team-h">${g.away}</th><th class="c team-h">${g.home}</th><th class="c base" title="how often any team wins in that situation">League</th></tr>${rows}
+      <tr><td>Clutch +/-</td>${cell(a, "clutchNet", "c")}${cell(h, "clutchNet", "c")}<td></td></tr>
+      <tr><td>Streak</td><td class="c">${a.streak || "–"}</td><td class="c">${h.streak || "–"}</td><td></td></tr>
+      <tr><td>Last 10</td><td class="c">${wl(a.last10)}</td><td class="c">${wl(h.last10)}</td><td></td></tr></table>
+      ${notes.length ? `<div class="meta flag">${notes.map(esc).join("<br>")}</div>` : ""}</div>`;
+  }).join("") : `<div class="empty">No games tonight.</div>`;
+
+  // 0.65 (the user, 11/14): one row per team, the record alone, and the games behind it on a click.
+  const md = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}`;
+  const gameList = (u) => (u.list || []).map((g) => `<span class="g ${g.w ? "w" : "l"}">${md(g.d)} ${g.home ? "vs" : g.road ? "@" : "vs"} ${esc(g.opp)} <b>${g.w ? "W" : "L"}</b> ${g.pf}-${g.pa}${g.ot ? " OT" : ""}</span>`).join("");
+  const byTeam = new Map();
+  for (const u of S.unusual) { if (!byTeam.has(u.team)) byTeam.set(u.team, []); byTeam.get(u.team).push(u); }
+  $("unusual").innerHTML = byTeam.size ? [...byTeam].map(([team, us]) => `<li><b class="ut">${team}</b><div class="us">${us.map((u) => `<details><summary>${esc(u.short || u.text.replace(/:.*$/, ""))} <span class="luck" title="how often a team this good would have a record at least this far from expected">1 in ${Math.max(2, Math.round(1 / u.p))}${u.p <= 0.01 ? " · flagged" : ""}</span></summary><div class="glist">${gameList(u) || "<i>games not listed</i>"}</div></details>`).join("")}</div></li>`).join("")
+    : `<li class="empty">Nothing unusual yet.</li>`;
+
+  const sign = dir === "best" ? 1 : -1;
+  teams.sort((x, y) => {
+    const a = value(x, sortKey), b = value(y, sortKey);
+    if (a == null && b == null) return value(y, "all") - value(x, "all");
+    if (a == null) return 1;
+    if (b == null) return -1;
+    return sign * (b - a) || value(y, "all") - value(x, "all");
+  });
+  $("sortName").textContent = names()[sortKey] || sortKey;
+  const th = (k, label, cls = "num") => `<th class="${cls} sort ${sortKey === k ? "on" : ""}" data-k="${k}">${label}${sortKey === k ? (dir === "best" ? " ▾" : " ▴") : ""}</th>`;
+  const head = `<tr><th>Team</th>${th("all", "W-L")}${th("streak", "Streak")}${th("last10", "L10")}${COLS.map(([k, l]) => th(k, l)).join("")}</tr>`;
+  const body = teams.map((t) => `<tr><td><b>${t.code}</b></td><td class="num">${wl(t.splits.all)}</td><td class="num">${t.streak || "–"}</td><td class="num">${wl(t.last10)}</td>${COLS.map(([k]) => cell(t, k)).join("")}</tr>`).join("");
+  const base = `<tr><td style="color:var(--faint)">League</td><td></td><td></td><td></td>${COLS.map(([k]) => `<td class="num" style="color:var(--faint)">${S.baseline[k] ? Math.round(S.baseline[k].pct * 100) + "%" : ""}</td>`).join("")}</tr>`;
+  $("all").innerHTML = head + body + base;
+  // Click a column: sort by it (best first); click it again: flip to worst first.
+  document.querySelectorAll("th.sort").forEach((el) => el.onclick = () => {
+    if (sortKey === el.dataset.k) dir = dir === "best" ? "worst" : "best"; else { sortKey = el.dataset.k; dir = "best"; }
+    syncDir(); render();
+  });
+
+  const tops = S.topTeams ? [3, 4, 5].map((n) => `top ${n}: ${S.topTeams[n].join(", ")}${S.topTeams[n].length > n ? " (tied at the cutoff)" : ""}`).join(" · ") : "";
+  $("foot").innerHTML = `Regular-season games only. "vs top N" uses records today; teams tied at a cutoff are all included (${esc(tops)}). vs &gt;.500 / .500 / &lt;.500: by each opponent's record ${oppMode === "then" ? "going into that game (games against a 0-0 team, on opening night, count in none)" : "today, so a game can change columns as the opponent's record moves"}; "vs .500" appears only when an opponent was exactly .500. Clutch: games within 5 points at some point in the last 5 minutes of the 4th quarter or overtime (the NBA's definition); Clutch +/- is points scored minus allowed in those minutes. Built ${new Date(S.generatedAt).toLocaleString()}.`;
+}
+function syncDir() { document.querySelectorAll("#dir button").forEach((b) => b.classList.toggle("on", b.dataset.d === dir)); }
+document.querySelectorAll("#dir button").forEach((b) => b.onclick = () => { dir = b.dataset.d; syncDir(); render(); });
+document.querySelectorAll("#oppMode button").forEach((b) => b.onclick = () => {
+  const was = oppMode; oppMode = b.dataset.m;
+  document.querySelectorAll("#oppMode button").forEach((x) => x.classList.toggle("on", x.dataset.m === oppMode));
+  // Keep sorting by the same split in the other mode.
+  if (was !== oppMode && /^vs(Above|500|Below)(Then)?$/.test(sortKey)) sortKey = oppMode === "then" ? sortKey.replace(/(Then)?$/, "Then") : sortKey.replace(/Then$/, "");
+  render();
+});
+
+// ---- Rest & back-to-backs (moved from GameFlow, 0.55): docs/data/rest.json from src/situations/rest.js ----
+let R = null, rview = "teams", rsort = { k: "gap", dir: 1 };
+const sg1 = (x) => (x == null ? "–" : `${x > 0 ? "+" : ""}${x.toFixed(1)}`);
+const wl2 = (s) => (s && s.w + s.l ? `${s.w}-${s.l}` : "–");
+const f1r = (x) => (x == null ? "–" : x.toFixed(1));
+function renderRest() {
+  if (!R) return;
+  document.querySelectorAll("#rview button").forEach((b) => b.classList.toggle("on", b.dataset.v === rview));
+  const b2b = R.tonight.flatMap((g) => [g.awayRest === 0 ? g.away : null, g.homeRest === 0 ? g.home : null]).filter(Boolean);
+  $("rtonight").innerHTML = b2b.length ? `On a back-to-back tonight: <b>${b2b.join(", ")}</b>` : "Nobody plays on a back-to-back tonight.";
+  $("rtab2wrap").hidden = rview !== "teams";
+  $("rallw").hidden = $("rteam").hidden = $("rname").hidden = $("rb2bw").hidden = rview !== "players";
+  if (rview === "teams") {
+    $("rkey").innerHTML = `Each team by its own days of rest (0 = second night of a back-to-back). <b>B2B − rest</b> is its margin on no rest minus its margin on every other amount of rest, so the teams a back-to-back costs most are first. A team plays only a handful of back-to-backs, so one blowout moves a row. Below: how each team does against an opponent on no rest.`;
+    const rows = R.teams.slice().sort((a, b) => (a.gap ?? 1e9) - (b.gap ?? 1e9));
+    $("rtab").innerHTML = `<tr><th>Team</th>${R.buckets.map((b) => `<th class="num">${R.labels[b].replace(" (back-to-back)", " (B2B)")}</th><th class="num">margin</th>`).join("")}<th class="num">B2B − rest</th></tr>` +
+      rows.map((t) => `<tr><td><b>${t.tri}</b>${b2b.includes(t.tri) ? ` <span class="team">B2B tonight</span>` : ""}</td>${R.buckets.map((b) => `<td class="num">${wl2(t.by[b])}</td><td class="num">${sg1(t.by[b].marg)}</td>`).join("")}<td class="num ${t.gap == null ? "" : t.gap <= -5 ? "lo" : t.gap >= 5 ? "hi" : ""}"><b>${sg1(t.gap)}</b></td></tr>`).join("");
+    const fc = R.facing.slice().sort((a, b) => (b.gap ?? -1e9) - (a.gap ?? -1e9));
+    $("rtab2").innerHTML = `<tr><th>Team vs a tired opponent</th><th class="num">Games</th><th class="num">Record</th><th class="num">Margin</th><th class="num" title="It had a day off or more; the opponent didn't">It rested</th><th class="num" title="Both teams on the second night of a back-to-back">Both B2B</th><th class="num">Margin, other games</th><th class="num">Advantage</th></tr>` +
+      fc.map((t) => `<tr><td><b>${t.tri}</b></td><td class="num">${t.vs.n}</td><td class="num">${wl2(t.vs)}</td><td class="num">${sg1(t.vs.marg)}</td><td class="num">${t.rested?.n ? `${wl2(t.rested)} <span class="team">${sg1(t.rested.marg)}</span>` : "–"}</td><td class="num">${t.both?.n ? `${wl2(t.both)} <span class="team">${sg1(t.both.marg)}</span>` : "–"}</td><td class="num">${sg1(t.other.marg)}</td><td class="num ${t.gap == null ? "" : t.gap >= 5 ? "hi" : t.gap <= -5 ? "lo" : ""}">${sg1(t.gap)}</td></tr>`).join("");
+    $("rtab2key").innerHTML = `<b>A tired opponent</b> is one on the second night of a back-to-back (no day off). Each team's games against one: record and average margin, split into the games it had rest itself and the ones where <b>both</b> teams were on a back-to-back. <b>Advantage</b>: its margin against a tired opponent minus its margin in every other game. Small samples: a few games each.`;
+  } else if (rview === "players") {
+    // 0.78 (the user, 11/16: "any way to filter this table or sort it"): team, name, tonight's back-to-backs; click a column.
+    const all = $("rall").checked, team = $("rteam").value, nm = $("rname").value.trim().toLowerCase(), onlyB = $("rb2b").checked;
+    if ($("rteam").options.length < 2) $("rteam").innerHTML = `<option value="">All teams</option>` + [...new Set(R.players.map((p) => p.tri))].sort().map((t) => `<option>${t}</option>`).join("");
+    const RCOLS = { name: (p) => p.name, tri: (p) => p.tri, gp: (p) => p.b2bGp, pb: (p) => p.b2b.pts, pr: (p) => p.rest.pts, gap: (p) => p.gap, mb: (p) => p.b2b.min, mr: (p) => p.rest.min, fb: (p) => p.b2b.fg ?? -1, fr: (p) => p.rest.fg ?? -1 };
+    const val = RCOLS[rsort.k] || RCOLS.gap;
+    const rows = R.players.filter((p) => p.rest.min >= 20 && (all || p.flag) && (!team || p.tri === team) && (!nm || p.name.toLowerCase().includes(nm)) && (!onlyB || b2b.includes(p.tri)))
+      .sort((x, y) => { const a = val(x), b = val(y); return (typeof a === "string" ? a.localeCompare(b) : a - b) * rsort.dir || x.name.localeCompare(y.name); });
+    const th = (k, label, num = true) => `<th class="${num ? "num " : ""}sortcol" data-k="${k}" style="cursor:pointer" title="Sort by this column">${label}${rsort.k === k ? (rsort.dir > 0 ? " ▲" : " ▼") : ""}</th>`;
+    $("rkey").innerHTML = `Regulars (20+ minutes on rest) with 2+ games on the second night of a back-to-back and 4+ otherwise: points, minutes and FG% on no rest against his other games. <b>Bold</b>: a clear split (4+ points and 20%+), which also goes on the Watch List when his team is on a back-to-back. A second night counts only if he also played the night before. Showing ${all ? "every regular" : "the clear splits only"} (${rows.length}); click a column to sort; small samples.`;
+    $("rtab").innerHTML = `<tr>${th("name", "Player", false)}${th("tri", "Team", false)}${th("gp", "B2B games")}${th("pb", "Pts B2B")}${th("pr", "Pts rested")}${th("gap", "Gap")}${th("mb", "Min B2B")}${th("mr", "Min rested")}${th("fb", "FG% B2B")}${th("fr", "FG% rested")}</tr>` +
+      (rows.map((p) => `<tr><td>${p.flag ? "<b>" : ""}${p.name}${p.flag ? "</b>" : ""}</td><td>${p.tri}${b2b.includes(p.tri) ? ` <span class="team">B2B tonight</span>` : ""}</td><td class="num">${p.b2bGp} <span class="team">of ${p.b2bGp + p.restGp}</span></td><td class="num">${f1r(p.b2b.pts)}</td><td class="num">${f1r(p.rest.pts)}</td><td class="num ${p.flag ? (p.gap < 0 ? "lo" : "hi") : ""}">${sg1(p.gap)}</td><td class="num">${f1r(p.b2b.min)}</td><td class="num">${f1r(p.rest.min)}</td><td class="num">${f1r(p.b2b.fg)}</td><td class="num">${f1r(p.rest.fg)}</td></tr>`).join("") || `<tr><td class="empty" colspan="10">${R.players.length ? "No player matches." : "Not enough back-to-backs yet."}</td></tr>`);
+    document.querySelectorAll("#rtab .sortcol").forEach((h) => h.onclick = () => { const k = h.dataset.k; rsort = { k, dir: rsort.k === k ? -rsort.dir : (k === "name" || k === "tri" || k === "gap" ? 1 : -1) }; renderRest(); });
+  } else {
+    $("rkey").innerHTML = `Every team-game grouped by the team's own days off, then by the opponent's. The last row of each is zero rest minus every other bucket pooled. ${R.bothTired} game(s) had both teams on no rest; ${R.openers} season openers have no previous game and sit in no bucket. FG% and 3P% are pooled makes over attempts; possessions FGA − OREB + TOV + 0.44 × FTA.`;
+    const head = `<th class="num">Team-games</th><th class="num">Record</th><th class="num">Pts</th><th class="num">Opp pts</th><th class="num">Margin</th><th class="num">FG%</th><th class="num">3P%</th><th class="num">TOV</th><th class="num">Poss</th>`;
+    const row = (lab, s) => `<tr><td>${lab}</td><td class="num">${s.n}</td><td class="num">${wl2(s)}</td><td class="num">${f1r(s.ppg)}</td><td class="num">${f1r(s.oppg)}</td><td class="num ${s.marg < 0 ? "lo" : "hi"}">${sg1(s.marg)}</td><td class="num">${f1r(s.fg)}</td><td class="num">${f1r(s.tp)}</td><td class="num">${f1r(s.topg)}</td><td class="num">${f1r(s.pace)}</td></tr>`;
+    const lad = (L, who) => R.buckets.map((b) => row(`${who} ${R.labels[b]}`, L.by[b])).join("") + `<tr><td class="team">zero minus the rest</td><td></td><td class="num">${wl2(L.zero)} vs ${wl2(L.rest)}</td><td class="num">${sg1(L.delta.ppg)}</td><td class="num">${sg1(L.delta.oppg)}</td><td class="num">${sg1(L.delta.marg)}</td><td class="num">${sg1(L.delta.fg)}</td><td class="num">${sg1(L.delta.tp)}</td><td class="num">${sg1(L.delta.topg)}</td><td class="num">${sg1(L.delta.pace)}</td></tr>`;
+    $("rtab").innerHTML = `<tr><th>Own rest</th>${head}</tr>` + lad(R.league.own, "") + `<tr><th>Opponent's rest</th>${head}</tr>` + lad(R.league.opp, "opp.");
+  }
+}
+document.querySelectorAll("#rview button").forEach((b) => b.onclick = () => { rview = b.dataset.v; renderRest(); });
+$("rall").onchange = $("rteam").onchange = $("rb2b").onchange = renderRest;
+$("rname").oninput = renderRest;
+fetch("data/rest.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => { R = d; if (R) renderRest(); else $("rkey").textContent = "Rest data comes with the next build."; }).catch(() => {});
+// 0.80: standings with magic and elimination numbers (data/standings.json).
+let ST = null, sconf = "East";
+function renderStandings() {
+  if (!ST) return;
+  const num = (m) => (m ? (m.n <= 0 ? `<b class="hi" title="Clinched">✓</b>` : `<span title="against ${m.vs}"${m.n <= 5 ? ` style="font-weight:700"` : ""}>${m.n}</span>`) : "–");
+  const out = (e) => (e ? (e.n <= 0 ? `<b class="lo" title="Out">✗</b>` : `<span title="against ${e.vs}"${e.n <= 5 ? ` style="font-weight:700"` : ""}>${e.n}</span>`) : "–");
+  $("stab").innerHTML = `<tr><th>#</th><th>Team</th><th class="num">W</th><th class="num">L</th><th class="num">GB</th><th class="num">Conf</th><th class="num">Div</th><th class="num">Home</th><th class="num">Road</th><th class="num">Last 10</th><th class="num">Streak</th><th class="num" title="Magic number for a top-six place">Playoffs</th><th class="num" title="Magic number for at least a Play-In place">Play-In</th><th class="num" title="Magic number for the conference's best record">Top seed</th><th class="num" title="Magic number for the division">Division</th><th class="num" title="Elimination number for a top-six place">Out of top 6</th><th class="num" title="Elimination number for the postseason">Out</th></tr>` +
+    (ST[sconf] || []).map((t) => `<tr${t.seed === 7 || t.seed === 11 ? ` style="border-top:2px solid var(--line)"` : ""}><td>${t.seed}</td><td class="team"><b>${t.tri}</b></td><td class="num">${t.w}</td><td class="num">${t.l}</td><td class="num">${t.gb || "–"}</td><td class="num">${t.conf}</td><td class="num">${t.div}</td><td class="num">${t.home}</td><td class="num">${t.road}</td><td class="num">${t.last10}</td><td class="num">${t.streak}</td><td class="num">${num(t.magic.playoff)}</td><td class="num">${num(t.magic.playin)}</td><td class="num">${num(t.magic.top)}</td><td class="num">${num(t.magic.division)}</td><td class="num">${out(t.elim.playoff)}</td><td class="num">${out(t.elim.playin)}</td></tr>`).join("");
+}
+document.querySelectorAll("#sconf button").forEach((b) => b.onclick = () => { sconf = b.dataset.c; document.querySelectorAll("#sconf button").forEach((x) => x.classList.toggle("on", x === b)); renderStandings(); });
+fetch("data/standings.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => { ST = d; renderStandings(); }).catch(() => {});
+fetch("data/situations.json", { cache: "no-store" }).then((r) => r.json()).then((d) => { S = d; render(); })
+  .catch((e) => { $("sub").textContent = "Couldn't load the data: " + e.message; });
+</script>
+</body>
+</html>

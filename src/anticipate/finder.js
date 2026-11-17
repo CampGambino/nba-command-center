@@ -21,7 +21,13 @@
  *          list here (the full averages and each piece). Kept when the lead is at least GAP.ratio times that.
  *
  *   noas   The highest-ranked player in scoring, rebounds or assists who has never been an All-Star (the NBA Guide's
- *          selection counts), when he is in the league's top NOAS.top. Needs `allStars`.
+ *          selection counts), when he is in the league's top NOAS.top. Needs `allStars`. 0.94 (the user, 11/17: a rookie
+ *          "wouldn't have been able to be" one, so it "goes without saying"): never said of a rookie, and not of the
+ *          league leader, whose line is `first`.
+ *
+ *   first  0.94: the league leader in points, rebounds, assists, steals or blocks a game who has never led the league in
+ *          it (the NBA Guide's yearly leaders; `leaders`: { stat: [{ season, player }] }). The user: "since he's never led
+ *          the league in assists per game before, it is notable that he is now". A rookie's line says "as a rookie".
  *
  * Every finding carries a `surprise` number so the page can list the season's most out-of-line facts for the whole
  * league (the suggestions), and the ones about tonight's teams become storyline candidates (kind `find`).
@@ -60,7 +66,7 @@ const COUNTS = [
  * names: { id: name }; qsum: flowstats.json `qsum` ({ id: { gp, q: [4] } }); teamGp: { TRI: games }.
  * → every finding, most surprising first: { kind: "find", test, team, player, key, text, score, surprise, rare }
  */
-export function findings({ pg, names = {}, qsum = {}, teamGp = {}, allStars = null }) {
+export function findings({ pg, names = {}, qsum = {}, teamGp = {}, allStars = null, leaders = null, rookies = null }) {
   const P = [];
   for (const [id, gs] of Object.entries(pg || {})) {
     const games = gs.filter((g) => g.min > 0);
@@ -120,10 +126,25 @@ export function findings({ pg, names = {}, qsum = {}, teamGp = {}, allStars = nu
     for (const [k, word, unit] of [["pts", "scoring", "points"], ["reb", "rebounding", "rebounds"], ["ast", "assists", "assists"]]) {
       const L = Q.map((p) => ({ p, v: per(k)(p) })).sort((a, b) => b.v - a.v);
       const i = L.findIndex((x) => !allStars.has(plainName(x.p.name)));
-      if (i < 0 || i >= NOAS.top) continue;
+      if (i < 0 || i >= NOAS.top || rookies?.has(L[i].p.id) || (i === 0 && leaders?.[k])) continue;
       const ahead = L.slice(0, i).length;
       out.push({ kind: "find", test: "noas", team: L[i].p.team, player: L[i].p.name, key: `find|noas|${L[i].p.id}|${k}`, surprise: 0.9 + (NOAS.top - i) / 6, rare: i < 3,
         text: `${L[i].p.name} ${i ? `is ${ord(i + 1)} in the NBA in ${word}` : `leads the NBA in ${word}`} (${r1(L[i].v)} ${unit} a game) and has never been an All-Star${ahead ? `: the ${ahead === 1 ? "player" : `${ahead} players`} ahead of him ${ahead === 1 ? "has" : "have all"} been one` : ""}` });
+    }
+  }
+  // 5. first: a league leader who has never led the league in that stat.
+  if (leaders) {
+    const per = (k) => (p) => p.games.reduce((a, g) => a + (g[k] || 0), 0) / p.gp;
+    for (const [k, word, unit] of [["pts", "scoring", "points"], ["reb", "rebounding", "rebounds"], ["ast", "assists", "assists"], ["stl", "steals", "steals"], ["blk", "blocks", "blocks"]]) {
+      const past = leaders[k];
+      if (!past || !past.length) continue;
+      const L = Q.map((p) => ({ p, v: per(k)(p) })).sort((a, b) => b.v - a.v), top = L[0];
+      if (!top || !(top.v > 0) || (L[1] && L[1].v === top.v)) continue;
+      const before = past.filter((e) => plainName(e.player) === plainName(top.p.name));
+      if (before.length) continue;
+      const rookie = !!rookies?.has(top.p.id), last = past[past.length - 1];
+      out.push({ kind: "find", test: "first", team: top.p.team, player: top.p.name, key: `find|first|${top.p.id}|${k}`, surprise: 2.9 + (rookie ? 0.4 : 0), rare: true,       // where the leader's "never an All-Star" line used to sit
+        text: `${top.p.name} leads the NBA in ${word} (${r1(top.v)} ${unit} a game)${rookie ? " as a rookie" : `: he has never led the league in ${word}`}${last ? ` (last season's leader: ${last.player}, ${r1(last.value)})` : ""}` });
     }
   }
   // One gap line a player: the list where his lead is widest.

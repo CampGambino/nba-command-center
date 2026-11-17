@@ -284,11 +284,19 @@ READERS = {
     "BOS": ("Celtics", read_bos),
 }
 
+_vf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "team-records-verified.json")
+VERIFIED = json.load(open(_vf))["marks"] if os.path.exists(_vf) else {}
+
 def main():
     d = sys.argv[1]; teams = {}
     for tri, (key, fn) in READERS.items():
         f = [x for x in glob.glob(os.path.join(d, "*.txt")) if key in os.path.basename(x)][0]
         rows = fn(open(f, encoding="utf8", errors="replace").read().split("\f"))
+        # A mark printed two ways and looked up outside the guide (tools/team-records-verified.json): the other row goes.
+        checked = {}
+        for v in VERIFIED.get(tri, []):
+            k = (v["side"], v["stat"], v["kind"], v["period"]); checked[k] = v["by"]
+            rows = [r for r in rows if not ((r.get("side", "team"), r["stat"], r["kind"], r["period"]) == k and r["date"] == v["date"] and r["value"] != v["value"])]
         if os.environ.get("SHOW") == tri:
             for r in rows: print("   ", r.get("side", "team"), r["kind"], r["stat"], r["period"], r["value"], "|", r["opp"], "|", r["date"])
         # The mark for a stat and period is the highest (or lowest) value printed; ties share it.
@@ -304,12 +312,12 @@ def main():
         for r in rows:
             k = (r.get("side", "team"), r["stat"], r["kind"], r["period"])
             if r["period"] == "game" and any(x["date"] == r["date"] for x in best[k]) and r["value"] != best[k][0]["value"]: doubt.setdefault(k, set()).update({r["value"], best[k][0]["value"]})
-        teams[tri] = [dict({"stat": k[1], "kind": k[2], "period": k[3], "value": v[0]["value"], "games": [{"opp": x["opp"], "date": x["date"]} for x in v]}, **({"side": "opp"} if k[0] == "opp" else {}), **({"doubt": sorted(doubt[k])} if k in doubt else {})) for k, v in best.items()]
+        teams[tri] = [dict({"stat": k[1], "kind": k[2], "period": k[3], "value": v[0]["value"], "games": [{"opp": x["opp"], "date": x["date"]} for x in v]}, **({"side": "opp"} if k[0] == "opp" else {}), **({"doubt": sorted(doubt[k])} if k in doubt else {}), **({"checked": checked[k]} if k in checked else {})) for k, v in best.items()]
         for k, vals in doubt.items(): print(f"   {tri} prints one game twice with two values: {k} {sorted(vals)}")
         g = lambda side, kind: ", ".join(f"{m['stat']} {m['value']}" for m in teams[tri] if m["period"] == "game" and m["kind"] == kind and m.get("side", "team") == side)
         print(f"{tri}: {len(rows)} rows, {len(teams[tri])} marks\n   most: {g('team', 'most')}\n   fewest: {g('team', 'fewest')}\n   opp most: {g('opp', 'most')}\n   opp fewest: {g('opp', 'fewest')}")
     # What "all-time" means where it is not the franchise's whole history: the Thunder's guide starts in Oklahoma City.
     scopes = {"OKC": "in Oklahoma City history (since 2008-09)"}
-    notes = {"LAL": "the Lakers' fewest marks leave out games before the shot clock (1954-55)", "BOS": "pp. 197 and 198 print the same game with two values for field goals (72, 77) and free throw attempts (65, 66)"}
+    notes = {"LAL": "the Lakers' fewest marks leave out games before the shot clock (1954-55)", "BOS": "pp. 197 and 198 print the same game with two values for field goals (72, 77) and free throw attempts (65, 66); Basketball Reference's box scores have 72 and 65"}
     json.dump({"through": "2025-26", "source": "team media guides for 2026-27, team single-game records (tools/parse-team-records.py)", "scopes": scopes, "notes": notes, "teams": teams}, open(sys.argv[2], "w"), separators=(",", ":"))
 main()

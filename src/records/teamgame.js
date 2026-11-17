@@ -26,6 +26,7 @@ const KINDS = {
 
 const PRINTED = { most: ["team", "most"], fewest: ["team", "fewest"], allowed: ["opp", "most"], held: ["opp", "fewest"] };
 const SHOT_CLOCK = "1954-10-01";      // guides leave out the years before it for "fewest"
+const OWN = "2016-10-01";             // our own results start here
 
 export function teamGameRecords({ deep, history, rows, printed = null }) {
   const newFrom = printed?.through ? `${Number(String(printed.through).slice(0, 4)) + 1}-07-01` : null;
@@ -48,11 +49,14 @@ export function teamGameRecords({ deep, history, rows, printed = null }) {
       if (pm) best = { v: pm.value, d: pm.games.map((x) => x.date).sort().pop(), opp: null, score: null };
       for (const g of gs) {
         const v = val(g);
-        if (pm && g.d < newFrom) { if (sign * v > sign * pm.value && g.d >= SHOT_CLOCK && (!doubt || sign * v > sign * doubt.v)) doubt = { v, d: g.d }; continue; }
+        // A game before this season that beats the print. From our own results (2016-17 on) it is the mark and the guide
+        // is behind (the Hornets' page still says 146 allowed; Milwaukee scored 147 on them on 11/14/25). From the older
+        // lists it is a doubt, not a record: those are where the misprints are.
+        if (pm && g.d < newFrom && !(g.d >= OWN && sign * v > sign * best.v)) { if (g.d < OWN && sign * v > sign * pm.value && g.d >= SHOT_CLOCK && (!doubt || sign * v > sign * doubt.v)) doubt = { v, d: g.d }; continue; }
         if (best === null || sign * v > sign * best.v) { prev = best; best = { v, d: g.d, opp: g.opp, score: `${Math.max(g.pf, g.pa)}-${Math.min(g.pf, g.pa)}` }; }
         else if (v === best.v && g.d !== best.d) { prev = best; best = { v, d: g.d, opp: g.opp, score: `${Math.max(g.pf, g.pa)}-${Math.min(g.pf, g.pa)}`, tied: true }; }
       }
-      if (best) marks[k] = { ...best, prev: prev ? { v: prev.v, d: prev.d, opp: prev.opp } : null, ...(pm ? { source: "guide", scope: printed.scopes?.[t] || "in franchise history" } : {}), ...(doubt ? { doubt } : {}) };
+      if (best) marks[k] = { ...best, prev: prev ? { v: prev.v, d: prev.d, opp: prev.opp } : null, ...(pm ? { source: "guide", scope: printed.scopes?.[t] || "in franchise history", ...(best.d < newFrom && best.v !== pm.value ? { behind: pm.value } : {}) } : {}), ...(doubt ? { doubt } : {}) };
     }
     out[t] = { window: { from: deep?.from?.[t] || null, whole: !!deep?.whole?.[t] }, games: gs.length, marks };
   }

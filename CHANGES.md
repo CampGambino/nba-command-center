@@ -2,6 +2,45 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.94.0 (2026-11-17): every open doubt looked up; 428 series confirmed; Standings tab; the notes and finder lines the user marked
+
+The user (11/17, 2:06 PM) sent Basketball Reference's box scores for the two games I had flagged and not looked up, and wrote: "that is the type of due diligence I require and expect from you. always checking and double checking and cross refencing to make sure this is as accurate and clean as possible." Then seven screenshots of the pages and a request for a Standings tab.
+
+### The two games (images 1-2)
+- **Charlotte at Detroit, 3/26/93 was 107-115**, not the 107-155 the Hornets' season page prints. Corrected (`tools/guide-games-by-eye.json`, a new `fixes` section: a result the guide prints wrong, with its source).
+- **Boston, 2/27/59: 72 field goals**, so p. 198's 77 is the misprint. I looked up the other one myself: Basketball Reference's box score for 11/28/54 has Boston 56 of **65** free throws, so p. 198's 66 is also a misprint (`tools/team-records-verified.json`).
+
+### Then every other doubt I was carrying
+- **All-time series.** I read 24 of Basketball Reference's 30 head-to-head pages (`tools/outside/bref-head2head.json`; `tools/check-series-outside.mjs` takes off the 2026-27 games each page already counted). Of the 362 pairings two sources already agreed on, **361 match**. The one that does not is New York v Philadelphia: the page has one more 76ers win than both guides, probably the 1956 division tiebreaker, which the page counts as a game.
+- **46 open pairings are settled by it** (the page lands exactly on one guide's record), and two more where neither guide is right: Charlotte v Oklahoma City is 24-46 (the Hornets' row stops a season early) and Atlanta v Denver is 53-50 (the Nuggets' own game lists count to the same).
+- **Now: 428 of 435 confirmed (345 by both guides, 37 by the other team's games, 46 by Basketball Reference), 3 differ, 4 rest on one guide.** Was 399 / 8 / 28. Still open: Atlanta v Detroit, Atlanta v the Lakers, Detroit v Golden State (the guides start later than the franchises, or the page counts tiebreakers), Atlanta v Golden State, Boston v Detroit (one game apart, not looked into), Oklahoma City v Philadelphia (the Thunder's guide is Oklahoma City only), Denver v Indiana (ABA years). Where the page has a figure that settles nothing it is shown beside the record in the finder.
+- **Lakers v Kings stays 288-169.** Basketball Reference's head-to-head table says 289, as the Kings' guide does, but its own list of games says 288. The Kings' guide lists a Lakers game on 12/21/85; that night the Kings lost 116-117 to the Clippers and the Lakers were in Washington.
+- **A wrong confirmation of mine is undone.** Hawks v Bucks was "confirmed" at 121-123 because the Hawks' table agreed with a count of the Hawks' own game list. Both carry the same misprint: the guide has 3/1/74 as a loss, 89-105; Atlanta won 105-89 (Basketball Reference's box score, the Bucks' guide and two other sites). It is 122-122. **A guide's own list no longer confirms its own table; only the other team's games do** (`seriesPair`). 21 pairings lost that kind of confirmation and were re-checked against Basketball Reference.
+- **The Hawks' 1973-74 page has four results wrong**, found by setting each game beside the other team's guide: 1/13 Boston and 3/1 Milwaukee are printed the wrong way round, and 2/8 Philadelphia and 2/9 Cleveland are on each other's rows. All four corrected, each with its source.
+- **Three faults were mine, not the guides':** the Bucks print one date as "325" and my reader dropped the game (3/25/01, a win over Atlanta); a postponed game in the Wizards' list ("PPD") swallowed the game printed beside it (five games of 2020-21); and one misprinted running record ("33-33" for 33-23) made me read two Wizards losses in February 2015 as wins. All three fixed in `tools/guide_games.py`.
+- **Charlotte's most points allowed is 147**, not the 146 its records page prints: Milwaukee beat them 147-134 in overtime on 11/14/25 (our results; AP and the NBA's box score agree). A game from our own results (2016-17 on) that beats a printed mark is now the mark, and the page is noted as behind. An older listed game that beats the print is still only a doubt.
+
+### The lines the user marked
+- **"has never been an All-Star" (image 3).** Never said of a rookie now. For a league leader the line says what is new instead: "Davion Mitchell leads the NBA in assists (9.2 a game): he has never led the league in assists", from the NBA Guide's yearly leaders (points, rebounds, assists, steals, blocks). A rookie's says "as a rookie".
+- **"DET notes" (image 4).** Two bullets had run together because the first has no full stop. A sentence that opens with one player's name is now cut where another player's name starts a new clause, so Cunningham's and Robinson's are two lines with their own players. A feat told without a date gets the date of the one box score it matches: "…the most he has made without a miss in his career (11/15 vs. PHI)". "Made all 14 of his free throws" is now read as 14-of-14.
+
+### The pages
+- **Standings tab (new).** All teams, Standings & magic numbers, and Rest & back-to-backs moved there. Team situations keeps tonight's matchups and the most unusual records. The two pages are one file with a different `data-view`; a test keeps them in step. Links from the Watch List and the Index follow.
+- **Active player streaks (image 5):** one row a player and stat by default, so Dončić's 30+, 25+ and 20+ point streaks are one row with the others listed beside it. "One row a player" folds everything he has into one row; "Every streak" shows the old table. With today's data: 122 rows, 96 by stat, fewer by player.
+- **Shooting lines (image 6):** folded away under the 50-40-90 watch, which now comes first and has the Qualified / All choice.
+- **National TV v League Pass (image 7):** pages of 25.
+
+### Tested
+- `node tests/run.js`: 958 pass (was 955). New: the first-time leader and rookie lines, the merged bullets and the dated feat, a guide page that is behind, the Standings page in step with Team situations, the series counts with and without the outside check.
+- Full local build and `tools/check-pages.py`, with the new page in its list.
+
+### Unproven
+- Six head-to-head pages were not read (Atlanta, the Clippers, Minnesota, San Antonio not reached; Memphis's and Miami's copies were a season old), so the 15 pairings among those six have no outside check. All 15 are confirmed by both guides.
+- The tiebreaker explanations (New York v Philadelphia, Atlanta v the Lakers) are my reading, not confirmed game by game.
+- The four Hawks corrections came from comparing one season. Other seasons of the Hawks' list, and other guides, will have rows like these that cancel inside a season; only the ones that changed a series or a record were chased.
+- The notes fixes run when tonight's notes are read by the workflow, not in my local build. Tested on the Detroit sentence as the user's screenshot has it.
+- The team records marks other than points still have no second source, apart from the two Celtics marks.
+
 ## 0.93.0 (2026-11-17): the Bucks' 1969-70 season; team records pages read in 19 guides
 
 The user (11/17, 12:58 PM) sent Basketball Reference's 1969-70 Bucks schedule and said "proceed with your next steps". The next steps I had named were the team-records readers and finding the pages in the guides where I had not.

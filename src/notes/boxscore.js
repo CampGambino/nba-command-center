@@ -57,6 +57,15 @@ export function statClaims(text) {
     if (!out.has(made)) out.set(made, +m[1]);
     if (!out.has(att)) out.set(att, +m[2]);
   }
+  // "made all 14 of his free throws", "a perfect 9-for-9 from the line", "all six of his 3-pointers" (0.94): made and tried.
+  for (const [re, made, att] of [[/\b(?:made|hit|sank|converted|knocked down) all (\d{1,2}|\w+) of (?:his|her|their) (?:free throws|free-throw attempts|foul shots)\b/gi, "ftm", "fta"],
+    [/\b(?:made|hit|sank|knocked down) all (\d{1,2}|\w+) of (?:his|her|their) (?:3-pointers|three-pointers|threes|3-point attempts|three-point attempts)\b/gi, "fg3m", "fg3a"],
+    [/\b(?:made|hit) all (\d{1,2}|\w+) of (?:his|her|their) (?:shots|field goals|field-goal attempts)\b/gi, "fgm", "fga"]]) for (const m of text.matchAll(re)) {
+    const n = WORDS[m[1].toLowerCase()] ?? +m[1];
+    if (!(n > 0)) continue;
+    if (!out.has(made)) out.set(made, n);
+    if (!out.has(att)) out.set(att, n);
+  }
   return [...out].map(([stat, n]) => ({ stat, n }));
 }
 

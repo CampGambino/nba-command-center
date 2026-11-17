@@ -1227,5 +1227,52 @@
     "seen": "Basketball Reference's 1969-70 Bucks schedule, sent by the user 11/17/26: game 82"
    }
   ]
+ },
+ "fixes_note": "Results a guide prints wrong, each looked up in an outside source. The game keeps its place in the guide's list; only who won and the score change.",
+ "fixes": {
+  "CHA": [
+   {
+    "season": "1992-93",
+    "date": "1993-03-26",
+    "won": false,
+    "pf": 107,
+    "pa": 115,
+    "seen": "the guide prints 107-155 at Detroit; Basketball Reference's box score (the user's screenshot, 11/17/26) has Charlotte 107, Detroit 115, which is also what the guide's own records page implies (most points allowed: 146)"
+   }
+  ],
+  "ATL": [
+   {
+    "season": "1973-74",
+    "date": "1974-03-01",
+    "won": true,
+    "pf": 105,
+    "pa": 89,
+    "seen": "the guide prints 'MILWAUKEE L 89 105'; Basketball Reference's box score, the Bucks' guide (a loss, 89-105) and two other sites have Atlanta winning 105-89"
+   },
+   {
+    "season": "1973-74",
+    "date": "1974-01-13",
+    "won": false,
+    "pf": 105,
+    "pa": 128,
+    "seen": "the guide prints 'BOSTON W 128 105'; the Celtics' guide has Boston winning 128-105 in Atlanta, and Land of Basketball's 1973-74 Hawks page has it as a loss, 105-128. With 3/1 it is one of two results on this page printed the wrong way round; they cancel in the season's record"
+   },
+   {
+    "season": "1973-74",
+    "date": "1974-02-08",
+    "won": false,
+    "pf": 84,
+    "pa": 104,
+    "seen": "the guide prints 'at Philadelphia W 99 90' and, on the next row, 'CLEVELAND L 84 104': the two results are on each other's rows. The 76ers' guide has Philadelphia 104, Atlanta 84 on 2/8 and the Cavaliers' has Atlanta 99, Cleveland 90 on 2/9"
+   },
+   {
+    "season": "1973-74",
+    "date": "1974-02-09",
+    "won": true,
+    "pf": 99,
+    "pa": 90,
+    "seen": "see 2/8: the Cavaliers' guide has Atlanta 99, Cleveland 90"
+   }
+  ]
  }
 }

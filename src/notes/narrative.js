@@ -320,6 +320,27 @@ export function repairLayout(s) {
   return t.replace(/\s{2,}/g, " ").replace(/\s+([.,;])(?!\d)/g, "$1").trim();
 }
 
+/**
+ * Two bullets run together because the first has no full stop (Detroit, 11/17: "Cade Cunningham made all 14 of his free
+ * throws, the most he has made without a miss in his career Duncan Robinson knocked down two three-point field goals…").
+ * A sentence that opens with one player's full name is cut where a different player's full name starts a new clause:
+ * after a plain word (no comma, no "and", "by", "with", "teammate"…) and before a verb.
+ */
+const JOINS = /\b(?:and|or|but|by|with|of|from|to|for|as|like|than|over|past|after|before|behind|since|until|while|when|where|that|which|who|whom|vs\.?|versus|against|teammates?|guards?|forwards?|centers?|rookies?|veterans?|coach|joined|joining|passed|passing|tied|tying|surpass\w*|trailing|ahead of|alongside|between|include[sd]?|including)\s*$/i;
+export function splitBullets(s, full = []) {
+  const first = full.find((p) => p.re.test(s.slice(0, 45)));
+  if (!first || s.length < 90) return [s];
+  for (const p of full) {
+    if (p === first) continue;
+    const m = p.re.exec(s.slice(40));
+    if (!m) continue;
+    const at = 40 + m.index, before = s.slice(0, at), after = s.slice(at + m[0].length);
+    if (!/[a-z0-9%)]\s$/.test(before) || JOINS.test(before) || !/^\s+[a-z]{3,}(?:ed|s)?\b/.test(after) || /^\s+(?:and|or|as|to|in|for|with|who|whose)\b/.test(after)) continue;
+    return [`${before.trim()}.`, ...splitBullets(s.slice(at), full)];
+  }
+  return [s];
+}
+
 function sentences(text) {
   // Split after . ! ? or "…" followed by a capital, but not after initials or
   // common abbreviations (Jr., No., vs., Oct., St.).
@@ -349,7 +370,9 @@ function sentences(text) {
 // 0.82 (the Warriors' notes): history said another way ("the second time in the play-by-play era", "the fifth time in
 // his career", "according to the Elias Sports Bureau"). Used only when a sentence has no league-context or trend
 // signal of its own, so a line already read as one of those keeps its kind (and its test for being current).
-const HISTORY_ALSO = /\b(?:first|only|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d+(?:st|nd|rd|th)) time (?:in|since|ever)\b|\bplay-by-play era\b|\bElias Sports Bureau\b/i;
+// 0.94: a personal best said in full ("the most he has made without a miss in his career"), which stood only because the
+// next bullet had run into it.
+const HISTORY_ALSO = /\b(?:first|only|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d+(?:st|nd|rd|th)) time (?:in|since|ever)\b|\bplay-by-play era\b|\bElias Sports Bureau\b|\bthe (?:most|fewest|longest|highest|best|lowest) (?:[\w'’-]+ ){0,9}(?:in|of) (?:his|her|their) (?:NBA )?career\b/i;
 const HISTORY = /\b(?:in (?:NBA|league|franchise|team|club|[A-Z][a-z]+) history|all-time|(?:first|only|second|third|fourth|fifth|\d+(?:st|nd|rd|th)) (?:player|rookie|team|teenager|guard|center|forward|duo|trio|pair|teammates?|players|teams|coach|starter|reserve|\w+ to)\b|since (?:the )?(?:19|20)\d\d|(?:most|fewest|longest|highest|lowest|best|worst|largest|biggest|smallest)\b[^.]{0,60}\b(?:since|ever|in (?:NBA|franchise|team|league|club) history|by any|of any)|youngest|oldest|fastest|quickest|(?:NBA|franchise|team|league|club|single-game|season|career|rookie|all-time)[- ]records?\b|record for (?:the )?most)/i;
 // League context (0.48, from the user's picks in the Wizards' 11/12 notes): ranks in the league this season, exclusive
 // clubs, active streaks, races on a list, and the series with tonight's opponent. Not history, but what the user flags.
@@ -506,7 +529,7 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
     if (carry && carry.page === b.page && carry.bio) { bioWho = paraWho = sectionWho = carry.who; sinceWho = 0; paraHead = true; }
     else if (carry && carry.page === b.page && carry.dist <= 700) { paraWho = carry.who; sinceWho = carry.dist; paraHead = true; }
     const keep = () => { carry = paraWho && paraHead ? { who: paraWho, page: b.page, dist: sinceWho, bio: !!(bioWho && paraWho === bioWho) } : null; }; // lastWhen: "old" / "current" for the paragraph's last dated sentence // chars of text since paraWho was named // the player this paragraph is about, for its "He..." sentences
-    for (let s of sentences(b.text.replace(/\b((?:19|20)\d\d-\d\d)\s+(SEASON HIGHLIGHTS|SEASON|NOTABLES|Season Highlights|NOTES|Notes)(?=\b|:)/g, "$1\u2060$2")).flatMap((x) => x.split(/\s+(?=(?:19|20)\d\d-\d\d\u2060)|\s+(?=(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s+\p{Lu}|#\s?\d{1,2}\s+\p{Lu})/u).flatMap((y) => y.split(/\s*(?:…|\.{3}|[▪●•\u0000-\u0008\u000b\u000c\u000e-\u001f]|\s[o◦▫+]\s(?=[A-Z]))\s*/u).map((z, k, all) => { let w = k > 0 && /^[a-z]/.test(z) ? z[0].toUpperCase() + z.slice(1) : z; if (k < all.length - 1 && /[\p{L}\d%)]$/u.test(w) && !/\b(?:to|the|a|an|of|and|at|in|with|as|by|for|or|his|their|from|on|was|were|who|that|is|are|which)$/i.test(w)) w += "."; return w; }))).map((x) => x.replace(/\s*\*{2,}.*$/, "").trim())) {
+    for (let s of (sentences(b.text.replace(/\b((?:19|20)\d\d-\d\d)\s+(SEASON HIGHLIGHTS|SEASON|NOTABLES|Season Highlights|NOTES|Notes)(?=\b|:)/g, "$1\u2060$2")).flatMap((x) => x.split(/\s+(?=(?:19|20)\d\d-\d\d\u2060)|\s+(?=(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s+\p{Lu}|#\s?\d{1,2}\s+\p{Lu})/u).flatMap((y) => y.split(/\s*(?:…|\.{3}|[▪●•\u0000-\u0008\u000b\u000c\u000e-\u001f]|\s[o◦▫+]\s(?=[A-Z]))\s*/u).map((z, k, all) => { let w = k > 0 && /^[a-z]/.test(z) ? z[0].toUpperCase() + z.slice(1) : z; if (k < all.length - 1 && /[\p{L}\d%)]$/u.test(w) && !/\b(?:to|the|a|an|of|and|at|in|with|as|by|for|or|his|their|from|on|was|were|who|that|is|are|which)$/i.test(w)) w += "."; return w; }))).map((x) => x.replace(/\s*\*{2,}.*$/, "").trim())).flatMap((x) => splitBullets(x, full))) {
       sinceWho += s.length + 1;
       { const at = b.text.indexOf(s.slice(0, 25).replace(/\u2060/g, " "), cursor); if (at >= 0) cursor = at; }
       while (bios.length && bios[0].at <= cursor + 5) { bioWho = paraWho = sectionWho = bios.shift().p; sinceWho = 0; lastWhen = null; seasonHdr = null; }
@@ -743,6 +766,10 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
         if (g && g.d) s = s.replace(/([.!])$/, ` (${+g.d.slice(5, 7)}/${+g.d.slice(8, 10)}${g.opp ? ` vs. ${g.opp}` : ""})$1`);
         else if (/\bled the (?:charge|way)\b|\badded \d+\b|\bcame off the bench to\b/i.test(s)) { drop("undated-recap", s); continue; }
       }
+      // 0.94 (the user, 11/17: "it also doesn't tell me when cade made those free throws"): a feat told in the past tense
+      // with no date, which one box score matches, gets that game's date.
+      if (chk.game?.d && !datesOf(s).length && !/\(\d{1,2}\/\d{1,2}\b/.test(s) && /^(?:[\p{Lu}][\p{L}.'’-]+\s+){1,3}(?:made|scored|recorded|grabbed|dished|tallied|poured in|finished with|knocked down|hit|posted|notched|went|shot|blocked|handed out|pulled down|sank|converted)\b/u.test(s))
+        s = s.replace(/([.!…]?)$/, ` (${+chk.game.d.slice(5, 7)}/${+chk.game.d.slice(8, 10)}${chk.game.opp ? ` vs. ${chk.game.opp}` : ""})$1`);
       if (joinedFrom && out.length && out[out.length - 1].text === joinedFrom) out.pop();
       out.push({ page: b.page, text: topic && !new RegExp(`^${esc(topic)}\\b`).test(s) ? `${topic}: ${s}` : s, topic: topic || undefined, kind, player: who?.name || null, playerId: who?.id || null, team: !!team, matchup, how: who ? how : matchup && !team ? "series" : "team", resolved: !subj && !!who, boxGame: chk.game || null, when: "season", score: Math.round(score * 100) / 100 });
     }

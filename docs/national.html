@@ -119,7 +119,7 @@
 <body>
 <header>
   <h1>NBA Command Center</h1>
-  <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a href="clutch.html">Clutch</a><a href="players.html">With / without</a><a href="trends.html">Streaks &amp; outliers</a><a href="leaders.html">Team leaders</a><a href="defenses.html">vs top teams</a><a class="on" href="national.html">National TV</a><a href="gameflow.html">Game Flow</a><a href="records.html">Records</a><a href="find.html">Index</a></nav>
+  <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a href="standings.html">Standings</a><a href="clutch.html">Clutch</a><a href="players.html">With / without</a><a href="trends.html">Streaks &amp; outliers</a><a href="leaders.html">Team leaders</a><a href="defenses.html">vs top teams</a><a class="on" href="national.html">National TV</a><a href="gameflow.html">Game Flow</a><a href="records.html">Records</a><a href="find.html">Index</a></nav>
   <div class="sub" id="sub">Loading…</div>
 </header>
 <main>
@@ -136,6 +136,7 @@
   </div>
   <div class="key" id="key"></div>
   <div class="scroll"><table id="players"></table></div>
+  <div class="pager" id="ppager" style="display:flex;gap:10px;align-items:center;margin:8px 2px 18px;font-size:13px;flex-wrap:wrap"></div>
   <h2>Teams: record on national TV, by network</h2>
   <div class="controls">
     <input type="search" id="tq" placeholder="Team (e.g. NYK, BOS)">
@@ -160,16 +161,23 @@ const chg = (p, k) => (p.nat[k] == null || p.other[k] == null ? null : Math.roun
 const md = (d) => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
 const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 
+// 0.94 (the user, 11/17: "this list will get long, maybe add pages"): 25 players a page.
+const PER = 25; let page = 0, pageKey = "";
 function render() {
   const onTv = new Set(D.upcoming.filter((g) => g.d === today && g.status !== "dropped").flatMap((g) => [g.away, g.home]));
   const team = $("team").value, min = +$("min").value, mpg = +$("mpg").value, q = $("q").value.trim().toLowerCase();
   const rows = D.players.filter((p) => (!team || p.team === team) && p.nat.gp >= min && p.other.gp >= 1 && p.nat.min >= mpg && p.other.min >= mpg && (!q || p.name.toLowerCase().includes(q)))
     .sort((a, b) => ((chg(b, sortKey) ?? -1e9) - (chg(a, sortKey) ?? -1e9)) * (dir === "up" ? 1 : -1) || a.name.localeCompare(b.name));
+  const pk = [team, min, mpg, q, sortKey, dir].join("|"); if (pk !== pageKey) { page = 0; pageKey = pk; }
+  const pages = Math.max(1, Math.ceil(rows.length / PER)); page = Math.min(page, pages - 1);
+  $("ppager").innerHTML = rows.length > PER ? `<button id="pprev"${page ? "" : " disabled"}>‹ Previous</button><span>${page * PER + 1}–${Math.min(rows.length, page * PER + PER)} of ${rows.length} · page ${page + 1} of ${pages}</span><button id="pnext"${page < pages - 1 ? "" : " disabled"}>Next ›</button>` : "";
+  if ($("pprev")) $("pprev").onclick = () => { page--; render(); };
+  if ($("pnext")) $("pnext").onclick = () => { page++; render(); };
   const cell = (p, k) => { const c = chg(p, k), lo = k === "pm" ? 3 : k === "tsPct" ? 5 : k === "min" ? 4 : 2;
     return `<td class="num">${f1(p.nat[k])}</td><td class="num">${f1(p.other[k])}</td><td class="num chg ${c == null ? "" : c >= lo ? "hi" : c <= -lo ? "lo" : ""}">${sgn(c)}</td>`; };
   $("players").innerHTML = `<tr><th rowspan=2>Player</th><th rowspan=2 class="num">GP<br><span class=small>nat / LP</span></th>${STATS.map(([k, l]) => `<th colspan=3 class="num sort${k === sortKey ? " on" : ""}" data-k="${k}" title="sort by the change; click again to flip">${l}${k === sortKey ? (dir === "up" ? " ▾" : " ▴") : ""}</th>`).join("")}</tr>
     <tr>${STATS.map(() => `<th class="num">nat</th><th class="num" title="local TV / League Pass">LP</th><th class="num">chg</th>`).join("")}</tr>` +
-    (rows.length ? rows.slice(0, 150).map((p) => `<tr><td><b>${esc(p.name)}</b> <span class="team">${esc(p.team)}</span>${onTv.has(p.team) ? ` <span class="small" title="on national TV tonight">📺 tonight</span>` : ""}</td><td class="num">${p.nat.gp} / ${p.other.gp}</td>${STATS.map(([k]) => cell(p, k)).join("")}</tr>`).join("")
+    (rows.length ? rows.slice(page * PER, page * PER + PER).map((p) => `<tr><td><b>${esc(p.name)}</b> <span class="team">${esc(p.team)}</span>${onTv.has(p.team) ? ` <span class="small" title="on national TV tonight">📺 tonight</span>` : ""}</td><td class="num">${p.nat.gp} / ${p.other.gp}</td>${STATS.map(([k]) => cell(p, k)).join("")}</tr>`).join("")
       : `<tr><td colspan=${2 + STATS.length * 3} class="empty">No players match.</td></tr>`);
   // Click a stat to sort by its change; click it again to flip between better-first and worse-first.
   document.querySelectorAll("#players th.sort").forEach((th) => th.onclick = () => { if (sortKey === th.dataset.k) dir = dir === "up" ? "down" : "up"; else { sortKey = th.dataset.k; dir = "up"; } syncDir(); render(); });
