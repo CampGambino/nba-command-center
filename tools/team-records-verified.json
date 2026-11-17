@@ -1,5 +1,5 @@
 {
- "note": "Team marks a guide prints two ways, looked up in an outside source. The row with the other value is dropped and the mark says who checked it. 0.99: `redate` is a game the guide prints under a wrong date (the right one found in ESPN's box scores); `drop` is a printed game that is not this mark (the box score has the number on the other side, or the guide marks it as a playoff game); `revalue` is a number another guide and the box score both correct.",
+ "note": "Team marks a guide prints two ways, looked up in an outside source. The row with the other value is dropped and the mark says who checked it. 0.99: `redate` is a game the guide prints under a wrong date (the right one found in ESPN's box scores); `drop` is a printed game that is not this mark (the box score has the number on the other side, or the guide marks it as a playoff game); `revalue` is a number another guide and the box score both correct. 0.99.1: `undate` keeps a mark's number and drops the game the guide prints for it (the box score of that night has another number, and the right night is not known). A `marks` row whose value is the printed one records that an outside box score confirms the print where ESPN's page differs.",
  "marks": {
   "BOS": [
    {
@@ -19,6 +19,59 @@
     "date": "1954-11-28",
     "value": 65,
     "by": "Basketball Reference's box score: 56 of 65 free throws at Minneapolis; p. 198's 66 is a misprint"
+   }
+  ],
+  "BKN": [
+   {
+    "side": "team",
+    "stat": "fg3a",
+    "kind": "most",
+    "period": "game",
+    "date": "2025-02-26",
+    "value": 61,
+    "by": "Basketball Reference's box score (the user's screenshot, 11/17/26): 23 of 61 against Oklahoma City, and ESPN's box score has the same. (My first check had read another game: Portland at Washington ended 129-121 that night too.)"
+   }
+  ],
+  "WAS": [
+   {
+    "side": "team",
+    "stat": "dreb",
+    "kind": "fewest",
+    "period": "game",
+    "date": "2008-03-31",
+    "value": 14,
+    "by": "Basketball Reference's box score (the user's screenshot, 11/17/26): 9 offensive and 14 defensive at Utah (the guide prints 'vs. Utah'); ESPN's page has them the other way round"
+   }
+  ],
+  "DEN": [
+   {
+    "side": "team",
+    "stat": "reb",
+    "kind": "fewest",
+    "period": "game",
+    "date": "2008-03-18",
+    "value": 22,
+    "by": "Basketball Reference's box score (the user's screenshot, 11/17/26): 4 offensive and 18 defensive at Detroit; ESPN's page is broken"
+   },
+   {
+    "side": "team",
+    "stat": "pf",
+    "kind": "fewest",
+    "period": "game",
+    "date": "2013-01-09",
+    "value": 7,
+    "by": "Basketball Reference's box score (the user's screenshot, 11/17/26): 7 fouls against Orlando, as both guides and ESPN's box score have. (My first check had read another game with the same score that night.)"
+   }
+  ],
+  "ORL": [
+   {
+    "side": "opp",
+    "stat": "pf",
+    "kind": "fewest",
+    "period": "game",
+    "date": "2013-01-09",
+    "value": 7,
+    "by": "Basketball Reference's box score (the user's screenshot, 11/17/26): Denver's 7 fouls, as both guides and ESPN's box score have"
    }
   ]
  },
@@ -168,6 +221,17 @@
     "to": "2022-10-26",
     "by": "San Antonio was in Miami on 2/26/22; ESPN's box score for 10/26/22 at Minnesota has the Timberwolves without an offensive rebound"
    }
+  ],
+  "CHA": [
+   {
+    "side": "team",
+    "stat": "fg3a",
+    "kind": "fewest",
+    "period": "game",
+    "from": "1988-04-04",
+    "to": "1988-11-04",
+    "by": "4/4/88 is before the franchise's first game; Basketball Reference's box score (the user's screenshot, 11/17/26) for that first game, 11/4/88 against Cleveland, has no three-point attempt"
+   }
   ]
  },
  "drop": {
@@ -263,12 +327,12 @@
   ],
   "DAL": [
    {
-    "side": "team",
-    "stat": "fta",
-    "kind": "fewest",
+    "side": "opp",
+    "stat": "tov",
+    "kind": "most",
     "period": "game",
-    "date": "2021-03-15",
-    "by": "ESPN's box score: Dallas shot 25 free throws; the Clippers shot 5 (3-5)"
+    "date": "1994-02-10",
+    "by": "Basketball Reference's box score (the user's screenshot, 11/17/26) and ESPN's both have Washington with 26 turnovers, not 30 (the guide may be counting team turnovers; the two other games at 30 stand)"
    }
   ],
   "ORL": [
@@ -290,6 +354,16 @@
     "date": "1999-06-04",
     "by": "the guide's own footnote: the 1999 Western Conference Finals, not a regular-season game"
    }
+  ],
+  "CHA": [
+   {
+    "side": "team",
+    "stat": "reb",
+    "kind": "fewest",
+    "period": "game",
+    "date": "1995-02-27",
+    "by": "Basketball Reference's box score (the user's screenshot, 11/17/26) and ESPN's both have 24 rebounds at Seattle (4 + 20), not 21"
+   }
   ]
  },
  "revalue": {
@@ -302,6 +376,61 @@
     "date": "2012-03-13",
     "value": 5,
     "by": "Portland's guide and ESPN's box score both have Portland with 5 assists; Indiana's guide prints 6"
+   }
+  ],
+  "DAL": [
+   {
+    "side": "opp",
+    "stat": "tov",
+    "kind": "fewest",
+    "period": "game",
+    "date": "1995-03-02",
+    "value": 4,
+    "by": "Basketball Reference's box score (the user's screenshot, 11/17/26) and ESPN's both have Cleveland with 4 turnovers; the guide prints 3"
+   }
+  ],
+  "BOS": [
+   {
+    "side": "team",
+    "stat": "reb",
+    "kind": "most",
+    "period": "game",
+    "date": "1960-12-24",
+    "value": 112,
+    "by": "Basketball Reference's box score (the user's screenshot, 11/17/26): 112 rebounds in the 150-point game against Detroit, as the Pistons' guide prints; the Celtics' guide prints 109"
+   }
+  ],
+  "HOU": [
+   {
+    "side": "opp",
+    "stat": "blk",
+    "kind": "most",
+    "period": "game",
+    "date": "1980-01-19",
+    "value": 21,
+    "by": "Basketball Reference's box score (the user's screenshot, 11/17/26): Detroit blocked 21 shots, as the Pistons' guide prints; the Rockets' guide prints 18"
+   }
+  ]
+ },
+ "undate": {
+  "IND": [
+   {
+    "side": "team",
+    "stat": "reb",
+    "kind": "fewest",
+    "period": "game",
+    "date": "2006-12-09",
+    "by": "Basketball Reference's box score (the user's screenshot, 11/17/26) and ESPN's both have 34 rebounds at Cleveland that night (8 + 26). The 21 is probably one of the two 2007-08 games at Cleveland (12/11/07, 3/8/08), a season ESPN's rebound numbers are broken for; not confirmed"
+   }
+  ],
+  "MEM": [
+   {
+    "side": "opp",
+    "stat": "tov",
+    "kind": "fewest",
+    "period": "game",
+    "date": "2003-01-17",
+    "by": "Basketball Reference's box score (the user's screenshot, 11/17/26) and ESPN's both have Seattle with 7 turnovers in that overtime game, not 4; the night of the 4 is not known"
    }
   ]
  }

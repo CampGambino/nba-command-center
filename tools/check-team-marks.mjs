@@ -23,6 +23,9 @@ const shift = (d, n) => new Date(Date.parse(d + "T12:00:00Z") + n * 864e5).toISO
 const rows = [];
 for (const [t, ms] of Object.entries(R)) for (const m of ms) if (m.period === "game") for (const g of m.games)
   rows.push({ t, side: m.side || "team", stat: m.stat, kind: m.kind, value: m.value, date: g.date, text: g.opp, n: m.games.length });
+// looked up outside ESPN (tools/team-records-verified.json, "marks"): a box score that has the printed number
+const OUT = js(path.join(root, "tools", "team-records-verified.json")).marks || {};
+for (const r of rows) if ((OUT[r.t] || []).some((v) => v.side === r.side && v.stat === r.stat && v.kind === r.kind && v.period === "game" && v.date === r.date && v.value === r.value)) r.outside = true;
 const noGame = [];
 for (const r of rows) {
   const g = games[r.t]?.[r.date];
@@ -58,13 +61,19 @@ function statOf(st, stat) {
     ftm: [pair(st["freeThrowsMade-freeThrowsAttempted"], 0)], fta: [pair(st["freeThrowsMade-freeThrowsAttempted"], 1)], oreb: [o], dreb: [d], reb: [o != null && d != null ? o + d : null, tot], ast: [num(st.assists)], stl: [num(st.steals)], blk: [num(st.blocks)],
     tov: [num(st.totalTurnovers), num(st.turnovers), num(st.totalTurnovers) != null && num(st.teamTurnovers) != null ? num(st.totalTurnovers) - num(st.teamTurnovers) : null], pf: [num(st.fouls)] }[stat]?.filter((x) => x != null) || [];
 }
+const ALIAS = { GS: "GSW", NO: "NOP", NY: "NYK", SA: "SAS", UTAH: "UTA", WSH: "WAS", VAN: "MEM", SEA: "OKC", NJ: "BKN", NOK: "NOP", NOH: "NOP", PHO: "PHX" };
 const todo = rows.filter((r) => r.g && r.g.src === "espn" && r.stat !== "pts");
 let done = 0;
 async function check(r) {
   const d = r.moved || r.date, g = r.g, hs = g.home ? g.pf : g.pa, as = g.home ? g.pa : g.pf;
   let ev = null;
   for (const dd of [d, shift(d, -1), shift(d, 1)]) { const sb = await page("sb-" + dd, `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=${dd.replace(/-/g, "")}`);
-    ev = sb?.events.find((e) => e.c.find((c) => c.ha === "home")?.s === hs && e.c.find((c) => c.ha === "away")?.s === as); if (ev) break; }
+    const same = (sb?.events || []).filter((e) => e.c.find((c) => c.ha === "home")?.s === hs && e.c.find((c) => c.ha === "away")?.s === as);
+    // two games can end with the same score on one night (OKC 129, BKN 121 and POR 129, WSH 121 on 2/26/25): then the teams decide
+    const home = g.home ? r.t : g.opp, away = g.home ? g.opp : r.t, tri = (a) => ALIAS[a] || a;
+    ev = same.length > 1 ? same.find((e) => tri(e.c.find((c) => c.ha === "home")?.a) === home || tri(e.c.find((c) => c.ha === "away")?.a) === away) : same[0];
+    if (same.length > 1) r.twoGames = true;
+    if (ev) break; }
   if (!ev) { r.espn = "no event"; return; }
   const s = await page("g-" + ev.id, `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event=${ev.id}`);
   const mine = (r.side === "team") === g.home ? "home" : "away";          // whose numbers the mark is about
@@ -76,7 +85,7 @@ async function check(r) {
   r.espnVals = vals; r.event = ev.id;
   // Older pages give one turnover number with team turnovers (shot-clock violations and the like) in it, which the guides leave out
   const lumped = r.stat === "tov" && !(num(tm.st.turnovers) > 0), over = vals[0] - r.value;
-  r.espn = vals.includes(r.value) ? "same" : lumped && over > 0 && over <= 2 ? "team turnovers" : "differs";
+  r.espn = vals.includes(r.value) ? "same" : r.outside ? "ESPN wrong" : lumped && over > 0 && over <= 2 ? "team turnovers" : "differs";
   if (++done % 100 === 0) process.stderr.write(`  ${done} box scores read\n`);
 }
 const queue = todo.slice(); await Promise.all(Array.from({ length: 5 }, async () => { while (queue.length) await check(queue.shift()); }));
@@ -89,8 +98,10 @@ for (const r of noGame) console.log(`   NO GAME: ${r.t} ${r.side} ${r.kind} ${r.
 console.log(`2. two guides print the same night: ${mirrored + mirrorOff.length}; same value: ${mirrored}; different: ${mirrorOff.length}`);
 for (const [a, b] of mirrorOff) console.log(`   DIFFERENT: ${a.t} prints ${a.kind} ${a.stat} ${a.value} on ${a.date} (${a.text}); ${b.t} prints ${b.value} by an opponent (${b.text})`);
 const e = (v) => todo.filter((r) => r.espn === v);
-console.log(`3. ESPN box score (non-points marks since 1993-94): ${todo.length}; same: ${e("same").length}; turnovers within two of ESPN's total, which includes team turnovers: ${e("team turnovers").length}; differs: ${e("differs").length}; no totals: ${e("no totals").length}; game not found: ${e("no event").length}${noFetch ? "; not fetched: " + todo.filter((r) => !r.espn).length : ""}`);
+console.log(`3. ESPN box score (non-points marks since 1993-94): ${todo.length}; same: ${e("same").length}; turnovers within two of ESPN's total, which includes team turnovers: ${e("team turnovers").length}; ESPN's page wrong by another box score: ${e("ESPN wrong").length}; differs: ${e("differs").length}; no totals: ${e("no totals").length}; game not found: ${e("no event").length}${noFetch ? "; not fetched: " + todo.filter((r) => !r.espn).length : ""}`);
+console.log(`   nights with two games of the same score, told apart by the teams: ${todo.filter((r) => r.twoGames).length}`);
+for (const r of e("ESPN wrong")) console.log(`   ESPN WRONG: ${r.t} ${r.side} ${r.kind} ${r.stat} ${r.value} on ${r.date}; ESPN ${r.espnVals.join("/")} [${r.event}]`);
 for (const r of e("differs")) console.log(`   DIFFERS: ${r.t} ${r.side} ${r.kind} ${r.stat} ${r.value} on ${r.date} (${r.text}); ESPN ${r.espnVals.join("/")} [${r.event}]${r.mirror ? " (another guide agrees with the print)" : ""}`);
-const either = non.filter((r) => r.espn === "same" || r.mirror).length, older = non.filter((r) => !(r.espn === "same" || r.mirror));
+const either = non.filter((r) => r.espn === "same" || r.mirror || r.outside).length, older = non.filter((r) => !(r.espn === "same" || r.mirror || r.outside));
 console.log(`non-points printed games with a second source: ${either} of ${non.length}; without: ${older.length} (${older.filter((r) => r.date < "1993-10-01").length} before 1993-94)`);
 if (outFile) fs.writeFileSync(outFile, JSON.stringify(rows.map(({ g, ...r }) => ({ ...r, opp: g?.opp, home: g?.home })), null, 0));

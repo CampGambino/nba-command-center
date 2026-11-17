@@ -37,6 +37,34 @@ A new chat picked up "Next, in order" from the handoff. The PC folder could not 
 ### Unproven
 - The guide-games fixes have not been through a real rebuild (see above). Dallas's 1986-87 becoming usable may change a few deep streak counts; that is expected.
 
+## 0.99.1 (2026-11-17): the twelve open marks settled from Basketball Reference; a fault in my own check found and fixed
+
+The user sent Basketball Reference's box scores for all twelve games.
+
+### A fault in the 0.99 check, and what it had done
+- `tools/check-team-marks.mjs` found a game's ESPN page by its date and score. **Two games can end with the same score on one night** (Oklahoma City 129, Brooklyn 121 and Portland 129, Washington 121 on 2/26/25), and it then read the other game. That is what made three of the twelve look wrong (the Nets' 61 attempts, Denver's 7 fouls on 1/9/13 in both guides) and it had caused **one wrong correction in 0.99**: Dallas's 5 free throw attempts against the Clippers on 3/15/21 were dropped on the strength of a Spurs-Pistons box score. That game is restored. The check now tells such nights apart by the teams (8 of them among the marks); every other 0.99 correction was re-run and stands.
+
+### The twelve
+- **The guide is right (4 games):** the Nets' 61 three-point attempts (2/26/25), Denver's 7 fouls against Orlando (1/9/13, both guides), Washington's 14 defensive rebounds at Utah (3/31/08) and Denver's 22 rebounds at Detroit (3/18/08). ESPN's pages are wrong for the last two (its 2007-08 rebounds are unreliable).
+- **The guide is wrong (8):**
+  - Boston's most rebounds is **112**, not 109 (12/24/60, the 150-point game against Detroit; the Pistons' guide has 112).
+  - Houston's most blocks by an opponent is **21**, not 18 (Detroit, 1/19/80; the Pistons' guide has 21).
+  - Dallas's fewest turnovers by an opponent is **4**, not 3 (Cleveland, 3/2/95).
+  - Charlotte's no-attempt game "4/4/88" is 11/4/88, the franchise's first game.
+  - Not the mark at all: Charlotte's 21 rebounds at Seattle 2/27/95 (24; its two other 21s stand) and Dallas's 30 turnovers by Washington 2/10/94 (26; the two other 30s stand; the guide may be counting team turnovers).
+  - **The number stays, the night is unknown** (`undate`): Indiana's fewest rebounds, 21 "at Cleveland 12/9/06" (34 that night; probably 12/11/07 or 3/8/08 at Cleveland, a season ESPN's rebounds are broken for), and Memphis's fewest turnovers by an opponent, 4 "@ SEA 1/17/03" (7 that night). They read "the night is not confirmed" in place of a date.
+- `tools/team-records-verified.json` now holds 43 looked-up rows: 15 dates, 15 dropped games, 4 numbers, 2 without a night, 7 prints confirmed.
+
+### Where the check stands now
+- ESPN, since 1993-94: 914 of 985 the same, 5 within a team turnover or two, 2 where ESPN's page is wrong by Basketball Reference, 64 with no usable totals, **none unsettled**. Two guides on one night: 238 of 239 (the one is a team turnover).
+- With a second source: 1,121 of 1,595 non-points printed games. Without: 474, of which 433 are before 1993-94.
+
+### Tested
+- `node tests/run.js` 964 pass (the team-records test checks six of these); `tools/check-pages.py` all pages OK.
+
+### Unproven
+- Half, quarter and overtime marks (1,467 of the 2,848) and the 474 games above have no second source. At the rate found where there is one (about 1 printed game in 30 wrong, most of them a date or a game filed on the wrong list, about 1 number in 200), that would be on the order of 15 games and two or three numbers among the 474, and more among the period marks, which nothing here can check.
+
 ## 0.99.0 (2026-11-17): a second source for the team marks (ESPN's box scores, and one guide against another); 29 guide errors (14 wrong dates, 14 games that are not the mark, 1 wrong number) and a reader fault corrected
 
 "Next, in order", item 1: until now only the points marks were checked. `tools/check-team-marks.mjs` checks every game mark three ways: the date is a game that team played; where two guides print the same night (one team's most, the other's "most by an opponent") they agree; and ESPN's box score for the game has the same number (team totals exist from 1993-94; they are saved once, outside the repo).

@@ -607,7 +607,7 @@ READERS = {
 
 _vf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "team-records-verified.json")
 _V = json.load(open(_vf)) if os.path.exists(_vf) else {}
-VERIFIED, REDATE, DROP, REVALUE = _V.get("marks", {}), _V.get("redate", {}), _V.get("drop", {}), _V.get("revalue", {})
+VERIFIED, REDATE, DROP, REVALUE, UNDATE = _V.get("marks", {}), _V.get("redate", {}), _V.get("drop", {}), _V.get("revalue", {}), _V.get("undate", {})
 
 def main():
     d = sys.argv[1]; teams = {}
@@ -629,7 +629,10 @@ def main():
         for v in REVALUE.get(tri, []):
             for r in rows:
                 if K(r) == KV(v) and r["date"] == v["date"]: r["value"] = v["value"]; r["fixed"] = v["by"]; used += 1
-        want = len(REDATE.get(tri, [])) + len(DROP.get(tri, [])) + len(REVALUE.get(tri, []))
+        for v in UNDATE.get(tri, []):                         # the number stays, the night the guide gives for it does not
+            for r in rows:
+                if K(r) == KV(v) and r["date"] == v["date"]: r["date"] = None; r["opp"] = None; r["times"] = "the night is not confirmed"; used += 1
+        want = len(REDATE.get(tri, [])) + len(DROP.get(tri, [])) + len(REVALUE.get(tri, [])) + len(UNDATE.get(tri, []))
         if used < want: print(f"   {tri}: {want - used} correction(s) in team-records-verified.json found no row")
         if os.environ.get("SHOW") == tri:
             for r in rows: print("   ", r.get("side", "team"), r["kind"], r["stat"], r["period"], r["value"], "|", r["opp"], "|", r["date"])
