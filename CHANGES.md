@@ -37,6 +37,18 @@ A new chat picked up "Next, in order" from the handoff. The PC folder could not 
 ### Unproven
 - The guide-games fixes have not been through a real rebuild (see above). Dallas's 1986-87 becoming usable may change a few deep streak counts; that is expected.
 
+## 0.97.0 (2026-11-17): team records from 29 guides (Atlanta, Denver, Memphis, Sacramento)
+
+"Next, in order", item 1. Four more guides' team single-game records are read: **2,784 marks** (was 2,273). The 25 guides read before are unchanged, value for value.
+- **Atlanta** (pp. 120-123): three columns across a wide page (`three_columns`): the Hawks' highs and lows, then opponents' highs and lows, labels "Game (OT)", "Game (ATL-era)", "First Half", "1st Quarter", "Overtime^". 99 marks.
+- **Denver** (pp. 344-349; NBA years only, `scopes.DEN`): opponents' marks under "TEAM - SINGLE GAME"; "NUGGETS & OPPONENTS ALL-TIME LOWS" with "DEN" / "OPP" rows (sometimes printed alone with their values on the lines below, and running on into the next page's right column); the Nuggets' records by category from "SCORING" on, where only "MOST/FEWEST <stat>, GAME" headings are single-game marks ("... ALLOWED, GAME" is the opponents'). **A misprint:** p. 348 heads the fewest offensive rebounds list "FEWEST DEFENSIVE REBOUNDS, GAME" (1, 1, 2, under OFFENSIVE REBOUNDS; the DEN/OPP lows agree it is offensive); it is read as offensive. A misprinted "11/24/28" in the assists lows is left out (not the mark either way). Half and quarter marks are not read. 54 marks.
+- **Memphis** (pp. 98-101): bands of three stats across, rows Season / Game / Half / Quarter / OT, cells like "151 (2) 2/25/2025 vs PHO (OT) *"; a cell goes to its stat by where it sits (the band's cell positions fall into three groups); the guide's tab words down the right edge are stripped. 240 marks, with halves, quarters and overtime.
+- **Sacramento** (pp. 119-120, 126-127): the Kings-Royals franchise pages ("Game (+ 2OT)", long dates). The Sacramento-era pages (pp. 113-117) are not used. 118 marks.
+- **The check:** 15 of the 16 printed points marks equal the marks counted from the games, value and date (`node tools/check-team-records.mjs`). The 16th is Atlanta's fewest, 57 in 1955, older than the Hawks' game lists (1968-69); the guide's own "ATL-era" line, 58 at Chicago on 1/14/2013, is exactly what the games give.
+- Only Cleveland is left (its records pages are pictures).
+- Tested: `node tests/run.js` 964 pass (the team-records test now checks 29 guides and a dozen of the new marks), `tools/check-pages.py` all pages OK.
+- **Unproven:** marks other than points still have no second source except Boston's two; that is the next item.
+
 ## 0.96.1 (2026-11-17): the guide-game corrections applied; tests run
 
 The user connected the PC folder and gave GitHub access (4:40 PM). 0.96.0 was pushed as it was, then:

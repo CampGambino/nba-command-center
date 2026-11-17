@@ -15,6 +15,7 @@ numbers of the stats this season's box scores carry are kept.
 of their own; all six are text (I had four of them down as "not found": I had searched for one layout's wording).
 A mark the guide gives with no game ("Done 2 times") is kept with times and no games.
 Not read: ATL (three columns run together), DEN (DEN / OPP rows), MEM (three stats across each row), SAC; CLE is pictures.
+0.97: ATL, DEN, MEM and SAC read (29 guides); CLE is pictures.
 """
 import glob, json, os, re, sys
 
@@ -388,6 +389,155 @@ def read_mia(pages):
         heads_and_rows(columns(p, ANY, 60), st, marker, out)
     return out
 
+def read_den(pages):
+    """Denver (pp. 344-349; NBA years only): opponents' team marks under "TEAM - SINGLE GAME" (a stat heading, then value,
+    opponent and date, ties on rows of their own); "NUGGETS & OPPONENTS ALL-TIME LOWS", rows "DEN 22 @ Detroit, 3/18/08"
+    and "OPP 21 by Memphis, 3/6/06" under each stat (they also run on into the next page's right column); and the Nuggets'
+    own records by category from "SCORING" on, where only "MOST/FEWEST <stat>, GAME|ONE HALF|ONE QUARTER" headings are
+    single-game marks ("... ALLOWED, GAME" is the opponents')."""
+    out = []; st = {"mode": None, "low": None, "h": None, "o": None, "value": None, "side": None, "lastlow": None, "queue": []}
+    GAMEH = re.compile(r"^(MOST|FEWEST) (.+?), (GAME|ONE HALF|ONE QUARTER|HALF|QUARTER)$")
+    ROW = re.compile(r"^(\d{1,3})[*]*(?:,)?\s+(.+?),?\s+(\d{1,2}/\d{1,2}/\d{2,4})\b")
+    TIE = re.compile(r"^((?:vs\.?|at|@|by)\s.+?|[A-Z][A-Za-z.]+(?: [A-Z][A-Za-z.]+)*(?: \(\d?OT\))?),?\s+(\d{1,2}/\d{1,2}/\d{2,4})\b")
+    clean = lambda o: re.sub(r"^(?:(?:several|\w+) times|twice)[,]?\s*(?:last\s*)?(?:by\s+\S+(?: \S+)? (?=@|vs|at))?", "", o.strip(" ,"), flags=re.I).strip(" ,")
+    def add(side, stat, kind, period, v, o, d):
+        if side and stat and iso(d) < "2026-07-01":         # "11/24/28" (an assists low) is a misprint; not this mark either way
+            out.append({"side": side, "stat": stat, "kind": kind, "period": period, "value": v, "opp": re.sub(r"\s*\((?:\d?OT|\d+-\d+)\)", "", clean(o)), "date": iso(d)})
+    for p in pages[343:349]:
+        for stream in columns(p, ANY, 55):
+            for l in stream:
+                t = re.sub(r"(?<=\d)\*+", "", l.replace("\t", " ")).strip().replace(" - GAME", "")
+                if not t or t.startswith("*") or t.startswith("@NUGGETS"): continue
+                if t == "INDIVIDUAL - SINGLE GAME": st.update(mode=None, o=None); continue
+                if t == "TEAM - SINGLE GAME": st.update(mode="opp", o=None, value=None); continue
+                if t == "NUGGETS & OPPONENTS ALL-TIME LOWS": st.update(mode=None, low=None); continue
+                if t == "SCORING" and st["mode"] is None: st.update(mode="team", h=None); continue
+                if t in ("TEAM NOTABLE GAMES", "NUGGETS ALL-TIME STREAKS"): st.update(mode=None); continue
+                m = re.match(r"^(DEN|OPP)(?:\s+(.*))?$", t)
+                if m:                                         # a lows row, in whichever section it is printed
+                    side = "team" if m.group(1) == "DEN" else "opp"; r = ROW.match(m.group(2) or "")
+                    if r: add(side, st["low"], "fewest", "game", int(r.group(1)), r.group(2), r.group(3)); st["lastlow"] = side
+                    elif not m.group(2): st["queue"].append(side)
+                    continue
+                r = ROW.match(t); tie = TIE.match(t) if not r else None
+                if (r or tie) and (st["queue"] or (st["lastlow"] and st["low"] and l[:12].strip() == "" and st["mode"] != "opp")):
+                    if r:                                     # "DEN" / "OPP" printed alone, their values on the lines under them; or a tie under a lows row
+                        side = st["queue"].pop(0) if st["queue"] else st["lastlow"]
+                        add(side, st["low"], "fewest", "game", int(r.group(1)), r.group(2), r.group(3)); st["lastlow"] = side
+                    continue
+                if r or tie:
+                    if r: st["value"] = int(r.group(1))
+                    o, d = (r.group(2), r.group(3)) if r else (tie.group(1), tie.group(2))
+                    if st["value"] is None: continue
+                    if st["mode"] == "opp" and st["o"]: add("opp", st["o"][0], st["o"][1], "game", st["value"], o, d)
+                    elif st["mode"] == "team" and st["h"]: add(st["h"][0], st["h"][1], st["h"][2], st["h"][3], st["value"], o, d)
+                    continue
+                if re.match(r"^\d", t): st["value"] = None if not re.fullmatch(r"\d{1,3}", t) else int(t); continue
+                if UPPER(t) and not re.search(r"\d{2}", t):
+                    st["queue"] = []; st["lastlow"] = None; st["value"] = None
+                    stat = stat_of(t)[0] if not re.search(r"SEASON|CAREER|AVERAGE|PERCENTAGE|CONSECUTIVE|NO MISSES|NONE MISSED|ROOKIE|PER GAME|MARGIN", t) else None
+                    st["low"] = stat
+                    st["o"] = (stat, "fewest" if t.startswith("FEWEST") else "most") if stat and st["mode"] == "opp" else None
+                    g = GAMEH.match(t)
+                    if not g and not re.match(r"^(MOST|FEWEST|HIGHEST|LOWEST|LONGEST|LARGEST)\b", t): st["cat"] = stat      # a category line ("OFFENSIVE REBOUNDS")
+                    if g and stat and st["mode"] == "team":
+                        name = g.group(2); side = "opp" if name.endswith(" ALLOWED") else "team"; hs = stat_of(name.replace(" ALLOWED", ""))[0]
+                        # p. 348 prints "FEWEST DEFENSIVE REBOUNDS, GAME" twice; the first, under OFFENSIVE REBOUNDS (1, 1, 2), is the offensive list
+                        if {hs, st.get("cat")} == {"oreb", "dreb"}: hs = st["cat"]
+                        st["h"] = (side, hs, g.group(1).lower(), "game" if g.group(3) == "GAME" else "half" if "HALF" in g.group(3) else "quarter")
+                    else: st["h"] = None
+                elif st["mode"] == "opp" and re.match(r"^Non-Overtime$", t): continue
+    return out
+
+MEMSTAT = {"Points": "pts", "Field Goals Made": "fgm", "Field Goal Atts": "fga", "3-Pt Field Goals Made": "fg3m", "3-Pt Field Goal Atts": "fg3a", "Free Throws Made": "ftm",
+           "Free Throw Atts": "fta", "Total Rebounds": "reb", "Offensive Rebounds": "oreb", "Defensive Rebounds": "dreb", "Assists": "ast", "Steals": "stl", "Blocks": "blk",
+           "Turnovers": "tov", "Personal Fouls": "pf", "Field Goal Pct": None, "Free Throw Pct": None, "3-Pt Field Goal Pct": None}
+MEMCELL = re.compile(r"(?<!\S)(\.?\d[\d.]*)\s+(?:\((\d+\+?)\)\s+)?(\d{1,2}/\d{1,2}/\d{2,4})\s+((?:vs|@)\s+[A-Z]{2,3})(?:\s+\([^)]*\))?(?:\s*\*)?")
+
+def read_mem(pages):
+    """Memphis (pp. 98-101): "ALL-TIME SEASON & SINGLE-GAME HIGHS" / "LOWS", the Grizzlies' and then opponents'. Bands of three
+    stats across, rows Season / Game / Half / Quarter / OT down the left, cells like "151 (2) 2/25/2025 vs PHO (OT) *" (the
+    count in brackets is how many times; the date is the most recent). Cells go to a stat by where they sit across the page:
+    the band's cell positions fall into three groups."""
+    out = []
+    def band(heads, rows, side, kind):
+        cells = [(x, per, c) for per, found in rows for x, c in found]
+        if not cells: return
+        xs = sorted({x for x, _, _ in cells}); groups = [[xs[0]]]
+        for x in xs[1:]:
+            (groups[-1].append(x) if x - groups[-1][-1] <= 15 else groups.append([x]))
+        if len(groups) != len(heads): print(f"   MEM: a band of {len(heads)} stats has cells in {len(groups)} places; left out: {heads}"); return
+        col = {x: i for i, g in enumerate(groups) for x in g}
+        for x, per, c in cells:
+            stat = MEMSTAT.get(heads[col[x]])
+            if not stat or not per or "." in c.group(1): continue
+            out.append({"side": side, "stat": stat, "kind": kind, "period": per, "value": int(c.group(1)), "opp": c.group(4), "date": iso(c.group(3))})
+    for p in pages[97:101]:
+        top = p[:400]
+        side = "opp" if "OPPONENTS ALL-TIME" in top else "team" if "GRIZZLIES ALL-TIME" in top else None
+        kind = "most" if "HIGHS" in top else "fewest" if "LOWS" in top else None
+        if not side or not kind: continue
+        heads, rows, per = None, [], None
+        for l in p.split("\n"):
+            l = l.replace("\t", " ")
+            l = l[:115] + re.sub(r"\s{3,}[A-Z]{3,}(?: [A-Z]+)?\s*$", "", l[115:]) if re.search(r"\s{3,}[A-Z]{3,}(?: [A-Z]+)?\s*$", l[100:]) else l      # the guide's tab words (INTRO, PLAYERS...) down the right edge
+            toks = [t.strip() for t in re.split(r"\s{2,}", l.strip()) if t.strip()]
+            if toks and all(t in MEMSTAT for t in toks):
+                if heads: band(heads, rows, side, kind)
+                heads, rows, per = toks, [], None; continue
+            if not heads: continue
+            lab = re.match(r"^\s*(Season|Game|Half|Quarter|OT)\b", l)
+            if lab: per = {"Season": None, "Game": "game", "Half": "half", "Quarter": "quarter", "OT": "ot"}[lab.group(1)]
+            found = [(c.start(), c) for c in MEMCELL.finditer(l)]
+            if found: rows.append((per, found))
+        if heads: band(heads, rows, side, kind)
+    return out
+
+def three_columns(page, skip=5):
+    """Atlanta's pages run three columns across; each starts where its "Most ..." / "Game" / "Season" lines line up."""
+    lines = [l.replace("\t", " ").rstrip() for l in page.split("\n")[skip:]]
+    xs = sorted({m.start() for l in lines for m in re.finditer(r"(?:(?<=\s{3})|^)(?:Most|Fewest|Highest|Lowest|Game|Season|Half|Quarter)\b", l)})
+    starts = [x for x in xs if x > 40]
+    cuts = []
+    for x in starts:
+        if not cuts or x - cuts[-1] > 40: cuts.append(x)
+    cuts = cuts[:2]
+    streams = [[] for _ in range(len(cuts) + 1)]
+    for l in lines:
+        bounds = [0] + cuts + [10 ** 6]
+        for i in range(len(bounds) - 1):
+            a, b = bounds[i], bounds[i + 1]
+            if a and len(l) > a and l[a - 1] != " ":            # text runs across the boundary: move it to the gap on its left
+                g = [m.end() for m in re.finditer(r"\s{2,}", l[:a]) if m.end() >= a - 8]
+                a = g[-1] if g else a
+            streams[i].append(l[a:b] if i < len(bounds) - 2 else l[a:])
+    return streams
+
+def read_atl(pages):
+    """Atlanta (pp. 120-123): three columns; "HAWKS TEAM RECORDS" / "HIGHS" / "LOWS", then "OPPONENT TEAM RECORDS" / "HIGHS" /
+    "LOWS"; a stat heading ("Most Points"), a label ("Game (OT)", "First Half", "1st Quarter", "Overtime^") and the row under it."""
+    marks = [(r"^HAWKS TEAM RECORDS$", "team", "none"), (r"^OPPONENT TEAM RECORDS$", "opp", "none"), (r"^HIGHS$", "same", "most"), (r"^LOWS$", "same", "fewest"),
+             (r"^(?:HAWKS INDIVIDUAL RECORDS|OPPONENT INDIVIDUAL SINGLE GAME|RECORDS|STATE FARM ARENA.*)$", "off", "none")]
+    def marker(l, s):
+        for rx, side, kind in marks:
+            if re.match(rx, l):
+                if side != "same": s["side"] = None if side == "off" else side; s["stat"] = None
+                if kind != "same": s["kind"] = None if kind == "none" else kind
+                s["period"] = s["value"] = None; return ""
+        return None
+    out = []; state = {"side": None, "kind": None, "stat": None, "period": None, "value": None}
+    prep = lambda ls: [re.sub(r"\*+", "", l).replace("Overtime^", "Overtime") for l in ls]
+    for p in pages[119:123]: scan(three_columns(p), state, marker, TITLE, out, prep=prep)
+    return out
+
+def sac_prep(lines):
+    """Sacramento: long dates ("Feb. 24, 2023"), "Game (+ 2OT)" labels, "12+" values and "twice, last vs. Houston"."""
+    out = []
+    for l in lines:
+        l = re.sub(r"^Game\s*\(\+\s*\d?OT\)", "Game", longdate(l))
+        out.append(re.sub(r"^(\d{1,3})\+(?=\s)", r"\1", l).replace("twice, last ", ""))
+    return out
+
 M = lambda *names: (r"^(?:" + "|".join(names) + r")$", "off", "none")
 READERS = {
     "PHI": ("Philadelphia-76ers", read_phi),
@@ -427,6 +577,13 @@ READERS = {
     "NYK": ("Knicks", read_nyk),
     "WAS": ("Wizards", read_was),
     "MIA": ("Heat", read_mia),
+    # 0.97: the Kings-Royals franchise pages (pp. 119-120 the Kings, 126-127 opponents); pp. 113-117 are the Sacramento years only.
+    "ATL": ("Atlanta-Hawks", read_atl),
+    "DEN": ("Denver-Nuggets", read_den),
+    "MEM": ("Memphis-Grizzlies", read_mem),
+    "SAC": ("Sacramento-Kings", by_marker(119, 127, [(r"^KINGS-ROYALS TEAM RECORDS$", "team", "none"), (r"^OPPONENT TEAM RECORDS$", "opp", "none"), (r"^OPPONENT TEAM RECORDS \(MOST\)$", "opp", "most"),
+                                                     (r"^\(MOST\)$", "same", "most"), (r"^\(FEWEST\)$", "same", "fewest"),
+                                                     M("KINGS-ROYALS TOP PERFORMANCES", "OPPONENT INDIVIDUAL RECORDS", "KINGS-ROYALS INDIVIDUAL.*", "OPPONENT PERFORMANCES", "NOTABLE PERF.*", "TOP SCORING PERFORMANCES")], prep=sac_prep)),
 }
 
 _vf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "team-records-verified.json")
@@ -462,7 +619,7 @@ def main():
         g = lambda side, kind: ", ".join(f"{m['stat']} {m['value']}" for m in teams[tri] if m["period"] == "game" and m["kind"] == kind and m.get("side", "team") == side)
         print(f"{tri}: {len(rows)} rows, {len(teams[tri])} marks\n   most: {g('team', 'most')}\n   fewest: {g('team', 'fewest')}\n   opp most: {g('opp', 'most')}\n   opp fewest: {g('opp', 'fewest')}")
     # What "all-time" means where it is not the franchise's whole history: the Thunder's guide starts in Oklahoma City.
-    scopes = {"OKC": "in Oklahoma City history (since 2008-09)"}
-    notes = {"LAL": "the Lakers' fewest marks leave out games before the shot clock (1954-55)", "BOS": "pp. 197 and 198 print the same game with two values for field goals (72, 77) and free throw attempts (65, 66); Basketball Reference's box scores have 72 and 65"}
+    scopes = {"OKC": "in Oklahoma City history (since 2008-09)", "DEN": "in the Nuggets' NBA years (since 1976-77)"}
+    notes = {"LAL": "the Lakers' fewest marks leave out games before the shot clock (1954-55)", "BOS": "pp. 197 and 198 print the same game with two values for field goals (72, 77) and free throw attempts (65, 66); Basketball Reference's box scores have 72 and 65", "DEN": "p. 348 heads the fewest offensive rebounds list \"FEWEST DEFENSIVE REBOUNDS, GAME\" (1, 1, 2); it is read as offensive. Half and quarter marks are not read", "SAC": "the Kings-Royals franchise pages (pp. 119-120, 126-127); the guide's Sacramento-era pages (pp. 113-117) are not used"}
     json.dump({"through": "2025-26", "source": "team media guides for 2026-27, team single-game records (tools/parse-team-records.py)", "scopes": scopes, "notes": notes, "teams": teams}, open(sys.argv[2], "w"), separators=(",", ":"))
 main()
