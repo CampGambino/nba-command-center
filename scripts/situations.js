@@ -462,7 +462,17 @@ for (const [tri, games] of Object.entries(perTeam)) {
   try {
     const { streakWatch } = await import("../src/situations/streakwatch.js");
     const hf = path.join(root, "src", "data", "nba-results-history.json");
-    watchLines = streakWatch({ history: fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null, rows, today });
+    // 0.86: each team's games before 2016-17, as far back as its seasons add up to the franchise's record.
+    let deep = null;
+    try {
+      const zl = await import("node:zlib"); const { deepSeqs } = await import("../src/situations/deepseq.js");
+      const gz = (f) => { const p = path.join(root, "src", "data", f); return fs.existsSync(p) ? JSON.parse(zl.gunzipSync(fs.readFileSync(p))) : null; };
+      const sf = path.join(root, "src", "data", "nba-team-seasons-2026-27.json");
+      deep = deepSeqs({ older: gz("nba-results-older.json.gz"), guide: gz("guide-games-2026-27.json.gz"), official: fs.existsSync(sf) ? JSON.parse(fs.readFileSync(sf, "utf8")).teams : null });
+      const fr = {}; for (const [t, s] of Object.entries(deep.from)) (fr[s] ??= []).push(t);
+      console.log(`deep history: every team from ${deep.league}; further back: ${Object.entries(fr).filter(([s]) => s < deep.league).sort().map(([s, ts]) => `${ts.join(", ")} from ${s}`).join("; ") || "none"}`);
+    } catch (e) { console.error(`deep history not used: ${e.message}`); deep = null; }
+    watchLines = streakWatch({ history: fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null, rows, today, deep });
     console.log(`team streak watch: ${watchLines.length} lines`);
   } catch (e) { console.error(`team streak watch: ${e.message}`); }
   fs.writeFileSync(path.join(root, "docs", "data", "trends.json"), JSON.stringify({ generatedAt: out.generatedAt, through, streaks: activeStreaks(pg, store.names || {}).map(nowTeam), teams: teamStreaks(rows), watch: watchLines, highsAllowed: careers ? careerHighsAllowed(pg, careers, store.names || {}) : null, anomalies: byDate }));

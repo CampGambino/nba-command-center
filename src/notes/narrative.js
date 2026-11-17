@@ -420,6 +420,8 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
   // The subject: the player's full name near the start (within 40 characters), or a sentence that opens
   // with his (unique) last name ("Mobley is...", "Jerome, who..."). A name later in the sentence is a
   // mention, not the subject ("...his teammates Matas Buzelis and Tyler Smith" is not about Tolu Smith).
+  // A capitalized word before a last name that is not a first name: a sentence opener, a role, a day or a month.
+  const NOT_A_NAME = /^(?:Through|Since|After|Before|With|Without|Against|On|In|At|For|From|By|As|When|While|Tonight|Last|This|That|The|And|But|Also|Rookie|Guard|Forward|Center|Veteran|Sophomore|Captain|Coach|All-Star|Teammate|Teammates|Starter|Reserve|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Jan|Feb|Mar|Apr|May|Oct|Nov|Dec|January|February|March|April|October|November|December)\.?$/;
   const subjectOf = (t) => {
     const x = plain(t);
     let best = null, at = 1e9;
@@ -438,7 +440,14 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       const m = new RegExp(`(?<![\\p{L}])${esc(p.last)}(?:['’]s)?(?![\\p{L}])`, "u").exec(x);
       // The words before it, less a first name ("Passed Kevin Durant": "Passed" makes Durant the object).
       const pre = m ? x.slice(0, m.index).replace(/\p{Lu}[\p{L}'’.\-]*\s+$/u, "") : "";
-      if (m && m.index <= 30 && m.index < at && !OBJECT_BEFORE.test(pre) && !OBJECT_BEFORE.test(x.slice(0, m.index)) && !/\b(?:and|&|with)\s+$/.test(pre)) { near = p; at = m.index; }
+      // 0.86 (the user, 11/17: "the wires got crossed because of the last names"): "Sion James is 37 steals away…" in the
+      // Lakers' notes went to Bronny James, the only James on the roster. A different first name right before the last
+      // name is another person. A short form of his own first name still counts ("Herb Jones" for Herbert Jones).
+      const before = m ? (x.slice(0, m.index).match(/(\p{Lu}[\p{L}'’.\-]*)\s+$/u) || [])[1] : null;
+      const first = plain(p.name).split(" ")[0];
+      const otherFirst = before && !NOT_A_NAME.test(before) && before.replace(/\./g, "").slice(0, 3).toLowerCase() !== first.replace(/\./g, "").slice(0, 3).toLowerCase()
+        && before.replace(/\./g, "").toLowerCase() !== plain(p.name).split(" ").slice(0, -1).map((w) => w[0]).join("").toLowerCase();
+      if (m && m.index <= 30 && m.index < at && !otherFirst && !OBJECT_BEFORE.test(pre) && !OBJECT_BEFORE.test(x.slice(0, m.index)) && !/\b(?:and|&|with)\s+$/.test(pre)) { near = p; at = m.index; }
     }
     return near;
   };

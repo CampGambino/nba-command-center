@@ -2,6 +2,32 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.86.0 (2026-11-17): streaks and starts measured against 26 to 78 seasons; a line about another James
+
+The user (11/17, 1:37 AM), on the Lakers' notes card ("New: Bronny James · Sion James is 37 steals away from 100 career steals", "New: Ziaire Williams · Grant Williams is 2 points away from 3,000 career points"): "I think the wires got crossed because of the last names". And on the streak and start lines ending "since at least 2016-17": "I think these can be more accurate now that the full season game-by-game records are mostly known".
+
+### Notes: another player's last name
+- A sentence was given to a roster player when his last name, the only one of its kind on the team, stood near its start. "Sion James" and "Grant Williams" are Hornets; the Lakers have one James and one Williams. A different first name right before the last name now means another person, and the line is dropped as about no one on the team. A short form of his own first name still counts ("Herb Jones" for Herbert Jones), as do a bare last name and "Through Nov. 8, Kessler…".
+
+### Team streaks and starts: further back
+- **Game-by-game results were known for four teams, not most** (the lists read in 0.85: Lakers, Warriors, Bucks, Wizards). For the rest there was nothing before 2016-17. Two things change that.
+- **ESPN, 1993-94 to 2015-16** (`tools/fetch-older-results.mjs` → `src/data/nba-results-older.json.gz`, 26,947 games). ESPN has almost nothing before 1993-94. Every team-season is checked against the franchise's record: all are right except 1999-00, where ESPN is about 23 games short league-wide.
+- **`src/situations/deepseq.js`** joins ESPN's seasons and the four guides' lists. A season is used only if it adds up to the franchise's record, and a team's games start at the earliest season from which every season since does. Where ESPN's 1999-00 falls short for a team, the games the four guides list against that team are added, which mends it for San Antonio and the Clippers.
+- **How far each team now goes:** the Lakers to their first game (1948-49), Golden State to 1962-63, Milwaukee to 1970-71 (1969-70 is not in its guide), Washington to 1987-88 (1986-87 is a game short), San Antonio and the Clippers to 1993-94, New Orleans to its first season, everyone else to 2000-01.
+- **The lines** use all of a team's games and say its own window: "since at least 2000-01", or "in franchise history (since 1948-49)" where the games reach the first season. On 11/17: "SAS has won 12 straight: a win tonight would be its first 13-game winning streak since 2015-16 (Jan. 2016)" (was "since at least 2016-17"); "MIL has lost 10 straight… first 11-game losing streak since 2013-14 (Nov. 2013)"; "MIL is 1-13: its worst start through 14 games since 1974-75 (1-13)"; "SAS is 12-2: its best start through 14 games since 2013-14 (13-1)"; "SAC is 1-12: its worst start through 13 games since at least 2000-01".
+- Counts across the league ("11 other teams since…") use the window every team shares, now 2000-01.
+- Head-to-head lines and player lines still start in 2016-17: the older results are used for team streaks and starts only.
+- Where a guide's printed score contradicts its own running record (a few games), the result stands and the score is turned to agree.
+
+### Tested
+- 936 checks (was 932). New: the name rule on six sentences; the deeper histories on a made-up league (a season a game short stops the reach; a guide season fills in; a reversed score) and on the real files (each team's reach); the streak lines with and without the deeper games.
+- A full local build: 13 team lines, the five quoted above among them.
+
+### Unproven
+- The rest of the league stops at 2000-01 because of ESPN's 1999-00. The other guides' game lists (Boston's go back to 1946) are what would take each team further; none of those is read yet.
+- A streak that ran through a season the data does not cover cannot be seen: "since at least" is the honest wording there.
+- The older ESPN scores were checked by each team's wins and losses, not score by score.
+
 ## 0.85.1 (2026-11-17): the all-time line on a crowded game
 
 - The first build with all 435 pairings showed no all-time line for NYK @ TOR: a game's matchup items were cut to the top twelve by score and the all-time line, a reference line with a low score, fell off. It is now kept whatever the count.

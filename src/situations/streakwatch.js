@@ -9,6 +9,12 @@
  *
  * The history is the ESPN back-fill (src/data/nba-results-history.json, regular season, 2016-17 on) plus this season's
  * results store, so every "since" and count is within that window and says so.
+ *
+ * 0.86: with `deep` (deepseq.js) each team's games reach further back, each as far as its seasons can be verified:
+ * every team to 2000-01, Washington to 1987-88, Milwaukee to 1970-71, Golden State to 1962-63, the Lakers to their
+ * first season. A team's own streaks and starts use all of its games and say its own window ("since at least 2000-01",
+ * or "in franchise history" where the games reach the first season). Counts across the league use the window every
+ * team shares.
  */
 export const WINDOW = "2016-17";
 const GAP_GAMES = 150; // a W/L run is news when the team hasn't had one that long in about two seasons of games (0.69:
@@ -82,17 +88,21 @@ const RARE = 3; // at most this many team runs as long as tonight's would be, si
  * Lines for each team (all 30; the storylines keep tonight's).
  * -> [{ team, kind: "teamwatch", stat, n, text, score, then: { n, teams: [{ team, season }] } }]
  */
-export function streakWatch({ history = null, rows = [], today = null } = {}) {
+export function streakWatch({ history = null, rows = [], today = null, deep = null } = {}) {
   const seq = teamSeqs(history, rows);
+  if (deep) for (const [t, older] of Object.entries(deep.seq || {})) if (seq[t]) seq[t] = [...older.filter((g) => g.d < seq[t][0].d), ...seq[t]];
+  const fromOf = (t) => deep?.from?.[t] || WINDOW, wholeOf = (t) => !!deep?.whole?.[t];
+  const LW = deep?.league || WINDOW;                                   // the window every team shares
+  const shared = Object.fromEntries(Object.entries(seq).map(([t, games]) => [t, deep ? games.filter((g) => seasonOf(g.d) >= LW) : games]));
   const out = [];
   // League-wide runs for every bar, once.
   const league = {};
   for (const b of BARS) {
     league[b.key] = [];
-    for (const [t, games] of Object.entries(seq)) for (const r of runs(games, b.test)) league[b.key].push({ team: t, n: r.n, end: games[r.end].d, current: r.end === games.length - 1 });
+    for (const [t, games] of Object.entries(shared)) for (const r of runs(games, b.test)) league[b.key].push({ team: t, n: r.n, end: games[r.end].d, current: r.end === games.length - 1 });
   }
   const spans = { "-1": {}, "1": {} };
-  for (const [t, games] of Object.entries(seq)) { spans["-1"][t] = spanMax(games, -1); spans["1"][t] = spanMax(games, 1); }
+  for (const [t, games] of Object.entries(shared)) { spans["-1"][t] = spanMax(games, -1); spans["1"][t] = spanMax(games, 1); }
   // 0.80: every team's seasons, for starts compared across years.
   const bySeason = {};
   for (const [t, games] of Object.entries(seq)) { bySeason[t] = {}; for (const g of games) (bySeason[t][seasonOf(g.d)] ??= []).push(g); }
@@ -113,7 +123,7 @@ export function streakWatch({ history = null, rows = [], today = null } = {}) {
           const beat = (x) => { const pw = winsIn(bySeason[team][x], n); return pw != null && (side === "best" ? pw >= w : pw <= w); };
           const i = prior.findIndex(beat);
           if (i !== -1 && i < START.seasons) continue;
-          const when = i === -1 ? `since at least ${prior[prior.length - 1]}` : `since ${prior[i]} (${winsIn(bySeason[team][prior[i]], n)}-${n - winsIn(bySeason[team][prior[i]], n)})`;
+          const when = i === -1 ? (wholeOf(team) ? `in franchise history (since ${prior[prior.length - 1]})` : `since at least ${prior[prior.length - 1]}`) : `since ${prior[i]} (${winsIn(bySeason[team][prior[i]], n)}-${n - winsIn(bySeason[team][prior[i]], n)})`;
           out.push({ team, kind: "teamwatch", stat: `start-${side}`, n,
             text: `${team} is ${w}-${n - w}: its ${side} start through ${n} games ${when}`, score: 3.1 + Math.min(0.9, (i === -1 ? prior.length : i) * 0.08) });
         }
@@ -125,7 +135,7 @@ export function streakWatch({ history = null, rows = [], today = null } = {}) {
           const others = Object.keys(seq).filter((t) => t !== team && perfectRuns(t, n + 1) >= k + 1).length + (perfectRuns(team, n + 1, cur) >= k + 1 ? 1 : 0);
           const ordK = `${k + 1}${k + 1 === 2 ? "nd" : k + 1 === 3 ? "rd" : "th"}`;
           out.push({ team, kind: "teamwatch", stat: "start-perfect", n,
-            text: `${team} is ${n}-0: a win tonight makes it ${n + 1}-0 for the ${ordK} straight season${others ? "" : ` (no team has done that since ${WINDOW})`}`, score: 3.6 + (others ? 0 : 0.5) });
+            text: `${team} is ${n}-0: a win tonight makes it ${n + 1}-0 for the ${ordK} straight season${others ? "" : ` (no team has done that since ${LW})`}`, score: 3.6 + (others ? 0 : 0.5) });
         }
       }
     }
@@ -139,7 +149,7 @@ export function streakWatch({ history = null, rows = [], today = null } = {}) {
       const gap = prior ? cur.start - prior.end : Infinity;
       if (want >= 3 && gap >= GAP_GAMES) {
         const what = `${want}-game ${won ? "winning" : "losing"} streak`;
-        const since = prior ? `since ${seasonOf(games[prior.end].d)} (${monthYear(games[prior.end].d)})` : `since at least ${WINDOW}`;
+        const since = prior ? `since ${seasonOf(games[prior.end].d)} (${monthYear(games[prior.end].d)})` : wholeOf(team) ? `in franchise history (since ${fromOf(team)})` : `since at least ${fromOf(team)}`;
         out.push({ team, kind: "teamwatch", stat: won ? "W" : "L", n: cur.n,
           text: `${team} has ${won ? "won" : "lost"} ${cur.n} straight: a ${won ? "win" : "loss"} tonight would be its first ${what} ${since}`,
           score: 3 + Math.min(1.5, (prior ? gap / GAP_GAMES : 4) * 0.35) });
@@ -149,8 +159,8 @@ export function streakWatch({ history = null, rows = [], today = null } = {}) {
     for (const fam of ["pa", "pf", "held", "low", "lostby", "wonby"]) {
       let best = null;
       for (const b of BARS.filter((x) => x.fam === fam)) {
-        const r = runs(games, b.test).pop();
-        if (!r || r.end !== games.length - 1 || r.n < 2) continue;
+        const r = runs(shared[team], b.test).pop();
+        if (!r || r.end !== shared[team].length - 1 || r.n < 2) continue;
         const others = league[b.key].filter((x) => !(x.team === team && x.current));
         const atN = others.filter((x) => x.n >= r.n), atNext = others.filter((x) => x.n >= r.n + 1);
         if (atNext.length > RARE) continue;
@@ -160,8 +170,8 @@ export function streakWatch({ history = null, rows = [], today = null } = {}) {
       const { b, r, atN, atNext } = best;
       const name = (list) => list.slice(-3).map((x) => `${x.team} ${seasonOf(x.end)}`).join(", ");
       const n1 = r.n + 1;
-      const head = atN.length === 0 ? `no other team has done it since ${WINDOW}`
-        : `${atN.length === 1 ? "one other team" : `${atN.length} other teams`} since ${WINDOW}${atN.length <= 3 ? ` (${name(atN)})` : ""}`;
+      const head = atN.length === 0 ? `no other team has done it since ${LW}`
+        : `${atN.length === 1 ? "one other team" : `${atN.length} other teams`} since ${LW}${atN.length <= 3 ? ` (${name(atN)})` : ""}`;
       const tail = atN.length === 0 ? "" : atNext.length === atN.length ? "" : atNext.length ? `; only ${name(atNext)} went ${n1}+` : `; none went ${n1}`;
       out.push({ team, kind: "teamwatch", stat: b.key, n: r.n,
         text: `${team} has ${b.say} in ${r.n} straight: ${head}${tail}`,
@@ -178,8 +188,8 @@ export function streakWatch({ history = null, rows = [], today = null } = {}) {
       const atK = others.filter((x) => x.n >= k), atK1 = others.filter((x) => x.n >= k + 1);
       if (atK1.length > RARE) continue;
       const name = (list) => list.slice(-3).map((x) => `${x.team} ${x.season}`).join(", ");
-      const head = atK.length === 0 ? `no other team has had ${k} in a ${SPAN}-game span since ${WINDOW}`
-        : `${atK.length === 1 ? "one other team has" : `${atK.length} other teams have`} had ${k} in a ${SPAN}-game span since ${WINDOW}${atK.length <= 3 ? ` (${name(atK)})` : ""}`;
+      const head = atK.length === 0 ? `no other team has had ${k} in a ${SPAN}-game span since ${LW}`
+        : `${atK.length === 1 ? "one other team has" : `${atK.length} other teams have`} had ${k} in a ${SPAN}-game span since ${LW}${atK.length <= 3 ? ` (${name(atK)})` : ""}`;
       const tail = atK1.length ? `; only ${name(atK1)} had ${k + 1}` : atK.length ? `; none had ${k + 1}` : "";
       out.push({ team, kind: "teamwatch", stat: sign < 0 ? "blown25" : "rout25", n: k,
         text: `${team} has ${sign < 0 ? "lost" : "won"} ${k} of its last ${mine.length} by ${BLOW}+ (by ${b.filter(Boolean).join(", ")}): ${head}${tail}`,

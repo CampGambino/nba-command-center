@@ -3945,6 +3945,59 @@ await articlesChecks(ok);
     JSON.stringify([h.map((x) => x.text.slice(0, 80)), dropped.map((d) => [d.reason, d.text.slice(0, 60)])]));
 }
 
+// ---------- 0.86: another player's last name; streaks and starts measured against the whole history ----------
+{
+  const N = await import("../src/notes/narrative.js");
+  const L = (text) => ({ text, cells: [{ x0: 40, x1: 560, cx: 300, text }], charX: [] });
+  const doc = { pages: [{ page: 1, width: 612, lines: ["Sion James is 37 steals away from 100 career steals.", "Grant Williams is 2 points away from 3,000 career points.", "Herb Jones is 12 steals away from 500 career steals.",
+    "Through Nov. 8, Kessler leads the league in blocks this season.", "Williams is 14 rebounds away from 1,000 career rebounds.", "Bronny James is 9 assists away from 200 career assists."].map(L) }] };
+  const players = [{ id: "1", name: "Bronny James" }, { id: "2", name: "Ziaire Williams" }, { id: "3", name: "Herbert Jones" }, { id: "4", name: "Walker Kessler" }];
+  const dropped = [];
+  const h = N.readHistory(doc, players, { seasonStart: "2026-10-01", today: "2026-11-17", teamWords: ["Los Angeles", "Lakers"], dropped });
+  const whoOf = (re) => (h.find((x) => re.test(x.text)) || {}).player;
+  ok(!h.some((x) => /Sion James|Grant Williams/.test(x.text)) && dropped.filter((d) => d.reason === "no-who" && /Sion James|Grant Williams/.test(d.text)).length === 2
+    && whoOf(/Herb Jones/) === "Herbert Jones" && whoOf(/Kessler leads the league/) === "Walker Kessler" && whoOf(/^Williams is 14/) === "Ziaire Williams" && whoOf(/^Bronny James/) === "Bronny James",
+    "notes (0.86; the user, 11/17: \"the wires got crossed because of the last names\"): a line that names another James or Williams is not given to the roster's only James or Williams; a short first name, a bare last name and \"Through Nov. 8, Kessler\" still are",
+    JSON.stringify([h.map((x) => [x.player || null, x.text.slice(0, 40)]), dropped.map((d) => d.reason)]));
+}
+
+// 0.86: each team's games before 2016-17, as far back as its seasons add up to the franchise's record.
+{
+  const { deepSeqs } = await import("../src/situations/deepseq.js");
+  const { streakWatch: SW } = await import("../src/situations/streakwatch.js");
+  // AAA: ESPN right in 2014-15 and 2015-16, a game short in 2013-14 (so it starts at 2014-15). BBB: the guide has
+  // 2013-14 too, one score printed the wrong way round, and BBB's first season is 2013-14 (its history is whole).
+  const season = (y, n, wins, t, o) => Array.from({ length: n }, (_, i) => { const d = `${y}-11-${String(i + 1).padStart(2, "0")}`; return i < wins ? [d, t, o, 100, 90] : [d, t, o, 90, 100]; });
+  const older = { games: [...season(2013, 3, 2, "AAA", "CCC"), ...season(2014, 4, 3, "AAA", "CCC"), ...season(2015, 4, 1, "AAA", "CCC"), ...season(2014, 4, 0, "BBB", "DDD").map((g) => [g[0].replace("-11-", "-12-"), ...g.slice(1)]), ...season(2015, 4, 4, "BBB", "DDD").map((g) => [g[0].replace("-11-", "-12-"), ...g.slice(1)])] };
+  const guide = { teams: { BBB: [["2013-12-01", "Dee", "DDD", "H", 1, 90, 100], ["2013-12-02", "Dee", "DDD", "H", 1, 100, 90], ["2013-12-03", "Dee", "DDD", "A", 0, 80, 99], ["2013-12-04", "Old Town", null, "A", 1, 100, 99]] } };
+  const official = { AAA: [["2012-13", 2, 2], ["2013-14", 2, 2], ["2014-15", 3, 1], ["2015-16", 1, 3], ["2016-17", 2, 2]], BBB: [["2013-14", 3, 1], ["2014-15", 0, 4], ["2015-16", 4, 0], ["2016-17", 2, 2]] };
+  const DS = deepSeqs({ older, guide, official });
+  ok(DS.from.AAA === "2014-15" && !DS.whole.AAA && DS.seq.AAA.length === 8 && DS.from.BBB === "2013-14" && DS.whole.BBB && DS.seq.BBB.length === 12 && DS.seq.BBB[0].pf === 100 && DS.seq.BBB[0].pa === 90 && DS.league === "2014-15"
+    && deepSeqs({}).league === "2016-17",
+    "deep history (0.86): a team's games start at the earliest season from which every season adds up to the franchise's record, from ESPN or a guide's lists; a score printed against the guide's own result is turned round; the league's shared window is the latest such start",
+    JSON.stringify([DS.from, DS.whole, DS.league, DS.seq.BBB?.slice(0, 2)]));
+  // With it, a streak or a start is measured against all of the team's games and says how far that is.
+  const hist = { games: [...season(2016, 4, 2, "AAA", "CCC"), ...season(2016, 4, 2, "BBB", "DDD")].map((g) => [...g, 2]) };
+  const now = [0, 1, 2, 3, 4].flatMap((i) => [{ d: `2026-11-0${i + 1}`, h: "AAA", a: "CCC", hs: 100, as: 90 }, { d: `2026-11-0${i + 1}`, h: "BBB", a: "DDD", hs: 100, as: 90 }]);
+  const S0 = SW({ history: hist, rows: now, today: "2026-11-17" }), S1 = SW({ history: hist, rows: now, today: "2026-11-17", deep: DS });
+  const t0 = (S, re) => (S.find((l) => re.test(l.text)) || {}).text;
+  ok(t0(S0, /^AAA has won 5 straight/) === "AAA has won 5 straight: a win tonight would be its first 6-game winning streak since at least 2016-17"
+    && t0(S1, /^AAA has won 5 straight/) === "AAA has won 5 straight: a win tonight would be its first 6-game winning streak since at least 2014-15"
+    && t0(S0, /^BBB has won 5 straight/) && !t0(S1, /^BBB has won 5 straight/)     // its six straight across 2015-16 and 2016-17 are now seen, and are too recent for a line
+    && /since 2014-15/.test(t0(S1, /^AAA has held opponents under 95/) || ""),
+    "streak watch (0.86; the user, 11/17: \"these can be more accurate now\"): with the deeper games a streak is measured against the team's own window (\"since at least 2014-15\") and finds the earlier one where there is one (a run that began in the older games); counts across the league use the shared window; without them nothing changes",
+    JSON.stringify([S0.map((l) => l.text), S1.map((l) => l.text)]));
+  // The real files: how far each team goes.
+  const zl = await import("node:zlib");
+  const gzr = (f) => JSON.parse(zl.gunzipSync(fs.readFileSync(path.join(root, "src", "data", f))));
+  const OLD = gzr("nba-results-older.json.gz");
+  const DR = deepSeqs({ older: OLD, guide: gzr("guide-games-2026-27.json.gz"), official: JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-team-seasons-2026-27.json"), "utf8")).teams });
+  ok(OLD.games.length === 26947 && OLD.complete["1999-00"] === false && Object.values(OLD.complete).filter(Boolean).length === 22 && DR.league === "2000-01" && DR.from.LAL === "1948-49" && DR.whole.LAL && DR.from.GSW === "1962-63" && DR.from.MIL === "1970-71"
+    && DR.from.WAS === "1987-88" && DR.from.SAS === "1993-94" && DR.from.BOS === "2000-01" && DR.whole.NOP && !DR.whole.BOS && DR.seq.LAL[0].d === "1948-11-04",
+    "deep history, the real files: ESPN's 1993-94 to 2015-16 (every season complete but 1999-00); every team from 2000-01, San Antonio and the Clippers from 1993-94, Washington 1987-88, Milwaukee 1970-71, Golden State 1962-63, the Lakers from their first game",
+    JSON.stringify([OLD.games.length, DR.league, DR.from]));
+}
+
 // ---------- 0.84: the finder for teams ----------
 {
   const { teamFindings, teamLines, TEAM } = await import("../src/anticipate/teamfinder.js");
