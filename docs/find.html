@@ -137,7 +137,7 @@ const table = (id, title, words, note, head, rows) => `<details id="${id}" data-
     // 0.88: from the games themselves, where they are on file.
     const span = (x) => (x.start.slice(0, 4) === x.end.slice(0, 4) ? x.end.slice(0, 4) : `${x.start.slice(0, 4)}-${x.end.slice(2, 4)}`), dmy = (d) => `${md(d)}/${d.slice(2, 4)}`;
     const runs = (r) => (r.hist ? [r.a, r.b].map((t) => (r.hist.streak[t] ? `${t} ${r.hist.streak[t].n} (${span(r.hist.streak[t])})` : `${t} none`)).join(" · ") : "");
-    const wins = (r) => (r.hist ? [r.a, r.b].map((t) => (r.hist.margin[t] ? `${t} by ${r.hist.margin[t].m} (${r.hist.margin[t].hi}-${r.hist.margin[t].lo}, ${dmy(r.hist.margin[t].d)})` : `${t} none`)).join(" · ") : "");
+    const wins = (r) => (r.hist ? [r.a, r.b].map((t) => (r.hist.margin[t] ? `${t} by ${r.hist.margin[t].m} (${r.hist.margin[t].hi ? `${r.hist.margin[t].hi}-${r.hist.margin[t].lo}, ` : ""}${dmy(r.hist.margin[t].d)}${r.hist.margin[t].src === "guide" ? ", as its guide prints it" : ""})` : `${t} none`)).join(" · ") : "");
     const onFile = (r) => (r.hist ? `${r.hist.games} since ${r.hist.whole ? "the first meeting" : r.hist.from}${r.hist.exact ? ", count matches the record" : ""}` : "");
     out.push(table("t-series", "All-time series between every pair of teams (regular season)", "all-time series head-to-head record vs opponent against history media guide home road streak last win last loss",
       `${series.pairs.length} of 435 pairings, from ${Object.keys(g).length} team media guides through ${series.guidesThrough}, plus this season`,
@@ -155,6 +155,14 @@ const table = (id, title, words, note, head, rows) => `<details id="${id}" data-
       `${rowsL.length} feats: every team's points and margins from its own games; box-score feats for the Celtics, Wizards and Warriors and a few teams' triple-doubles from their media guides, counted forward`,
       ["Team", "Who", "What", "Last time", "By", "Against / score"],
       rowsL.map((f) => [f.team, who(f), WORD[f.stat](f.n), dm(f.last.date), f.last.holder || "", [f.last.score, f.last.opp].filter(Boolean).join(", ")])));
+    // 0.90: each team's single-game marks from its own games.
+    if (lasttime.teamGame) {
+      const mk = (m) => (m ? `${m.v} (${m.score}${m.opp ? `, ${m.opp}` : ""}, ${dm(m.d)})` : "");
+      out.push(table("t-teamgame", "Team single-game marks", "team record most points in a game fewest allowed largest win loss margin franchise history single-game",
+        "from each team's own games as far back as they are on file; an asterisk means back to the franchise's first season",
+        ["Team", "Games since", "Most points", "Fewest points", "Most allowed", "Fewest allowed", "Largest win", "Largest loss"],
+        Object.keys(lasttime.teamGame).sort().map((t) => { const r = lasttime.teamGame[t], k = r.marks; return [t, `${r.window.from || "2016-17"}${r.window.whole ? "*" : ""}`, mk(k.most), mk(k.fewest), mk(k.allowed), mk(k.held), mk(k.win), mk(k.loss)]; })));
+    }
     if (lasttime.season && lasttime.season.length) out.push(table("t-firstsince", "First time in three years or more, this season", "first since last time rare", "from the table above", ["Date", "Team", "What"], lasttime.season.map((l) => [md(l.date), l.team, l.text])));
   }
   if (flow && flow.seeded) for (const L of flow.seeded) out.push(table(`t-${L.id}`, `${L.what[0].toUpperCase()}${L.what.slice(1)}${L.since ? ` since ${L.since}` : ""}`, "seeded list counted forward notes", `${L.source}, counted forward from ${md(L.through)}`, ["Player", "Count", "Added since"], L.rows.map((r) => [r.name, r.n, r.added || ""])));

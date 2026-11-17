@@ -19,7 +19,7 @@ const END = "2016-17";
 // A printed score is trusted for a margin only if it could be a real one: the largest margin before 2021 was 68.
 export const SANE = { low: 30, high: 200, margin: 68 };
 
-export function pairHistory({ deep, official, series }, a, b) {
+export function pairHistory({ deep, official, series, bests = null }, a, b) {
   if (!deep?.seq || !official?.[a] || !official?.[b]) return null;
   const start = [official[a][0][0], official[b][0][0]].sort()[1];
   const side = [a, b].filter((t) => deep.seq[t] && deep.from?.[t] && deep.from[t] < END).sort((x, y) => (deep.from[x] < deep.from[y] ? -1 : 1))[0];
@@ -33,7 +33,10 @@ export function pairHistory({ deep, official, series }, a, b) {
   const whole = deep.from[side] <= start;
   const P = series ? seriesPair(series, a, b) : null;
   const exact = !!(whole && P && P.status === "confirmed" && (series.counted?.[a]?.[b] || []).some((c) => c.by === side && c.w === P.rec.overall.w && c.l === P.rec.overall.l));
-  return { games, from: whole ? start : deep.from[side], whole, exact, by: side };
+  // 0.90: the largest win each way as a guide prints it (Phoenix, Philadelphia, Detroit), from either team's page.
+  const pr = (t, o) => bests?.teams?.[t]?.[o]?.win || bests?.teams?.[o]?.[t]?.loss || null;
+  const printed = pr(a, b) || pr(b, a) ? { [a]: pr(a, b), [b]: pr(b, a) } : null;
+  return { games, from: whole ? start : deep.from[side], whole, exact, by: side, printed };
 }
 
 /** Streaks in a list of meetings, oldest first: [{ w, n, start, end }]. */
@@ -57,11 +60,28 @@ export function margins(list) {
   return out;
 }
 
+/**
+ * The largest win each way, settled between the games and a guide's print (0.90). Where a guide prints one, it stands
+ * unless a game since 2016-17 (our own results) beats it: an older game with a bigger margin than the guide's is more
+ * likely a misprinted score than a record the team forgot. With no print, the games decide, if the series is whole.
+ */
+export function bestMargins(list, printed, whole) {
+  const all = margins(list), recent = margins(list.filter((g) => g.d >= "2016-10-01")), out = {};
+  for (const t of new Set([...Object.keys(all), ...Object.keys(printed || {})])) {
+    const p = printed?.[t];
+    if (!p) { if (whole && all[t]) out[t] = { ...all[t], src: "games" }; continue; }
+    if (recent[t] && recent[t].m > p.m) out[t] = { ...recent[t], src: "games" };
+    else if (all[t] && all[t].m === p.m && all[t].d === p.d) out[t] = { ...all[t], src: "both" };
+    else out[t] = { m: p.m, d: p.d, src: "guide" };
+  }
+  return out;
+}
+
 /** One pairing for the lookup table: the longest streak each way, the largest margin each way, the first game on file. */
-export function pairSummary(list, a, b) {
+export function pairSummary(list, a, b, printed = null, whole = true) {
   const reg = list.filter((m) => m.type === 2);
   if (!reg.length) return null;
   const runs = runsOf(reg), best = (t) => runs.filter((r) => r.w === t).sort((x, y) => y.n - x.n || (x.end < y.end ? 1 : -1))[0] || null;
-  const mg = margins(reg), cur = runs[runs.length - 1];
+  const mg = bestMargins(reg, printed, whole), cur = runs[runs.length - 1];
   return { games: reg.length, first: reg[0].d, streak: { [a]: best(a), [b]: best(b) }, margin: { [a]: mg[a] || null, [b]: mg[b] || null }, current: { w: cur.w, n: cur.n, since: cur.start } };
 }

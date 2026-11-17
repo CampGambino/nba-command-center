@@ -2,6 +2,34 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.90.0 (2026-11-17): team single-game marks, the guides' largest margins as a check, six arena records confirmed
+
+Third, fifth and sixth of the seven the user approved on 11/17.
+
+### Team single-game records (third)
+- **What I could not do as planned:** the guides' team-records pages (most rebounds, assists or threes in a game, quarter and half records, overtime records) are laid out 30 different ways, and one general reader produced garbage. They are not read.
+- **What is done instead:** `src/records/teamgame.js` takes each team's marks from its own games: most and fewest points, most and fewest allowed, largest win and largest loss, with the mark before each. All 30 teams, each with its window.
+- They match the records I know: Denver 184 (12/13/83), Golden State 162 (11/2/90), the Lakers' 162 and 63-point win (3/19/72), Phoenix 173 (11/10/90), Philadelphia 163 (3/10/63), Sacramento 176 (2/24/23), Memphis' 73-point win (12/2/21).
+- A mark set or tied last night goes to **From last night**: "NOP lost by 51 on 11/9 (138-87, GSW): the largest loss in franchise history for the Pelicans (was 49, 4/11/25)". A team needs 400 games on file to claim one.
+- Index page: a "Team single-game marks" table.
+
+### Per-opponent bests (fifth)
+- **`tools/parse-series-bests.py` → `src/data/series-bests-2026-27.json`:** the largest win and largest loss against each opponent as Phoenix, Philadelphia and Detroit print them (160 margins). Dallas prints a largest win too, but its lines could not be tied to the right opponent (2 of 28 matched the games), so it is left out. San Antonio and New Orleans, which I had named, print these in a layout not read.
+- **As a check on 0.88:** where the whole series is on file, the largest margin counted from the games is the guide's in 115 of 122 cases (Phoenix 37 of 40, Philadelphia 52 of 56, Detroit 26 of 26). In five of the seven misses our game is from 2019 or later and bigger than the print: the guide is out of date.
+- **The rule now (`bestMargins`):** a printed margin stands unless a game since 2016-17 beats it. An older game with a bigger margin than the print is more likely a misprinted score. With no print, the games decide if the whole series is on file. The "Largest wins in the series" line and the Index column follow it, and the column says when a margin is "as its guide prints it".
+
+### Arena scoring records (sixth)
+- The six records that were still "as the quiz has them" are each in the home team's own guide: Kobe Bryant's 81 (Lakers), Carmelo Anthony's 62 (Knicks), Bryant's 60 in Memphis, Jerry Stackhouse's 57 in Chicago, LeBron James' 56 in Toronto, Damon Stoudamire's 54 in New Orleans. All 30 buildings: 28 confirmed, 2 corrected. The arena card no longer says "from a quiz list" for them.
+
+### Tested
+- 949 checks (was 946). New: team marks on made-up games (a mark set last night, an impossible score, too few games); the margin rule in its five cases; the three guides' data and the arena statuses.
+- A full local build and the page check.
+
+### Unproven
+- Team box-score records (rebounds, assists, threes, steals, blocks in a game; quarters and halves) are still not in the program for any team.
+- "Confirmed" for the six arenas means the guide prints that game as the franchise's or its opponents' high. It does not rule out a higher game by a visitor in a building the franchise shared or left; I checked each against the building's opening year.
+- A team's marks reach only as far as its games: Boston's "most points" is 155 since 1988-89, not its 173 of 1959.
+
 ## 0.89.0 (2026-11-17): "the first since…": the last-time pages and lists of games, counted forward
 
 Second and fourth of the seven the user approved on 11/17 ("You can do all seven"): the guides' "the last time" pages, and their lists of every triple-double and 40-point game.

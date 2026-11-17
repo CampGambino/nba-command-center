@@ -419,10 +419,15 @@ for (const [tri, games] of Object.entries(perTeam)) {
         const ltf = path.join(root, "src", "data", `last-time-${seasonTag}.json`), rhf = path.join(root, "src", "data", "nba-results-history.json");
         const feats = [...(fs.existsSync(ltf) ? advance(JSON.parse(fs.readFileSync(ltf, "utf8")), rows, store.names || {}) : []),
           ...scoreFeats({ deep: await loadDeep(), history: fs.existsSync(rhf) ? JSON.parse(fs.readFileSync(rhf, "utf8")) : null, rows })];
-        const fl = firstSince(feats, yday, today);
-        lastNight = [...fl, ...lastNight].sort((a, b) => b.score - a.score);
+        // 0.90: each team's single-game marks from the same games (most and fewest points, largest win and loss).
+        const { teamGameRecords, recordLines } = await import("../src/records/teamgame.js");
+        const teamGame = teamGameRecords({ deep: await loadDeep(), history: fs.existsSync(rhf) ? JSON.parse(fs.readFileSync(rhf, "utf8")) : null, rows });
+        const rl = recordLines(teamGame, yday, today), setNow = new Set(rl.map((l) => `${l.team}|${l.date}`));
+        // A team mark says it all: the "first since" line for the same team and night is dropped.
+        const fl = firstSince(feats, yday, today).filter((l) => l.player || !setNow.has(`${l.team}|${l.date}`));
+        lastNight = [...rl, ...fl, ...lastNight].sort((a, b) => b.score - a.score);
         lastTime = { feats, watch: watchList(feats, [...new Set(slate.flatMap((g) => [g.away, g.home]))], today) };
-        fs.writeFileSync(path.join(root, "docs", "data", "lasttime.json"), JSON.stringify({ generatedAt: out.generatedAt, through, feats: feats.filter((f) => f.last), season: firstSince(feats, `${Number(seasonTag.slice(0, 4))}-08-01`, today).map((l) => ({ date: l.date, team: l.team, text: l.text })) }));
+        fs.writeFileSync(path.join(root, "docs", "data", "lasttime.json"), JSON.stringify({ generatedAt: out.generatedAt, through, teamGame, feats: feats.filter((f) => f.last), season: firstSince(feats, `${Number(seasonTag.slice(0, 4))}-08-01`, today).map((l) => ({ date: l.date, team: l.team, text: l.text })) }));
         console.log(`last time: ${feats.length} feats on file; ${fl.length} first-since line(s) from last night`);
       } catch (e) { console.error(`last-time lines not made: ${e.message}`); }
       prep.lines.push(...sl.lines.filter((l) => l.kind !== "unique"));
@@ -615,6 +620,8 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
     // 0.84: the all-time series each team's media guide prints (tools/parse-series-history.py), counted forward.
     const serName = fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^nba-series-history-\d{4}-\d{2}\.json$/.test(f)).sort().pop();
     const series = serName ? JSON.parse(fs.readFileSync(path.join(root, "src", "data", serName), "utf8")) : null;
+    // 0.90: the largest win each way as three guides print it, the check on the margins counted from the games.
+    const sbf = path.join(root, "src", "data", "series-bests-2026-27.json"), seriesBests = fs.existsSync(sbf) ? JSON.parse(fs.readFileSync(sbf, "utf8")) : null;
     if (series) {
       try {
         const { seriesTable, countedPairs } = await import("../src/records/series.js");
@@ -627,9 +634,9 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
           const { pairHistory, pairSummary } = await import("../src/records/pairs.js");
           const { meetings } = await import("../src/records/matchup.js");
           for (const r of table) {
-            const past = pairHistory({ deep: deepShared.deep, official: deepShared.official, series }, r.a, r.b);
+            const past = pairHistory({ deep: deepShared.deep, official: deepShared.official, series, bests: seriesBests }, r.a, r.b);
             if (!past) continue;
-            const sum = pairSummary([...past.games, ...meetings(history, teamFiles, r.a, r.b)].filter((m) => m.d < today), r.a, r.b);
+            const sum = pairSummary([...past.games, ...meetings(history, teamFiles, r.a, r.b)].filter((m) => m.d < today), r.a, r.b, past.printed, past.whole);
             if (sum) r.hist = { from: past.from, whole: past.whole, exact: past.exact, ...sum };
           }
         }
@@ -637,7 +644,7 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
         console.log(`series: ${table.length} of 435 pairings from ${Object.keys(series.guides || {}).length} team guides (${table.filter((r) => r.status === "confirmed" && !r.counted).length} confirmed by both guides, ${table.filter((r) => r.counted).length} by one guide and a count of the games, ${table.filter((r) => r.status === "differs").length} where they differ)`);
       } catch (e) { console.error(`series not written: ${e.message}`); }
     }
-    const m = matchups({ history, logs, teamFiles, tonight, today, series, deep: deepShared.deep, official: deepShared.official });
+    const m = matchups({ history, logs, teamFiles, tonight, today, series, deep: deepShared.deep, official: deepShared.official, bests: seriesBests });
     fs.writeFileSync(path.join(root, "docs", "data", "matchups.json"), JSON.stringify({ generatedAt: out.generatedAt, today, window: history?.seasons || null, games: m.map((g) => ({ ...g, items: [...g.items.slice(0, 12), ...g.items.slice(12).filter((i) => i.series)] })) }));   // 0.85.1: the all-time series line is kept even on a game with more than twelve items
     console.log(`matchups: ${m.reduce((a, g) => a + g.items.length, 0)} items for ${m.length} games tonight${history ? "" : " (no results back-fill yet)"}${logs ? "" : " (no player logs back-fill yet)"}`);
   } catch (e) { console.error(`matchups not written: ${e.message}`); }

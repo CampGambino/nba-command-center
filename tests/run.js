@@ -4247,6 +4247,31 @@ await articlesChecks(ok);
       "last time, the guides (0.89): 174 feats from the Celtics', Wizards' and Warriors' \"last time\" pages and from lists of every triple-double or 40-point game that run into last season (a list that stops earlier is not used): the last 25-rebound game by a Celtic is Robert Parish's, 1/9/87",
       JSON.stringify([LT.length, lt("BOS", "team", "reb", 25)]));
   }
+  // 0.90: team single-game marks, the guides' largest margins as a check, arena records confirmed.
+  {
+    const { teamGameRecords, recordLines } = await import("../src/records/teamgame.js");
+    const { bestMargins, pairHistory: PH2 } = await import("../src/records/pairs.js");
+    const many = Array.from({ length: 420 }, (_, i) => ({ d: `19${90 + Math.floor(i / 60)}-0${1 + (i % 9)}-${String(1 + (i % 28)).padStart(2, "0")}`, pf: 100 + (i % 7), pa: 99 - (i % 5), opp: "BBB" }));
+    const deepT = { seq: { AAA: [...many, { d: "1998-03-03", pf: 150, pa: 100, opp: "BBB" }, { d: "1998-03-04", pf: 20, pa: 250, opp: "BBB" }] }, from: { AAA: "1990-91" }, whole: { AAA: true } };
+    const TG = teamGameRecords({ deep: deepT, history: null, rows: [{ d: "2026-11-16", h: "AAA", a: "CCC", hs: 152, as: 90 }, { d: "2026-11-10", h: "CCC", a: "AAA", hs: 120, as: 119 }] });
+    const RL = recordLines(TG, "2026-11-16", "2026-11-17").map((l) => l.text);
+    ok(TG.AAA.marks.most.v === 152 && TG.AAA.marks.most.prev.v === 150 && TG.AAA.marks.win.v === 62 && TG.AAA.marks.win.prev.v === 50 && TG.AAA.marks.loss.v === 1 && TG.AAA.games === 423 && TG.CCC.games === 2
+      && RL.includes("AAA scored 152 on 11/16 (152-90, CCC): the most points in a game in franchise history for the AAA (was 150, 3/3/98)") && RL.includes("AAA won by 62 on 11/16 (152-90, CCC): the largest win in franchise history for the AAA (was 50, 3/3/98)")
+      && !RL.some((t) => /^CCC/.test(t)) && recordLines(TG, "2026-11-17", "2026-11-18").length === 0,
+      "team marks (0.90): each team's most and fewest points, most and fewest allowed and largest win and loss come from its own games (a score that could not be real is left out); a mark set last night is a line that says its window; a team with too few games on file claims nothing",
+      JSON.stringify([RL, TG.AAA.marks.most, TG.CCC.games]));
+    const lst = [{ d: "1990-01-01", home: "A", away: "B", winner: "A", hs: 140, as: 100 }, { d: "2020-01-01", home: "A", away: "B", winner: "A", hs: 130, as: 85 }, { d: "2000-01-01", home: "B", away: "A", winner: "B", hs: 120, as: 100 }];
+    const bm = (pr, whole = true) => bestMargins(lst, pr, whole);
+    ok(bm(null).A.m === 45 && bm(null).A.src === "games" && bm(null, false).A === undefined && bm({ A: { m: 38, d: "1985-02-02" } }).A.m === 45 && bm({ A: { m: 38, d: "1985-02-02" } }).A.d === "2020-01-01"
+      && bm({ A: { m: 52, d: "1985-02-02" } }).A.src === "guide" && bm({ A: { m: 52, d: "1985-02-02" } }).A.m === 52 && bm({ B: { m: 20, d: "2000-01-01" } }).B.src === "both" && bm({ B: { m: 18, d: "1999-01-01" } }, false).B.m === 18,
+      "series margins (0.90): where a guide prints a team's largest win over an opponent it stands, unless a game since 2016-17 beats it (an older, bigger margin in the games is more likely a misprinted score); with no print the games decide, if the whole series is on file",
+      JSON.stringify([bm(null), bm({ A: { m: 52, d: "1985-02-02" } })]));
+    const SB = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "series-bests-2026-27.json"), "utf8")).teams, AR = Object.values(JSON.parse(fs.readFileSync(path.join(root, "src", "data", "arena-records.json"), "utf8")).arenas);
+    ok(Object.keys(SB).sort().join() === "DET,PHI,PHX" && SB.PHX.MIA.win.m === 39 && SB.PHX.MIA.win.d === "1990-12-29" && SB.PHX.MIA.loss.m === 28 && SB.PHI.BOS.loss.m === 48 && SB.PHI.BOS.loss.d === "2022-02-15" && Object.keys(SB.PHX).length === 28
+      && AR.filter((r) => r.check === "confirmed").length === 28 && AR.filter((r) => r.check === "corrected").length === 2 && !AR.some((r) => r.check === "quiz") && /Lakers' 2026-27 media guide/.test(AR.find((r) => r.team === "LAL").note),
+      "guides (0.90): the Suns', 76ers' and Pistons' largest win and loss against each opponent are read as a check on the games; the six arena scoring records that were still as the quiz had them are confirmed in the teams' own guides (28 confirmed, 2 corrected)",
+      JSON.stringify([Object.keys(SB), SB.PHX.MIA]));
+  }
   // Every game four guides list season by season (tools/guide_games.py): each season's wins and losses must be the
   // franchise's own record (the NBA Guide's standings).
   {

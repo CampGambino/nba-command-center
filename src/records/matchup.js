@@ -16,7 +16,7 @@
  */
 import { TEAMS } from "../teams.js";
 import { seriesItems } from "./series.js";
-import { pairHistory, runsOf, margins } from "./pairs.js";
+import { pairHistory, runsOf, bestMargins } from "./pairs.js";
 
 const FIRST = "2016-17";
 const START = "2016-10-01";
@@ -123,8 +123,8 @@ export function teamItems(history, teamFiles, away, home, today, past = null) {
     items.push({ kind: "matchup", team: vw, text: vn === there.length ? text.replace(/\.$/, `, every game there${since}.`) : text, tag: `${vw === home ? "Home" : "Road"} streak · ${vn}`, score: 1.2 + 0.25 * Math.min(vn, 12), active: true });
   }
   // 0.88: the largest margin each way, when the whole series is on file.
-  if (past?.whole) {
-    const mg = margins(reg), say = (t) => (mg[t] ? `the ${nick(t)} by ${mg[t].m} (${mg[t].hi}-${mg[t].lo} on ${mdy(mg[t].d)})` : null);
+  if (past?.whole || past?.printed) {
+    const mg = bestMargins(reg, past.printed, past.whole), say = (t) => (mg[t] ? `the ${nick(t)} by ${mg[t].m} (${mg[t].hi ? `${mg[t].hi}-${mg[t].lo} on ` : ""}${mdy(mg[t].d)})` : null);
     const parts = [say(home), say(away)].filter(Boolean);
     if (parts.length === 2) items.push({ kind: "matchup", team: home, tag: "Series margins", score: 0.9, text: `Largest wins in the series: ${parts.join("; ")}.` });
   }
@@ -251,11 +251,11 @@ export function regulars(teamFiles, tri) {
   return out;
 }
 
-export function matchups({ history, logs, teamFiles, tonight, today, series = null, deep = null, official = null }) {
+export function matchups({ history, logs, teamFiles, tonight, today, series = null, deep = null, official = null, bests = null }) {
   // 0.84: the all-time series from the team media guides (through last season) plus this season's meetings.
   const y = Number(String(today).slice(0, 4)) - (Number(String(today).slice(5, 7)) >= 8 ? 0 : 1), seasonStart = `${y}-08-01`;
   return (tonight || []).map((g) => {
-    const items = [...teamItems(history, teamFiles, g.away, g.home, today, deep ? pairHistory({ deep, official, series }, g.away, g.home) : null)];
+    const items = [...teamItems(history, teamFiles, g.away, g.home, today, deep ? pairHistory({ deep, official, series, bests }, g.away, g.home) : null)];
     if (series) {
       const season = meetings(history, teamFiles, g.away, g.home).filter((m) => m.type === 2 && m.d >= seasonStart && m.d < today);
       items.push(...seriesItems(series, season, g.away, g.home, today));
