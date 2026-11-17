@@ -2,6 +2,36 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.89.0 (2026-11-17): "the first since…": the last-time pages and lists of games, counted forward
+
+Second and fourth of the seven the user approved on 11/17 ("You can do all seven"): the guides' "the last time" pages, and their lists of every triple-double and 40-point game.
+
+### A correction first
+- I told the user five guides print "the last time" pages (Bulls, Lakers, Magic, Raptors, Jazz). That came from my own inventory note and was wrong. **Three do: Boston, Washington and Golden State.** Indiana prints one per player (not read) and Oklahoma City one for the playoffs only.
+
+### What changed
+- **`tools/parse-last-time.py` → `src/data/last-time-2026-27.json` (174 feats).**
+  - Boston and Washington: the last time a Celtic or Wizard, and the last time an opponent, had 30/40/50 points, 15/20/25 rebounds, 15/20 assists, 5/10 blocks, 5 steals, 10/15/20 field goals, 7 threes, 15/20 free throws, a triple-double, a 20-20 game; and team totals (60 rebounds, 35/40 assists, 50 field goals, 20 threes, 35 free throws, 60% shooting).
+  - Golden State: the same kind of feats from its one page.
+  - Lists of every triple-double (Charlotte, Philadelphia, Toronto, Utah, and opponents' against Indiana and Toronto) and Philadelphia's 40-point club give the last one. **A list is used only if it runs into last season.** Cleveland's, Indiana's own and Miami's stop earlier and are left out, because a list that was not kept up would make a false "first since".
+- **Every team's points and margins come from its own games** (`scoreFeats`), so they exist for all 30 teams: 140/150/160 points for and against, 70 or fewer, wins and losses by 40 and 50. Each says how far back it can see: a date, "in franchise history" where the games reach the first season, or "since at least 1989-90".
+- **`src/records/lasttime.js`** carries the guides' feats forward with this season's box scores. A feat done last night whose time before was three years or more earlier goes to **From last night**.
+- This season so far it finds: "Trae Young (WAS) made 17 free throws on 11/12: the first game with 15+ free throws for the Wizards since Bradley Beal (18 FTM, 2/23/20)"; "GSW won by 51 on 11/9: the first loss by 50 or more for the Pelicans in franchise history"; and the Wizards' first 140-point game since 11/28/22.
+- **NBA Live, bridge v21: 🕰️ FIRST SINCE <year>.** For tonight's teams, the player feats not done in three years (points, rebounds, assists, steals, blocks, threes) go to `tonight.json` `lasttime` with the sentence written. A player who gets there gets one card per stat for the highest bar cleared: "…25 rebounds: the first 25-rebound game for the Celtics since Robert Parish (25 REB, 1/9/87)".
+- **Index page:** two tables, "The last time…" (439 rows) and "First time in three years or more, this season".
+- The deep history is now built once per build, on first use.
+
+### Tested
+- 946 checks (was 943). New: the guides' feats carried forward on made-up box scores (a player, an opposing player, a team total; only last night's make a line; the highest bar is the one said); feats from scores with their three kinds of window; the data file (Parish, Unseld, Magic Johnson, Hardaway, Embiid's 70).
+- A full local build and the page check. The bridge parses; its version file matches.
+
+### Unproven
+- **The 🕰️ card has never fired.** None of tonight's teams is Boston, Washington or Golden State, so `lasttime` is empty tonight. It has not been run inside NBA Live.
+- Individual feats exist for three teams only, plus triple-doubles for a few more. For the other teams there is no source for "the last Hornet with 20 assists".
+- The lists' counts ("the 48th in Raptors history") did not match the totals their own headings print (Toronto 49 read against 47 printed, Miami 47 against 50), so no count is used, only the latest game.
+- Team totals in the guides (rebounds, assists) are counted forward from ESPN's box scores, which can differ from the league's by a rebound.
+- Three years as "long ago" is a first guess (`LAST.years`).
+
 ## 0.88.0 (2026-11-17): head-to-head streaks measured against the whole series
 
 The user (11/17, 10:15 AM), on the list of seven things that can be done from the guide text without the PC: "You can do all seven". This is the first: the user's 11/16 point that the team guides "could make it easier to check past records and streaks against opponents".

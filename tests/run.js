@@ -4203,6 +4203,50 @@ await articlesChecks(ok);
       "head-to-head, the real files (0.88): every pairing has games before 2016-17 (ESPN from 1993-94 at the least), 337 back to the first meeting, 312 of those with a count that lands on the printed record; \"The Cavaliers have won 16 straight against the Wizards, the longest streak by either team in the series (was 13, the Wizards, 1972-74)\"",
       JSON.stringify([nP, nW, nE, lacCha.from, clW.map((i) => i.text).slice(0, 4)]));
   }
+  // 0.89: "the last time…".
+  {
+    const { advance, scoreFeats, firstSince, watchList, phrase, LAST } = await import("../src/records/lasttime.js");
+    const { PLAYER_BOX_KEYS: PK, TEAM_BOX_KEYS: TK } = await import("../src/espn/parse.js");
+    const line = (side, o) => [side, 1, 30, ...PK.map((k) => o[k] || 0)], tb = (o) => TK.map((k) => o[k] || 0);
+    const seed = { feats: [
+      { team: "BOS", by: "team", who: "player", stat: "reb", n: 25, date: "1987-01-09", holder: "Robert Parish", value: "25 REB", opp: "Sacramento" },
+      { team: "BOS", by: "team", who: "player", stat: "reb", n: 20, date: "2026-01-07", holder: "Neemias Queta", value: "20 REB", opp: "Denver" },
+      { team: "BOS", by: "opp", who: "player", stat: "ast", n: 20, date: "1989-12-15", holder: "Magic Johnson", value: "21 AST", opp: "LA Lakers" },
+      { team: "BOS", by: "team", who: "team", stat: "ftm", n: 35, date: "2011-02-26", holder: null, value: "35 FTM", opp: "LA Clippers" },
+      { team: "BOS", by: "team", who: "team", stat: "pts", n: 150, date: "2020-01-01", holder: null, value: "150", opp: "X" },
+      { team: "BOS", by: "team", who: "player", stat: "td", n: 1, date: "2026-04-01", holder: "Jayson Tatum", value: "", opp: "Miami" } ] };
+    const rowsL = [
+      { d: "2026-11-10", h: "BOS", a: "ORL", hs: 120, as: 100, hb: tb({ ftm: 20 }), ab: tb({}), pl: { 1: line(0, { pts: 12, reb: 26 }), 2: line(1, { pts: 30, ast: 9 }) } },
+      { d: "2026-11-16", h: "DEN", a: "BOS", hs: 99, as: 131, hb: tb({}), ab: tb({ ftm: 36 }), pl: { 1: line(1, { pts: 20, reb: 21 }), 3: line(0, { pts: 14, ast: 22, reb: 10 }) } } ];
+    const A = advance(seed, rowsL, { 1: "Big Man", 2: "Guard", 3: "Passer" }), fa = (st, n, by = "team") => A.find((f) => f.stat === st && f.n === n && f.by === by);
+    const FS = firstSince(A, "2026-11-16", "2026-11-17"), FSall = firstSince(A, "2026-10-01", "2026-11-17");
+    const WL = watchList(A, ["BOS"], "2026-11-17");
+    ok(A.length === 5 && !A.some((f) => f.stat === "pts") && fa("reb", 25).last.date === "2026-11-10" && fa("reb", 25).last.holder === "Big Man" && fa("reb", 25).prev.holder === "Robert Parish" && fa("reb", 20).last.date === "2026-11-16"
+      && fa("ast", 20, "opp").last.holder === "Passer" && fa("ftm", 35).last.value === "36" && fa("td", 1).last.guide === true
+      && FS.map((l) => l.text).sort().join(" | ") === "BOS made 36 free throws on 11/16: the first game with 35+ free throws for the Celtics since 2/26/11 (35 FTM) | Passer (DEN) had 22 assists on 11/16: the first 20-assist game against the Celtics since Magic Johnson (21 AST, 12/15/89)"
+      && FSall.some((l) => l.text === "Big Man (BOS) had 26 rebounds on 11/10: the first 25-rebound game for the Celtics since Robert Parish (25 REB, 1/9/87)") && FS.every((l) => l.kind === "unique" && l.date === "2026-11-16")
+      && JSON.stringify(WL) === "{}" && watchList(advance(seed, [], {}), ["BOS"], "2026-11-17").BOS.map((x) => `${x.by}${x.stat}${x.n}`).join() === "teamreb25,oppast20"
+      && watchList(advance(seed, [], {}), ["BOS"], "2026-11-17").BOS[0].phrase === "the first 25-rebound game for the Celtics since Robert Parish (25 REB, 1/9/87)" && LAST.years === 3,
+      "last time (0.89): the guides' \"last time\" feats are carried forward by this season's box scores (a player on the team, a player against it, a team total); one done last night whose time before was three years or more earlier is a line (\"the first 20-assist game against the Celtics since Magic Johnson (21 AST, 12/15/89)\"); a team's points and margins are left to its own games; NBA Live is sent only the player feats not done in three years, sentence included",
+      JSON.stringify([A.map((f) => [f.stat, f.n, f.by, f.last.date]), FS.map((l) => l.text), WL]));
+    // From scores: every team, with its window.
+    const deepL = { seq: { AAA: [{ d: "2001-01-05", pf: 151, pa: 120, opp: "BBB" }, { d: "2005-01-05", pf: 20, pa: 300, opp: "BBB" }] }, from: { AAA: "2000-01", CCC: "2010-11" }, whole: { AAA: true } };
+    const histL = { columns: ["date", "home", "away", "homeScore", "awayScore", "type"], games: [["2018-01-05", "CCC", "AAA", 130, 80, 2], ["2019-05-05", "AAA", "CCC", 170, 80, 3]] };
+    const SF = scoreFeats({ deep: deepL, history: histL, rows: [{ d: "2026-11-16", h: "AAA", a: "CCC", hs: 155, as: 100 }] });
+    const sf = (t, by, st, n) => SF.find((f) => f.team === t && f.by === by && f.stat === st && f.n === n), SL = firstSince(SF, "2026-11-16", "2026-11-17").map((l) => l.text);
+    ok(sf("AAA", "team", "pts", 150).last.date === "2026-11-16" && sf("AAA", "team", "pts", 150).prev.date === "2001-01-05" && sf("AAA", "opp", "pts", 150).last === null && sf("AAA", "opp", "margin", 50).last.date === "2018-01-05"
+      && sf("CCC", "opp", "margin", 50).last.date === "2026-11-16" && sf("CCC", "opp", "margin", 50).prev === null && sf("CCC", "team", "margin", 50).prev === null
+      && SL.includes("AAA scored 155 on 11/16: the first 150-point game for the AAA since 1/5/01 (151-120, BBB)") && SL.includes("AAA won by 55 on 11/16: the first win by 50 or more by the AAA in franchise history")
+      && SL.includes("AAA won by 55 on 11/16: the first loss by 50 or more for the CCC since at least 2010-11") && phrase({ team: "BOS", by: "opp", who: "player", stat: "td", n: 1, prev: { date: "2020-02-02", holder: "A B", value: "" } }) === "the first triple-double against the Celtics since A B (2/2/20)",
+      "last time, from scores (0.89): every team's points and margins come from its own games (playoff games and impossible scores left out), and a first says how far back it can see: \"since 1/5/01\", \"in franchise history\" where the games reach the first season, \"since at least 2010-11\" where they do not",
+      JSON.stringify([SL, sf("CCC", "opp", "margin", 50)]));
+    // The data file read from the guides.
+    const LT = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "last-time-2026-27.json"), "utf8")).feats, lt = (t, by, st, n) => LT.find((f) => f.team === t && f.by === by && f.stat === st && f.n === n && f.who === "player");
+    ok(LT.length === 174 && lt("BOS", "team", "reb", 25).date === "1987-01-09" && lt("BOS", "team", "reb", 25).holder === "Robert Parish" && lt("WAS", "team", "reb", 25).holder === "Wes Unseld" && lt("BOS", "opp", "ast", 20).holder === "Magic Johnson"
+      && lt("GSW", "team", "ast", 20).holder === "Tim Hardaway" && lt("PHI", "team", "pts", 60).holder === "Joel Embiid" && lt("PHI", "team", "pts", 60).date === "2024-01-22" && lt("TOR", "team", "td", 1).date === "2026-04-12" && !LT.some((f) => f.team === "CLE" || f.team === "NYK"),
+      "last time, the guides (0.89): 174 feats from the Celtics', Wizards' and Warriors' \"last time\" pages and from lists of every triple-double or 40-point game that run into last season (a list that stops earlier is not used): the last 25-rebound game by a Celtic is Robert Parish's, 1/9/87",
+      JSON.stringify([LT.length, lt("BOS", "team", "reb", 25)]));
+  }
   // Every game four guides list season by season (tools/guide_games.py): each season's wins and losses must be the
   // franchise's own record (the NBA Guide's standings).
   {

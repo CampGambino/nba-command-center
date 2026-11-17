@@ -14,7 +14,24 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 // 0.87: the deep history is built for the streak watch and used again for the all-time series further down.
-const deepShared = { deep: null, official: null };
+const deepShared = { deep: null, official: null, tried: false };
+let lastTime = null;   // 0.89: { feats, watch } once the prep step has made them
+// Built once, on first use (0.89: last night's "first since" lines need it before the streak watch does).
+async function loadDeep() {
+  if (deepShared.tried) return deepShared.deep;
+  deepShared.tried = true;
+  try {
+    const zl = await import("node:zlib"); const { deepSeqs } = await import("../src/situations/deepseq.js");
+    const sf = path.join(root, "src", "data", "nba-team-seasons-2026-27.json");
+    deepShared.official = fs.existsSync(sf) ? JSON.parse(fs.readFileSync(sf, "utf8")).teams : null;
+    const gz = (f) => { const p = path.join(root, "src", "data", f); return fs.existsSync(p) ? JSON.parse(zl.gunzipSync(fs.readFileSync(p))) : null; };
+    const deep = deepSeqs({ older: gz("nba-results-older.json.gz"), guide: gz("guide-games-2026-27.json.gz"), official: deepShared.official });
+    const fr = {}; for (const [t, s] of Object.entries(deep.from)) (fr[s] ??= []).push(t);
+    console.log(`deep history: every team from ${deep.league}; further back: ${Object.entries(fr).filter(([s]) => s < deep.league).sort().map(([s, ts]) => `${ts.join(", ")} from ${s}`).join("; ") || "none"}`);
+    deepShared.deep = deep;
+  } catch (e) { console.error(`deep history not used: ${e.message}`); deepShared.deep = null; }
+  return deepShared.deep;
+}
 
 if ((process.env.HTTPS_PROXY || process.env.https_proxy) && !process.env.NODE_USE_ENV_PROXY) {
   const r = spawnSync(process.execPath, ["--no-warnings", ...process.argv.slice(1)], { stdio: "inherit", env: { ...process.env, NODE_USE_ENV_PROXY: "1" } });
@@ -374,6 +391,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     // Season-long and morning-after lines (0.70): trades, starter/bench, vs MVP season, lineups, record turns, best
     // since Christmas, who has beaten the best teams, month ratings and totals, rookies, last night's unique lines.
     let lastNight = [], zeros = {};
+    lastTime = null;
     try {
       const { seasonLongLines } = await import("../src/anticipate/seasonlong.js");
       const hf2 = path.join(root, "src", "data", `nba-history-${seasonTag}.json`);
@@ -394,6 +412,19 @@ for (const [tri, games] of Object.entries(perTeam)) {
         zeros = zeroWatch(zeroCareers(zargs), new Set(slate.flatMap((g) => [g.away, g.home])));
         console.log(`firsts: ${zl.length} first game(s) without a point, rebound or assist last night; ${Object.keys(zeros).length} of tonight's players have never had one`);
       } catch (e) { prep.errors.push(`zeros: ${e.message}`); }
+      // 0.89: "the first since…": the guides' last-time pages (three teams) counted forward, and every team's points
+      // and margins from its own games. Last night's go to "From last night"; the rest feeds NBA Live and the Index.
+      try {
+        const { advance, scoreFeats, firstSince, watchList } = await import("../src/records/lasttime.js");
+        const ltf = path.join(root, "src", "data", `last-time-${seasonTag}.json`), rhf = path.join(root, "src", "data", "nba-results-history.json");
+        const feats = [...(fs.existsSync(ltf) ? advance(JSON.parse(fs.readFileSync(ltf, "utf8")), rows, store.names || {}) : []),
+          ...scoreFeats({ deep: await loadDeep(), history: fs.existsSync(rhf) ? JSON.parse(fs.readFileSync(rhf, "utf8")) : null, rows })];
+        const fl = firstSince(feats, yday, today);
+        lastNight = [...fl, ...lastNight].sort((a, b) => b.score - a.score);
+        lastTime = { feats, watch: watchList(feats, [...new Set(slate.flatMap((g) => [g.away, g.home]))], today) };
+        fs.writeFileSync(path.join(root, "docs", "data", "lasttime.json"), JSON.stringify({ generatedAt: out.generatedAt, through, feats: feats.filter((f) => f.last), season: firstSince(feats, `${Number(seasonTag.slice(0, 4))}-08-01`, today).map((l) => ({ date: l.date, team: l.team, text: l.text })) }));
+        console.log(`last time: ${feats.length} feats on file; ${fl.length} first-since line(s) from last night`);
+      } catch (e) { console.error(`last-time lines not made: ${e.message}`); }
       prep.lines.push(...sl.lines.filter((l) => l.kind !== "unique"));
       prep.errors.push(...sl.errors);
     } catch (e) { prep.errors.push(`season-long: ${e.message}`); }
@@ -466,17 +497,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const { streakWatch } = await import("../src/situations/streakwatch.js");
     const hf = path.join(root, "src", "data", "nba-results-history.json");
     // 0.86: each team's games before 2016-17, as far back as its seasons add up to the franchise's record.
-    let deep = null;
-    try {
-      const zl = await import("node:zlib"); const { deepSeqs } = await import("../src/situations/deepseq.js");
-      deepShared.official = fs.existsSync(path.join(root, "src", "data", "nba-team-seasons-2026-27.json")) ? JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-team-seasons-2026-27.json"), "utf8")).teams : null;
-      const gz = (f) => { const p = path.join(root, "src", "data", f); return fs.existsSync(p) ? JSON.parse(zl.gunzipSync(fs.readFileSync(p))) : null; };
-      const sf = path.join(root, "src", "data", "nba-team-seasons-2026-27.json");
-      deep = deepSeqs({ older: gz("nba-results-older.json.gz"), guide: gz("guide-games-2026-27.json.gz"), official: fs.existsSync(sf) ? JSON.parse(fs.readFileSync(sf, "utf8")).teams : null });
-      const fr = {}; for (const [t, s] of Object.entries(deep.from)) (fr[s] ??= []).push(t);
-      console.log(`deep history: every team from ${deep.league}; further back: ${Object.entries(fr).filter(([s]) => s < deep.league).sort().map(([s, ts]) => `${ts.join(", ")} from ${s}`).join("; ") || "none"}`);
-      deepShared.deep = deep;
-    } catch (e) { console.error(`deep history not used: ${e.message}`); deep = null; }
+    const deep = await loadDeep();
     watchLines = streakWatch({ history: fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null, rows, today, deep });
     console.log(`team streak watch: ${watchLines.length} lines`);
   } catch (e) { console.error(`team streak watch: ${e.message}`); }
@@ -673,7 +694,7 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
     // BENCH IMPACT card (the user, 11/16: "maybe there is a way to track if this is a common occurrence").
     let bench = null;
     try { const { benchOverStarters } = await import("../src/situations/bench.js"); bench = benchOverStarters(rows); } catch (e) { console.error(`bench counts not made: ${e.message}`); }
-    fs.writeFileSync(path.join(root, "docs", "data", "tonight.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, games, defense, stars, situations, arenas, zeros: args.prep?.zeros || {}, bench }));
+    fs.writeFileSync(path.join(root, "docs", "data", "tonight.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, games, defense, stars, situations, arenas, lasttime: lastTime?.watch || {}, zeros: args.prep?.zeros || {}, bench }));
     // The briefing (0.66): one ranking over every candidate line, with what was already shown on earlier days.
     try {
       const { tonightCandidates } = await import("../src/anticipate/tonight.js");

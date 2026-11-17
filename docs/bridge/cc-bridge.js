@@ -77,7 +77,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 20;
+  var VERSION = 21;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -307,6 +307,7 @@
       try { listChecks(game, sides, box, tag, scr); } catch (e) { state.listError = String(e && e.message || e); }
       try { franchiseGameChecks(game, sides, box, tag, scr); } catch (e) { state.fgError = String(e && e.message || e); }
       try { arenaChecks(game, sides, box, tag, scr); } catch (e) { state.arenaError = String(e && e.message || e); }
+      try { lastTimeChecks(game, sides, box, tag, scr); } catch (e) { state.lastTimeError = String(e && e.message || e); }
       try { zeroChecks(game, sides, box, tag, scr); } catch (e) { state.zeroError = String(e && e.message || e); }
       try { flowChecks(game, sides, box, tag, scr); } catch (e) { state.flowCheckError = String(e && e.message || e); }
       try { defenseChecks(game, sides, box, tag, scr); } catch (e) { state.defenseCheckError = String(e && e.message || e); }
@@ -638,6 +639,44 @@
           statLine: typeof fmtAlertStatLine === "function" ? fmtAlertStatLine([[v, "POINTS"]]) : "",
           sub: "Command Center · arena scoring records (a list of 6/9/26 plus every game since)" + unsure,
           live: game.status === "live", gameId: game.id, gameTag: tag, gameScore: scr,
+        });
+      });
+    });
+  }
+
+  // ---- v21: "the first since…" (tonight.json `lasttime`, by team) ----
+  // Three guides print "the last time" a player of theirs, or one against them, reached a number (Boston, Washington,
+  // Golden State), and a few more print every triple-double. The build counts those forward and sends the ones not
+  // done in three years or more, with the sentence already written. A player who gets there tonight gets one card
+  // per stat, for the highest bar he has cleared.
+  function lastTimeChecks(game, sides, box, tag, scr) {
+    var L = state.tonight && state.tonight.lasttime;
+    if (!L) return;
+    var post = false;
+    try { post = typeof isPlayoffSlate === "function" && !!isPlayoffSlate(); } catch (e) { post = false; }
+    if (post) return;
+    ["away", "home"].forEach(function (side) {
+      var team = side === "away" ? sides.away : sides.home, other = side === "away" ? sides.home : sides.away;
+      (box[side] || []).forEach(function (p) {
+        if (!p || (p.min || 0) < 1) return;
+        var name = p.name || p.displayName || p.shortName || ("#" + p.id);
+        [[L[team], "team", team], [L[other], "opp", other]].forEach(function (x) {
+          var best = {};
+          (x[0] || []).forEach(function (f) {
+            if (f.by !== x[1] || !LIST_FIELD[f.stat]) return;
+            var v = Number(p[LIST_FIELD[f.stat]]) || 0;
+            if (v >= f.n && (!best[f.stat] || f.n > best[f.stat].f.n)) best[f.stat] = { f: f, v: v };
+          });
+          Object.keys(best).forEach(function (stat) {
+            var f = best[stat].f, v = best[stat].v;
+            fire("cc-last-" + game.id + "-" + p.id + "-" + x[2] + "-" + stat, {
+              type: "milestone", icon: "🕰️ FIRST SINCE " + String(f.date).slice(0, 4),
+              text: name + " (" + team + ") — " + v + " " + LIST_WORD[stat] + ": " + f.phrase,
+              statLine: typeof fmtAlertStatLine === "function" ? fmtAlertStatLine([[v, LIST_WORD[stat].toUpperCase()]]) : "",
+              sub: "Command Center · the team media guides' \"last time\" pages and lists, counted forward",
+              live: game.status === "live", gameId: game.id, gameTag: tag, gameScore: scr,
+            });
+          });
         });
       });
     });
