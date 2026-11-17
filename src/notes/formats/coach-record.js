@@ -32,7 +32,10 @@ export function readCoachRecord(doc) {
       const names = line.text.trim().split(/\s{2,}/).map((w) => NICK.get(w.toLowerCase()));
       if (names.length >= 2 && names.every(Boolean) && names.every((t) => !teams[t])) {
         for (const other of [near[i - 1], near[i + 1], near[i - 2], near[i + 2]]) {
-          const n = other?.text.match(new RegExp(`(?:^|\\s)((?:\\d{1,3}\\s+){${names.length * 2 - 1}}\\d{1,3})\\s*$`));
+          // The numbers close the neighbouring line (Detroit), or open it with another table's row after them
+          // (New Orleans, 0.81: "6  6  4  7  3  9  2022-23  Magic  34-47  .420" over "Jazz  Clippers  Grizzlies").
+          const n = other?.text.match(new RegExp(`(?:^|\\s)((?:\\d{1,3}\\s+){${names.length * 2 - 1}}\\d{1,3})\\s*$`))
+            || other?.text.match(new RegExp(`^\\s*((?:\\d{1,3}\\s+){${names.length * 2 - 1}}\\d{1,3})(?!\\s+\\d{1,3}(?:\\s|$))(?=\\s|$)`));
           if (!n) continue;
           const v = n[1].trim().split(/\s+/).map(Number);
           names.forEach((t, k) => { teams[t] = { w: v[2 * k], l: v[2 * k + 1] }; });
@@ -56,7 +59,7 @@ export function coachLine(rec, opp) {
   const r = rec?.ok ? rec.teams[opp] : null;
   const T = TEAMS[opp];
   if (!r || !T || r.w + r.l < 4) return null;
-  const who = /s$/.test(T.nick) ? `the ${T.nick}` : T.nick;
+  const who = `the ${T.nick}`;   // "the Heat", "the Jazz": every nickname takes the article
   const tot = rec.career || rec.sum;
   return `${rec.coach} is ${r.w}-${r.l} all-time against ${who} as a head coach (${tot.w.toLocaleString("en-US")}-${tot.l.toLocaleString("en-US")} overall${rec.entering ? `, entering ${rec.entering}` : ""}).`;
 }

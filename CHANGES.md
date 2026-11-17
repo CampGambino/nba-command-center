@@ -2,6 +2,55 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.81.0 (2026-11-16): the finder, fourth-quarter leads, arena records, missed-three runs by games
+
+The user (11/16, 7:34 PM): "losing a 15-point lead in the 4th quarter is noteworthy, just not one that was created in the 1st quarter"; a time limit on three-point runs "disregards players who are injured for weeks at a time between games"; "so what needs to be done with the all-star information?"; on the posts: "these are simply concepts. ways of tracking the obscure. I'd like the program to have the ability to find stuff like that on its own, or at least suggest information that could be tracked worth tracking", and on the Dončić three-quarters post: "something a program could find on its own since it contains all the information already. it just has to know it can look for noteworthy stats that aren't surface level"; two pictures of a quiz's arena scoring records ("you may need to verify some of these"); "Coaches against CHI and NOP: I don't understand this".
+
+### The finder (`src/anticipate/finder.js`, new)
+- Not another detector for another post. Every player's season is cut several ways and a cut is kept only when it is far out of line with the league. Four tests, each over everyone:
+  - **part:** a piece of a player's scoring against the league's full averages. Pieces: through three quarters, first halves, second halves, without free throws, two-pointers alone, threes alone. Kept when the piece would still rank in the top 10 (top 25 for a piece that is half a game or less). "Luka Doncic is the NBA's leading scorer at 39.0 a game. His scoring through three quarters alone (33.3) would still lead everyone else (next: Shai Gilgeous-Alexander, 30.9); his scoring without his free throws alone (29.4) would rank 2nd".
+  - **teams:** one player's count against whole teams' counts (30- and 40-point games, triple-doubles, games with 10+ assists, 15+ rebounds, 5+ threes, 3+ blocks, 3+ steals). Kept when he has more than 24 of the other 29 teams. "Nikola Jokic has 3 triple-doubles this season: more than any other team has in total (19 teams have none)".
+  - **gap:** a leader's distance from 2nd against the distance from 2nd to 10th, on the full list and on every piece; one line a player.
+  - **noas:** the highest-ranked scorer, rebounder or passer who has never been an All-Star, when he is in the top 12. This is the first use of the NBA Guide's All-Star selection counts (466 players). "Davion Mitchell leads the NBA in assists (9.2 assists a game) and has never been an All-Star".
+- **Where it shows:** findings about tonight's teams are storyline candidates (kind `find` 🔎, one a game, in the briefing ranking and NBA Live's pre-game cards). The league's eight most out-of-line, one a player, are a new list on the Watch List under the briefing, **"Found in the numbers"**: these are the suggestions, for the whole league, not only tonight's teams.
+- **Teaching it:** each line in that list has the same 👍/👎. A vote counts for the kind, the test and each cut (`find:part`, `find:part:q3`, … in `learn.js`), so "more pieces of his scoring, fewer player-against-whole-teams" can be learned; a line voted down is gone and the list is ordered by surprise plus what the votes taught.
+- Points by quarter for every player are now summed in `flowstats.json` (`qsum`).
+- The Dončić post is now a finder check: seen (ours has 33.5 through three quarters that morning, still ahead of everyone else; the post had 32.8 and third). **Did we see it coming: 40 of 50.**
+
+### Lost leads
+- **How a lead is measured:** the biggest margin a team held at any moment of the game, from the score after every basket in the play-by-play (in NBA Live, from the score at each update and the box score's "biggest lead"). When it was built did not matter.
+- **Now:** each game also keeps the biggest lead each side held **in the 4th quarter or overtime**, the margin entering the 4th included (`lead4`, `down4` in `src/gameflow/stats.js`; `LATE_LEAD = 15`).
+- Through 11/15 (197 games): a team led by 15+ in a 4th quarter in 117 games and lost **one** (New Orleans, up 19 on Denver, 10/24). Of the 18 games in which a 15+ lead was lost at any time, 17 never had a 15-point lead in the 4th.
+- **NBA Live (bridge v17):** the lead-lost card fires at the final for a 20+ lead at any time (as in 0.80) **or a 15+ lead held in the 4th quarter**, as "📉 4TH-QUARTER LEAD LOST … led by 19 in the 4th quarter: before tonight, teams leading by 15+ in a 4th quarter were 116-1 this season". One card when both apply.
+- **Watch List:** a line for any team that lost such a game, or won one from 15+ down in the 4th (`late15|…`, in `flowTeamLines`).
+
+### Missed threes in a row
+- The 16-day limit of 0.80 is gone. A run is a line when it fits in **10 of the player's own games** or fewer (`SHOTS.fg3Games`, `fg3MissGames` from `shotStreaks`), however far apart those games were: a shooter back from three weeks out carries his run; a player who takes a three every other game never reaches 12 in 10. The line says the span: "has missed his last 14 3-point attempts (over his last 4 games, since 11/7)".
+
+### Arena scoring records (`src/data/arena-records.json`, `src/records/arena.js`, new)
+- The 30 current buildings from the quiz the user sent (last updated 6/9/26), each row marked by how far we could check it: **21 confirmed** (the game is in our results at that building, the score in our logs, and no current player has scored more there since 2016-17), **6 as the quiz has them** (older than our data: Bryant 81 and 60, Anthony 62, Stackhouse 57, James 56, Stoudamire 54), **2 corrected**, **1 unconfirmed**. The 16 former buildings are kept as sent.
+- **Corrected:** Houston's Toyota Center is Harden's 61 against San Antonio alone (his 61 against New York on 1/23/19 was at Madison Square Garden: our results have New York at home). Detroit's Little Caesars Arena is Anthony Edwards' 53 on 1/4/25 (the quiz's Anthony Davis 59 was in 2016 at The Palace, where the quiz's own second list has it; Durant's 51 in 2021 was reported as the building's record then).
+- **Unconfirmed:** Oklahoma City's Paycom Center. The quiz's Westbrook 58 was in Portland (our results: Portland at home). Gilgeous-Alexander's 54 on 1/22/25 is the most in our logs; Durant also had 54 there in 2014 by memory, not checked against a source.
+- This season's box scores are put on top every build (either team's player; neutral-site games and games before the list's date left out), so a record set or tied this season is in the list the next morning.
+- **NBA Live (bridge v17):** "👀 N FROM ARENA RECORD" within 8 points, "🏟️ TIES / ARENA RECORD" at the mark, for tonight's home buildings (`tonight.json` `arenas`). A row we could not check says so on the card.
+
+### Coach's record against tonight's opponent
+- **New Orleans (Jamahl Mosley)** now reads: three teams' numbers print on the line above their names with another table's row after them; the table adds up to his 193-229. Tonight: "Jamahl Mosley is … all-time against the Warriors as a head coach".
+- **Chicago (Tiago Splitter):** the notes print the heading, but the table under it is not text in the file (most likely a picture), so there is nothing to read. Not fixed.
+- "against Heat" is "against the Heat".
+
+### Tested
+- 895 checks (was 884), 79 Worker checks. New: a real game's 4th-quarter leads and quarter sums; the late-lead lines; miss runs by games (incl. three weeks out); the arena list's 30 rows and this season's games on top; the finder's four tests on a made-up league, the league list and votes by test; New Orleans' table layout.
+- Local build: 18 findings league-wide before the All-Star test was added (2 more with it), 5 about tonight's teams; arena records for tonight's eight home buildings; the New Orleans line for 10/24 on its game tonight; every page opens (`tools/check-pages.py`); the "Found in the numbers" list renders with its vote buttons.
+- Bridge v17 inside the newest NBA Live with NOP @ DEN (10/24) replayed live: connected, no bridge errors, ten Command Center cards.
+
+### Unproven
+- **The 4th-quarter lead card has not been seen firing:** the replay ran into overtime and did not reach the final in the time allowed. If NBA Live is opened after the 4th has started, only the leads from then on are seen.
+- The finder's thresholds (top 10 / 25, 24 teams, the gap ratio) are first guesses. It covers scoring pieces and eight counts so far: no team-level cuts, no rebounds or assists by quarter.
+- On the first build after this push the finder has no quarter scoring (the Game Flow step writes it last); the "through three quarters" pieces appear from the second build.
+- The arena card has not fired on a real game. Six rows are older than our data and one is unconfirmed; "confirmed" covers current players' logs since 2016-17 and can't see a retired player's game we don't hold.
+- Chicago's coach table.
+
 ## 0.80.0 (2026-11-16): standings and magic numbers, every team's seasons since 1946-47, notes-vs-ESPN tie-break, injury report fallback
 
 The user (11/16, 5:07 PM), answering the loose-threads list: keep the season-opener rarities; stay true to the notes on typos; "have notes or espn been the correct choice every time? … I'd still like to be notified of any inconsistencies"; show a lost lead from 20 if 15 is common; weekday and month records "in case anything stands out"; four Basketball Reference pages (Sabonis, DeAndre Jordan, Oubre, Schayes); a newer NBA Live; three-point droughts "could get a bit hairy… for players who normally don't attempt them"; the NBA Guide "is full of every top-line player and team stat going back to the first season in 1946-47"; "it would be great to know the magic number for a team to clinch ahead of time" (with a standings PDF); "there may be times where the most recent injury report is never uploaded. in that case, it's best to check the version prior to that is populated".

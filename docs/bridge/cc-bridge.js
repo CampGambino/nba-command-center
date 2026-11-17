@@ -77,7 +77,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 16;
+  var VERSION = 17;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -87,7 +87,7 @@
   var SMALL_CLUB = 10;        // a career-records round number in any other stat: only a club this small
   var MAX_PER_GAME = 6;       // in-play cards per game, best first (reached ones always show)
   var PRE_PER_GAME = 3;       // pre-game storyline cards per game
-  var ICON = { history: "📜 FROM THE NOTES", injury: "🩹 INJURY", milestone: "🎯 IN REACH", streak: "🔥 STREAK", lead: "👑 TEAM LEADER", shooting: "🏹 50/40/90", team: "📈 TEAM STREAK", record: "🏛️ RECORD WATCH", context: "📊 CAREER CONTEXT", foul: "⚠️ FOUL WATCH", early: "🔄 LEFT EARLY LAST TIME", fourth: "⏳ 4TH QUARTER", qtr: "🕒 BY QUARTER", clinch: "🔒 CLINCH WATCH", season: "📊 THIS SEASON", span: "🧩 IN THAT SPAN", pstreak: "🔥 STREAK WATCH", vsopp: "🆚 VS TONIGHT'S OPPONENT", pace: "⏱️ PACE", trade: "🔁 SINCE THE TRADE", role: "🪑 STARTER VS BENCH", lineup: "🖐️ STARTING FIVE", turn: "↪️ RECORD TURN", beaten: "⚔️ WHO'S BEATEN THEM", month: "🗓️ THIS MONTH", monthp: "🗓️ THIS MONTH", rookie: "🌱 ROOKIES", era: "📆 SINCE THEN", defense: "🛡️ DEFENSE WATCH", cup: "🏆 NBA CUP" };
+  var ICON = { find: "🔎 FOUND IN THE NUMBERS", history: "📜 FROM THE NOTES", injury: "🩹 INJURY", milestone: "🎯 IN REACH", streak: "🔥 STREAK", lead: "👑 TEAM LEADER", shooting: "🏹 50/40/90", team: "📈 TEAM STREAK", record: "🏛️ RECORD WATCH", context: "📊 CAREER CONTEXT", foul: "⚠️ FOUL WATCH", early: "🔄 LEFT EARLY LAST TIME", fourth: "⏳ 4TH QUARTER", qtr: "🕒 BY QUARTER", clinch: "🔒 CLINCH WATCH", season: "📊 THIS SEASON", span: "🧩 IN THAT SPAN", pstreak: "🔥 STREAK WATCH", vsopp: "🆚 VS TONIGHT'S OPPONENT", pace: "⏱️ PACE", trade: "🔁 SINCE THE TRADE", role: "🪑 STARTER VS BENCH", lineup: "🖐️ STARTING FIVE", turn: "↪️ RECORD TURN", beaten: "⚔️ WHO'S BEATEN THEM", month: "🗓️ THIS MONTH", monthp: "🗓️ THIS MONTH", rookie: "🌱 ROOKIES", era: "📆 SINCE THEN", defense: "🛡️ DEFENSE WATCH", cup: "🏆 NBA CUP" };
 
   // ESPN abbreviations NBA Live shows -> Command Center tricodes.
   var TRI = { GS: "GSW", NO: "NOP", NY: "NYK", SA: "SAS", UTAH: "UTA", WSH: "WAS", PHO: "PHX", BRK: "BKN", CHO: "CHA" };
@@ -302,6 +302,7 @@
       try { recordChecks(game, sides, box, tag, scr); } catch (e) { state.recError = String(e && e.message || e); }
       try { listChecks(game, sides, box, tag, scr); } catch (e) { state.listError = String(e && e.message || e); }
       try { franchiseGameChecks(game, sides, box, tag, scr); } catch (e) { state.fgError = String(e && e.message || e); }
+      try { arenaChecks(game, sides, box, tag, scr); } catch (e) { state.arenaError = String(e && e.message || e); }
       try { flowChecks(game, sides, box, tag, scr); } catch (e) { state.flowCheckError = String(e && e.message || e); }
       try { defenseChecks(game, sides, box, tag, scr); } catch (e) { state.defenseCheckError = String(e && e.message || e); }
     });
@@ -576,6 +577,32 @@
     });
   }
 
+  // ---- v17: the most points by a player in tonight's building (tonight.json `arenas`, home team's code) ----
+  // A list the user sent (11/16/26), checked where our own results reach, with this season's games on top. Either
+  // team's player counts. A row we could not check says so on the card. Only when the game is on tonight's list
+  // (so a neutral-site game, which is left out of `arenas`, never gets one).
+  var ARENA_GAP = 8;
+  function arenaChecks(game, sides, box, tag, scr) {
+    var T = state.tonight, A = T && T.arenas && T.arenas[sides.home];
+    if (!A || !A.pts || !T.games.some(function (x) { return x.away === sides.away && x.home === sides.home; })) return;
+    ["away", "home"].forEach(function (side) {
+      (box[side] || []).forEach(function (p) {
+        if (!p || (p.min || 0) < 1) return;
+        var v = Number(p.pts != null ? p.pts : p.points) || 0, made = v >= A.pts;
+        if (!made && (game.status !== "live" || v < A.pts - ARENA_GAP)) return;
+        var name = p.name || p.displayName || p.shortName || ("#" + p.id), team = side === "away" ? sides.away : sides.home;
+        var unsure = A.check === "unconfirmed" || A.check === "quiz" ? " · this record is from a quiz list, not checked against a league source" : "";
+        fire("cc-arena-" + game.id + "-" + p.id + (made ? (v > A.pts ? "-broke" : "-tied") : "-near"), {
+          type: "milestone", icon: made ? (v > A.pts ? "🏟️ ARENA RECORD" : "🏟️ TIES ARENA RECORD") : "👀 " + (A.pts - v) + " FROM ARENA RECORD",
+          text: name + " (" + team + ") — " + v + " points" + (made ? (v > A.pts ? ": the most ever at " : ": ties the most ever at ") : ", " + (A.pts - v) + " from the most ever at ") + A.arena + " (" + A.pts + ", " + A.who + ")",
+          statLine: typeof fmtAlertStatLine === "function" ? fmtAlertStatLine([[v, "POINTS"]]) : "",
+          sub: "Command Center · arena scoring records (a list of 6/9/26 plus every game since)" + unsure,
+          live: game.status === "live", gameId: game.id, gameTag: tag, gameScore: scr,
+        });
+      });
+    });
+  }
+
   // ---- v4: each franchise's single-game records (the 29 team media guides; records.json franchiseGame) ----
   var FG_GAP = { pts: 8, reb: 5, ast: 4, stl: 2, blk: 2, fg3m: 2 }; // "nearing the team record" window, live only
   function franchiseGameChecks(game, sides, box, tag, scr) {
@@ -623,6 +650,7 @@
   var LATE_RETURN = 180;                      // seconds past his usual return
   var LEAD = 20;                              // a lead lost is a card from here (v16: 20, was 15: 18 of the season's first 197 games
                                               // had a 15-point lead lost, 8 a 20-point one; the user, 11/16)
+  var LATE_LEAD = 15;                         // v17: or a lead this big held in the 4th quarter or overtime (1 lost in 117 such games through 11/15)
   var LEAD_FROM = 20, LEAD_STEP = 5;          // lead context: from a 20-point lead, in steps of 5 (v10)
   var qName = function (q) { return ["1st", "2nd", "3rd", "4th"][q - 1] + " quarter"; };
   function elapsedNow(game) {
@@ -972,6 +1000,9 @@
     var M = state.maxLead[game.id] || (state.maxLead[game.id] = { away: 0, home: 0 });
     M.away = Math.max(M.away, a - h, Number(game.away && game.away.biggestLead) || 0);
     M.home = Math.max(M.home, h - a, Number(game.home && game.home.biggestLead) || 0);
+    // v17: the biggest lead each side has held in the 4th quarter or overtime, from the score at each update there
+    // (the first update of the 4th carries the margin it started with).
+    if ((Number(game.period) || 0) >= 4 && (a + h) > 0) { M.away4 = Math.max(M.away4 || 0, a - h); M.home4 = Math.max(M.home4 || 0, h - a); }
     var sized = function (tri, key, min) { return ((L[tri] && L[tri][key]) || []).filter(function (x) { return (key === "blown" ? x.lead : x.down) >= min; }); };
     var rankOf = function (key, tri, min) {
       var n = sized(tri, key, min).length;
@@ -997,12 +1028,26 @@
         else dropCard("cc-lead-" + game.id + "-" + team);     // grown past anything lost or won back this season
       }
       var won = side === "away" ? a > h : h > a;
-      if (game.status === "final" && !won && M[side] >= LEAD) {
-        var lost = Math.max(LEAD, Math.floor(M[side] / LEAD_STEP) * LEAD_STEP);   // v10: counted at its own size
-        var n = sized(team, "blown", lost).length + 1;
-        fire("cc-blown-" + game.id + "-" + team, base({ icon: "📉 LEAD LOST",
-          text: team + " lost a " + M[side] + "-point lead to " + other + " · their " + ord(n) + " lost lead of " + lost + "+ this season" + "; " + other + "'s " + ord(sized(other, "comebacks", lost).length + 1) + " comeback from " + lost + "+ down",
-          statLine: stl([[M[side], "LEAD LOST"]]), sub: "Command Center · Game Flow files" + through }));
+      // A lead lost (v17): the game's biggest lead at any time from LEAD, or a lead of LATE_LEAD+ held in the 4th quarter
+      // or overtime. "Losing a 15-point lead in the 4th quarter is noteworthy, just not one that was created in the
+      // 1st quarter" (the user, 11/16). One card for both.
+      var late = M[side + "4"] || 0;
+      if (game.status === "final" && !won && (M[side] >= LEAD || late >= LATE_LEAD)) {
+        var bits2 = [];
+        if (M[side] >= LEAD) {
+          var lost = Math.max(LEAD, Math.floor(M[side] / LEAD_STEP) * LEAD_STEP);   // v10: counted at its own size
+          var n = sized(team, "blown", lost).length + 1;
+          bits2.push("their " + ord(n) + " lost lead of " + lost + "+ this season" + "; " + other + "'s " + ord(sized(other, "comebacks", lost).length + 1) + " comeback from " + lost + "+ down");
+        }
+        if (late >= LATE_LEAD) {
+          var B = F.by10 || {}, lw = 0, ll = 0;
+          Object.keys(B).forEach(function (t) { lw += B[t].lateW || 0; ll += (B[t].lateLost || []).length; });
+          var mine = ((B[team] && B[team].lateLost) || []).length;
+          bits2.push("led by " + late + " in the 4th quarter" + (lw + ll ? ": before tonight, teams leading by " + LATE_LEAD + "+ in a 4th quarter were " + lw + "-" + ll + " this season" : "") + (mine ? "; " + team + "'s " + ord(mine + 1) + " such loss" : ""));
+        }
+        fire("cc-blown-" + game.id + "-" + team, base({ icon: late >= LATE_LEAD ? "📉 4TH-QUARTER LEAD LOST" : "📉 LEAD LOST",
+          text: team + " lost a " + M[side] + "-point lead to " + other + " · " + bits2.join(" · "),
+          statLine: late >= LATE_LEAD ? stl([[late, "4TH-QTR LEAD LOST"]]) : stl([[M[side], "LEAD LOST"]]), sub: "Command Center · Game Flow files" + through }));
       }
     });
   }

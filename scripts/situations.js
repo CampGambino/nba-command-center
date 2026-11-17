@@ -397,10 +397,28 @@ for (const [tri, games] of Object.entries(perTeam)) {
         prep.lines.push(...teamSeasonLines(JSON.parse(fs.readFileSync(tsf, "utf8")), st, tonightTeams, { season: +seasonTag.slice(0, 4) }));
       }
     } catch (e) { prep.errors.push(`standings: ${e.message}`); }
+    // 0.81: the finder: every player's season cut several ways, kept only where a cut is far out of line with the
+    // league. Tonight's teams' findings are candidates; the league's most out-of-line few go to the page as suggestions.
+    let finds = [];
+    try {
+      const { finderLines } = await import("../src/anticipate/finder.js");
+      const ff = path.join(root, "docs", "data", "flowstats.json");
+      const qsum = fs.existsSync(ff) ? JSON.parse(fs.readFileSync(ff, "utf8")).qsum || {} : {};
+      const teamGp = {};
+      for (const g of rows) { teamGp[g.h] = (teamGp[g.h] || 0) + 1; teamGp[g.a] = (teamGp[g.a] || 0) + 1; }
+      // All-Star selections through last season's game (the NBA Guide), for "has never been an All-Star".
+      let allStars = null;
+      try { const { plainName } = await import("../src/anticipate/finder.js"); const pc = path.join(root, "src", "data", `nba-postseason-careers-${seasonTag}.json`);
+        if (fs.existsSync(pc)) allStars = new Set((JSON.parse(fs.readFileSync(pc, "utf8")).allStarSelections || []).map((x) => plainName(x.name))); } catch { /* no list: that test is skipped */ }
+      const F = finderLines({ pg, names: store.names || {}, qsum, teamGp, allStars }, new Set(slate.flatMap((g) => [g.away, g.home])), { top: 20 });
+      prep.lines.push(...F.lines);
+      finds = F.league;
+      console.log(`finder: ${F.n} finding(s) league-wide, ${F.lines.length} about tonight's teams${Object.keys(qsum).length ? "" : " (no quarter scoring yet: the Game Flow step of the last build)"}`);
+    } catch (e) { prep.errors.push(`finder: ${e.message}`); }
     const byKind = {};
     for (const l of prep.lines) byKind[l.kind] = (byKind[l.kind] || 0) + 1;
     console.log(`prep stats: ${prep.lines.length} lines (${Object.entries(byKind).map(([k, n]) => `${n} ${k}`).join(", ")})${prep.errors.length ? `; errors: ${prep.errors.join("; ")}` : ""}`);
-    fs.writeFileSync(path.join(root, "docs", "data", "prep.json"), JSON.stringify({ generatedAt: out.generatedAt, today, through, lines: prep.lines, stars: prep.stars, lastNight }));
+    fs.writeFileSync(path.join(root, "docs", "data", "prep.json"), JSON.stringify({ generatedAt: out.generatedAt, today, through, lines: prep.lines, stars: prep.stars, lastNight, finds }));
   } catch (e) { console.error(`prep stats not written: ${e.message}`); }
   // "Did we see it coming?" (0.67): the stats other accounts posted, against what we'd have said that morning.
   try {
@@ -585,7 +603,18 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
     // 0.72.8: the big names (prep stats' prominence, 0.6+), for NBA Live's milestone cards: a lesser round number gets a card only for them.
     let stars = null;
     try { const st = rd("prep.json").stars || {}; stars = Object.fromEntries(Object.entries(st).filter(([, v]) => v >= 0.6).map(([n, v]) => [n, Math.round(v * 100) / 100])); } catch { /* no prep stats: no exceptions */ }
-    fs.writeFileSync(path.join(root, "docs", "data", "tonight.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, games, defense, stars, situations }));
+    // 0.81: the most points by a player in each of tonight's buildings (a list the user sent 11/16, with this season's
+    // box scores on top), for NBA Live's arena-record card. Neutral-site games are in no one's building.
+    let arenas = {};
+    try {
+      const { arenaRecords, arenasTonight } = await import("../src/records/arena.js");
+      const all = arenaRecords(JSON.parse(fs.readFileSync(path.join(root, "src", "data", "arena-records.json"), "utf8")), rows, store.names || {});
+      const neutral = new Set((sb.ok ? sb.data.games : []).filter((g) => g.neutral).map((g) => g.homeTri));
+      arenas = arenasTonight(all, (watch.games || []).map((g) => g.homeTri).filter((t) => !neutral.has(t)));
+      const fresh = Object.entries(all).filter(([, r]) => r.season);
+      if (fresh.length) console.log(`arena records: set or tied this season in ${fresh.map(([t, r]) => `${t} (${r.pts})`).join(", ")}`);
+    } catch (e) { console.error(`arena records not read: ${e.message}`); }
+    fs.writeFileSync(path.join(root, "docs", "data", "tonight.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, games, defense, stars, situations, arenas }));
     // The briefing (0.66): one ranking over every candidate line, with what was already shown on earlier days.
     try {
       const { tonightCandidates } = await import("../src/anticipate/tonight.js");
@@ -595,7 +624,7 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
       const seen = fs.existsSync(seenFile) ? JSON.parse(fs.readFileSync(seenFile, "utf8")) : {};
       const nat = new Set((args.national?.upcoming || []).filter((g) => g.d === watch.today && g.status !== "dropped").map((g) => `${g.away}@${g.home}`));
       // 0.67: the user's 👍/👎 from the Worker (a copy is kept in history/ in case the Worker can't be reached).
-      const { learn } = await import("../src/anticipate/learn.js");
+      const { learn, boost } = await import("../src/anticipate/learn.js");
       const votesFile = path.join(root, "history", "briefing-votes.json");
       let votes = fs.existsSync(votesFile) ? JSON.parse(fs.readFileSync(votesFile, "utf8")) : [];
       try {
@@ -617,6 +646,9 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
       const learned = Object.entries(model.weights).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 12);
       fs.writeFileSync(path.join(root, "docs", "data", "briefing.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, candidates: cand.all.length, votes: { n: model.n, up: model.up.size, down: model.down.size, learned }, top: b.top.map(slimL), deep: b.deep.map(slimL),
         lastNight: (args.prep?.lastNight || []).slice(0, 6).map((l) => ({ key: l.key, kind: l.kind, team: l.team, player: l.player, text: l.text })),
+        // 0.81: the finder's league list: a line voted down is gone, and the rest are ordered by surprise plus what the votes taught.
+        finds: (args.prep?.finds || []).filter((l) => !model.down.has(l.key)).map((l) => ({ l, r: l.score + boost(l, model, args.prep?.stars || {}) })).sort((a, b) => b.r - a.r)
+          .slice(0, 8).map(({ l }) => ({ key: l.key, kind: l.kind, team: l.team, player: l.player, text: l.text, game: "" })),
         news: buzz ? Object.entries(buzz.players).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, n]) => ({ name, n, titles: buzz.titles[name] || [] })) : null }));
       console.log(`briefing: ${cand.all.length} candidates -> top ${b.top.length}, deep cuts ${b.deep.length}; ${model.n} votes, ${Object.keys(model.weights).length} learned weights; ${buzz ? `${Object.keys(buzz.players).length} players and ${Object.keys(buzz.teams).length} teams in the headlines` : "no headlines"}; ${(args.prep?.lastNight || []).length} lines from last night`);
     } catch (e) { console.error(`briefing not written: ${e.message}`); }

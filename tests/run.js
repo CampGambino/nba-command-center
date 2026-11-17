@@ -3010,6 +3010,15 @@ await articlesChecks(ok);
         && Fg.players.every((p) => typeof p.fullGame === "boolean" && (!p.fullGame || (p.fullH1 && p.fullH2)) && (!p.fullH1 || p.mins >= 23.9))
         && Object.values(Fg.swing).every((x) => x.m <= x.a && x.a >= 1),
         "game flow stats (0.79): the record when leading or trailing by 10+, the run of games lost after such a lead, full halves and games, tie-or-lead shots late", JSON.stringify([B, two.full, Fg.swing]));
+      // 0.81: the biggest lead held in the 4th quarter or overtime (the margin entering the 4th counts) can't top the
+      // game's biggest; the season file carries it, and every player's points by quarter add up to his points.
+      const flowG = Gm.flow, enter = [...flowG].reverse().find((f) => f.t <= 3 * 720)?.d ?? 0, lateMax = Math.max(enter, ...flowG.filter((f) => f.t > 3 * 720).map((f) => f.d));
+      const home = Fg.teams.find((t) => t.home), awayT = Fg.teams.find((t) => !t.home);
+      const qs = Object.values(two.qsum);
+      ok(Fg.teams.every((t) => t.lead4 <= t.maxLead && t.down4 <= t.maxDown && t.lead4 >= 0) && home.lead4 === Math.max(0, lateMax) && home.lead4 === awayT.down4
+        && Array.isArray(B.lateLost) && Array.isArray(B.lateWon) && typeof B.lateW === "number" && B.lateW + B.lateLost.length === (tA.lead4 >= S.LATE_LEAD ? 2 : 0) && S.LATE_LEAD === 15
+        && qs.length >= 16 && qs.every((q) => q.gp === 2 && (Gm.maxP > 4 ? q.q.reduce((a, b) => a + b, 0) <= q.pts : q.q.reduce((a, b) => a + b, 0) === q.pts)),
+        "game flow stats (0.81): the biggest lead held in the 4th quarter is kept for each side, with the record in games led by 15+ there; every player's points by quarter are summed", JSON.stringify([Fg.teams.map((t) => [t.team, t.maxLead, t.lead4, t.down4]), B.lateW, B.lateLost]));
     }
     // 0.75: every shot of the sample game, per player: his makes add up to his points in the box score.
     const shotPts = (x) => x.ev.reduce((n, [, k, m]) => n + (m ? (k === "3" ? 3 : k === "2" ? 2 : 1) : 0), 0);
@@ -3654,7 +3663,7 @@ await articlesChecks(ok);
   {
     const sd = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "seeded-lists.json"), "utf8"));
     const st = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8");
-    ok(sd.situations.length === 4 && sd.situations.filter((x) => !x.playoffs).map((x) => x.id).join() === "ot-down-10,road-100-before-50" && sd.situations.every((x) => x.text && x.asOf && x.when && x.source) && /filter\(\(x\) => !x\.playoffs\)/.test(st) && /defense, stars, situations \}/.test(st)
+    ok(sd.situations.length === 4 && sd.situations.filter((x) => !x.playoffs).map((x) => x.id).join() === "ot-down-10,road-100-before-50" && sd.situations.every((x) => x.text && x.asOf && x.when && x.source) && /filter\(\(x\) => !x\.playoffs\)/.test(st) && /defense, stars, situations(?:, arenas)? \}/.test(st)
       && /var VERSION = 1[5-9];/.test(fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8")),
       "seeded situations (0.79): four looked-up records kept with their date and source; the two that aren't playoff-only go to NBA Live (bridge v15)");
   }
@@ -3662,15 +3671,21 @@ await articlesChecks(ok);
 
 // ---------- 0.80: standings and magic numbers, team seasons since 1946-47, season starts, calendar records, injury fallback ----------
 {
-  // A run of missed threes is a line only when the misses came at a shooter's pace (within SHOTS.fg3Days days).
+  // 0.81: a run of missed threes is a line when it fits in SHOTS.fg3Games of his own games, however far apart they
+  // were (the user, 11/16: a time limit "disregards players who are injured for weeks at a time between games").
   {
     const { tonightCandidates: TC, SHOTS } = await import("../src/anticipate/tonight.js");
-    const P = (name, from) => ({ name, team: "MIA", last: "2026-11-15", gp: 12, fta: 6, fg: 0, fg3: 0, ft: 0, fgMiss: 0, fg3Miss: 14, fg3MissFrom: from, dryFg: { sec: 0, fga: 0, from: "2026-11-15", games: 1 }, dryFt: { sec: 0, fga: 0, from: "2026-11-15", games: 1 } });
-    const flow = { shots: { players: { a: P("Volume Shooter", "2026-11-09"), b: P("Rare Shooter", "2026-10-22") }, best: {} } };
+    const P = (name, from, games) => ({ name, team: "MIA", last: "2026-11-15", gp: 12, fta: 6, fg: 0, fg3: 0, ft: 0, fgMiss: 0, fg3Miss: 14, fg3MissFrom: from, fg3MissGames: games, dryFg: { sec: 0, fga: 0, from: "2026-11-15", games: 1 }, dryFt: { sec: 0, fga: 0, from: "2026-11-15", games: 1 } });
+    const flow = { shots: { players: { a: P("Volume Shooter", "2026-11-09", 3), b: P("Rare Shooter", "2026-10-22", 12), c: P("Back From Injury", "2026-10-22", 3) }, best: {} } };
     const watch = { today: "2026-11-16", teams: [], games: [{ id: "1", homeTri: "MIA", awayTri: "HOU" }] };
-    const L = TC({ watch, fouls: flow, prep: null }).all.filter((x) => /^shots\|/.test(x.key || "") && /3-point/.test(x.text));
-    ok(L.length === 1 && L[0].player === "Volume Shooter" && /missed his last 14 3-point attempts \(since 11\/9\)/.test(L[0].text) && SHOTS.fg3Days === 16,
-      "shot runs (0.80): 14 missed threes in a week is a line; the same 14 spread over a month by a player who rarely shoots them is not", JSON.stringify(L.map((x) => x.text)));
+    const L = TC({ watch, fouls: flow, prep: null }).all.filter((x) => /^shots\|/.test(x.key || "") && /3-point/.test(x.text)).map((x) => x.text).sort();
+    ok(L.length === 2 && L[0] === "Back From Injury has missed his last 14 3-point attempts (over his last 3 games, since 10/22)" && /^Volume Shooter has missed his last 14 3-point attempts \(over his last 3 games, since 11\/9\)$/.test(L[1]) && SHOTS.fg3Games === 10 && SHOTS.fg3Days === undefined,
+      "shot runs (0.81): 14 missed threes over three of his games is a line even when three weeks out lie between them; the same 14 spread over twelve games is not", JSON.stringify(L));
+    // The span is counted in the games he played.
+    const { shotStreaks } = await import("../src/gameflow/stats.js");
+    const miss = (n) => ({ name: "Shooter", team: "MIA", total: 2880, ev: Array.from({ length: n }, (_, i) => [60 * (i + 1), "3", 0]) });
+    const SS = shotStreaks([{ date: "2026-10-20", shots: { 9: miss(4) } }, { date: "2026-10-22", shots: { 9: miss(3) } }, { date: "2026-11-14", shots: { 9: miss(5) } }]);
+    ok(SS.players[9].fg3Miss === 12 && SS.players[9].fg3MissGames === 3 && SS.players[9].fg3MissFrom === "2026-10-20", "shot runs (0.81): the span of a miss run is his own games played, not days", JSON.stringify(SS.players[9]));
   }
   const { standings, clinchLines, cupFinal, GAMES } = await import("../src/situations/standings.js");
   const { teamSeasonLines, sinceTable } = await import("../src/situations/teamseasons.js");
@@ -3754,6 +3769,96 @@ await articlesChecks(ok);
   ok(den.splits.dow0?.l === 12 && den.splits.dow0.w === 0 && den.splits.dow3?.w === 12 && den.splits.mon11 && cso.teams.MIA.splits.dow0.w === 6
     && calU.some((x) => x.team === "DEN" && x.key === "dow0" && /^0-12 on Sundays$/.test(x.short)) && !calU.some((x) => x.team === "MIA"),
     "calendar records (0.80): every team's record by weekday and month is counted; one is listed as unusual only when it is far from the team's own record", JSON.stringify({ keys: Object.keys(den.splits || {}).filter((k) => /^(dow|mon)/.test(k)), calU: calU.map((x) => [x.team, x.short, x.p]) }));
+}
+
+// ---------- 0.81: fourth-quarter leads, arena records, the finder, New Orleans' coach table ----------
+{
+  const T = await import("../src/anticipate/tonight.js");
+  // A lead of 15+ held in the 4th quarter and lost, with the league's record in such games.
+  const by = (o) => ({ gp: 12, upW: 5, upL: 1, downW: 1, downL: 4, run: [], longest: 1, last: "2026-11-15", lateW: 3, lateLost: [], lateWon: [], ...o });
+  const flow = { by10: { NOP: by({ lateLost: [{ lead: 19, opp: "DEN", d: "2026-10-24" }] }), DEN: by({ lateW: 5, lateWon: [{ down: 19, opp: "NOP", d: "2026-10-24" }] }), BOS: by({ lateW: 6 }) } };
+  const L = T.flowTeamLines(flow, new Set(["NOP", "DEN", "BOS"]), "2026-11-16");
+  const tx = (k) => L.find((l) => l.key === k)?.text;
+  ok(tx("late15|NOP|lost") === "NOP has lost a game it led by 15+ in the 4th quarter (19 up on DEN 10/24); teams with such a lead are 14-1 this season"
+    && tx("late15|DEN|won") === "DEN has won a game it trailed by 15+ in the 4th quarter (19 down to NOP 10/24); teams that far behind in a 4th quarter are 1-14 this season" && !L.some((l) => /^late15\|BOS/.test(l.key)),
+    "fourth-quarter leads (0.81): any team that lost a game it led by 15+ in the 4th, or won one it trailed by that much, with the league's record in those games", JSON.stringify(L.map((l) => l.text)));
+  const br = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");
+  ok(/var VERSION = 17;/.test(br) && /var LATE_LEAD = 15;/.test(br) && /M\[side\] >= LEAD \|\| late >= LATE_LEAD/.test(br) && /"📉 4TH-QUARTER LEAD LOST"/.test(br) && /function arenaChecks/.test(br) && /find: "🔎 FOUND IN THE NUMBERS"/.test(br),
+    "bridge v17: a lead lost is a card from 20 at any time or from 15 held in the 4th quarter; the arena-record card; the finder's label");
+
+  // Arena records: the list as sent, with what we could check, and this season's box scores on top.
+  const { arenaRecords, arenasTonight } = await import("../src/records/arena.js");
+  const AR = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "arena-records.json"), "utf8"));
+  const tris = AR.arenas.map((a) => a.team);
+  ok(AR.arenas.length === 30 && new Set(tris).size === 30 && AR.arenas.every((a) => a.arena && a.pts >= 50 && a.holders.length && a.holders.every((h) => h.player && /^\d{4}-\d\d-\d\d$/.test(h.date)) && ["confirmed", "quiz", "corrected", "unconfirmed"].includes(a.check) && (a.check === "confirmed" || a.check === "quiz" || a.note))
+    && AR.arenas.find((a) => a.team === "HOU").holders.length === 1 && AR.arenas.find((a) => a.team === "DET").pts === 53 && AR.arenas.find((a) => a.team === "OKC").check === "unconfirmed" && AR.former.length === 16,
+    "arena records (0.81): all 30 buildings, each row marked confirmed / as the quiz has it / corrected / unconfirmed, and every row that isn't as sent says why");
+  const line = (side, pts) => [side, 1, 36, pts, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  const g = (d, h, a, pl, n) => ({ id: d + h, d, h, a, hs: 110, as: 100, n, pl });
+  const rowsA = [g("2026-05-01", "DET", "CHI", { 1: line(1, 70) }),                               // before the list's date: already in it
+    g("2026-11-01", "DET", "CHI", { 1: line(1, 53), 2: line(0, 30) }), g("2026-11-03", "BKN", "NYK", { 3: line(0, 58) }),
+    g("2026-12-12", "OKC", "HOU", { 4: line(0, 80) }, 1), g("2026-11-05", "MIA", "ATL", { 5: line(1, 82) })];
+  const rec = arenaRecords(AR, rowsA, { 1: "Visiting Scorer", 3: "Home Scorer", 4: "Cup Scorer" });
+  const at = arenasTonight(rec, ["DET", "BKN"]);
+  ok(rec.DET.pts === 53 && rec.DET.holders.length === 2 && rec.DET.holders[1].player === "Visiting Scorer" && rec.DET.holders[1].opp === "DET" && rec.DET.check === "confirmed"
+    && rec.BKN.pts === 58 && rec.BKN.holders.length === 1 && rec.BKN.holders[0].player === "Home Scorer" && rec.BKN.season === true && rec.OKC.pts === 54 && rec.MIA.pts === 83
+    && at.BKN.who === "Home Scorer 11/3/26" && /Little Caesars Arena/.test(at.DET.arena) && /^Anthony Edwards 1\/4\/25 and Visiting Scorer 11\/1\/26$/.test(at.DET.who) && !at.OKC,
+    "arena records (0.81): this season's box scores set or tie a building's record (either team's player), games before the list's date and neutral-site games don't", JSON.stringify([rec.DET, rec.BKN, at]));
+
+  // The finder: pieces of a scorer against the league's whole, one player against whole teams, a leader far ahead.
+  const { findings, finderLines, PART, TEAMS: FT } = await import("../src/anticipate/finder.js");
+  const pgF = {}, namesF = {}, qsumF = {}, teamGpF = {};
+  const TRIS = ["ATL", "BOS", "BKN", "CHA", "CHI", "CLE", "DAL", "DEN", "DET", "GSW", "HOU", "IND", "LAC", "LAL", "MEM", "MIA", "MIL", "MIN", "NOP", "NYK", "OKC", "ORL", "PHI", "PHX", "POR", "SAC", "SAS", "TOR", "UTA", "WAS"];
+  let pid = 0;
+  const add = (name, team, ppg, { ftm = 4, fg3m = 2, ast = 4, q = null } = {}) => {
+    const id = String(++pid); namesF[id] = name;
+    pgF[id] = Array.from({ length: 10 }, (_, i) => ({ d: `2026-11-${String(i + 1).padStart(2, "0")}`, team, opp: "XXX", min: 34, pts: ppg, fgm: Math.round((ppg - ftm - fg3m) / 2), fg3m, ftm, reb: 5, ast, stl: 1, blk: 0 }));
+    const qq = q || [ppg / 4, ppg / 4, ppg / 4, ppg / 4];
+    qsumF[id] = { name, team, gp: 10, q: qq.map((v) => v * 10), pts: ppg * 10 };
+  };
+  TRIS.forEach((t, i) => { teamGpF[t] = 10; add(`Scorer ${t}`, t, 28 - i * 0.5); add(`Second ${t}`, t, 14 - i * 0.2); });
+  add("Absurd Scorer", "LAL", 40, { ftm: 9, fg3m: 5, q: [12, 11, 10, 7] });            // 33 through three quarters; 31 without free throws
+  add("Lone Passer", "UTA", 12, { ast: 11 });                                           // ten 10-assist games; nobody else has one
+  const FD = findings({ pg: pgF, names: namesF, qsum: qsumF, teamGp: teamGpF });
+  const fd = (re) => FD.find((f) => re.test(f.key));
+  const part = fd(/^find\|part\|\d+\|q3\+noft$/), teamsF = fd(/^find\|teams\|\d+\|a10$/), gapF = FD.filter((f) => f.test === "gap" && f.player === "Absurd Scorer");
+  ok(part && part.player === "Absurd Scorer" && part.text === "Absurd Scorer is the NBA's leading scorer at 40.0 a game. His scoring through three quarters alone (33.0) would still lead everyone else (next: Scorer ATL, 28.0); his scoring without his free throws alone (31.0) would still lead everyone else (next: Scorer ATL, 28.0)"
+    && teamsF && teamsF.text === "Lone Passer has 10 games with 10+ assists this season: more than any other team has in total (29 teams have none)" && teamsF.rare
+    && gapF.length === 1 && /^Absurd Scorer leads the NBA in scoring/.test(gapF[0].text) && /a bigger gap than the one between 2nd and 10th/.test(gapF[0].text)
+    && !FD.some((f) => f.test === "part" && /^Second /.test(f.player)) && FD.every((f) => f.kind === "find" && f.score >= 2.9 && f.score <= 4 && f.key.startsWith("find|")) && PART.top === 10 && FT.min === 24,
+    "finder (0.81): a piece of a scorer's game that would still rank among the league's full averages, one player's count against whole teams, and a leader further ahead than 2nd is of 10th; ordinary players produce nothing",
+    JSON.stringify(FD.slice(0, 6).map((f) => [f.test, f.surprise, f.text])));
+  const FL = finderLines({ pg: pgF, names: namesF, qsum: qsumF, teamGp: teamGpF }, new Set(["UTA"]), { top: 3 });
+  ok(FL.lines.every((l) => l.team === "UTA") && FL.lines.some((l) => l.player === "Lone Passer") && FL.league.length <= 3 && new Set(FL.league.map((l) => l.player)).size === FL.league.length && FL.league[0].surprise >= FL.league[FL.league.length - 1].surprise
+    && findings({ pg: Object.fromEntries(Object.entries(pgF).slice(0, 20)), names: namesF, qsum: qsumF, teamGp: teamGpF }).length === 0,
+    "finder (0.81): tonight's teams get their findings as candidates, the league list has one line a player, most out-of-line first; too few qualified players and it says nothing");
+  // All-Star selections (the NBA Guide's counts): the highest-ranked player on a list who has never been one.
+  {
+    const { plainName } = await import("../src/anticipate/finder.js");
+    const AS = new Set(Object.values(namesF).filter((n) => n !== "Scorer BKN" && n !== "Lone Passer").map(plainName));
+    const NA = findings({ pg: pgF, names: namesF, qsum: qsumF, teamGp: teamGpF, allStars: AS }).filter((f) => f.test === "noas").map((f) => f.text);
+    const real = new Set(JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-postseason-careers-2026-27.json"), "utf8")).allStarSelections.map((x) => plainName(x.name)));
+    ok(NA.includes("Scorer BKN is 4th in the NBA in scoring (27.0 points a game) and has never been an All-Star: the 3 players ahead of him have all been one") && NA.includes("Lone Passer leads the NBA in assists (11.0 assists a game) and has never been an All-Star")
+      && plainName("Luka Dončić") === "luka doncic" && plainName("Jaren Jackson Jr.") === "jaren jackson" && real.has("lebron james") && real.has("luka doncic") && real.size >= 400
+      && findings({ pg: pgF, names: namesF, qsum: qsumF, teamGp: teamGpF }).every((f) => f.test !== "noas"),
+      "finder (0.81): the highest-ranked scorer, rebounder or passer who has never been an All-Star, from the NBA Guide's selection counts; names match without accents or Jr.", JSON.stringify(NA));
+  }
+  // Votes on finder lines teach it by test and by cut.
+  const { features } = await import("../src/anticipate/learn.js");
+  ok(["kind:find", "find:part", "find:part:q3", "find:part:noft"].every((f) => features(part, {}).includes(f)) && features({ kind: "season", key: "x|y", text: "" }, {}).every((f) => !f.startsWith("find:")),
+    "finder (0.81): a vote on a finder line counts for its kind, its test and each cut it used", JSON.stringify(features(part, {})));
+
+  // New Orleans' coach table: three teams' numbers print a line above their names, with another table's row after them.
+  const { readCoachRecord, coachLine } = await import("../src/notes/formats/coach-record.js");
+  const nick = ["Hawks", "Celtics", "Nets", "Hornets", "Bulls", "Cavaliers", "Mavericks", "Nuggets", "Pistons", "Warriors", "Rockets", "Pacers", "Lakers", "Heat", "Bucks", "Timberwolves", "Pelicans", "Knicks", "Thunder", "Magic", "76ers", "Suns", "Trail Blazers", "Kings", "Spurs", "Raptors", "Wizards"];
+  const linesC = [{ text: "JAMAHL MOSLEY'S ALL-TIME RECORD VS. THE NBA (ENTERING 11/16/2026)  JAMAHL MOSLEY'S OVERALL RECORD" }, { text: "CAREER REGULAR SEASON RECORD: 67-76" },
+    { text: "6  6  4  7  3  9  2022-23  Magic  34-47  .420" }, { text: "Jazz  Clippers  Grizzlies" }];
+  for (let i = 0; i < nick.length; i += 3) linesC.push({ text: nick.slice(i, i + 3).map((n) => `${n}  2  2`).join("  ") });
+  const recC = readCoachRecord({ pages: [{ page: 30, lines: linesC }] });
+  ok(recC?.ok && Object.keys(recC.teams).length === 30 && recC.teams.UTA.w === 6 && recC.teams.LAC.l === 7 && recC.teams.MEM.l === 9 && recC.sum.w === 67
+    && coachLine(recC, "UTA") === "Jamahl Mosley is 6-6 all-time against the Jazz as a head coach (67-76 overall, entering 11/16)."
+    && /against the Heat as/.test(coachLine({ ...recC, teams: { ...recC.teams, MIA: { w: 10, l: 11 } } }, "MIA")),
+    "coach record (0.81): New Orleans' table, where three teams' numbers sit on the line above their names; every nickname takes 'the'", JSON.stringify([recC?.ok, recC?.sum, recC && Object.keys(recC.teams).length]));
 }
 
 // ---------- snapshot ----------

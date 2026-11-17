@@ -17,6 +17,9 @@ export function features(l, stars = {}) {
   const prom = l.player ? stars[l.player] ?? 0.3 : null;
   f.push(l.player ? (prom >= 0.6 ? "who:star" : prom >= 0.35 ? "who:regular" : "who:lesser") : "who:team");
   for (const [w, re] of WORDS) if (re.test(l.text || "")) f.push(`says:${w}`, `${l.kind}+${w}`);
+  // 0.81: a finder line also counts for its test (part / teams / gap) and for the cut it used, so votes can tell
+  // "more pieces-of-his-scoring, fewer player-against-whole-teams" apart.
+  if (l.kind === "find" && l.key) { const [, test, , cut] = String(l.key).split("|"); if (test) f.push(`find:${test}`); for (const c of String(cut || "").split("+")) if (c) f.push(`find:${test}:${c}`); }
   return f;
 }
 

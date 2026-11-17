@@ -84,6 +84,11 @@ export function gameFacts(row, c, lite) {
   // Biggest lead each side held, from the score flow (home minus away), and who won.
   let maxHome = 0, maxAway = 0;
   for (const f of G.flow) { if (f.d > maxHome) maxHome = f.d; if (-f.d > maxAway) maxAway = -f.d; }
+  // 0.81: the biggest lead each side held in the 4th quarter or overtime, the margin entering the 4th included
+  // (the user, 11/16: "losing a 15-point lead in the 4th quarter is noteworthy, just not one that was created in the 1st quarter").
+  let enter4 = 0, lateHome = 0, lateAway = 0;
+  for (const f of G.flow) { if (f.t <= 3 * REG_LEN) enter4 = f.d; else { if (f.d > lateHome) lateHome = f.d; if (-f.d > lateAway) lateAway = -f.d; } }
+  lateHome = Math.max(lateHome, enter4); lateAway = Math.max(lateAway, -enter4);
   const hs = box.game.homeTeam.score, as = box.game.awayTeam.score;
   // Close late: within CLOSE_PTS at some moment of the last five minutes of regulation (the margin entering them counts).
   let entering = 0, closeLate = false;
@@ -96,7 +101,7 @@ export function gameFacts(row, c, lite) {
   const teams = [0, 1].map((side) => ({ team: tri[side], opp: tri[1 - side], won: side ? hs > as : as > hs, home: side === 1, after3: after3[side] - after3[1 - side],
     neverLed: !!(G.everLed && !G.everLed[side]), neverTrailed: !!(G.everLed && !G.everLed[1 - side]),
     held: !!(G.leadState && G.leadState[side] && G.leadState[side].held), heldStrict: !!(G.leadState && G.leadState[side] && G.leadState[side].heldStrict),
-    maxLead: side ? maxHome : maxAway, maxDown: side ? maxAway : maxHome,
+    maxLead: side ? maxHome : maxAway, maxDown: side ? maxAway : maxHome, lead4: side ? lateHome : lateAway, down4: side ? lateAway : lateHome,
     q: G.per[side].filter((x) => x.p <= 4).map((x) => x.pts), score: side ? hs : as, oppScore: side ? as : hs }));
   return { ...base, players, teams, closeLate, periods: G.maxP, l2m: lastTwo(pbp, G, tri), shots: shotLog(pbp, G, tri), swing: swingShots(pbp, G) };
 }
@@ -179,6 +184,7 @@ export function seededCounts(lists, bigQuarters, teamOf = {}) {
   });
 }
 
+export const LATE_LEAD = 15; // a lead this big in the 4th quarter or overtime (0.81)
 export const SHOT_KEEP = { fg: 8, fg3: 5, ft: 20, fgMiss: 8, fg3Miss: 9, dryFg: 20 * 60, dryFt: 45 * 60 };
 export function shotStreaks(games) {
   const P = {}, best = { fg: [], fg3: [], ft: [], dryFg: [], dryFt: [] };
@@ -199,7 +205,7 @@ export function shotStreaks(games) {
         S.dryFt.fga++;
         if (made) { if (!S.fg) S.fgFrom = g.date; S.fg++; S.fgMiss = 0; endDry("dryFg", cs, markFg); markFg = cs; }
         else { endMake("fg"); if (!S.fgMiss) S.fgMissFrom = g.date; S.fgMiss++; S.dryFg.fga++; }
-        if (k === "3") { if (made) { if (!S.fg3) S.fg3From = g.date; S.fg3++; S.fg3Miss = 0; } else { endMake("fg3"); if (!S.fg3Miss) S.fg3MissFrom = g.date; S.fg3Miss++; } }
+        if (k === "3") { if (made) { if (!S.fg3) S.fg3From = g.date; S.fg3++; S.fg3Miss = 0; } else { endMake("fg3"); if (!S.fg3Miss) { S.fg3MissFrom = g.date; S.fg3MissGp = S.gp; } S.fg3Miss++; } }
       }
       S.dryFg.sec += x.total - markFg; S.dryFg.games++;
       S.dryFt.sec += x.total - markFt; S.dryFt.games++;
@@ -207,6 +213,8 @@ export function shotStreaks(games) {
   }
   const players = {};
   for (const [id, S] of Object.entries(P)) {
+    // 0.81: how many of his own games the run of missed threes covers (games he played: time missed with an injury doesn't count against it).
+    if (S.fg3Miss) S.fg3MissGames = S.gp - (S.fg3MissGp || S.gp) + 1;
     for (const k of ["fg", "fg3", "ft"]) if (S[k] >= SHOT_KEEP[k]) best[k].push({ n: S[k], name: S.name, team: S.team, from: S[`${k}From`], end: S.last, active: true });
     for (const k of ["dryFg", "dryFt"]) if (S[k].sec >= SHOT_KEEP[k]) best[k].push({ ...S[k], name: S.name, team: S.team, end: S.last, active: true });
     if (S.fg >= SHOT_KEEP.fg || S.fg3 >= SHOT_KEEP.fg3 || S.ft >= SHOT_KEEP.ft || S.fgMiss >= SHOT_KEEP.fgMiss || S.fg3Miss >= SHOT_KEEP.fg3Miss || S.dryFg.sec >= SHOT_KEEP.dryFg || S.dryFt.sec >= SHOT_KEEP.dryFt) players[id] = S;
@@ -277,6 +285,7 @@ function lastTwo(pbp, G, tri) {
 
 export function flowStats(entries, lite = null) {
   const quarters = [], halves = [], teamQuarters = [], rot = {}, fouls = {}, leads = {}, table = {}, early = [], fourth = {};
+  const qsum = {};
   const full = { halves: [], games: [], fives: [] }, swing = {}, led = {};
   const shotGames = [];
   const l2m = { games: 0, players: {}, teams: {} };
@@ -295,6 +304,12 @@ export function flowStats(entries, lite = null) {
     for (const t of F.teams) for (const h of [1, 2]) {
       const five = F.players.filter((p) => p.team === t.team && p[h === 1 ? "fullH1" : "fullH2"]);
       if (five.length >= 5) full.fives.push({ team: t.team, opp: t.opp, h, names: five.map((p) => p.name), ...at });
+    }
+    // 0.81: every player's points by quarter over the season, for the finder (a scorer's three quarters against the league's full games).
+    for (const p of F.players) {
+      if (!(p.mins > 0)) continue;
+      const Q = qsum[p.id] || (qsum[p.id] = { name: p.name, team: p.team, gp: 0, q: [0, 0, 0, 0], pts: 0 });
+      Q.team = p.team; Q.gp++; Q.pts += p.pts; p.q.forEach((v, k) => { Q.q[k] += v; });
     }
     for (const [id, x] of Object.entries(F.swing || {})) {
       const who = F.players.find((p) => p.id === id); if (!who) continue;
@@ -358,9 +373,9 @@ export function flowStats(entries, lite = null) {
       L.gp++;
       // 0.79 (posts the user sent, 11/16: "4-5 when leading by 10+ points this season", "blown a double-digit lead in 3
       // straight games"): each game's biggest lead and deficit with its result, oldest first after the sort below.
-      (led[t.team] ??= []).push({ d: F.date, opp: t.opp, won: t.won, lead: t.maxLead, down: t.maxDown, gameId: F.gameId });
-      if (!t.won && t.maxLead >= LEAD_MIN) L.blown.push({ lead: t.maxLead, opp: t.opp, score: t.score + "-" + t.oppScore, ...at });
-      if (t.won && t.maxDown >= LEAD_MIN) L.comebacks.push({ down: t.maxDown, opp: t.opp, score: t.score + "-" + t.oppScore, ...at });
+      (led[t.team] ??= []).push({ d: F.date, opp: t.opp, won: t.won, lead: t.maxLead, down: t.maxDown, lead4: t.lead4 || 0, down4: t.down4 || 0, gameId: F.gameId });
+      if (!t.won && t.maxLead >= LEAD_MIN) L.blown.push({ lead: t.maxLead, lead4: t.lead4 || 0, opp: t.opp, score: t.score + "-" + t.oppScore, ...at });
+      if (t.won && t.maxDown >= LEAD_MIN) L.comebacks.push({ down: t.maxDown, down4: t.down4 || 0, opp: t.opp, score: t.score + "-" + t.oppScore, ...at });
       // Game Flow's "Leads & comebacks" table for the full season, the same counts the page makes (renderStreaks).
       const T = table[t.team] || (table[t.team] = { tri: t.team, gp: 0, pf: 0, pa: 0, neverLed: 0, neverTrailed: 0, held: 0, heldStrict: 0, blown10: 0, comeback10: 0, bigBlown: null, bigComeback: null });
       T.gp++; T.pf += t.score; T.pa += t.oppScore;
@@ -405,12 +420,15 @@ export function flowStats(entries, lite = null) {
     for (let i = gs.length - 1; i >= 0 && !gs[i].won && gs[i].lead >= 10; i--) run.unshift({ lead: gs[i].lead, opp: gs[i].opp, d: gs[i].d });
     let longest = 0, cur = 0;
     for (const g of gs) { cur = !g.won && g.lead >= 10 ? cur + 1 : 0; if (cur > longest) longest = cur; }
-    by10[tri] = { gp: gs.length, upW: up.filter((g) => g.won).length, upL: up.filter((g) => !g.won).length, downW: dn.filter((g) => g.won).length, downL: dn.filter((g) => !g.won).length, run, longest, last: gs.length ? gs[gs.length - 1].d : null };
+    // 0.81: the same for a lead of LATE_LEAD+ held in the 4th quarter or overtime (the margin entering the 4th counts).
+    const late = gs.filter((g) => g.lead4 >= LATE_LEAD), lateDn = gs.filter((g) => g.down4 >= LATE_LEAD);
+    by10[tri] = { gp: gs.length, upW: up.filter((g) => g.won).length, upL: up.filter((g) => !g.won).length, downW: dn.filter((g) => g.won).length, downL: dn.filter((g) => !g.won).length, run, longest, last: gs.length ? gs[gs.length - 1].d : null,
+      lateW: late.filter((g) => g.won).length, lateLost: late.filter((g) => !g.won).map((g) => ({ lead: g.lead4, opp: g.opp, d: g.d })), lateWon: lateDn.filter((g) => g.won).map((g) => ({ down: g.down4, opp: g.opp, d: g.d })) };
   }
   const byDate = (a, b) => String(b.date).localeCompare(String(a.date));
   full.halves.sort(byDate); full.games.sort(byDate); full.fives.sort(byDate);
   const swingTop = Object.values(swing).filter((x) => x.a >= 2).sort((a, b) => b.m - a.m || a.a - b.a).slice(0, 40);
-  return { games, leadMin: LEAD_MIN, by10, full, swing: swingTop, leadTable: Object.values(table), leftEarly, bigQuarters, quarters: top(quarters), halves: top(halves), teamQuarters: top(teamQuarters), rotation, fouls, leads, fourth, shots: shotStreaks(shotGames),
+  return { games, leadMin: LEAD_MIN, by10, qsum, full, swing: swingTop, leadTable: Object.values(table), leftEarly, bigQuarters, quarters: top(quarters), halves: top(halves), teamQuarters: top(teamQuarters), rotation, fouls, leads, fourth, shots: shotStreaks(shotGames),
     l2m: { games: l2m.games, teams: l2m.teams, players: Object.values(l2m.players).map((p) => ({ ...p, sec: Math.round(p.sec), min: Math.round(p.sec / 6) / 10, ast: null, stl: null, blk: null })).sort((a, b) => b.pts - a.pts) } };
 }
 

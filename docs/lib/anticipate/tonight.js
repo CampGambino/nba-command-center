@@ -342,6 +342,15 @@ export function flowTeamLines(flow, teams, today = null) {
       out.push({ team: t, kind: "team", key: `blown10|${t}`, rare: next > seasonLongest, score: 3.2 + 0.4 * (n - 2) + (next > seasonLongest ? 0.3 : 0),
         text: `${t} has lost its last ${n} games after leading by 10+ (${x.run.map((g) => `${g.lead} vs ${g.opp} ${md(g.d)}`).join(", ")}); a ${ordinalWord(next)} straight tonight would ${next > seasonLongest ? "be the longest such run in the NBA this season" : next === seasonLongest ? `tie the season's longest (${seasonLongest})` : `leave it short of the season's longest (${seasonLongest})`}` });
     }
+    // 0.81: a lead of 15+ held in the 4th quarter and lost (or won back), with the league's record in such games.
+    if ((x.lateLost || []).length || (x.lateWon || []).length) {
+      const W = tris.reduce((a, o) => a + (B[o].lateW || 0), 0), L = tris.reduce((a, o) => a + (B[o].lateLost || []).length, 0);
+      const fmt = (g, k) => `${g[k]} ${k === "lead" ? "up on" : "down to"} ${g.opp} ${md(g.d)}`;
+      if (x.lateLost.length) out.push({ team: t, kind: "team", key: `late15|${t}|lost`, rare: true, score: 3.3 + 0.3 * (x.lateLost.length - 1),
+        text: `${t} has lost ${x.lateLost.length === 1 ? "a game" : `${x.lateLost.length} games`} it led by 15+ in the 4th quarter (${x.lateLost.map((g) => fmt(g, "lead")).join(", ")}); teams with such a lead are ${W}-${L} this season` });
+      if (x.lateWon.length) out.push({ team: t, kind: "team", key: `late15|${t}|won`, rare: true, score: 3.3 + 0.3 * (x.lateWon.length - 1),
+        text: `${t} has won ${x.lateWon.length === 1 ? "a game" : `${x.lateWon.length} games`} it trailed by 15+ in the 4th quarter (${x.lateWon.map((g) => fmt(g, "down")).join(", ")}); teams that far behind in a 4th quarter are ${L}-${W} this season` });
+    }
     if (x.upL >= BY10.losses && (x.upL > x.upW || lossRank(x.upL) <= 3)) {
       const others = losing.filter((o) => o !== t);
       const more = tris.filter((o) => B[o].upL > x.upL), same = tris.filter((o) => o !== t && B[o].upL === x.upL);
@@ -382,7 +391,7 @@ const ordinalWord = (n) => ["", "first", "second", "third", "fourth", "fifth", "
  * marks once they are a third of the way there. Thresholds come from this season's scale (11/15, 188 games: the longest
  * runs were 13 field goals, 7 threes and 51 free throws; 75 minutes without a field goal; 252 without a free throw).
  */
-export const SHOTS = { fg: 10, fg3: 6, ft: 30, fgMiss: 10, fg3Miss: 12, dryFgMin: 25, dryFgFga: 8, dryFtMin: 50, dryFtFtaPg: 4, dryFtLongMin: 100, dryFtLongFga: 40, dryFtLongPg: 1.5, days: 6, fg3Days: 16, minorProm: 0.25, minor: { fgMiss: 4, fg3Miss: 4, dryFgFga: 4 } };
+export const SHOTS = { fg: 10, fg3: 6, ft: 30, fgMiss: 10, fg3Miss: 12, dryFgMin: 25, dryFgFga: 8, dryFtMin: 50, dryFtFtaPg: 4, dryFtLongMin: 100, dryFtLongFga: 40, dryFtLongPg: 1.5, days: 6, fg3Games: 10, minorProm: 0.25, minor: { fgMiss: 4, fg3Miss: 4, dryFgFga: 4 } };
 export const SHOT_RECORDS = { fg: [35, "Wilt Chamberlain, 1967"], fg3: [13, "Brent Price, Terry Mills and Shake Milton"], ft: [97, "Micheal Williams, 1993"] };
 function shotLines(flow, teams, today, stars = null) {
   const S = flow?.shots;
@@ -404,10 +413,11 @@ function shotLines(flow, teams, today, stars = null) {
     const prom = stars ? stars[p.name] ?? 0 : null, minor = prom != null && prom < SHOTS.minorProm;
     const line = (score, text, key) => out.push({ team: p.team, player: p.name, kind: "pstreak", score: Math.round((score + (prom == null ? 0 : /Miss|dry/.test(key) ? 0.8 * prom - (minor ? 0.4 : 0) : 0.3 * prom)) * 100) / 100, text, key: `shots|${p.name}|${key}` });
     for (const k of ["fg", "fg3", "ft"]) if (p[k] >= SHOTS[k]) line(3.2 + Math.min(1, p[k] / SHOT_RECORDS[k][0]) * 1.5, `${p.name} has made ${p[k]} ${WORD[k]} in a row (since ${md(p[`${k}From`])}): ${scale(k, p[k])}`, k);
-    // 0.80 (the user, 11/16: "that could get a bit hairy on three-pointers for players who normally don't attempt
-    // them"): the run counts attempts, not time, so a non-shooter can only pile one up slowly. It is a line only when
-    // the misses came within SHOTS.fg3Days days (a shooter's pace), never for a run stretched over a month.
-    if (p.fg3Miss >= SHOTS.fg3Miss + (minor ? SHOTS.minor.fg3Miss : 0) && p.fg3MissFrom && today && (Date.parse(today) - Date.parse(p.fg3MissFrom)) / 864e5 <= SHOTS.fg3Days) line(3.0 + Math.min(0.6, (p.fg3Miss - SHOTS.fg3Miss) / 10), `${p.name} has missed his last ${p.fg3Miss} 3-point attempts (since ${md(p.fg3MissFrom)})`, "fg3Miss");
+    // 0.81 (the user, 11/16: a time limit "disregards players who are injured for weeks at a time between games"):
+    // the run counts attempts, and it is a line when it fits in SHOTS.fg3Games of his own games or fewer, however
+    // far apart those games were. A player who takes a three every other game never gets there; a shooter back
+    // from three weeks out carries his run with him.
+    if (p.fg3Miss >= SHOTS.fg3Miss + (minor ? SHOTS.minor.fg3Miss : 0) && (p.fg3MissGames || 1) <= SHOTS.fg3Games) line(3.0 + Math.min(0.6, (p.fg3Miss - SHOTS.fg3Miss) / 10), `${p.name} has missed his last ${p.fg3Miss} 3-point attempts (${p.fg3MissGames > 1 ? `over his last ${p.fg3MissGames} games, ` : ""}since ${md(p.fg3MissFrom)})`, "fg3Miss");
     const d = p.dryFg, m = Math.round(d.sec / 60);
     if (m >= SHOTS.dryFgMin && d.fga >= SHOTS.dryFgFga + (minor ? SHOTS.minor.dryFgFga : 0)) {
       const top = (S.best?.dryFg || [])[0];
@@ -581,7 +591,7 @@ export function injuryStatus(injuries, today) {
  */
 // 0.70 (src/anticipate/seasonlong.js): trade and starter/bench splits, lineups, record turns and "since Christmas",
 // who has beaten the best teams, month ratings and totals, rookies.
-const PREP_KINDS = new Set(["season", "span", "pstreak", "vsopp", "pace", "trade", "role", "lineup", "turn", "beaten", "month", "monthp", "rookie", "defense", "cup", "era", "qtr", "clinch"]);
+const PREP_KINDS = new Set(["season", "span", "pstreak", "vsopp", "pace", "trade", "role", "lineup", "turn", "beaten", "month", "monthp", "rookie", "defense", "cup", "era", "qtr", "clinch", "find"]);
 function prepStoryLines(prep, teams, games, today) {
   if (!prep || !Array.isArray(prep.lines) || (prep.today && today && prep.today !== today)) return [];
   const opp = new Map();
@@ -645,7 +655,7 @@ export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries =
 }
 
 // At most this many of a kind in one game's card.
-const PER_GAME = { injury: 2, history: 2, context: 1, matchup: 2, tv: 2, rest: 2, form: 2, foul: 2, season: 2, span: 2, pstreak: 2, vsopp: 1, pace: 1, trade: 1, role: 1, lineup: 1, turn: 1, beaten: 1, month: 1, monthp: 1, rookie: 1, defense: 1, cup: 1, era: 1, fourth: 2, qtr: 1, clinch: 2 };
+const PER_GAME = { injury: 2, history: 2, context: 1, matchup: 2, tv: 2, rest: 2, form: 2, foul: 2, season: 2, span: 2, pstreak: 2, vsopp: 1, pace: 1, trade: 1, role: 1, lineup: 1, turn: 1, beaten: 1, month: 1, monthp: 1, rookie: 1, defense: 1, cup: 1, era: 1, fourth: 2, qtr: 1, clinch: 2, find: 1 };
 export function tonightStorylines(args) {
   const maxLines = args.maxLines ?? MAX_LINES;
   const { games, all } = tonightCandidates(args);
