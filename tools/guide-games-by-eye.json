@@ -1273,6 +1273,84 @@
     "pa": 90,
     "seen": "see 2/8: the Cavaliers' guide has Atlanta 99, Cleveland 90"
    }
+  ],
+  "SAC": [
+   {
+    "season": "1955-56",
+    "date": "1956-03-03",
+    "won": true,
+    "pf": 94,
+    "pa": 90,
+    "seen": "the guide's running record makes this a loss; Basketball Reference's box score (195603030ROC) has Rochester 94, Minneapolis 90 at Edgerton Park Arena, as do the Lakers' guide (a 90-94 loss at Rochester) and Land of Basketball. Checked 11/17/26"
+   },
+   {
+    "season": "1955-56",
+    "date": "1956-03-04",
+    "won": false,
+    "pf": 88,
+    "pa": 103,
+    "seen": "the guide's running record makes this a win; Land of Basketball has Fort Wayne 103, Rochester 88. With 3/3 the two results sit on each other's rows and cancel in the season's record (31-41). Checked 11/17/26"
+   },
+   {
+    "season": "1958-59",
+    "date": "1959-03-04",
+    "won": true,
+    "pf": 128,
+    "pa": 122,
+    "seen": "the guide's running record makes this a loss; Land of Basketball has Cincinnati 128, Minneapolis 122, as does the Lakers' guide (a 122-128 loss at Cincinnati). Checked 11/17/26"
+   },
+   {
+    "season": "1958-59",
+    "date": "1959-03-07",
+    "won": false,
+    "pf": 86,
+    "pa": 93,
+    "seen": "the guide's running record makes this a win; Land of Basketball has Philadelphia Warriors 93, Cincinnati 86. With 3/4 the two results sit on each other's rows and cancel in the season's record (19-53). Checked 11/17/26"
+   }
+  ],
+  "DAL": [
+   {
+    "season": "1986-87",
+    "date": "1987-01-17",
+    "won": false,
+    "pf": 115,
+    "pa": 119,
+    "seen": "the guide has a 119-115 win at Indiana; Stats Crew's 1986-87 Mavericks results have Dallas 115 at Indiana 119 (2OT, a loss, 24-14 after it), as does the Pacers' guide. With it the season adds up to 55-27. Checked 11/17/26"
+   }
+  ],
+  "MIA": [
+   {
+    "season": "1999-00",
+    "date": "2000-02-21",
+    "won": false,
+    "pf": 95,
+    "pa": 87,
+    "seen": "score as printed (winner's first); the guide's record makes it a win. ESPN has Detroit 95, Miami 87 at Detroit, as does the Pistons' guide. With 2/23 the two results sit on each other's rows and cancel in the season (52-30); it matters because ESPN's 1999-00 is incomplete. Checked 11/17/26"
+   },
+   {
+    "season": "1999-00",
+    "date": "2000-02-23",
+    "won": true,
+    "pf": 99,
+    "pa": 85,
+    "seen": "see 2/21: ESPN has Miami 99, New Jersey 85 at Miami, as does the Nets' guide. Checked 11/17/26"
+   }
+  ],
+  "PHI": [
+   {
+    "season": "1959-60",
+    "date": "1959-12-09",
+    "to": "1959-12-08",
+    "site": "N",
+    "seen": "printed a day late and as a home game: Basketball Reference's December 1959 schedule has Syracuse 93, Minneapolis 89 on 12/8 at Hec Edmundson Pavilion, Seattle, as does the Lakers' guide (12/8, neutral). Result unchanged. Checked 11/17/26"
+   },
+   {
+    "season": "1959-60",
+    "date": "1959-12-10",
+    "to": "1959-12-09",
+    "site": "N",
+    "seen": "printed a day late and as a home game: Basketball Reference has Minneapolis 96, Syracuse 86 on 12/9 at the Cow Palace, San Francisco, as does the Lakers' guide. Result unchanged. Checked 11/17/26"
+   }
   ]
  }
 }

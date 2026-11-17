@@ -2,6 +2,41 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.96.0 (2026-11-17): every all-time series confirmed (435 of 435); the guides' winner disagreements looked up
+
+A new chat picked up "Next, in order" from the handoff. The PC folder could not be reached this session (the request to connect `Documents\nba-command-center` was blocked before it reached the user), so the guide text and `samples/` were not available: the team-records readers (ATL, DEN, MEM, SAC) and Cleveland's OCR wait for it.
+
+### All-time series: 435 confirmed (was 430), none differ, none on one guide
+- **Hawks v Lakers 145-199.** Land of Basketball's game list (344 games) and the Lakers' guide's own lists agree. Basketball Reference's page (read again today: 146-201 with the Lakers' 11/9/26 win) is 146-200 through 2025-26 because it counts **both Western Division tiebreakers as games**: 3/16/56, Lakers 103-97 (its box score is labeled "Second Place Tiebreaker"), and 3/16/57, Hawks 114-111 (OT). The guess in 0.95's note is now checked: one win each, exactly the difference.
+- **Hawks v Pistons 222-231.** Land of Basketball's game list: 453 games, the last on 3/25/26. Basketball Reference's 223-231 counts the 3/14/57 tiebreaker (Hawks 115, Fort Wayne 103). Both guides print a record from the Pistons' move to Detroit only (192-182 and 193-182).
+- **Pistons v Warriors 150-163.** Land of Basketball's all-time page now has 313 games (the 311 seen in a search snippet was an old copy), equal to Basketball Reference. Its splits match both guides: Detroit 111-139 from 1957-58 is the Pistons' guide's record, and 93-112 from 1962-63 is the Warriors' guide's list.
+- **Thunder v 76ers 76-73** (Seattle included): Basketball Reference, Land of Basketball (149 games) and Champs or Chumps. The Thunder's guide prints Oklahoma City only (23-10).
+- **Nuggets v Pacers 104-91**, ABA years included as the Nuggets' guide counts them: Basketball Reference's Nuggets page agrees. NBA games alone are 57-47 (Land of Basketball, Champs or Chumps), so the ABA years are 47-44.
+- All in `src/data/series-verified.json` with their sources; the notes beside Hawks v Lakers and Hawks v Pistons now say which tiebreakers make Basketball Reference's figure.
+- **Still open:** Hawks v Warriors, where Basketball Reference has one more Hawks win (152-153) than Land of Basketball and the Hawks' guide (151-153). The two teams were never in the same division, so it is not a tiebreaker; not located.
+
+### Games two guides disagree on (23 pairs, not 28)
+- Counting once more: 34,879 games are listed by both teams' guides; they disagree on the winner in 23. Every one since 1993-94 was also checked against ESPN, and every guide game since 1993-94 (57,734) was checked against ESPN, not only the paired ones.
+- **Only seven rows matter**, because the rest sit in seasons that do not add up to the franchise's record and are not used (ESPN covers those years). Each is looked up and recorded in `tools/guide-games-by-eye.json` `fixes`, with its source:
+  - **Royals 1955-56:** 3/3/56 was a 94-90 win over Minneapolis (Basketball Reference's box score, the Lakers' guide, Land of Basketball), and 3/4/56 an 88-103 loss at Fort Wayne (Land of Basketball). The two results sit on each other's rows, so the season still adds up (31-41).
+  - **Royals 1958-59:** 3/4/59 a 128-122 win over Minneapolis, 3/7/59 an 86-93 loss at Philadelphia (Land of Basketball, the Lakers' guide). The same swap.
+  - **Mavericks 1986-87:** 1/17/87 was a 115-119 double-overtime loss at Indiana (Stats Crew, the Pacers' guide). With it the season adds up to 55-27, so Dallas's 1986-87 can be used.
+  - **Heat 1999-00:** 2/21/00 a loss at Detroit, 2/23/00 a win over New Jersey (ESPN and both opponents' guides). It matters because ESPN's 1999-00 is incomplete, so this season comes from the guide.
+  - **Nationals (76ers) 1959-60:** two games printed a day late and as home games: the 12/8/59 win over Minneapolis in Seattle and the 12/9/59 loss in San Francisco (Basketball Reference's December 1959 schedule, the Lakers' guide). The results were right.
+- `tools/guide_games.py`: a fix may now move a game to its right date (`to`) or site (`site`), and leave the result alone; one row per fix. Checked on invented rows.
+- **Not applied yet:** `src/data/guide-games-2026-27.json.gz` is rebuilt from the guide text, which is on the PC. Run `python3 tools/parse-series-history.py …` (same command as 0.87) once the folder is connected; the fixes then go in.
+- **Left as printed (ESPN covers them):** Celtics 1994-95, 2022-23, 2023-24, 2025-26; Mavericks 2003-07; Pacers 2015-16, 2023-24; Lakers 2019-20; Grizzlies 2011-12, 2018-19; Timberwolves 2018-19; 76ers 1994-95, 2010-11; Blazers 2012-13. The Celtics' 2025-26 list reads two Lakers games from the Lakers' side; if those lists are ever used, their reader needs a look.
+
+### Horford's defensive rebounds
+- Already settled in 0.50 (Basketball Reference 6,982 = the guide's 6,949 + 33 this season, so the guide's 6,950 is the slip). 0.95's "not started" was wrong.
+
+### Tested
+- The series table recomputed with the real files: 435 confirmed, 53 by an outside check; the 0.95 test is updated to that.
+- **`node tests/run.js` was not run**: it needs `samples/`, which is on the PC. Run it first thing once the folder is connected.
+
+### Unproven
+- The guide-games fixes have not been through a real rebuild (see above). Dallas's 1986-87 becoming usable may change a few deep streak counts; that is expected.
+
 ## 0.95.0 (2026-11-17): lopsided matchups on the Watch List (scoring by type, outliers against a top-5 defense); two more series closed; six more guides' team records; the League column once; every value in the count dropdowns
 
 The user (11/17, 3:26 PM) sent seven images: the Jazz's "top individual performances" page, Stathead's head-to-head totals for Hawks v Warriors and Celtics v Pistons, tonight's matchup cards ("the far right column is the same column for every team"), a Top-N dropdown ("1-10 as an option ... across the command center for those drop down menus that skip"), and the league's team and player pages for points in the paint, fast break, second chance and off turnovers ("if there are teams on opposite ends facing each other, that'll be a matchup advantage"; "the watch list page should highlight lopsided matchups"; "the big outliers should be noted in the watch list if they are facing a team in the top 5 that night").

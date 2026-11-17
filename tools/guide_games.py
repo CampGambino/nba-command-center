@@ -413,8 +413,11 @@ def games(tri, text, official=None):
     # Rows the text lost but the page shows, and seasons the guide does not print (tools/guide-games-by-eye.json): added after
     # the doubled heading is dropped, so the Bucks' real 1969-70 does not sit on top of the 1970-71 list printed under its name.
     for fx in FIXES.get(tri, []):                          # a result the guide prints wrong, looked up outside it
-        for r in seasons.get(fx["season"], []):
-            if (r["m"], r["d"]) == (int(fx["date"][5:7]), int(fx["date"][8:10])): r.update(force=fx["won"], letter="W" if fx["won"] else "L", pf=fx["pf"], pa=fx["pa"])
+        hit = [r for r in seasons.get(fx["season"], []) if (r["m"], r["d"]) == (int(fx["date"][5:7]), int(fx["date"][8:10]))]
+        for r in hit[:1]:                                  # one row per fix: a fix that moves a game must not catch the row it moves onto
+            if "won" in fx: r.update(force=fx["won"], letter="W" if fx["won"] else "L", pf=fx["pf"], pa=fx["pa"])
+            if fx.get("to"): r.update(m=int(fx["to"][5:7]), d=int(fx["to"][8:10]))      # a game printed under the wrong date
+            if fx.get("site"): r.update(site=fx["site"])                                    # H, A or N (a neutral site printed as home)
     for r in BY_EYE.get(tri, []):
         seasons.setdefault(r["season"], []).append({"m": int(r["date"][5:7]), "d": int(r["date"][8:10]), "raw": r["name"], "letter": "W" if r["won"] else "L", "pf": r["pf"], "pa": r["pa"], "rec": tuple(r["rec"]) if r.get("rec") else None, "site": r["site"], "opp": None})
     for season, rows in sorted(seasons.items()):

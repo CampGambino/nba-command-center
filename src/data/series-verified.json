@@ -432,6 +432,51 @@
    "through": "2025-26",
    "by": "Land of Basketball",
    "source": "Land of Basketball's game-by-game list, read 11/17/26: 304 games, 151-153, the Hawks' guide's record; from 1962-63 it is the Warriors' own guide's list game for game (109-94), and before that 42-59"
+  },
+  {
+   "a": "ATL",
+   "b": "LAL",
+   "w": 145,
+   "l": 199,
+   "through": "2025-26",
+   "by": "Land of Basketball and Basketball Reference",
+   "source": "Land of Basketball's game-by-game list (344 games, 145-199) and the Lakers' guide's own game lists agree; Basketball Reference's head-to-head page (read again 11/17/26: 146-201 with the Lakers' win of 11/9/26) is 146-200 through 2025-26 because it counts the two Western Division tiebreakers as games: 3/16/56, Lakers 103, Hawks 97 (its box score is labeled 'Second Place Tiebreaker'), and 3/16/57, Hawks 114, Lakers 111 (OT). Without them it is 145-199. The Hawks' guide prints 145-198"
+  },
+  {
+   "a": "ATL",
+   "b": "DET",
+   "w": 222,
+   "l": 231,
+   "through": "2025-26",
+   "by": "Land of Basketball and Basketball Reference",
+   "source": "Land of Basketball's game-by-game list: 453 games, 222-231, the last on 3/25/26. Basketball Reference's head-to-head page has 223-231 because it counts the 3/14/57 Western Division tiebreaker (Hawks 115, Fort Wayne 103) as a game. Both guides print a record from the Pistons' move to Detroit (192-182 and 193-182), not the whole series"
+  },
+  {
+   "a": "DET",
+   "b": "GSW",
+   "w": 150,
+   "l": 163,
+   "through": "2025-26",
+   "by": "Land of Basketball and Basketball Reference",
+   "source": "Land of Basketball's all-time page (read 11/17/26, no meeting yet in 2026-27): 313 games, Pistons 150, Warriors 163, the same as Basketball Reference's head-to-head page. Its splits match both guides: Detroit 111-139 from 1957-58 (the Pistons' guide's record), the San Francisco and Golden State Warriors 112-93 from 1962-63 (the Warriors' guide's list, 93-112 seen from Detroit), and Fort Wayne 39-24 and Detroit 18-27 against the Philadelphia Warriors before that"
+  },
+  {
+   "a": "OKC",
+   "b": "PHI",
+   "w": 76,
+   "l": 73,
+   "through": "2025-26",
+   "by": "Basketball Reference and Land of Basketball",
+   "source": "the whole franchise, Seattle included: Basketball Reference's head-to-head page (read 11/17/26, no meeting yet in 2026-27) and Land of Basketball's all-time page (149 games, through 2025-26) both have 76-73, as does Champs or Chumps. The Thunder's guide prints 23-10, Oklahoma City only; the 76ers' guide prints no record"
+  },
+  {
+   "a": "DEN",
+   "b": "IND",
+   "w": 104,
+   "l": 91,
+   "through": "2025-26",
+   "by": "Basketball Reference",
+   "source": "ABA years included, as the Nuggets' guide counts them: Basketball Reference's Nuggets page (read 11/17/26, before the 11/7/26 game was on it) has 104-91, the Nuggets' guide's record with 2025-26 added from our results. NBA games alone are 57-47 (Land of Basketball's game list, 104 games through 2025-26, and Champs or Chumps), so the ABA years are 47-44. The Pacers' guide prints no record"
   }
  ],
  "notes": [
@@ -447,28 +492,14 @@
    "b": "LAL",
    "w": 146,
    "l": 200,
-   "note": "two more games than the Lakers' lists (145-199), one win each; probably the 1956 and 1957 division tiebreakers"
+   "note": "counts the 1956 and 1957 Western Division tiebreakers (3/16/56, a Lakers win; 3/16/57, a Hawks win) as games; without them it is the Lakers' lists' 145-199"
   },
   {
    "a": "ATL",
    "b": "DET",
    "w": 223,
    "l": 231,
-   "note": "the whole of both franchises' history; the two guides' records (192-182, 193-182) start with the Pistons' move to Detroit in 1957-58"
-  },
-  {
-   "a": "DET",
-   "b": "GSW",
-   "w": 150,
-   "l": 163,
-   "note": "the whole of both franchises' history; the Pistons' guide starts in 1957-58 and the Warriors' in 1962-63"
-  },
-  {
-   "a": "OKC",
-   "b": "PHI",
-   "w": 76,
-   "l": 73,
-   "note": "the whole franchise, Seattle included; the Thunder's guide (23-10) covers Oklahoma City only and the 76ers' guide prints no record"
+   "note": "counts the 3/14/57 Western Division tiebreaker (a Hawks win over Fort Wayne) as a game; without it it is Land of Basketball's 222-231"
   },
   {
    "a": "ATL",
