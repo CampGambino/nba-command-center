@@ -16,8 +16,9 @@
 import fs from "node:fs";
 import path from "node:path";
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i < 0 ? d : process.argv[i + 1]; };
+// NOH: the New Orleans Hornets of 2012-13, in case the list of games uses that code
 const SEASONS = arg("--seasons", "2016-17,2017-18,2015-16,2014-15,2013-14,2012-13").split(",");
-const TEAMS = new Set(arg("--teams", "CHI,NOP").split(",")), DIR = arg("--dir", "tools/outside/pbpstats");
+const TEAMS = new Set(arg("--teams", "CHI,NOP,NOH").split(",")), DIR = arg("--dir", "tools/outside/pbpstats");
 const STOP = Date.now() + Number(arg("--minutes", "50")) * 60000;
 const API = "https://api.pbpstats.com", H = { headers: { "user-agent": "nba-command-center (personal project; one request at a time)" } };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

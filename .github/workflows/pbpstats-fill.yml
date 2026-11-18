@@ -1,4 +1,5 @@
-# The user, 11/18 9:14 AM: "324 to get initial stats and see if it's worth it to do the rest": 2016-17 and 2017-18 only.
+# The user, 11/18 9:14 AM: "324 to get initial stats and see if it's worth it to do the rest": 2016-17 and 2017-18 first.
+# Those 324 were complete at 4:44 PM. The user, 5:35 PM: "Yes, run those seasons": 2012-13 to 2015-16 now (0.110).
 # Temporary (0.107): reads from pbpstats.com's public API the player lines ESPN does not have (every Bulls and Pelicans
 # game, 2012-13 to 2017-18; about 990 games, slowly, one request at a time). Resumable; remove once status.json says 0 left.
 name: pbpstats fill
@@ -34,7 +35,7 @@ jobs:
             # next round crashed on the conflict markers left in the files. Nothing was lost; the fill just stopped.
             git rebase --abort 2>/dev/null || true
             git fetch -q origin main && git reset -q --hard origin/main
-            node tools/fetch-pbpstats.mjs --minutes 38 --seasons 2016-17,2017-18
+            node tools/fetch-pbpstats.mjs --minutes 38 --seasons 2015-16,2014-15,2013-14,2012-13 --teams CHI,NOP,NOH
             git add tools/outside/pbpstats
             if ! git diff --cached --quiet; then
               git commit -q -m "pbpstats: $(TZ=America/New_York date '+%Y-%m-%d %H:%M') ET (automatic)"
