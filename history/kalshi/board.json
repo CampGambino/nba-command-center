@@ -57,8 +57,8 @@
   },
   "KXNBASTLPROT": {
    "title": "NBA Player Steals Protected",
-   "events": 9,
-   "markets": 179
+   "events": 10,
+   "markets": 197
   },
   "KXNBARACE": {
    "title": "NBA Race to Points",
@@ -68,7 +68,7 @@
   "KXNBAAST": {
    "title": "NBA Player Assists",
    "events": 11,
-   "markets": 410
+   "markets": 411
   },
   "KXNBA2HTOTAL": {
    "title": "NBA 2nd Half Total",
@@ -117,8 +117,8 @@
   },
   "KXNBASTOCK": {
    "title": "NBA Player Steals + Blocks",
-   "events": 8,
-   "markets": 42
+   "events": 9,
+   "markets": 48
   },
   "KXNBA1QTOTAL": {
    "title": "NBA 1st Quarter Total",
@@ -192,8 +192,8 @@
   },
   "KXNBASTOCKPROT": {
    "title": "NBA Player Steals + Blocks Protected",
-   "events": 8,
-   "markets": 42
+   "events": 9,
+   "markets": 48
   },
   "KXNBA3Q": {
    "title": "NBA 3rd Quarter Winner",
@@ -277,8 +277,8 @@
   },
   "KXNBABLK": {
    "title": "NBA Player Blocks",
-   "events": 8,
-   "markets": 65
+   "events": 9,
+   "markets": 73
   },
   "KXNBAESCALATOR3PT": {
    "title": "NBA Player Threes Escalator",
@@ -322,8 +322,8 @@
   },
   "KXNBASTL": {
    "title": "NBA Player Steals",
-   "events": 9,
-   "markets": 179
+   "events": 11,
+   "markets": 200
   },
   "KXNBAFINALSOUTCOME": {
    "title": "NBA Finals Outcome",
@@ -423,12 +423,12 @@
   "KXNBAPTSPROT": {
    "title": "NBA Player Points Protected",
    "events": 11,
-   "markets": 467
+   "markets": 468
   },
   "KXNBABLKPROT": {
    "title": "NBA Player Blocks Protected",
-   "events": 8,
-   "markets": 65
+   "events": 9,
+   "markets": 73
   },
   "KXNBAMIMP": {
    "title": "NBA Most Improved Player",
@@ -483,7 +483,7 @@
   "KXNBAASTPROT": {
    "title": "NBA Player Assists Protected",
    "events": 11,
-   "markets": 410
+   "markets": 411
   },
   "KXNBA3PTPROT": {
    "title": "NBA Player Threes Protected",
@@ -633,7 +633,7 @@
   "KXNBAPTS": {
    "title": "NBA Player Points",
    "events": 11,
-   "markets": 467
+   "markets": 468
   },
   "KXNBANORTHWEST": {
    "title": "Pro Basketball Northwest Division Winner",
@@ -743,24 +743,24 @@
   "KXNBADPOY-27": "Victor Wembanyama 80%",
   "KXNBASIXTH-27": "Payton Pritchard 29%",
   "KXNBAEXEC-27": "Sam Presti 13%",
-  "KXNBACUP-26": "San Antonio 23%",
   "KXNBAEFINMVP-27": "Jayson Tatum 13%",
+  "KXNBACUP-26": "San Antonio 23%",
   "KXNBAMVP-27": "Victor Wembanyama 44%",
-  "KXNBA-27": "San Antonio 22%",
   "KXNBAWEST1SEED-26": "San Antonio 51%",
+  "KXNBA-27": "San Antonio 22%",
   "KXNBAEAST-27": "Boston 22%",
   "KXNBACUPMVP-27": "Victor Wembanyama 28%",
   "KXNBASOUTHWEST-26": "San Antonio 75%",
   "KXNBAEAST1SEED-26": "Boston 42%",
+  "KXNBAMIMP-27": "Ty Jerome 37%",
   "KXNBAWEST-27": "San Antonio 35%",
   "KXNBARECORD-27BEST": "San Antonio 44%",
   "KXNBARECORD-27WORST": "Sacramento 43%",
   "KXNBAATLANTIC-26": "Boston 54%",
-  "KXNBAMIMP-27": "Ty Jerome 37%",
   "KXNBACOY-27": "JJ Redick 18%",
   "KXNBAPACIFIC-26": "Los Angeles L 82%",
-  "KXNBACONF-27": "Western Conference 61%",
   "KXNBACENTRAL-26": "Detroit 61%",
+  "KXNBACONF-27": "Western Conference 61%",
   "KXNBANORTHWEST-26": "Oklahoma City 45%",
   "KXNBAWFINMVP-27": "Shai Gilgeous-Alexander 20%",
   "KXNBAFINMVP-27": "Victor Wembanyama 20%"
