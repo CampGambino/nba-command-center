@@ -2,6 +2,16 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.107.8 (2026-11-18): pbpstats check at 3:08 PM: 217 of 324 games, all adding up; two names matched
+
+The scheduled check-in. Nothing published.
+
+- On main: 2016-17 complete (162), 2017-18 at 55 of 162; last save 2:56 PM (47 games in that round, none failed); the run restarted at 2:17 PM is still going. Not stalled.
+- `node tools/merge-pbpstats-logs.mjs` (report only): all 217 games add up to their scores and are found on ESPN's scoreboard. 4,534 of 4,542 player lines matched an ESPN id; the eight were two men under other names. `SAME` in the tool now knows them, each read from the one ESPN name left without a line that night: Marcelo Huertas is ESPN's "Marcelinho Huertas" (Lakers at New Orleans, 11/12/16) and Enes Kanter is ESPN's "Enes Freedom" (New Orleans at Oklahoma City, 12/4/16). Now 4,542 of 4,542.
+- The merge would add 823 rows for players already in the logs.
+
+**Self-audit:** the two names come from the data, not from memory: a script listed, for each night one of them played, the ESPN names with no pbpstats line; there was exactly one each time. Not checked: a second game for each (one game was enough to see the name; the rerun then matched all eight lines).
+
 ## 0.107.7 (2026-11-18): self-audits of 0.100, 0.101 and 0.102; a reader fault in the night-and-opponent check; three Lakers marks against a team that did not exist
 
 The user, 2:42 PM: "handle the self-audits already". These three entries (the team-records checks and the first Kalshi reader, all 11/17) were written before the self-audit rule and had been owed since this morning.
