@@ -178,6 +178,9 @@ for (d, opp), ts in was.items():
     add('WAS', d, txt, opp, READ1)
 
 n_script = len(rows)
+# read a second time on 11/18 with the card reader or the flat reader; every row agreed
+for r in rows:
+    if r[0] in ('IND', 'LAC', 'MIA', 'ORL'): r[4] = 'read twice (two readers agree)'
 
 # ---- typed files
 HOW = {'BOS': 'read twice (two readers agree)', 'CHI': 'read twice (two readers agree)', 'DEN': 'read twice (two readers agree)',
@@ -195,6 +198,10 @@ for f in TYPED:
         ln = ln.rstrip('\n')
         if not ln.strip() or ln.startswith('#'): continue
         ps = [p.strip() for p in ln.split(' | ')]
+        if ps[0].startswith('='):          # "=TEAM | Mon D | night": the second reading's wording replaces a script row's
+            hit = [r for r in rows if r[0] == ps[0][1:] and r[1] == d_of(ps[1])]
+            assert len(hit) == 1, ('no single script row to replace', ln)
+            hit[0][2] = ps[2]; continue
         if len(ps) == 4: team, md, opp, night = ps
         elif len(ps) == 3: (team, md, night), opp = ps, ''
         else: sys.exit('bad typed line: ' + ln)
