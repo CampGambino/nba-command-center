@@ -19,6 +19,8 @@ jobs:
     timeout-minutes: 345
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -27,11 +29,16 @@ jobs:
           git config user.name "ncc-bot"
           git config user.email "ncc-bot@users.noreply.github.com"
           for i in 1 2 3 4 5 6 7 8; do
+            # Every round starts from what is on main now. 11/18: a run queued at 9:15 AM behind the first one began at
+            # 1:34 PM on the 9:15 copy (17 games), read games main already had, could not rebase onto main, and the
+            # next round crashed on the conflict markers left in the files. Nothing was lost; the fill just stopped.
+            git rebase --abort 2>/dev/null || true
+            git fetch -q origin main && git reset -q --hard origin/main
             node tools/fetch-pbpstats.mjs --minutes 38 --seasons 2016-17,2017-18
             git add tools/outside/pbpstats
             if ! git diff --cached --quiet; then
               git commit -q -m "pbpstats: $(TZ=America/New_York date '+%Y-%m-%d %H:%M') ET (automatic)"
-              git pull -q --rebase origin main && git push -q origin HEAD:main || true
+              git pull -q --rebase origin main && git push -q origin HEAD:main || echo "::warning::this round could not be pushed; its games are read again next round"
             fi
             if grep -q '"left":0' tools/outside/pbpstats/status.json; then break; fi
           done

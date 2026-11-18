@@ -2,6 +2,20 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.107.4 (2026-11-18): the pbpstats fill stopped at 2:13 PM; restarted from main
+
+The user, 2:15 PM, with GitHub's email "pbpstats fill: All jobs have failed": "is this an issue?"
+
+- **What happened.** Two runs existed. The first (started 8:26 AM) ran its full five hours and succeeded: 2016-17 is complete, 162 of 162 Bulls and Pelicans games, every one adding up to its score. The second was started by my 9:15 AM push to the workflow file and waited in the queue behind the first. When it began at 1:34 PM it was checked out at the 9:15 commit, when the file held 17 games. It spent 38 minutes reading games main already had, could not rebase its commit onto main, and the next round crashed on the conflict markers left in the files (exit code 1, the failure in the email).
+- **Nothing was lost or published wrong.** The failed run pushed nothing. On main: 162 games of 2016-17 and 8 of 2017-18, no duplicates, no conflict markers, all points adding up. The cost is time: about 40 minutes of reading thrown away and the fill idle from 2:13 PM.
+- **Fix** (`.github/workflows/pbpstats-fill.yml`): the checkout is of `main`, and every round begins by dropping any half-done rebase and resetting to what is on main now, so a run that waited in the queue cannot work from an old copy. A round that cannot be pushed says so as a warning and its games are read again. Pushing this file starts a new run.
+
+**Tested:** the failure was reproduced in a scratch clone (9:15 commit, rows appended, rebase onto main: conflict; the reader then crashes on the markers), and the new round start was run on that same broken clone: it comes back to main's 162 rows with no markers.
+
+**Unproven:** that the new run reads cleanly to the end; 154 games of 2017-18 are left, about five hours at this morning's pace (33 an hour).
+
+**Self-audit:** my own doing: I pushed to the workflow's files while a run was going, which is what queued the second run, and `|| true` after the rebase hid the conflict until the next command tripped on it. Checked rather than assumed: the run times and the failing step are from GitHub's public run and job records; the log itself is not readable without a token, so the cause is from the reproduction, not from the log. The 3:07 PM check-in said "about 12 hours for 324 games"; with 162 games being two teams' season less the two they play each other, the count is 324 and the pace gives about ten.
+
 ## 0.107.3 (2026-11-18): the promotions sheet was wrong on about 50 nights; rebuilt with a schedule check on every row
 
 The user, 11:52 AM: "proceed, and remember to emphasize due diligence to limit mistakes."
