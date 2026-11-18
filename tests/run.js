@@ -2372,6 +2372,33 @@ await articlesChecks(ok);
       JSON.stringify([tl.map((x) => x.text), fm.map((x) => x.text)]));
   }
   {
+    // 0.107.9: an NBA record comes before a franchise record (the league's own record book is checked first).
+    const { leagueMarks, leagueRecordLines, withLeagueFirst } = await import("../src/records/teamgame.js");
+    const book = JSON.parse(fs.readFileSync(path.join(root, "src/data/nba-record-book-2026-27.json"), "utf8")), LM = leagueMarks(book);
+    // box: fgm, fga, fg3m, fg3a, ftm, fta, oreb, dreb, ast, stl, blk, tov, pf
+    const bx = (o = {}) => { const b = [40, 88, 12, 34, 18, 22, 10, 33, 25, 7, 5, 13, 19]; for (const [k, v] of Object.entries(o)) b[["fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "oreb", "dreb", "ast", "stl", "blk", "tov", "pf"].indexOf(k)] = v; return b; };
+    const gm = (d, h, a, hb, ab, hq = [28, 27, 29, 26], aq = [25, 26, 27, 24]) => ({ id: `${d}${h}`, d, h, a, hs: hq.reduce((x, y) => x + y, 0), as: aq.reduce((x, y) => x + y, 0), hb, ab, hq, aq });
+    const rowsL = [
+      gm("2026-11-10", "MIL", "MIA", bx({ fg3m: 29, fg3a: 55 }), bx()),                                   // ties the 29
+      gm("2026-11-12", "BOS", "NYK", bx({ fg3m: 31, fg3a: 60 }), bx({ fg3m: 19 })),                       // 31: the record; 50 together: the both-teams record
+      gm("2026-11-14", "DEN", "UTA", bx({ fg3m: 30 }), bx({ blk: 0 })),                                   // 30 after a 31 is nothing; a night without a block is nothing
+      gm("2026-11-16", "PHX", "SAC", bx(), bx(), [59, 20, 21, 22], [20, 21, 22, 23]),                     // 59 in a first quarter: said once, as "in a quarter"
+    ];
+    const LL = leagueRecordLines({ book, rows: rowsL, since: "2026-11-01", today: "2026-11-18" }).map((l) => l.text).sort();
+    const fr = [{ team: "BOS", date: "2026-11-12", key: "teambox|BOS|team|most|fg3m|game", text: "franchise threes", score: 4.4 }, { team: "BOS", date: "2026-11-12", key: "teambox|BOS|team|most|fg3a|game", text: "franchise attempts", score: 4.4 }];
+    const merged = withLeagueFirst(leagueRecordLines({ book, rows: rowsL, since: "2026-11-12", today: "2026-11-13" }), fr);
+    ok(LM["most|fg3m|one|game"].v === 29 && LM["most|pts|one|game"].v === 186 && LM["fewest|pf|one|game"].v === 4 && LM["most|pts|one|quarter"].v === 58 && LM["most|pts|one|quarter|0"].v === 55 && LM["fewest|blk|one|game"].many
+      && !/\(47\)/.test(LM["most|fg3m|both|game"].holder)
+      && LL.length === 4
+      && LL.includes("BOS had 31 threes on 11/12 (NYK): an NBA record, the most by one team in a game (was 29, Milwaukee at Miami, Dec. 29, 2020 and 3 more), by the league's record book")
+      && LL.includes("MIL had 29 threes on 11/10 (MIA): tying the NBA record for the most by one team in a game (also 29, Milwaukee at Miami, Dec. 29, 2020 and 3 more), by the league's record book")
+      && LL.some((t) => /^NYK and BOS combined for 50 threes on 11\/12: an NBA record, the most by both teams in a game \(was 48, Golden State vs\. Dallas, Dec\. 15, 2024\)/.test(t))
+      && LL.some((t) => /^PHX had 59 points in a quarter on 11\/16 \(SAC\): an NBA record, the most by one team in a quarter \(was 58, Buffalo at Boston, Oct\. 20, 1972\)/.test(t))
+      && merged.length === 3 && /^BOS had 31 threes.*; also the Celtics' franchise mark$/.test(merged[0].text) && merged.some((l) => l.text === "franchise attempts") && !merged.some((l) => l.text === "franchise threes"),
+      "0.107.9: every game is set against the league's record book before a team's own marks: 31 threes is an NBA record (and the team's franchise line for the same mark folds into it), 29 ties it, 30 after a 31 says nothing, the two teams' 50 is the both-teams record, 59 points in a first quarter is said once as the most in any quarter, and a mark the book gives as held by many (a night without a block) is never a line",
+      JSON.stringify({ LL, merged: merged.map((l) => l.text) }));
+  }
+  {
     // 0.107.6: a season cut into as many stretches as its wins and losses support; the line is the current stretch against the one before.
     const { turnLines: tl6, stretches, TURN: T6 } = await import("../src/anticipate/seasonlong.js");
     const dN = (i) => new Date(Date.UTC(2026, 10, 1) + i * 864e5).toISOString().slice(0, 10);

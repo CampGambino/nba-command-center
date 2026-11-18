@@ -142,3 +142,101 @@ export function boxTable(records) {
   }
   return out;
 }
+
+// 0.107.9 (the user, 11/18: "do the team alerts convert to league-record alerts? … I want to make sure game records have
+// precedence"). They did not: a franchise mark was checked against the team's guide only, so a night that passed the NBA
+// record would have been reported as a franchise record and nothing more. The league's own record book is on file
+// (src/data/nba-record-book-<season>.json, regular season, 28 one-team and 28 both-teams marks for a game on the fifteen
+// box-score stats, and points by half and quarter). Every game is now set against it first.
+const LEAGUE_STAT = { "points": "pts", "field goals made": "fgm", "field goal attempts": "fga", "three-point field goals made": "fg3m", "three-point field goal attempts": "fg3a", "free throws made": "ftm",
+  "free throw attempts": "fta", "rebounds": "reb", "offensive rebounds": "oreb", "defensive rebounds": "dreb", "assists": "ast", "personal fouls": "pf", "steals": "stl", "blocked shots": "blk", "turnovers": "tov" };
+const NTH = { first: 0, second: 1, third: 2, fourth: 3 };
+/** The league's team marks for a game, a half and a quarter: { "most|fg3m|one|game": { kind, stat, who, period, part, v, holder, many } }.
+ *  `part` is which half or quarter (0-based) for the marks the book prints one by one; without it, any half or quarter (the best of them). */
+export function leagueMarks(book) {
+  const out = {};
+  for (const r of book || []) {
+    if (r.book !== "Regular season" || r.side !== "team" || !r.entries?.length) continue;
+    const v = Number(r.entries[0].value); if (!Number.isFinite(v)) continue;
+    // three "both teams" entries in the book file carry bracketed team numbers that do not add up to the mark (the 48
+    // threes of 12/15/24 read "(47)" and "(41)"); the mark is right, so the brackets are left out, not repeated
+    const two = [...r.entries[0].holder.matchAll(/\((\d+)\)/g)].map((x) => +x[1]);
+    const holder = two.length === 2 && two[0] + two[1] !== v ? r.entries[0].holder.replace(/\s*\(\d+\)/g, "") : r.entries[0].holder;
+    const n = r.entries.filter((e) => Number(e.value) === v).length;                   // how many nights share the mark (29 threes: four)
+    const base = { v, holder: n > 1 ? `${holder} and ${n - 1} more` : holder, many: /^By many/i.test(holder) };
+    let m = /^(Most|Fewest) (.+?), (one team|both teams), game$/.exec(r.title);
+    if (m && LEAGUE_STAT[m[2]]) { const kind = m[1].toLowerCase(), who = m[3] === "one team" ? "one" : "both"; out[`${kind}|${LEAGUE_STAT[m[2]]}|${who}|game`] = { kind, stat: LEAGUE_STAT[m[2]], who, period: "game", part: null, ...base }; continue; }
+    m = /^(Most|Fewest) points, (one team|both teams), (first|second|third|fourth) (half|quarter)$/.exec(r.title);
+    if (!m) continue;
+    const kind = m[1].toLowerCase(), who = m[2] === "one team" ? "one" : "both", period = m[4], part = NTH[m[3]];
+    out[`${kind}|pts|${who}|${period}|${part}`] = { kind, stat: "pts", who, period, part, nth: m[3], ...base };
+    const any = `${kind}|pts|${who}|${period}`, cur = out[any];
+    if (!cur || (kind === "most" ? v > cur.v : v < cur.v)) out[any] = { kind, stat: "pts", who, period, part: null, ...base };
+  }
+  return out;
+}
+
+/**
+ * Lines for a game on or after `since` in which a team, or the two teams together, reached an NBA record. The season is
+ * walked in order from the book's marks, so a record already raised this season is the one to beat. A tie is a line
+ * unless the book says the mark is held "by many" or the mark is zero (a night without a block is not news).
+ */
+export function leagueRecordLines({ book, rows, since, today = null }) {
+  const L = leagueMarks(book), out = [], run = new Map(Object.entries(L).map(([k, m]) => [k, { v: m.v, holder: m.holder }]));
+  const games = (rows || []).filter((g) => g.hs > 0 && g.as > 0 && !g.cupFinal && (!today || g.d < today)).sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0));
+  const whole = (x) => Array.isArray(x.box) && x.box[1] >= 40, quarters = (x) => (Array.isArray(x.q) && x.q.length >= 4 && !x.q.slice(0, 4).some((n) => !(n > 0)) ? x.q.slice(0, 4) : null);
+  const value = (m, x) => {
+    if (m.period === "game") return m.stat === "pts" ? x.pts : !whole(x) ? null : m.stat === "reb" ? (x.box[6] || 0) + (x.box[7] || 0) : x.box[BOX.indexOf(m.stat)];
+    const q = quarters(x); if (!q) return null;
+    const parts = m.period === "quarter" ? q : [q[0] + q[1], q[2] + q[3]];
+    return m.part != null ? parts[m.part] : m.kind === "most" ? Math.max(...parts) : Math.min(...parts);
+  };
+  const both = (m, a, b) => {      // the two teams together; for a half or a quarter, the same half or quarter
+    if (m.period === "game") { const x = value(m, a), y = value(m, b); return x == null || y == null ? null : x + y; }
+    const qa = quarters(a), qb = quarters(b); if (!qa || !qb) return null;
+    const pa = m.period === "quarter" ? qa : [qa[0] + qa[1], qa[2] + qa[3]], pb = m.period === "quarter" ? qb : [qb[0] + qb[1], qb[2] + qb[3]], sums = pa.map((n, i) => n + pb[i]);
+    return m.part != null ? sums[m.part] : m.kind === "most" ? Math.max(...sums) : Math.min(...sums);
+  };
+  for (const g of games) {
+    const H = { pts: g.hs, box: g.hb, q: g.hq }, A = { pts: g.as, box: g.ab, q: g.aq }, day = mdy(g.d).replace(/\/\d\d$/, ""), said = new Set();
+    for (const [key, m] of Object.entries(L)) {
+      const tries = m.who === "one" ? [[g.h, g.a, value(m, H), `vs. ${g.a}`], [g.a, g.h, value(m, A), `at ${g.h}`]] : [[g.h, g.a, both(m, H, A), null]];
+      for (const [t, opp, v, where] of tries) {
+        if (v == null) continue;
+        const cur = run.get(key), sign = m.kind === "most" ? 1 : -1;
+        if (sign * v < sign * cur.v) continue;
+        const beat = v !== cur.v;
+        if (!beat && (L[key].many || v === 0)) continue;
+        const tag = `${t}|${m.kind}|${m.stat}|${m.who}|${m.period}`;       // "a first quarter" and "a quarter" on the same night: said once, as the wider one
+        if (g.d >= since && !(m.part != null && said.has(tag))) {
+          if (m.part == null) said.add(tag);
+          const word = v === 1 ? WORD[m.stat].replace(/s$/, "") : WORD[m.stat], sup = m.kind === "most" ? "the most" : "the fewest";
+          const span = m.period === "game" ? "in a game" : m.part != null ? `in a ${m.nth} ${m.period}` : `in a ${m.period}`;
+          const who = m.who === "one" ? `${t} had ${v} ${word} ${m.period === "game" ? "" : `${span} `}on ${day} (${opp})` : `${g.a} and ${g.h} combined for ${v} ${word} ${m.period === "game" ? "" : `${span} `}on ${day}`;
+          out.push({ kind: "unique", team: t, player: null, date: g.d, league: true, mark: { kind: m.kind, stat: m.stat, who: m.who, period: m.period, part: m.part }, key: `league|${key}|${t}`, score: beat ? 5.6 : 5.2,
+            text: `${who}: ${beat ? "an NBA record," : "tying the NBA record for"} ${beat ? `${sup} ` : `${sup} `}by ${m.who === "one" ? "one team" : "both teams"} ${span} (${beat ? "was" : "also"} ${cur.v}, ${cur.holder}), by the league's record book`.replace(/\s+/g, " ") });
+        }
+        if (beat) run.set(key, { v, holder: m.who === "one" ? `${nick(t)} ${where}, ${mdy(g.d)}` : `${g.a} at ${g.h}, ${mdy(g.d)}` });
+      }
+    }
+  }
+  // the wider line was added after the narrower one when the marks came in that order: keep one line a team, stat and span
+  const best = new Map();
+  for (const l of out) { const k = `${l.team}|${l.date}|${l.mark.kind}|${l.mark.stat}|${l.mark.who}|${l.mark.period}`, c = best.get(k); if (!c || (c.mark.part != null && l.mark.part == null)) best.set(k, l); }
+  return [...best.values()].sort((a, b) => b.score - a.score);
+}
+
+/** NBA records first: a franchise line for the same team, night and mark is folded into the league line, not said twice. */
+export function withLeagueFirst(league, franchise) {
+  const gone = new Set(), out = [];
+  for (const l of league || []) {
+    let also = false;
+    if (l.mark.who === "one" && l.mark.part == null) for (const f of franchise || []) {
+      if (f.team !== l.team || f.date !== l.date) continue;
+      const same = f.key === `teambox|${l.team}|team|${l.mark.kind}|${l.mark.stat}|${l.mark.period}` || (l.mark.stat === "pts" && l.mark.period === "game" && f.key === `teamgame|${l.team}|${l.mark.kind}`);
+      if (same) { gone.add(f); also = true; }
+    }
+    out.push(also ? { ...l, text: `${l.text}; also the ${nick(l.team)}' franchise mark` } : l);
+  }
+  return [...out, ...(franchise || []).filter((f) => !gone.has(f))];
+}

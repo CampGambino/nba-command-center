@@ -2,6 +2,28 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.107.9 (2026-11-18): an NBA record comes before a franchise record
+
+The user, 3:21 PM: "do the team alerts convert to league-record alerts? I think we have game records for teams, and I want to make sure game records have precedence".
+
+- **They did not.** A team's night was checked against that team's media guide only. A game that passed the NBA record would have been reported as a franchise record and nothing more. The league's own record book has been on file since the Records page was built (`src/data/nba-record-book-2026-27.json`) and nothing compared a game with it.
+- **Now** (`leagueMarks`, `leagueRecordLines`, `withLeagueFirst` in `src/records/teamgame.js`; called from `scripts/situations.js`): every game is set against the league's regular-season team marks first: the most and fewest by one team in a game, and by both teams together, for the fifteen box-score stats (56 marks), and points by half and by quarter (32 more, each half and quarter by itself and the best of them). A record already raised this season is the one to beat.
+  - "BOS had 31 threes on 11/12 (NYK): an NBA record, the most by one team in a game (was 29, Milwaukee at Miami, Dec. 29, 2020 and 3 more), by the league's record book; also the Celtics' franchise mark".
+  - It ranks above every franchise line (5.6 for a record, 5.2 for a tie; a franchise mark is 4.0 to 4.6), and the franchise line for the same team, night and mark is folded into it, not said twice. The other team's "most by an opponent" line stays.
+  - A tie is said, unless the book gives the mark as held "by many" or the mark is zero (a night without a block or a steal).
+- **Where it shows:** the morning's last-night lines and the season list of team marks on the Records page. The NBA Live card is still not built; when it is, it will carry the same order.
+
+**Tested:** 984 checks pass (one new: a record, a tie, 30 threes after a 31, the two teams' 50 together, 59 points in a first quarter said once as the most in any quarter, a night without a block, and the franchise line folding in); a full local build ran clean (no NBA record so far this season; the eight franchise-mark lines of the season are unchanged). **On real games not used while building:** all 1,230 box scores of 2025-26 run against the book give exactly two lines, Memphis's 29 threes against Cleveland on 4/6/26 and Boston's 29 against New Orleans on 4/10/26, each tying the record. The book itself lists those two nights among the four at 29, and the Grizzlies', Cavaliers' and Pelicans' guides print the same numbers for them.
+
+**Found while checking the two sets of records against each other** (not changed; each needs a source):
+- 19 of the league's 28 one-team game marks are printed, same number and same night, by a team's own guide (Detroit's 186 points and 74 field goals, Phoenix's 61 free throws, Milwaukee's 4 fouls, Brooklyn's 17 rebounds…).
+- **Eleven guide marks are beyond the league's record.** Four are before the shot clock, which the league's "fewest" marks leave out (the Warriors' 47 points and their opponent's 43 in 1948; 11 field goals and 47 attempts against the Royals in 1953). Seven are real disagreements: Boston's 112 rebounds against Detroit on 12/24/60 in both teams' guides, where the league has 109 for the same game; 110 by an opponent in the Warriors' guide (11/16/57); 160 shots by an opponent in the Kings' (1/2/56; league 153); 28 steals in the Kings' (11/1/77; league 27); 45 turnovers in the Warriors' (3/9/71; league 43); and **25 blocks by an opponent in the Lakers' guide on 2/15/74 (league 23)**, which is the date of the league's turnover record, 43 by the Lakers against Seattle, so that row is probably misread or misprinted.
+- Three "both teams" entries in the league book file carry bracketed team numbers that do not add up to the mark (the 48 threes of 12/15/24 read "(47)" and "(41)"). The marks are right; the brackets are left out of a line when they do not add up.
+
+**Unproven:** no league record has come up in a live build, so the line has only been seen in tests and the replay. Not covered: half and quarter marks for anything but points (a box score does not go below a game); playoff records (the book has them; the build reads regular-season games); a tie of a "by many" mark is silent by design. The Boston guide does not list its own 4/10/26 night at 29 (it prints 10/22/24 only), so its franchise line would have said "tying" from the guide's one date.
+
+**Self-audit:** the line's first wording gave one holder for a mark four nights share; the replay showed it and it now says "and 3 more". The count of marks (56 and 32) is from the function's own output (88), not from memory. I checked the claim "nothing compared a game with the book" by searching the code for the book's file name: it is read only by the Records page.
+
 ## 0.107.8 (2026-11-18): pbpstats check at 3:08 PM: 217 of 324 games, all adding up; two names matched
 
 The scheduled check-in. Nothing published.
