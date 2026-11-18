@@ -22,8 +22,8 @@
   },
   "KXNBA3QSPREAD": {
    "title": "NBA 3rd Quarter Spread",
-   "events": 2,
-   "markets": 26
+   "events": 1,
+   "markets": 13
   },
   "KXNBAPOTM": {
    "title": "NBA Player of the Month",
@@ -58,7 +58,7 @@
   "KXNBASTLPROT": {
    "title": "NBA Player Steals Protected",
    "events": 2,
-   "markets": 56
+   "markets": 55
   },
   "KXNBARACE": {
    "title": "NBA Race to Points",
@@ -68,7 +68,7 @@
   "KXNBAAST": {
    "title": "NBA Player Assists",
    "events": 2,
-   "markets": 90
+   "markets": 89
   },
   "KXNBA2HTOTAL": {
    "title": "NBA 2nd Half Total",
@@ -192,8 +192,8 @@
   },
   "KXNBA3Q": {
    "title": "NBA 3rd Quarter Winner",
-   "events": 17,
-   "markets": 51
+   "events": 16,
+   "markets": 48
   },
   "KXNBAEFINMVP": {
    "title": "NBA Eastern Conference Finals MVP",
@@ -233,7 +233,7 @@
   "KXNBATEAMTOTAL": {
    "title": "NBA Team Total",
    "events": 12,
-   "markets": 457
+   "markets": 458
   },
   "KXNBA2DPROT": {
    "title": "NBA Player Double Double Protected",
@@ -242,8 +242,8 @@
   },
   "KXNBA3QTOTAL": {
    "title": "NBA 3rd Quarter Total",
-   "events": 2,
-   "markets": 26
+   "events": 1,
+   "markets": 13
   },
   "KXNBAEUROPEANNOUNCE": {
    "title": "NBA Europe Inaugural Season Being Announced",
@@ -318,7 +318,7 @@
   "KXNBASTL": {
    "title": "NBA Player Steals",
    "events": 2,
-   "markets": 56
+   "markets": 55
   },
   "KXNBAFINALSOUTCOME": {
    "title": "NBA Finals Outcome",
@@ -378,7 +378,7 @@
   "KXNBAPRAPROT": {
    "title": "Pts + Reb + Ast Protected",
    "events": 2,
-   "markets": 70
+   "markets": 67
   },
   "KXNBASOUTHWEST": {
    "title": "Pro Basketball Southwest Division Winner",
@@ -413,12 +413,12 @@
   "KXNBAREBPROT": {
    "title": "NBA Player Rebounds Protected",
    "events": 2,
-   "markets": 114
+   "markets": 108
   },
   "KXNBAPTSPROT": {
    "title": "NBA Player Points Protected",
    "events": 2,
-   "markets": 96
+   "markets": 91
   },
   "KXNBABLKPROT": {
    "title": "NBA Player Blocks Protected",
@@ -478,12 +478,12 @@
   "KXNBAASTPROT": {
    "title": "NBA Player Assists Protected",
    "events": 2,
-   "markets": 87
+   "markets": 86
   },
   "KXNBA3PTPROT": {
    "title": "NBA Player Threes Protected",
    "events": 2,
-   "markets": 112
+   "markets": 108
   },
   "KXNBAMOSTWINS": {
    "title": "Pro Basketball Highest Win Total",
@@ -623,7 +623,7 @@
   "KXNBAPTS": {
    "title": "NBA Player Points",
    "events": 2,
-   "markets": 108
+   "markets": 105
   },
   "KXNBANORTHWEST": {
    "title": "Pro Basketball Northwest Division Winner",
@@ -673,7 +673,7 @@
   "KXNBAREB": {
    "title": "NBA Player Rebounds",
    "events": 2,
-   "markets": 121
+   "markets": 115
   },
   "KXNBATEAM": {
    "title": "NBA team",
@@ -698,7 +698,7 @@
   "KXNBAPRA": {
    "title": "NBA Player Points + Rebounds + Assists",
    "events": 2,
-   "markets": 70
+   "markets": 67
   },
   "KXNBAROOKIE1STTEAM": {
    "title": "NBA All-Rookie 1st Team",
@@ -729,77 +729,30 @@
  "favorites": {
   "KXNBASOUTHEAST-26": "Miami 50%",
   "KXNBAROY-27": "Yaxel Lendeborg 31%",
-  "KXNBAROTM-NOV26WEST": "Cameron Boozer 69%",
-  "KXNBAPOTM-NOV26WEST": "Victor Wembanyama 4%",
-  "KXNBAH2HWINS-27BOSPHI": "Boston 60%",
-  "KXNBARACE-26NOV18MILMIA-30": "Miami 50%",
-  "KXNBARACE-26NOV18PHIORL-10": "Philadelphia 44%",
-  "KXNBARACE-26NOV18PHIORL-20": "Orlando 45%",
-  "KXNBARACE-26NOV18WASTOR-30": "Toronto 56%",
-  "KXNBASTATLEADER-272D": "Nikola Jokić 30%",
-  "KXNBASTATLEADER-273D": "Nikola Jokić 63%",
-  "KXNBASTATLEADER-273PM": "Luka Dončić 64%",
-  "KXNBASTATLEADER-27APG": "Trae Young 39%",
-  "KXNBASTATLEADER-27BPG": "Victor Wembanyama 85%",
-  "KXNBASTATLEADER-27EFF": "Luka Dončić 30%",
-  "KXNBASTATLEADER-27MPG": "Tyrese Maxey 25%",
-  "KXNBASTATLEADER-27PPG": "Luka Dončić 76%",
-  "KXNBASTATLEADER-27RPG": "Karl-Anthony Towns 40%",
-  "KXNBASTATLEADER-27SPG": "Dyson Daniels 54%",
   "KXNBACLUTCH-27": "Tyrese Maxey 17%",
-  "KXNBADPOY-27": "Victor Wembanyama 78%",
-  "KXNBATEAMMATE-27": "Jrue Holiday 15%",
-  "KXNBASIXTH-27": "Payton Pritchard 29%",
+  "KXNBADPOY-27": "Victor Wembanyama 81%",
   "KXNBAEXEC-27": "Sam Presti 13%",
   "KXNBAEFINMVP-27": "Jayson Tatum 13%",
   "KXNBACUP-26": "San Antonio 20%",
-  "KXNBATEAMWINSTREAK-27": "San Antonio 30%",
+  "KXNBASIXTH-27": "Payton Pritchard 29%",
   "KXNBAMVP-27": "Victor Wembanyama 44%",
   "KXNBAWEST1SEED-26": "San Antonio 54%",
   "KXNBA-27": "San Antonio 22%",
-  "KXNBAFINALSOUTCOME-27": "San Antonio beats Boston 6%",
-  "KXNBACUPGROUP-26EASTB": "Miami 53%",
-  "KXNBACUPGROUP-26EASTC": "Boston 76%",
-  "KXNBACUPGROUP-26WESTA": "Denver 41%",
-  "KXNBACUPGROUP-26WESTB": "Oklahoma City 47%",
-  "KXNBACUPGROUP-26WESTC": "San Antonio 70%",
-  "KXNBACUPGROUP-26EASTA": "Detroit 50%",
-  "KXNBACUPMVP-27": "Victor Wembanyama 31%",
   "KXNBAEAST-27": "Boston 22%",
+  "KXNBACUPMVP-27": "Victor Wembanyama 31%",
   "KXNBASOUTHWEST-26": "San Antonio 75%",
   "KXNBAEAST1SEED-26": "Boston 42%",
-  "KXNBAHUSTLE-27": "Moussa Diabate 8%",
   "KXNBAMIMP-27": "Ty Jerome 37%",
   "KXNBAWEST-27": "San Antonio 35%",
   "KXNBARECORD-27BEST": "San Antonio 48%",
   "KXNBARECORD-27WORST": "Sacramento 43%",
-  "KXNBAATLANTIC-26": "Boston 54%",
-  "KXNBADRAFTPICK-27-1": "Caleb Holt 9%",
   "KXNBACOY-27": "JJ Redick 20%",
+  "KXNBAATLANTIC-26": "Boston 54%",
   "KXNBACENTRAL-26": "Detroit 61%",
   "KXNBAPACIFIC-26": "Los Angeles L 82%",
-  "KXNBANEXTTEAM-27DMURRAY5": "Miami 8%",
-  "KXNBANEXTTEAM-27DRUSSELL28": "Phoenix 4%",
-  "KXNBANEXTTEAM-27I1LJAMES23": "Philadelphia 94%",
-  "KXNBANEXTTEAM-27RDILLINGHAM7": "Sacramento 5%",
-  "KXNBASJC-27": "Jaylen Brown 7%",
-  "KXNBAMATCHUP-26CUPFIN": "Boston vs San Antonio 22%",
-  "KXNBAMATCHUP-27FIN": "Philadelphia vs San Antonio 10%",
-  "KXNBAMATCHUP-27ECF": "Miami vs Philadelphia 8%",
-  "KXNBAMATCHUP-27WCF": "Houston vs San Antonio 17%",
   "KXNBACONF-27": "Western Conference 61%",
   "KXNBANORTHWEST-26": "Oklahoma City 45%",
-  "KXNBAPOSTASREC-27": "San Antonio 50%",
   "KXNBAWFINMVP-27": "Shai Gilgeous-Alexander 20%",
-  "KXNBASEED-27EAST2": "Miami 11%",
-  "KXNBASEED-27EAST3": "Miami 11%",
-  "KXNBASEED-27EAST4": "Indiana 4%",
-  "KXNBASEED-27EAST7": "Philadelphia 4%",
-  "KXNBASEED-27EAST8": "Cleveland 10%",
-  "KXNBASEED-27WEST2": "Minnesota 22%",
-  "KXNBASEED-27WEST3": "Los Angeles L 20%",
-  "KXNBASEED-27WEST5": "Portland 15%",
-  "KXNBASEED-27WEST6": "Portland 12%",
   "KXNBAFINMVP-27": "Victor Wembanyama 20%"
  }
 }
