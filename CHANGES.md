@@ -2,6 +2,21 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.106.2 (2026-11-18): pbpstats can fill the hole, slowly; self-audit of 0.105.0
+
+The user, 8:11 AM: "Can you access pbpstats for the missing box scores. It has data through 2001." and "proceed with your next moves as well".
+
+- **pbpstats is reachable and has the games ESPN lacks.** Its public API (`api.pbpstats.com`, documented at `/docs`, with the author's code examples) answers from the cloud workspace. `get-game-stats?GameId=…&Type=Player` gives every player's line for a game; Denver at New Orleans, 10/26/16, came back with both teams' points adding up to 107-102.
+- **Two limits, both measured:**
+  - *It is slow.* The API often answers 502 or not at all: one game took 93 seconds, and a five-minute run here read one game and lost one. So the reading is a temporary GitHub job, `.github/workflows/pbpstats-fill.yml` (every six hours and on a push to its files, one request at a time, saved to the repo every 40 minutes, resumable) running `tools/fetch-pbpstats.mjs` → `tools/outside/pbpstats/box-<season>.jsonl`. Order: 2016-17 and 2017-18 first (324 games, the ones the "since 2016-17" lines need), then 2012-13 to 2015-16 (662 more, for the franchise file). At this pace the first two seasons take a day or more.
+  - *Its numbers are counted from the play-by-play and are not the box score.* Anthony Davis on 10/26/16: pbpstats has 50 points, 15 rebounds, 5 assists, 5 steals, 4 blocks; the box score that night was 50, 16, 5, 7, 4 (SI, NBC Sports, theScore and others; NBA.com's later look-back says 15 rebounds, 7 steals). Points and shooting are scoring plays and add up to the score; steals are short and rebounds can be one off. **Plan for the merge (not built yet):** fill points, field goals, threes and free throws from pbpstats; carry rebounds, assists, steals and blocks marked as approximate, so no line is written that turns on them.
+- **Where pbpstats gets its data:** the league's own play-by-play feed. The standing rule is "no NBA.com stats as a data source" (11/12); this is a third-party site the user named, so it is used for this fill, and the provenance is said here and to the user.
+- **Nothing published changes yet:** no page or line reads the new files.
+
+**Self-audit of 0.105.0 (the slate waits):** the rule compares each game's `date` with yesterday's Eastern date, so it would fail if the scoreboard reader dated late games by UTC (a 10:30 PM tip is the next day in UTC). Checked on ESPN's real scoreboard for 11/17: the reader's `date` is the Eastern date for all five games, the two late ones included (Utah at the Clippers, 03:30Z; Charlotte at the Lakers, 04:00Z). Replaying 12:44 AM on 11/18 with those two put back in progress, the rule keeps Tuesday's slate and names both games. The change-log entry's claims stand. Still not seen on a live night.
+
+**Self-audit of this entry:** the 93 seconds and the one-in-five-minutes are single measurements at one time of day; the pace may be better at other hours. The Davis line is one game; how often pbpstats' rebounds, assists and blocks differ from the box score is not measured (it needs box scores we do not have, which is the point). Whether the GitHub job is reading is not known until its first save, about 40 minutes after 8:40 AM.
+
 ## 0.106.1 (2026-11-18): self-audit of 0.106.0; the NBA Cup's title games no longer count as regular season
 
 The user, 7:38 AM: "I forgot to require a self audit after each iteration. Please do so now and moving forward". **From here on every entry ends with a "Self-audit" paragraph: what was re-derived from the committed files after the work was done, what that turned up, and what could not be checked.**
