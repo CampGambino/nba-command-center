@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Promotion nights, second build (11/18/26 afternoon).
+"""Promotion nights, second build (11/18/26, noon).
 
   python3 -I build2.py <raw sweep json> <league schedule json> <out csv> <typed file> [<typed file> ...]
 
