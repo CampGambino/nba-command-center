@@ -1,0 +1,5623 @@
+{
+ "at": "2026-11-18T01:43:33.721Z",
+ "kalshi": {
+  "https://external-api.kalshi.com/trade-api/v2": {
+   "series": {
+    "status": 200,
+    "bytes": 6770866,
+    "headers": {},
+    "count": 4302,
+    "keys": [
+     "additional_prohibitions",
+     "categories",
+     "category",
+     "contract_terms_url",
+     "contract_url",
+     "exchange_index",
+     "fee_multiplier",
+     "fee_type",
+     "frequency",
+     "last_updated_ts",
+     "settlement_sources",
+     "tags",
+     "ticker",
+     "title"
+    ]
+   },
+   "nbaSeries": [
+    {
+     "ticker": "KXNBADRAFT6",
+     "title": "NBA Draft Sixth Pick",
+     "frequency": "annual",
+     "tags": null
+    },
+    {
+     "ticker": "KXNBADRAFTOU",
+     "title": "Pro Basketball Players Draft Position",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBALASTTOLOSE",
+     "title": "NBA Last Undefeated Team",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASUMMERMVP",
+     "title": "Pro Basketball Summer League MVP",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBALADDERPTS",
+     "title": "NBA Player Points Ladder",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASERIESSPREAD",
+     "title": "NBA Series Game Spread",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAFINBLOWOUT",
+     "title": "Pro Basketball Finals Blowout",
+     "frequency": "one_off",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAONE3PT",
+     "title": "NBA Players to Make One Three",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASUMMERSPREAD",
+     "title": "Pro Basketball Summer League Spread",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASERIESGCOMEBACK",
+     "title": "Pro Basketball Series Game Comeback",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAFINALSVIEWER",
+     "title": "NBA finals viewership",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFT5",
+     "title": "NBA Draft Fifth Pick",
+     "frequency": "annual",
+     "tags": null
+    },
+    {
+     "ticker": "KXNBAUNBEATEN",
+     "title": "NBA Playoffs Team to go Undefeated",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAALLSTARGAME",
+     "title": "NBA All-Star Game Winner",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAWFINMVP",
+     "title": "NBA Western Conference Finals MVP",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPREPACK3ML",
+     "title": "3ML Basketball Combo",
+     "frequency": "one_off",
+     "tags": null
+    },
+    {
+     "ticker": "KXNBADRAFTCONF",
+     "title": "Pro Basketball Players Drafted by Conference",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAASTPROT",
+     "title": "NBA Player Assists Protected",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPRA",
+     "title": "NBA Player Points + Rebounds + Assists",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASTLPROT",
+     "title": "NBA Player Steals Protected",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASERIESCOMEBACK",
+     "title": "Pro Basketball Series Comeback",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA1HSPREAD",
+     "title": "NBA 1st Half Spread",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAXMASOPPONENT",
+     "title": "Pro Basketball Christmas Day Opponent",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADPOTM",
+     "title": "NBA Defensive Player of the Month",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAH2HPTSMARGIN",
+     "title": "NBA H2H Player Points Bracketed",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA4D",
+     "title": "Any Player to Record a Quadruple Double",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAGAMES",
+     "title": "NBA games",
+     "frequency": "daily",
+     "tags": [
+      "Boxing"
+     ]
+    },
+    {
+     "ticker": "KXNBAFRANCHISECOST",
+     "title": "NBA Franchise Cost",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASTL",
+     "title": "NBA Player Steals",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBARULE",
+     "title": "Pro Basketball Rule",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA1HTOTAL",
+     "title": "NBA 1st Half Total",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFT2",
+     "title": "NBA Draft Second Pick",
+     "frequency": "annual",
+     "tags": null
+    },
+    {
+     "ticker": "KXNBACELEBRITYGAME",
+     "title": "Pro Basketball All-Star Celebrity Game",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAH2HPRA",
+     "title": "NBA Head-to-Head Points, Rebounds and Assists",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASTAKESALE",
+     "title": "NBA Team Ownership Stake Sale Agreement",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFTTOP",
+     "title": "Pro Basketball Top Draft",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASERIESPTS",
+     "title": "Pro Basketball Series Player Points",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPA",
+     "title": "Pro Basketball Player Points + Assists",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAWHATTEND",
+     "title": "Pro Basketball White House Attend",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASTATAVG",
+     "title": "NBA Player Stat Average",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAFRANCHISEOWNER",
+     "title": "NBA Franchise Owner",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFTCAT",
+     "title": "Pro Basketball Draft Category",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAMOSTWINS",
+     "title": "Pro Basketball Highest Win Total",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFT9",
+     "title": "NBA Draft Ninth Pick",
+     "frequency": "annual",
+     "tags": null
+    },
+    {
+     "ticker": "KXNBANHL",
+     "title": "NBA + NHL Champion Combo",
+     "frequency": "custom",
+     "tags": [
+      "Hockey",
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAATLANTIC",
+     "title": "Pro Basketball Atlantic Division Winner",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASTARTERS",
+     "title": "Pro Basketball Starting Lineup",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAEAST1SEED",
+     "title": "NBA Eastern Conference 1 Seed",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA30PTSTREAK",
+     "title": "NBA 30 Point Streak",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAHALLOFFAME",
+     "title": "Pro Basketball Hall of Fame",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPREPACK2ML",
+     "title": "2 ML Basketball Combo",
+     "frequency": "one_off",
+     "tags": null
+    },
+    {
+     "ticker": "KXNBAFIRSTTIMECHAMP",
+     "title": "NBA First Time Champion",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFTTRADE",
+     "title": "Pro Basketball Draft Trade",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBANORTHWEST",
+     "title": "Pro Basketball Northwest Division Winner",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASEEDOU",
+     "title": "NBA Playoff Seed Over/Unders",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPLAYTOGETHER",
+     "title": "Pro Basketball Players to Play Together",
+     "frequency": "custom",
+     "tags": null
+    },
+    {
+     "ticker": "KXNBAPIADVANCE",
+     "title": "NBA Play-In Team to Advance",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASUMMER1HWINNER",
+     "title": "Pro Basketball Summer League 1st Half Winner",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFT1",
+     "title": "NBA Draft First Pick",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBATEAM",
+     "title": "NBA team",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAEXTENSION",
+     "title": "NBA Player Contract Extension",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPLAYOFFHOST",
+     "title": "NBA Team Home Playoff Games",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA2H",
+     "title": "NBA 2nd Half Winner",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAREB",
+     "title": "NBA Player Rebounds",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPLAYERSPECIALS",
+     "title": "Pro Basketball Player Specials",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBANEWCHAMP",
+     "title": "NBA First-Time Champion",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAWINRECORD",
+     "title": "OKC NBA Win Record",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASWEEP",
+     "title": "NBA Teams to Have a Series Sweep",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA2NDTEAM",
+     "title": "All-NBA 2nd Team",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAEXEC",
+     "title": "NBA Executive of the Year",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASERIESPTSSPREAD",
+     "title": "Pro Basketball Series Points Spread",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA4QSPREAD",
+     "title": "NBA 4th Quarter Spread",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBATEAMANNOUNCE",
+     "title": "Pro Basketball New Team Announce",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBATOTALPRECISE",
+     "title": "NBA Total Points Range",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBARETURN",
+     "title": "Pro Basketball Player to Return",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA3Q",
+     "title": "NBA 3rd Quarter Winner",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAHIGHESTSCORING",
+     "title": "NBA Player with the Highest Scoring Game",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBACUPMVP",
+     "title": "NBA Cup Tournament MVP",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFTTEAM",
+     "title": "Pro Basketball Team to Draft",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBATOP5ROTY",
+     "title": "Top 5 NBA draft ROTY",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPLAYOFFPTS",
+     "title": "NBA Playoffs Player Points",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAFTM",
+     "title": "NBA Player Free Throws Made",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA2QTOTAL",
+     "title": "NBA 2nd Quarter Total",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAEUROPEANNOUNCE",
+     "title": "NBA Europe Inaugural Season Being Announced",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFTCOMP",
+     "title": "Pro Basketball Draft Comparison",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBARECORD",
+     "title": "Pro Basketball Best/Worst Regular Season Record",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA2QSPREAD",
+     "title": "NBA 2nd Quarter Spread",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAMVPCHAMP",
+     "title": "MVP to Win the NBA Finals",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA3QSPREAD",
+     "title": "NBA 3rd Quarter Spread",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA2DPROT",
+     "title": "NBA Player Double Double Protected",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA1H",
+     "title": "NBA 1st Half Winner",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBACUPGROUP",
+     "title": "NBA Cup Group Winner",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPTSLEADER",
+     "title": "NBA Game Points Leader",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBARETIRE",
+     "title": "NBA Retirement",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAOVERTIME",
+     "title": "NBA Overtime",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBATEAMTOTAL",
+     "title": "NBA Team Total",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXFIRSTPICKNBA",
+     "title": "NBA first pick",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASUMMERPTS",
+     "title": "Pro Basketball Summer Player Points",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBANEXTTEAMOUTLET",
+     "title": "Pro Basketball Outlet to Announce Next Team",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBACUPGROUPWIN",
+     "title": "NBA Cup Group to Win",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAFIRSTBASKET",
+     "title": "Pro Basketball First Basket",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASLAMDUNK",
+     "title": "NBA Slam Dunk Contest Winner",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASIXTH",
+     "title": "NBA Sixth Man of the Year",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAH2HWINS",
+     "title": "NBA Head to Head Win Total",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASJC",
+     "title": "NBA Social Justice Champion",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAWCFQUAL",
+     "title": "NBA Western Conference Finals Qualifiers",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA3RDTEAM",
+     "title": "All-NBA 3rd Team",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAGAMEHIGHSCORE",
+     "title": "NBA Highest Scoring Game of the Season",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNEXTCOACHOUTNBA",
+     "title": "Next coach out NBA",
+     "frequency": "custom",
+     "tags": null
+    },
+    {
+     "ticker": "KXNBAPLAYERDEAL",
+     "title": "Next Pro Basketball Brand Deal",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBACITYEXPAND",
+     "title": "NBA City Franchise Expansion",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASTATLEADER",
+     "title": "NBA Regular Season League Leader",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNFLNBA",
+     "title": "NFL and NBA Champion Combo",
+     "frequency": "custom",
+     "tags": [
+      "Football",
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBANEXTTEAMCONF",
+     "title": "Pro Basketball Next Team Conference",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASERIESOT",
+     "title": "Pro Basketball Series Overtime",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAUPSET",
+     "title": "NBA Number of Upsets per Round",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXCITYNBAEXPAND",
+     "title": "Cities NBA expand",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPLAYOFFWINS",
+     "title": "NBA Playoff Wins by Team",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASOUTHWEST",
+     "title": "Pro Basketball Southwest Division Winner",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASERIES3PMLEADER",
+     "title": "Pro Basketball Series 3-Pointers Made Leader",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFTMATCHUP",
+     "title": "Pro Basketball Draft Matchup",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAAWARDFIN",
+     "title": "NBA Award Finalists",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBACOMPETE",
+     "title": "Pro Basketball Player to Compete",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFTINT",
+     "title": "Pro Basketball International Players Drafted",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA3DPROT",
+     "title": "NBA Player Triple Double Protected",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBANEXTGOVERNOR",
+     "title": "Pro Basketball Next Governor",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAAPOLOGY",
+     "title": "Pro Basketball Apology",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAESCALATORPTS",
+     "title": "NBA Player Points Escalator",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASUMMERTOTAL",
+     "title": "Pro Basketball Summer League Total",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA30COMEBACK",
+     "title": "NBA 3-0 Series Comeback",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFT7",
+     "title": "NBA Draft Seventh Pick",
+     "frequency": "annual",
+     "tags": null
+    },
+    {
+     "ticker": "KXNBATOPPICK",
+     "title": "Pro Basketball Draft Lottery Winner",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBATEAMMATE",
+     "title": "NBA Teammate of the Year",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASUMMER1HSPREAD",
+     "title": "Pro Basketball Summer League 1st Half Spread",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA2HTEAMTOTAL",
+     "title": "NBA 2nd Half Team Total",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXLEADERNBA3PT",
+     "title": "NBA 3PG Leader",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFTTOP5",
+     "title": "NBA Draft Top 5 Pick",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBABENCHPTS",
+     "title": "NBA Bench Points",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBARELOCATION",
+     "title": "Pro Basketball Team Relocation",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASERIESGAMES",
+     "title": "NBA Series Total Games",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAEAST",
+     "title": "Pro Basketball Eastern Conference Champion",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPLAYOFFHOMEGAMES",
+     "title": "NBA Team Home Playoff Games",
+     "frequency": "one_off",
+     "tags": [
+      "Chess"
+     ]
+    },
+    {
+     "ticker": "KXNEXTTEAMNBA",
+     "title": "Next NBA Team",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPOSTASREC",
+     "title": "NBA Best Record Post-All-Star Break",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA3PT",
+     "title": "NBA Player Threes",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA1HWINNER",
+     "title": "Pro Baskeball 1st Half Winner",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXCOACHOUTNBA",
+     "title": "NBA Coach Out",
+     "frequency": "custom",
+     "tags": null
+    },
+    {
+     "ticker": "KXNBASOUTHEAST",
+     "title": "Pro Basketball Southeast Division Winner",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBABLKPROT",
+     "title": "NBA Player Blocks Protected",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA",
+     "title": "Pro Basketball Champion",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAROOKIE1STTEAM",
+     "title": "NBA All-Rookie 1st Team",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAWINSTREAK",
+     "title": "NBA Longest Win Streak",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBABLK",
+     "title": "NBA Player Blocks",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA1STTEAMDEF",
+     "title": "NBA All-Defensive 1st Team",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA3QTOTAL",
+     "title": "NBA 3rd Quarter Total",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPACIFIC",
+     "title": "Pro Basketball Pacific Division Winner",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBANEXTTEAM",
+     "title": "Pro Basketball Next Team",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBATOTAL",
+     "title": "NBA Total",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPR",
+     "title": "Pro Basketball Player Points + Rebounds",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBARACE",
+     "title": "NBA Race to Points",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFTTOP25",
+     "title": "NBA Draft Top 25 Pick",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBALASVEGAS",
+     "title": "Las Vegas NBA team",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFTTOP30",
+     "title": "NBA Draft Top 30 Pick",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAH2HBENCHPTS",
+     "title": "NBA Head-to-Head Bench Points",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAFINALSMVP",
+     "title": "Finals MVP",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXTEAMSINNBAEF",
+     "title": "Teams in NBA Eastern Conference Finals",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAFINALSOUTCOME",
+     "title": "NBA Finals Outcome",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASUMMERGAME",
+     "title": "Pro Basketball Summer League Game",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASUMMER",
+     "title": "Pro Basketball Summer League Champion",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBATEAMSALE",
+     "title": "Pro Basketball Team to be Sold",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBACLUTCH",
+     "title": "NBA Clutch Player of the Year",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAALLSTAR",
+     "title": "NBA All-Star game",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAFINMVP",
+     "title": "NBA Finals MVP",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA1QSPREAD",
+     "title": "NBA 1st Quarter Spread",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBATOJOINCBA",
+     "title": "NBA Players to Join the CBA",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA2HTOTAL",
+     "title": "NBA 2nd Half Total",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAAST",
+     "title": "NBA Player Assists",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA4QTOTAL",
+     "title": "NBA 4th Quarter Total",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAALLSTARMVP",
+     "title": "NBA All-Star Game MVP",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBACOY",
+     "title": "NBA Coach of the Year",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBARISINGSTARS",
+     "title": "Pro Basketball Rising Stars Tournament",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAMVP",
+     "title": "NBA MVP",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXRECORDNBABEST",
+     "title": "Best Pro Basketball Record",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBACUP",
+     "title": "Pro Basketball Cup Champion",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFT3",
+     "title": "NBA Draft Third Pick",
+     "frequency": "annual",
+     "tags": null
+    },
+    {
+     "ticker": "KXNBASEATTLE",
+     "title": "Seattle NBA team",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASTADIUM",
+     "title": "NBA Stadium Completion",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXTEAMSINNBAWF",
+     "title": "Teams in NBA Western Conference Finals",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXTOP3NBADRAFT",
+     "title": "NBA Draft Top 3",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXLEADERNBAREB",
+     "title": "NBA RPG Leader",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA1HTEAMTOTAL",
+     "title": "NBA 1st Half Team Total",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASERIESREBLEADER",
+     "title": "Pro Basketball Series Rebounds Leader",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA4QTEAMTOTAL",
+     "title": "NBA 4th Quarter Team Total",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBACOACHOUT",
+     "title": "Pro Basketball Coaches Out",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBALOTTERY",
+     "title": "NBA Draft Lottery Picks",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAMVPDPOY",
+     "title": "Pro Basketball Player to Win MVP and DPOY",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASTOCKPROT",
+     "title": "NBA Player Steals + Blocks Protected",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPLAYIN",
+     "title": "Which Team Will Make the Play-In Tournament",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPARTNERSHIP",
+     "title": "NBA Player Partnership Deal",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASERIESASTLEADER",
+     "title": "Pro Basketball Series Assists Leader",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNEXTNBACOACH",
+     "title": "Who is the Next NBA Coach of Team",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASERIESTOTALPTS",
+     "title": "Pro Basketball Series Total Points",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAESCALATOR3PT",
+     "title": "NBA Player Threes Escalator",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBANEWCHAMPION",
+     "title": "Pro Basketball New Champion",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAROY",
+     "title": "NBA Rookie of the Year",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXLEADERNBABLK",
+     "title": "NBA BPG Leader",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFTTOP20",
+     "title": "NBA Draft Top 20 Pick",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBACONF",
+     "title": "NBA Conference to Win the Championship",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPOTM",
+     "title": "NBA Player of the Month",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASPREAD",
+     "title": "NBA Spread",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBALADDER3PT",
+     "title": "NBA Player Threes Ladder",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAECFQUAL",
+     "title": "NBA Eastern Conference Finals Qualifiers",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPTS",
+     "title": "NBA Player Points",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBACELEBRITY3PT",
+     "title": "NBA Celebrity 3PT Contest",
+     "frequency": "one_off",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA2D",
+     "title": "NBA Player Double Double",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAGAME",
+     "title": "NBA Game",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBACOTM",
+     "title": "NBA Coach of the Month",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASEEDCHAMP",
+     "title": "NBA Seed of Champion",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPLAYOFF",
+     "title": "Pro Basketball Playoff Qualifier",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA3PTPROT",
+     "title": "NBA Player Threes Protected",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFTTOP10",
+     "title": "NBA Draft Top 10 Pick",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAJOINCONF",
+     "title": "Pro Basketball Join Conference",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBATRADE",
+     "title": "Pro Basketball Trade",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAH2H3PT",
+     "title": "NBA Head-to-Head Three Pointers",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA3QWINNER",
+     "title": "NBA 3rd Quarter Winner",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA3PEAT",
+     "title": "Pro Basketball Three-Peat Champion",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA1STTEAM",
+     "title": "All-NBA 1st Team",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA1QTOTAL",
+     "title": "NBA 1st Quarter Total",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAREBPROT",
+     "title": "NBA Player Rebounds Protected",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASHOOTINGSTARS",
+     "title": "Pro Basketball Shooting Stars Contest",
+     "frequency": "one_off",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADPOY",
+     "title": "NBA Defensive Player of the Year",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXLEADERNBAAST",
+     "title": "NBA APG Leader",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAOT",
+     "title": "NBA Overtime",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAALLSTARS",
+     "title": "NBA All-Stars",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASERIESROADWINS",
+     "title": "Pro Basketball Series Total Road Wins",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBATEAMWINSTREAK",
+     "title": "NBA Team with the Longest Winning Streak",
+     "frequency": "one_off",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA3PTALLGAMES",
+     "title": "Pro Basketball 3-Pointers in Every Game",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAROOKIEAS",
+     "title": "NBA Rookies to Be an All-Star",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPOLOSE",
+     "title": "Pro Basketball Playoff Losses",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFT4",
+     "title": "NBA Draft Fourth Pick",
+     "frequency": "annual",
+     "tags": null
+    },
+    {
+     "ticker": "KXCOACHOUTNBADATE",
+     "title": "NBA Coach Out Date",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAROTM",
+     "title": "NBA Rookie of the Month",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAASSTARTERS",
+     "title": "NBA All-Star Starters",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPICKTRADE",
+     "title": "Pro Basketball Pick Trade",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA1Q",
+     "title": "NBA 1st Quarter Winner",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASERIESPTSLEADER",
+     "title": "Pro Basketball Series Points Leader",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAGAME7",
+     "title": "NBA Series that Go to a Game 7",
+     "frequency": "one_off",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPTSALLGAMES",
+     "title": "Pro Basketball Points in Every Game",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBANEXTCONTRACT",
+     "title": "Pro Basketball Next Contract Size",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA3D",
+     "title": "NBA Player Triple Double",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA2QWINNER",
+     "title": "NBA 2nd Quarter Winner",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASERIESROADWIN",
+     "title": "NBA Series 1st Road Win",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXPLAYEROPTIONNBA",
+     "title": "player option nba",
+     "frequency": "custom",
+     "tags": null
+    },
+    {
+     "ticker": "KXNBAWEST1SEED",
+     "title": "NBA Western Conference 1 Seed",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA2QTEAMTOTAL",
+     "title": "NBA 2nd Quarter Team Total",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPTSPRECISE",
+     "title": "NBA Player Points Range",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPLAYERHIGHSCORE",
+     "title": "NBA Highest Scoring Performance in Regular Season",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBACUP1STTEAM",
+     "title": "NBA Cup All-Tournament Team",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXTRADEOFFNBA",
+     "title": "Pro basketball trades offseason",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFT8",
+     "title": "NBA Draft Eighth Pick",
+     "frequency": "annual",
+     "tags": null
+    },
+    {
+     "ticker": "KXNBAGAMESPECIALS",
+     "title": "Pro Basketball Game Specials",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBARA",
+     "title": "Pro Basketball Player Rebounds + Assists",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASUMMER1HTOTAL",
+     "title": "Pro Basketball Summer League 1st Half Total",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXTEAMSINNBAF",
+     "title": "Teams in NBA Finals",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA3PTCONTEST",
+     "title": "NBA 3-Point Contest Winner",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAFINALSVIEWERGAME7",
+     "title": "NBA finals viewership",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAWINS",
+     "title": "Pro Basketball Win Totals",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBALOTTERYODDS",
+     "title": "NBA Lottery Winner Odds",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBACUPQUAL",
+     "title": "Pro Basketball Cup Qualifiers",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBACENTRAL",
+     "title": "Pro Basketball Central Division Winner",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXLEADERNBAPTS",
+     "title": "NBA PPG Leader",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAFINALSEXACT",
+     "title": "Pro Basketball Championship Series Score",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFT10",
+     "title": "NBA Draft Tenth Pick",
+     "frequency": "annual",
+     "tags": null
+    },
+    {
+     "ticker": "KXNBA4QWINNER",
+     "title": "NBA 4th Quarter Winner",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAWEST",
+     "title": "Pro Basketball Western Conference Champion",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAHOMECLINCH",
+     "title": "Pro Basketball Series Winner to Clinch at Home",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAEFINMVP",
+     "title": "NBA Eastern Conference Finals MVP",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASPORTSMANSHIP",
+     "title": "NBA Sportsmanship Award",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXLEADERNBASTL",
+     "title": "NBA SPG Leader",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA2HWINNER",
+     "title": "Pro Basketball 2nd Half Winner",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPRAPROT",
+     "title": "Pts + Reb + Ast Protected",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASEED",
+     "title": "NBA Playoff Seed",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPLAYOFF3D",
+     "title": "NBA Playoff Triple-Double",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA4Q",
+     "title": "NBA 4th Quarter Winner",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA1QTEAMTOTAL",
+     "title": "NBA 1st Quarter Team Total",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASERIES",
+     "title": "NBA Series Winner",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAMIMP",
+     "title": "NBA Most Improved Player",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAHUSTLE",
+     "title": "NBA Hustle Award",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAFIRSTOPPONENT",
+     "title": "Pro Basketball First Opponent of the Season",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA2Q",
+     "title": "NBA 2nd Quarter Winner",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA2NDTEAMDEF",
+     "title": "NBA All-Defensive 2nd Team",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFTPICK",
+     "title": "Pro Basketball Draft Pick",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAMATCHUP",
+     "title": "NBA Matchup",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA3QTEAMTOTAL",
+     "title": "NBA 3rd Quarter Team Total",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAWINMARGIN",
+     "title": "NBA Win Margin",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBATOP3",
+     "title": "Pro Basketball Draft Lottery Top 3",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA2HSPREAD",
+     "title": "NBA 2nd Half Spread",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASTOCKS",
+     "title": "NBA Player Steals and Blocks",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBADRAFTTOP15",
+     "title": "NBA Draft Top 15 Pick",
+     "frequency": "annual",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAH2HPTS",
+     "title": "NBA Head-to-Head Points",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAROOKIE2NDTEAM",
+     "title": "NBA All-Rookie 2nd Team",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBA1QWINNER",
+     "title": "NBA 1st Quarter Winner",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASTOCK",
+     "title": "NBA Player Steals + Blocks",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBASERIESSCORE",
+     "title": "NBA Series Exact Score",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAPTSPROT",
+     "title": "NBA Player Points Protected",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAFIRST50PTS",
+     "title": "First NBA Player to Score 50 Points",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    },
+    {
+     "ticker": "KXNBAH2HTEAM3PT",
+     "title": "NBA H2H Team Three Pointers",
+     "frequency": "custom",
+     "tags": [
+      "Basketball"
+     ]
+    }
+   ],
+   "bySeries": [
+    {
+     "ticker": "KXNBADRAFT6",
+     "title": "NBA Draft Sixth Pick",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBADRAFTOU",
+     "title": "Pro Basketball Players Draft Position",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBALASTTOLOSE",
+     "title": "NBA Last Undefeated Team",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBASUMMERMVP",
+     "title": "Pro Basketball Summer League MVP",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBALADDERPTS",
+     "title": "NBA Player Points Ladder",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBASERIESSPREAD",
+     "title": "NBA Series Game Spread",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAFINBLOWOUT",
+     "title": "Pro Basketball Finals Blowout",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAONE3PT",
+     "title": "NBA Players to Make One Three",
+     "status": 200,
+     "events": 1,
+     "markets": 10,
+     "sample": {
+      "event": "KXNBAONE3PT-27",
+      "title": "Players to Make One Three-Pointer this Season",
+      "top": [
+       {
+        "ticker": "KXNBAONE3PT-27-NQUETA88",
+        "name": "Neemias Queta",
+        "last": "0.9900",
+        "bid": "0.0000",
+        "ask": "1.0000",
+        "vol": "176.06",
+        "vol24": "0.00",
+        "oi": "101.00"
+       },
+       {
+        "ticker": "KXNBAONE3PT-27-DGAFFORD21",
+        "name": "Daniel Gafford",
+        "last": "0.9900",
+        "bid": "0.0000",
+        "ask": "1.0000",
+        "vol": "541.15",
+        "vol24": "0.00",
+        "oi": "368.77"
+       },
+       {
+        "ticker": "KXNBAONE3PT-27-IHARTENSTEIN55",
+        "name": "Isaiah Hartenstein",
+        "last": "0.9900",
+        "bid": "0.6600",
+        "ask": "0.7500",
+        "vol": "200.01",
+        "vol24": "0.00",
+        "oi": "200.01"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBASUMMERSPREAD",
+     "title": "Pro Basketball Summer League Spread",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBASERIESGCOMEBACK",
+     "title": "Pro Basketball Series Game Comeback",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAFINALSVIEWER",
+     "title": "NBA finals viewership",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBADRAFT5",
+     "title": "NBA Draft Fifth Pick",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAUNBEATEN",
+     "title": "NBA Playoffs Team to go Undefeated",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAALLSTARGAME",
+     "title": "NBA All-Star Game Winner",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAWFINMVP",
+     "title": "NBA Western Conference Finals MVP",
+     "status": 200,
+     "events": 1,
+     "markets": 50,
+     "sample": {
+      "event": "KXNBAWFINMVP-27",
+      "title": "Pro Basketball Western Conference Finals MVP Winner",
+      "top": [
+       {
+        "ticker": "KXNBAWFINMVP-27-JMCDANIELS3",
+        "name": "Jaden McDaniels",
+        "last": "0.9000",
+        "bid": "0.0000",
+        "ask": "0.0200",
+        "vol": "0.03",
+        "vol24": "0.00",
+        "oi": "0.03"
+       },
+       {
+        "ticker": "KXNBAWFINMVP-27-VWEMBANYAMA1",
+        "name": "Victor Wembanyama",
+        "last": "0.4000",
+        "bid": "0.2500",
+        "ask": "0.3700",
+        "vol": "345.00",
+        "vol24": "0.00",
+        "oi": "345.00"
+       },
+       {
+        "ticker": "KXNBAWFINMVP-27-LBALL1",
+        "name": "LaMelo Ball",
+        "last": "0.2100",
+        "bid": "0.0100",
+        "ask": "0.1900",
+        "vol": "183.32",
+        "vol24": "0.00",
+        "oi": "183.32"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBAPREPACK3ML",
+     "title": "3ML Basketball Combo",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBADRAFTCONF",
+     "title": "Pro Basketball Players Drafted by Conference",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAASTPROT",
+     "title": "NBA Player Assists Protected",
+     "status": 200,
+     "events": 5,
+     "markets": 221,
+     "sample": {
+      "event": "KXNBAASTPROT-26NOV17NYKTOR",
+      "title": "New York vs Toronto: Assists",
+      "top": [
+       {
+        "ticker": "KXNBAASTPROT-26NOV17NYKTOR-NYKKTOWNS32-2",
+        "name": "Karl-Anthony Towns: 2+",
+        "last": "0.9900",
+        "bid": "0.0000",
+        "ask": "1.0000",
+        "vol": "3.00",
+        "vol24": "3.00",
+        "oi": "3.00"
+       },
+       {
+        "ticker": "KXNBAASTPROT-26NOV17NYKTOR-TORIQUICKLEY5-2",
+        "name": "Immanuel Quickley: 2+",
+        "last": "0.9900",
+        "bid": "0.0000",
+        "ask": "1.0000",
+        "vol": "3.00",
+        "vol24": "3.00",
+        "oi": "3.00"
+       },
+       {
+        "ticker": "KXNBAASTPROT-26NOV17NYKTOR-TORIQUICKLEY5-4",
+        "name": "Immanuel Quickley: 4+",
+        "last": "0.9900",
+        "bid": "0.9900",
+        "ask": "1.0000",
+        "vol": "4.00",
+        "vol24": "4.00",
+        "oi": "4.00"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBAPRA",
+     "title": "NBA Player Points + Rebounds + Assists",
+     "status": 200,
+     "events": 5,
+     "markets": 195,
+     "sample": {
+      "event": "KXNBAPRA-26NOV17NYKTOR",
+      "title": "New York vs Toronto: Pts + Reb + Ast",
+      "top": [
+       {
+        "ticker": "KXNBAPRA-26NOV17NYKTOR-NYKMBRIDGES25-10",
+        "name": "Mikal Bridges: 10+",
+        "last": "0.9900",
+        "bid": "0.9900",
+        "ask": "1.0000",
+        "vol": "43.44",
+        "vol24": "43.44",
+        "oi": "43.44"
+       },
+       {
+        "ticker": "KXNBAPRA-26NOV17NYKTOR-NYKKTOWNS32-30",
+        "name": "Karl-Anthony Towns: 30+",
+        "last": "0.9600",
+        "bid": "0.9800",
+        "ask": "0.9900",
+        "vol": "470.59",
+        "vol24": "470.59",
+        "oi": "406.46"
+       },
+       {
+        "ticker": "KXNBAPRA-26NOV17NYKTOR-TORIQUICKLEY5-20",
+        "name": "Immanuel Quickley: 20+",
+        "last": "0.9400",
+        "bid": "0.8700",
+        "ask": "0.9400",
+        "vol": "154.71",
+        "vol24": "154.71",
+        "oi": "154.71"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBASTLPROT",
+     "title": "NBA Player Steals Protected",
+     "status": 200,
+     "events": 5,
+     "markets": 129,
+     "sample": {
+      "event": "KXNBASTLPROT-26NOV17NYKTOR",
+      "title": "New York vs Toronto: Steals",
+      "top": [
+       {
+        "ticker": "KXNBASTLPROT-26NOV17NYKTOR-NYKJHART3-1",
+        "name": "Josh Hart: 1+",
+        "last": "0.9900",
+        "bid": "0.1000",
+        "ask": "1.0000",
+        "vol": "1.00",
+        "vol24": "1.00",
+        "oi": "1.00"
+       },
+       {
+        "ticker": "KXNBASTLPROT-26NOV17NYKTOR-TORJWALTER14-1",
+        "name": "Ja'Kobe Walter: 1+",
+        "last": "0.9900",
+        "bid": "0.1000",
+        "ask": "1.0000",
+        "vol": "1.00",
+        "vol24": "1.00",
+        "oi": "1.00"
+       },
+       {
+        "ticker": "KXNBASTLPROT-26NOV17NYKTOR-NYKJBRUNSON11-1",
+        "name": "Jalen Brunson: 1+",
+        "last": "0.9900",
+        "bid": "0.1000",
+        "ask": "0.9800",
+        "vol": "1.00",
+        "vol24": "1.00",
+        "oi": "1.00"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBASERIESCOMEBACK",
+     "title": "Pro Basketball Series Comeback",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBA1HSPREAD",
+     "title": "NBA 1st Half Spread",
+     "status": 200,
+     "events": 5,
+     "markets": 95,
+     "sample": {
+      "event": "KXNBA1HSPREAD-26NOV17NYKTOR",
+      "title": "New York vs Toronto: 1st Half Spread",
+      "top": [
+       {
+        "ticker": "KXNBA1HSPREAD-26NOV17NYKTOR-NYK2",
+        "name": "New York wins by over 1.5 points",
+        "last": "0.9900",
+        "bid": "0.9900",
+        "ask": "1.0000",
+        "vol": "117802.68",
+        "vol24": "117091.00",
+        "oi": "71361.35"
+       },
+       {
+        "ticker": "KXNBA1HSPREAD-26NOV17NYKTOR-NYK4",
+        "name": "New York wins by over 3.5 points",
+        "last": "0.9900",
+        "bid": "0.9900",
+        "ask": "1.0000",
+        "vol": "14761.52",
+        "vol24": "14761.52",
+        "oi": "7262.11"
+       },
+       {
+        "ticker": "KXNBA1HSPREAD-26NOV17NYKTOR-NYK8",
+        "name": "New York wins by over 7.5 points",
+        "last": "0.0200",
+        "bid": "0.0000",
+        "ask": "0.0100",
+        "vol": "2205.25",
+        "vol24": "2205.25",
+        "oi": "2052.17"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBAXMASOPPONENT",
+     "title": "Pro Basketball Christmas Day Opponent",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBADPOTM",
+     "title": "NBA Defensive Player of the Month",
+     "status": 200,
+     "events": 2,
+     "markets": 120,
+     "sample": {
+      "event": "KXNBADPOTM-NOV26EAST",
+      "title": "Eastern Conference Defensive Player of the Month in October/November",
+      "top": [
+       {
+        "ticker": "KXNBADPOTM-NOV26EAST-JSUGGS4",
+        "name": "Jalen Suggs",
+        "last": "0.9500",
+        "bid": "0.0000",
+        "ask": "0.9500",
+        "vol": "0.01",
+        "vol24": "0.00",
+        "oi": "0.01"
+       },
+       {
+        "ticker": "KXNBADPOTM-NOV26EAST-EMOBLEY4",
+        "name": "Evan Mobley",
+        "last": "0.0000",
+        "bid": "0.0000",
+        "ask": "0.9500",
+        "vol": "0.00",
+        "vol24": "0.00",
+        "oi": "0.00"
+       },
+       {
+        "ticker": "KXNBADPOTM-NOV26EAST-BADEBAYO13",
+        "name": "Bam Adebayo",
+        "last": "0.0000",
+        "bid": "0.0000",
+        "ask": "0.9500",
+        "vol": "0.00",
+        "vol24": "0.00",
+        "oi": "0.00"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBAH2HPTSMARGIN",
+     "title": "NBA H2H Player Points Bracketed",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBA4D",
+     "title": "Any Player to Record a Quadruple Double",
+     "status": 200,
+     "events": 1,
+     "markets": 1,
+     "sample": {
+      "event": "KXNBA4D-27",
+      "title": "Any Player to Record a Quadruple Double",
+      "top": [
+       {
+        "ticker": "KXNBA4D-27-Y",
+        "name": "Any player to record a quadruple double",
+        "last": "0.1900",
+        "bid": "0.0500",
+        "ask": "0.0700",
+        "vol": "1.00",
+        "vol24": "0.00",
+        "oi": "1.00"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBAGAMES",
+     "title": "NBA games",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAFRANCHISECOST",
+     "title": "NBA Franchise Cost",
+     "status": 200,
+     "events": 1,
+     "markets": 7,
+     "sample": {
+      "event": "KXNBAFRANCHISECOST-31DEC26LV",
+      "title": "Las Vegas Pro Basketball Expansion Franchise Price",
+      "top": [
+       {
+        "ticker": "KXNBAFRANCHISECOST-31DEC26LV-B8",
+        "name": "Above $8 billion",
+        "last": "0.8800",
+        "bid": "0.5300",
+        "ask": "0.8800",
+        "vol": "1401.00",
+        "vol24": "0.00",
+        "oi": "1171.00"
+       },
+       {
+        "ticker": "KXNBAFRANCHISECOST-31DEC26LV-B9",
+        "name": "Above $9 billion",
+        "last": "0.8500",
+        "bid": "0.3000",
+        "ask": "0.8300",
+        "vol": "48.45",
+        "vol24": "0.00",
+        "oi": "46.11"
+       },
+       {
+        "ticker": "KXNBAFRANCHISECOST-31DEC26LV-B10",
+        "name": "Above $10 billion",
+        "last": "0.8300",
+        "bid": "0.6400",
+        "ask": "0.8300",
+        "vol": "1574.83",
+        "vol24": "0.00",
+        "oi": "963.32"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBASTL",
+     "title": "NBA Player Steals",
+     "status": 200,
+     "events": 5,
+     "markets": 129,
+     "sample": {
+      "event": "KXNBASTL-26NOV17NYKTOR",
+      "title": "New York vs Toronto: Steals",
+      "top": [
+       {
+        "ticker": "KXNBASTL-26NOV17NYKTOR-TORJWALTER14-1",
+        "name": "Ja'Kobe Walter: 1+",
+        "last": "0.9900",
+        "bid": "0.8700",
+        "ask": "1.0000",
+        "vol": "1006.66",
+        "vol24": "1006.66",
+        "oi": "1006.66"
+       },
+       {
+        "ticker": "KXNBASTL-26NOV17NYKTOR-NYKJHART3-1",
+        "name": "Josh Hart: 1+",
+        "last": "0.9500",
+        "bid": "0.3500",
+        "ask": "0.9500",
+        "vol": "96.45",
+        "vol24": "96.45",
+        "oi": "96.45"
+       },
+       {
+        "ticker": "KXNBASTL-26NOV17NYKTOR-TORSBARNES4-1",
+        "name": "Scottie Barnes: 1+",
+        "last": "0.6100",
+        "bid": "0.5100",
+        "ask": "0.5400",
+        "vol": "11.50",
+        "vol24": "11.50",
+        "oi": "11.44"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBARULE",
+     "title": "Pro Basketball Rule",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBA1HTOTAL",
+     "title": "NBA 1st Half Total",
+     "status": 200,
+     "events": 5,
+     "markets": 95,
+     "sample": {
+      "event": "KXNBA1HTOTAL-26NOV17NYKTOR",
+      "title": "New York vs Toronto: 1st Half Total",
+      "top": [
+       {
+        "ticker": "KXNBA1HTOTAL-26NOV17NYKTOR-96",
+        "name": "Over 95.5 points",
+        "last": "0.9900",
+        "bid": "0.9900",
+        "ask": "1.0000",
+        "vol": "13649.00",
+        "vol24": "13649.00",
+        "oi": "13646.24"
+       },
+       {
+        "ticker": "KXNBA1HTOTAL-26NOV17NYKTOR-98",
+        "name": "Over 97.5 points",
+        "last": "0.9900",
+        "bid": "0.9900",
+        "ask": "1.0000",
+        "vol": "3340.61",
+        "vol24": "3340.61",
+        "oi": "2608.34"
+       },
+       {
+        "ticker": "KXNBA1HTOTAL-26NOV17NYKTOR-100",
+        "name": "Over 99.5 points",
+        "last": "0.9900",
+        "bid": "0.9900",
+        "ask": "1.0000",
+        "vol": "1715.32",
+        "vol24": "1715.32",
+        "oi": "1439.84"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBADRAFT2",
+     "title": "NBA Draft Second Pick",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBACELEBRITYGAME",
+     "title": "Pro Basketball All-Star Celebrity Game",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAH2HPRA",
+     "title": "NBA Head-to-Head Points, Rebounds and Assists",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBASTAKESALE",
+     "title": "NBA Team Ownership Stake Sale Agreement",
+     "status": 200,
+     "events": 1,
+     "markets": 1,
+     "sample": {
+      "event": "KXNBASTAKESALE-27JAN01LAL",
+      "title": "Will Jeanie Buss agree to sell her remaining minority stake in Los Angeles L before Jan 1, 2027?",
+      "top": [
+       {
+        "ticker": "KXNBASTAKESALE-27JAN01LAL-Y",
+        "name": "Agreement before Jan 1, 2027",
+        "last": "0.0200",
+        "bid": "0.0200",
+        "ask": "0.5900",
+        "vol": "1505.86",
+        "vol24": "0.00",
+        "oi": "1438.40"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBADRAFTTOP",
+     "title": "Pro Basketball Top Draft",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBASERIESPTS",
+     "title": "Pro Basketball Series Player Points",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAPA",
+     "title": "Pro Basketball Player Points + Assists",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAWHATTEND",
+     "title": "Pro Basketball White House Attend",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBASTATAVG",
+     "title": "NBA Player Stat Average",
+     "status": 200,
+     "events": 4,
+     "markets": 188,
+     "sample": {
+      "event": "KXNBASTATAVG-273PG",
+      "title": "Player Three-Pointers Made Per Game (3PG) Season Averages",
+      "top": [
+       {
+        "ticker": "KXNBASTATAVG-273PG-KKNUEPPEL7-3P5",
+        "name": "Kon Knueppel: 3.5+ 3PG",
+        "last": "0.8700",
+        "bid": "0.0000",
+        "ask": "1.0000",
+        "vol": "376.52",
+        "vol24": "0.00",
+        "oi": "0.00"
+       },
+       {
+        "ticker": "KXNBASTATAVG-273PG-JTATUM0-3P5",
+        "name": "Jayson Tatum: 3.5+ 3PG",
+        "last": "0.8700",
+        "bid": "0.0500",
+        "ask": "0.2200",
+        "vol": "168.50",
+        "vol24": "0.00",
+        "oi": "0.00"
+       },
+       {
+        "ticker": "KXNBASTATAVG-273PG-CWHITE3-3P0",
+        "name": "Coby White: 3.0+ 3PG",
+        "last": "0.8700",
+        "bid": "0.0000",
+        "ask": "1.0000",
+        "vol": "411.34",
+        "vol24": "0.00",
+        "oi": "0.00"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBAFRANCHISEOWNER",
+     "title": "NBA Franchise Owner",
+     "status": 200,
+     "events": 1,
+     "markets": 3,
+     "sample": {
+      "event": "KXNBAFRANCHISEOWNER-01JAN28LV",
+      "title": "Who will be the controlling owner of the Las Vegas Pro Basketball expansion franchise?",
+      "top": [
+       {
+        "ticker": "KXNBAFRANCHISEOWNER-01JAN28LV-FOLCOL",
+        "name": "Bill Foley and/or Jerry Colangelo",
+        "last": "0.4300",
+        "bid": "0.4300",
+        "ask": "0.5000",
+        "vol": "1961.59",
+        "vol24": "0.00",
+        "oi": "601.72"
+       },
+       {
+        "ticker": "KXNBAFRANCHISEOWNER-01JAN28LV-LAURIE",
+        "name": "Nancy Walton Laurie and/or Bill Laurie",
+        "last": "0.2900",
+        "bid": "0.0500",
+        "ask": "0.9800",
+        "vol": "1000.00",
+        "vol24": "0.00",
+        "oi": "1000.00"
+       },
+       {
+        "ticker": "KXNBAFRANCHISEOWNER-01JAN28LV-APOLAS",
+        "name": "Steve Apostolopoulos and/or Marc Lasry",
+        "last": "0.2100",
+        "bid": "0.2200",
+        "ask": "0.2300",
+        "vol": "3165.97",
+        "vol24": "0.00",
+        "oi": "1906.03"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBADRAFTCAT",
+     "title": "Pro Basketball Draft Category",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAMOSTWINS",
+     "title": "Pro Basketball Highest Win Total",
+     "status": 200,
+     "events": 1,
+     "markets": 4,
+     "sample": {
+      "event": "KXNBAMOSTWINS-27",
+      "title": "Pro Basketball Highest Regular Season Win Total",
+      "top": [
+       {
+        "ticker": "KXNBAMOSTWINS-27-65",
+        "name": "65+ wins",
+        "last": "0.4700",
+        "bid": "0.3000",
+        "ask": "0.5600",
+        "vol": "2970.61",
+        "vol24": "0.00",
+        "oi": "1483.55"
+       },
+       {
+        "ticker": "KXNBAMOSTWINS-27-67",
+        "name": "67+ wins",
+        "last": "0.2600",
+        "bid": "0.1500",
+        "ask": "0.7800",
+        "vol": "1499.78",
+        "vol24": "0.00",
+        "oi": "1308.87"
+       },
+       {
+        "ticker": "KXNBAMOSTWINS-27-70",
+        "name": "70+ wins",
+        "last": "0.0000",
+        "bid": "0.0000",
+        "ask": "0.7300",
+        "vol": "0.00",
+        "vol24": "0.00",
+        "oi": "0.00"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBADRAFT9",
+     "title": "NBA Draft Ninth Pick",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBANHL",
+     "title": "NBA + NHL Champion Combo",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAATLANTIC",
+     "title": "Pro Basketball Atlantic Division Winner",
+     "status": 200,
+     "events": 1,
+     "markets": 5,
+     "sample": {
+      "event": "KXNBAATLANTIC-26",
+      "title": "Pro Basketball Atlantic Division Winner",
+      "top": [
+       {
+        "ticker": "KXNBAATLANTIC-26-BOS",
+        "name": "Boston",
+        "last": "0.5100",
+        "bid": "0.5100",
+        "ask": "0.5600",
+        "vol": "31839.22",
+        "vol24": "78.16",
+        "oi": "28747.92"
+       },
+       {
+        "ticker": "KXNBAATLANTIC-26-PHI",
+        "name": "Philadelphia",
+        "last": "0.2900",
+        "bid": "0.2800",
+        "ask": "0.2900",
+        "vol": "31354.68",
+        "vol24": "3.51",
+        "oi": "26035.64"
+       },
+       {
+        "ticker": "KXNBAATLANTIC-26-NYK",
+        "name": "New York",
+        "last": "0.2000",
+        "bid": "0.1500",
+        "ask": "0.1800",
+        "vol": "5104.01",
+        "vol24": "0.00",
+        "oi": "4436.29"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBASTARTERS",
+     "title": "Pro Basketball Starting Lineup",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAEAST1SEED",
+     "title": "NBA Eastern Conference 1 Seed",
+     "status": 200,
+     "events": 1,
+     "markets": 15,
+     "sample": {
+      "event": "KXNBAEAST1SEED-26",
+      "title": "Pro Basketball Eastern Conference #1 Seed",
+      "top": [
+       {
+        "ticker": "KXNBAEAST1SEED-26-BOS",
+        "name": "Boston",
+        "last": "0.4300",
+        "bid": "0.4100",
+        "ask": "0.4500",
+        "vol": "79169.63",
+        "vol24": "353.03",
+        "oi": "55172.89"
+       },
+       {
+        "ticker": "KXNBAEAST1SEED-26-PHI",
+        "name": "Philadelphia",
+        "last": "0.2200",
+        "bid": "0.1600",
+        "ask": "0.2100",
+        "vol": "116834.73",
+        "vol24": "1.00",
+        "oi": "57097.15"
+       },
+       {
+        "ticker": "KXNBAEAST1SEED-26-DET",
+        "name": "Detroit",
+        "last": "0.1300",
+        "bid": "0.1300",
+        "ask": "0.1400",
+        "vol": "55826.30",
+        "vol24": "0.21",
+        "oi": "49005.34"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBA30PTSTREAK",
+     "title": "NBA 30 Point Streak",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAHALLOFFAME",
+     "title": "Pro Basketball Hall of Fame",
+     "status": 200,
+     "events": 2,
+     "markets": 28,
+     "sample": {
+      "event": "KXNBAHALLOFFAME-27FINALISTS",
+      "title": "2027 Pro Basketball Hall of Fame Finalists",
+      "top": [
+       {
+        "ticker": "KXNBAHALLOFFAME-27FINALISTS-AIGU",
+        "name": "Andre Iguodala",
+        "last": "0.9900",
+        "bid": "0.0000",
+        "ask": "1.0000",
+        "vol": "4.98",
+        "vol24": "0.00",
+        "oi": "2.49"
+       },
+       {
+        "ticker": "KXNBAHALLOFFAME-27FINALISTS-BGRI",
+        "name": "Blake Griffin",
+        "last": "0.6000",
+        "bid": "0.6000",
+        "ask": "1.0000",
+        "vol": "48.00",
+        "vol24": "0.00",
+        "oi": "25.00"
+       },
+       {
+        "ticker": "KXNBAHALLOFFAME-27FINALISTS-JWAL",
+        "name": "John Wall",
+        "last": "0.0000",
+        "bid": "0.0000",
+        "ask": "1.0000",
+        "vol": "0.00",
+        "vol24": "0.00",
+        "oi": "0.00"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBAPREPACK2ML",
+     "title": "2 ML Basketball Combo",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAFIRSTTIMECHAMP",
+     "title": "NBA First Time Champion",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBADRAFTTRADE",
+     "title": "Pro Basketball Draft Trade",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBANORTHWEST",
+     "title": "Pro Basketball Northwest Division Winner",
+     "status": 200,
+     "events": 1,
+     "markets": 5,
+     "sample": {
+      "event": "KXNBANORTHWEST-26",
+      "title": "Pro Basketball Northwest Division Winner",
+      "top": [
+       {
+        "ticker": "KXNBANORTHWEST-26-OKC",
+        "name": "Oklahoma City",
+        "last": "0.4900",
+        "bid": "0.4200",
+        "ask": "0.4800",
+        "vol": "33423.84",
+        "vol24": "0.49",
+        "oi": "28057.00"
+       },
+       {
+        "ticker": "KXNBANORTHWEST-26-MIN",
+        "name": "Minnesota",
+        "last": "0.2400",
+        "bid": "0.2500",
+        "ask": "0.2800",
+        "vol": "49722.82",
+        "vol24": "632.66",
+        "oi": "30006.09"
+       },
+       {
+        "ticker": "KXNBANORTHWEST-26-POR",
+        "name": "Portland",
+        "last": "0.2100",
+        "bid": "0.1300",
+        "ask": "0.1600",
+        "vol": "31367.49",
+        "vol24": "0.00",
+        "oi": "21780.88"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBASEEDOU",
+     "title": "NBA Playoff Seed Over/Unders",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAPLAYTOGETHER",
+     "title": "Pro Basketball Players to Play Together",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAPIADVANCE",
+     "title": "NBA Play-In Team to Advance",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBASUMMER1HWINNER",
+     "title": "Pro Basketball Summer League 1st Half Winner",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBADRAFT1",
+     "title": "NBA Draft First Pick",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBATEAM",
+     "title": "NBA team",
+     "status": 200,
+     "events": 1,
+     "markets": 1,
+     "sample": {
+      "event": "KXNBATEAM-30",
+      "title": "Will there be a new Pro Basketball team added before 2030?",
+      "top": [
+       {
+        "ticker": "KXNBATEAM-30",
+        "name": "Before 2030",
+        "last": "0.8800",
+        "bid": "0.6000",
+        "ask": "0.9600",
+        "vol": "15226.49",
+        "vol24": "0.00",
+        "oi": "2873.81"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBAEXTENSION",
+     "title": "NBA Player Contract Extension",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAPLAYOFFHOST",
+     "title": "NBA Team Home Playoff Games",
+     "status": 200,
+     "events": 7,
+     "markets": 50,
+     "sample": {
+      "event": "KXNBAPLAYOFFHOST-27BOS",
+      "title": "Boston: Number of Home Playoff Games",
+      "top": [
+       {
+        "ticker": "KXNBAPLAYOFFHOST-27BOS-2",
+        "name": "2+ home playoff games",
+        "last": "0.0000",
+        "bid": "0.0000",
+        "ask": "1.0000",
+        "vol": "0.00",
+        "vol24": "0.00",
+        "oi": "0.00"
+       },
+       {
+        "ticker": "KXNBAPLAYOFFHOST-27BOS-4",
+        "name": "4+ home playoff games",
+        "last": "0.0000",
+        "bid": "0.0000",
+        "ask": "1.0000",
+        "vol": "0.00",
+        "vol24": "0.00",
+        "oi": "0.00"
+       },
+       {
+        "ticker": "KXNBAPLAYOFFHOST-27BOS-6",
+        "name": "6+ home playoff games",
+        "last": "0.0000",
+        "bid": "0.0000",
+        "ask": "1.0000",
+        "vol": "0.00",
+        "vol24": "0.00",
+        "oi": "0.00"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBA2H",
+     "title": "NBA 2nd Half Winner",
+     "status": 200,
+     "events": 20,
+     "markets": 60,
+     "sample": {
+      "event": "KXNBA2H-26NOV17NYKTOR",
+      "title": "New York vs Toronto: 2nd Half Winner",
+      "top": [
+       {
+        "ticker": "KXNBA2H-26NOV17NYKTOR-NYK",
+        "name": "New York",
+        "last": "0.5200",
+        "bid": "0.4900",
+        "ask": "0.5200",
+        "vol": "541.63",
+        "vol24": "491.63",
+        "oi": "474.04"
+       },
+       {
+        "ticker": "KXNBA2H-26NOV17NYKTOR-TOR",
+        "name": "Toronto",
+        "last": "0.4800",
+        "bid": "0.4400",
+        "ask": "0.4800",
+        "vol": "238.57",
+        "vol24": "238.57",
+        "oi": "212.30"
+       },
+       {
+        "ticker": "KXNBA2H-26NOV17NYKTOR-TIE",
+        "name": "Tie",
+        "last": "0.0400",
+        "bid": "0.0300",
+        "ask": "0.0400",
+        "vol": "627.87",
+        "vol24": "159.37",
+        "oi": "627.87"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBAREB",
+     "title": "NBA Player Rebounds",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAPLAYERSPECIALS",
+     "title": "Pro Basketball Player Specials",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBANEWCHAMP",
+     "title": "NBA First-Time Champion",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAWINRECORD",
+     "title": "OKC NBA Win Record",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBASWEEP",
+     "title": "NBA Teams to Have a Series Sweep",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBA2NDTEAM",
+     "title": "All-NBA 2nd Team",
+     "status": 200,
+     "events": 1,
+     "markets": 55,
+     "sample": {
+      "event": "KXNBA2NDTEAM-27",
+      "title": "All-Pro Basketball Second Team Selections",
+      "top": [
+       {
+        "ticker": "KXNBA2NDTEAM-27-CCUNNINGHAM2",
+        "name": "Cade Cunningham",
+        "last": "0.9900",
+        "bid": "0.6000",
+        "ask": "0.8300",
+        "vol": "0.01",
+        "vol24": "0.00",
+        "oi": "0.01"
+       },
+       {
+        "ticker": "KXNBA2NDTEAM-27-AEDWARDS5",
+        "name": "Anthony Edwards",
+        "last": "0.9400",
+        "bid": "0.0000",
+        "ask": "0.2300",
+        "vol": "334.00",
+        "vol24": "0.00",
+        "oi": "0.00"
+       },
+       {
+        "ticker": "KXNBA2NDTEAM-27-DMITCHELL45",
+        "name": "Donovan Mitchell",
+        "last": "0.9400",
+        "bid": "0.0000",
+        "ask": "1.0000",
+        "vol": "732.00",
+        "vol24": "0.00",
+        "oi": "0.00"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBAEXEC",
+     "title": "NBA Executive of the Year",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBASERIESPTSSPREAD",
+     "title": "Pro Basketball Series Points Spread",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBA4QSPREAD",
+     "title": "NBA 4th Quarter Spread",
+     "status": 200,
+     "events": 5,
+     "markets": 65,
+     "sample": {
+      "event": "KXNBA4QSPREAD-26NOV17NYKTOR",
+      "title": "New York vs Toronto: 4th Quarter Spread",
+      "top": [
+       {
+        "ticker": "KXNBA4QSPREAD-26NOV17NYKTOR-NYK2",
+        "name": "New York wins by over 1.5 points",
+        "last": "0.4600",
+        "bid": "0.3700",
+        "ask": "0.4000",
+        "vol": "62.03",
+        "vol24": "62.03",
+        "oi": "62.03"
+       },
+       {
+        "ticker": "KXNBA4QSPREAD-26NOV17NYKTOR-TOR2",
+        "name": "Toronto wins by over 1.5 points",
+        "last": "0.4400",
+        "bid": "0.4400",
+        "ask": "0.4700",
+        "vol": "0.66",
+        "vol24": "0.66",
+        "oi": "0.66"
+       },
+       {
+        "ticker": "KXNBA4QSPREAD-26NOV17NYKTOR-NYK4",
+        "name": "New York wins by over 3.5 points",
+        "last": "0.3600",
+        "bid": "0.2700",
+        "ask": "0.3100",
+        "vol": "54.17",
+        "vol24": "54.17",
+        "oi": "54.17"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBATEAMANNOUNCE",
+     "title": "Pro Basketball New Team Announce",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBATOTALPRECISE",
+     "title": "NBA Total Points Range",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBARETURN",
+     "title": "Pro Basketball Player to Return",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBA3Q",
+     "title": "NBA 3rd Quarter Winner",
+     "status": 200,
+     "events": 20,
+     "markets": 60,
+     "sample": {
+      "event": "KXNBA3Q-26NOV17NYKTOR",
+      "title": "New York vs Toronto: 3rd Quarter Winner",
+      "top": [
+       {
+        "ticker": "KXNBA3Q-26NOV17NYKTOR-NYK",
+        "name": "New York",
+        "last": "0.5200",
+        "bid": "0.5100",
+        "ask": "0.5200",
+        "vol": "2181.47",
+        "vol24": "1624.04",
+        "oi": "2178.21"
+       },
+       {
+        "ticker": "KXNBA3Q-26NOV17NYKTOR-TOR",
+        "name": "Toronto",
+        "last": "0.4400",
+        "bid": "0.4200",
+        "ask": "0.4400",
+        "vol": "1239.35",
+        "vol24": "1130.02",
+        "oi": "1239.35"
+       },
+       {
+        "ticker": "KXNBA3Q-26NOV17NYKTOR-TIE",
+        "name": "Tie",
+        "last": "0.0600",
+        "bid": "0.0400",
+        "ask": "0.0600",
+        "vol": "1473.74",
+        "vol24": "1440.74",
+        "oi": "1473.74"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBAHIGHESTSCORING",
+     "title": "NBA Player with the Highest Scoring Game",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBACUPMVP",
+     "title": "NBA Cup Tournament MVP",
+     "status": 200,
+     "events": 1,
+     "markets": 75,
+     "sample": {
+      "event": "KXNBACUPMVP-27",
+      "title": "Pro Basketball Cup Tournament MVP Winner",
+      "top": [
+       {
+        "ticker": "KXNBACUPMVP-27-VWEMBANYAMA1",
+        "name": "Victor Wembanyama",
+        "last": "0.3100",
+        "bid": "0.2400",
+        "ask": "0.3100",
+        "vol": "934.99",
+        "vol24": "62.29",
+        "oi": "891.61"
+       },
+       {
+        "ticker": "KXNBACUPMVP-27-GANTETOKOUNMPO7",
+        "name": "Giannis Antetokounmpo",
+        "last": "0.1300",
+        "bid": "0.0200",
+        "ask": "0.1200",
+        "vol": "147.76",
+        "vol24": "137.21",
+        "oi": "145.76"
+       },
+       {
+        "ticker": "KXNBACUPMVP-27-KTOWNS32",
+        "name": "Karl-Anthony Towns",
+        "last": "0.1300",
+        "bid": "0.0000",
+        "ask": "0.0200",
+        "vol": "164.80",
+        "vol24": "0.00",
+        "oi": "164.80"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBADRAFTTEAM",
+     "title": "Pro Basketball Team to Draft",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBATOP5ROTY",
+     "title": "Top 5 NBA draft ROTY",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAPLAYOFFPTS",
+     "title": "NBA Playoffs Player Points",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAFTM",
+     "title": "NBA Player Free Throws Made",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBA2QTOTAL",
+     "title": "NBA 2nd Quarter Total",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAEUROPEANNOUNCE",
+     "title": "NBA Europe Inaugural Season Being Announced",
+     "status": 200,
+     "events": 1,
+     "markets": 5,
+     "sample": {
+      "event": "KXNBAEUROPEANNOUNCE-26",
+      "title": "When will NBA Europe's inaugural season be announced?",
+      "top": [
+       {
+        "ticker": "KXNBAEUROPEANNOUNCE-26-27JAN01",
+        "name": "Before Jan 1, 2027",
+        "last": "0.9800",
+        "bid": "0.0000",
+        "ask": "1.0000",
+        "vol": "4085.92",
+        "vol24": "0.00",
+        "oi": "199.61"
+       },
+       {
+        "ticker": "KXNBAEUROPEANNOUNCE-26-27JUL01",
+        "name": "Before Jul 1, 2027",
+        "last": "0.9100",
+        "bid": "0.0000",
+        "ask": "1.0000",
+        "vol": "6350.51",
+        "vol24": "0.00",
+        "oi": "22.00"
+       },
+       {
+        "ticker": "KXNBAEUROPEANNOUNCE-26-28JAN01",
+        "name": "Before Jan 1, 2028",
+        "last": "0.8600",
+        "bid": "0.1100",
+        "ask": "1.0000",
+        "vol": "3747.14",
+        "vol24": "0.00",
+        "oi": "38.55"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBADRAFTCOMP",
+     "title": "Pro Basketball Draft Comparison",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBARECORD",
+     "title": "Pro Basketball Best/Worst Regular Season Record",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBA2QSPREAD",
+     "title": "NBA 2nd Quarter Spread",
+     "status": 200,
+     "events": 5,
+     "markets": 65,
+     "sample": {
+      "event": "KXNBA2QSPREAD-26NOV17NYKTOR",
+      "title": "New York vs Toronto: 2nd Quarter Spread",
+      "top": [
+       {
+        "ticker": "KXNBA2QSPREAD-26NOV17NYKTOR-NYK2",
+        "name": "New York wins by over 1.5 points",
+        "last": "0.9900",
+        "bid": "0.9900",
+        "ask": "1.0000",
+        "vol": "21334.74",
+        "vol24": "21273.60",
+        "oi": "11597.15"
+       },
+       {
+        "ticker": "KXNBA2QSPREAD-26NOV17NYKTOR-NYK4",
+        "name": "New York wins by over 3.5 points",
+        "last": "0.9900",
+        "bid": "0.9900",
+        "ask": "1.0000",
+        "vol": "5513.29",
+        "vol24": "5513.29",
+        "oi": "3197.71"
+       },
+       {
+        "ticker": "KXNBA2QSPREAD-26NOV17NYKTOR-NYK8",
+        "name": "New York wins by over 7.5 points",
+        "last": "0.9900",
+        "bid": "0.9900",
+        "ask": "1.0000",
+        "vol": "2826.67",
+        "vol24": "2707.79",
+        "oi": "2351.99"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBAMVPCHAMP",
+     "title": "MVP to Win the NBA Finals",
+     "status": 200,
+     "events": 1,
+     "markets": 1,
+     "sample": {
+      "event": "KXNBAMVPCHAMP-27",
+      "title": "Pro Basketball Regular Season MVP to Win the Championship",
+      "top": [
+       {
+        "ticker": "KXNBAMVPCHAMP-27-Y",
+        "name": "Regular season MVP to win the championship",
+        "last": "0.0100",
+        "bid": "0.0600",
+        "ask": "0.9400",
+        "vol": "1.00",
+        "vol24": "0.00",
+        "oi": "1.00"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBA3QSPREAD",
+     "title": "NBA 3rd Quarter Spread",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBA2DPROT",
+     "title": "NBA Player Double Double Protected",
+     "status": 200,
+     "events": 5,
+     "markets": 61,
+     "sample": {
+      "event": "KXNBA2DPROT-26NOV17NYKTOR",
+      "title": "New York vs Toronto: Double Double",
+      "top": [
+       {
+        "ticker": "KXNBA2DPROT-26NOV17NYKTOR-NYKKTOWNS32",
+        "name": "Karl-Anthony Towns",
+        "last": "0.9100",
+        "bid": "0.1000",
+        "ask": "1.0000",
+        "vol": "26.22",
+        "vol24": "26.22",
+        "oi": "12.18"
+       },
+       {
+        "ticker": "KXNBA2DPROT-26NOV17NYKTOR-TORRBARRETT9",
+        "name": "RJ Barrett",
+        "last": "0.1500",
+        "bid": "0.0100",
+        "ask": "0.6000",
+        "vol": "362.50",
+        "vol24": "362.50",
+        "oi": "362.50"
+       },
+       {
+        "ticker": "KXNBA2DPROT-26NOV17NYKTOR-NYKOANUNOBY8",
+        "name": "OG Anunoby",
+        "last": "0.1100",
+        "bid": "0.0100",
+        "ask": "0.9100",
+        "vol": "241.58",
+        "vol24": "241.58",
+        "oi": "241.58"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBA1H",
+     "title": "NBA 1st Half Winner",
+     "status": 200,
+     "events": 20,
+     "markets": 60,
+     "sample": {
+      "event": "KXNBA1H-26NOV17NYKTOR",
+      "title": "New York vs Toronto: 1st Half Winner",
+      "top": [
+       {
+        "ticker": "KXNBA1H-26NOV17NYKTOR-NYK",
+        "name": "New York",
+        "last": "0.9900",
+        "bid": "0.9900",
+        "ask": "1.0000",
+        "vol": "162893.49",
+        "vol24": "162246.48",
+        "oi": "77683.60"
+       },
+       {
+        "ticker": "KXNBA1H-26NOV17NYKTOR-TOR",
+        "name": "Toronto",
+        "last": "0.0100",
+        "bid": "0.0000",
+        "ask": "0.0100",
+        "vol": "78867.59",
+        "vol24": "78867.59",
+        "oi": "57128.22"
+       },
+       {
+        "ticker": "KXNBA1H-26NOV17NYKTOR-TIE",
+        "name": "Tie",
+        "last": "0.0100",
+        "bid": "0.0000",
+        "ask": "0.0100",
+        "vol": "29269.37",
+        "vol24": "29269.37",
+        "oi": "22342.89"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBACUPGROUP",
+     "title": "NBA Cup Group Winner",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAPTSLEADER",
+     "title": "NBA Game Points Leader",
+     "status": 200,
+     "events": 5,
+     "markets": 63,
+     "sample": {
+      "event": "KXNBAPTSLEADER-26NOV17NYKTOR",
+      "title": "New York vs Toronto: Points Leader",
+      "top": [
+       {
+        "ticker": "KXNBAPTSLEADER-26NOV17NYKTOR-NYKJBRUNSON11",
+        "name": "Jalen Brunson",
+        "last": "0.4000",
+        "bid": "0.0500",
+        "ask": "0.8900",
+        "vol": "190.29",
+        "vol24": "190.29",
+        "oi": "145.64"
+       },
+       {
+        "ticker": "KXNBAPTSLEADER-26NOV17NYKTOR-TORIQUICKLEY5",
+        "name": "Immanuel Quickley",
+        "last": "0.0500",
+        "bid": "0.0000",
+        "ask": "0.9100",
+        "vol": "5.00",
+        "vol24": "5.00",
+        "oi": "5.00"
+       },
+       {
+        "ticker": "KXNBAPTSLEADER-26NOV17NYKTOR-NYKKTOWNS32",
+        "name": "Karl-Anthony Towns",
+        "last": "0.0000",
+        "bid": "0.0000",
+        "ask": "0.9500",
+        "vol": "0.00",
+        "vol24": "0.00",
+        "oi": "0.00"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBARETIRE",
+     "title": "NBA Retirement",
+     "status": 200,
+     "events": 6,
+     "markets": 25,
+     "sample": {
+      "event": "KXNBARETIRE-DGREEN23",
+      "title": "Draymond Green: Retirement",
+      "top": [
+       {
+        "ticker": "KXNBARETIRE-DGREEN23-2930",
+        "name": "Before the 2029-30 season",
+        "last": "0.7700",
+        "bid": "0.7800",
+        "ask": "0.8600",
+        "vol": "164.83",
+        "vol24": "0.00",
+        "oi": "86.90"
+       },
+       {
+        "ticker": "KXNBARETIRE-DGREEN23-2829",
+        "name": "Before the 2028-29 season",
+        "last": "0.6400",
+        "bid": "0.5700",
+        "ask": "0.6400",
+        "vol": "301.35",
+        "vol24": "0.00",
+        "oi": "187.41"
+       },
+       {
+        "ticker": "KXNBARETIRE-DGREEN23-2728",
+        "name": "Before the 2027-28 season",
+        "last": "0.3700",
+        "bid": "0.1500",
+        "ask": "1.0000",
+        "vol": "796.63",
+        "vol24": "0.00",
+        "oi": "789.63"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBAOVERTIME",
+     "title": "NBA Overtime",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBATEAMTOTAL",
+     "title": "NBA Team Total",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXFIRSTPICKNBA",
+     "title": "NBA first pick",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBASUMMERPTS",
+     "title": "Pro Basketball Summer Player Points",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBANEXTTEAMOUTLET",
+     "title": "Pro Basketball Outlet to Announce Next Team",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBACUPGROUPWIN",
+     "title": "NBA Cup Group to Win",
+     "status": 200,
+     "events": 1,
+     "markets": 6,
+     "sample": {
+      "event": "KXNBACUPGROUPWIN-26",
+      "title": "Group to win the Mid-Season Cup",
+      "top": [
+       {
+        "ticker": "KXNBACUPGROUPWIN-26-WESTC",
+        "name": "West Group C",
+        "last": "0.4900",
+        "bid": "0.1700",
+        "ask": "0.4400",
+        "vol": "54.48",
+        "vol24": "0.00",
+        "oi": "20.48"
+       },
+       {
+        "ticker": "KXNBACUPGROUPWIN-26-EASTA",
+        "name": "East Group A",
+        "last": "0.1800",
+        "bid": "0.0100",
+        "ask": "0.2100",
+        "vol": "20.79",
+        "vol24": "0.00",
+        "oi": "1.31"
+       },
+       {
+        "ticker": "KXNBACUPGROUPWIN-26-EASTB",
+        "name": "East Group B",
+        "last": "0.1800",
+        "bid": "0.0800",
+        "ask": "0.2400",
+        "vol": "61.88",
+        "vol24": "0.00",
+        "oi": "61.88"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBAFIRSTBASKET",
+     "title": "Pro Basketball First Basket",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBASLAMDUNK",
+     "title": "NBA Slam Dunk Contest Winner",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBASIXTH",
+     "title": "NBA Sixth Man of the Year",
+     "status": 200,
+     "events": 1,
+     "markets": 86,
+     "sample": {
+      "event": "KXNBASIXTH-27",
+      "title": "Pro Basketball Sixth Man of the Year Winner",
+      "top": [
+       {
+        "ticker": "KXNBASIXTH-27-PPRITCHARD11",
+        "name": "Payton Pritchard",
+        "last": "0.3100",
+        "bid": "0.2700",
+        "ask": "0.3100",
+        "vol": "71643.06",
+        "vol24": "58.52",
+        "oi": "64277.80"
+       },
+       {
+        "ticker": "KXNBASIXTH-27-JHOLIDAY5",
+        "name": "Jrue Holiday",
+        "last": "0.2300",
+        "bid": "0.2200",
+        "ask": "0.2300",
+        "vol": "73133.87",
+        "vol24": "8.34",
+        "oi": "63912.14"
+       },
+       {
+        "ticker": "KXNBASIXTH-27-AWIGGINSSF",
+        "name": "Aaron Wiggins",
+        "last": "0.1100",
+        "bid": "0.0300",
+        "ask": "0.0400",
+        "vol": "24559.76",
+        "vol24": "0.00",
+        "oi": "23107.41"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBAH2HWINS",
+     "title": "NBA Head to Head Win Total",
+     "status": 200,
+     "events": 15,
+     "markets": 30,
+     "sample": {
+      "event": "KXNBAH2HWINS-27BOSPHI",
+      "title": "Boston vs Philadelphia: H2H Win Total",
+      "top": [
+       {
+        "ticker": "KXNBAH2HWINS-27BOSPHI-BOS",
+        "name": "Boston",
+        "last": "0.6000",
+        "bid": "0.5500",
+        "ask": "0.6500",
+        "vol": "7046.78",
+        "vol24": "6.00",
+        "oi": "7014.03"
+       },
+       {
+        "ticker": "KXNBAH2HWINS-27BOSPHI-PHI",
+        "name": "Philadelphia",
+        "last": "0.4000",
+        "bid": "0.3400",
+        "ask": "0.4800",
+        "vol": "1613.08",
+        "vol24": "200.00",
+        "oi": "1476.00"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBASJC",
+     "title": "NBA Social Justice Champion",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAWCFQUAL",
+     "title": "NBA Western Conference Finals Qualifiers",
+     "status": 200,
+     "events": 1,
+     "markets": 15,
+     "sample": {
+      "event": "KXNBAWCFQUAL-27",
+      "title": "Pro Basketball Western Conference Finals Qualifiers",
+      "top": [
+       {
+        "ticker": "KXNBAWCFQUAL-27-HOU",
+        "name": "Houston",
+        "last": "0.7700",
+        "bid": "0.1900",
+        "ask": "0.4300",
+        "vol": "762.06",
+        "vol24": "0.00",
+        "oi": "727.50"
+       },
+       {
+        "ticker": "KXNBAWCFQUAL-27-SAS",
+        "name": "San Antonio",
+        "last": "0.6000",
+        "bid": "0.5900",
+        "ask": "0.6000",
+        "vol": "669.90",
+        "vol24": "0.00",
+        "oi": "595.92"
+       },
+       {
+        "ticker": "KXNBAWCFQUAL-27-OKC",
+        "name": "Oklahoma City",
+        "last": "0.5900",
+        "bid": "0.2500",
+        "ask": "0.5200",
+        "vol": "471.44",
+        "vol24": "0.00",
+        "oi": "264.14"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBA3RDTEAM",
+     "title": "All-NBA 3rd Team",
+     "status": 200,
+     "events": 1,
+     "markets": 55,
+     "sample": {
+      "event": "KXNBA3RDTEAM-27",
+      "title": "All-Pro Basketball Third Team Selections",
+      "top": [
+       {
+        "ticker": "KXNBA3RDTEAM-27-ADAVIS23",
+        "name": "Anthony Davis",
+        "last": "0.9400",
+        "bid": "0.0000",
+        "ask": "1.0000",
+        "vol": "1264.26",
+        "vol24": "0.00",
+        "oi": "0.70"
+       },
+       {
+        "ticker": "KXNBA3RDTEAM-27-ATHOMPSON1",
+        "name": "Amen Thompson",
+        "last": "0.9400",
+        "bid": "0.0000",
+        "ask": "1.0000",
+        "vol": "516.38",
+        "vol24": "0.00",
+        "oi": "0.00"
+       },
+       {
+        "ticker": "KXNBA3RDTEAM-27-DBOOKER15",
+        "name": "Devin Booker",
+        "last": "0.9300",
+        "bid": "0.0000",
+        "ask": "1.0000",
+        "vol": "828.00",
+        "vol24": "0.00",
+        "oi": "0.00"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBAGAMEHIGHSCORE",
+     "title": "NBA Highest Scoring Game of the Season",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNEXTCOACHOUTNBA",
+     "title": "Next coach out NBA",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAPLAYERDEAL",
+     "title": "Next Pro Basketball Brand Deal",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBACITYEXPAND",
+     "title": "NBA City Franchise Expansion",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBASTATLEADER",
+     "title": "NBA Regular Season League Leader",
+     "status": 200,
+     "events": 11,
+     "markets": 693,
+     "sample": {
+      "event": "KXNBASTATLEADER-27PM",
+      "title": "Pro Basketball Total Plus/Minus Leader",
+      "top": [
+       {
+        "ticker": "KXNBASTATLEADER-27PM-MBRIDGES25",
+        "name": "Mikal Bridges",
+        "last": "0.9500",
+        "bid": "0.0000",
+        "ask": "0.0100",
+        "vol": "0.01",
+        "vol24": "0.00",
+        "oi": "0.01"
+       },
+       {
+        "ticker": "KXNBASTATLEADER-27PM-ACARUSO9",
+        "name": "Alex Caruso",
+        "last": "0.9400",
+        "bid": "0.0000",
+        "ask": "0.5700",
+        "vol": "240.03",
+        "vol24": "0.00",
+        "oi": "2.03"
+       },
+       {
+        "ticker": "KXNBASTATLEADER-27PM-ADOSUNMU13",
+        "name": "Ayo Dosunmu",
+        "last": "0.9400",
+        "bid": "0.0000",
+        "ask": "0.4300",
+        "vol": "239.18",
+        "vol24": "0.00",
+        "oi": "1.18"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNFLNBA",
+     "title": "NFL and NBA Champion Combo",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBANEXTTEAMCONF",
+     "title": "Pro Basketball Next Team Conference",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBASERIESOT",
+     "title": "Pro Basketball Series Overtime",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAUPSET",
+     "title": "NBA Number of Upsets per Round",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXCITYNBAEXPAND",
+     "title": "Cities NBA expand",
+     "status": 200,
+     "events": 1,
+     "markets": 3,
+     "sample": {
+      "event": "KXCITYNBAEXPAND-28JAN01",
+      "title": "Which cities will receive Pro Basketball expansion teams before 2028?",
+      "top": [
+       {
+        "ticker": "KXCITYNBAEXPAND-28JAN01-CDMX",
+        "name": "Mexico City",
+        "last": "0.9900",
+        "bid": "0.0700",
+        "ask": "0.9900",
+        "vol": "1.00",
+        "vol24": "0.00",
+        "oi": "1.00"
+       },
+       {
+        "ticker": "KXCITYNBAEXPAND-28JAN01-LV",
+        "name": "Las Vegas",
+        "last": "0.8900",
+        "bid": "0.8900",
+        "ask": "0.9300",
+        "vol": "11531.24",
+        "vol24": "5.40",
+        "oi": "4530.00"
+       },
+       {
+        "ticker": "KXCITYNBAEXPAND-28JAN01-SEA",
+        "name": "Seattle",
+        "last": "0.7800",
+        "bid": "0.7500",
+        "ask": "0.7900",
+        "vol": "12037.54",
+        "vol24": "0.00",
+        "oi": "3388.80"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBAPLAYOFFWINS",
+     "title": "NBA Playoff Wins by Team",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBASOUTHWEST",
+     "title": "Pro Basketball Southwest Division Winner",
+     "status": 200,
+     "events": 1,
+     "markets": 5,
+     "sample": {
+      "event": "KXNBASOUTHWEST-26",
+      "title": "Pro Basketball Southwest Division Winner",
+      "top": [
+       {
+        "ticker": "KXNBASOUTHWEST-26-SAS",
+        "name": "San Antonio",
+        "last": "0.7500",
+        "bid": "0.7400",
+        "ask": "0.7600",
+        "vol": "4240.85",
+        "vol24": "0.00",
+        "oi": "3919.25"
+       },
+       {
+        "ticker": "KXNBASOUTHWEST-26-HOU",
+        "name": "Houston",
+        "last": "0.2000",
+        "bid": "0.1900",
+        "ask": "0.2600",
+        "vol": "30917.64",
+        "vol24": "0.00",
+        "oi": "20811.42"
+       },
+       {
+        "ticker": "KXNBASOUTHWEST-26-DAL",
+        "name": "Dallas",
+        "last": "0.0700",
+        "bid": "0.0000",
+        "ask": "0.1000",
+        "vol": "2748.60",
+        "vol24": "0.00",
+        "oi": "2392.17"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBASERIES3PMLEADER",
+     "title": "Pro Basketball Series 3-Pointers Made Leader",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBADRAFTMATCHUP",
+     "title": "Pro Basketball Draft Matchup",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAAWARDFIN",
+     "title": "NBA Award Finalists",
+     "status": 200,
+     "events": 5,
+     "markets": 303,
+     "sample": {
+      "event": "KXNBAAWARDFIN-276MOY",
+      "title": "Sixth Man of the Year Finalists",
+      "top": [
+       {
+        "ticker": "KXNBAAWARDFIN-276MOY-KPORTER7",
+        "name": "Kevin Porter Jr.",
+        "last": "0.9200",
+        "bid": "0.0000",
+        "ask": "1.0000",
+        "vol": "1486.67",
+        "vol24": "0.00",
+        "oi": "32.27"
+       },
+       {
+        "ticker": "KXNBAAWARDFIN-276MOY-RSHEPPARD15",
+        "name": "Reed Sheppard",
+        "last": "0.8900",
+        "bid": "0.0000",
+        "ask": "1.0000",
+        "vol": "979.22",
+        "vol24": "0.00",
+        "oi": "52.22"
+       },
+       {
+        "ticker": "KXNBAAWARDFIN-276MOY-PPRITCHARD11",
+        "name": "Payton Pritchard",
+        "last": "0.6700",
+        "bid": "0.2900",
+        "ask": "1.0000",
+        "vol": "1059.97",
+        "vol24": "0.00",
+        "oi": "859.97"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBACOMPETE",
+     "title": "Pro Basketball Player to Compete",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBADRAFTINT",
+     "title": "Pro Basketball International Players Drafted",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBA3DPROT",
+     "title": "NBA Player Triple Double Protected",
+     "status": 200,
+     "events": 5,
+     "markets": 20,
+     "sample": {
+      "event": "KXNBA3DPROT-26NOV17NYKTOR",
+      "title": "New York vs Toronto: Triple Double",
+      "top": [
+       {
+        "ticker": "KXNBA3DPROT-26NOV17NYKTOR-TORSBARNES4",
+        "name": "Scottie Barnes",
+        "last": "0.0700",
+        "bid": "0.0000",
+        "ask": "0.5300",
+        "vol": "1522.78",
+        "vol24": "1522.78",
+        "oi": "1522.78"
+       },
+       {
+        "ticker": "KXNBA3DPROT-26NOV17NYKTOR-NYKKTOWNS32",
+        "name": "Karl-Anthony Towns",
+        "last": "0.0500",
+        "bid": "0.0100",
+        "ask": "0.5400",
+        "vol": "2445.70",
+        "vol24": "2445.70",
+        "oi": "2445.70"
+       },
+       {
+        "ticker": "KXNBA3DPROT-26NOV17NYKTOR-NYKJHART3",
+        "name": "Josh Hart",
+        "last": "0.0400",
+        "bid": "0.0000",
+        "ask": "0.9100",
+        "vol": "23.42",
+        "vol24": "23.42",
+        "oi": "23.42"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBANEXTGOVERNOR",
+     "title": "Pro Basketball Next Governor",
+     "status": 200,
+     "events": 1,
+     "markets": 6,
+     "sample": {
+      "event": "KXNBANEXTGOVERNOR-27JAN01LAL",
+      "title": "Los Angeles L next governor before Jan 1, 2027?",
+      "top": [
+       {
+        "ticker": "KXNBANEXTGOVERNOR-27JAN01LAL-JKUS",
+        "name": "Josh Kushner",
+        "last": "0.5200",
+        "bid": "0.0000",
+        "ask": "0.8700",
+        "vol": "1554.03",
+        "vol24": "0.00",
+        "oi": "709.94"
+       },
+       {
+        "ticker": "KXNBANEXTGOVERNOR-27JAN01LAL-BIGE",
+        "name": "Bob Iger",
+        "last": "0.1600",
+        "bid": "0.0900",
+        "ask": "0.1700",
+        "vol": "1496.20",
+        "vol24": "0.00",
+        "oi": "804.25"
+       },
+       {
+        "ticker": "KXNBANEXTGOVERNOR-27JAN01LAL-MWAL",
+        "name": "Mark Walter",
+        "last": "0.1200",
+        "bid": "0.0400",
+        "ask": "0.1200",
+        "vol": "233.00",
+        "vol24": "0.00",
+        "oi": "231.39"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBAAPOLOGY",
+     "title": "Pro Basketball Apology",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAESCALATORPTS",
+     "title": "NBA Player Points Escalator",
+     "status": 200,
+     "events": 5,
+     "markets": 20,
+     "sample": {
+      "event": "KXNBAESCALATORPTS-26NOV17NYKTOR",
+      "title": "New York vs Toronto: Points Escalator",
+      "top": [
+       {
+        "ticker": "KXNBAESCALATORPTS-26NOV17NYKTOR-NYKJBRUNSON11",
+        "name": "Jalen Brunson",
+        "last": "0.2428",
+        "bid": "0.0079",
+        "ask": "0.2428",
+        "vol": "2073.06",
+        "vol24": "2069.15",
+        "oi": "1957.18"
+       },
+       {
+        "ticker": "KXNBAESCALATORPTS-26NOV17NYKTOR-TORRBARRETT9",
+        "name": "RJ Barrett",
+        "last": "0.1826",
+        "bid": "0.0102",
+        "ask": "0.1538",
+        "vol": "473.04",
+        "vol24": "473.04",
+        "oi": "378.70"
+       },
+       {
+        "ticker": "KXNBAESCALATORPTS-26NOV17NYKTOR-TORSBARNES4",
+        "name": "Scottie Barnes",
+        "last": "0.1667",
+        "bid": "0.0218",
+        "ask": "0.1666",
+        "vol": "757.61",
+        "vol24": "712.76",
+        "oi": "757.61"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBASUMMERTOTAL",
+     "title": "Pro Basketball Summer League Total",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBA30COMEBACK",
+     "title": "NBA 3-0 Series Comeback",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBADRAFT7",
+     "title": "NBA Draft Seventh Pick",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBATOPPICK",
+     "title": "Pro Basketball Draft Lottery Winner",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBATEAMMATE",
+     "title": "NBA Teammate of the Year",
+     "status": 200,
+     "events": 1,
+     "markets": 74,
+     "sample": {
+      "event": "KXNBATEAMMATE-27",
+      "title": "Pro Basketball Teammate of the Year Winner",
+      "top": [
+       {
+        "ticker": "KXNBATEAMMATE-27-JHOLIDAY5",
+        "name": "Jrue Holiday",
+        "last": "0.1800",
+        "bid": "0.1200",
+        "ask": "0.1800",
+        "vol": "37.03",
+        "vol24": "0.00",
+        "oi": "37.03"
+       },
+       {
+        "ticker": "KXNBATEAMMATE-27-DJORDANC",
+        "name": "DeAndre Jordan",
+        "last": "0.1100",
+        "bid": "0.0400",
+        "ask": "0.1100",
+        "vol": "25.67",
+        "vol24": "0.00",
+        "oi": "25.67"
+       },
+       {
+        "ticker": "KXNBATEAMMATE-27-MCONLEY45",
+        "name": "Mike Conley",
+        "last": "0.0700",
+        "bid": "0.0200",
+        "ask": "0.0900",
+        "vol": "402.37",
+        "vol24": "0.00",
+        "oi": "402.37"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBASUMMER1HSPREAD",
+     "title": "Pro Basketball Summer League 1st Half Spread",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBA2HTEAMTOTAL",
+     "title": "NBA 2nd Half Team Total",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXLEADERNBA3PT",
+     "title": "NBA 3PG Leader",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBADRAFTTOP5",
+     "title": "NBA Draft Top 5 Pick",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBABENCHPTS",
+     "title": "NBA Bench Points",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBARELOCATION",
+     "title": "Pro Basketball Team Relocation",
+     "status": 200,
+     "events": 1,
+     "markets": 11,
+     "sample": {
+      "event": "KXNBARELOCATION-27POR",
+      "title": "Portland to Announce a Relocation before the 2027-28 Season",
+      "top": [
+       {
+        "ticker": "KXNBARELOCATION-27POR-KC",
+        "name": "Kansas City",
+        "last": "0.0700",
+        "bid": "0.0000",
+        "ask": "0.0700",
+        "vol": "36.21",
+        "vol24": "0.00",
+        "oi": "36.21"
+       },
+       {
+        "ticker": "KXNBARELOCATION-27POR-STL",
+        "name": "St. Louis",
+        "last": "0.0500",
+        "bid": "0.0500",
+        "ask": "0.1200",
+        "vol": "1441.22",
+        "vol24": "0.00",
+        "oi": "1128.38"
+       },
+       {
+        "ticker": "KXNBARELOCATION-27POR-NSH",
+        "name": "Nashville",
+        "last": "0.0400",
+        "bid": "0.0000",
+        "ask": "0.0600",
+        "vol": "292.81",
+        "vol24": "0.00",
+        "oi": "292.81"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBASERIESGAMES",
+     "title": "NBA Series Total Games",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAEAST",
+     "title": "Pro Basketball Eastern Conference Champion",
+     "status": 200,
+     "events": 1,
+     "markets": 15,
+     "sample": {
+      "event": "KXNBAEAST-27",
+      "title": "Pro Basketball Eastern Conference Champion",
+      "top": [
+       {
+        "ticker": "KXNBAEAST-27-BOS",
+        "name": "Boston",
+        "last": "0.2200",
+        "bid": "0.2100",
+        "ask": "0.2200",
+        "vol": "893831.27",
+        "vol24": "2138.77",
+        "oi": "848902.25"
+       },
+       {
+        "ticker": "KXNBAEAST-27-NYK",
+        "name": "New York",
+        "last": "0.1900",
+        "bid": "0.1800",
+        "ask": "0.1900",
+        "vol": "302538.01",
+        "vol24": "324.51",
+        "oi": "205467.73"
+       },
+       {
+        "ticker": "KXNBAEAST-27-PHI",
+        "name": "Philadelphia",
+        "last": "0.1900",
+        "bid": "0.1900",
+        "ask": "0.2000",
+        "vol": "1269452.34",
+        "vol24": "19363.13",
+        "oi": "615619.43"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBAPLAYOFFHOMEGAMES",
+     "title": "NBA Team Home Playoff Games",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNEXTTEAMNBA",
+     "title": "Next NBA Team",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBAPOSTASREC",
+     "title": "NBA Best Record Post-All-Star Break",
+     "status": 200,
+     "events": 1,
+     "markets": 30,
+     "sample": {
+      "event": "KXNBAPOSTASREC-27",
+      "title": "Team with Best Record by All-Star Break",
+      "top": [
+       {
+        "ticker": "KXNBAPOSTASREC-27-SAS",
+        "name": "San Antonio",
+        "last": "0.5000",
+        "bid": "0.4300",
+        "ask": "0.5900",
+        "vol": "1766.97",
+        "vol24": "39.00",
+        "oi": "1687.40"
+       },
+       {
+        "ticker": "KXNBAPOSTASREC-27-BOS",
+        "name": "Boston",
+        "last": "0.1800",
+        "bid": "0.0100",
+        "ask": "0.1400",
+        "vol": "595.30",
+        "vol24": "0.00",
+        "oi": "595.30"
+       },
+       {
+        "ticker": "KXNBAPOSTASREC-27-CLE",
+        "name": "Cleveland",
+        "last": "0.1300",
+        "bid": "0.0000",
+        "ask": "0.0500",
+        "vol": "11.00",
+        "vol24": "0.00",
+        "oi": "11.00"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBA3PT",
+     "title": "NBA Player Threes",
+     "status": 200,
+     "events": 5,
+     "markets": 299,
+     "sample": {
+      "event": "KXNBA3PT-26NOV17NYKTOR",
+      "title": "New York vs Toronto: Threes",
+      "top": [
+       {
+        "ticker": "KXNBA3PT-26NOV17NYKTOR-NYKKTOWNS32-1",
+        "name": "Karl-Anthony Towns: 1+",
+        "last": "0.9900",
+        "bid": "0.9900",
+        "ask": "1.0000",
+        "vol": "18198.92",
+        "vol24": "18198.92",
+        "oi": "16077.92"
+       },
+       {
+        "ticker": "KXNBA3PT-26NOV17NYKTOR-NYKJBRUNSON11-1",
+        "name": "Jalen Brunson: 1+",
+        "last": "0.9900",
+        "bid": "0.9900",
+        "ask": "1.0000",
+        "vol": "48712.92",
+        "vol24": "48712.92",
+        "oi": "48712.92"
+       },
+       {
+        "ticker": "KXNBA3PT-26NOV17NYKTOR-NYKJBRUNSON11-2",
+        "name": "Jalen Brunson: 2+",
+        "last": "0.9900",
+        "bid": "0.9900",
+        "ask": "1.0000",
+        "vol": "42090.92",
+        "vol24": "42090.92",
+        "oi": "41562.05"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBA1HWINNER",
+     "title": "Pro Baskeball 1st Half Winner",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXCOACHOUTNBA",
+     "title": "NBA Coach Out",
+     "status": 200,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBASOUTHEAST",
+     "title": "Pro Basketball Southeast Division Winner",
+     "status": 200,
+     "events": 1,
+     "markets": 5,
+     "sample": {
+      "event": "KXNBASOUTHEAST-26",
+      "title": "Pro Basketball Southeast Division Winner",
+      "top": [
+       {
+        "ticker": "KXNBASOUTHEAST-26-MIA",
+        "name": "Miami",
+        "last": "0.5100",
+        "bid": "0.4900",
+        "ask": "0.5200",
+        "vol": "29257.35",
+        "vol24": "622.95",
+        "oi": "22583.98"
+       },
+       {
+        "ticker": "KXNBASOUTHEAST-26-ATL",
+        "name": "Atlanta",
+        "last": "0.2500",
+        "bid": "0.2300",
+        "ask": "0.2700",
+        "vol": "22163.82",
+        "vol24": "248.32",
+        "oi": "17413.17"
+       },
+       {
+        "ticker": "KXNBASOUTHEAST-26-ORL",
+        "name": "Orlando",
+        "last": "0.1900",
+        "bid": "0.1800",
+        "ask": "0.1900",
+        "vol": "20809.40",
+        "vol24": "0.00",
+        "oi": "14892.54"
+       }
+      ]
+     }
+    },
+    {
+     "ticker": "KXNBABLKPROT",
+     "title": "NBA Player Blocks Protected",
+     "status": 429,
+     "events": 0,
+     "markets": 0,
+     "sample": null
+    },
+    {
+     "ticker": "KXNBA",
+     "title": "Pro Basketball Champion",
+     "status": 200,
+     "events": 1,
+     "markets": 30,
+     "sample": {
+      "event": {
+       "category": "Sports",
+       "collateral_return_type": "MECNET",
+       "event_ticker": "KXNBA-27",
+       "exchange_index": 0,
+       "last_updated_ts": "2026-10-15T16:33:30.669641Z",
+       "mutually_exclusive": true,
+       "product_metadata": {
+        "competition": "Pro Basketball (M)",
+        "competition_scope": "Future"
+       },
+       "series_ticker": "KXNBA",
+       "settlement_sources": [
+        {
+         "name": "the Governing League",
+         "url": "https://www.nba.com"
+        }
+       ],
+       "strike_period": "",
+       "sub_title": "2026-27",
+       "title": "2027 Pro Basketball Champion"
+      },
+      "market": {
+       "can_close_early": true,
+       "close_time": "2029-07-30T14:00:00Z",
+       "created_time": "2026-06-14T07:33:32.55868Z",
+       "custom_strike": {
+        "basketball_team": "e0729403-9c95-4ee2-b5d4-f704d8322570"
+       },
+       "early_close_condition": "This market will close and expire after a title holder is declared.",
+       "event_ticker": "KXNBA-27",
+       "exchange_index": 0,
+       "expected_expiration_time": "2027-07-31T14:00:00Z",
+       "expiration_time": "2029-07-30T14:00:00Z",
+       "expiration_value": "",
+       "last_price_dollars": "0.0100",
+       "latest_expiration_time": "2029-07-30T14:00:00Z",
+       "market_type": "binary",
+       "no_ask_dollars": "1.0000",
+       "no_bid_dollars": "0.9900",
+       "no_sub_title": "Atlanta",
+       "notional_value_dollars": "1.0000",
+       "occurrence_datetime": "2027-07-31T14:00:00Z",
+       "open_interest_fp": "1771489.09",
+       "open_time": "2026-06-14T08:00:00Z",
+       "previous_price_dollars": "0.0100",
+       "previous_yes_ask_dollars": "0.0100",
+       "previous_yes_bid_dollars": "0.0000",
+       "price_level_structure": "linear_cent",
+       "price_ranges": [
+        {
+         "end": "1.0000",
+         "start": "0.0000",
+         "step": "0.0100"
+        }
+       ],
+       "result": "",
+       "rules_primary": "If Atlanta wins the 2027 Pro Basketball Finals, then the market resolves to Yes.",
+       "rules_secondary": "Kalshi is not affiliated, associated, authorized, endorsed by, or in any way officially connected with the Governing League. All trademarks, logos, and brand names are the property of their respective owners.",
+       "settlement_bounds_type": "default",
+       "settlement_timer_seconds": 300,
+       "status": "active",
+       "strike_type": "structured",
+       "subtitle": "Atlanta",
+       "ticker": "KXNBA-27-ATL",
+       "title": "Will Atlanta win the 2027 Pro Basketball Finals?",
+       "updated_time": "2026-09-27T15:16:20.390341Z",
+       "volume_24h_fp": "187.00",
+       "volume_fp": "1911490.48",
+       "yes_ask_dollars": "0.0100",
+       "yes_ask_size_fp": "29883.60",
+       "yes_bid_dollars": "0.0000",
+       "yes_bid_size_fp": "0.00",
+       "yes_sub_title": "Atlanta"
+      },
+      "top": [
+       {
+        "ticker": "KXNBA-27-SAS",
+        "name": "San Antonio",
+        "last": "0.2200",
+        "bid": "0.2100",
+        "ask": "0.2200",
+        "vol": "2112894.62",
+        "vol24": "163599.09",
+        "oi": "1581840.26"
+       },
+       {
+        "ticker": "KXNBA-27-OKC",
+        "name": "Oklahoma City",
+        "last": "0.1400",
+        "bid": "0.1300",
+        "ask": "0.1400",
+        "vol": "2272557.87",
+        "vol24": "9049.68",
+        "oi": "1790622.57"
+       },
+       {
+        "ticker": "KXNBA-27-PHI",
+        "name": "Philadelphia",
+        "last": "0.1100",
+        "bid": "0.1000",
+        "ask": "0.1100",
+        "vol": "11158903.28",
+        "vol24": "19522.82",
+        "oi": "6908535.23"
+       },
+       {
+        "ticker": "KXNBA-27-BOS",
+        "name": "Boston",
+        "last": "0.0900",
+        "bid": "0.0800",
+        "ask": "0.0900",
+        "vol": "2688086.86",
+        "vol24": "16001.59",
+        "oi": "2495049.01"
+       },
+       {
+        "ticker": "KXNBA-27-NYK",
+        "name": "New York",
+        "last": "0.0700",
+        "bid": "0.0600",
+        "ask": "0.0700",
+        "vol": "1787113.04",
+        "vol24": "1249.92",
+        "oi": "1394364.39"
+       }
+      ]
+     }
+    }
+   ],
+   "total": {
+    "series": 307,
+    "events": 205,
+    "markets": 3653
+   }
+  }
+ },
+ "promonight": {
+  "robots": {
+   "status": 200,
+   "text": "User-Agent: GPTBot\nAllow: /api/promo-card/\nAllow: /api/share-card/\nDisallow: /api/\nAllow: /\n\nUser-Agent: ChatGPT-User\nAllow: /api/promo-card/\nAllow: /api/share-card/\nDisallow: /api/\nAllow: /\n\nUser-Agent: PerplexityBot\nAllow: /api/promo-card/\nAllow: /api/share-card/\nDisallow: /api/\nAllow: /\n\nUser-Agent: Google-Extended\nAllow: /api/promo-card/\nAllow: /api/share-card/\nDisallow: /api/\nAllow: /\n\nUser-Agent: ClaudeBot\nAllow: /api/promo-card/\nAllow: /api/share-card/\nDisallow: /api/\nAllow: /\n\nUser-Agent: Applebot-Extended\nAllow: /api/promo-card/\nAllow: /api/share-card/\nDisallow: /api/\nAllow: /\n\nUser-Agent: *\nAllow: /api/promo-card/\nAllow: /api/share-card/\nDisallow: /api/\nAllow: /\n\nSitemap: https://www.getpromonight.com/sitemap.xml\nSitemap: https://www.getpromonight.com/sitemap-index.xml\n"
+  },
+  "terms": {
+   "path": "/terms",
+   "chars": 7071,
+   "updated": "Last updated: October 29, 2026 PromoNight is operated by Kovalik Digital",
+   "lines": [
+    "Location access is entirely optional, and you may deny or revoke permission at any time through your device settings.",
+    "Widgets display promotional data already available within the app and do not collect additional personal information.",
+    "Scrape, crawl, or systematically access site or app data or the underlying APIs."
+   ]
+  },
+  "team": {
+   "status": 200,
+   "bytes": 427622,
+   "ldTypes": [
+    "WebPage",
+    "Event",
+    "Event",
+    "Event",
+    "Event",
+    "Event",
+    "Event",
+    "Event",
+    "Event",
+    "Event",
+    "Event",
+    "Event",
+    "Event",
+    "Event",
+    "Event",
+    "Event",
+    "Event",
+    "Event",
+    "Event",
+    "FAQPage"
+   ],
+   "ldEvent": {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    "name": "Cup Night",
+    "startDate": "2026-11-20",
+    "description": "Emirates NBA Cup home game against Charlotte. Cup Nights presented by Harrah's Cherokee Casinos.",
+    "location": {
+     "@type": "Place",
+     "name": "State Farm Arena",
+     "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "1 State Farm Dr, Atlanta, GA 30303"
+     }
+    },
+    "organizer": {
+     "@type": "SportsTeam",
+     "name": "Atlanta Hawks"
+    }
+   },
+   "ids": 18,
+   "firstIds": [
+    "promo-2026-11-20-cup-night",
+    "promo-2026-11-22-kids-game",
+    "promo-2026-12-03-nickeil-alexander-walker-bobblehead",
+    "promo-2026-12-23-holiday-beanie",
+    "promo-2026-12-31-onyeka-okongwu-bobblehead",
+    "promo-2027-01-07-single-af-night",
+    "promo-2027-01-13-jalen-johnson-bobblehead",
+    "promo-2027-01-18-mlk-forever-game",
+    "promo-2027-02-01-black-excellence-night-t-shirt",
+    "promo-2027-02-01-black-excellence-night",
+    "promo-2027-02-07-kids-game",
+    "promo-2027-02-12-hbcu-night",
+    "promo-2027-03-03-ted-turner-bobblehead",
+    "promo-2027-03-04-crowning-courage-night",
+    "promo-2027-03-11-ladies-night",
+    "promo-2027-03-13-kids-game",
+    "promo-2027-03-29-90s-night",
+    "promo-2027-04-09-true-to-atlanta-night"
+   ],
+   "nextData": false,
+   "nextF": 82,
+   "blockHtml": "path><path d=\"M15 17l0 2\"></path><path d=\"M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-3a2 2 0 0 0 0 -4v-3a2 2 0 0 1 2 -2\"></path></svg>Tickets</button></div></div><div id=\"promo-2027-01-07-single-af-night\" data-ad-item=\"promo\" class=\"group relative scroll-mt-24 rounded-2xl border border-rd-line bg-rd-card p-4 transition-colors md:p-5 hover:border-rd-line-strong\" style=\"border-left-width:3px;border-left-color:#7c3aed\"><a class=\"rd-row-link\" href=\"/nba/atlanta-hawks/promos/single-af-night\"><div class=\"w-14 flex-shrink-0 text-center\"><div class=\"rd-row-eyebrow\">JAN</div><div class=\"rd-numerals text-3xl leading-none text-rd-ink\">7</div><div class=\"rd-row-eyebrow\">THU</div></div><div class=\"min-w-0 flex-1 pr-8\"><div class=\"mb-1.5 flex flex-wrap items-center gap-2\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"tabler-icon tabler-icon-confetti shrink-0\" style=\"color:#7c3aed\" aria-hidden=\"true\"><path d=\"M4 5h2\"></path><path d=\"M5 4v2\"></path><path d=\"M11.5 4l-.5 2\"></path><path d=\"M18 5h2\"></path><path d=\"M19 4v2\"></path><path d=\"M15 9l-1 1\"></path><path d=\"M18 13l2 -.5\"></path><path d=\"M18 19h2\"></path><path d=\"M19 18v2\"></path><path d=\"M14 16.518l-6.518 -6.518l-4.39 9.58a1 1 0 0 0 1.329 1.329l9.579 -4.39\"></path></svg><span class=\"inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold\" style=\"background-color:#7c3aed1a;color:#5b2fbd\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.25\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"tabler-icon tabler-icon-confetti \"><path d=\"M4 5h2\"></path><path d=\"M5 4v2\"></path><path d=\"M11.5 4l-.5 2\"></path><path d=\"M18 5h2\"></path><path d=\"M19 4v2\"></path><path d=\"M15 9l-1 1\"></path><path d=\"M18 13l2 -.5\"></path><path d=\"M18 19h2\"></path><path d=\"M19 18v2\"></path><path d=\"M14 16.518l-6.518 -6.518l-4.39 9.58a1 1 0 0 0 1.329 1.329l9.579 -4.39\"></path></svg><span>Theme Nights</span></span></div><div class=\"text-sm font-semibold text-rd-ink md:text-base transition-colors group-hover:text-rd-red\">Single AF Night</div><p class=\"mt-1 text-xs text-rd-ink-soft md:text-sm\">Designed to bring singles together for an unforgettable night of basketball, entertainment, and connection. Fans will have unique opportunities to meet and mingle while experiencing Hawks basketball.</p><div class=\"mt-2 inline-flex items-center gap-1.5 font-rd text-[10px] uppercase tracking-[0.05em] text-rd-ink-faint\">vs <!-- -->Pacers</div></div></a><button type=\"button\" aria-label=\"Share Single AF Night\" class=\"rd-row-share\"><svg class=\"w-4 h-4\" viewBox=\"0 0 24 24\" fill=\"",
+   "blockText": "path> Tickets JAN 7 THU Theme Nights Single AF Night Designed to bring singles together for an unforgettable night of basketball, entertainment, and connection. Fans will have unique opportunities to meet and mingle while experiencing Hawks basketball. vs Pacers <svg class=\"w-4 h-4\" viewBox=\"0 0 24 24\" fill=\""
+  },
+  "hub": {
+   "status": 200,
+   "teams": [
+    "los-angeles-lakers",
+    "minnesota-timberwolves",
+    "san-antonio-spurs",
+    "toronto-raptors",
+    "brooklyn-nets",
+    "indiana-pacers",
+    "boston-celtics",
+    "new-york-knicks",
+    "philadelphia-76ers",
+    "chicago-bulls",
+    "cleveland-cavaliers",
+    "detroit-pistons",
+    "milwaukee-bucks",
+    "atlanta-hawks",
+    "charlotte-hornets",
+    "miami-heat",
+    "orlando-magic",
+    "washington-wizards",
+    "denver-nuggets",
+    "oklahoma-city-thunder",
+    "portland-trail-blazers",
+    "utah-jazz",
+    "golden-state-warriors",
+    "los-angeles-clippers",
+    "phoenix-suns",
+    "sacramento-kings",
+    "dallas-mavericks",
+    "houston-rockets",
+    "memphis-grizzlies",
+    "new-orleans-pelicans"
+   ]
+  }
+ },
+ "nba": {
+  "hawks": {
+   "status": 403,
+   "bytes": 397,
+   "nextData": 0,
+   "mentions": {
+    "singleAF": 0,
+    "bobblehead": 0
+   },
+   "found": [],
+   "apis": []
+  }
+ }
+}
