@@ -62,13 +62,13 @@
   },
   "KXNBARACE": {
    "title": "NBA Race to Points",
-   "events": 52,
-   "markets": 104
+   "events": 51,
+   "markets": 102
   },
   "KXNBAAST": {
    "title": "NBA Player Assists",
    "events": 5,
-   "markets": 222
+   "markets": 221
   },
   "KXNBA2HTOTAL": {
    "title": "NBA 2nd Half Total",
@@ -102,8 +102,8 @@
   },
   "KXNBA1Q": {
    "title": "NBA 1st Quarter Winner",
-   "events": 19,
-   "markets": 57
+   "events": 18,
+   "markets": 51
   },
   "KXNBA1HTEAMTOTAL": {
    "title": "NBA 1st Half Team Total",
@@ -122,8 +122,8 @@
   },
   "KXNBA1QTOTAL": {
    "title": "NBA 1st Quarter Total",
-   "events": 4,
-   "markets": 52
+   "events": 3,
+   "markets": 26
   },
   "KXNBA3RDTEAM": {
    "title": "All-NBA 3rd Team",
@@ -383,7 +383,7 @@
   "KXNBAPRAPROT": {
    "title": "Pts + Reb + Ast Protected",
    "events": 5,
-   "markets": 195
+   "markets": 194
   },
   "KXNBASOUTHWEST": {
    "title": "Pro Basketball Southwest Division Winner",
@@ -418,12 +418,12 @@
   "KXNBAREBPROT": {
    "title": "NBA Player Rebounds Protected",
    "events": 5,
-   "markets": 283
+   "markets": 281
   },
   "KXNBAPTSPROT": {
    "title": "NBA Player Points Protected",
    "events": 5,
-   "markets": 254
+   "markets": 252
   },
   "KXNBABLKPROT": {
    "title": "NBA Player Blocks Protected",
@@ -483,17 +483,17 @@
   "KXNBAASTPROT": {
    "title": "NBA Player Assists Protected",
    "events": 5,
-   "markets": 216
+   "markets": 215
   },
   "KXNBA3PTPROT": {
    "title": "NBA Player Threes Protected",
    "events": 5,
-   "markets": 292
+   "markets": 289
   },
   "KXNBA1QSPREAD": {
    "title": "NBA 1st Quarter Spread",
-   "events": 4,
-   "markets": 52
+   "events": 2,
+   "markets": 26
   },
   "KXNBAMOSTWINS": {
    "title": "Pro Basketball Highest Win Total",
@@ -633,7 +633,7 @@
   "KXNBAPTS": {
    "title": "NBA Player Points",
    "events": 5,
-   "markets": 260
+   "markets": 259
   },
   "KXNBANORTHWEST": {
    "title": "Pro Basketball Northwest Division Winner",
@@ -663,7 +663,7 @@
   "KXNBA3PT": {
    "title": "NBA Player Threes",
    "events": 5,
-   "markets": 296
+   "markets": 293
   },
   "KXNBASEEDOU": {
    "title": "NBA Playoff Seed Over/Unders",
@@ -683,7 +683,7 @@
   "KXNBAREB": {
    "title": "NBA Player Rebounds",
    "events": 5,
-   "markets": 288
+   "markets": 287
   },
   "KXNBATEAM": {
    "title": "NBA team",
@@ -708,7 +708,7 @@
   "KXNBAPRA": {
    "title": "NBA Player Points + Rebounds + Assists",
    "events": 5,
-   "markets": 195
+   "markets": 194
   },
   "KXNBAROOKIE1STTEAM": {
    "title": "NBA All-Rookie 1st Team",
@@ -742,7 +742,6 @@
   "KXNBASOUTHEAST-26": "Miami 51%",
   "KXNBAPOTM-NOV26WEST": "Victor Wembanyama 4%",
   "KXNBAH2HWINS-27BOSPHI": "Boston 60%",
-  "KXNBARACE-26NOV17PORMIN-30": "Minnesota 99%",
   "KXNBARACE-26NOV17UTALAC-10": "Los Angeles C 55%",
   "KXNBARACE-26NOV17UTALAC-20": "Los Angeles C 57%",
   "KXNBARACE-26NOV17UTALAC-30": "Los Angeles C 58%",
@@ -753,7 +752,7 @@
   "KXNBARACE-26NOV18PHIORL-10": "Philadelphia 42%",
   "KXNBASTATLEADER-272D": "Nikola Jokić 31%",
   "KXNBASTATLEADER-273D": "Nikola Jokić 94%",
-  "KXNBASTATLEADER-273PM": "Luka Dončić 60%",
+  "KXNBASTATLEADER-273PM": "Luka Dončić 57%",
   "KXNBASTATLEADER-27APG": "Trae Young 40%",
   "KXNBASTATLEADER-27BPG": "Walker Kessler 9%",
   "KXNBASTATLEADER-27EFF": "Luka Dončić 43%",
@@ -783,11 +782,11 @@
   "KXNBASOUTHWEST-26": "San Antonio 75%",
   "KXNBAEAST1SEED-26": "Boston 43%",
   "KXNBAHUSTLE-27": "Moussa Diabate 8%",
-  "KXNBAMIMP-27": "Ty Jerome 37%",
-  "KXNBAWEST-27": "San Antonio 35%",
-  "KXNBAATLANTIC-26": "Boston 54%",
   "KXNBARECORD-27BEST": "San Antonio 44%",
   "KXNBARECORD-27WORST": "Sacramento 43%",
+  "KXNBAWEST-27": "San Antonio 35%",
+  "KXNBAATLANTIC-26": "Boston 51%",
+  "KXNBAMIMP-27": "Ty Jerome 37%",
   "KXNBADRAFTPICK-27-1": "Caleb Holt 9%",
   "KXNBACOY-27": "Micah Nori 17%",
   "KXNBANEXTTEAM-27DMURRAY5": "Miami 8%",
@@ -801,13 +800,13 @@
   "KXNBAMATCHUP-27ECF": "Miami vs Philadelphia 8%",
   "KXNBAMATCHUP-27WCF": "Houston vs San Antonio 17%",
   "KXNBACONF-27": "Western Conference 61%",
-  "KXNBANORTHWEST-26": "Oklahoma City 45%",
+  "KXNBANORTHWEST-26": "Oklahoma City 47%",
   "KXNBAPOSTASREC-27": "San Antonio 50%",
+  "KXNBAWFINMVP-27": "Shai Gilgeous-Alexander 20%",
+  "KXNBAFINMVP-27": "Victor Wembanyama 15%",
   "KXNBASEED-27EAST2": "Miami 11%",
   "KXNBASEED-27WEST2": "Minnesota 22%",
   "KXNBASEED-27WEST3": "Los Angeles L 19%",
-  "KXNBASEED-27WEST5": "Portland 15%",
-  "KXNBAWFINMVP-27": "Shai Gilgeous-Alexander 20%",
-  "KXNBAFINMVP-27": "Victor Wembanyama 15%"
+  "KXNBASEED-27WEST5": "Portland 15%"
  }
 }
