@@ -2,6 +2,18 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.107.2 (2026-11-18): the National TV player rows say they open
+
+The user, 11:28 AM, with a screenshot of the page: "I don't see the changes for league pass table."
+
+- The change of 0.107.1 was there and working (opened on the live page in the user's own browser: Paul George's row gives the splits and his four national games), but nothing on the page made it findable: a small grey arrow before each name and half a sentence inside a five-line paragraph. Now a boxed line above the table says "Click any player's row to open every split… and his game-by-game list", and each name has a link under it, "▸ all splits & games" ("▾ hide…" when open).
+- Seen in the same screenshot: on a game flexed off national TV the red badge ("off ESPN's national list (flexed out?)") ran out of its card and over the next one. Badges now wrap inside their card.
+- The splits table in an open row no longer stretches across the page, so the game list sits beside it on a wide screen.
+
+**Tested:** opened in a test browser and looked at (the hint, the link under the name, the wrapped badge, the open row); 981 checks unchanged (no code outside the page).
+
+**Self-audit:** 0.107.1 was checked by a script that clicked the row; a script knows where to click. Nobody was asked whether a person would. For a page change, the check from now on includes looking at a screenshot as a first-time reader: is the new thing visible without being told where it is?
+
 ## 0.107.1 (2026-11-18): a team's turn with its ranks since; "more than everyone else combined"; the National TV table opens up; a jumbled notes line; the first promotions sheet
 
 The user, 10:58 AM, with four images: an ESPN card ("Heat since Oct. 28") and a Kalshi post ("Most 45/5/5 games: Dončić 3, every other player combined 2") as ideas, "not specific to the Heat and Doncic"; a Denver notes line that "reads jumbled"; and the National TV player table ("is there a way to see which games were national vs not… maybe a dropdown for each player row with the splits, and add steals, blocks, fg%, ft%, 3pt%"). Also "yes to promotions file".

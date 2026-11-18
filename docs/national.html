@@ -104,7 +104,7 @@
   .net.today { border-color: var(--accent); }
   td.chg { font-weight: 650; }
   .small { color: var(--faint); font-size: 12px; }
-  .badge { font-size: 11px; padding: 1px 6px; border-radius: 8px; border: 1px solid var(--line); margin-left: 4px; white-space: nowrap; }
+  .badge { font-size: 11px; padding: 1px 6px; border-radius: 8px; border: 1px solid var(--line); margin-left: 4px; white-space: normal; display: inline-block; max-width: 100%; box-sizing: border-box; } /* 0.107.2: a long badge wraps inside its card (it ran over the next one) */
   .badge.confirmed { color: var(--good); border-color: var(--good); }
   .badge.added { color: var(--accent); border-color: var(--accent); font-weight: 650; }
   .badge.dropped { color: var(--bad); border-color: var(--bad); font-weight: 650; }
@@ -114,9 +114,10 @@
   .net.dropped .teams { text-decoration: line-through; }
   #teams th.sort { cursor: pointer; }
   .flexbox { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: var(--radius); padding: 8px 12px; margin: 8px 0 4px; font-size: 13.5px; }
+  .tip { margin: 8px 0 10px; padding: 8px 12px; border: 1px solid var(--accent); border-radius: 10px; font-size: .95em; } .more { color: var(--accent); font-size: .85em; text-decoration: underline; white-space: nowrap; }
   tr.prow { cursor: pointer; } tr.prow:hover td { background: rgba(127,127,127,.08); } .caret { display: inline-block; width: 1em; opacity: .6; }
   tr.detail > td { padding: 10px 14px 16px; background: rgba(127,127,127,.06); } .dwrap { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
-  .dgames { flex: 1; min-width: 520px; overflow-x: auto; } table.mini { border-collapse: collapse; font-size: .92em; } table.mini th, table.mini td { padding: 3px 9px; border-bottom: 1px solid rgba(127,127,127,.18); white-space: nowrap; text-align: left; }
+  .dgames { flex: 1; min-width: 520px; overflow-x: auto; } table.mini { border-collapse: collapse; font-size: .92em; width: auto; } table.mini th, table.mini td { padding: 3px 9px; border-bottom: 1px solid rgba(127,127,127,.18); white-space: nowrap; text-align: left; }
   table.mini th.num, table.mini td.num { text-align: right; } table.mini tr.natg td { background: rgba(56,132,255,.12); }
 </style>
 </head>
@@ -139,6 +140,7 @@
     <input type="search" id="q" placeholder="Player">
   </div>
   <div class="key" id="key"></div>
+  <div class="tip" id="tip">👆 <b>Click any player's row</b> to open every split (steals, blocks, FG%, 3P%, FT%, attempts) and his game-by-game list with the national games marked. Click again to close.</div>
   <div class="scroll"><table id="players"></table></div>
   <div class="pager" id="ppager" style="display:flex;gap:10px;align-items:center;margin:8px 2px 18px;font-size:13px;flex-wrap:wrap"></div>
   <h2>Teams: record on national TV, by network</h2>
@@ -204,13 +206,13 @@ function render() {
     return `<td class="num">${f1(p.nat[k])}</td><td class="num">${f1(p.other[k])}</td><td class="num chg ${c == null ? "" : c >= lo ? "hi" : c <= -lo ? "lo" : ""}">${sgn(c)}</td>`; };
   $("players").innerHTML = `<tr><th rowspan=2>Player</th><th rowspan=2 class="num">GP<br><span class=small>nat / LP</span></th>${STATS.map(([k, l]) => `<th colspan=3 class="num sort${k === sortKey ? " on" : ""}" data-k="${k}" title="sort by the change; click again to flip">${l}${k === sortKey ? (dir === "up" ? " ▾" : " ▴") : ""}</th>`).join("")}</tr>
     <tr>${STATS.map(() => `<th class="num">nat</th><th class="num" title="local TV / League Pass">LP</th><th class="num">chg</th>`).join("")}</tr>` +
-    (rows.length ? rows.slice(page * PER, page * PER + PER).map((p) => `<tr class="prow" data-id="${esc(p.id)}" title="click for every split and his games"><td><span class="caret">${open.has(p.id) ? "▾" : "▸"}</span> <b>${esc(p.name)}</b> <span class="team">${esc(p.team)}</span>${onTv.has(p.team) ? ` <span class="small" title="on national TV tonight">📺 tonight</span>` : ""}</td><td class="num">${p.nat.gp} / ${p.other.gp}</td>${STATS.map(([k]) => cell(p, k)).join("")}</tr>${open.has(p.id) ? detail(p, 2 + STATS.length * 3) : ""}`).join("")
+    (rows.length ? rows.slice(page * PER, page * PER + PER).map((p) => `<tr class="prow" data-id="${esc(p.id)}" title="click for every split and his games"><td><b>${esc(p.name)}</b> <span class="team">${esc(p.team)}</span>${onTv.has(p.team) ? ` <span class="small" title="on national TV tonight">📺 tonight</span>` : ""}<br><span class="more">${open.has(p.id) ? "▾ hide splits & games" : "▸ all splits & games"}</span></td><td class="num">${p.nat.gp} / ${p.other.gp}</td>${STATS.map(([k]) => cell(p, k)).join("")}</tr>${open.has(p.id) ? detail(p, 2 + STATS.length * 3) : ""}`).join("")
       : `<tr><td colspan=${2 + STATS.length * 3} class="empty">No players match.</td></tr>`);
   document.querySelectorAll("#players tr.prow").forEach((tr) => tr.onclick = () => { const id = tr.dataset.id; if (open.has(id)) open.delete(id); else open.add(id); render(); });
   // Click a stat to sort by its change; click it again to flip between better-first and worse-first.
   document.querySelectorAll("#players th.sort").forEach((th) => th.onclick = () => { if (sortKey === th.dataset.k) dir = dir === "up" ? "down" : "up"; else { sortKey = th.dataset.k; dir = "up"; } syncDir(); render(); });
   const label = Object.fromEntries(STATS)[sortKey];
-  $("key").innerHTML = `${rows.length} players · <b>click a player</b> for every split (steals, blocks, FG%, 3P%, FT% and more) and his game list with the national games marked · per-game averages in national games (<b>nat</b>: ABC, ESPN, NBC, Peacock, Prime Video) and in his other games (<b>LP</b>: local TV, on League Pass out of market) · <b>chg</b> = nat minus LP · sorted by the ${label} change, ${dir === "up" ? "<b>better on national TV first</b>" : "<b>worse on national TV first</b>"} (click a stat to sort, again to flip) · <b class="hi">green</b> / <b class="lo">red</b>: a clear change (2+ PTS/REB/AST/3PM, 5+ TS%, 3+ +/-). Early in the season most players have only a few national games: read the GP column first. A clear points split (3+ games each way, 20+ minutes, 4+ points and 20%+) is flagged on the Watch List when he plays on national TV that night.`;
+  $("key").innerHTML = `${rows.length} players · per-game averages in national games (<b>nat</b>: ABC, ESPN, NBC, Peacock, Prime Video) and in his other games (<b>LP</b>: local TV, on League Pass out of market) · <b>chg</b> = nat minus LP · sorted by the ${label} change, ${dir === "up" ? "<b>better on national TV first</b>" : "<b>worse on national TV first</b>"} (click a stat to sort, again to flip) · <b class="hi">green</b> / <b class="lo">red</b>: a clear change (2+ PTS/REB/AST/3PM, 5+ TS%, 3+ +/-). Early in the season most players have only a few national games: read the GP column first. A clear points split (3+ games each way, 20+ minutes, 4+ points and 20%+) is flagged on the Watch List when he plays on national TV that night.`;
   const NETS = D.networks || ["ABC", "ESPN", "NBC", "Peacock", "Prime Video"];
   const wl = (r) => (r && r.w + r.l ? `${r.w}-${r.l}` : "–");
   const pc = (r) => (r && r.w + r.l ? ` <span class=small>(${((r.w / (r.w + r.l)) * 100).toFixed(0)}%)</span>` : "");
