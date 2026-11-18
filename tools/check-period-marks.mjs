@@ -53,6 +53,36 @@ async function counts(id) {
       const keep = count(await r.json()); fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(f, JSON.stringify(keep)); return keep; } catch (e) { await new Promise((r2) => setTimeout(r2, 900 * (k + 1))); } }
   return null;
 }
+// --sweep: every regular-season game since 2002-03 (the play-by-play years), not only the printed ones. For each mark it lists the
+// periods that beat it, and for each printed game the plays disagree with, the nights the number does occur (the likely slip).
+if (args.includes("--sweep")) {
+  const get2 = (o, k) => (k === "reb" ? (o?.oreb || 0) + (o?.dreb || 0) : o?.[k] || 0), G = [], files = fs.readdirSync(boards).filter((f) => /^ls-\d{4}-\d\d-\d\d\.json$/.test(f) && f.slice(3, 13) >= "2002-10-01").sort();
+  const todo = []; for (const f of files) for (const e of js(path.join(boards, f)).events) if (e.type === 2 && e.c.length === 2 && e.c.every((c) => c.ls.length >= 4 && c.a)) todo.push({ id: e.id, date: f.slice(3, 13), home: tri(e.c.find((c) => c.ha === "home").a), away: tri(e.c.find((c) => c.ha === "away").a) });
+  let k = 0, none = 0;
+  await Promise.all(Array.from({ length: noFetch ? 1 : 8 }, async () => { while (k < todo.length) { const g = todo[k++]; const c = await counts(g.id); if (!c || c.plays < 200) { none++; continue; } G.push({ ...g, c }); if (k % 2000 === 0) process.stderr.write(`  ${k} of ${todo.length} games\n`); } }));
+  const marks = []; for (const [t, ms] of Object.entries(R)) for (const m of ms) if (m.period !== "game" && m.stat !== "pts") marks.push({ t, ...m, side: m.side || "team" });
+  const shift = (d, n) => new Date(Date.parse(d + "T12:00:00Z") + n * 864e5).toISOString().slice(0, 10), FROM = { OKC: "2008-10-01" }, beats = [], where = {};
+  const open = new Set((arg("--leads") ? js(arg("--leads")) : []).map((r) => [r.t, r.side, r.stat, r.kind, r.period].join("|")));
+  for (const m of marks) { const key = [m.t, m.side, m.stat, m.kind, m.period].join("|"), printed = new Set(m.games.flatMap((g) => (g.date ? [g.date] : [])));
+    for (const g of G) { if ((g.home !== m.t && g.away !== m.t) || g.date < (FROM[m.t] || "")) continue;
+      const me = (m.side === "team") === (g.home === m.t) ? "home" : "away", ps = Object.keys(g.c.per).map(Number).sort((a, b) => a - b), q = (p) => get2(g.c.per[p]?.[me], m.stat);
+      const total = ps.reduce((n, p) => n + q(p), 0), b = g.c.box?.[me], want = m.stat === "reb" ? (b?.oreb != null && b?.dreb != null ? [b.oreb + b.dreb] : []) : [].concat(b?.[m.stat] ?? []);
+      if (!want.length || !want.includes(total)) continue;
+      const parts = m.period === "quarter" ? [1, 2, 3, 4].map(q) : m.period === "half" ? [q(1) + q(2), q(3) + q(4)] : ps.filter((p) => p > 4).map(q);
+      const opp = g.home === m.t ? g.away : g.home, row = { t: m.t, side: m.side, stat: m.stat, kind: m.kind, period: m.period, printed: m.value, date: g.date, opp, home: g.home === m.t, parts };
+      if (parts.some((v) => (m.kind === "most" ? v > m.value : v < m.value))) beats.push(row);
+      else if (open.has(key) && parts.includes(m.value) && !printed.has(g.date)) (where[key] ||= []).push(row); } }
+  const say2 = (r) => `${r.t} ${r.side === "opp" ? "opp " : ""}${r.kind} ${r.stat} in a ${r.period}: printed ${r.printed}; ${r.date} ${r.home ? "v" : "at"} ${r.opp}: ${r.parts.join(", ")}`;
+  console.log(`${todo.length} games since 2002-03, ${G.length} with play-by-play (${none} without); ${marks.length} period marks that are not points`);
+  const fewest0 = beats.filter((r) => r.kind === "fewest"), most = beats.filter((r) => r.kind === "most");
+  console.log(`periods that beat a printed mark, where the plays add up to the box score: ${most.length} for a "most", ${fewest0.length} for a "fewest"`);
+  for (const r of most.sort((a, b) => (a.t + a.stat + a.period + a.date < b.t + b.stat + b.period + b.date ? -1 : 1))) console.log("  MOST: " + say2(r));
+  const byMark = {}; for (const r of fewest0) (byMark[[r.t, r.side, r.stat, r.period, r.printed].join(" ")] ||= []).push(r);
+  for (const [k2, v] of Object.entries(byMark).sort()) console.log(`  FEWEST: ${k2}: ${v.length} games, e.g. ${v.slice(-3).map((r) => `${r.date} ${r.home ? "v" : "at"} ${r.opp} (${r.parts.join(",")})`).join("; ")}`);
+  for (const [k2, v] of Object.entries(where)) console.log(`  WHERE ${k2}: ${v.length} nights have the number: ${v.slice(0, 12).map((r) => `${r.date} ${r.home ? "v" : "at"} ${r.opp}`).join("; ")}`);
+  if (outFile) fs.writeFileSync(outFile, JSON.stringify({ beats, where }, null, 0));
+  process.exit(0);
+}
 const get = (o, k) => (k === "reb" ? (o?.oreb || 0) + (o?.dreb || 0) : o?.[k] || 0);
 let next = 0; const res = { same: [], differs: [], untrusted: [], noPlays: [], noEvent: [], before: 0 };
 async function worker() { while (next < rows.length) { const r = rows[next++];

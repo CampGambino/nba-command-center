@@ -4340,6 +4340,21 @@ await articlesChecks(ok);
       && dts(tr("GSW", "ast", "game", "fewest")).join() === "2002-01-06,2006-03-21,2008-04-01" && dts(tr("GSW", "ftm", "game", "fewest")).length === 2 && Object.values(TR).flat().every((m) => m.games.every((g) => !/^\)|\s{2,}/.test(g.opp || ""))),
       "team records (0.100): the sweep found the Pacers' 21-rebound night (at Chicago 12/11/06, two days after the game the guide prints; the Bulls' guide has it) and eleven marks a guide's page is behind on that the other team's guide prints (the Bulls' 1 turnover against Memphis, Washington's 50 assists against Indiana); ties printed under the Warriors' 'Fewest Game' rows are read (three 8-assist games); opponent names carry no stray characters",
       JSON.stringify([tr("MEM", "tov", "game", "fewest", "opp"), tr("GSW", "ast", "game", "fewest"), tr("IND", "reb", "game", "fewest")]));
+    // 0.102: Kalshi's NBA markets: when a move is a line (src/kalshi.js)
+    {
+      const { look: kLook, line: kLine, priceOf: kPrice, isGameEvent: kGame, typical: kTyp, threshold: kThr } = await import("../src/kalshi.js");
+      const mk = (t, name, bid, ask, last, vol = 100) => ({ ticker: t, yes_sub_title: name, yes_bid_dollars: (bid / 100).toFixed(4), yes_ask_dollars: (ask / 100).toFixed(4), last_price_dollars: (last / 100).toFixed(4), volume_24h_fp: String(vol) });
+      const evs = (ms) => [{ series_ticker: "KXNBAMVP", event_ticker: "KXNBAMVP-27", title: "NBA MVP", mutually_exclusive: true, markets: ms }, { series_ticker: "KXNBAGAME", event_ticker: "KXNBAGAME-26NOV17NYKTOR", title: "NYK at TOR", mutually_exclusive: true, markets: [mk("G1", "NYK", 60, 62, 61), mk("G2", "TOR", ms.length > 4 ? 20 : 38, ms.length > 4 ? 22 : 40, 39)] }];
+      const k1 = kLook({}, evs([mk("A", "Wemby", 31, 33, 32), mk("B", "Luka", 25, 27, 26), mk("C", "Flagg", 1, 2, 1), mk("D", "Nobody", 0, 100, 1, 0)]), "2026-11-17T20:00:00Z");
+      const k2 = kLook(k1.state, evs([mk("A", "Wemby", 31, 33, 32), mk("B", "Luka", 38, 40, 39), mk("C", "Flagg", 5, 6, 5), mk("D", "Nobody", 0, 100, 9, 0), mk("E", "New", 3, 4, 3)]), "2026-11-17T21:00:00Z");
+      const k3 = kLook(k2.state, evs([mk("A", "Wemby", 31, 33, 32), mk("B", "Luka", 39, 41, 40), mk("C", "Flagg", 5, 6, 5), mk("D", "Nobody", 0, 100, 9, 0)]), "2026-11-18T21:00:00Z");
+      ok(k1.alerts.length === 0 && k1.moves.length === 0 && k1.counts.markets === 6 && k1.counts.game === 2 && k1.state.e["KXNBAMVP-27"].name === "Wemby"
+        && k2.alerts.length === 3 && k2.alerts.map((a) => a.kind).join() === "move,surge,leader" && k2.alerts[0].from === 26 && k2.alerts[0].to === 39 && k2.alerts[1].name === "Flagg" && k2.alerts[2].past === "Wemby"
+        && k2.alerts.every((a) => a.name !== "Nobody" && a.series !== "KXNBAGAME") && k2.moves.some((m) => m[1] === "G2" && m.length === 6) && /new favorite \*\*Luka\*\* 39%/.test(kLine(k2.alerts[2])) && /from the pack/.test(kLine(k2.alerts[1]))
+        && k3.alerts.length === 0 && k3.state.m.B.d.join() === "39" && k3.state.m.B.base === 39 && kPrice(mk("x", "x", 0, 100, 1, 0)).how === "last" && kPrice(mk("x", "x", 10, 30, 12)).p === 12 && !kGame("KXNBA-27") && kGame("KXNBAPRA-26NOV17NYKTOR") && kTyp([30, 31, 35, 36, 36, 40]) === 1 && kThr([30, 40, 30, 40, 30]) === 30,
+        "Kalshi (0.102): the first look only sets the baseline; a move of 5 points (or three times the market's usual day) from its last alert is a line once, a long shot that doubles is a line (\"from the pack\"), a new favorite is a line; a market with an empty book is never one, and a market tied to one game is logged, not alerted",
+        JSON.stringify([k2.alerts, k2.moves, k3.state.m.B]));
+    }
     // 0.101: the user's thirteen box scores; the night-and-opponent check; ESPN's play-by-play by period
     ok(tr("BOS", "pf", "game", "fewest").value === 6 && tr("IND", "pf", "game", "fewest").value === 7 && tr("CHA", "fg3a", "game").value === 59 && tr("GSW", "fg3a", "game").value === 59 && tr("GSW", "fg3a", "game", "most", "opp").value === 58
       && tr("LAC", "dreb", "game").value === 54 && tr("LAC", "fta", "game", "fewest").value === 5 && tr("MIA", "ftm", "game", "most", "opp").value === 47 && tr("MIA", "pf", "game").value === 39 && tr("MIA", "pf", "game").games.length === 2

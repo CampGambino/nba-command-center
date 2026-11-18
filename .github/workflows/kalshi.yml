@@ -1,0 +1,56 @@
+# Kalshi's NBA markets, about once an hour: scripts/kalshi.js reads every open market from Kalshi's public API (no key),
+# logs the moves, and posts the big ones to Discord when the DISCORD_WEBHOOK_KALSHI secret is set. The running state
+# (each market's last price) is kept in the Actions cache, not in the repo, so the repo only grows by the moves.
+name: kalshi
+on:
+  schedule:
+    - cron: "17 * * * *"
+  push:
+    branches: [main]
+    paths: ["scripts/kalshi.js", "src/kalshi.js", ".github/workflows/kalshi.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: kalshi
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Last run's prices
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/kalshi-state.json
+          key: kalshi-state-${{ github.run_id }}
+          restore-keys: kalshi-state-
+      - name: Read the markets
+        env:
+          DISCORD_WEBHOOK_KALSHI: ${{ secrets.DISCORD_WEBHOOK_KALSHI }}
+        run: node scripts/kalshi.js
+      - name: Keep the prices for the next run
+        if: ${{ success() }}
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/kalshi-state.json
+          key: kalshi-state-${{ github.run_id }}
+      - name: Commit
+        run: |
+          git config user.name "ncc-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add history/kalshi
+          if git diff --cached --quiet; then echo "nothing changed"; exit 0; fi
+          git commit -m "kalshi: $(TZ=America/New_York date +'%Y-%m-%d %H:%M') ET (automatic)"
+          for i in 1 2 3; do
+            git pull --rebase -X theirs --quiet origin main && git push --quiet origin HEAD:main && exit 0
+            git rebase --abort 2>/dev/null || true
+            sleep 10
+          done
+          echo "push failed"; exit 1
