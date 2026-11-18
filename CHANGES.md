@@ -2,6 +2,18 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.109.1 (2026-11-18): the Bulls and Pelicans fill is complete; measured, not merged
+
+No code or published data changes in this entry. It records where the fill stands so the next step starts from facts.
+
+- **Complete:** 324 of 324 games (2016-17 and 2017-18, 162 each) are in `tools/outside/pbpstats/`. The last save was at 4:44 PM; both workflow runs ended in success and none is running.
+- **Checked** (`node tools/merge-pbpstats-logs.mjs --boards … --dir …`, report only, 5:27 PM): all 324 games' points add up to ESPN's final score; 6,771 of 6,771 player lines match an ESPN player; no row has minutes missing.
+- **What a merge would add** (written to a scratch file, not to the repo): 1,291 games for 87 current players. Most: Anthony Davis 150 games (4,209 points), Jrue Holiday 148, Bobby Portis 137, Lauri Markkanen 68, Buddy Hield 64, Kris Dunn 57, Zach LaVine 26. Three players' most points "since 2016-17" would rise (Bobby Portis 34 to 38, Kris Dunn 26 to 32, Kentavious Caldwell-Pope 35 to 38), and Stephen Curry's 13 threes at New Orleans on 11/7/16 would be on file for the first time (his most on file is 12).
+- **Why it is not merged yet:** ten readers use the players' logs (career highs, the season-long lines, the zeros, prep, the matchup bests, the replay, the claims checker, the rookies list). Points and shooting in these rows are exact; rebounds, assists, steals and blocks are a floor. Each reader has to use the first and not let a line turn on the second, and several read all the stats in one pass. That is one careful iteration with its own tests and a full build, not something to push in the hour before tip.
+- **The temporary workflow stays for now**, idle (nothing left to fetch). It is removed, or pointed at 2012-13 to 2015-16 (662 more games, for the franchise file), once the user decides.
+
+Self-audit: the "would rise" list compares the most points in the new rows with the most in a player's other rows; it does not run the real readers, so it shows the size of the change and not the lines that would come out. The stored plan for this check-in said to do the reader work now; I am staging it and saying so, not calling it done.
+
 ## 0.109.0 (2026-11-18): the team-records card for NBA Live (bridge v24), and what backs each mark
 
 The user, 4:42 PM, with nine Basketball Reference screenshots: "confirmed on the brothers" and "you may proceed with team record cards, but I am concerned that not all of the stats are factual given the errors already spotted".
