@@ -53,8 +53,14 @@ export function look(prev, events, now, opts = {}) {
       const traded = vol24 >= (T === 1 ? 100 : 500);
       if (was && !game && traded) {
         const thr = Math.max(T === 1 ? 5 : 10, 3 * typical(s.d)), up = p - s.base;
-        const kind = Math.abs(up) >= thr ? "move" : s.base <= 10 && p >= Math.max(2 * s.base, s.base + 3, T === 1 ? 5 : 10) ? "surge" : null;
-        if (kind) found.push({ a: { at: now, kind, tier: T, series: ev.series_ticker, event: ev.event_ticker, title: ev.title, ticker: m.ticker, name, from: s.base, to: p, since: s.baseAt, usual: typical(s.d), vol24 }, s });
+        // 0.106.3 (self-audit of 0.103): the book has to agree. A rise counts when the bid itself is past the bar, a fall when
+        // the ask is, so one stray trade or a wide spread cannot make a line (Giannis Antetokounmpo, Cup MVP, 11/18: 7 to 13
+        // and back to 7 eleven minutes later, on 137 contracts, two lines for nothing). Until then the base stays where it was.
+        const bid = cents(m.yes_bid_dollars), ask = cents(m.yes_ask_dollars);
+        const backed = (bar) => (up > 0 ? bid > 0 && bid >= bar : ask != null && ask > 0 && ask < 100 && ask <= bar);
+        const surgeBar = Math.max(2 * s.base, s.base + 3, T === 1 ? 5 : 10);
+        const kind = Math.abs(up) >= thr && backed(up > 0 ? s.base + thr : s.base - thr) ? "move" : s.base <= 10 && p >= surgeBar && backed(surgeBar) ? "surge" : null;
+        if (kind) found.push({ a: { at: now, kind, tier: T, series: ev.series_ticker, event: ev.event_ticker, title: ev.title, ticker: m.ticker, name, from: s.base, to: p, since: s.baseAt, usual: typical(s.d), vol24, bid, ask, how }, s });
       }
       state.m[m.ticker] = s; rows.push({ t: m.ticker, name, p, live: live && traded });
     }

@@ -3968,9 +3968,14 @@ await articlesChecks(ok);
     // v22: ESPN's two plays for one offensive foul (Luka Doncic, 11/17 v CHA: his 3rd at Q1 22.3, his 4th at Q2 8.3)
     const luka = [["Q1", "5:51", "personal foul"], ["Q1", "1:30", "personal foul"], ["Q1", "22.3", "offensive foul"], ["Q1", "22.3", "offensive foul turnover"], ["Q2", "8.3", "offensive foul"], ["Q2", "8.3", "offensive foul turnover"]]
       .map(([qtr, clock, d], i) => ({ badge: "foul", playerId: "77", qtr, clock, desc: "Luka Doncic " + d, seqNum: i }));
-    ok(foulTime({ plays: luka }, "77", 3) === "Q1 22.3" && foulTime({ plays: luka }, "77", 4) === "Q2 8.3" && foulTime({ plays: luka }, "77", 5) === null && !/more fouls than the period number/.test(br.slice(br.indexOf("var rows = (times.length === pf"), br.indexOf("var rows = (times.length === pf") + 400)) && /var VERSION = 22;/.test(br),
+    ok(foulTime({ plays: luka }, "77", 3) === "Q1 22.3" && foulTime({ plays: luka }, "77", 4) === "Q2 8.3" && foulTime({ plays: luka }, "77", 5) === null && !/more fouls than the period number/.test(br.slice(br.indexOf("var rows = (times.length === pf"), br.indexOf("var rows = (times.length === pf") + 400)) && /var VERSION = 23;/.test(br),
       "bridge v22: an offensive foul's 'offensive foul turnover' line is not a second foul (his 4th foul is at its own time, not his 3rd's), and the foul trouble card's back no longer prints the rule",
       JSON.stringify([3, 4, 5].map((n) => foulTime({ plays: luka }, "77", n))));
+    // v23: a charge has only its turnover line tagged as a foul (Kevin Durant, 11/14: three shooting fouls, then a charge at Q4 1:14; LeBron James the same night)
+    const kd = [["Q2", "5:18", "shooting foul"], ["Q2", "4:51", "shooting foul"], ["Q3", "11:23", "shooting foul"], ["Q4", "1:14", "offensive foul turnover"], ["Q4", "0:40", "hanging techfoul"]]
+      .map(([qtr, clock, d], i) => ({ badge: "foul", playerId: "35", qtr, clock, desc: "Kevin Durant " + d, seqNum: i }));
+    ok(foulTime({ plays: kd }, "35", 4) === "Q4 1:14" && foulTime({ plays: kd }, "35", 5) === null && foulTime({ plays: luka }, "77", 4) === "Q2 8.3",
+      "bridge v23 (self-audit of v22): a charge's only foul-tagged line is its 'offensive foul turnover', which v22 threw away; it is the foul when no foul line stands at the same instant, and 'hanging techfoul' is a technical", JSON.stringify([4, 5].map((n) => foulTime({ plays: kd }, "35", n))));
   }
 
   // A first career game without a point, rebound or assist.
@@ -4405,6 +4410,13 @@ await articlesChecks(ok);
       const evs = (ms) => [{ series_ticker: "KXNBAMVP", event_ticker: "KXNBAMVP-27", title: "NBA MVP", mutually_exclusive: true, markets: ms }, { series_ticker: "KXNBAGAME", event_ticker: "KXNBAGAME-26NOV17NYKTOR", title: "NYK at TOR", mutually_exclusive: true, markets: [mk("G1", "NYK", 60, 62, 61), mk("G2", "TOR", ms.length > 4 ? 20 : 38, ms.length > 4 ? 22 : 40, 39)] }];
       const k1 = kLook({}, evs([mk("A", "Wemby", 31, 33, 32), mk("B", "Luka", 25, 27, 26), mk("C", "Flagg", 1, 2, 1), mk("D", "Nobody", 0, 100, 1, 0)]), "2026-11-17T20:00:00Z");
       const k2 = kLook(k1.state, evs([mk("A", "Wemby", 31, 33, 32), mk("B", "Luka", 38, 40, 39), mk("C", "Flagg", 5, 6, 5), mk("D", "Nobody", 0, 100, 9, 0), mk("E", "New", 3, 4, 3)]), "2026-11-17T21:00:00Z");
+      // 0.106.3: a stray trade is not a move. Cup MVP as on 11/18: bid 5, ask 16 (too wide for a midpoint), one trade at 13.
+      const cup = (ms) => [{ series_ticker: "KXNBACUPMVP", event_ticker: "KXNBACUPMVP-26", title: "Cup MVP", mutually_exclusive: true, markets: ms }];
+      const c1 = kLook({}, cup([mk("GA", "Giannis", 6, 8, 7, 137)]), "2026-11-18T05:00:00Z"), c2 = kLook(c1.state, cup([mk("GA", "Giannis", 5, 16, 13, 137)]), "2026-11-18T06:04:00Z"),
+        c3 = kLook(c2.state, cup([mk("GA", "Giannis", 6, 8, 7, 137)]), "2026-11-18T06:15:00Z"), c4 = kLook(c3.state, cup([mk("GA", "Giannis", 12, 14, 13, 137)]), "2026-11-18T07:15:00Z"),
+        c5 = kLook(c4.state, cup([mk("GA", "Giannis", 5, 16, 7, 137)]), "2026-11-18T08:15:00Z"), c6 = kLook(c5.state, cup([mk("GA", "Giannis", 5, 7, 6, 137)]), "2026-11-18T09:15:00Z");
+      ok(c2.alerts.length === 0 && c3.alerts.length === 0 && c4.alerts.length === 1 && c4.alerts[0].from === 7 && c4.alerts[0].to === 13 && c5.alerts.length === 0 && c6.alerts.length === 1 && c6.alerts[0].to === 6,
+        "kalshi (0.106.3, self-audit): a rise is a line only when the bid itself is past the bar, a fall only when the ask is; a trade at 13 with the bid still at 5 is nothing, and neither is its return (on 11/18 that was two lines eleven minutes apart)", JSON.stringify([c2, c3, c4, c5, c6].map((x) => x.alerts.map((a) => [a.from, a.to]))));
       const kTier = (await import("../src/kalshi.js")).tier, wins = (lo, hi, v) => [{ series_ticker: "KXNBAWINS", event_ticker: "KXNBAWINS-27NYK", title: "New York Total Wins", mutually_exclusive: false, markets: [mk("W45", "45+ wins", lo - 1, lo + 1, lo, v), mk("W50", "50+ wins", hi - 1, hi + 1, hi, v)] }];
       const w1 = kLook({}, wins(70, 50, 900), "2026-11-17T20:00:00Z"), w2 = kLook(w1.state, wins(77, 57, 900), "2026-11-17T21:00:00Z"), w3 = kLook(w2.state, wins(84, 62, 900), "2026-11-17T22:00:00Z"), w4 = kLook(w1.state, wins(84, 62, 300), "2026-11-17T21:00:00Z");
       ok(kTier("KXNBAMVP") === 1 && kTier("KXNBA") === 1 && kTier("KXNBAATLANTIC") === 1 && kTier("KXNBAWINS") === 2 && kTier("KXNBASEED") === 2 && kGame("KXNBARACE-26NOV18MILMIA-30") && !kGame("KXNBAROTM-NOV26WEST")

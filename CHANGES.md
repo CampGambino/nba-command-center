@@ -2,6 +2,26 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.106.3 (2026-11-18): self-audits of 0.104 and 0.103 find two real errors: bridge v23 (charges), and a Kalshi line needs the order book behind it
+
+The user, 8:34 AM: "Continue". Next on the list were the self-audits of the versions that never had one.
+
+**Self-audit of 0.104.0 (bridge v22, the time of a player's nth foul).** v22 was checked on one player's six plays. This time the rule was run the way the bridge runs it over every player in the 78 games of 11/7 to 11/17 and compared with the box scores' fouls.
+- *Wrong, fixed (bridge v23).* v22 counted fouls right for 1,704 of 1,740 players. 33 of the 36 misses are one thing: **a charge.** ESPN writes it as "offensive charge" and "offensive foul turnover"; the first has no "foul" in it, so NBA Live does not tag it, and v22 threw the second away as a duplicate. A charge was not counted at all, so every later foul of that player was shown at the next foul's time (Kevin Durant and LeBron James on 11/14, Franz Wagner on 11/13). v23: a "… foul turnover" line is the foul itself when no foul line of his stands at the same instant. Also "hanging techfoul" is a technical (De'Aaron Fox). Now 1,733 of 1,740. The other seven: five fouls ESPN's play-by-play does not have at all, and the second player of a double foul (twice).
+- v22's own claim (Luka Dončić's 3rd and 4th fouls) still holds under v23.
+- **NBA Live has to be refreshed to load v23.** The team-marks card, when built, will be v24.
+
+**Self-audit of 0.103.0 (Kalshi's rule), from the eleven lines it wrote overnight.**
+- *Wrong, fixed.* Giannis Antetokounmpo, Cup MVP: "7 → 13" at 1:04 AM and "13 → 7" at 1:15 AM, on 137 contracts. Two lines for nothing. The price used is the midpoint when the spread is narrow and the last trade when it is wide, so one trade inside a wide spread reads as a move and its disappearance as another. **Now the book has to agree:** a rise is a line only when the bid itself is past the bar, a fall only when the ask is. Until then nothing is said and the starting price stays where it was.
+- *Could not be answered from the repo, fixed.* "Did the lines reach Discord?" was written nowhere: the status file is saved before posting. Each run that posts now adds a row to `history/kalshi/posts.jsonl` (time, number of lines, what Discord answered; no address, no text). Each alert row also keeps the bid, the ask and which price was used, so the next audit can see the book.
+- *As designed.* The other nine lines are single moves on real volume (Quentin Grimes 1 → 9 for Sixth Man on 3,099 contracts; Klay Thompson 2 → 19 to lead in threes on 1,745). Every line's "usual daily move" is still the default: three days of closes do not exist yet.
+
+**Tested:** 977 checks pass (two new: a charge and a "techfoul" for the bridge; the Giannis sequence for Kalshi, where a trade at 13 with the bid at 5 is nothing, the bid reaching 12 is a line, and the same on the way down), 79 in the Worker suite. Bridge v23 was loaded inside the user's NBA Live page (the 11/18 copy) with Durant's game replayed: connected, version 23, no error.
+
+**Unproven:** the Giannis book is a reconstruction: the log of 11/18 did not keep bid and ask, so "a wide spread with one trade at 13" is the likeliest reading, not a recorded fact. How many true moves the book rule will delay by a look is not known; the log now has what is needed to tell. A double foul's second player still gets no foul time.
+
+**Self-audit of this entry:** the 1,704 and 1,733 were produced by one script run twice with the two rules, on the same 78 games; the script imitates NBA Live's tagging (type or text has "foul", after challenge, timeout and substitution) and takes the play's first participant as the player, which is how the bridge sees plays but was not run through NBA Live itself. The pbpstats job has saved nothing yet (checked 9:10 AM; its first save is due about 9:20).
+
 ## 0.106.2 (2026-11-18): pbpstats can fill the hole, slowly; self-audit of 0.105.0
 
 The user, 8:11 AM: "Can you access pbpstats for the missing box scores. It has data through 2001." and "proceed with your next moves as well".

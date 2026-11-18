@@ -62,5 +62,8 @@ if (url) {
   if (!state.hooked) { lines.unshift(`Kalshi watch is connected: ${counts.markets.toLocaleString("en-US")} open NBA markets read about once an hour. A line appears here when a headline market (MVP, awards, title, conference, division) moves 5+ points or gets a new favorite, or another futures market moves 10+ on real volume. Game-night markets are not posted.`); state.hooked = true; fs.writeFileSync(stateFile, JSON.stringify(state)); }
   if (!lines.length) process.exit(0);
   let msg = ""; const posts = []; for (const l of lines) { if ((msg + "\n" + l).length > 1900) { posts.push(msg); msg = l; } else msg = msg ? msg + "\n" + l : l; } if (msg) posts.push(msg);
-  for (const content of posts) { const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content, allowed_mentions: { parse: [] } }) }); console.log("kalshi: discord", r.status); await sleep(600); }
+  const sent = [];
+  for (const content of posts) { const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content, allowed_mentions: { parse: [] } }) }); console.log("kalshi: discord", r.status); sent.push(r.status); await sleep(600); }
+  // 0.106.3: what Discord answered is kept (no address, no text), so "did the lines arrive?" can be read from the repo
+  fs.appendFileSync(path.join(out, "posts.jsonl"), JSON.stringify({ at: now, lines: lines.length, messages: posts.length, discord: sent }) + "\n");
 }

@@ -80,7 +80,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 22;
+  var VERSION = 23;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -874,7 +874,14 @@
   // (The user, 11/16: a card read "2nd foul, end of the 1st" midway through the 2nd for a foul midway through the 1st.)
   function foulTime(game, id, n, asPlay) {
     var P = game.plays || [], mine = [];
-    for (var k = 0; k < P.length; k++) if (P[k] && P[k].badge === "foul" && String(P[k].playerId) === String(id) && !/technical|turnover|flagrant foul type 2 ejection|defensive 3-seconds|delay/i.test(P[k].desc || "")) mine.push(P[k]);
+    var twins = [];
+    for (var k = 0; k < P.length; k++) if (P[k] && P[k].badge === "foul" && String(P[k].playerId) === String(id) && !/tech|flagrant foul type 2 ejection|defensive 3-seconds|delay/i.test(P[k].desc || "")) (/turnover/i.test(P[k].desc || "") ? twins : mine).push(P[k]);
+    // v23 (self-audit of v22, 11/18): a charge is written "offensive charge" + "offensive foul turnover". The first has no
+    // "foul" in it, so NBA Live does not tag it, and v22 threw the second away: a charge was not counted at all. A turnover
+    // line is the foul itself when no foul line of his stands at the same instant. Checked on 78 games, 11/7-11/17: the
+    // count equals the box score for 1,733 of 1,740 players (v22: 1,704); the other 7 are fouls ESPN's feed does not have,
+    // or the second player of a double foul. "Hanging techfoul" is a technical too.
+    for (var t = 0; t < twins.length; t++) { var has = false; for (var m = 0; m < mine.length; m++) if (mine[m].qtr === twins[t].qtr && String(mine[m].clock) === String(twins[t].clock) && !/turnover/i.test(mine[m].desc || "")) has = true; if (!has) mine.push(twins[t]); }
     // v22 (the user, 11/18: "luka didn't get his 4th foul at the same time he got his 3rd foul"): ESPN writes an offensive
     // foul as two plays at the same instant, "offensive foul" and "offensive foul turnover". The second is the turnover,
     // not another foul; counted, it put his next foul at the time of this one and dropped the real one off the list.
