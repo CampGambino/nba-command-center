@@ -1762,7 +1762,7 @@ await articlesChecks(ok);
     { team: "SAS", items: [ item({ espnId: "20", player: "Final Reach", need: 6 }), item({ espnId: "21", player: "Final Miss", need: 30 }) ] },
   ] };
   const pl = (id, o) => ({ id, min: 20, pts: 12, tpm: 3, reb: 5, ast: 2, stl: 1, blk: 0, dreb: 4, oreb: 1, starter: true, ...o });
-  let flowData = null, versionData = null;
+  let flowData = null, versionData = null, teamMarksData = null;
   function run({ date = "20261109", hooks = true, games, extra = {} } = {}) {
     const cards = new Map(); let original = 0;
     const el = { style: {}, textContent: "" };
@@ -1770,7 +1770,7 @@ await articlesChecks(ok);
       URLSearchParams, console, Promise, Object, Number, String, Math, Array, Date, JSON,
       location: { search: "?cc=" + encodeURIComponent("https://cc.example/data/watch.json") },
       document: { readyState: "complete", getElementById: (id) => (id === "cc-bridge-note" ? el : null), createElement: () => el, body: { appendChild() {} } },
-      fetch: async (u) => ({ ok: true, json: async () => (String(u).includes("version.json") ? versionData : String(u).includes("flowstats.json") ? flowData : String(u).includes("tonight.json") ? tonightData : String(u).includes("records.json") ? recordsData : String(u).includes("single-game-bests") ? bestsData : watch) }),
+      fetch: async (u) => ({ ok: true, json: async () => (String(u).includes("version.json") ? versionData : String(u).includes("teammarks.json") ? teamMarksData : String(u).includes("flowstats.json") ? flowData : String(u).includes("tonight.json") ? tonightData : String(u).includes("records.json") ? recordsData : String(u).includes("single-game-bests") ? bestsData : watch) }),
       setInterval() {}, setTimeout() {}, clearTimeout() {}, addEventListener() {},
     };
     ctx.window = ctx;
@@ -1947,6 +1947,37 @@ await articlesChecks(ok);
     && /^Big Night \(LAL\) — 58 points, 2 from the NBA Cup single-game record \(60/.test((t.cards.get("cc-list-cup-40-pts-record") || {}).text || "") && !t.cards.get("cc-list-40-pts-record"),
     "bridge v3/0.63: making the all-time single-game list (with his place) and the Cup's list on a Cup night; no 'nearing the list' card; a countdown to the Cup record (the regular season's is NBA Live's own)", [made && made.text, near && near.text, (t.cards.get("cc-list-cup-40-pts-record") || {}).text].join(" | "));
   ok(!has("cc-list-40-fg3m-near") && !has("cc-list-1-fg3m"), "bridge 0.63: no card for nearing a single-game list");
+  {
+    // v24 (0.109.0): each team's single-game team marks, an NBA record first, and what backs the number in the small print.
+    const Z = { pts: 0, tpm: 0, tpa: 0, reb: 0, ast: 0, stl: 0, blk: 0, dreb: 0, oreb: 0, fgm: 0, fga: 0, ftm: 0, fta: 0, to: 0, pf: 0 };
+    const five = (pre, tot, n = 8) => Array.from({ length: n }, (_, i) => pl(pre + i, { ...Z, ...(i ? {} : tot) }));
+    const mk = (s, k, st, v, ok = null, d = "2024-10-22", o = "vs. New York", n = 1) => ({ s, k, st, v, d, o, n, ok });
+    teamMarksData = { v: 1, through: "2025-26", league: { "most|stl": { v: 27, holder: "Seattle vs. Toronto, Jan. 15, 1997", many: false }, "fewest|blk": { v: 0, holder: "By many", many: true } }, teams: {
+      BOS: { name: "Celtics", scope: null, m: [mk("team", "most", "fg3m", 29, "ESPN's box score"), mk("team", "most", "fg3a", 53, "ESPN's box score"), mk("team", "most", "blk", 13), mk("team", "most", "stl", 20, "the other team's guide"),
+        mk("team", "fewest", "tov", 4, "ESPN's box score", "2013-03-05", "at Philadelphia"), mk("team", "fewest", "blk", 0, null, "2020-01-01", "several, last vs. Utah", 6)] },
+      MIA: { name: "Heat", scope: "since 1988-89", m: [mk("opp", "most", "fg3a", 50, "ESPN's box score", "2022-01-02", "vs. Dallas")] } } };
+    const bos = { tpm: 27, tpa: 51, blk: 13, stl: 28, to: 3, fga: 85, fgm: 40, pts: 110 };
+    const gm = (o = {}, tot = bos, n = 8) => [{ id: "tm1", status: "live", period: 4, clock: "5:00", away: { tricode: "BOS", score: 110 }, home: { tricode: "MIA", score: 100 }, boxscore: { away: five("b", tot, n), home: five("m", { fga: 80, blk: 2, to: 12 }) }, ...o }];
+    const go = async (games, extra) => { const r = run({ games, extra }); await flush(); r.ctx.runAlertChecks(); await flush(); return Object.fromEntries([...r.cards].filter(([k]) => k.startsWith("cc-tm-"))); };
+    const A = await go(gm()), B = await go(gm(), { NBA_TEAM_RECORDS: { stl: { record: 27 } } }), late = await go(gm({ clock: "1:30" })), fin = await go(gm({ status: "final", clock: "0:00" }));
+    const few = await go(gm({}, bos, 4)), po = await go(gm(), { isPlayoffSlate: () => true }), fin0 = await go(gm({ status: "final", clock: "0:00" }, { ...bos, blk: 0 }));
+    const K = (o) => Object.keys(o).map((k) => k.replace("cc-tm-tm1-", "")).sort().join(" ");
+    ok(K(A) === "BOS-most-blk-tied BOS-most-fg3a-near BOS-most-fg3a-opp BOS-most-fg3m-near BOS-most-stl-nba"
+      && A["cc-tm-tm1-BOS-most-fg3m-near"].text === "BOS — 27 threes, 2 from the Celtics record for a game (29, 10/22/24 vs. New York)" && /Celtics media guide · number checked against ESPN's box score$/.test(A["cc-tm-tm1-BOS-most-fg3m-near"].sub)
+      && A["cc-tm-tm1-BOS-most-blk-tied"].text === "BOS — 13 blocks: ties the Celtics record for the most in a game (13, 10/22/24 vs. New York)" && /guide only: not checked against a box score$/.test(A["cc-tm-tm1-BOS-most-blk-tied"].sub)
+      && A["cc-tm-tm1-BOS-most-stl-nba"].text === "BOS — 28 steals: an NBA record, the most by a team in a game (was 27, Seattle vs. Toronto, Jan. 15, 1997); also the Celtics record (was 20, 10/22/24 vs. New York)"
+      && A["cc-tm-tm1-BOS-most-fg3a-opp"].text === "BOS — 51 three-point attempts: the most by an opponent against the Heat (was 50, 1/2/22 vs. Dallas)" && /Heat media guide, since 1988-89 · number checked/.test(A["cc-tm-tm1-BOS-most-fg3a-opp"].sub),
+      "bridge v24 (0.109.0): a team total close to its franchise mark, tying one, passing the NBA record (said first, the franchise mark folded in), and the most by an opponent (shown beside \"2 from its own record\" in the same stat, not hidden by it); the small print names what backs the number or says \"guide only\"",
+      JSON.stringify(Object.values(A).map((c) => [c.icon, c.text, c.sub])));
+    ok(K(B).includes("BOS-most-stl-broke") && !K(B).includes("-nba") && /the most in a game in Celtics history \(was 20, 10\/22\/24 vs\. New York\); passes the NBA record too \(27\)$/.test(B["cc-tm-tm1-BOS-most-stl-broke"].text),
+      "bridge v24: where NBA Live has its own card for that league mark, the Command Center's card stays the franchise one and only notes the NBA record", JSON.stringify(B["cc-tm-tm1-BOS-most-stl-broke"] || K(B)));
+    ok(!K(A).includes("fewest") && late["cc-tm-tm1-BOS-fewest-tov-watch"]?.text === "BOS — 3 turnovers with 1:30 left: the Celtics record for the fewest in a game is 4 (3/5/13 at Philadelphia)"
+      && fin["cc-tm-tm1-BOS-fewest-tov-broke"]?.text === "BOS — 3 turnovers: the fewest in a game in Celtics history (was 4, 3/5/13 at Philadelphia)" && !K(fin).includes("-near") && !K(fin).includes("-watch")
+      && !K(fin0).includes("fewest-blk") && K(few) === "" && K(po) === "",
+      "bridge v24: a \"fewest\" is a watch only in the last two minutes and a record only at the final; a final drops the close-to-a-record card; no card for a tie at zero, for a box score with fewer than five players, or in the playoffs",
+      [K(A), K(late), K(fin), K(fin0), K(few), K(po)].join(" | "));
+    teamMarksData = null;
+  }
   const fgTie = t.cards.get("cc-fg-40-pts-tied"), fgNear = t.cards.get("cc-fg-41-pts-near");
   ok(fgTie && fgTie.text === "Big Night (LAL) — 58 points: ties the Lakers record (58, Old Laker vs. Boston 1/1/60)" && fgNear && /6 from the Lakers record \(58, Old Laker/.test(fgNear.text) && !has("cc-fg-40-fg3m") && /Lakers guide p\. 99/.test(fgTie.sub),
     "bridge v4: a franchise single-game record tied, one nearing it (52 of 58, window 8); 9 threes isn't near 12 (window 2)", [fgTie && fgTie.text, fgNear && fgNear.text].join(" | "));
@@ -4093,7 +4124,7 @@ await articlesChecks(ok);
     // v22: ESPN's two plays for one offensive foul (Luka Doncic, 11/17 v CHA: his 3rd at Q1 22.3, his 4th at Q2 8.3)
     const luka = [["Q1", "5:51", "personal foul"], ["Q1", "1:30", "personal foul"], ["Q1", "22.3", "offensive foul"], ["Q1", "22.3", "offensive foul turnover"], ["Q2", "8.3", "offensive foul"], ["Q2", "8.3", "offensive foul turnover"]]
       .map(([qtr, clock, d], i) => ({ badge: "foul", playerId: "77", qtr, clock, desc: "Luka Doncic " + d, seqNum: i }));
-    ok(foulTime({ plays: luka }, "77", 3) === "Q1 22.3" && foulTime({ plays: luka }, "77", 4) === "Q2 8.3" && foulTime({ plays: luka }, "77", 5) === null && !/more fouls than the period number/.test(br.slice(br.indexOf("var rows = (times.length === pf"), br.indexOf("var rows = (times.length === pf") + 400)) && /var VERSION = 23;/.test(br),
+    ok(foulTime({ plays: luka }, "77", 3) === "Q1 22.3" && foulTime({ plays: luka }, "77", 4) === "Q2 8.3" && foulTime({ plays: luka }, "77", 5) === null && !/more fouls than the period number/.test(br.slice(br.indexOf("var rows = (times.length === pf"), br.indexOf("var rows = (times.length === pf") + 400)) && /var VERSION = (?:2[3-9]|[3-9]\d);/.test(br),
       "bridge v22: an offensive foul's 'offensive foul turnover' line is not a second foul (his 4th foul is at its own time, not his 3rd's), and the foul trouble card's back no longer prints the rule",
       JSON.stringify([3, 4, 5].map((n) => foulTime({ plays: luka }, "77", n))));
     // v23: a charge has only its turnover line tagged as a foul (Kevin Durant, 11/14: three shooting fouls, then a charge at Q4 1:14; LeBron James the same night)

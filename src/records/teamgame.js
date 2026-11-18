@@ -130,6 +130,51 @@ export function boxRecordLines(records, rows, since, today = null) {
   return out;
 }
 
+/**
+ * 0.109.0, for the NBA Live card (bridge v24; the user, 11/18: "you may proceed with team record cards, but I am concerned
+ * that not all of the stats are factual given the errors already spotted"). Each team's whole-game marks as they stand this
+ * morning: the guide's, raised or lowered by this season's games before `today`, each with what backs the number.
+ *   teams[t] = { name, scope, m: [{ s: "team"|"opp", k: "most"|"fewest", st, v, d, o, n, ok }] }
+ *   `ok` is the second source for the number on a printed night (src/data/team-marks-sources.json), "ESPN's box score" for a
+ *   mark set this season, or null: the mark rests on the team's guide alone, and the card says so.
+ *   league["most|fg3m"] = { v, holder, many }: the league's one-team marks for a game, walked the same way.
+ */
+export function liveTeamMarks({ printed, rows, today = null, sources = null, book = null }) {
+  const run = new Map(), L = {}, lm = book ? leagueMarks(book) : {};
+  for (const m of Object.values(lm)) if (m.who === "one" && m.period === "game") L[`${m.kind}|${m.stat}`] = { v: m.v, holder: m.holder, many: !!m.many };
+  const games = (rows || []).filter((g) => g.hs > 0 && g.as > 0 && (!today || g.d < today)).sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0));
+  const live = (m) => m.period === "game" && WORD[m.stat] && ["most", "fewest"].includes(m.kind) && m.value != null;
+  for (const g of games) {
+    const H = { pts: g.hs, box: g.hb, q: g.hq }, A = { pts: g.as, box: g.ab, q: g.aq };
+    for (const [t, opp, mine, theirs, home] of [[g.h, g.a, H, A, true], [g.a, g.h, A, H, false]]) {
+      for (const m of printed?.teams?.[t] || []) {
+        if (!live(m)) continue;
+        const side = m.side || "team", v = boxValue(m, side === "team" ? mine : theirs);
+        if (v == null) continue;
+        const key = `${t}|${side}|${m.kind}|${m.stat}`, cur = run.get(key) || { v: m.value, n: m.games.length }, sign = m.kind === "most" ? 1 : -1;
+        if (sign * v < sign * cur.v) continue;
+        run.set(key, { v, d: g.d, o: `${home ? "vs." : "at"} ${opp}`, n: v !== cur.v ? 1 : cur.n + 1, now: true });
+      }
+      for (const kind of ["most", "fewest"]) for (const stat of ["pts", "reb", ...BOX]) {
+        const cur = L[`${kind}|${stat}`]; if (!cur) continue;
+        const v = boxValue({ period: "game", stat }, mine), sign = kind === "most" ? 1 : -1;
+        if (v == null || sign * v <= sign * cur.v) continue;
+        L[`${kind}|${stat}`] = { v, holder: `${t} ${home ? "vs." : "at"} ${opp}, ${mdy(g.d)}`, many: false };
+      }
+    }
+  }
+  const teams = {};
+  for (const [t, ms] of Object.entries(printed?.teams || {})) {
+    const m = ms.filter(live).map((x) => {
+      const side = x.side || "team", r = run.get(`${t}|${side}|${x.kind}|${x.stat}`), g = x.games?.[0];
+      return r?.now ? { s: side, k: x.kind, st: x.stat, v: r.v, d: r.d, o: r.o, n: r.n, ok: "ESPN's box score" }
+        : { s: side, k: x.kind, st: x.stat, v: x.value, d: g?.date || null, o: g?.opp || x.times || null, n: x.games?.length || 0, ok: sources?.teams?.[t]?.[[side, x.kind, x.stat, "game"].join("|")] || null };
+    });
+    if (m.length) teams[t] = { name: nick(t), scope: printed.scopes?.[t] || null, m };
+  }
+  return { v: 1, through: printed?.through || null, today, teams, league: L };
+}
+
 /** The printed marks as rows for the finder: [team, stat, most, fewest, most by an opponent, fewest by an opponent]. */
 export function boxTable(records) {
   const out = [], cell = (ms, side, kind, stat, period) => { const m = ms.find((x) => (x.side || "team") === side && x.kind === kind && x.stat === stat && x.period === period); return m ? `${m.value}${m.doubt ? "?" : ""} (${m.games.length ? `${mdy(m.games[0].date)}${m.games.length > 1 ? ` +${m.games.length - 1}` : ""}` : m.times || "no game given"})` : ""; };

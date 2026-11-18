@@ -37,6 +37,9 @@ if os.path.exists(_bests): os.makedirs(os.path.join(SITE, "ref"), exist_ok=True)
 # bridge v5: this season's Game Flow facts
 _flow = os.path.join(os.path.dirname(os.path.abspath(WATCH)), "flowstats.json")
 if os.path.exists(_flow): shutil.copy(_flow, os.path.join(SITE, "flowstats.json"))
+# bridge v24: each team's single-game team marks
+_tm = os.path.join(os.path.dirname(os.path.abspath(WATCH)), "teammarks.json")
+if os.path.exists(_tm): shutil.copy(_tm, os.path.join(SITE, "teammarks.json"))
 server = subprocess.Popen([sys.executable, "-m", "http.server", "8791", "--directory", SITE], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(1)
 log = {"passed": 0, "blocked": 0, "errors": 0, "hosts": {}}
@@ -92,9 +95,17 @@ async def main():
         cards = await pg.evaluate("() => [...document.querySelectorAll('#alerts-scroll > *')].map(e => e.innerText.replace(/\\s+/g,' ').slice(0,230))")
         games = await pg.evaluate("() => { try { return GAMES.map(g => g.away.tricode+'@'+g.home.tricode+' '+g.status+' box:'+(g.boxscore? (g.boxscore.away||[]).length : 0)); } catch(e) { return String(e); } }")
         await pg.screenshot(path=os.path.join(SITE, "screenshot.png")); print("screenshot:", os.path.join(SITE, "screenshot.png"))
+        tmst = await pg.evaluate("() => { const s = window.CC_BRIDGE && window.CC_BRIDGE.state; if (!s) return null; const g = (typeof GAMES !== 'undefined' ? GAMES : []).find(x => x.status === 'live'); return { teams: s.teamMarks ? Object.keys(s.teamMarks.teams).length : 0, loadErr: s.teamMarksError || null, runErr: s.teamMarkError || null, keys: Object.keys(s.keys || {}).filter(k => k.startsWith('cc-tm-')), live: g ? { period: g.period, clock: g.clock, away: g.away && g.away.tricode, p0: g.boxscore && g.boxscore.away && g.boxscore.away[0] } : null }; }")
+        print("TEAM MARKS STATE:", json.dumps(tmst)[:900])
+        dbg = await pg.evaluate("() => { const s = window.CC_BRIDGE.state; const g = GAMES.find(x => x.status === 'live'); if (!g || !s.teamMarks) return null; const sum = (sd, f) => (g.boxscore[sd] || []).filter(p => p && (p.min || 0) > 0).reduce((a, p) => a + (Number(p[f]) || 0), 0); return { status: g.status, n: (g.boxscore.away || []).filter(p => p && (p.min || 0) > 0).length, ast: sum('away', 'ast'), tpm: sum('away', 'tpm'), marks: (s.teamMarks.teams[g.away.tricode] || { m: [] }).m.filter(m => m.st === 'ast'), today: s.teamMarks.today, errs: Object.keys(s).filter(k => /Error$/.test(k) && s[k]).map(k => k + ': ' + s[k]) }; }")
+        print("TEAM MARKS DEBUG:", json.dumps(dbg)[:900])
+
         print("BRIDGE:", st); print("NOTE:", note); print("GAMES:", games)
         cc = [c for c in cards if "Command Center" in c]
         print(f"CARDS: {len(cards)} total, {len(cc)} from Command Center")
+        tm = [c for c in cards if "media guide" in c and ("number checked" in c or "guide only" in c)]
+        print(f"TEAM MARKS: {len(tm)}")
+        for c in tm: print("  TM>", c)
         for c in cc[:12]: print("  CC>", c)
         for c in [c for c in cards if "Command Center" not in c][:6]: print("  NL>", c)
         print("NET:", {k: v for k, v in log.items() if k != "hosts"}, sorted(log["hosts"].items(), key=lambda x: -x[1])[:8])

@@ -93,6 +93,17 @@
     "date": "1956-01-02",
     "by": "Basketball Reference's box score for Rochester vs. Philadelphia, January 2, 1956 (Philadelphia 45-160); the guide's game list had the game a day late and is corrected (tools/guide-games-by-eye.json)"
    }
+  ],
+  "GSW": [
+   {
+    "side": "team",
+    "stat": "tov",
+    "kind": "most",
+    "period": "game",
+    "date": "1971-03-09",
+    "value": 45,
+    "by": "The league's record book prints the same night under most turnovers by both teams: San Francisco (45) vs. Boston (25), March 9, 1971. Basketball Reference's box score (the user's Basketball Reference screenshot, 11/18/26) has San Francisco with 26; two printed sources against one, the 45 is kept"
+   }
   ]
  },
  "redate": {
@@ -491,6 +502,33 @@
     "from": "2026-01-07",
     "to": "2026-01-17",
     "by": "The Lakers were at San Antonio on 1/7/26 (no quarter under 7 rebounds). They were at Portland on 1/17/26: ESPN's play-by-play, which adds up to the box score for that stat, has quarters of 3, 13, 3 and 8"
+   },
+   {
+    "side": "team",
+    "stat": "fgm",
+    "kind": "most",
+    "period": "quarter",
+    "from": "1966-01-23",
+    "to": "1966-11-23",
+    "by": "The Lakers had no game that day (Basketball Reference's schedule, the user's screenshot, 11/18/26), and Chicago had no team until 1966-67. The guide's own game list has Chicago in Los Angeles on 11/23/66 (154-130; the guide's 91-point half is that night) and again on 11/25/66 (117-121): the first 1 of the month was dropped. Not checked against a quarter-by-quarter source"
+   },
+   {
+    "side": "team",
+    "stat": "ftm",
+    "kind": "most",
+    "period": "quarter",
+    "from": "1966-01-25",
+    "to": "1966-11-25",
+    "by": "The Lakers played Philadelphia in New York that day (Basketball Reference's schedule, the user's screenshot, 11/18/26), and Chicago had no team until 1966-67. The guide's own game list has Chicago in Los Angeles on 11/23/66 (154-130; the guide's 91-point half is that night) and again on 11/25/66 (117-121): the first 1 of the month was dropped. Not checked against a quarter-by-quarter source"
+   },
+   {
+    "side": "team",
+    "stat": "fta",
+    "kind": "most",
+    "period": "quarter",
+    "from": "1966-01-25",
+    "to": "1966-11-25",
+    "by": "The Lakers played Philadelphia in New York that day (Basketball Reference's schedule, the user's screenshot, 11/18/26), and Chicago had no team until 1966-67. The guide's own game list has Chicago in Los Angeles on 11/23/66 (154-130; the guide's 91-point half is that night) and again on 11/25/66 (117-121): the first 1 of the month was dropped. Not checked against a quarter-by-quarter source"
    }
   ],
   "DET": [
@@ -802,6 +840,16 @@
     "date": "1974-02-15",
     "by": "The guide's opponents' page prints \"Game 25 vs. SEA 2/15/74\" and under it \"16 vs. OKC 11/22/09\". Basketball Reference's box score for 2/15/74 (the user's screenshot, 11/18/26) has Seattle with 7 blocks and 25 turnovers (and the Lakers with 43 turnovers, the league record), so the 25 is Seattle's turnovers printed on the blocks row; the league's record for blocks is 23. ESPN's box score has Oklahoma City with 16 blocks at the Lakers on 11/22/09"
    }
+  ],
+  "SAC": [
+   {
+    "side": "team",
+    "stat": "stl",
+    "kind": "most",
+    "period": "game",
+    "date": "1977-11-01",
+    "by": "The franchise page prints 28 at Milwaukee. Basketball Reference's box score (the user's Basketball Reference screenshot, 11/18/26) has Kansas City with 5 steals and 33 turnovers that night, and 28 would be more than the league record (27)"
+   }
   ]
  },
  "revalue": {
@@ -847,6 +895,17 @@
     "date": "1980-01-19",
     "value": 21,
     "by": "Basketball Reference's box score (the user's screenshot, 11/17/26): Detroit blocked 21 shots, as the Pistons' guide prints; the Rockets' guide prints 18"
+   }
+  ],
+  "GSW": [
+   {
+    "side": "opp",
+    "stat": "reb",
+    "kind": "most",
+    "period": "game",
+    "date": "1957-11-16",
+    "value": 102,
+    "by": "The guide prints 110 for Boston. Basketball Reference's box score (the user's Basketball Reference screenshot, 11/18/26) has Boston with 102 (Bill Russell 49, as the guide's own player page says), and the league's record book has 109 as the most ever by one team (12/24/60), so 110 stands in neither. 102 is that night's number; whether another opponent had more is not known"
    }
   ]
  },
@@ -1043,6 +1102,17 @@
     "date": "2025-04-13",
     "opp": "vs. Phoenix",
     "by": "The guide's low is 6. ESPN's box score and Basketball Reference's box score (the user's screenshot, 11/17/26) both have Sacramento with 3 free throw attempts against Phoenix on 4/13/25"
+   },
+   {
+    "side": "team",
+    "stat": "stl",
+    "kind": "most",
+    "period": "game",
+    "value": 23,
+    "date": "1993-02-26",
+    "opp": "vs. Seattle",
+    "by": "The guide's Sacramento-era page (most steals, game: 23 vs. Seattle, Feb. 26, 1993), used because the franchise page's 28 is wrong. Not checked against a box score, and a Kansas City night (1973-85) above 23 cannot be ruled out",
+    "second": false
    }
   ],
   "HOU": [

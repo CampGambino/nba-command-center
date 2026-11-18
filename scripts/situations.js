@@ -430,7 +430,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
         // 0.90: each team's single-game marks from the same games (most and fewest points, largest win and loss).
         // 0.93: where a guide prints the mark (19 guides), the print is the mark through last season; the box-score marks
         // (rebounds, threes, a quarter's points, an opponent's) come from the same file.
-        const { teamGameRecords, recordLines, boxRecordLines, boxTable, leagueRecordLines, withLeagueFirst } = await import("../src/records/teamgame.js");
+        const { teamGameRecords, recordLines, boxRecordLines, boxTable, leagueRecordLines, withLeagueFirst, liveTeamMarks } = await import("../src/records/teamgame.js");
         // 0.107.9: an NBA record comes before a franchise one (the league's record book; a franchise line for the same mark folds into it)
         const lbf = path.join(root, "src", "data", `nba-record-book-${seasonTag}.json`), leagueBook = fs.existsSync(lbf) ? JSON.parse(fs.readFileSync(lbf, "utf8")) : null;
         const tgf = path.join(root, "src", "data", `team-game-records-${seasonTag}.json`), printed = fs.existsSync(tgf) ? JSON.parse(fs.readFileSync(tgf, "utf8")) : null;
@@ -442,6 +442,13 @@ for (const [tri, games] of Object.entries(perTeam)) {
         lastNight = [...rl, ...fl, ...lastNight].sort((a, b) => b.score - a.score);
         lastTime = { feats, watch: watchList(feats, [...new Set(slate.flatMap((g) => [g.away, g.home]))], today) };
         fs.writeFileSync(path.join(root, "docs", "data", "lasttime.json"), JSON.stringify({ generatedAt: out.generatedAt, through, teamGame, teamBox: printed ? boxTable(printed) : [], teamBoxSeason: withLeagueFirst(leagueBook ? leagueRecordLines({ book: leagueBook, rows, since: `${Number(seasonTag.slice(0, 4))}-08-01`, today }) : [], [...(printed ? boxRecordLines(printed, rows, `${Number(seasonTag.slice(0, 4))}-08-01`, today) : []), ...recordLines(teamGame, `${Number(seasonTag.slice(0, 4))}-08-01`, today)]).sort((a, b) => (a.date < b.date ? 1 : -1)).map((l) => ({ date: l.date, team: l.team, text: l.text })), feats: feats.filter((f) => f.last), season: firstSince(feats, `${Number(seasonTag.slice(0, 4))}-08-01`, today).map((l) => ({ date: l.date, team: l.team, text: l.text })) }));
+        // 0.109.0: the same marks for NBA Live's card (bridge v24), as they stand this morning, each with what backs its number
+        if (printed) {
+          const msf = path.join(root, "src", "data", "team-marks-sources.json"), tm = liveTeamMarks({ printed, rows, today, sources: fs.existsSync(msf) ? JSON.parse(fs.readFileSync(msf, "utf8")) : null, book: leagueBook });
+          fs.writeFileSync(path.join(root, "docs", "data", "teammarks.json"), JSON.stringify({ generatedAt: out.generatedAt, ...tm }));
+          const all = Object.values(tm.teams).flatMap((t) => t.m);
+          console.log(`team marks for NBA Live: ${all.length} whole-game marks for ${Object.keys(tm.teams).length} teams, ${all.filter((m) => m.ok).length} with a second source for the number; ${Object.keys(tm.league).length} league marks`);
+        }
         console.log(`last time: ${feats.length} feats on file; ${fl.length} first-since line(s) from last night`);
       } catch (e) { console.error(`last-time lines not made: ${e.message}`); }
       prep.lines.push(...sl.lines.filter((l) => l.kind !== "unique"));

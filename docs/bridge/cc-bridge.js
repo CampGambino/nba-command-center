@@ -56,6 +56,12 @@
  *       Live's own QUARTER EXPLOSION card is up for a quarter, the season place and list are added to that card (its
  *       all-time list stays) and the separate season card is not fired; it shows only where NBA Live has no card.
  *       This is the one place the bridge adds to a card of NBA Live's: two fields, on its way through fireStory.
+ *     - (v24, 0.109; the user, 11/18: "you may proceed with team record cards, but I am concerned that not all of the stats
+ *       are factual given the errors already spotted") each team's single-game TEAM marks from its media guide
+ *       (teammarks.json): a team total that ties or passes its franchise mark (most, live; fewest, at the final), one that
+ *       is close to a "most", and the most or fewest by an opponent. An NBA record is said first, and where NBA Live has
+ *       its own card for that league mark the franchise card only notes it. The small print says what backs the number:
+ *       a second source by name, or "guide only".
  *     - (v22, 0.104; the user, 11/18) a foul's time no longer counts ESPN's "offensive foul turnover" line as a foul
  *       (Luka Doncic's 4th foul was shown at the time of his 3rd), and the back of the foul trouble card no longer
  *       prints the rule ("more fouls than the period number…").
@@ -80,7 +86,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 23;
+  var VERSION = 24;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -110,6 +116,7 @@
   var tonightUrl = url.replace(/watch\.json(\?.*)?$/, "tonight.json");
   var recordsUrl = url.replace(/watch\.json(\?.*)?$/, "records.json");
   var flowUrl = url.replace(/watch\.json(\?.*)?$/, "flowstats.json");
+  var teamMarksUrl = url.replace(/watch\.json(\?.*)?$/, "teammarks.json");
   var bestsUrl = /watch\.json(\?.*)?$/.test(url) ? url.replace(/watch\.json(\?.*)?$/, "").replace(/data\/$/, "") + "ref/nba-single-game-bests.json" : url;
 
   function has(name) { try { return typeof eval(name) !== "undefined"; } catch (e) { return false; } }
@@ -151,6 +158,9 @@
       .catch(function (e) { state.records = null; state.recItems = []; state.recordsError = String(e && e.message || e); });
     if (bestsUrl !== url && !state.bests) fetch(bestsUrl, { cache: "force-cache" }).then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) { state.bests = d; }).catch(function (e) { state.bestsError = String(e && e.message || e); });
+    // v24: each team's single-game team marks. Optional.
+    if (teamMarksUrl !== url) fetch(teamMarksUrl, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { state.teamMarks = d && d.v === 1 && d.teams ? d : null; }).catch(function (e) { state.teamMarks = null; state.teamMarksError = String(e && e.message || e); });
     // v5: this season's Game Flow facts. Optional.
     if (flowUrl !== url) fetch(flowUrl, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) { state.flow = d && Array.isArray(d.quarters) ? d : null; }).catch(function (e) { state.flowError = String(e && e.message || e); });
@@ -309,6 +319,7 @@
       try { recordChecks(game, sides, box, tag, scr); } catch (e) { state.recError = String(e && e.message || e); }
       try { listChecks(game, sides, box, tag, scr); } catch (e) { state.listError = String(e && e.message || e); }
       try { franchiseGameChecks(game, sides, box, tag, scr); } catch (e) { state.fgError = String(e && e.message || e); }
+      try { teamMarkChecks(game, sides, box, tag, scr); } catch (e) { state.teamMarkError = String(e && e.message || e); }
       try { arenaChecks(game, sides, box, tag, scr); } catch (e) { state.arenaError = String(e && e.message || e); }
       try { lastTimeChecks(game, sides, box, tag, scr); } catch (e) { state.lastTimeError = String(e && e.message || e); }
       try { zeroChecks(game, sides, box, tag, scr); } catch (e) { state.zeroError = String(e && e.message || e); }
@@ -719,6 +730,95 @@
             sub: "Command Center · " + (T.src || "team media guide") + " (through 2025-26)",
             live: game.status === "live", gameId: game.id, gameTag: tag, gameScore: scr,
           });
+        });
+      });
+    });
+  }
+
+  // ---- v24: each team's single-game TEAM marks (the team media guides; teammarks.json) ----
+  // What a card needs: "most" — the total ties or passes the mark (live or final), or is within TM_NEAR of the team's own
+  // mark while the game is live. "Fewest" — only once it can no longer change much: at the final, or for the team's own
+  // mark inside the last two minutes of the 4th quarter or an overtime. A tie of a "fewest" at zero, or in a stat where
+  // ties are common (TM_TIE_FEWEST leaves those out), is not a card: the same rules as the morning lines.
+  var TM_STATS = ["pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "oreb", "dreb", "ast", "stl", "blk", "tov", "pf"];
+  var TM_FIELD = { fgm: "fgm", fga: "fga", fg3m: "tpm", fg3a: "tpa", ftm: "ftm", fta: "fta", reb: "reb", oreb: "oreb", dreb: "dreb", ast: "ast", stl: "stl", blk: "blk", pf: "pf" };
+  var TM_WORD = { pts: "points", fgm: "field goals", fga: "field goal attempts", fg3m: "threes", fg3a: "three-point attempts", ftm: "free throws", fta: "free throw attempts", reb: "rebounds",
+    oreb: "offensive rebounds", dreb: "defensive rebounds", ast: "assists", stl: "steals", blk: "blocks", tov: "turnovers", pf: "fouls" };
+  var TM_NEAR = { pts: 8, fgm: 4, fga: 5, fg3m: 2, fg3a: 4, ftm: 4, fta: 4, reb: 5, oreb: 3, dreb: 4, ast: 4, stl: 2, blk: 2, tov: 2, pf: 3 };
+  var TM_TIE_FEWEST = { pts: 1, fgm: 1, fga: 1, reb: 1, ast: 1, tov: 1, ftm: 1, fta: 1, pf: 1 };
+  var TM_LIVE_OWN = { pts: "pts", reb: "reb", ast: "ast", stl: "stl", blk: "blk", fg3m: "tpm", fgm: "fgm", ftm: "ftm", fta: "fta", fg3a: "tpa", oreb: "oreb", dreb: "dreb", tov: "tov" };   // NBA Live's NBA_TEAM_RECORDS
+  var TM_LATE = 120;   // seconds left in the 4th quarter or an overtime for a "fewest" watch
+  function teamTotal(game, side, stat, low) {
+    if (stat === "pts") { var sc = Number(game[side] && game[side].score); return isFinite(sc) ? sc : null; }
+    var ps = ((game.boxscore || {})[side] || []).filter(function (p) { return p && (p.min || 0) > 0; });
+    if (ps.length < 5) return null;                                   // not a box score yet
+    var sum = function (f) { return ps.reduce(function (s, p) { return s + (Number(p[f]) || 0); }, 0); };
+    if (stat === "tov") {
+      // players' turnovers for a "most" (a guide may leave team turnovers out); the official total, team turnovers
+      // included, for a "fewest". Either way the card errs toward not firing.
+      var own = ps.reduce(function (s, p) { return s + (Number(p.to != null ? p.to : p.tov) || 0); }, 0), off = own;
+      try { if (low && typeof teamOfficialTotal === "function") off = Math.max(own, Number(teamOfficialTotal(game, side, "tov")) || 0); } catch (e) { off = own; }
+      return low ? off : own;
+    }
+    return sum(TM_FIELD[stat]);
+  }
+  function secsLeftNow(game) {
+    var c = String(game.clock || "").trim(), m = /^(\d+):(\d+)/.exec(c);
+    return m ? Number(m[1]) * 60 + Number(m[2]) : (c === "" ? null : Math.round(parseFloat(c) || 0));
+  }
+  function teamMarkChecks(game, sides, box, tag, scr) {
+    var M = state.teamMarks;
+    if (!M || !M.teams || (game.status !== "live" && game.status !== "final")) return;
+    var post = false;
+    try { post = typeof isPlayoffSlate === "function" && !!isPlayoffSlate(); } catch (e) { post = false; }
+    if (post) return;                                                 // the guides' marks here are regular season
+    var live = game.status === "live", fin = game.status === "final", per = Number(game.period) || 0, left = secsLeftNow(game);
+    var late = live && per >= 4 && left != null && left <= TM_LATE;
+    var mdy = function (d) { return d ? Number(d.slice(5, 7)) + "/" + Number(d.slice(8, 10)) + "/" + d.slice(2, 4) : ""; };
+    var held = function (m) { return (m.d ? mdy(m.d) : "") + (m.o ? (m.d ? " " : "") + m.o : "") + (m.n > 1 ? " and " + (m.n - 1) + " more" : ""); };
+    var backs = function (T, m) { return T.name + " media guide" + (T.scope ? ", " + T.scope : "") + " · " + (m.ok ? "number checked against " + m.ok : "guide only: not checked against a box score"); };
+    var find = function (T, s, k, st) { return T ? (T.m || []).filter(function (m) { return m.s === s && m.k === k && m.st === st; })[0] : null; };
+    var liveOwns = function (k, st) { try { return k === "most" && !!TM_LIVE_OWN[st] && typeof NBA_TEAM_RECORDS !== "undefined" && !!NBA_TEAM_RECORDS[TM_LIVE_OWN[st]]; } catch (e) { return false; } };
+    ["away", "home"].forEach(function (side) {
+      var other = side === "away" ? "home" : "away", team = sides[side], opp = sides[other], T = M.teams[team], O = M.teams[opp];
+      var fga = teamTotal(game, side, "fga", false);
+      ["most", "fewest"].forEach(function (k) {
+        var low = k === "fewest";
+        TM_STATS.forEach(function (st) {
+          var base = "cc-tm-" + game.id + "-" + team + "-" + k + "-" + st, keys = ["-nba", "-broke", "-tied", "-near", "-watch"].map(function (x) { return base + x; });
+          var only = function (key, card) { keys.forEach(function (x) { if (x !== key && state.keys[x]) dropCard(x); }); if (key) fire(key, card); };
+          var v = teamTotal(game, side, st, low);
+          if (v == null || (st !== "pts" && low && !(fga >= 40))) { if (state.keys[base + "-opp"]) dropCard(base + "-opp"); return only(null); }   // a "fewest" needs a whole box score
+          var F = find(T, "team", k, st), P = find(O, "opp", k, st), L = (M.league || {})[k + "|" + st];
+          var reach = function (m) { return !!m && (low ? v <= m.v : v >= m.v) && !(low && v === m.v && (v === 0 || !TM_TIE_FEWEST[st])); };
+          var settled = !low || fin;                                                      // a "most" stands once reached; a "fewest" only at the final
+          var word = v === 1 ? TM_WORD[st].replace(/s$/, "") : TM_WORD[st], sup = low ? "fewest" : "most";
+          var stat = typeof fmtAlertStatLine === "function" ? fmtAlertStatLine([[v, TM_WORD[st].toUpperCase()]]) : "";
+          var card = function (icon, text, sub) { return { type: "milestone", icon: icon, text: text, statLine: stat, sub: "Command Center · " + sub, live: live, gameId: game.id, gameTag: tag, gameScore: scr }; };
+          var nba = L && !L.many && settled && reach(L) && !(low && v === 0);
+          // the most or fewest by an opponent, in the other team's guide: a card of its own, beside this team's (v24: it
+          // used to wait behind "close to its own record", which hid a mark already made)
+          if (P && settled && reach(P) && !nba)
+            fire(base + "-opp", card(v === P.v ? "🏛️ TIES OPPONENT MARK" : "🏛️ OPPONENT RECORD",
+              team + " — " + v + " " + word + ": " + (v === P.v ? "ties the " : "the ") + sup + " by an opponent against the " + O.name + " (" + (v === P.v ? "" : "was ") + P.v + ", " + held(P) + ")", backs(O, P)));
+          else if (state.keys[base + "-opp"]) dropCard(base + "-opp");
+          var also = F && reach(F) ? "; also the " + T.name + " record (" + (v === F.v ? "ties " : "was ") + F.v + ", " + held(F) + ")" : "";
+          if (nba && !liveOwns(k, st))
+            return only(base + "-nba", card(v === L.v ? "🏆 TIES NBA RECORD" : "🏆 NBA RECORD",
+              team + " — " + v + " " + word + ": " + (v === L.v ? "ties the NBA record for the " : "an NBA record, the ") + sup + " by a team in a game (" + (v === L.v ? "" : "was ") + L.v + ", " + L.holder + ")" + also,
+              "the league's record book" + (F ? " · " + backs(T, F) : "")));
+          if (F && settled && reach(F)) {
+            var broke = v !== F.v;
+            return only(base + (broke ? "-broke" : "-tied"), card(broke ? "🏛️ TEAM RECORD" : "🏛️ TIES TEAM RECORD",
+              team + " — " + v + " " + word + ": " + (broke ? "the " + sup + " in a game in " + T.name + " history (was " : "ties the " + T.name + " record for the " + sup + " in a game (") + F.v + ", " + held(F) + ")"
+                + (nba ? "; " + (v === L.v ? "ties" : "passes") + " the NBA record too (" + L.v + ")" : ""), backs(T, F)));
+          }
+          if (F && live && !low && v >= F.v - TM_NEAR[st] && v >= 0.8 * F.v)
+            return only(base + "-near", card("👀 " + (F.v - v) + " FROM TEAM RECORD", team + " — " + v + " " + word + ", " + (F.v - v) + " from the " + T.name + " record for a game (" + F.v + ", " + held(F) + ")", backs(T, F)));
+          if (F && late && low && (v < F.v || (v === F.v && v > 0 && TM_TIE_FEWEST[st])))
+            return only(base + "-watch", card("👀 FEWEST WATCH", team + " — " + v + " " + word + " with " + Math.floor(left / 60) + ":" + String(left % 60).padStart(2, "0") + " left" + (per > 4 ? " in overtime" : "")
+              + ": the " + T.name + " record for the fewest in a game is " + F.v + " (" + held(F) + ")", backs(T, F)));
+          only(null);                                                                     // nothing now: a card from earlier that no longer holds comes down
         });
       });
     });

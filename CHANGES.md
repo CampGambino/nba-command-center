@@ -2,6 +2,48 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.109.0 (2026-11-18): the team-records card for NBA Live (bridge v24), and what backs each mark
+
+The user, 4:42 PM, with nine Basketball Reference screenshots: "confirmed on the brothers" and "you may proceed with team record cards, but I am concerned that not all of the stats are factual given the errors already spotted".
+
+**What backs each mark** (`tools/mark-sources.mjs`, new; `src/data/team-marks-sources.json`, new). The three checkers were run again and their findings folded into one file, mark by mark. A mark counts as checked when, for a night the guide prints, a source other than that guide has the same number: ESPN's box score, the other team's guide, the final score, ESPN's line score, the play-by-play, or a look-up recorded with its source.
+- All 2,834 marks: 1,788 checked, 1,046 on the guide alone.
+- The 1,381 whole-game marks, which are the ones the card uses: 813 of the 837 dated 1993-94 or later are checked; 179 of the 534 dated before that; 10 have no date.
+- What "checked" does not mean: no source here shows that nobody ever did more. Only the guide claims that.
+
+**The card** (`teamMarkChecks` in `docs/bridge/cc-bridge.js`, version 24; data in the new `docs/data/teammarks.json` from `liveTeamMarks` in `src/records/teamgame.js`). For fifteen team totals in a game:
+- a "most" that ties or passes the team's mark, live or final: "MEM — 42 assists: ties the Grizzlies record for the most in a game (42, 11/20/25 vs SAC)";
+- a "most" within a few of it while the game is live ("2 FROM TEAM RECORD"; 2 for threes, steals, blocks and turnovers, up to 8 for points);
+- a "fewest" only at the final, with a watch card for the team's own mark inside the last two minutes; no card for a tie at zero or in a stat where ties are common, the same rule as the morning lines;
+- the most or fewest by an opponent, from the other team's guide, as its own card;
+- **an NBA record first**: where the total reaches the league's mark, the card is the NBA record with the franchise mark folded in. Where NBA Live already has its own card for that league mark, the Command Center's card stays the franchise one and notes the NBA record.
+- **The small print says what backs the number**: "Grizzlies media guide · number checked against ESPN's box score", or "guide only: not checked against a box score".
+- The marks are this morning's: the guide's, moved by this season's games so far. Not shown in the playoffs, on a box score with fewer than five players, or when NBA Live is showing another night than the Watch List's.
+- NBA Live has to be refreshed to load v24.
+
+**From the nine screenshots** (`tools/team-records-verified.json`; six marks changed, checked by a diff of the rebuilt file):
+- Warriors, most rebounds by an opponent: 110 becomes 102 (Boston, 11/16/57). Basketball Reference has 102 and the league book's record is 109, so 110 stands in neither.
+- Warriors, most turnovers, 45 (3/9/71): kept. Basketball Reference has 26, but the league's record book prints "San Francisco (45) vs. Boston (25)" under most turnovers by both teams. Two printed sources against one.
+- Kings, most steals: the franchise page's 28 at Milwaukee (11/1/77) is dropped; Kansas City had 5 that night and 28 would be an NBA record. The Sacramento-era page's 23 (vs. Seattle, 2/26/93) stands in, marked as not checked.
+- Kings, most field goal attempts by an opponent, 160 (1/2/56): confirmed again. It had already been checked on 11/17.
+- Lakers, three quarter marks "vs. CHI" dated 1/23/66 and 1/25/66: redated to 11/23/66 and 11/25/66. The schedule the user sent has no game on 1/23/66 and Philadelphia in New York on 1/25/66; the guide's own game list has Chicago in Los Angeles on both November dates. The first 1 of the month was dropped.
+- Lakers, fewest assists (4): unchanged. Stathead confirms 10/28/56 and 11/22/50. The Wizards' guide prints the 11/14/64 game at Baltimore from the other side with the same 4. Only 11/28/61 vs. Syracuse has nothing behind it. The half mark (5, in 2025) is not a contradiction: halves have only been counted in recent years.
+- **Brothers:** Tyus and Tre Jones, and Jalen and Cody Williams, are in use (`src/data/brothers.json`, six pairs).
+
+Tested: 989 checks (three new for the card: close to a mark, a tie on a guide-only mark, an NBA record first and the variant where NBA Live owns it, an opponent's mark beside "close to its own", fewest as watch and at the final, and the cases that must give nothing) and the 81 article checks pass. A full local build wrote `teammarks.json` (1,381 marks, 993 with a second source, 28 league marks). **In the real NBA Live** (the newest copy on file, headless Chrome, MEM at WAS of 11/16 replayed as live with the marks as they stood that morning): one card, "🏛️ TIES TEAM RECORD MEM — 42 assists: ties the Grizzlies record for the most in a game (42, 11/20/25 vs SAC) · Command Center · Grizzlies media guide · number checked against ESPN's box score", filed among NBA Live's own, no page errors from the bridge. How often: this season's 210 games give a card in 13 (6 marks tied or passed, four of them an opponent's mark; 10 finishes within the "close" window), one of the six on a guide-only mark.
+
+Still unproven: a real live night. The replay freezes a finished box score at 2:00 of the 4th quarter, so what the card does early in a game, as a total climbs past "2 from" to a tie, and when a stat correction lowers a total, has only been tested on the stand-in. The "close" windows are judgments. Turnovers are counted two ways on purpose (players only for a "most", the official total for a "fewest") so that the card errs toward silence; a guide that counts team turnovers could be tied a play before the card says so. The Records page does not yet show which marks are guide only.
+
+Self-audit (5:10 PM):
+- **Wrong first:** I asked the user to look up the Kings' 160 attempts, which was already checked and recorded yesterday. The list of look-ups was built from "guide beats the league record" without reading the `checked` notes on those marks.
+- **Wrong first:** the same list called the Warriors' 45 turnovers "beyond the league record". The league book prints that very 45 in its both-teams entry; I compared against the one-team entry only.
+- **Wrong first:** I called the Lakers' fewest assists (half 5, game 4) a contradiction. It is two eras of counting.
+- **Wrong first:** the first replay showed no card and I spent three runs finding out why: the bridge skips everything but season facts when NBA Live shows another night, a rule already in the file. No bug, but I had not read the call site.
+- **Wrong first:** a card for an opponent's mark waited behind "close to its own record" in the same stat. Found by replaying the season (Charlotte's 56 three-point attempts at Washington on 10/30 produced no card), fixed, and tested.
+- **Wrong first:** a test label with an unescaped quote stopped the whole suite from loading; I ran a replay before seeing that the suite had not run. Re-run after the fix: 989 pass.
+- **Inference, said as such:** the two Lakers redates rest on the guide's game list and the schedule, not on a quarter-by-quarter source. The Kings' 23 steals is a stand-in from another page of the same guide.
+- **Not checked:** two guides agreeing counts as a second source, though both could repeat one old error. The 355 whole-game marks from before 1993-94 with nothing behind them are almost all totals no game today reaches (110 rebounds, 160 shots), which is why they matter less to the card than their number suggests; that is an argument, not a measurement.
+
 ## 0.108.1 (2026-11-18): one more player known under two names in the pbpstats merge
 
 - pbpstats writes "Walter Lemon Jr."; ESPN's box scores write "Walt Lemon Jr." (eleven of his games on file, with New Orleans in February and March 2018, the same weeks as the four unmatched lines). `SAME` in `tools/merge-pbpstats-logs.mjs` now pairs them.
