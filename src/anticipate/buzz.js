@@ -16,6 +16,10 @@ const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 // Capitalized words that come before a surname without being a first name.
 const NOT_NAMES = new Set([...Object.values(TEAMS).flatMap((x) => [x.nick, x.city, ...(x.alt || [])].map(plain)), "why", "how", "what", "when", "where", "and", "after", "with", "as", "for", "the", "is", "on", "in", "rookie", "star", "guard", "forward", "center", "coach", "big", "veteran", "sources", "report", "watch", "inside", "film", "nba"]);
 
+// A team's own words (0.106): "Washington leading Memphis early" is the Wizards, not P.J. Washington, so a surname that is
+// also a city or a nickname never counts on its own; his full name still does.
+const PLACES = new Set(Object.values(TEAMS).flatMap((x) => [x.nick, x.city, ...(x.alt || [])]).flatMap((w) => [plain(w), ...plain(w).split(/\s+/)]));
+
 // What headlines call some players (first names that stand alone, and nicknames).
 const ALIAS = { "Victor Wembanyama": ["wemby"], "Shai Gilgeous-Alexander": ["sga", "shai"], "Karl-Anthony Towns": ["kat"], "Giannis Antetokounmpo": ["giannis"], "LeBron James": ["lebron"],
   "Luka Doncic": ["luka"], "Kevin Durant": ["kd"], "Stephen Curry": ["steph"], "Anthony Edwards": ["ant"], "Nikola Jokic": ["jokic"], "Cooper Flagg": ["flagg"], "Ja Morant": ["ja"] };
@@ -35,7 +39,11 @@ export function buzzCounts(headlines, { players = [], teams = [], league = [] } 
   }
   const out = { players: {}, teams: {}, titles: {} };
   const note = (k, raw) => { (out.titles[k] ??= []).length < 3 && !out.titles[k].includes(raw) && out.titles[k].push(raw); };
-  for (const [tri, re] of Object.entries(teamRe)) for (const h of titles) if (re.test(h.t)) { out.teams[tri] = (out.teams[tri] || 0) + 1; note(tri, h.raw); }
+  // …and the other way round (0.106): "P.J. Washington scores 30" is not a Wizards headline, so a player's full name whose
+  // surname is a team's word is taken out of the title before the teams are looked for.
+  const placeNames = [...new Set([...league, ...players])].map((n) => plain(n).replace(SUFFIX, "")).filter((n) => PLACES.has(n.split(/\s+/).slice(-1)[0]));
+  const sansNames = (t) => placeNames.reduce((x, n) => x.split(n).join(" "), t);
+  for (const [tri, re] of Object.entries(teamRe)) for (const h of titles) if (re.test(placeNames.length ? sansNames(h.t) : h.t)) { out.teams[tri] = (out.teams[tri] || 0) + 1; note(tri, h.raw); }
   // A surname alone counts only when no other player in the league has it, and not after another first name
   // ("Donovan Mitchell" isn't Ajay Mitchell; "Draymond Green's shove" isn't Jalen Green).
   const sur = (n) => plain(n).replace(SUFFIX, "").split(/\s+/).slice(-1)[0];
@@ -45,7 +53,7 @@ export function buzzCounts(headlines, { players = [], teams = [], league = [] } 
   for (const name of new Set(players)) {
     const full = new RegExp(`\\b${esc(plain(name).replace(SUFFIX, ""))}\\b`);
     const s = sur(name);
-    const last = s.length >= 4 && surCount[s] === 1 ? new RegExp(`(\\S+\\s+)?\\b${esc(s)}('s)?\\b`) : null;
+    const last = s.length >= 4 && surCount[s] === 1 && !PLACES.has(s) ? new RegExp(`(\\S+\\s+)?\\b${esc(s)}('s)?\\b`) : null;
     const alone = (h) => {
       const m = last && h.t.match(last);
       if (!m) return false;

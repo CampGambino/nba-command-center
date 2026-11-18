@@ -170,6 +170,24 @@ def by_page_title(titles, heading_like=UPPER, top=700, first=1, last=10 ** 6, **
         return out
     return read
 
+def wrap_prep(lines):
+    """Phoenix wraps a long name onto the next line of its column ("Game 159 Philadelphia at   2/15/70" / "Philadelphia"):
+    the name is put back before the date, so the row names its opponent (0.106; 21 rows read "Philadelphia at", "at" or nothing)."""
+    out = []; i = 0
+    while i < len(lines):
+        l = lines[i]; d = DATED.search(l)
+        if d and i + 1 < len(lines):
+            before = l[:d.start()].rstrip(); nxt = lines[i + 1]
+            cut = re.search(r"(?:^|\s)(?:at|vs\.?|last,?)$", before) or re.fullmatch(r"(?:[A-Za-z]+\s+)?\d{1,3}[*#^‡]*", before)
+            # the name, alone on its line or ahead of the other column's text where the two were not split apart
+            nm = None if LABEL.match(nxt) or VALUE.match(nxt) else re.match(r"((?:(?:vs\.?|at)\s+)?[A-Z][A-Za-z.'/]*(?: [A-Za-z.'/]+){0,4}(?:\s?\((?:1st|2nd|3rd|4th|\d?OT)\))?)(?:\s{3,}(\S.*))?$", nxt)
+            if cut and nm and not DATED.search(nm.group(1)):
+                l = before + " " + nm.group(1) + "   " + l[d.start():]
+                if nm.group(2): lines = lines[:i + 1] + [nm.group(2)] + lines[i + 2:]
+                else: i += 1
+        out.append(l); i += 1
+    return out
+
 def by_marker(first, last, marks, heading_like=UPPER, two_columns=True, anchor=LBL_AT, min_x=25, prep=None, bands=False, **kw):
     """Guides where a line in the text says what follows. marks: [(regex, side, kind)], where side is "team", "opp", "off"
     (not a team section) or "same", and kind is "most", "fewest", "none" or "same". The state carries down each column and on
@@ -573,7 +591,7 @@ READERS = {
     "MIN": ("Timberwolves", by_page_title([(r"OPPONENT TEAM HIGHS", ("opp", "most")), (r"OPPONENT TEAM LOWS", ("opp", "fewest")), (r"WOLVES TEAM HIGHS", ("team", "most")), (r"WOLVES TEAM LOWS", ("team", "fewest"))])),
     "PHX": ("Suns", by_marker(144, 152, [(r"^Suns Team Records - Highs$", "team", "most"), (r"^Suns Team Records - Lows$", "team", "fewest"), (r"^Opponents Team Records -\s*Highs$", "opp", "most"),
                                          (r"^Opponents Team Records -\s*Lows$", "opp", "fewest"), (r"^Opponents Team Records -$", "opp", "none"), (r"^Highs$", "same", "most"), (r"^Lows$", "same", "fewest"),
-                                         (r"^(?:Opponents Single-Game|Opponents Top Nights|Suns Top Nights|Arena Records|Suns Single-Game|Suns Individual|(?-i:Records)$)", "off", "none")], heading_like=TITLE, anchor=[(LBL_AT, 25), (re.compile(r"(?<=\s{3})\S"), 46)])),
+                                         (r"^(?:Opponents Single-Game|Opponents Top Nights|Suns Top Nights|Arena Records|Suns Single-Game|Suns Individual|(?-i:Records)$)", "off", "none")], heading_like=TITLE, anchor=[(LBL_AT, 25), (re.compile(r"(?<=\s{3})\S"), 46)], prep=wrap_prep)),
     "SAS": ("Spurs", by_marker(354, 359, [(r"^SPURS TEAM RECORDS$", "team", "none"), (r"^OPPONENT RECORDS$", "opp", "none"), (r"^SPURS (?:INDIVIDUAL|PLAYOFF|ABA) RECORDS$", "off", "none"), (r"^OPPONENT PLAYOFF RECORDS$", "off", "none"),
                                           (r"^INDIVIDUAL\b", "same", "none"), (r"^(?:TEAM )?HIGHS\b", "same", "most"), (r"^(?:TEAM )?LOWS\b", "same", "fewest")], two_columns=False, kind_per_stat=True)),
     "DAL": ("Mavericks", by_marker(366, 374, [(r"^TEAM OPPONENT HIGHS$", "opp", "most"), (r"^TEAM OPPONENT LOWS$", "opp", "fewest"), (r"^TEAM HIGHS$", "team", "most"), (r"^TEAM LOWS$", "team", "fewest"),

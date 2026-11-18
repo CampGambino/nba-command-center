@@ -10,7 +10,7 @@
  * A check with a past `season` (0.70) is replayed from the results history and the logs (src/anticipate/replay.js).
  */
 import { playerGames } from "../situations/trends.js";
-import { prepLines } from "./prep.js";
+import { prepLines, runsBefore } from "./prep.js";
 import { streakWatch } from "../situations/streakwatch.js";
 import { seasonLongLines } from "./seasonlong.js";
 import { pastSeason, logsBefore } from "./replay.js";
@@ -24,7 +24,7 @@ function finderAt(before, names, flow) {
   return findings({ pg: playerGames(before), names, qsum: flow?.qsum || {}, teamGp });
 }
 
-export function runChecks(checks, { rows, logs, seasons, history, names, nameKey, season, awards = null, flowAt = null }) {
+export function runChecks(checks, { rows, logs, seasons, history, names, nameKey, season, awards = null, flowAt = null, runs = null, nicks = null }) {
   const out = [];
   const cache = new Map();
   for (const c of checks || []) {
@@ -43,7 +43,7 @@ export function runChecks(checks, { rows, logs, seasons, history, names, nameKey
           // watch as well; the watch's history is cut to end before that season, which the rebuilt rows then supply).
           const start = `${c.season.slice(0, 4)}-08-01`;
           cache.set(key, c.detector === "teamwatch" ? streakWatch({ history: { ...history, games: history.games.filter((r) => r[0] < start) }, rows: past.rows, today: c.morning })
-            : c.detector === "prep" ? prepLines({ pg: past.pg, rows: past.rows, logs: logsBefore(logs, c.season), seasons: sb, names, nameKey, season: c.season, games: slate }).lines
+            : c.detector === "prep" ? prepLines({ pg: past.pg, rows: past.rows, logs: logsBefore(logs, c.season), seasons: sb, names, nameKey, season: c.season, games: slate, runs: runsBefore(runs, c.season), nicks }).lines
             : seasonLongLines({ pg: past.pg, rows: past.rows, logs: logsBefore(logs, c.season), seasons: sb, awards, names, nameKey, season: c.season, slate, today: c.morning }).lines);
         } else {
           const before = rows.filter((g) => g.d < c.morning);
@@ -53,7 +53,7 @@ export function runChecks(checks, { rows, logs, seasons, history, names, nameKey
             : c.detector === "flow" ? (flowAt ? flowTeamLines(flowAt(c.morning), new Set(slate.flatMap((g) => [g.away, g.home])), c.morning) : [])
             : c.detector === "teamwatch" ? streakWatch({ history, rows: before, today: c.morning })
             : c.detector === "seasonlong" ? seasonLongLines({ pg: playerGames(before), rows: before, logs, seasons, awards, names, nameKey, season, slate, today: c.morning }).lines
-            : prepLines({ pg: playerGames(before), rows: before, logs, seasons, names, nameKey, season, games: slate }).lines);
+            : prepLines({ pg: playerGames(before), rows: before, logs, seasons, names, nameKey, season, games: slate, runs, nicks }).lines);
         }
       }
       lines = cache.get(key);

@@ -73,6 +73,26 @@
     "value": 7,
     "by": "Basketball Reference's box score (the user's screenshot, 11/17/26): Denver's 7 fouls, as both guides and ESPN's box score have"
    }
+  ],
+  "SAC": [
+   {
+    "side": "team",
+    "stat": "fga",
+    "kind": "most",
+    "period": "game",
+    "value": 138,
+    "date": "1956-01-02",
+    "by": "Basketball Reference's box score for Rochester vs. Philadelphia, January 2, 1956 (Rochester 35-138); the guide's game list had the game a day late and is corrected (tools/guide-games-by-eye.json)"
+   },
+   {
+    "side": "opp",
+    "stat": "fga",
+    "kind": "most",
+    "period": "game",
+    "value": 160,
+    "date": "1956-01-02",
+    "by": "Basketball Reference's box score for Rochester vs. Philadelphia, January 2, 1956 (Philadelphia 45-160); the guide's game list had the game a day late and is corrected (tools/guide-games-by-eye.json)"
+   }
   ]
  },
  "redate": {
@@ -442,6 +462,15 @@
     "from": "1986-01-28",
     "to": "1986-11-28",
     "by": "The Pacers played Atlanta on 1/28/86 (both guides' game lists). They played Denver on 11/28/86, and the Nuggets' guide prints 75 rebounds by an opponent that night"
+   },
+   {
+    "side": "opp",
+    "stat": "fga",
+    "kind": "most",
+    "period": "game",
+    "from": "1991-03-05",
+    "to": "1991-03-07",
+    "by": "The Pacers played Charlotte on 3/5/91 (Basketball Reference's schedule). Denver was in Indianapolis on 3/7/91 and took 126 shots (53-126): Land of Basketball's box score"
    }
   ],
   "LAL": [
@@ -495,6 +524,17 @@
     "to": "2022-01-21",
     "by": "The Clippers were at Philadelphia, not Phoenix, on 1/21/22; ESPN's box score has them with no block that night",
     "opp": "at PHI"
+   }
+  ],
+  "MIA": [
+   {
+    "side": "opp",
+    "stat": "fgm",
+    "kind": "most",
+    "period": "game",
+    "from": "1989-12-29",
+    "to": "1989-12-28",
+    "by": "The Heat did not play on 12/29/89. They were in Denver on 12/28/89, and the Nuggets made 59 field goals (59-104): Land of Basketball's box score"
    }
   ]
  },

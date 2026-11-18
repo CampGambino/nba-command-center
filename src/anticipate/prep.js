@@ -219,7 +219,56 @@ function runsOf(games, test) {
   if (s >= 0) out.push({ n: games.length - s, end: games[games.length - 1].d, current: true });
   return out;
 }
-export function streakLines({ pg, logs, names }) {
+// 4b. The same run against his franchise's past (0.106): every player's runs by franchise since 1993-94, from ESPN's box
+// scores (src/data/player-feat-runs-2026-27.json.gz, tools/build-feat-runs.mjs), with this season's finished runs on top.
+// The league-wide count above knows only players still active; this one knows everyone, but only since 1993-94, and says so.
+// Said when at most `most` of the franchise's players have gone one game further. On its own (no league-wide line to ride
+// on) a run of two is said only when at most `fewAt2` have: "would be the fourth to do it three straight" is not news.
+export const FRANCHISE = { most: 4, fewAt2: 1 };
+const ALSO = { OKC: "Seattle", MEM: "Vancouver", BKN: "New Jersey" };
+const ORD = ["", "first", "second", "third", "fourth", "fifth"];
+const RUN_IX = new WeakMap();
+function runIndex(runs) {
+  if (RUN_IX.has(runs)) return RUN_IX.get(runs);
+  const ix = { sure: new Map(), maybe: new Map() };
+  for (const [which, list] of [["sure", runs.runs], ["maybe", runs.maybe]]) for (const [team, feat, n, id, season] of list || []) {
+    const k = `${team}|${feat}`;
+    (ix[which].get(k) || ix[which].set(k, []).get(k)).push({ n, id: String(id), season });
+  }
+  RUN_IX.set(runs, ix);
+  return ix;
+}
+/** The file as it stood before a season (for replaying a past morning). */
+export function runsBefore(runs, season) {
+  return runs && { ...runs, runs: runs.runs.filter((r) => r[4] < season), maybe: (runs.maybe || []).filter((r) => r[4] < season) };
+}
+function franchiseClause({ runs, pg, names, id, team, k, test, n, nick }) {
+  if (!runs?.runs || !team || runs.blind?.[team]?.length) return null; // Chicago and New Orleans: six seasons ESPN has no player numbers for
+  const ix = runIndex(runs), key = `${team}|${k}`;
+  // this season's finished runs with this team, everyone's (his own earlier ones too)
+  const now = [];
+  for (const [pid, gs] of Object.entries(pg)) {
+    const mine = gs.filter((g) => g.team === team);
+    for (const r of runsOf(mine, test)) if (r.n >= 2 && !(pid === id && r.current)) now.push({ n: r.n, id: String(pid), season: "this season" });
+  }
+  const all = [...(ix.sure.get(key) || []), ...now];
+  const best = (min) => { const m = new Map(); for (const x of all) if (x.n >= min && (!m.has(x.id) || m.get(x.id).n < x.n)) m.set(x.id, x); return [...m.values()].sort((a, b) => b.n - a.n); };
+  const ahead = best(n + 1);
+  if (ahead.some((x) => x.id === String(id)) || ahead.length > FRANCHISE.most) return null; // he has done it before, or it is not rare here
+  // a night we could not read that might hide a longer run by someone not already counted: nothing is said
+  if ((ix.maybe.get(key) || []).some((x) => x.n >= n + 1 && !ahead.some((y) => y.id === x.id))) return null;
+  const nm = (x) => `${names[x.id] || runs.names?.[x.id] || "a player"} ${x.season === "this season" ? "this season" : short(x.season)}`;
+  const scope = `${nick} player since 1993-94${ALSO[team] ? ` (${ALSO[team]} included)` : ""}`;
+  if (!ahead.length) {
+    const at = best(n).filter((x) => x.id !== String(id));
+    // someone who may have had n straight on a night we could not read: the claim stands, the list of names is left off
+    if ((ix.maybe.get(key) || []).some((x) => x.n >= n && !at.some((y) => y.id === x.id) && x.id !== String(id))) return { ahead: 0, text: `one more tonight would be the longest such run by a ${scope}` };
+    return { ahead: 0, text: `one more tonight would be the longest such run by a ${scope}${at.length ? ` (${n} straight: ${at.slice(0, 4).map(nm).join(", ")}${at.length > 4 ? ` and ${at.length - 4} more` : ""})` : ` (no one else has had ${n} straight)`}` };
+  }
+  return { ahead: ahead.length, text: `one more tonight would make him the ${ORD[ahead.length + 1]} ${scope} to do it ${n + 1} straight (${ahead.map(nm).join(", ")})` };
+}
+
+export function streakLines({ pg, logs, names, runs = null, nicks = null }) {
   const L = logRows(logs);
   const out = [];
   // Every run in history (regular season, one season at a time), per feat, with whose it was.
@@ -248,6 +297,24 @@ export function streakLines({ pg, logs, names }) {
       const players = [...new Map(atNext.map((x) => [x.id, x])).values()];
       if (!best || atNext.length < best.atNext.length || (atNext.length === best.atNext.length && r.n > best.r.n)) best = { k, label, r, atN, atNext, players };
     }
+    // The franchise's own history for the same run; on its own when the league-wide count has nothing rare to say.
+    const nick = nicks?.[team] || team;
+    const samTeam = (r) => games.slice(-r.n).every((g) => g.team === team);
+    let fr = null;
+    if (runs) {
+      if (best && samTeam(best.r)) { const f = FEATS.find((x) => x[0] === best.k); fr = franchiseClause({ runs, pg, names, id, team, k: best.k, test: f[2], n: best.r.n, nick }); }
+      if (!best) for (const [k, label, test] of FEATS) {
+        const r = runsOf(games, test).pop();
+        if (!r || !r.current || r.n < 2 || !samTeam(r)) continue;
+        const c = franchiseClause({ runs, pg, names, id, team, k, test, n: r.n, nick });
+        if (c && (r.n >= 3 || c.ahead <= FRANCHISE.fewAt2) && (!fr || c.ahead < fr.ahead || (c.ahead === fr.ahead && r.n > fr.r.n))) fr = { ...c, k, label, r };
+      }
+      if (!best && fr) {
+        out.push({ kind: "pstreak", team, player: name, id, key: `pstreak|${id}|${fr.k}`, text: `${name} has ${fr.label.replace(/^a /, "")}${/^a /.test(fr.label) ? "s" : ""} in ${fr.r.n} straight games: ${fr.text}`,
+          score: 3 + (fr.ahead ? 0.4 : 0.8) + Math.min(0.4, fr.r.n * 0.05), rare: true, franchise: true });
+        continue;
+      }
+    }
     if (!best) continue;
     const { label, r, atNext, players, atN } = best;
     const nm = (x) => `${names[x.id] || x.id} ${x.season === "this season" ? "this season" : short(x.season)}`;
@@ -255,7 +322,7 @@ export function streakLines({ pg, logs, names }) {
     const text = `${name} has ${label.replace(/^a /, "")}${/^a /.test(label) ? "s" : ""} in ${r.n} straight games: ${nobody
       ? `no current player has done it ${r.n + 1} straight since 2016-17${atN.length ? ` (${atN.length} did ${r.n}: ${[...new Map(atN.map((x) => [x.id, x])).values()].slice(0, 3).map(nm).join(", ")})` : ""}`
       : `one more tonight would put him with ${players.slice(0, 4).map(nm).join(", ")} as the only current players to do it ${r.n + 1} straight since 2016-17`}`;
-    out.push({ kind: "pstreak", team, player: name, id, key: `pstreak|${id}|${best.k}`, text: text.replace("has triple-doubles", "has triple-doubles"),
+    out.push({ kind: "pstreak", team, player: name, id, key: `pstreak|${id}|${best.k}`, text: fr ? `${text}. For the ${nick}: ${fr.text}` : text, ...(fr ? { franchise: true } : {}),
       score: 3 + (nobody ? 0.9 : 0.4) + Math.min(0.4, r.n * 0.05), rare: true });
   }
   return out;

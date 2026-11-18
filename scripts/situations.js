@@ -382,12 +382,19 @@ for (const [tri, games] of Object.entries(perTeam)) {
     careers = careerHighs({ logs: logsData, seasons: seasonsData, names: store.names || {}, ids: Object.keys(pg), season: tag, nameKey: strictKey });
   } catch (e) { console.error(`career highs not read: ${e.message}`); }
   // Prep stats (0.66): season vs career, spans, player streak watch, vs tonight's opponent, through N games.
+  let featRuns = null, teamNicks = null;
   try {
     const { prepLines } = await import("../src/anticipate/prep.js");
     const wf = path.join(root, "docs", "data", "watch.json");
     const w = fs.existsSync(wf) ? JSON.parse(fs.readFileSync(wf, "utf8")) : { games: [] };
     const slate = (w.today === today ? w.games : []).map((g) => ({ away: g.awayTri, home: g.homeTri }));
-    const prep = prepLines({ pg, rows, logs: logsData, seasons: seasonsData, names: store.names || {}, nameKey: keyFn, season: seasonTag, games: slate });
+    // 0.106: every player's runs by franchise since 1993-94, so a streak line can say where a run stands in his team's history.
+    try {
+      const rf = path.join(root, "src", "data", "player-feat-runs-2026-27.json.gz");
+      const zlib = await import("node:zlib");
+      if (fs.existsSync(rf)) { featRuns = JSON.parse(zlib.gunzipSync(fs.readFileSync(rf))); const { TEAMS: T } = await import("../src/teams.js"); teamNicks = Object.fromEntries(Object.entries(T).map(([k, v]) => [k, v.nick])); }
+    } catch (e) { console.error(`franchise runs not read: ${e.message}`); }
+    const prep = prepLines({ pg, rows, logs: logsData, seasons: seasonsData, names: store.names || {}, nameKey: keyFn, season: seasonTag, games: slate, runs: featRuns, nicks: teamNicks });
     // Season-long and morning-after lines (0.70): trades, starter/bench, vs MVP season, lineups, record turns, best
     // since Christmas, who has beaten the best teams, month ratings and totals, rookies, last night's unique lines.
     let lastNight = [], zeros = {};
@@ -500,7 +507,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const hf = path.join(root, "src", "data", "nba-results-history.json");
     if (fs.existsSync(cf)) {
       const { flowStats } = await import("../src/gameflow/stats.js");
-      const R = runChecks(JSON.parse(fs.readFileSync(cf, "utf8")).checks, { rows, logs: logsData, seasons: seasonsData, history: fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null, names: store.names || {}, nameKey: keyFn, season: seasonTag, awards: awardsData,
+      const R = runChecks(JSON.parse(fs.readFileSync(cf, "utf8")).checks, { rows, logs: logsData, seasons: seasonsData, history: fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null, names: store.names || {}, nameKey: keyFn, season: seasonTag, awards: awardsData, runs: featRuns, nicks: teamNicks,
         // 0.79: checks on lines made from the Game Flow files: this season's files as they stood before that morning.
         flowAt: (morning) => {
           const dir = path.join(root, "docs", "data", "flow", String(store.season));

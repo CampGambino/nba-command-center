@@ -2320,6 +2320,32 @@ await articlesChecks(ok);
   const B = buzzCounts(heads, { players: ["Jared McCain", "Jalen Williams", "Jaylin Williams", "Ajay Mitchell", "Alperen Sengun", "Jalen Green", "Victor Wembanyama", "Anthony Edwards", "Trae Young"], teams: ["OKC", "LAL", "LAC"], league: ["Donovan Mitchell"] });
   ok(B.players["Jared McCain"] === 2 && B.players["Jalen Williams"] === 1 && !B.players["Jaylin Williams"] && !B.players["Ajay Mitchell"] && B.players["Alperen Sengun"] === 1 && !B.players["Jalen Green"] && B.players["Victor Wembanyama"] === 1 && B.players["Anthony Edwards"] === 1 && !B.players["Trae Young"] && B.teams.OKC === 1 && B.teams.LAL === 1 && B.teams.LAC === 1,
     "buzz (0.70): headlines name players (full name, or a surname no one else in the league has, not after another first name; a few nicknames: Wemby, Ant) and teams (a shared city doesn't count)", JSON.stringify(B));
+  {
+    // 0.106: a run against the franchise's own history.
+    const { streakLines, runsBefore, FRANCHISE } = await import("../src/anticipate/prep.js");
+    const g = (d, team, pts) => ({ d, team, pts, reb: 0, ast: 0, stl: 0, blk: 0, fg3m: 0, min: 30 });
+    const pgF = { 1: [g("2026-11-01", "ORL", 31), g("2026-11-03", "ORL", 33), g("2026-11-05", "ORL", 30)], 2: [g("2026-11-01", "CHI", 31), g("2026-11-03", "CHI", 33), g("2026-11-05", "CHI", 30)], 3: [g("2026-11-01", "MIA", 31), g("2026-11-03", "ORL", 33), g("2026-11-05", "ORL", 30)] };
+    const namesF = { 1: "Test Forward", 2: "Test Bull", 3: "Test Traded" };
+    const runsF = { runs: [["ORL", "pts30", 14, 10, "2002-03", "x"], ["ORL", "pts30", 5, 11, "1993-94", "x"], ["ORL", "pts30", 4, 12, "2010-11", "x"], ["ORL", "pts30", 4, 10, "2003-04", "x"], ["ORL", "pts30", 3, 13, "2011-12", "x"]], maybe: [], blind: { CHI: ["2016-17"] }, names: { 10: "Player A", 11: "Player B", 12: "Player C", 13: "Player D" } };
+    const manyLogs = { columns: ["date", "opp", "home", "result", "type", "pts"], players: Object.fromEntries(Array.from({ length: 8 }, (_, i) => [100 + i, ["2018-11-01", "2018-11-03", "2018-11-05", "2018-11-07"].map((d) => [d, "BOS", 1, "W", 2, 40])])) };
+    const F = streakLines({ pg: pgF, logs: manyLogs, names: namesF, runs: runsF, nicks: { ORL: "Magic", CHI: "Bulls" } });
+    const one = F.find((l) => l.id === "1");
+    const hid = streakLines({ pg: pgF, logs: manyLogs, names: namesF, runs: { ...runsF, maybe: [["ORL", "pts30", 4, 14, "2014-15", "x"]] }, nicks: { ORL: "Magic" } });
+    ok(F.length === 1 && /^Test Forward has 30\+ points in 3 straight games: one more tonight would make him the fourth Magic player since 1993-94 to do it 4 straight \(Player A '02-03, Player B '93-94, Player C '10-11\)$/.test(one.text) && one.franchise && !hid.length
+      && runsBefore(runsF, "2003-04").runs.length === 2 && FRANCHISE.most === 4,
+      "franchise streaks (0.106): a run is placed in his franchise's history since 1993-94 (one name per player, the season of his longest); nothing for a franchise with seasons ESPN has no numbers for (the Bulls), for a run that began with another team, or when a night we could not read might hide a longer run; a past morning sees only earlier seasons", JSON.stringify([F.map((l) => l.text), hid.map((l) => l.text)]));
+    const real = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(root, "src", "data", "player-feat-runs-2026-27.json.gz"))));
+    const prepSrc = fs.readFileSync(path.join(root, "src", "anticipate", "prep.js"), "utf8");
+    const four = new Map(); for (const r of real.runs) if (r[0] === "ORL" && r[1] === "pts30" && r[2] >= 4) four.set(r[3], real.names[r[3]]);
+    ok(real.feats.every((k) => prepSrc.includes(`["${k}",`)) && real.feats.length === 12 && real.counts.games > 39000 && real.counts.trusted / real.counts.games > 0.96
+      && JSON.stringify(Object.keys(real.blind).sort()) === '["CHI","NOP"]' && real.blind.CHI.length === 6 && [...four.values()].sort().join(", ") === "Dwight Howard, Paolo Banchero, Shaquille O'Neal, Tracy McGrady"
+      && real.runs.some((r) => r[0] === "LAL" && r[1] === "pts40" && r[2] === 9 && real.names[r[3]] === "Kobe Bryant") && real.runs.some((r) => r[0] === "OKC" && r[1] === "td" && r[2] === 11) && real.maybe.some((r) => r[0] === "HOU" && r[1] === "pts30" && r[2] === 32),
+      "franchise streaks, the real file (0.106): the feats are the morning lines' own; 97% of 39,010 games add up; the Bulls and Pelicans of 2012-13 to 2017-18 are marked blind; the four Magic players with 30+ in four straight are the ones the post of 11/14 implied; McGrady-era and Bryant's 9 straight 40s and Westbrook's 11 straight triple-doubles are there, and Harden's 32 straight 30s is an upper bound (a night in the middle did not add up)", JSON.stringify(real.counts));
+  }
+  const W = buzzCounts([{ title: "Memphis Grizzlies vs. Washington Wizards: Game Highlights" }, { title: "Washington leading Memphis early" }, { title: "P.J. Washington scores 30 for Dallas" }, { title: "Tatum continues to impress" }],
+    { players: ["P.J. Washington", "Jayson Tatum"], teams: ["WAS", "MEM"] });
+  ok(W.players["P.J. Washington"] === 1 && W.players["Jayson Tatum"] === 1 && W.teams.WAS === 2 && W.teams.MEM === 2,
+    "buzz (0.106): a surname that is a team's city or nickname never counts alone (the published list of 11/18 had P.J. Washington in four headlines, all about the Wizards); his full name still does, and a headline naming him is not a Wizards headline", JSON.stringify(W));
   const all = [{ kind: "season", team: "OKC", player: "Jared McCain", text: "a", score: 3 }, { kind: "season", team: "SAS", player: "Other Guy", text: "b", score: 3.2 }];
   const R = briefing({ all, games: [{ away: "OKC", home: "SAS" }], stars: { "Jared McCain": 0.4, "Other Guy": 0.4 }, today: "2026-11-15", buzz: B });
   ok(buzzBoost(all[0], B) > 0.25 && R.top[0].player === "Jared McCain" && R.top[0].news === 2, "briefing (0.70): a player in the news moves up, and says so", JSON.stringify(R.top.map((l) => [l.player, l.rank, l.news])));
