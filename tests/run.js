@@ -2371,6 +2371,32 @@ await articlesChecks(ok);
       "0.107.1: a team's turn is found from four games in (0-4, then 8-2), with a higher bar while a side is short (an even team and a nine-game sample say nothing; with no box totals, no ranks are claimed); the finder names the kind of game one player has had more often than every other player combined (three against two; of the grids with the same lead it says the broadest, here 40+ points), and a two-against-one case is not said",
       JSON.stringify([tl.map((x) => x.text), fm.map((x) => x.text)]));
   }
+  {
+    // 0.107.5: the dates people name (New Year's Day, the trade deadline, the All-Star break), asked of every team.
+    const { checkpointLines, seasonLongLines: sll, CHECK, DEADLINE } = await import("../src/anticipate/seasonlong.js");
+    const mk = (team, days, wins) => wins.map((w, i) => ({ id: `${team}${days[i]}`, d: days[i], h: team, a: `Z${team}${i}`, hs: w ? 110 : 100, as: w ? 100 : 110 }));
+    const dec = (n) => Array.from({ length: n }, (_, i) => `2026-12-${String(i + 1).padStart(2, "0")}`), jan = (n, from = 2) => Array.from({ length: n }, (_, i) => `2027-01-${String(i + from).padStart(2, "0")}`), feb = (n) => Array.from({ length: n }, (_, i) => `2027-02-${String(i + 11).padStart(2, "0")}`);
+    const W1 = (w, l) => [...Array(w).fill(1), ...Array(l).fill(0)];
+    // by 1/25: AAA 4-8 then 9-1 (ten games since: the .380 bar); CCC 8-4 then 5-2 (no change); EEE 3-9 then 5-2 (seven games since: .464 clears .450); FFF 4-8 then 5-2 (.381 does not)
+    const r1 = [...mk("AAA", dec(12), W1(4, 8)), ...mk("AAA", jan(10), W1(9, 1)), ...mk("CCC", dec(12), W1(8, 4)), ...mk("CCC", jan(7), W1(5, 2)), ...mk("EEE", dec(12), W1(3, 9)), ...mk("EEE", jan(7), W1(5, 2)), ...mk("FFF", dec(12), W1(4, 8)), ...mk("FFF", jan(7), W1(5, 2))];
+    const c1 = checkpointLines({ rows: r1, today: "2027-01-25" });
+    // by 2/20: DDD 10-10 then 7-0 from the deadline on; GGG 14-6 then 7-0 (a good team's good week); a team with nine games before says nothing
+    const r2 = [...mk("DDD", dec(12), W1(6, 6)), ...mk("DDD", jan(8), W1(4, 4)), ...mk("DDD", feb(7), W1(7, 0)), ...mk("GGG", dec(12), W1(8, 4)), ...mk("GGG", jan(8), W1(6, 2)), ...mk("GGG", feb(7), W1(7, 0)), ...mk("HHH", dec(9), W1(0, 9)), ...mk("HHH", feb(7), W1(7, 0))];
+    const c2 = checkpointLines({ rows: r2, today: "2027-02-20" });
+    // a team's own turn within ten days of the named date is the same change: the named line stays, the turn line goes
+    const both = sll({ rows: r1, today: "2027-01-25" }).lines.filter((l) => l.team === "AAA" && l.kind === "turn").map((l) => l.key);
+    // last season as it was played, from the results history: Atlanta after the break, Charlotte and New York around New Year's
+    const HG = JSON.parse(fs.readFileSync(path.join(root, "src/data/nba-results-history.json"), "utf8")).games.filter((g) => g[0] >= "2025-10-01" && g[0] <= "2026-04-30" && g[5] === 2).map((g, i) => ({ id: `h${i}`, d: g[0], h: g[1], a: g[2], hs: g[3], as: g[4] }));
+    const at = (today) => checkpointLines({ rows: HG.filter((g) => g.d < today), today }).map((l) => l.text);
+    const mar = at("2026-03-20"), jn = at("2026-01-20"), feb25 = at("2026-02-25");
+    ok(c1.map((l) => l.text).sort().join(" | ") === "AAA is 9-1 since New Year's Day (1/1); it was 4-8 before | EEE is 5-2 since New Year's Day (1/1); it was 3-9 before"
+      && c2.length === 1 && c2[0].text === "DDD is 7-0 since the trade deadline (2/11); it was 10-10 before" && DEADLINE["2026-27"] === "2027-02-11" && CHECK.gapShortest === 0.45
+      && both.join() === "check|AAA"
+      && mar.includes("ATL is 12-1 since the All-Star break (2/19); it was 26-30 before") && mar.includes("CHA is 25-12 since New Year's Day (1/1); it was 11-22 before")
+      && jn.includes("NYK is 2-8 since New Year's Day (1/1); it was 23-10 before") && feb25.length === 2 && !feb25.some((t) => /^SAS/.test(t)),
+      "0.107.5: a team's record since New Year's Day, the trade deadline or the All-Star break against its record before, when the change is wide enough for the games played since (.450 with six to nine, .380 with ten to fourteen, .300 from fifteen); a good team's 7-0 week after the deadline says nothing; the team's own turn within ten days of the named date gives way to it; last season replayed from the results history gives Atlanta 12-1 after the break (26-30 before), Charlotte 25-12 after New Year's (11-22), New York 2-8 (23-10)",
+      JSON.stringify([c1.map((l) => l.text), c2.map((l) => l.text), both, mar, jn, feb25]));
+  }
   const W = buzzCounts([{ title: "Memphis Grizzlies vs. Washington Wizards: Game Highlights" }, { title: "Washington leading Memphis early" }, { title: "P.J. Washington scores 30 for Dallas" }, { title: "Tatum continues to impress" }],
     { players: ["P.J. Washington", "Jayson Tatum"], teams: ["WAS", "MEM"] });
   ok(W.players["P.J. Washington"] === 1 && W.players["Jayson Tatum"] === 1 && W.teams.WAS === 2 && W.teams.MEM === 2,

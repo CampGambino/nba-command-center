@@ -7,6 +7,7 @@
  *   mvpLines       "Left is Jokić in his last MVP season. Right is Jokić this season."
  *   lineupLines    "The Hornets are 14-1 with this starting lineup."
  *   turnLines      "OKC went 24-1 in their first 25 games. They are 6-5 since then."
+ *   checkpointLines "ATL is 12-1 since the All-Star break (2/19); it was 26-30 before" (New Year's Day, the trade deadline, the break)
  *   sinceLines     "The Phoenix Suns have the best record in the NBA since Christmas."
  *   beatenLines    "Teams with multiple wins vs OKC: Spurs, Timberwolves. That's it."
  *   monthLines     "Hornets in January: 1st in offense, 6th in defense, 1st in net rating."
@@ -149,6 +150,17 @@ export function sinceRanks(T, from) {
   }
   return out;
 }
+/** The ranks worth saying: the league's top five after a change for the better, its bottom five after one for the worse. */
+function rankWords(since, up) {
+  const said = [];
+  if (!since) return said;
+  const W = { net: ["net rating", (v) => (v > 0 ? "+" : "") + v.toFixed(1)], ortg: ["offensive rating", (v) => v.toFixed(1)], drtg: ["defensive rating", (v) => v.toFixed(1)], fg: ["FG%", (v) => v.toFixed(1)], astPct: ["assist rate", (v) => `${Math.round(v)}% of its baskets`], astTo: ["assists per turnover", (v) => v.toFixed(1)] };
+  for (const k of ["net", "ortg", "drtg", "fg", "astPct", "astTo"]) {
+    const [v, r] = since[k]; if (up ? r > TURN.top : r <= since.of - TURN.top) continue;
+    if (said.length < TURN.most) said.push(`${ordinal(r)} in ${W[k][0]} (${W[k][1](v)})`);
+  }
+  return said;
+}
 export function turnLines({ rows, minSide = 8 }) {
   const out = [], T = teamGames(rows);
   for (const [team, games] of Object.entries(T)) {
@@ -161,16 +173,52 @@ export function turnLines({ rows, minSide = 8 }) {
     }
     if (!best) continue;
     // what it has been since: ranks in the league's top five after a turn for the better, bottom five after one for the worse
-    const since = sinceRanks(T, best.b[0].d)?.[team], said = [];
-    if (since) {
-      const W = { net: ["net rating", (v) => (v > 0 ? "+" : "") + v.toFixed(1)], ortg: ["offensive rating", (v) => v.toFixed(1)], drtg: ["defensive rating", (v) => v.toFixed(1)], fg: ["FG%", (v) => v.toFixed(1)], astPct: ["assist rate", (v) => `${Math.round(v)}% of its baskets`], astTo: ["assists per turnover", (v) => v.toFixed(1)] };
-      for (const k of ["net", "ortg", "drtg", "fg", "astPct", "astTo"]) {
-        const [v, r] = since[k]; if (best.up ? r > TURN.top : r <= since.of - TURN.top) continue;
-        if (said.length < TURN.most) said.push(`${ordinal(r)} in ${W[k][0]} (${W[k][1](v)})`);
-      }
-    }
-    out.push({ kind: "turn", team, key: `turn|${team}`, ...(since ? { since: { from: best.b[0].d, ...since } } : {}),
+    const since = sinceRanks(T, best.b[0].d)?.[team], said = rankWords(since, best.up);
+    out.push({ kind: "turn", team, key: `turn|${team}`, from: best.b[0].d, ...(since ? { since: { from: best.b[0].d, ...since } } : {}),
       text: `${team} went ${rec(best.a)} in its first ${best.k} games; ${rec(best.b)} since (${md(best.b[0].d)} on)${said.length ? `. Since then: ${said.join(", ")}` : ""}`, score: 2.7 + best.gap + (said.length >= 3 ? 0.3 : 0) });
+  }
+  return out;
+}
+
+/** The first game day after the All-Star break: the longest stretch of February days without a game (from the results; null until it's played). */
+function allStarBreak(rows) {
+  const days = [...new Set(rows.map((g) => g.d))].filter((d) => d.slice(5, 7) === "02" || d.slice(5, 7) === "03").sort();
+  let asb = null, gap = 2;
+  for (let i = 1; i < days.length; i++) { const n = (Date.parse(days[i]) - Date.parse(days[i - 1])) / 864e5; if (n > gap) { gap = n; asb = days[i]; } }
+  return asb;
+}
+
+// 0.107.5 (the user, 11/18: "sometimes teams completely change their outlook starting January 1, others are better after
+// the trade deadline, others are better after the all-star break"). turnLines finds the date that splits a season best;
+// this asks the same of the three dates people name, for every team: the record since against the record before, with
+// the ranks since. One line a team (the date with the widest change). When a team's own turn falls within CHECK.days of
+// the named date, seasonLongLines keeps this line and drops the turn line: they are the same change, and this one has a name.
+// Trade deadlines (3 PM ET; that night's games count as after): 2026-27 from the league's key dates as reported by NBC
+// Sports and Hoops Rumors (read 11/18/26); 2025-26 from nba.com/trade-deadline ("was Feb. 5, 2026, at 3 p.m. ET"), kept
+// for replaying last season in the tests.
+export const DEADLINE = { "2026-27": "2027-02-11", "2025-26": "2026-02-05" };
+// The bar falls as the sample since the date grows: a swing of .450 in winning percentage with 6 to 9 games since, .380
+// with 10 to 14, .300 from 15 on. Replayed on 2025-26 with one bar of .300, a week after the deadline it said things like
+// "7-0 since (it was 34-16 before)": a good team's good week, not a change.
+export const CHECK = { before: 10, since: 6, gap: 0.3, gapShort: 0.38, gapShortest: 0.45, days: 10 };
+export function checkpointLines({ rows, today }) {
+  const y = +today.slice(0, 4), m = +today.slice(5, 7), season0 = m >= 8 ? y : y - 1;
+  const dl = DEADLINE[`${season0}-${String(season0 + 1).slice(2)}`], asb = allStarBreak(rows);
+  const anchors = [[`${season0 + 1}-01-01`, "New Year's Day"], ...(dl ? [[dl, "the trade deadline"]] : []), ...(asb ? [[asb, "the All-Star break"]] : [])].filter(([d]) => d < today);
+  const T = teamGames(rows), out = [], wp = (gs) => gs.filter((g) => g.win).length / gs.length;
+  for (const [team, games] of Object.entries(T)) {
+    let best = null;
+    for (const [d, label] of anchors) {
+      const a = games.filter((g) => g.d < d), b = games.filter((g) => g.d >= d);
+      if (a.length < CHECK.before || b.length < CHECK.since) continue;
+      const gap = Math.abs(wp(a) - wp(b));
+      const need = b.length >= 15 ? CHECK.gap : b.length >= 10 ? CHECK.gapShort : CHECK.gapShortest;
+      if (gap >= need && (!best || gap > best.gap)) best = { d, label, a, b, gap, up: wp(b) > wp(a) };
+    }
+    if (!best) continue;
+    const said = rankWords(sinceRanks(T, best.d)?.[team], best.up);
+    out.push({ kind: "turn", team, key: `check|${team}`, from: best.d,
+      text: `${team} is ${rec(best.b)} since ${best.label} (${md(best.d)}); it was ${rec(best.a)} before${said.length ? `. Since then: ${said.join(", ")}` : ""}`, score: 2.8 + best.gap + (said.length >= 3 ? 0.3 : 0) });
   }
   return out;
 }
@@ -179,10 +227,7 @@ export function turnLines({ rows, minSide = 8 }) {
 export function sinceLines({ rows, today, minGames = 8 }) {
   const y = +today.slice(0, 4), m = +today.slice(5, 7);
   const season0 = m >= 8 ? y : y - 1;
-  // The All-Star break: the longest stretch of February days without a game (from the results; none until it's played).
-  const days = [...new Set(rows.map((g) => g.d))].filter((d) => d.slice(5, 7) === "02" || d.slice(5, 7) === "03").sort();
-  let asb = null, gap = 2;
-  for (let i = 1; i < days.length; i++) { const n = (Date.parse(days[i]) - Date.parse(days[i - 1])) / 864e5; if (n > gap) { gap = n; asb = days[i]; } }
+  const asb = allStarBreak(rows);
   const anchors = [[`${season0}-12-25`, "Christmas"], [`${season0 + 1}-01-01`, "New Year's Day"], ...(asb ? [[asb, "the All-Star break"]] : [])].filter(([d]) => d < today);
   const T = teamGames(rows);
   const out = [];
@@ -553,8 +598,11 @@ export function eraLines({ pg, logs, names, today }) {
 }
 
 export function seasonLongLines(args) {
-  const parts = [["trade", tradeLines], ["role", roleLines], ["mvp", mvpLines], ["lineup", lineupLines], ["turn", turnLines], ["since", sinceLines], ["beaten", beatenLines], ["month", monthLines], ["unique", uniqueLines], ["odd", oddScoringLines], ["teamnight", teamNightLines], ["rookie", rookieLines], ["monthp", monthPlayerLines], ["defense", defenseLines], ["era", eraLines]];
+  const parts = [["trade", tradeLines], ["role", roleLines], ["mvp", mvpLines], ["lineup", lineupLines], ["turn", turnLines], ["check", checkpointLines], ["since", sinceLines], ["beaten", beatenLines], ["month", monthLines], ["unique", uniqueLines], ["odd", oddScoringLines], ["teamnight", teamNightLines], ["rookie", rookieLines], ["monthp", monthPlayerLines], ["defense", defenseLines], ["era", eraLines]];
   const lines = [], errors = [];
   for (const [k, f] of parts) { try { lines.push(...f(args)); } catch (e) { errors.push(`${k}: ${e.message}`); } }
-  return { lines, errors };
+  // a team's own turn and a named date within a few days of it are one change: keep the named one
+  const named = new Map(lines.filter((l) => l.key?.startsWith("check|")).map((l) => [l.team, l.from]));
+  const same = (l) => l.key?.startsWith("turn|") && named.has(l.team) && l.from && Math.abs(Date.parse(l.from) - Date.parse(named.get(l.team))) <= CHECK.days * 864e5;
+  return { lines: lines.filter((l) => !same(l)), errors };
 }

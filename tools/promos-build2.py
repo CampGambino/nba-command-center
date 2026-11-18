@@ -180,18 +180,19 @@ for (d, opp), ts in was.items():
 n_script = len(rows)
 # read a second time on 11/18 with the card reader or the flat reader; every row agreed
 for r in rows:
-    if r[0] in ('IND', 'LAC', 'MIA', 'ORL'): r[4] = 'read twice (two readers agree)'
+    if r[0] in ('IND', 'LAC', 'MIA', 'ORL', 'MIN', 'PHI', 'WAS'): r[4] = 'read twice (two readers agree)'
 
 # ---- typed files
 HOW = {'BOS': 'read twice (two readers agree)', 'CHI': 'read twice (two readers agree)', 'DEN': 'read twice (two readers agree)',
        'GSW': 'read twice (two readers agree)', 'LAL': 'read twice (two readers agree)', 'TOR': 'read twice (two readers agree)',
        'CLE': 'read twice (two readers agree)', 'PHX': 'read twice (giveaways page); theme page read once',
        'SAC': 'read once; the page order (date, opponent, label) confirmed in a second look',
-       'UTA': 'read once; matches the Cup schedule', 'CHA': "from each picture's file name; the page shows the names only inside pictures",
+       'UTA': 'read once; matches the Cup schedule', 'CHA': 'names read by eye from the pictures on the page (the page has them only inside pictures); they agree with the picture file names',
        'DAL': 'read once; typed rows compared again with the stored page text', 'MEM': 'read once; typed rows compared again with the stored page text',
        'POR': 'read once; typed rows compared again with the stored page text', 'SAS': 'read once; typed rows compared again with the stored page text',
        'MIL': 'read once; typed rows compared again with the stored page text',
-       'DET': 'read once and typed; not read a second time', 'HOU': 'read once and typed; the page would not load for a second reading'}
+       'DET': 'read twice (the typed rows match a second reading of the page)',
+       'HOU': "tickets page and the team's 9/2/26 announcement agree (4/2 is in the announcement only; the 11/25 Cup game only on the tickets page)"}
 typed = []
 for f in TYPED:
     for ln in open(f, encoding='utf-8'):
