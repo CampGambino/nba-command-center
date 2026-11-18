@@ -20,7 +20,7 @@ The user, 8:34 AM: "Continue". Next on the list were the self-audits of the vers
 
 **Unproven:** the Giannis book is a reconstruction: the log of 11/18 did not keep bid and ask, so "a wide spread with one trade at 13" is the likeliest reading, not a recorded fact. How many true moves the book rule will delay by a look is not known; the log now has what is needed to tell. A double foul's second player still gets no foul time.
 
-**Self-audit of this entry:** the 1,704 and 1,733 were produced by one script run twice with the two rules, on the same 78 games; the script imitates NBA Live's tagging (type or text has "foul", after challenge, timeout and substitution) and takes the play's first participant as the player, which is how the bridge sees plays but was not run through NBA Live itself. The pbpstats job has saved nothing yet (checked 9:10 AM; its first save is due about 9:20).
+**Self-audit of this entry:** the 1,704 and 1,733 were produced by one script run twice with the two rules, on the same 78 games; the script imitates NBA Live's tagging (type or text has "foul", after challenge, timeout and substitution) and takes the play's first participant as the player, which is how the bridge sees plays but was not run through NBA Live itself. The pbpstats job had saved nothing when this was written (8:55 AM; it started at 8:27 and saves after 38 minutes of reading).
 
 ## 0.106.2 (2026-11-18): pbpstats can fill the hole, slowly; self-audit of 0.105.0
 
@@ -35,7 +35,7 @@ The user, 8:11 AM: "Can you access pbpstats for the missing box scores. It has d
 
 **Self-audit of 0.105.0 (the slate waits):** the rule compares each game's `date` with yesterday's Eastern date, so it would fail if the scoreboard reader dated late games by UTC (a 10:30 PM tip is the next day in UTC). Checked on ESPN's real scoreboard for 11/17: the reader's `date` is the Eastern date for all five games, the two late ones included (Utah at the Clippers, 03:30Z; Charlotte at the Lakers, 04:00Z). Replaying 12:44 AM on 11/18 with those two put back in progress, the rule keeps Tuesday's slate and names both games. The change-log entry's claims stand. Still not seen on a live night.
 
-**Self-audit of this entry:** the 93 seconds and the one-in-five-minutes are single measurements at one time of day; the pace may be better at other hours. The Davis line is one game; how often pbpstats' rebounds, assists and blocks differ from the box score is not measured (it needs box scores we do not have, which is the point). Whether the GitHub job is reading is not known until its first save, about 40 minutes after 8:40 AM.
+**Self-audit of this entry:** the 93 seconds and the one-in-five-minutes are single measurements at one time of day; the pace may be better at other hours. The Davis line is one game; how often pbpstats' rebounds, assists and blocks differ from the box score is not measured (it needs box scores we do not have, which is the point). Whether the GitHub job is reading is not known until its first save, about 40 minutes after it started at 8:27 AM.
 
 ## 0.106.1 (2026-11-18): self-audit of 0.106.0; the NBA Cup's title games no longer count as regular season
 
