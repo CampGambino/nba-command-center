@@ -20,6 +20,7 @@ import zlib from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { readGameLog } from "../src/espn/parse.js";
 import { TEAMS, teamFromCode } from "../src/teams.js";
+const CUP = JSON.parse(fs.readFileSync(new URL("../src/data/cup-finals.json", import.meta.url), "utf8")).games; // left out of both files (0.106.1)
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
@@ -73,6 +74,7 @@ async function results() {
           const ht = tri(h?.team?.abbreviation), at = tri(a?.team?.abbreviation);
           const hs = Number(h?.score?.value ?? h?.score?.displayValue ?? h?.score), as = Number(a?.score?.value ?? a?.score?.displayValue ?? a?.score);
           if (!ht || !at || !Number.isFinite(hs) || !Number.isFinite(as)) continue;
+          if (CUP.some((x) => x[0] === etDate(e.date || c.date) && [x[1], x[2]].includes(ht) && [x[1], x[2]].includes(at))) continue; // the Cup's title game
           games.set(e.id, [etDate(e.date || c.date), ht, at, hs, as, Number(e.seasonType?.type ?? type) === 3 ? 3 : 2]);
         }
       }
@@ -116,6 +118,7 @@ async function logs() {
           if (!opp) { noOpp++; continue; }
           const home = ev.atVs === "vs" ? 1 : ev.atVs === "@" ? 0 : (ev.homeTeamId && ev.team?.id ? (String(ev.homeTeamId) === String(ev.team.id) ? 1 : 0) : null);
           const s = g.stats;
+          if (CUP.some((c) => c[0] === (g.date || etDate(ev.gameDate)) && (c[1] === opp || c[2] === opp))) continue; // the Cup's title game counts for nothing
           rows.push([g.date || etDate(ev.gameDate), opp, home, ev.gameResult || null, type, s.min ?? null, s.pts ?? 0, s.reb ?? 0, s.ast ?? 0, s.stl ?? 0, s.blk ?? 0, s.fg3m ?? 0, s.fgm ?? 0, s.fga ?? 0, s.fg3a ?? 0, s.ftm ?? 0, s.fta ?? 0]);
           gamesRead++;
         }

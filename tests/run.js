@@ -2342,6 +2342,18 @@ await articlesChecks(ok);
       && real.runs.some((r) => r[0] === "LAL" && r[1] === "pts40" && r[2] === 9 && real.names[r[3]] === "Kobe Bryant") && real.runs.some((r) => r[0] === "OKC" && r[1] === "td" && r[2] === 11) && real.maybe.some((r) => r[0] === "HOU" && r[1] === "pts30" && r[2] === 32),
       "franchise streaks, the real file (0.106): the feats are the morning lines' own; 97% of 39,010 games add up; the Bulls and Pelicans of 2012-13 to 2017-18 are marked blind; the four Magic players with 30+ in four straight are the ones the post of 11/14 implied; McGrady-era and Bryant's 9 straight 40s and Westbrook's 11 straight triple-doubles are there, and Harden's 32 straight 30s is an upper bound (a night in the middle did not add up)", JSON.stringify(real.counts));
   }
+  {
+    // 0.106.1 (self-audit): the Cup's title games are in neither past-season file nor the runs file.
+    const cup = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "cup-finals.json"), "utf8")).games;
+    const hist = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-results-history.json"), "utf8"));
+    const lg = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(root, "src", "data", "player-logs-history.json.gz"))));
+    const fr2 = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(root, "src", "data", "player-feat-runs-2026-27.json.gz"))));
+    const days = new Set(cup.map((c) => c[0]));
+    const inHist = hist.games.filter((g) => days.has(g[0])).length, inLogs = Object.values(lg.players).flat().filter((r) => days.has(r[0])).length;
+    const giannis = fr2.runs.find((r) => r[0] === "MIL" && r[1] === "pts30" && r[4] === "2024-25" && fr2.names[r[3]] === "Giannis Antetokounmpo" && r[2] === 7);
+    ok(cup.length === 3 && inHist === 0 && inLogs === 0 && hist.games.length === 12812 && giannis && !fr2.runs.some((r) => days.has(r[5])),
+      "Cup title games (0.106.1): Lakers v Pacers 12/9/23, Bucks v Thunder 12/17/24 and Knicks v Spurs 12/16/25 count for nothing: they are out of the results history (12,812 games), the players' logs and the runs file, where Antetokounmpo's 30-point run of 2024-25 is 7 (the title game, 26 points, had cut it into 5 and 2)", JSON.stringify([inHist, inLogs, hist.games.length, !!giannis]));
+  }
   const W = buzzCounts([{ title: "Memphis Grizzlies vs. Washington Wizards: Game Highlights" }, { title: "Washington leading Memphis early" }, { title: "P.J. Washington scores 30 for Dallas" }, { title: "Tatum continues to impress" }],
     { players: ["P.J. Washington", "Jayson Tatum"], teams: ["WAS", "MEM"] });
   ok(W.players["P.J. Washington"] === 1 && W.players["Jayson Tatum"] === 1 && W.teams.WAS === 2 && W.teams.MEM === 2,

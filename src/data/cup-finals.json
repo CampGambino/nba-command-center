@@ -1,0 +1,4 @@
+{
+  "note": "The NBA Cup's title game. ESPN files it with the regular season; the league counts it in no one's record or statistics, so it is left out of the past-season files (tools/drop-cup-finals.mjs, tools/backfill-matchups.js, tools/build-feat-runs.mjs). Add each December's game: [date, home, away, home score, away score]. This season's game is found by rule (cupFinal in src/situations/standings.js).",
+  "games": [["2023-12-09", "LAL", "IND", 123, 109], ["2024-12-17", "OKC", "MIL", 81, 97], ["2025-12-16", "NYK", "SAS", 124, 113]]
+}

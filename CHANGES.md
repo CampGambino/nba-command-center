@@ -2,6 +2,21 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.106.1 (2026-11-18): self-audit of 0.106.0; the NBA Cup's title games no longer count as regular season
+
+The user, 7:38 AM: "I forgot to require a self audit after each iteration. Please do so now and moving forward". **From here on every entry ends with a "Self-audit" paragraph: what was re-derived from the committed files after the work was done, what that turned up, and what could not be checked.**
+
+**Self-audit of 0.106.0 (each claim re-derived from the committed files, not from the notes made while working):**
+- *Held up.* Team records between 0.105 and 0.106: exactly 18 Phoenix opponent names changed and no Phoenix value or date; the only other differences are the Pacers' and Heat's re-dated games and the two Kings marks' confirmation. The corrections file has 118 rows (44/30/30/4/1/9). The night check: 3,311 the same, 7 with no game that day, 20 with no opponent read. The player ids in the runs file are the ids this season's store uses (206 players are in both, no name differs). Four streaks I did not use while building it are right: Bryant's 16 straight 30-point games in 2002-03, Durant's 12 in 2013-14, plus the two already tested. Every era's box scores carry minutes, so "did not play" is read correctly. Only P.J. Washington loses surname-only headline matching. The new clause costs a third of a second a build. Devin Booker's "72 of 78" and "50 of 54": the 78 and 54 had been typed from memory; the all-zero box scores list him in exactly 6 and 4 more games, so they stand.
+- *Wrong, fixed here.* **The runs file counted the NBA Cup's title games as regular season** (ESPN labels them so; the league counts them for nothing): Lakers v Pacers 12/9/23, Bucks v Thunder 12/17/24, Knicks v Spurs 12/16/25. Ten runs were wrong, among them Giannis Antetokounmpo's 30-point run of 2024-25 (cut into 5 and 2 by his 26 in the title game; it is 7) and Shai Gilgeous-Alexander's (4; it is 5).
+- *Older than 0.106, found by the same question, fixed here.* The same three games were in `nba-results-history.json` (as regular-season games) and in `player-logs-history.json.gz` (55 player rows), which every "since 2016-17" line reads: head-to-head records, team streaks, player streaks, career highs. They are removed from both (`tools/drop-cup-finals.mjs`, safe to run again), listed once in `src/data/cup-finals.json`, and `tools/backfill-matchups.js` and `tools/build-feat-runs.mjs` leave them out when the files are next rebuilt.
+- *Overstated.* I told the user "five of the items are done". The docs item was half done: the handoff doc was rewritten, the tracking rundown and guide inventory were not, and the two status docs were not merged (said in the same message, but under the wrong headline).
+- *Not checkable from here.* The second sources for the three old dates (Basketball Reference, Land of Basketball, StatMuse) were read once through search and are recorded beside each fix; they were not fetched again. The Warriors' own guide has no game list that early, so nothing of ours confirms the Kings' 1/2/56 date. Rebounds, assists, threes and blocks in the runs file still have no second number.
+
+**Tested:** 975 checks pass (one new: the three title games are in none of the three files, the results history has 12,812 games, Antetokounmpo's run is 7), 79 in the Worker suite. A full local build ran clean; all 435 series and the flag checks (42 of 51) are unchanged by the removal; all pages OK.
+
+**Unproven:** this season's title game (mid-December) is left out of the standings by rule (`cupFinal`), but the player lines read this season's games straight from the store and would count it. To be handled before the game is played. A Cup title game before the logs' first season does not exist (the Cup began in 2023).
+
 ## 0.106.0 (2026-11-18): a streak placed in the franchise's history; three old dates found; the Suns' wrapped names; a headline fix
 
 The user, 2:20 AM, on the list of things that need neither the PC nor an answer: "take as many that don't require me".

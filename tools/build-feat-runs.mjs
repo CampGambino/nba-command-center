@@ -28,6 +28,11 @@ const td = (g) => [g.pts, g.reb, g.ast, g.stl, g.blk].filter((x) => x >= 10).len
 export const FEATS = [["pts50", (g) => g.pts >= 50], ["pts40", (g) => g.pts >= 40], ["pts35", (g) => g.pts >= 35], ["pts30", (g) => g.pts >= 30], ["reb20", (g) => g.reb >= 20], ["reb15", (g) => g.reb >= 15],
   ["ast15", (g) => g.ast >= 15], ["ast12", (g) => g.ast >= 12], ["fg3m7", (g) => g.fg3m >= 7], ["fg3m5", (g) => g.fg3m >= 5], ["blk5", (g) => g.blk >= 5], ["td", td]];
 
+// The NBA Cup's title game is filed by ESPN with the regular season, and the league does not count it in anyone's
+// statistics (found in the self-audit of 0.106). The list is src/data/cup-finals.json.
+const CUP = JSON.parse(fs.readFileSync(new URL("../src/data/cup-finals.json", import.meta.url), "utf8")).games;
+const isCupFinal = (g) => CUP.some((c) => c[0] === g.d && ((c[1] === g.h && c[2] === g.a) || (c[1] === g.a && c[2] === g.h)));
+
 // 1. The games, from the scoreboards.
 const games = [];
 for (const f of fs.readdirSync(BOARDS).filter((x) => /^ls-\d{4}-\d\d-\d\d\.json$/.test(x)).sort()) {
@@ -42,7 +47,7 @@ for (const f of fs.readdirSync(BOARDS).filter((x) => /^ls-\d{4}-\d\d-\d\d\.json$
     const k = `${g.h}|${g.a}`; // 1998-99: ESPN lists some games twice; the one with a line score is the real one
     if (!seen.has(k) || g.ls > seen.get(k).ls) seen.set(k, g);
   }
-  games.push(...seen.values());
+  games.push(...[...seen.values()].filter((g) => !isCupFinal(g)));
 }
 
 const counts = { games: games.length, trusted: 0, unknown: 0 };
