@@ -1,3 +1,4 @@
+# The user, 11/18 9:14 AM: "324 to get initial stats and see if it's worth it to do the rest": 2016-17 and 2017-18 only.
 # Temporary (0.107): reads from pbpstats.com's public API the player lines ESPN does not have (every Bulls and Pelicans
 # game, 2012-13 to 2017-18; about 990 games, slowly, one request at a time). Resumable; remove once status.json says 0 left.
 name: pbpstats fill
@@ -26,7 +27,7 @@ jobs:
           git config user.name "ncc-bot"
           git config user.email "ncc-bot@users.noreply.github.com"
           for i in 1 2 3 4 5 6 7 8; do
-            node tools/fetch-pbpstats.mjs --minutes 38
+            node tools/fetch-pbpstats.mjs --minutes 38 --seasons 2016-17,2017-18
             git add tools/outside/pbpstats
             if ! git diff --cached --quiet; then
               git commit -q -m "pbpstats: $(TZ=America/New_York date '+%Y-%m-%d %H:%M') ET (automatic)"
