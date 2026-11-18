@@ -2,6 +2,23 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.105.0 (2026-11-18): a build after midnight keeps yesterday's slate until yesterday's games are over
+
+The user, 1:55 AM: "before switching to slate day of, can you wait until at least all the games are completed from the previous day after midnight? there is a game still active from Tuesday but I see the command center for Wednesday".
+
+- **Why it switched.** A build takes the Eastern calendar date at the moment it runs. Scheduled builds stop at 5:30 PM and start again at 8 AM, so this does not normally happen; but any push to `scripts/` or `src/` starts a build, and the Kalshi work pushed at 12:38 AM. That build published Wednesday's slate at 12:44 AM while Utah at the Clippers and Charlotte at the Lakers were being played.
+- **Now** (`src/espn/slate.js`, `scripts/ci.js` `pickDay`): a build between midnight and 6 AM Eastern reads ESPN's scoreboard for yesterday. If any of yesterday's games is in progress, or was due to tip in the last five hours and is not marked started, the build is for yesterday. Once all are final the next build moves to the new day. It never holds past 6 AM, a postponed game does not hold it, an unreadable scoreboard does not hold it, and a date given by hand (`--today`) is used as given.
+- When a build holds, `health.json` says so and the Watch List shows the line ("Not switched to the new day yet (still on 2026-11-17's slate: UTA at LAC has not finished)").
+
+### Tested
+- `node tests/run.js` 971 pass (a new check: held with a game in progress or a late tip, not held when all final, at 6 AM, at 1 PM, for a postponed game, for another day's game, with no scoreboard; and the real scoreboard reader's output passed the way the build passes it).
+- Run by hand against ESPN at 2:05 AM with all five of Tuesday's games final: the rule gives Wednesday.
+- `tests/articles-only.js` 79; `tools/check-pages.py` all pages OK.
+
+### Unproven
+- Not yet seen holding on a real night: by the time it was written the games had ended. The first after-midnight build during a live game will show it.
+- The Cloudflare digest and lineups read the published slate's date. A held slate after midnight is the same date they were already using, so nothing changes for them; not watched.
+
 ## 0.104.0 (2026-11-18): bridge v22: a foul's time no longer counts ESPN's "offensive foul turnover" line; the foul trouble card's back drops the rule
 
 The user sent a foul trouble card for Luka Doncic (11/17 v Charlotte) whose back read "Q1 5:51 · Q1 1:30 · Q1 22.3 · Q1 22.3": "luka didn't get his 4th foul at the same time he got his 3rd foul", and "no need for the explainer line on the bottom".

@@ -4346,6 +4346,20 @@ await articlesChecks(ok);
       && dts(tr("GSW", "ast", "game", "fewest")).join() === "2002-01-06,2006-03-21,2008-04-01" && dts(tr("GSW", "ftm", "game", "fewest")).length === 2 && Object.values(TR).flat().every((m) => m.games.every((g) => !/^\)|\s{2,}/.test(g.opp || ""))),
       "team records (0.100): the sweep found the Pacers' 21-rebound night (at Chicago 12/11/06, two days after the game the guide prints; the Bulls' guide has it) and eleven marks a guide's page is behind on that the other team's guide prints (the Bulls' 1 turnover against Memphis, Washington's 50 assists against Indiana); ties printed under the Warriors' 'Fewest Game' rows are read (three 8-assist games); opponent names carry no stray characters",
       JSON.stringify([tr("MEM", "tov", "game", "fewest", "opp"), tr("GSW", "ast", "game", "fewest"), tr("IND", "reb", "game", "fewest")]));
+    // 0.105: which day's slate a build publishes (src/espn/slate.js)
+    {
+      const { slateDay: sd, unfinished: unf } = await import("../src/espn/slate.js");
+      const t0 = Date.parse("2026-11-18T06:55:00Z"), gm = (state, start, date = "2026-11-17") => ({ state, start, date, awayTri: "UTA", homeTri: "LAC" });
+      const live = [gm("post", "2026-11-18T00:30:00Z"), gm("in", "2026-11-18T03:30:00Z")], done = [gm("post", "2026-11-18T00:30:00Z"), gm("post", "2026-11-18T03:30:00Z")];
+      const day = (games, hourET = 1) => sd({ today: "2026-11-18", yesterday: "2026-11-17", hourET, games, nowMs: t0 });
+      ok(day(live).day === "2026-11-17" && day(live).held.length === 1 && day(done).day === "2026-11-18" && day(live, 6).day === "2026-11-18" && day(live, 13).day === "2026-11-18" && day([]).day === "2026-11-18" && day(null).day === "2026-11-18"
+        && day([gm("pre", "2026-11-18T03:30:00Z")]).day === "2026-11-17" && day([gm("pre", "2026-11-17T23:00:00Z")]).day === "2026-11-18" && day([gm("in", "2026-11-18T03:30:00Z", "2026-11-16")]).day === "2026-11-18" && unf([gm("post", null)], t0).length === 0
+        && (await (async () => { const { readScoreboard: rsb } = await import("../src/espn/parse.js");      // the real reader's shape, as scripts/ci.js passes it
+          const espn = (state) => ({ events: [{ id: "1", date: "2026-11-18T03:30Z", competitions: [{ date: "2026-11-18T03:30Z", status: { type: { state, completed: state === "post" } }, competitors: [{ homeAway: "home", team: { displayName: "LA Clippers" }, score: "50" }, { homeAway: "away", team: { displayName: "Utah Jazz" }, score: "48" }] }] }] });
+          return day(rsb(espn("in")).games).day === "2026-11-17" && day(rsb(espn("in")).games).held[0].homeTri === "LAC" && day(rsb(espn("post")).games).day === "2026-11-18" && /readScoreboard\(await r\.json\(\)\)\.games/.test(fs.readFileSync(path.join(root, "scripts", "ci.js"), "utf8")); })()),
+        "slate (0.105): after midnight Eastern a build keeps yesterday's slate while one of yesterday's games is still being played (or tipped late and is not marked started), moves on when all are final, never holds past 6 AM, and does not hold for a postponed game or an unreadable scoreboard",
+        JSON.stringify([day(live), day(done), day(live, 6)]));
+    }
     // 0.102: Kalshi's NBA markets: when a move is a line (src/kalshi.js)
     {
       const { look: kLook, line: kLine, priceOf: kPrice, isGameEvent: kGame, typical: kTyp, threshold: kThr } = await import("../src/kalshi.js");

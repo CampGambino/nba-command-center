@@ -42,6 +42,7 @@ const etDay = (offsetDays = 0) => new Date(Date.now() + offsetDays * 864e5).toLo
 // Each step has its own time limit (0.72), so one that hangs can't use up the job's 30 minutes and take the others with it.
 const LIMIT_MIN = { "scripts/tonight.js": 14, "scripts/situations.js": 8, "scripts/flow.js": 4, "scripts/score.js": 8 };
 const steps = [];
+let heldNote = null;      // 0.105: set when a build after midnight stays on yesterday's slate (pickDay)
 function run(args) {
   const t0 = Date.now();
   const r = spawnSync(process.execPath, args, { cwd: root, encoding: "utf8", maxBuffer: 64 << 20, timeout: (LIMIT_MIN[args[0]] || 10) * 60e3, killSignal: "SIGKILL" });
@@ -54,19 +55,37 @@ function run(args) {
 }
 /** docs/data/health.json: when the build ran and how each step went, for the Watch List's health note (0.72). */
 function writeHealth(today, extra = {}) {
-  try { fs.writeFileSync(path.join(root, "docs", "data", "health.json"), JSON.stringify({ at: new Date().toISOString(), today, steps, ...extra })); } catch (e) { console.error(`health note not written: ${e.message}`); }
+  try { fs.writeFileSync(path.join(root, "docs", "data", "health.json"), JSON.stringify({ at: new Date().toISOString(), today, steps, ...(heldNote ? { held: heldNote } : {}), ...extra })); } catch (e) { console.error(`health note not written: ${e.message}`); }
 }
 const notesRead = (w) => (w?.teams || []).filter((t) => t.notesStatus === "current" || t.notesStatus === "stale").length;
 
-if (mode === "build") build();
+if (mode === "build") await build();
 else if (mode === "score") score();
 else {
   console.error("usage: node scripts/ci.js build [--today YYYY-MM-DD] | score [--date YYYY-MM-DD]");
   process.exit(2);
 }
 
-function build() {
-  const today = opt("--today") || etDay(0);
+/**
+ * 0.105: after midnight Eastern the slate stays on yesterday until yesterday's games are all final (src/espn/slate.js).
+ * A date given by hand (--today) is used as given.
+ */
+async function pickDay() {
+  if (opt("--today")) return opt("--today");
+  const today = etDay(0), yesterday = etDay(-1), hourET = Number(new Date().toLocaleString("en-US", { timeZone: "America/New_York", hour: "numeric", hour12: false })) % 24;
+  try {
+    // read only when needed, so the build still runs if these cannot be loaded
+    const { slateDay, HOLD_UNTIL_HOUR } = await import("../src/espn/slate.js"); if (!(hourET < HOLD_UNTIL_HOUR)) return today;
+    const { readScoreboard } = await import("../src/espn/parse.js");
+    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=${yesterday.replace(/-/g, "")}&limit=100`, { signal: AbortSignal.timeout(20000) });
+    if (!r.ok) throw new Error(`ESPN ${r.status}`);
+    const { day, held } = slateDay({ today, yesterday, hourET, games: readScoreboard(await r.json()).games, nowMs: Date.now() });
+    if (held.length) { heldNote = `still on ${yesterday}'s slate: ${held.map((g) => `${g.awayTri || g.away} at ${g.homeTri || g.home}`).join(", ")} ${held.length === 1 ? "has" : "have"} not finished`; console.log(`slate: ${heldNote}`); }
+    return day;
+  } catch (e) { console.error(`slate: yesterday's scoreboard not read (${e.message}); building ${today}`); return today; }
+}
+async function build() {
+  const today = await pickDay();
   const before = fs.existsSync(watchFile) ? JSON.parse(fs.readFileSync(watchFile, "utf8")) : null;
   const beforeText = before ? fs.readFileSync(watchFile, "utf8") : null;
   const r = run(["scripts/tonight.js", "--today", today]);

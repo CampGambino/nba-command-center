@@ -467,6 +467,7 @@ async function renderHealth(watch) {
   const failed = (h?.steps || []).filter((x) => !x.ok);
   if (failed.length) notes.push(`The ${esc(clock)} build had a problem: <b>${failed.map((x) => esc(STEP[x.step] || x.step)).join("</b> and <b>")}</b> didn't finish (${failed.map((x) => esc(x.error || "failed")).join("; ")}). That part of the site shows the last good build.`);
   if (h?.kept) notes.push(esc(h.kept) + ".");
+  if (h?.held) notes.push(`Not switched to the new day yet (${esc(h.held)}). The next build after the last game ends moves on.`);
   // Builds run about every 2.5 hours from 8 AM to 5:30 PM ET: by late morning the newest should be under 5 hours old.
   if (ageH > 26 || (etHour >= 11 && etHour < 19 && ageH > 5)) notes.push(`The site last rebuilt ${esc(clock)} (${ageH >= 48 ? `${Math.round(ageH / 24)} days` : `${Math.round(ageH)} hours`} ago). Builds run about every 2.5 hours through the day, so GitHub's schedule is late or the build isn't running.`);
   if (notes.length) $("stale").innerHTML += `<div class="warn-banner">⚠️ ${notes.join("<br>")}</div>`;
