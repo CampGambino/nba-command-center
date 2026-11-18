@@ -2,6 +2,46 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.101.0 (2026-11-17): the thirteen box scores confirmed; three more checks (night and opponent, two guides on every stat, ESPN's play-by-play by period)
+
+The user sent Basketball Reference's box scores for the thirteen games ESPN alone had, and asked for more checkers.
+
+### The thirteen
+- **All thirteen agree with ESPN**, so the marks are raised (`add`, each naming both sources): Boston's fewest fouls **6** (at Golden State 2/19/26; 7 at Indiana 1/12/26) and Indiana's **7** that night; Charlotte's most three-point attempts **59** (at Utah 1/10/26; the guide stops at 52); Golden State's **59** (vs. Atlanta 1/2/23, 2OT) and **58** by an opponent (Boston 12/19/23, OT); the Clippers' most defensive rebounds **54** (at Charlotte 1/30/22) and fewest free throw attempts **5** (at New Orleans 11/19/21); Miami's most fouls **39** (vs. Detroit 11/2/99, 2OT, and at Cleveland 3/18/00, OT) and most free throws by an opponent **47** (Golden State 12/1/08, OT); Phoenix's fewest field goals **22** (at Oklahoma City 11/15/24); Sacramento's fewest free throw attempts **3** (vs. Phoenix 4/13/25); San Antonio's fewest rebounds by an opponent **20** (Toronto 10/27/25).
+- The sweep now finds nothing left that beats a printed whole-game mark outside 2007-08 and 2017-18.
+
+### Check 1: the night and the opponent (`tools/check-mark-nights.py`)
+- Needs no box score, so it reaches every printed game, 3,436 of them, back to the 1940s: the team played that day (ESPN from 1993-94, the guides' own game lists before), and played the opponent the guide names. Opponents are read with their era (PHI in 1957 is the Warriors; FTW, SYR, STL; clubs that folded).
+- For each miss it lists the nights one slip away on which the team did play that opponent, and tests each against the saved ESPN pages and the other team's guide.
+- **3,298 agree.** 85 are before the team's own game list starts, 30 have an opponent the reader cannot make out (Phoenix's rows are cut short; 21 of them), 23 are open leads.
+- Guides write "vs." for road games too, so the site is only counted (18 rows print "at" for a home game).
+- It also caught a year printed as "256" (New Orleans, 10-Feb-256: 2/10/25, where ESPN has the game).
+
+### Check 2: two guides, one night, for every stat and period
+- A team's mark and the other team's "by an opponent" mark for the same stat, period and night: 372 pairs, **371 agree** (the one is a team turnover). 146 of them are half, quarter and overtime marks that had no second source before.
+
+### Check 3: ESPN's play-by-play, counted by period (`tools/check-period-marks.mjs`)
+- For the 1,419 printed games beside half, quarter and overtime marks that are not points. Each stat is counted by period from the plays (from 2002-03; earlier pages have none), and the count is trusted only when it adds up to that game's box score total for the stat.
+- **669 have the printed number.** 131 do not add up (no verdict; 74 of those have the number anyway), 121 have no play-by-play, 482 are before 1996-97, 14 are open leads.
+- With the guide pairs, **739 of these 1,419 now have a second source; before today none did** beyond the pairs.
+
+### What the three checks corrected (30 rows, each with its source in `tools/team-records-verified.json`)
+- **Twelve dates.** Indiana's most rebounds, 75 vs. Denver, is **11/28/86**, not 1/28/86 (the Nuggets' guide). Portland's most fouls, 44 in four overtimes vs. Chicago, is **3/16/84**, not 1974 (the Bulls' guide). Atlanta's 13 turnovers in a quarter at New Orleans is 10/29/03 (the Pelicans' guide). By play-by-play: the Lakers' fewest rebounds in a half (11) and a quarter (3) at Portland are 1/17/26, not 1/7/26; Detroit's 22 free throws in a quarter at the Lakers 11/14/08; Chicago's 14 shots in an overtime at Milwaukee 12/11/23; Memphis's 7 field goals in an overtime at San Antonio 3/17/23, and Minnesota's 13 free throws (of 13) in an overtime against it 12/29/08; Dallas's quarter with no assist at Orlando 11/9/22; Orlando's overtime with no turnover at Houston 11/16/25 (printed 11/16/26).
+- **Five opponents' names** on the right night (a `redate` whose two dates are the same): the Clippers' game with no block was at Philadelphia, not Phoenix (1/21/22); Detroit's 16-assist quarter was against Phoenix, not Milwaukee (1/11/14); Boston, not Houston, took 32 threes in a half against Chicago (12/19/24); Detroit, not Indiana, had the 16-assist quarter against Chicago (4/1/99); San Antonio, not Sacramento, had 1 foul in a half at Phoenix (4/11/25).
+- **Fourteen lines dropped.** Orlando's opponents' lows page prints ten of the Magic's own 2025-26 lines (play-by-play has Orlando with the zero each time, and the opponent with more); its fewest-threes-attempted half is a made-threes line (11 attempts, none made). Detroit's opponents page prints three of the Pistons' own defensive-rebound lines from 2025.
+- **A reader fault:** the Bulls' "Biggest Loss" row (56, vs. BOS 12/8/18) was read as their fewest blocks in an overtime. "Biggest" is now a heading.
+- `tools/team-records-verified.json` holds 112 rows: 40 dates or names, 30 dropped, 30 added, 4 numbers, 1 without a night, 7 prints confirmed. 2,834 marks, 3,436 printed games.
+
+### Tested
+- `node tests/run.js` 967 pass (one new check on these); `tests/articles-only.js` 79; `tools/check-pages.py` all pages OK.
+- `tools/check-team-marks.mjs`: 920 of 990 the same on ESPN, none differ. `tools/check-period-points.mjs`: 220 of 220.
+
+### Unproven: 37 open leads (run the two tools to list them)
+- **Night or opponent (23), mostly before play-by-play exists.** Among them: Houston's most offensive rebounds by an opponent "at San Antonio 1/4/92" (played Cleveland); Indiana's most shots by an opponent "Denver 3/5/91" (played Charlotte; Denver was 3/7/91); Miami's "@ Denver 12/29/89" (no game; 12/23 or 12/28); Sacramento's 138 and 160 shots "against Philadelphia 1/2/56" (1/3 or 1/12); the Lakers' three 2-rebound quarters by an opponent, whose three opponents are printed one row off their dates; Orlando's "@ Brooklyn 2/30/99".
+- **Play-by-play disagrees (14).** Atlanta's most defensive rebounds by an opponent in a half (32) and quarter (21), dated to Brooklyn's 55-rebound game 1/12/20 (27 and 28 by half); Boston's 23 assists in a quarter at Washington 12/11/08 (no quarter over 10); Oklahoma City's 43 rebounds in a half and 25 in a quarter vs. Chicago 3/27/26 (36 and 19); Chicago's 47 and 26 by an opponent at Portland 11/19/25 (32 and 18); Cleveland's 23 turnovers in a half "@ Seattle 1/16/05" (13 in the game; perhaps 1975); Detroit's 16 fouls by Phoenix in a quarter 2/5/21 (12); three Memphis three-point rows; the Lakers' half with no steal at Dallas 4/5/26; Phoenix's half with no free throw attempt 3/30/26.
+- Still with no second source: 680 printed games beside period marks (482 before 1996-97) and 465 whole-game entries (425 before 1993-94). The night-and-opponent check does cover them: all but the 23 above are on a day the team played that opponent.
+- Phoenix's reader cuts opponents' names short on 21 rows (the marks and dates are read; the names are not).
+
 ## 0.100.0 (2026-11-17): points by half, quarter and overtime checked against ESPN's line scores; every ESPN box score since 1993-94 swept; the Pacers' 21-rebound night found
 
 The user sent Basketball Reference's box scores for the two 2007-08 Pacers games at Cleveland: 37 rebounds in each, so neither is the 21. Then "Next, in order", items 1 to 4.

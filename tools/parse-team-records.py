@@ -58,7 +58,9 @@ DATED = re.compile(r"(?<![\d/])(\d{1,2}/\d{1,2}/\d{2,4}|\d{1,2}-[A-Z][a-z]{2}-\d
 LBL_AT = re.compile(r"(?<=\s{3})(?:Game|Half|Quarter|Season|Career|Overtime|1st|2nd|3rd|4th|First|Second|Third|Fourth)\b")
 MONTH = {m: i + 1 for i, m in enumerate("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split())}
 
+MISPRINT = {"10-Feb-256": "10-Feb-25"}     # New Orleans, most threes attempted by an opponent in a half, "at OKC (2nd)": the Pelicans were in Oklahoma City on 2/10/25 (ESPN: 55 attempts in the game)
 def iso2(s):
+    s = MISPRINT.get(s, s)
     m = re.match(r"(\d{1,2})-([A-Z][a-z]{2})-(\d{2,4})$", s)
     if not m: return iso(s)
     y = int(m.group(3)); y = y if y > 100 else (1900 + y if y >= 46 else 2000 + y)
@@ -152,7 +154,7 @@ def scan(streams, state, marker, heading_like, out, prep=None, on_stream=None):
                         "opp": re.sub(r"^(?:\(\d+\)\s*)?(?:(?:Several|\w+|\d+x?) times[.,;:]?\s*)?(?:(?:Most recent(?:ly)?|last|MR)[:,]?\s*)?", "", rest[:d.start()].strip(" ,;("), flags=re.I).strip(" ,;"), "date": iso2(d.group(1))})
 
 UPPER = lambda l: l == l.upper() and re.search(r"[A-Z]{3}", l) is not None
-TITLE = lambda l: re.match(r"^(Most|Fewest|Highest|Lowest|Largest|Smallest|Best|Worst|Consecutive|Longest)\b", l) is not None
+TITLE = lambda l: re.match(r"^(Most|Fewest|Highest|Lowest|Largest|Biggest|Smallest|Best|Worst|Consecutive|Longest)\b", l) is not None
 NODIGIT = lambda l: not re.search(r"\d", l)
 FLAGS = ("label_after", "default_kind", "kind_per_stat")
 

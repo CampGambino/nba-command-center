@@ -1,5 +1,5 @@
 {
- "note": "Team marks a guide prints two ways, looked up in an outside source. The row with the other value is dropped and the mark says who checked it. 0.99: `redate` is a game the guide prints under a wrong date (the right one found in ESPN's box scores); `drop` is a printed game that is not this mark (the box score has the number on the other side, or the guide marks it as a playoff game); `revalue` is a number another guide and the box score both correct. 0.99.1: `undate` keeps a mark's number and drops the game the guide prints for it (the box score of that night has another number, and the right night is not known). A `marks` row whose value is the printed one records that an outside box score confirms the print where ESPN's page differs. 0.100: points by half, quarter and overtime are checked against ESPN's line scores (tools/check-period-points.mjs). A `redate` row may carry `opp` where the guide names the wrong opponent as well. `add` is a game that beats the printed mark and is not on the guide's page: it is in ESPN's line score and in a second source (the other team's guide, or a game report), both named. The same `add` rule holds for whole-game marks found by tools/sweep-team-marks.mjs (every ESPN box score since 1993-94): only hits the other team's guide prints for the same night are added.",
+ "note": "Team marks a guide prints two ways, looked up in an outside source. The row with the other value is dropped and the mark says who checked it. 0.99: `redate` is a game the guide prints under a wrong date (the right one found in ESPN's box scores); `drop` is a printed game that is not this mark (the box score has the number on the other side, or the guide marks it as a playoff game); `revalue` is a number another guide and the box score both correct. 0.99.1: `undate` keeps a mark's number and drops the game the guide prints for it (the box score of that night has another number, and the right night is not known). A `marks` row whose value is the printed one records that an outside box score confirms the print where ESPN's page differs. 0.100: points by half, quarter and overtime are checked against ESPN's line scores (tools/check-period-points.mjs). A `redate` row may carry `opp` where the guide names the wrong opponent as well. `add` is a game that beats the printed mark and is not on the guide's page: it is in ESPN's line score and in a second source (the other team's guide, or a game report), both named. The same `add` rule holds for whole-game marks found by tools/sweep-team-marks.mjs (every ESPN box score since 1993-94): only hits the other team's guide prints for the same night are added. 0.101: two more checks feed this file. tools/check-mark-nights.py (the team played that day, and played the opponent the guide names) finds a slip in the date or in the opponent's name; a `redate` row whose `from` and `to` are the same night corrects the name only. tools/check-period-marks.mjs counts ESPN's play-by-play by period, and is used only where the plays add up to the game's box score for that stat.",
  "marks": {
   "BOS": [
    {
@@ -125,6 +125,15 @@
     "from": "2025-12-24",
     "to": "2025-12-14",
     "by": "no games were played on 12/24/25; ESPN's box score for 12/14/25 has Golden State's 24 threes in Portland"
+   },
+   {
+    "side": "team",
+    "stat": "pf",
+    "kind": "most",
+    "period": "game",
+    "from": "1974-03-16",
+    "to": "1984-03-16",
+    "by": "The Blazers played Atlanta on 3/16/74. The four-overtime game with Chicago was 3/16/84, and the Bulls' guide prints 44 fouls by an opponent that night"
    }
   ],
   "ATL": [
@@ -145,6 +154,15 @@
     "from": "1996-11-15",
     "to": "2008-02-25",
     "by": "The guide repeats the date of the row above it (Miami's 21-point half, 11/15/96, a night Atlanta played Miami). San Antonio's 5-point first quarter against Atlanta was 2/25/08: ESPN's line score (5, 25, 27, 32) and the Spurs' guide (5 vs. Atlanta 2/25/08)"
+   },
+   {
+    "side": "team",
+    "stat": "tov",
+    "kind": "most",
+    "period": "quarter",
+    "from": "2003-11-29",
+    "to": "2003-10-29",
+    "by": "The Hawks were at Philadelphia on 11/29/03 (ESPN; the play-by-play has no quarter over 6 turnovers). They were at New Orleans on 10/29/03, and the Pelicans' guide prints 13 turnovers by an opponent in a quarter that night"
    }
   ],
   "PHX": [
@@ -165,6 +183,16 @@
     "from": "2000-01-16",
     "to": "2000-02-22",
     "by": "Denver had 55 and 45 by half at Phoenix on 1/16/00 (19, 36, 31, 14: ESPN, Land of Basketball). Its 25-point half there was the first half on 2/22/00 (16, 9, 12, 30: ESPN, Land of Basketball; Basketball Reference's first-half team total is 25); the guide's \"(2nd)\" does not fit either night"
+   },
+   {
+    "side": "opp",
+    "stat": "pf",
+    "kind": "fewest",
+    "period": "half",
+    "from": "2025-04-11",
+    "to": "2025-04-11",
+    "by": "The Suns played San Antonio, not Sacramento, on 4/11/25; ESPN's play-by-play, which adds up to the box score for that stat, has the Spurs with 1 foul in the first half that night, and the Spurs' guide prints it",
+    "opp": "vs. San Antonio (1st)"
    }
   ],
   "MIN": [
@@ -245,6 +273,33 @@
     "from": "1995-02-05",
     "to": "1995-12-05",
     "by": "the franchise first played in November 1995; ESPN's box score for 12/5/95 has Phoenix's 1 attempt"
+   },
+   {
+    "side": "opp",
+    "stat": "ftm",
+    "kind": "most",
+    "period": "ot",
+    "from": "2009-12-29",
+    "to": "2008-12-29",
+    "by": "Memphis did not play on 12/29/09. It was at Minnesota on 12/29/08: ESPN's play-by-play, which adds up to the box score for that stat, has Minnesota with 13 free throws in the overtime, and the Timberwolves' guide prints 13 that night"
+   },
+   {
+    "side": "opp",
+    "stat": "fta",
+    "kind": "most",
+    "period": "ot",
+    "from": "2009-12-29",
+    "to": "2008-12-29",
+    "by": "Memphis did not play on 12/29/09. It was at Minnesota on 12/29/08: ESPN's play-by-play, which adds up to the box score for that stat, has Minnesota with 13 free throw attempts in the overtime"
+   },
+   {
+    "side": "team",
+    "stat": "fgm",
+    "kind": "most",
+    "period": "ot",
+    "from": "2022-03-17",
+    "to": "2023-03-17",
+    "by": "Memphis did not play on 3/17/22. It was at San Antonio on 3/17/23: ESPN's play-by-play, which adds up to the box score for that stat, has Memphis with 7 field goals in the overtime"
    }
   ],
   "SAS": [
@@ -278,6 +333,24 @@
     "from": "2008-01-06",
     "to": "2009-01-06",
     "by": "Orlando did not play Washington on 1/6/08; ESPN's line score for 1/6/09 has Washington 24, 6, 33, 17, and the Wizards' guide prints its 6 vs. Orlando on 1/6/09"
+   },
+   {
+    "side": "opp",
+    "stat": "ast",
+    "kind": "fewest",
+    "period": "quarter",
+    "from": "2023-11-09",
+    "to": "2022-11-09",
+    "by": "Orlando played Atlanta on 11/9/23. It hosted Dallas on 11/9/22: ESPN's play-by-play, which adds up to the box score for that stat, has Dallas with no assist in the fourth quarter"
+   },
+   {
+    "side": "team",
+    "stat": "tov",
+    "kind": "fewest",
+    "period": "ot",
+    "from": "2026-11-16",
+    "to": "2025-11-16",
+    "by": "The guide prints a date after it went to press. Orlando was at Houston on 11/16/25: ESPN's play-by-play, which adds up to the box score for that stat, has Orlando with no turnover in the overtime"
    }
   ],
   "CHI": [
@@ -289,6 +362,35 @@
     "from": "2024-12-26",
     "to": "2026-03-25",
     "by": "The guide prints 51 at PHI (3rd) with the date of the mark it replaced (Atlanta's 50, 12/26/24). Philadelphia's 51-point third quarter was 3/25/26: ESPN's line score (38, 33, 51, 35) and the game reports (Field Level Media, Bleacher Report)"
+   },
+   {
+    "side": "team",
+    "stat": "fga",
+    "kind": "most",
+    "period": "ot",
+    "from": "2024-12-11",
+    "to": "2023-12-11",
+    "by": "The Bulls did not play on 12/11/24. They were at Milwaukee on 12/11/23: ESPN's play-by-play, which adds up to the box score for that stat, has Chicago with 14 field goal attempts in the overtime"
+   },
+   {
+    "side": "opp",
+    "stat": "fg3a",
+    "kind": "most",
+    "period": "half",
+    "from": "2024-12-19",
+    "to": "2024-12-19",
+    "by": "The Bulls were at Boston, not Houston, on 12/19/24; ESPN's play-by-play, which adds up to the box score for that stat, has Boston with 32 three-point attempts in the second half that night",
+    "opp": "at BOS (2nd)"
+   },
+   {
+    "side": "opp",
+    "stat": "ast",
+    "kind": "most",
+    "period": "quarter",
+    "from": "1999-04-01",
+    "to": "1999-04-01",
+    "by": "The Bulls played Detroit, not Indiana, on 4/1/99 (ESPN), and the Pistons' guide prints 16 assists in a quarter vs CHI (1st) that night",
+    "opp": "vs. DET (1st)"
    }
   ],
   "BKN": [
@@ -313,6 +415,68 @@
     "to": "2006-12-11",
     "opp": "at Chicago",
     "by": "The guide prints the game before it: the Pacers had 34 rebounds at Cleveland on 12/9/06 (Basketball Reference, the user's screenshot 11/17/26; ESPN 8 + 26) and 37 on each 2007-08 visit there (Basketball Reference, the user's screenshots). The 21 was two nights later at Chicago, 12/11/06: ESPN's box score (6 + 15), found by the sweep of every box score since 1993-94, and the Bulls' guide (fewest rebounds by an opponent, 21 vs. IND 12/11/06)"
+   },
+   {
+    "side": "team",
+    "stat": "reb",
+    "kind": "most",
+    "period": "game",
+    "from": "1986-01-28",
+    "to": "1986-11-28",
+    "by": "The Pacers played Atlanta on 1/28/86 (both guides' game lists). They played Denver on 11/28/86, and the Nuggets' guide prints 75 rebounds by an opponent that night"
+   }
+  ],
+  "LAL": [
+   {
+    "side": "team",
+    "stat": "reb",
+    "kind": "fewest",
+    "period": "half",
+    "from": "2026-01-07",
+    "to": "2026-01-17",
+    "by": "The Lakers were at San Antonio on 1/7/26 (27 and 18 rebounds by half). They were at Portland on 1/17/26: ESPN's play-by-play, which adds up to the box score for that stat, has halves of 16 and 11"
+   },
+   {
+    "side": "team",
+    "stat": "reb",
+    "kind": "fewest",
+    "period": "quarter",
+    "from": "2026-01-07",
+    "to": "2026-01-17",
+    "by": "The Lakers were at San Antonio on 1/7/26 (no quarter under 7 rebounds). They were at Portland on 1/17/26: ESPN's play-by-play, which adds up to the box score for that stat, has quarters of 3, 13, 3 and 8"
+   }
+  ],
+  "DET": [
+   {
+    "side": "team",
+    "stat": "ftm",
+    "kind": "most",
+    "period": "quarter",
+    "from": "2008-12-14",
+    "to": "2008-11-14",
+    "by": "Detroit did not play on 12/14/08. It was at the Lakers on 11/14/08: ESPN's play-by-play, which adds up to the box score for that stat, has Detroit with 22 free throws in the fourth quarter"
+   },
+   {
+    "side": "team",
+    "stat": "ast",
+    "kind": "most",
+    "period": "quarter",
+    "from": "2014-01-11",
+    "to": "2014-01-11",
+    "by": "Detroit played Phoenix, not Milwaukee, on 1/11/14; ESPN's play-by-play, which adds up to the box score for that stat, has Detroit with 16 assists in the first quarter that night",
+    "opp": "vs PHX (1st)"
+   }
+  ],
+  "LAC": [
+   {
+    "side": "team",
+    "stat": "blk",
+    "kind": "fewest",
+    "period": "game",
+    "from": "2022-01-21",
+    "to": "2022-01-21",
+    "by": "The Clippers were at Philadelphia, not Phoenix, on 1/21/22; ESPN's box score has them with no block that night",
+    "opp": "at PHI"
    }
   ]
  },
@@ -425,6 +589,94 @@
     "period": "game",
     "date": "2025-12-27",
     "by": "ESPN's box score: Denver had 3 blocks; Orlando had none"
+   },
+   {
+    "side": "opp",
+    "stat": "stl",
+    "kind": "fewest",
+    "period": "half",
+    "date": "2025-10-27",
+    "by": "The opponents' lows page (p. 325) prints the Magic's own line: ESPN's play-by-play, which adds up to the box score for that stat, has Orlando with no steal in the first half at Philadelphia, and the opponent with more"
+   },
+   {
+    "side": "opp",
+    "stat": "oreb",
+    "kind": "fewest",
+    "period": "ot",
+    "date": "2025-11-16",
+    "by": "The opponents' lows page (p. 325) prints the Magic's own line: ESPN's play-by-play, which adds up to the box score for that stat, has Orlando with no offensive rebound in the overtime at Houston, and the opponent with more"
+   },
+   {
+    "side": "opp",
+    "stat": "fg3m",
+    "kind": "fewest",
+    "period": "half",
+    "date": "2025-12-31",
+    "by": "The opponents' lows page (p. 325) prints the Magic's own line: ESPN's play-by-play, which adds up to the box score for that stat, has Orlando with no three in the second half at Indiana, and the opponent with more"
+   },
+   {
+    "side": "opp",
+    "stat": "oreb",
+    "kind": "fewest",
+    "period": "half",
+    "date": "2026-01-30",
+    "by": "The opponents' lows page (p. 325) prints the Magic's own line: ESPN's play-by-play, which adds up to the box score for that stat, has Orlando with no offensive rebound in the second half against Toronto, and the opponent with more"
+   },
+   {
+    "side": "opp",
+    "stat": "fg3m",
+    "kind": "fewest",
+    "period": "ot",
+    "date": "2026-02-21",
+    "by": "The opponents' lows page (p. 325) prints the Magic's own line: ESPN's play-by-play, which adds up to the box score for that stat, has Orlando with no three in the first overtime at Phoenix, and the opponent with more"
+   },
+   {
+    "side": "opp",
+    "stat": "ast",
+    "kind": "fewest",
+    "period": "ot",
+    "date": "2026-02-21",
+    "by": "The opponents' lows page (p. 325) prints the Magic's own line: ESPN's play-by-play, which adds up to the box score for that stat, has Orlando with no assist in the first overtime at Phoenix, and the opponent with more"
+   },
+   {
+    "side": "opp",
+    "stat": "stl",
+    "kind": "fewest",
+    "period": "ot",
+    "date": "2026-02-21",
+    "by": "The opponents' lows page (p. 325) prints the Magic's own line: ESPN's play-by-play, which adds up to the box score for that stat, has Orlando with no steal in the second overtime at Phoenix, and the opponent with more"
+   },
+   {
+    "side": "opp",
+    "stat": "blk",
+    "kind": "fewest",
+    "period": "half",
+    "date": "2026-04-03",
+    "by": "The opponents' lows page (p. 325) prints the Magic's own line: ESPN's play-by-play, which adds up to the box score for that stat, has Orlando with no block in the second half at Dallas, and the opponent with more"
+   },
+   {
+    "side": "opp",
+    "stat": "fg3m",
+    "kind": "fewest",
+    "period": "quarter",
+    "date": "2026-04-05",
+    "by": "The opponents' lows page (p. 325) prints the Magic's own line: ESPN's play-by-play, which adds up to the box score for that stat, has Orlando with no three in the first quarter at New Orleans, and the opponent with more"
+   },
+   {
+    "side": "opp",
+    "stat": "oreb",
+    "kind": "fewest",
+    "period": "quarter",
+    "date": "2026-04-06",
+    "by": "The opponents' lows page (p. 325) prints the Magic's own line: ESPN's play-by-play, which adds up to the box score for that stat, has Orlando with no offensive rebound in the fourth quarter against Detroit, and the opponent with more"
+   },
+   {
+    "side": "team",
+    "stat": "fg3a",
+    "kind": "fewest",
+    "period": "half",
+    "date": "2021-04-03",
+    "by": "The guide prints this under fewest threes attempted; ESPN's play-by-play, which adds up to the box score for that stat, has Orlando with 11 attempts and none made in the second half at Utah. It is a made-threes line"
    }
   ],
   "POR": [
@@ -455,6 +707,32 @@
     "period": "ot",
     "date": "2003-12-01",
     "by": "The guide's low for overtime points (23 vs. Detroit, Dec. 1, 2003) is its Madison Square Garden second-half low printed again on the overtime row; it equals the overtime high beside it. ESPN's line scores have the Knicks with 2 in an overtime (at Orlando 2/5/95, among others)"
+   }
+  ],
+  "DET": [
+   {
+    "side": "opp",
+    "stat": "dreb",
+    "kind": "most",
+    "period": "half",
+    "date": "2025-02-11",
+    "by": "The opponents' page prints the Pistons' own line (their own page has it too): ESPN's play-by-play, which adds up to the box score for that stat, has Detroit with 30 defensive rebounds in the first half at Chicago, and Chicago with 14"
+   },
+   {
+    "side": "opp",
+    "stat": "dreb",
+    "kind": "most",
+    "period": "quarter",
+    "date": "2025-02-11",
+    "by": "The opponents' page prints the Pistons' own line: ESPN's play-by-play, which adds up to the box score for that stat, has Detroit with 18 defensive rebounds in the second quarter at Chicago, and no Chicago quarter over 9"
+   },
+   {
+    "side": "opp",
+    "stat": "dreb",
+    "kind": "most",
+    "period": "quarter",
+    "date": "2025-03-17",
+    "by": "The opponents' page prints the Pistons' own line: ESPN's play-by-play, which adds up to the box score for that stat, has Detroit with 18 defensive rebounds in the first quarter at New Orleans, and no New Orleans quarter over 9"
    }
   ]
  },
@@ -581,6 +859,16 @@
     "date": "2025-11-07",
     "opp": "at Miami",
     "by": "The guide's page stops at 50. ESPN's line score has Miami 53, 19, 22, 32 on 11/7/25, and the Heat's guide prints its 53 vs. Charlotte that night"
+   },
+   {
+    "side": "team",
+    "stat": "fg3a",
+    "kind": "most",
+    "period": "game",
+    "value": 59,
+    "date": "2026-01-10",
+    "opp": "at Utah",
+    "by": "The guide's page stops at 52 (3/31/24). ESPN's box score and Basketball Reference's box score (the user's screenshot, 11/17/26) both have Charlotte with 59 three-point attempts at Utah on 1/10/26; ESPN has seven more Hornets games over 52 since 11/10/24"
    }
   ],
   "GSW": [
@@ -613,6 +901,26 @@
     "date": "2025-10-28",
     "opp": "L.A. Clippers at Golden State",
     "by": "The guide's low is 7 (1953). ESPN's box score has the Clippers with 5 fouls at Golden State on 10/28/25, and the Clippers' guide prints 5 at GSW that night as its own low"
+   },
+   {
+    "side": "opp",
+    "stat": "fg3a",
+    "kind": "most",
+    "period": "game",
+    "value": 58,
+    "date": "2023-12-19",
+    "opp": "Boston at Golden State (OT)",
+    "by": "The guide's page stops at 54. ESPN's box score and Basketball Reference's box score (the user's screenshot, 11/17/26) both have Boston with 58 three-point attempts at Golden State on 12/19/23, an overtime game"
+   },
+   {
+    "side": "team",
+    "stat": "fg3a",
+    "kind": "most",
+    "period": "game",
+    "value": 59,
+    "date": "2023-01-02",
+    "opp": "Golden State vs. Atlanta (2OT)",
+    "by": "The guide's page stops at 58. ESPN's box score and Basketball Reference's box score (the user's screenshot, 11/17/26) both have Golden State with 59 three-point attempts against Atlanta on 1/2/23, in two overtimes"
    }
   ],
   "POR": [
@@ -657,6 +965,16 @@
     "date": "2025-04-13",
     "opp": "vs. Phoenix",
     "by": "The guide's low is 9 (1951). ESPN's box score has Sacramento with 7 fouls against Phoenix on 4/13/25, and the Suns' guide prints 7 by an opponent that night"
+   },
+   {
+    "side": "team",
+    "stat": "fta",
+    "kind": "fewest",
+    "period": "game",
+    "value": 3,
+    "date": "2025-04-13",
+    "opp": "vs. Phoenix",
+    "by": "The guide's low is 6. ESPN's box score and Basketball Reference's box score (the user's screenshot, 11/17/26) both have Sacramento with 3 free throw attempts against Phoenix on 4/13/25"
    }
   ],
   "HOU": [
@@ -691,6 +1009,16 @@
     "date": "2026-04-12",
     "opp": "vs. Detroit",
     "by": "The guide's page stops at 52 (12/21/23). ESPN's box score has Indiana with 54 three-point attempts against Detroit on 4/12/26, and the Pistons' guide prints 54 by an opponent, at IND that night"
+   },
+   {
+    "side": "team",
+    "stat": "pf",
+    "kind": "fewest",
+    "period": "game",
+    "value": 7,
+    "date": "2026-01-12",
+    "opp": "vs. Boston",
+    "by": "The guide's low is 8. ESPN's box score and Basketball Reference's box score (the user's screenshot, 11/17/26) both have Indiana with 7 fouls against Boston on 1/12/26 (Boston had 7 as well)"
    }
   ],
   "LAL": [
@@ -703,6 +1031,96 @@
     "date": "2026-04-09",
     "opp": "at GSW",
     "by": "The guide's low is 8 (3/2/24). ESPN's box score has Golden State with 6 fouls against the Lakers on 4/9/26, and the Warriors' guide prints 6 vs. L.A. Lakers that night as its own low"
+   }
+  ],
+  "BOS": [
+   {
+    "side": "team",
+    "stat": "pf",
+    "kind": "fewest",
+    "period": "game",
+    "value": 6,
+    "date": "2026-02-19",
+    "opp": "at Golden State",
+    "by": "The guide's low is 8. ESPN's box score and Basketball Reference's box score (the user's screenshot, 11/17/26) both have Boston with 6 fouls at Golden State on 2/19/26 (and 7 at Indiana on 1/12/26)"
+   }
+  ],
+  "LAC": [
+   {
+    "side": "team",
+    "stat": "dreb",
+    "kind": "most",
+    "period": "game",
+    "value": 54,
+    "date": "2022-01-30",
+    "opp": "at CHA",
+    "by": "The guide's page stops at 51 (1/14/05). ESPN's box score and Basketball Reference's box score (the user's screenshot, 11/17/26) both have the Clippers with 54 defensive rebounds at Charlotte on 1/30/22 (ESPN also has 53 at Phoenix on 4/9/24)"
+   },
+   {
+    "side": "team",
+    "stat": "fta",
+    "kind": "fewest",
+    "period": "game",
+    "value": 5,
+    "date": "2021-11-19",
+    "opp": "at NOP",
+    "by": "The guide's low is 6. ESPN's box score and Basketball Reference's box score (the user's screenshot, 11/17/26) both have the Clippers with 5 free throw attempts at New Orleans on 11/19/21"
+   }
+  ],
+  "MIA": [
+   {
+    "side": "opp",
+    "stat": "ftm",
+    "kind": "most",
+    "period": "game",
+    "value": 47,
+    "date": "2008-12-01",
+    "opp": "@ Golden State (OT)",
+    "by": "The guide's page stops at 42. ESPN's box score and Basketball Reference's box score (the user's screenshot, 11/17/26) both have Golden State with 47 free throws made (of 52) against Miami on 12/1/08, an overtime game"
+   },
+   {
+    "side": "team",
+    "stat": "pf",
+    "kind": "most",
+    "period": "game",
+    "value": 39,
+    "date": "1999-11-02",
+    "opp": "vs. Detroit (2OT)",
+    "by": "The guide's page stops at 38. ESPN's box score and Basketball Reference's box score (the user's screenshot, 11/17/26) both have Miami with 39 fouls against Detroit on 11/2/99, in two overtimes"
+   },
+   {
+    "side": "team",
+    "stat": "pf",
+    "kind": "most",
+    "period": "game",
+    "value": 39,
+    "date": "2000-03-18",
+    "opp": "@ Cleveland (OT)",
+    "by": "The guide's page stops at 38. ESPN's box score and Basketball Reference's box score (the user's screenshot, 11/17/26) both have Miami with 39 fouls at Cleveland on 3/18/00, an overtime game"
+   }
+  ],
+  "PHX": [
+   {
+    "side": "team",
+    "stat": "fgm",
+    "kind": "fewest",
+    "period": "game",
+    "value": 22,
+    "date": "2024-11-15",
+    "opp": "at Oklahoma City",
+    "by": "The guide's low is 24. ESPN's box score and Basketball Reference's box score (the user's screenshot, 11/17/26) both have Phoenix with 22 field goals (of 75) at Oklahoma City on 11/15/24"
+   }
+  ],
+  "SAS": [
+   {
+    "side": "opp",
+    "stat": "reb",
+    "kind": "fewest",
+    "period": "game",
+    "value": 20,
+    "date": "2025-10-27",
+    "opp": "vs. Toronto",
+    "by": "The guide's low is 22. ESPN's box score and Basketball Reference's box score (the user's screenshot, 11/17/26) both have Toronto with 20 rebounds (1 + 19) at San Antonio on 10/27/25"
    }
   ]
  }
