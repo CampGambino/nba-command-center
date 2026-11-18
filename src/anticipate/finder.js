@@ -39,6 +39,23 @@ export const PART = { top: 10, half: 25, max: 2 };     // a piece that would ran
 export const TEAMS = { min: 24, least: 3 };            // more than this many of the other 29 teams, with at least 3 of his own
 export const GAP = { ratio: 1.0, lists: 2 };
 export const NOAS = { top: 12 };
+// 0.108.0 (the user, 11/18, on thirteen posts sent as "ideas and concepts… not specific to those players or teams"): "we're
+// curious if any players are in their own class compared to the rest of the league"; of a scorer ranked far higher in points
+// than in minutes, "who could also exhibit similar proclivity for high productivity without having to play a ton of
+// minutes"; and "there should be some leeway in both what is tracked and how many of each is tracked… don't be too narrow
+// on scope". So these are searches, not three more detectors: no stat list, threshold or name is fixed in advance.
+//   club   every set of two to four season totals, with round thresholds taken from each candidate's own numbers, kept
+//          when at most CLUB.most players meet all of them and no single threshold does the work by itself
+//          ("Players with 700 points, 350 rebounds, 150 assists and 30 blocks: one man. Nobody else.")
+//   rate   a player's rank in a season total set against his rank in minutes, for every total
+//   group  a player's ranks inside a group (bench players; rookies), for every total and plus/minus
+export const CLUB = { most: 3, sizes: [4, 3, 2], each: 4, wide: 75, near: 0.92, lines: 6, pool: 30 };   // each bar is cleared by 4 to 75 players; together by at most 3
+export const RATE = { top: 20, ratio: 2.5, gap: 20, lines: 5 };
+export const GROUP = { starts: 0.5, top: 10, need: 3, best: 3, lines: 4 };                              // three top-ten ranks in the group, one of them top three
+const TOTALS = [["pts", "points"], ["reb", "rebounds"], ["ast", "assists"], ["stl", "steals"], ["blk", "blocks"], ["fg3m", "threes"]];
+const STEP = { pts: (x) => (x >= 1000 ? 100 : 50), reb: (x) => (x >= 300 ? 50 : 25), ast: (x) => (x >= 300 ? 50 : 25), stl: (x) => (x >= 60 ? 10 : 5), blk: (x) => (x >= 60 ? 10 : 5), fg3m: (x) => (x >= 60 ? 10 : 5) };
+const FLOOR = { pts: 100, reb: 25, ast: 25, stl: 10, blk: 10, fg3m: 10 };
+const listOf = (a) => (a.length > 1 ? `${a.slice(0, -1).join(", ")} and ${a[a.length - 1]}` : a[0]);
 export const MORE = { least: 3, pts: [25, 30, 35, 40, 45, 50], reb: [0, 5, 8, 10, 12, 15], ast: [0, 5, 8, 10, 12, 15] }; // at least three such games, and more than everyone else's together
 /** A name as the All-Star list is matched: lower case, no accents, no punctuation, no Jr./III. */
 export const plainName = (n) => String(n || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\b(?:jr|sr|ii|iii|iv)\b\.?/g, "").replace(/[^a-z ]/g, "").replace(/\s+/g, " ").trim();
@@ -169,6 +186,52 @@ export function findings({ pg, names = {}, qsum = {}, teamGp = {}, allStars = nu
       const kind = what.length > 1 ? `${what.slice(0, -1).join(", ")} and ${what[what.length - 1]}` : what[0];
       out.push({ kind: "find", test: "more", team: m.top.team, player: m.top.name, key: `find|more|${m.top.id}`, surprise: 3 + Math.min(1, m.lead * 0.3) + (m.others ? 0 : 0.2), rare: true,
         text: `${m.top.name} has ${m.mine} games with ${kind} this season. ${m.others ? `Every other player combined has ${m.others}` : "No one else has one"}` });
+    }
+  }
+  // ---- 0.108.0: clubs, rate, groups (see CLUB, RATE, GROUP above)
+  {
+    const tot = P.map((p) => { const t = { p, min: 0, pm: 0, starts: 0 }; for (const [k] of TOTALS) t[k] = 0; for (const g of p.games) { t.min += g.min || 0; t.pm += g.pm || 0; t.starts += g.starter ? 1 : 0; for (const [k] of TOTALS) t[k] += g[k] || 0; } return t; });
+    const rankBy = (list, f) => { const m = new Map(); [...list].sort((a, b) => f(b) - f(a)).forEach((t, i, L) => m.set(t, i && f(L[i - 1]) === f(t) ? m.get(L[i - 1]) : i + 1)); return m; };
+    const ranks = Object.fromEntries([...TOTALS.map(([k]) => k), "min"].map((k) => [k, rankBy(tot, (t) => t[k])]));
+    // club: every set of two to four totals
+    const pool = new Set(); for (const [k] of TOTALS) for (const t of tot) if (ranks[k].get(t) <= CLUB.pool) pool.add(t);
+    const subsets = []; const keys = TOTALS.map(([k]) => k);
+    for (let m = 1; m < 1 << keys.length; m++) { const S = keys.filter((_, i) => m & (1 << i)); if (CLUB.sizes.includes(S.length)) subsets.push(S); }
+    const clubs = new Map();
+    for (const c of pool) {
+      const thr = {}; for (const k of keys) { const v = Math.floor(c[k] / STEP[k](c[k])) * STEP[k](c[k]); thr[k] = v >= FLOOR[k] ? v : null; }
+      const alone = {}; for (const k of keys) alone[k] = thr[k] == null ? 0 : tot.filter((t) => t[k] >= thr[k]).length;
+      for (const S of subsets) {
+        if (S.some((k) => thr[k] == null || alone[k] < CLUB.each || alone[k] > CLUB.wide)) continue; // no bar does the work by itself, and none is one half the league clears
+        const members = tot.filter((t) => S.every((k) => t[k] >= thr[k]));
+        if (members.length > CLUB.most) continue;
+        let near = 0; for (const t of tot) if (!members.includes(t)) near = Math.max(near, Math.min(...S.map((k) => t[k] / thr[k])));
+        if (near > CLUB.near) continue;                                                     // someone is a game or two from joining
+        const id = members.map((t) => t.p.id).sort().join(","), surprise = 3 + 2 * (1 - near) + (members.length === 1 ? 0.4 : members.length === 2 ? 0.2 : 0) + 0.1 * (S.length - 2), cur = clubs.get(id);
+        if (!cur || surprise > cur.surprise) clubs.set(id, { members, S, thr, near, surprise });
+      }
+    }
+    for (const c of [...clubs.values()].sort((a, b) => b.surprise - a.surprise).slice(0, CLUB.lines)) {
+      const who = [...c.members].sort((a, b) => b.pts - a.pts), what = TOTALS.filter(([k]) => c.S.includes(k)).map(([k, w]) => `${c.thr[k].toLocaleString("en-US")} ${w}`);
+      out.push({ kind: "find", test: "club", team: who[0].p.team, player: who[0].p.name, key: `find|club|${who.map((t) => t.p.id).join("+")}`, surprise: c.surprise, rare: who.length === 1, members: who.map((t) => t.p.name),
+        text: `Players this season with ${listOf(what)}: ${listOf(who.map((t) => t.p.name)).replace(/\.$/, "")}. Nobody else` });
+    }
+    // rate: far higher in a total than in minutes
+    const rate = [];
+    for (const t of tot) { let best = null; for (const [k, w] of TOTALS) { const r = ranks[k].get(t), rm = ranks.min.get(t); if (r <= RATE.top && rm >= RATE.ratio * r && rm - r >= RATE.gap && (!best || rm / r > best.rm / best.r)) best = { r, rm, w }; } if (best) rate.push({ t, ...best }); }
+    for (const x of rate.sort((a, b) => b.rm / b.r - a.rm / a.r).slice(0, RATE.lines))
+      out.push({ kind: "find", test: "rate", team: x.t.p.team, player: x.t.p.name, key: `find|rate|${x.t.p.id}`, surprise: 3 + Math.min(1.2, (x.rm - x.r) / 60), rare: false,
+        text: `${x.t.p.name} has the ${x.r === 1 ? "" : `${ord(x.r)} `}most ${x.w} in the NBA this season. He ranks ${ord(x.rm)} in minutes played` });
+    // group: ranks among bench players, and among rookies
+    const groups = [["bench players", tot.filter((t) => t.p.gp >= QUALIFY.games && t.starts / t.p.gp < GROUP.starts)], ...(rookies && rookies.size ? [["rookies", tot.filter((t) => rookies.has(plainName(t.p.name)) || rookies.has(t.p.id))]] : [])];
+    for (const [label, G] of groups) {
+      if (G.length < 20) continue;
+      const gr = Object.fromEntries([...TOTALS, ["pm", "plus/minus"]].map(([k]) => [k, rankBy(G, (t) => t[k])])), found = [];
+      const shared = (k, v) => G.filter((x) => x[k] === v).length;                   // a rank half the group shares (no blocks at all) is not a rank
+      for (const t of G) { const said = [...TOTALS, ["pm", "plus/minus"]].filter(([k]) => t[k] > 0 && shared(k, t[k]) <= 2).map(([k, w]) => [gr[k].get(t), w]).filter(([r]) => r <= GROUP.top); if (said.length >= GROUP.need && said.some(([r]) => r <= GROUP.best)) found.push({ t, said, sum: said.reduce((a, [r]) => a + (GROUP.top + 1 - r), 0) }); }
+      for (const f of found.sort((a, b) => b.sum - a.sum).slice(0, GROUP.lines))
+        out.push({ kind: "find", test: "group", team: f.t.p.team, player: f.t.p.name, key: `find|group|${label}|${f.t.p.id}`, surprise: 2.8 + Math.min(1.2, f.sum / 20), rare: false,
+          text: `${f.t.p.name} among ${label} this season: ${f.said.map(([r, w]) => `${ord(r)} in ${w}`).join(", ")}` });
     }
   }
   // One gap line a player: the list where his lead is widest.

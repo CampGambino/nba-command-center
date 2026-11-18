@@ -2372,6 +2372,39 @@ await articlesChecks(ok);
       JSON.stringify([tl.map((x) => x.text), fm.map((x) => x.text)]));
   }
   {
+    // 0.108.0: brothers. Their last N games reading alike, and a big night on the same date.
+    const { brotherLines, BRO } = await import("../src/anticipate/seasonlong.js");
+    const day = (i) => `2026-11-${String(i + 1).padStart(2, "0")}`;
+    const log = (team, lines) => lines.map(([pts, reb, ast], i) => ({ d: day(i), team, min: 30, pts, reb, ast, fgm: 6, fga: 12, fg3m: 2, fg3a: 5, ftm: 3, fta: 4 }));
+    const pgB = { 1: log("AAA", [[30, 2, 2], [5, 1, 1], [16, 3, 6], [17, 2, 5], [15, 4, 6], [16, 3, 6]]), 2: log("BBB", [[2, 9, 0], [28, 8, 1], [17, 2, 5], [15, 3, 7], [18, 3, 5], [16, 4, 6]]),      // alike over their last four
+      3: log("CCC", [[10, 5, 2], [12, 5, 2], [11, 5, 2], [24, 5, 2]]), 4: log("DDD", [[30, 9, 9], [31, 9, 9], [29, 9, 9], [27, 9, 9]]),                                                      // nothing alike, but 24 and 27 on the same night
+      5: log("EEE", [[10, 5, 2], [12, 5, 2], [11, 5, 2]]), 6: log("FFF", [[25, 9, 9], [26, 9, 9], [24, 9, 9]]) };                                                                            // nothing
+    const BL = brotherLines({ pg: pgB, names: { 1: "Al One", 2: "Bo One", 3: "Cy Two", 4: "Di Two", 5: "Ed Three", 6: "Fa Three" }, today: "2026-11-05",
+      brothers: { pairs: [{ ids: [1, 2] }, { ids: [3, 4], twins: true }, { ids: [5, 6] }] } }).map((l) => l.text);
+    ok(BL.length === 3 && BL.includes("Al One and his brother Bo One each scored 16 on 11/6") && BL.includes("Over their last 4 games: Al One 16.0 PPG, 3.0 RPG, 5.8 APG, 50/40/75; his brother Bo One 16.5 PPG, 3.0 RPG, 5.8 APG, 50/40/75")
+      && BL.includes("Cy Two (24) and his twin Di Two (27) each scored 20+ on 11/4, the first night this season they both have") && BRO.pts === 2,
+      "0.108.0: brothers (the pairs in src/data/brothers.json): their last N games side by side when they read alike, for whichever N fits best (16.0 and 16.5 points over four, not over six), a night they both scored 20, and a night they scored the same number (12 or more); a pair with nothing in common says nothing",
+      JSON.stringify(BL));
+  }
+  {
+    // 0.108.0: searches, not detectors: clubs of very few, a total set against minutes, ranks inside a group.
+    const { findings: f8, CLUB, RATE, GROUP } = await import("../src/anticipate/finder.js");
+    const pgN = {}, namesN = {}; let n = 0;
+    const add = (name, per, o = {}) => { const id = String(++n); namesN[id] = name; pgN[id] = Array.from({ length: 10 }, (_, i) => ({ d: `2026-11-${String(i + 1).padStart(2, "0")}`, team: `T${n % 30}`, opp: "ZZZ", starter: o.bench ? 0 : 1, min: o.min ?? 30, pts: 12, reb: 4, ast: 3, stl: 1, blk: 0, fg3m: 1, fgm: 5, ftm: 1, pm: 0, ...per })); return id; };
+    for (let i = 0; i < 30; i++) add(`Filler ${i}`, { pts: 10 + (i % 7), reb: 3 + (i % 4), ast: 2 + (i % 3) }, { bench: i >= 8 });
+    for (let i = 0; i < 5; i++) { add(`Scorer ${i}`, { pts: 32 }); add(`Boarder ${i}`, { reb: 13 }); add(`Passer ${i}`, { ast: 10 }); add(`Blocker ${i}`, { blk: 3 }); }
+    add("All Around", { pts: 30, reb: 12, ast: 9, blk: 2 });                      // nobody else clears all four of his bars; each bar alone is cleared by several
+    add("Quick Hands", { stl: 4, pts: 6 }, { min: 12, bench: true });             // first in steals, last in minutes
+    add("Sixth Man", { pts: 20, ast: 6, fg3m: 4, pm: 8 }, { bench: true });       // leads the bench in points, assists, threes and plus/minus
+    const F8 = f8({ pg: pgN, names: namesN }), of = (t) => F8.filter((x) => x.test === t).map((x) => x.text);
+    ok(of("club").some((t) => /^Players this season with 300 points, 100 rebounds, 75 assists and 20 blocks: All Around\. Nobody else$/.test(t)) && !of("club").some((t) => /Scorer|Boarder|Passer|Blocker|Filler/.test(t))
+      && of("rate").some((t) => /^Quick Hands has the most steals in the NBA this season\. He ranks \d+(st|nd|rd|th) in minutes played$/.test(t))
+      && of("group").some((t) => /^Sixth Man among bench players this season: 1st in points, .*1st in assists.*1st in threes, 1st in plus\/minus$/.test(t))
+      && CLUB.most === 3 && RATE.ratio === 2.5 && GROUP.need === 3,
+      "0.108.0: the finder searches every set of two to four season totals for a club of at most three (round bars taken from the candidate's own numbers, each cleared alone by several players, together by one), sets every total against minutes played (first in steals, near last in minutes), and ranks players inside a group (the bench: first in points, assists, threes and plus/minus); none of the names, stats or bars is given to it",
+      JSON.stringify({ club: of("club"), rate: of("rate"), group: of("group") }));
+  }
+  {
     // 0.107.9: an NBA record comes before a franchise record (the league's own record book is checked first).
     const { leagueMarks, leagueRecordLines, withLeagueFirst } = await import("../src/records/teamgame.js");
     const book = JSON.parse(fs.readFileSync(path.join(root, "src/data/nba-record-book-2026-27.json"), "utf8")), LM = leagueMarks(book);

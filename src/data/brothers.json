@@ -1,0 +1,13 @@
+{
+  "note": "Brothers who have both played this season (ESPN ids). 0.108.0, the user, 11/18/26: \"one exception is the brothers angle. We have Cam/Pat Spencer and Amen/Ausar Thompson. Any synchronicity between brothers could be noteworthy.\" A pair is used only when it is in `pairs`; `unconfirmed` is two pairs typed from memory and not yet checked against a source or by the user.",
+  "pairs": [
+    { "ids": [4684740, 4684742], "names": ["Amen Thompson", "Ausar Thompson"], "twins": true, "by": "the user, 11/18/26" },
+    { "ids": [4433083, 4592714], "names": ["Cam Spencer", "Pat Spencer"], "by": "the user, 11/18/26" },
+    { "ids": [4566434, 3150844], "names": ["Franz Wagner", "Moritz Wagner"], "by": "ESPN's list of sibling teammates and the Associated Press (\"Wagner brothers are teammates, roommates and best friends\"), read 11/18/26" },
+    { "ids": [4594327, 4594326], "names": ["Keegan Murray", "Kris Murray"], "twins": true, "by": "People's list of siblings in the NBA (\"Keegan and Kris\"), read 11/18/26" }
+  ],
+  "unconfirmed": [
+    { "ids": [3135046, 4395626], "names": ["Tyus Jones", "Tre Jones"] },
+    { "ids": [4593803, 4895758], "names": ["Jalen Williams", "Cody Williams"] }
+  ]
+}

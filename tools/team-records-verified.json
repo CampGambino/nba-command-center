@@ -792,6 +792,16 @@
     "date": "2025-03-17",
     "by": "The opponents' page prints the Pistons' own line: ESPN's play-by-play, which adds up to the box score for that stat, has Detroit with 18 defensive rebounds in the first quarter at New Orleans, and no New Orleans quarter over 9"
    }
+  ],
+  "LAL": [
+   {
+    "side": "opp",
+    "stat": "blk",
+    "kind": "most",
+    "period": "game",
+    "date": "1974-02-15",
+    "by": "The guide's opponents' page prints \"Game 25 vs. SEA 2/15/74\" and under it \"16 vs. OKC 11/22/09\". Basketball Reference's box score for 2/15/74 (the user's screenshot, 11/18/26) has Seattle with 7 blocks and 25 turnovers (and the Lakers with 43 turnovers, the league record), so the 25 is Seattle's turnovers printed on the blocks row; the league's record for blocks is 23. ESPN's box score has Oklahoma City with 16 blocks at the Lakers on 11/22/09"
+   }
   ]
  },
  "revalue": {
@@ -1089,6 +1099,16 @@
     "date": "2026-04-09",
     "opp": "at GSW",
     "by": "The guide's low is 8 (3/2/24). ESPN's box score has Golden State with 6 fouls against the Lakers on 4/9/26, and the Warriors' guide prints 6 vs. L.A. Lakers that night as its own low"
+   },
+   {
+    "side": "opp",
+    "stat": "blk",
+    "kind": "most",
+    "period": "game",
+    "value": 16,
+    "date": "2009-11-22",
+    "opp": "vs. OKC",
+    "by": "The guide's opponents' page prints \"Game 25 vs. SEA 2/15/74\" and under it \"16 vs. OKC 11/22/09\". Basketball Reference's box score for 2/15/74 (the user's screenshot, 11/18/26) has Seattle with 7 blocks and 25 turnovers (and the Lakers with 43 turnovers, the league record), so the 25 is Seattle's turnovers printed on the blocks row; the league's record for blocks is 23. ESPN's box score has Oklahoma City with 16 blocks at the Lakers on 11/22/09"
    }
   ],
   "BOS": [

@@ -403,7 +403,8 @@ for (const [tri, games] of Object.entries(perTeam)) {
       const { seasonLongLines } = await import("../src/anticipate/seasonlong.js");
       const hf2 = path.join(root, "src", "data", `nba-history-${seasonTag}.json`);
       awardsData = fs.existsSync(hf2) ? JSON.parse(fs.readFileSync(hf2, "utf8")).awards : null;
-      const sl = seasonLongLines({ pg, rows, logs: logsData, seasons: seasonsData, awards: awardsData, names: store.names || {}, nameKey: keyFn, season: seasonTag, slate, today });
+      const brf = path.join(root, "src", "data", "brothers.json"), brothers = fs.existsSync(brf) ? JSON.parse(fs.readFileSync(brf, "utf8")) : null;
+      const sl = seasonLongLines({ pg, rows, logs: logsData, seasons: seasonsData, awards: awardsData, names: store.names || {}, nameKey: keyFn, season: seasonTag, slate, today, brothers });
       const yday = new Date(Date.parse(`${today}T12:00:00Z`) - 864e5).toISOString().slice(0, 10);
       lastNight = sl.lines.filter((l) => l.kind === "unique" && l.date >= yday).sort((a, b) => b.score - a.score);
       // 0.82: a first career game without a point, a rebound or an assist (the user, 11/16: Trae Young's first scoreless

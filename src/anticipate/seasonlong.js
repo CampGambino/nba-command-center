@@ -626,8 +626,52 @@ export function eraLines({ pg, logs, names, today }) {
   return out;
 }
 
+// 0.108.0 (the user, 11/18, on a post setting Pat and Cam Spencer's last four games side by side): "one exception is the
+// brothers angle… Any synchronicity between brothers could be noteworthy." Two things are looked for, for every pair in
+// src/data/brothers.json: their last N games reading alike (N is whichever of BRO.windows fits best; scoring within
+// BRO.pts a game and at least one of rebounds and assists as close), and both having a big night on the same date.
+export const BRO = { windows: [3, 4, 5, 6, 8, 10], pts: 2, reb: 1.5, ast: 1.5, floor: 8, night: 20, same: 12, high: 6, days: 2 };
+export function brotherLines({ pg, names = {}, brothers = null, today = null }) {
+  const out = [], avg = (gs, k) => gs.reduce((s, g) => s + (g[k] || 0), 0) / gs.length, f1 = (x) => x.toFixed(1), nm = (id) => names[id] || id;
+  const pct = (gs, m, a) => { const A = gs.reduce((s, g) => s + (g[a] || 0), 0); return A ? Math.round((100 * gs.reduce((s, g) => s + (g[m] || 0), 0)) / A) : null; };
+  for (const pair of brothers?.pairs || []) {
+    const [a, b] = pair.ids.map(String), A = (pg?.[a] || []).filter((g) => g.min > 0), B = (pg?.[b] || []).filter((g) => g.min > 0);
+    if (A.length < BRO.windows[0] || B.length < BRO.windows[0]) continue;
+    const kin = pair.twins ? "twin" : "brother";
+    // the same night: whichever of these is the least common says it (one line a pair a night)
+    const la = A[A.length - 1], lb = B.find((g) => g.d === la.d);
+    if (lb && (!today || (Date.parse(today) - Date.parse(la.d)) / 864e5 <= BRO.days)) {
+      const dd = (g) => ["pts", "reb", "ast", "stl", "blk"].filter((k) => (g[k] || 0) >= 10).length >= 2;
+      const hi = (gs, g) => gs.length >= BRO.high && g.pts > 0 && gs.every((x) => x === g || x.pts < g.pts);
+      const both = (f) => A.filter((g) => { const h = B.find((x) => x.d === g.d); return h && f(g, h); }).length;
+      const nth = (n) => (n > 1 ? `, the ${ordinal(n)} night this season they both have` : ", the first night this season they both have");
+      const who = `${nm(a)} and his ${kin} ${nm(b)}`;
+      const said = hi(A, la) && hi(B, lb) ? [3.7, `${nm(a)} (${la.pts}) and his ${kin} ${nm(b)} (${lb.pts}) each had a season high in points on ${md(la.d)}`]
+        : dd(la) && dd(lb) ? [3.5, `${who} each had a double-double on ${md(la.d)}${nth(both((g, h) => dd(g) && dd(h)))}`]
+        : la.pts >= BRO.night && lb.pts >= BRO.night ? [3.4, `${nm(a)} (${la.pts}) and his ${kin} ${nm(b)} (${lb.pts}) each scored ${BRO.night}+ on ${md(la.d)}${nth(both((g, h) => g.pts >= BRO.night && h.pts >= BRO.night))}`]
+        : la.pts === lb.pts && la.pts >= BRO.same ? [3.1, `${who} each scored ${la.pts} on ${md(la.d)}`] : null;
+      if (said) out.push({ kind: "brothers", team: la.team, player: nm(a), key: `bro|night|${a}|${b}`, score: said[0], text: said[1] });
+    }
+    // alike over their last N games
+    let best = null;
+    for (const n of BRO.windows) {
+      if (A.length < n || B.length < n) continue;
+      const x = A.slice(-n), y = B.slice(-n), d = { pts: Math.abs(avg(x, "pts") - avg(y, "pts")), reb: Math.abs(avg(x, "reb") - avg(y, "reb")), ast: Math.abs(avg(x, "ast") - avg(y, "ast")) };
+      if (d.pts > BRO.pts || (d.reb > BRO.reb && d.ast > BRO.ast) || Math.min(avg(x, "pts"), avg(y, "pts")) < BRO.floor) continue;
+      const fit = n / 10 + 1 - (d.pts / BRO.pts + Math.min(1, d.reb / BRO.reb) + Math.min(1, d.ast / BRO.ast)) / 3;
+      if (!best || fit > best.fit) best = { n, x, y, fit };
+    }
+    if (best) {
+      const say = (gs) => { const fg = pct(gs, "fgm", "fga"), t3 = pct(gs, "fg3m", "fg3a"), ft = pct(gs, "ftm", "fta"); return `${f1(avg(gs, "pts"))} PPG, ${f1(avg(gs, "reb"))} RPG, ${f1(avg(gs, "ast"))} APG${fg != null && t3 != null && ft != null ? `, ${fg}/${t3}/${ft}` : ""}`; };
+      out.push({ kind: "brothers", team: A[A.length - 1].team, player: nm(a), key: `bro|alike|${a}|${b}`, score: 2.9 + Math.min(0.6, best.fit * 0.4),
+        text: `Over their last ${best.n} games: ${nm(a)} ${say(best.x)}; his ${kin} ${nm(b)} ${say(best.y)}` });
+    }
+  }
+  return out;
+}
+
 export function seasonLongLines(args) {
-  const parts = [["trade", tradeLines], ["role", roleLines], ["mvp", mvpLines], ["lineup", lineupLines], ["turn", turnLines], ["check", checkpointLines], ["since", sinceLines], ["beaten", beatenLines], ["month", monthLines], ["unique", uniqueLines], ["odd", oddScoringLines], ["teamnight", teamNightLines], ["rookie", rookieLines], ["monthp", monthPlayerLines], ["defense", defenseLines], ["era", eraLines]];
+  const parts = [["trade", tradeLines], ["role", roleLines], ["mvp", mvpLines], ["lineup", lineupLines], ["turn", turnLines], ["check", checkpointLines], ["brothers", brotherLines], ["since", sinceLines], ["beaten", beatenLines], ["month", monthLines], ["unique", uniqueLines], ["odd", oddScoringLines], ["teamnight", teamNightLines], ["rookie", rookieLines], ["monthp", monthPlayerLines], ["defense", defenseLines], ["era", eraLines]];
   const lines = [], errors = [];
   for (const [k, f] of parts) { try { lines.push(...f(args)); } catch (e) { errors.push(`${k}: ${e.message}`); } }
   // a team's own turn and a named date within a few days of it are one change: keep the named one
