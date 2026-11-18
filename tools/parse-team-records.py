@@ -130,8 +130,16 @@ def scan(streams, state, marker, heading_like, out, prep=None, on_stream=None):
                 d = DATED.search(rest[v.end():]) if v else None
                 if v and d and state["side"] and state["stat"]:
                     out.append({"side": state["side"], "stat": state["stat"], "kind": "fewest", "period": period_of(lab.group(1)), "value": int(v.group(1)), "opp": rest[v.end():][:d.start()].strip(" ,;"), "date": iso2(d.group(1))})
+                    state["low"] = (i, period_of(lab.group(1)), int(v.group(1)))        # 0.100: the rows under it with the same number are ties (Golden State's three 8-assist games)
                 state["period"] = state["value"] = None
                 continue
+            lw = state.get("low")
+            if lw and not lab and v and int(v.group(1)) == lw[2] and i == lw[0] + 1 and state["side"] and state["stat"]:
+                d = DATED.search(rest[v.end():])
+                if d:
+                    out.append({"side": state["side"], "stat": state["stat"], "kind": "fewest", "period": lw[1], "value": lw[2], "opp": rest[v.end():][:d.start()].strip(" ,;"), "date": iso2(d.group(1))})
+                    state["low"] = (i, lw[1], lw[2]); continue
+            state["low"] = None
             if v:
                 state["value"] = int(v.group(1)); rest = rest[v.end():]
                 if not lab and state.get("label_after") and i + 1 < len(lines) and LABEL.fullmatch(lines[i + 1]): state["period"] = period_of(lines[i + 1])
@@ -608,6 +616,10 @@ READERS = {
 _vf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "team-records-verified.json")
 _V = json.load(open(_vf)) if os.path.exists(_vf) else {}
 VERIFIED, REDATE, DROP, REVALUE, UNDATE = _V.get("marks", {}), _V.get("redate", {}), _V.get("drop", {}), _V.get("revalue", {}), _V.get("undate", {})
+ADD = _V.get("add", {})          # 0.100: a game that beats (or is) the mark and is not on the guide's page, found in ESPN's line scores and confirmed elsewhere
+
+# an opponent's name with the end of the cell before it ("77-133)    vs. BOS", "2 OT          vs SAC") or a stray leader dot
+tidy = lambda o: re.sub(r"\s{2,}", " ", re.sub(r"\s+\.$", "", re.sub(r"^(?:[\d\-]*\)|\d ?OT)\s{2,}", "", o or ""))).strip()
 
 def main():
     d = sys.argv[1]; teams = {}
@@ -623,7 +635,9 @@ def main():
         K = lambda r: (r.get("side", "team"), r["stat"], r["kind"], r["period"]); KV = lambda v: (v["side"], v["stat"], v["kind"], v["period"]); used = 0
         for v in REDATE.get(tri, []):
             for r in rows:
-                if K(r) == KV(v) and r["date"] == v["from"]: r["date"] = v["to"]; r["fixed"] = v["by"]; used += 1
+                if K(r) == KV(v) and r["date"] == v["from"]:
+                    r["date"] = v["to"]; r["fixed"] = v["by"]; used += 1
+                    if v.get("opp"): r["opp"] = v["opp"]                # the guide names the wrong opponent too
         for v in DROP.get(tri, []):
             n = len(rows); rows = [r for r in rows if not (K(r) == KV(v) and r["date"] == v["date"])]; used += n - len(rows)
         for v in REVALUE.get(tri, []):
@@ -632,6 +646,10 @@ def main():
         for v in UNDATE.get(tri, []):                         # the number stays, the night the guide gives for it does not
             for r in rows:
                 if K(r) == KV(v) and r["date"] == v["date"]: r["date"] = None; r["opp"] = None; r["times"] = "the night is not confirmed"; used += 1
+        for v in ADD.get(tri, []):
+            cur = [r["value"] for r in rows if K(r) == KV(v)]
+            if cur and (max(cur) > v["value"] if v["kind"] == "most" else min(cur) < v["value"]): print(f"   {tri}: an added game does not reach the printed mark: {v}")
+            rows.append({"side": v["side"], "stat": v["stat"], "kind": v["kind"], "period": v["period"], "value": v["value"], "opp": v["opp"], "date": v["date"]}); checked[KV(v)] = v["by"]
         want = len(REDATE.get(tri, [])) + len(DROP.get(tri, [])) + len(REVALUE.get(tri, [])) + len(UNDATE.get(tri, []))
         if used < want: print(f"   {tri}: {want - used} correction(s) in team-records-verified.json found no row")
         if os.environ.get("SHOW") == tri:
@@ -649,12 +667,12 @@ def main():
         for r in rows:
             k = (r.get("side", "team"), r["stat"], r["kind"], r["period"])
             if r["period"] == "game" and r["date"] and any(x["date"] == r["date"] for x in best[k]) and r["value"] != best[k][0]["value"]: doubt.setdefault(k, set()).update({r["value"], best[k][0]["value"]})
-        teams[tri] = [dict({"stat": k[1], "kind": k[2], "period": k[3], "value": v[0]["value"], "games": [{"opp": x["opp"], "date": x["date"]} for x in v if x["date"]]}, **({"times": v[0]["times"]} if not v[0]["date"] and v[0].get("times") else {}), **({"side": "opp"} if k[0] == "opp" else {}), **({"doubt": sorted(doubt[k])} if k in doubt else {}), **({"checked": checked[k]} if k in checked else {})) for k, v in best.items()]
+        teams[tri] = [dict({"stat": k[1], "kind": k[2], "period": k[3], "value": v[0]["value"], "games": [{"opp": tidy(x["opp"]), "date": x["date"]} for x in v if x["date"]]}, **({"times": v[0]["times"]} if not v[0]["date"] and v[0].get("times") else {}), **({"side": "opp"} if k[0] == "opp" else {}), **({"doubt": sorted(doubt[k])} if k in doubt else {}), **({"checked": checked[k]} if k in checked else {})) for k, v in best.items()]
         for k, vals in doubt.items(): print(f"   {tri} prints one game twice with two values: {k} {sorted(vals)}")
         g = lambda side, kind: ", ".join(f"{m['stat']} {m['value']}" for m in teams[tri] if m["period"] == "game" and m["kind"] == kind and m.get("side", "team") == side)
         print(f"{tri}: {len(rows)} rows, {len(teams[tri])} marks\n   most: {g('team', 'most')}\n   fewest: {g('team', 'fewest')}\n   opp most: {g('opp', 'most')}\n   opp fewest: {g('opp', 'fewest')}")
     # What "all-time" means where it is not the franchise's whole history: the Thunder's guide starts in Oklahoma City.
     scopes = {"OKC": "in Oklahoma City history (since 2008-09)", "DEN": "in the Nuggets' NBA years (since 1976-77)"}
-    notes = {"LAL": "the Lakers' fewest marks leave out games before the shot clock (1954-55)", "BOS": "pp. 197 and 198 print the same game with two values for field goals (72, 77) and free throw attempts (65, 66); Basketball Reference's box scores have 72 and 65", "DEN": "p. 348 heads the fewest offensive rebounds list \"FEWEST DEFENSIVE REBOUNDS, GAME\" (1, 1, 2); it is read as offensive. Half and quarter marks are not read", "SAC": "the Kings-Royals franchise pages (pp. 119-120, 126-127); the guide's Sacramento-era pages (pp. 113-117) are not used"}
+    notes = {"LAL": "the Lakers' fewest marks leave out games before the shot clock (1954-55)", "BOS": "pp. 197 and 198 print the same game with two values for field goals (72, 77) and free throw attempts (65, 66); Basketball Reference's box scores have 72 and 65", "DEN": "p. 348 heads the fewest offensive rebounds list \"FEWEST DEFENSIVE REBOUNDS, GAME\" (1, 1, 2); it is read as offensive. The guide prints no team points by half or quarter (its half and quarter rows are players' records); its one team mark by half, threes (16 vs. Golden State, 2/13/17, pp. 346-347), is not read", "SAC": "the Kings-Royals franchise pages (pp. 119-120, 126-127); the guide's Sacramento-era pages (pp. 113-117) are not used"}
     json.dump({"through": "2025-26", "source": "team media guides for 2026-27, team single-game records (tools/parse-team-records.py)", "scopes": scopes, "notes": notes, "teams": teams}, open(sys.argv[2], "w"), separators=(",", ":"))
 main()

@@ -1,5 +1,5 @@
 {
- "note": "Team marks a guide prints two ways, looked up in an outside source. The row with the other value is dropped and the mark says who checked it. 0.99: `redate` is a game the guide prints under a wrong date (the right one found in ESPN's box scores); `drop` is a printed game that is not this mark (the box score has the number on the other side, or the guide marks it as a playoff game); `revalue` is a number another guide and the box score both correct. 0.99.1: `undate` keeps a mark's number and drops the game the guide prints for it (the box score of that night has another number, and the right night is not known). A `marks` row whose value is the printed one records that an outside box score confirms the print where ESPN's page differs.",
+ "note": "Team marks a guide prints two ways, looked up in an outside source. The row with the other value is dropped and the mark says who checked it. 0.99: `redate` is a game the guide prints under a wrong date (the right one found in ESPN's box scores); `drop` is a printed game that is not this mark (the box score has the number on the other side, or the guide marks it as a playoff game); `revalue` is a number another guide and the box score both correct. 0.99.1: `undate` keeps a mark's number and drops the game the guide prints for it (the box score of that night has another number, and the right night is not known). A `marks` row whose value is the printed one records that an outside box score confirms the print where ESPN's page differs. 0.100: points by half, quarter and overtime are checked against ESPN's line scores (tools/check-period-points.mjs). A `redate` row may carry `opp` where the guide names the wrong opponent as well. `add` is a game that beats the printed mark and is not on the guide's page: it is in ESPN's line score and in a second source (the other team's guide, or a game report), both named. The same `add` rule holds for whole-game marks found by tools/sweep-team-marks.mjs (every ESPN box score since 1993-94): only hits the other team's guide prints for the same night are added.",
  "marks": {
   "BOS": [
    {
@@ -136,6 +136,15 @@
     "from": "2021-06-16",
     "to": "2021-05-16",
     "by": "ESPN's box score for 5/16/21 has Houston's 63 attempts in Atlanta (the guide's own arena page has 5/16/2021)"
+   },
+   {
+    "side": "opp",
+    "stat": "pts",
+    "kind": "fewest",
+    "period": "quarter",
+    "from": "1996-11-15",
+    "to": "2008-02-25",
+    "by": "The guide repeats the date of the row above it (Miami's 21-point half, 11/15/96, a night Atlanta played Miami). San Antonio's 5-point first quarter against Atlanta was 2/25/08: ESPN's line score (5, 25, 27, 32) and the Spurs' guide (5 vs. Atlanta 2/25/08)"
    }
   ],
   "PHX": [
@@ -147,6 +156,15 @@
     "from": "2019-04-17",
     "to": "2019-04-07",
     "by": "ESPN's box score for 4/7/19 has Houston's 57 attempts against Phoenix"
+   },
+   {
+    "side": "opp",
+    "stat": "pts",
+    "kind": "fewest",
+    "period": "half",
+    "from": "2000-01-16",
+    "to": "2000-02-22",
+    "by": "Denver had 55 and 45 by half at Phoenix on 1/16/00 (19, 36, 31, 14: ESPN, Land of Basketball). Its 25-point half there was the first half on 2/22/00 (16, 9, 12, 30: ESPN, Land of Basketball; Basketball Reference's first-half team total is 25); the guide's \"(2nd)\" does not fit either night"
    }
   ],
   "MIN": [
@@ -158,6 +176,15 @@
     "from": "1996-12-10",
     "to": "1996-11-10",
     "by": "Minnesota was home to Houston on 12/10/96; ESPN's box score for 11/10/96 at the Clippers has its 6 assists"
+   },
+   {
+    "side": "opp",
+    "stat": "pts",
+    "kind": "fewest",
+    "period": "ot",
+    "from": "2016-11-07",
+    "to": "2015-11-07",
+    "by": "The guide prints 11/7/16; Minnesota was not in Chicago that day. Its own game list has the overtime win there on 11/7/15, ESPN's line score has Chicago with 0 in that overtime (28, 29, 20, 16, 0), and the Bulls' guide prints 0 vs. MIN 11/7/15"
    }
   ],
   "HOU": [
@@ -187,6 +214,15 @@
     "from": "2025-03-05",
     "to": "2025-03-04",
     "by": "Houston played at Indiana on 3/4/25"
+   },
+   {
+    "side": "team",
+    "stat": "pts",
+    "kind": "fewest",
+    "period": "half",
+    "from": "2014-01-19",
+    "to": "2014-01-16",
+    "by": "The guide prints this half twice, 1/19/14 on one page and 1/16/14 on another; the game was 1/16/14 (ESPN's line score: Houston 32, 41, 10, 9)"
    }
   ],
   "GSW": [
@@ -231,6 +267,52 @@
     "from": "1988-04-04",
     "to": "1988-11-04",
     "by": "4/4/88 is before the franchise's first game; Basketball Reference's box score (the user's screenshot, 11/17/26) for that first game, 11/4/88 against Cleveland, has no three-point attempt"
+   }
+  ],
+  "ORL": [
+   {
+    "side": "opp",
+    "stat": "pts",
+    "kind": "fewest",
+    "period": "quarter",
+    "from": "2008-01-06",
+    "to": "2009-01-06",
+    "by": "Orlando did not play Washington on 1/6/08; ESPN's line score for 1/6/09 has Washington 24, 6, 33, 17, and the Wizards' guide prints its 6 vs. Orlando on 1/6/09"
+   }
+  ],
+  "CHI": [
+   {
+    "side": "opp",
+    "stat": "pts",
+    "kind": "most",
+    "period": "quarter",
+    "from": "2024-12-26",
+    "to": "2026-03-25",
+    "by": "The guide prints 51 at PHI (3rd) with the date of the mark it replaced (Atlanta's 50, 12/26/24). Philadelphia's 51-point third quarter was 3/25/26: ESPN's line score (38, 33, 51, 35) and the game reports (Field Level Media, Bleacher Report)"
+   }
+  ],
+  "BKN": [
+   {
+    "side": "team",
+    "stat": "pts",
+    "kind": "fewest",
+    "period": "half",
+    "from": "2003-02-25",
+    "to": "2003-03-08",
+    "by": "The Nets had 31 in the first half at Cleveland on 2/25/03 (12, 19: ESPN, Land of Basketball, Basketball Reference's play-by-play). Their 24-point first half that winter was at Houston on 3/8/03 (16, 8: ESPN, Land of Basketball, Proballers)",
+    "opp": "@ Houston"
+   }
+  ],
+  "IND": [
+   {
+    "side": "team",
+    "stat": "reb",
+    "kind": "fewest",
+    "period": "game",
+    "from": "2006-12-09",
+    "to": "2006-12-11",
+    "opp": "at Chicago",
+    "by": "The guide prints the game before it: the Pacers had 34 rebounds at Cleveland on 12/9/06 (Basketball Reference, the user's screenshot 11/17/26; ESPN 8 + 26) and 37 on each 2007-08 visit there (Basketball Reference, the user's screenshots). The 21 was two nights later at Chicago, 12/11/06: ESPN's box score (6 + 15), found by the sweep of every box score since 1993-94, and the Bulls' guide (fewest rebounds by an opponent, 21 vs. IND 12/11/06)"
    }
   ]
  },
@@ -364,6 +446,16 @@
     "date": "1995-02-27",
     "by": "Basketball Reference's box score (the user's screenshot, 11/17/26) and ESPN's both have 24 rebounds at Seattle (4 + 20), not 21"
    }
+  ],
+  "NYK": [
+   {
+    "side": "team",
+    "stat": "pts",
+    "kind": "fewest",
+    "period": "ot",
+    "date": "2003-12-01",
+    "by": "The guide's low for overtime points (23 vs. Detroit, Dec. 1, 2003) is its Madison Square Garden second-half low printed again on the overtime row; it equals the overtime high beside it. ESPN's line scores have the Knicks with 2 in an overtime (at Orlando 2/5/95, among others)"
+   }
   ]
  },
  "revalue": {
@@ -413,16 +505,6 @@
   ]
  },
  "undate": {
-  "IND": [
-   {
-    "side": "team",
-    "stat": "reb",
-    "kind": "fewest",
-    "period": "game",
-    "date": "2006-12-09",
-    "by": "Basketball Reference's box score (the user's screenshot, 11/17/26) and ESPN's both have 34 rebounds at Cleveland that night (8 + 26). The 21 is probably one of the two 2007-08 games at Cleveland (12/11/07, 3/8/08), a season ESPN's rebound numbers are broken for; not confirmed"
-   }
-  ],
   "MEM": [
    {
     "side": "opp",
@@ -431,6 +513,196 @@
     "period": "game",
     "date": "2003-01-17",
     "by": "Basketball Reference's box score (the user's screenshot, 11/17/26) and ESPN's both have Seattle with 7 turnovers in that overtime game, not 4; the night of the 4 is not known"
+   }
+  ]
+ },
+ "add": {
+  "MIN": [
+   {
+    "side": "team",
+    "stat": "pts",
+    "kind": "most",
+    "period": "quarter",
+    "value": 52,
+    "date": "2025-04-10",
+    "opp": "@ Memphis",
+    "by": "The guide's page stops at 47 (11/10/13). ESPN's line score has Minnesota 37, 30, 52, 22 at Memphis on 4/10/25, and the Associated Press and the Star Tribune report the 52-point third quarter as a franchise record (the old mark 47, 11/10/13)"
+   }
+  ],
+  "MEM": [
+   {
+    "side": "opp",
+    "stat": "pts",
+    "kind": "most",
+    "period": "quarter",
+    "value": 52,
+    "date": "2025-04-10",
+    "opp": "vs. MIN",
+    "by": "The guide's page stops at 50. ESPN's line score has Minnesota 37, 30, 52, 22 at Memphis on 4/10/25, and the Associated Press reports the 52-point third quarter"
+   },
+   {
+    "side": "opp",
+    "stat": "fta",
+    "kind": "fewest",
+    "period": "game",
+    "value": 3,
+    "date": "2013-02-01",
+    "opp": "vs WAS",
+    "by": "The guide's low is 4 (three games). ESPN's box score has Washington with 3 free throw attempts at Memphis on 2/1/13, and the Wizards' guide prints 3 at Memphis that night as its own low"
+   },
+   {
+    "side": "opp",
+    "stat": "tov",
+    "kind": "fewest",
+    "period": "game",
+    "value": 1,
+    "date": "2023-04-02",
+    "opp": "@ CHI",
+    "by": "The guide's low is 4 with a night that is not the game (Seattle had 7 on 1/17/03). ESPN's box score has Chicago with 1 turnover by its players against Memphis on 4/2/23 (3 with two team turnovers), and the Bulls' guide prints 1 vs. MEM that night as its own low. The lower count is kept, so a record is never claimed on the easier number"
+   },
+   {
+    "side": "team",
+    "stat": "reb",
+    "kind": "fewest",
+    "period": "game",
+    "value": 20,
+    "date": "2026-04-01",
+    "opp": "vs NYK",
+    "by": "The guide's low is 21 (3/6/06). ESPN's box score has Memphis with 20 rebounds against New York on 4/1/26, and the Knicks' guide prints 20 by an opponent, at Memphis that night"
+   }
+  ],
+  "CHA": [
+   {
+    "side": "opp",
+    "stat": "pts",
+    "kind": "most",
+    "period": "quarter",
+    "value": 53,
+    "date": "2025-11-07",
+    "opp": "at Miami",
+    "by": "The guide's page stops at 50. ESPN's line score has Miami 53, 19, 22, 32 on 11/7/25, and the Heat's guide prints its 53 vs. Charlotte that night"
+   }
+  ],
+  "GSW": [
+   {
+    "side": "team",
+    "stat": "pts",
+    "kind": "most",
+    "period": "half",
+    "value": 92,
+    "date": "2018-10-29",
+    "opp": "Golden State at Chicago",
+    "by": "The guide's first-half mark is 89 (10/23/22) and its second-half mark 90 (1962). ESPN's line score has Golden State 44 and 48 in the first half at Chicago on 10/29/18, and the Bulls' guide prints 92 by an opponent in a half, vs. GSW (1st) 10/29/18"
+   },
+   {
+    "side": "opp",
+    "stat": "oreb",
+    "kind": "fewest",
+    "period": "game",
+    "value": 1,
+    "date": "2017-01-08",
+    "opp": "Sacramento vs. Golden State",
+    "by": "The guide's low is 2. ESPN's box score has Sacramento with 1 offensive rebound against Golden State on 1/8/17, and the Kings' guide prints 1 vs. Golden State that night as its own low"
+   },
+   {
+    "side": "opp",
+    "stat": "pf",
+    "kind": "fewest",
+    "period": "game",
+    "value": 5,
+    "date": "2025-10-28",
+    "opp": "L.A. Clippers at Golden State",
+    "by": "The guide's low is 7 (1953). ESPN's box score has the Clippers with 5 fouls at Golden State on 10/28/25, and the Clippers' guide prints 5 at GSW that night as its own low"
+   }
+  ],
+  "POR": [
+   {
+    "side": "opp",
+    "stat": "pts",
+    "kind": "most",
+    "period": "quarter",
+    "value": 55,
+    "date": "2023-04-09",
+    "opp": "vs. Golden State",
+    "by": "The guide's page stops at 50. ESPN's line score has Golden State 55, 29, 34, 39 at Portland on 4/9/23, and the Warriors' guide prints the 55 as the NBA record for a first quarter"
+   },
+   {
+    "side": "opp",
+    "stat": "fg3m",
+    "kind": "most",
+    "period": "game",
+    "value": 27,
+    "date": "2023-04-09",
+    "opp": "vs. Golden State",
+    "by": "The guide's page stops at 24. ESPN's box score has Golden State with 27 threes at Portland on 4/9/23, and the Warriors' guide lists that night among its 27s"
+   }
+  ],
+  "SAC": [
+   {
+    "side": "opp",
+    "stat": "pts",
+    "kind": "fewest",
+    "period": "half",
+    "value": 24,
+    "date": "1995-02-02",
+    "opp": "vs. Chicago",
+    "by": "The guide's low is 25 (at Phoenix 3/7/01). Chicago had 11 and 13 in the second half at Sacramento on 2/2/95: ESPN's line score (22, 22, 11, 13), Land of Basketball and StatMuse"
+   },
+   {
+    "side": "team",
+    "stat": "pf",
+    "kind": "fewest",
+    "period": "game",
+    "value": 7,
+    "date": "2025-04-13",
+    "opp": "vs. Phoenix",
+    "by": "The guide's low is 9 (1951). ESPN's box score has Sacramento with 7 fouls against Phoenix on 4/13/25, and the Suns' guide prints 7 by an opponent that night"
+   }
+  ],
+  "HOU": [
+   {
+    "side": "team",
+    "stat": "dreb",
+    "kind": "most",
+    "period": "game",
+    "value": 52,
+    "date": "2024-11-17",
+    "opp": "at Chicago",
+    "by": "The guide's page stops at 51 (11/29/21). ESPN's box score has Houston with 52 defensive rebounds at Chicago on 11/17/24, and the Bulls' guide prints 52 by an opponent, vs. HOU that night"
+   }
+  ],
+  "IND": [
+   {
+    "side": "opp",
+    "stat": "ast",
+    "kind": "most",
+    "period": "game",
+    "value": 50,
+    "date": "2021-05-03",
+    "opp": "at Washington",
+    "by": "The guide's page stops at 45 (12/5/16). ESPN's box score has Washington with 50 assists against Indiana on 5/3/21, and the Wizards' guide prints 50 vs. Indiana that night as its own high"
+   },
+   {
+    "side": "team",
+    "stat": "fg3a",
+    "kind": "most",
+    "period": "game",
+    "value": 54,
+    "date": "2026-04-12",
+    "opp": "vs. Detroit",
+    "by": "The guide's page stops at 52 (12/21/23). ESPN's box score has Indiana with 54 three-point attempts against Detroit on 4/12/26, and the Pistons' guide prints 54 by an opponent, at IND that night"
+   }
+  ],
+  "LAL": [
+   {
+    "side": "opp",
+    "stat": "pf",
+    "kind": "fewest",
+    "period": "game",
+    "value": 6,
+    "date": "2026-04-09",
+    "opp": "at GSW",
+    "by": "The guide's low is 8 (3/2/24). ESPN's box score has Golden State with 6 fouls against the Lakers on 4/9/26, and the Warriors' guide prints 6 vs. L.A. Lakers that night as its own low"
    }
   ]
  }

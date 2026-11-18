@@ -2,6 +2,54 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.100.0 (2026-11-17): points by half, quarter and overtime checked against ESPN's line scores; every ESPN box score since 1993-94 swept; the Pacers' 21-rebound night found
+
+The user sent Basketball Reference's box scores for the two 2007-08 Pacers games at Cleveland: 37 rebounds in each, so neither is the 21. Then "Next, in order", items 1 to 4.
+
+### Points by half, quarter and overtime (245 marks, 303 printed games)
+- New `tools/check-period-points.mjs`. ESPN's daily scoreboards carry every game's score by period back to 1993-94 (5,242 days fetched, 38,874 games with a usable line score). Each printed game since then is checked: the team, or its opponent for a "by an opponent" mark, scored that number in a half, a quarter or an overtime that night. Games are matched by the two teams.
+- **220 of 220 checkable games now agree** (83 are before 1993-94). Two guides printing the same night agree 45 times of 45.
+- **Seven dates the guides misprint**, each `redate` with its source:
+  - Nets' fewest in a half, 24 "@ Cleveland 2/25/03": they had 31 at the half there (12, 19). The 24 was **at Houston on 3/8/03** (16, 8): ESPN, Land of Basketball, Proballers. The opponent is corrected too.
+  - Suns' fewest by an opponent in a half, 25 "vs. Denver (2nd) 1/16/00": Denver had 55 and 45 by half that night. The 25 was the **first half on 2/22/00** (16, 9): ESPN, Land of Basketball, Basketball Reference's first-half total.
+  - Bulls' most by an opponent in a quarter, 51 "at PHI (3rd) 12/26/24": the date is the old mark's (Atlanta's 50). Philadelphia's 51 was **3/25/26** (ESPN, game reports).
+  - Hawks' fewest by an opponent in a quarter, 5 "San Antonio vs. Atlanta 11/15/1996": the date of the row above it. It was **2/25/08** (ESPN; the Spurs' guide).
+  - Magic's fewest by an opponent in a quarter, 6 "vs. Washington 1/6/08" is **1/6/09** (ESPN; the Wizards' guide).
+  - Rockets' fewest in a half, 19 vs. Oklahoma City: printed 1/19/14 on one page and 1/16/14 on another; it was **1/16/14**.
+  - Timberwolves' fewest by an opponent in an overtime, 0 "@ Chicago 11/7/16" is **11/7/15** (ESPN; the Bulls' guide; the Wolves' own game list).
+- **One mark dropped:** the Knicks' fewest points in an overtime, "23 vs. Detroit, Dec. 1, 2003", is their Garden second-half low printed again on the overtime row (it equals the overtime high beside it).
+- **Six marks a guide's page is behind on**, raised with a new correction type, `add` (the game is in ESPN's line score and in a second source, both named):
+  - Timberwolves' most in a quarter **52** at Memphis 4/10/25 (guide 47); the same quarter is the Grizzlies' most by an opponent (guide 50). Associated Press, Star Tribune.
+  - Warriors' most in a half **92** at Chicago 10/29/18 (guide 89 and 90); the Bulls' guide prints it.
+  - Blazers' most by an opponent in a quarter **55**, Golden State 4/9/23 (guide 50); the Warriors' guide prints it.
+  - Hornets' most by an opponent in a quarter **53**, Miami 11/7/25 (guide 50); the Heat's guide prints it.
+  - Kings' fewest by an opponent in a half **24**, Chicago 2/2/95 (guide 25); Land of Basketball, StatMuse.
+- **An "overtime" mark means two things.** Some guides mean one overtime period, others all of a game's overtime (the Pelicans' 28 at Chicago 12/2/13 is 6 + 13 + 9). The check accepts either for a printed game.
+- **ESPN's line scores are not safe alone.** 14 games run two quarters together and still add up (New Jersey at Indiana 12/21/01 reads 24, 55, 0, 15); those are caught (no quarter is 0 or over 58, and an overtime must follow a tie). One is not catchable: Philadelphia at Golden State 12/5/01 reads 5, 34 where Land of Basketball and Basketball Reference's play-by-play have 23, 16. It looked like a record low and is not; it is listed in the tool as wrong. So a line score that beats a mark is a lead, never a correction by itself.
+
+### The sweep of every box score (item 2)
+- New `tools/sweep-team-marks.mjs`: all 38,928 regular-season games since 1993-94 were fetched from ESPN and 36,770 whole box scores read against the 1,381 whole-game marks.
+- **The Pacers' 21 rebounds: at Chicago, 12/11/06.** The guide prints "at Cleveland 12/9/06", the game before it. ESPN's box score has 6 + 15 at Chicago two nights later, and the Bulls' guide prints 21 by an opponent, vs. IND 12/11/06. The mark has its night again.
+- **Eleven marks a guide's page is behind on**, added because the other team's guide prints the same number for the same night: Memphis's fewest turnovers by an opponent **1** (Chicago 4/2/23; the guide's 4 had no real night), fewest rebounds **20** (4/1/26) and fewest free throw attempts by an opponent **3** (2/1/13); Houston's most defensive rebounds **52** (11/17/24); Indiana's most assists by an opponent **50** (5/3/21) and most three-point attempts **54** (4/12/26); the Lakers' fewest fouls by an opponent **6** (4/9/26); Sacramento's fewest fouls **7** (4/13/25); Portland's most threes by an opponent **27** (4/9/23); Golden State's fewest fouls by an opponent **5** (10/28/25) and fewest offensive rebounds by an opponent **1** (1/8/17).
+- **Not applied: 13 more box scores beat a printed mark on ESPN alone** (no second source yet): Boston's fouls at Indiana 1/12/26 (7, and Indiana's 7) and at Golden State 2/19/26 (6); Charlotte's 59 three-point attempts at Utah 1/10/26; Boston's 58 attempts at Golden State 12/19/23; Golden State's 59 attempts vs. Atlanta 1/2/23; the Clippers' 54 defensive rebounds at Charlotte 1/30/22 and 5 free throw attempts at New Orleans 11/19/21; Golden State's 47 free throws made vs. Miami 12/1/08; Miami's 39 fouls vs. Detroit 11/2/99 and at Cleveland 3/18/00; Phoenix's 22 field goals at Oklahoma City 11/15/24; Sacramento's 3 free throw attempts vs. Phoenix 4/13/25; Toronto's 20 rebounds at San Antonio 10/27/25.
+- The sweep cannot read 2017-18 (ESPN's pages are scrambled) or 2007-08 rebounds (2,317 false hits, all set aside), and 2,158 box scores are not whole.
+
+### Readers
+- Ties printed under the Warriors' "Fewest Game" rows are read (item 3): six marks gain eight games (three 8-assist games, not one).
+- Denver (item 4): its half and quarter rows are players' records. The guide prints no team points by half or quarter, so there is nothing to read; the note says so.
+- 36 opponent names lose stray characters from the cell before them (") vs. WAS", "77-133) vs. BOS").
+- `tools/team-records-verified.json` now holds 68 looked-up rows: 23 dates, 16 dropped games, 4 numbers, 17 added games, 1 without a night, 7 prints confirmed.
+
+### Tested
+- `node tests/run.js` 966 pass (two new checks on these marks); `tests/articles-only.js` 79; `tools/check-pages.py` all pages OK.
+- `tools/check-team-marks.mjs` after the changes: 923 of 994 the same on ESPN, none differ; two guides on one night 249 of 250 (a team turnover).
+
+### Unproven
+- The 13 box scores above. Until they have a second source, a game that passes the guide's old number can still be called a record.
+- Six single overtimes beat a printed overtime mark on ESPN alone (Minnesota 20 and 23, and Denver's 27 against it on 12/25/25; the Clippers' 0 against Chicago 11/21/97; New Orleans's 2 on 3/15/15; Atlanta's 21 on 4/17/05). Overtime marks are not used for alerts.
+- Half, quarter and overtime marks for anything but points (1,221 marks) have no second source: no box score here goes below a whole game. Nor do the 83 points games and 430 whole-game entries before 1993-94.
+- 31 halves and quarters, and about 1,170 whole games, tie a printed mark on a night the guide does not list. Many guides print only the latest; they are not added.
+
 ## 0.96.0 (2026-11-17): every all-time series confirmed (435 of 435); the guides' winner disagreements looked up
 
 A new chat picked up "Next, in order" from the handoff. The PC folder could not be reached this session (the request to connect `Documents\nba-command-center` was blocked before it reached the user), so the guide text and `samples/` were not available: the team-records readers (ATL, DEN, MEM, SAC) and Cleveland's OCR wait for it.
