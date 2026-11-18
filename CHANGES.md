@@ -2,6 +2,39 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.102.0 (2026-11-17): Kalshi's NBA markets read hourly on GitHub; PromoNight assessed (its terms bar it); play-by-play swept for every game since 2002-03
+
+The user asked whether all of Kalshi's NBA markets can be read (on GitHub if possible), how to tell a major move without checking every few minutes, for an assessment of the promo-night site, and what is left on the team records.
+
+### Kalshi
+- A one-off probe run on GitHub (the cloud workspace cannot reach these sites) showed Kalshi's market-data API answers with no key: 4,302 sports series, **307 of them NBA**. The probe is removed again.
+- New `scripts/kalshi.js`, `src/kalshi.js`, `.github/workflows/kalshi.yml`: once an hour it reads every open market in every NBA series (first run: **17,791 markets in 715 events across 147 series**, 473 requests, about a minute). 11,303 of them are tied to one game; 6,488 are futures, awards and the like.
+- **Where it keeps things.** Each market's last price, the price at its last alert and its last 15 daily closes sit in the Actions cache, not the repo. The repo gets `history/kalshi/moves-YYYY-MM.jsonl` (every futures move of 2 points or more between two looks; for games only the winner market, 5 or more), `alerts.jsonl`, `board.json` (what is open, and each one-winner market's favorite) and `status.json`.
+- **When a move is a line** (futures and awards only, for now): the price is at least max(5 points, three times that market's usual daily move) from where it stood at its last alert; or a long shot (10% or under) at least doubles and gains 3 ("from the pack"); or a one-winner market has a new favorite by 2 points or more. A market with an empty book is never a line. After a line the market's base is its new price, so a move is reported once. Markets tied to one game are logged, not alerted, until there is data to set their guard.
+- A price is the midpoint of the bid and ask when they are within 6 cents, else the last trade.
+- Lines are posted to Discord only when the repository secret `DISCORD_WEBHOOK_KALSHI` exists. It does not yet: the user is making a #kalshiodds channel.
+- Kalshi's website is not read (its terms bar that); only the API. Nothing here signs in or trades.
+
+### PromoNight
+- The probe read its robots.txt (allows pages, disallows `/api/`) and its Terms of Service (updated 10/29/26), which list among prohibited uses: "Scrape, crawl, or systematically access site or app data or the underlying APIs." **So nothing automatic is built on it.** The team page does carry every promo as structured data (schema.org events and dated anchors), so with permission it would be simple.
+- The Hawks' own promotions page on nba.com answered 403 to GitHub.
+- Nothing from the probe is kept in the repo.
+
+### Team records
+- `tools/check-period-marks.mjs --sweep`: play-by-play counted by period for all 28,875 regular-season games since 2002-03 (28,601 have it).
+- **The Hawks' most defensive rebounds by an opponent in a half (32) and quarter (21) were at Brooklyn on 12/21/19**, the only night in 24 seasons with those numbers (11, 6, 11, 21 by quarter); the guide repeats the date of the 55-rebound game of 1/12/20. Two `redate` rows.
+- **61 marks look behind**: play-by-play that adds up to the box score has a half, quarter or overtime that beats the printed mark (186 periods for a "most", 65 for a "fewest"). Not applied: one source. The clusters: the Lakers' half and quarter rows for blocks, steals and assists (the guide prints 6 blocks by an opponent in a half; San Antonio had 10 on 1/22/16), and three-point attempts by half and quarter for Golden State, Oklahoma City, Sacramento, Charlotte and the Clippers. The list, with the game and the Basketball Reference view that would settle each, is in the project doc `claude/screenshot-list.md`.
+
+### Tested
+- `node tests/run.js` 968 pass (a new check on the Kalshi rules with made-up prices: baseline, a 13-point move, a long shot doubling, a new favorite, an empty book, a game market); `tools/check-pages.py` all pages OK.
+- The Kalshi workflow ran on GitHub and committed its first look.
+
+### Unproven
+- **Kalshi's alert rule has not seen real moves yet.** The first look only sets the baseline. The thresholds are a first guess; after a week or two of `moves-*.jsonl` they should be set per market from its own history, and the guard for game markets chosen.
+- GitHub's hourly schedule can run late (it is best effort). A move is not lost, only learned up to an hour or so later.
+- Whether the Actions cache holds the state between runs was not watched for a second run.
+- The 61 marks above, and the 35 older leads from 0.101 (two were settled here).
+
 ## 0.101.0 (2026-11-17): the thirteen box scores confirmed; three more checks (night and opponent, two guides on every stat, ESPN's play-by-play by period)
 
 The user sent Basketball Reference's box scores for the thirteen games ESPN alone had, and asked for more checkers.

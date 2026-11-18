@@ -163,6 +163,24 @@
     "from": "2003-11-29",
     "to": "2003-10-29",
     "by": "The Hawks were at Philadelphia on 11/29/03 (ESPN; the play-by-play has no quarter over 6 turnovers). They were at New Orleans on 10/29/03, and the Pelicans' guide prints 13 turnovers by an opponent in a quarter that night"
+   },
+   {
+    "side": "opp",
+    "stat": "dreb",
+    "kind": "most",
+    "period": "half",
+    "from": "2020-01-12",
+    "to": "2019-12-21",
+    "by": "The guide repeats the date of the whole-game row above it (Brooklyn's 55 defensive rebounds, 1/12/20), a night Brooklyn had 27 and 28 by half. ESPN's play-by-play for every Hawks game since 2002-03, counted by period and used only where it adds up to the box score, has an opponent with 32 on one night only: at Brooklyn, 12/21/19"
+   },
+   {
+    "side": "opp",
+    "stat": "dreb",
+    "kind": "most",
+    "period": "quarter",
+    "from": "2020-01-12",
+    "to": "2019-12-21",
+    "by": "The guide repeats the date of the whole-game row above it (Brooklyn's 55 defensive rebounds, 1/12/20), a night Brooklyn had no quarter over 15. ESPN's play-by-play for every Hawks game since 2002-03, counted by period and used only where it adds up to the box score, has an opponent with 21 on one night only: at Brooklyn, 12/21/19"
    }
   ],
   "PHX": [

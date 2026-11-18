@@ -42,7 +42,8 @@ export function look(prev, events, now, opts = {}) {
       const s = { p, base: was?.base ?? p, baseAt: was?.baseAt ?? now, d: was?.d ? [...was.d] : [], n: name, e: ev.event_ticker };
       if (newDay && was && !game) s.d = [...s.d, was.p].slice(-15);           // yesterday's last look is the day's close
       const live = how === "mid" || vol24 > 0;
-      if (was && Math.abs(p - was.p) >= (game ? 5 : 2) && live) moves.push([now, m.ticker, was.p, p, vol24, ...(game ? [m.expected_expiration_time || ""] : [])]);
+      // logged: every futures move of 2 or more; for games only the winner market (KXNBAGAME), 5 or more, so the log stays small (11,000 of the 17,800 open markets are tied to one game)
+      if (was && Math.abs(p - was.p) >= (game ? 5 : 2) && live && (!game || ev.series_ticker === "KXNBAGAME")) moves.push([now, m.ticker, was.p, p, vol24, ...(game ? [m.expected_expiration_time || ""] : [])]);
       if (was && !game && live) {
         const thr = threshold(s.d), up = p - s.base;
         const kind = Math.abs(up) >= thr ? "move" : s.base <= 10 && p >= Math.max(2 * s.base, s.base + 3) ? "surge" : null;
