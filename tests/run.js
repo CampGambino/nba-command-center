@@ -2366,10 +2366,29 @@ await articlesChecks(ok);
     const pgM = { 1: [g2(46, 6, 9), g2(47, 4, 7), g2(51, 9, 5), g2(20, 3, 3)], 2: [g2(45, 11, 5), g2(18, 2, 2)], 3: [g2(48, 3, 6), g2(31, 5, 5)], 4: [g2(30, 12, 12), g2(31, 11, 10), g2(22, 10, 10)] };
     for (let k = 10; k < 46; k++) pgM[k] = Array.from({ length: 6 }, () => g2(10, 2, 2)); // the finder says nothing until thirty players qualify
     const fm = find2({ pg: pgM, names: { 1: "One Guy", 2: "Two Guy", 3: "Three Guy", 4: "Four Guy" } }).filter((x) => x.test === "more");
-    ok(tl.length === 1 && tl[0].team === "AAA" && tl[0].text === "AAA went 0-4 in its first 4 games; 8-2 since (11/5 on)" && TURN.early === 4
+    ok(tl.length === 1 && tl[0].team === "AAA" && tl[0].text === "AAA went 0-4 in its first 4 games; 8-2 since (11/5 on)" && TURN.min === 4
       && fm.length === 1 && fm[0].text === "One Guy has 3 games with 40+ points this season. Every other player combined has 2" && MORE.least === 3,
       "0.107.1: a team's turn is found from four games in (0-4, then 8-2), with a higher bar while a side is short (an even team and a nine-game sample say nothing; with no box totals, no ranks are claimed); the finder names the kind of game one player has had more often than every other player combined (three against two; of the grids with the same lead it says the broadest, here 40+ points), and a two-against-one case is not said",
       JSON.stringify([tl.map((x) => x.text), fm.map((x) => x.text)]));
+  }
+  {
+    // 0.107.6: a season cut into as many stretches as its wins and losses support; the line is the current stretch against the one before.
+    const { turnLines: tl6, stretches, TURN: T6 } = await import("../src/anticipate/seasonlong.js");
+    const dN = (i) => new Date(Date.UTC(2026, 10, 1) + i * 864e5).toISOString().slice(0, 10);
+    const mk = (team, wins) => wins.map((w, i) => ({ id: `${team}${i}`, d: dN(i), h: team, a: `Z${team}${i}`, hs: w ? 110 : 100, as: w ? 100 : 110 }));
+    const rep = (pattern, n) => Array.from({ length: n }, (_, i) => pattern[i % pattern.length]);
+    const one = (wins) => tl6({ rows: mk("GGG", wins) }).map((l) => l.text);
+    const three = one([...rep([1, 1, 1, 1, 0], 10), ...rep([0, 0, 0, 1], 8), ...rep([1, 1, 1, 0], 8)]);           // the cuts fall where the losses start and stop: 8-1, then 1-7, then 7-2
+    const stale = one([0, 0, 0, 0, ...rep([1, 0], 20)]);                                                          // 0-4, then 10-10: twenty games is past four times four
+    const fresh = one([0, 0, 0, 0, ...rep([1, 1, 1, 1, 0], 10)]);                                                 // 0-4, then 8-2
+    const blip = one([...rep([1, 1, 0], 30), 0, 0, 0, 0, ...rep([1, 1, 0, 1, 1, 0, 1, 0, 1, 1], 24)]);            // 20-9, five straight losses, then 17-7 over 24: back to what it was, and past four times five
+    const skid = one([...rep([1, 1, 0], 30), 0, 0, 0, 0, 0]);                                                     // 20-10, then five straight losses: fresh, said at once
+    ok(JSON.stringify(stretches([1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0])) === "[[0,6],[6,12]]" && stretches(rep([1, 0], 12)).length === 1 && stretches([1, 0, 1]).length === 1
+      && three.length === 1 && three[0] === "GGG is 7-2 since 11/18; it went 1-7 in the 8 games before that (11/10 on), after 8-1 to start (16-10 in all)"
+      && stale.length === 0 && fresh.length === 1 && fresh[0] === "GGG went 0-4 in its first 4 games; 8-2 since (11/5 on)"
+      && blip.length === 0 && skid.length === 1 && skid[0] === "GGG went 20-9 in its first 29 games; 0-6 since (11/30 on)" && T6.ratio === 4 && T6.z === 1.9,
+      "0.107.6: a team's season is cut into stretches wherever its wins and losses change by more than chance would (not once, and not at a fixed length): good, bad, good is said as the current stretch, the one before it and the one before that, with the season's record; a 0-4 start stops carrying the comparison once the stretch since has run past sixteen games; a five-game dip inside a good season says nothing once the team has been back to what it was for more than twenty games; six straight losses after 20-9 are said at once",
+      JSON.stringify({ three, stale, fresh, blip, skid }));
   }
   {
     // 0.107.5: the dates people name (New Year's Day, the trade deadline, the All-Star break), asked of every team.

@@ -127,10 +127,32 @@ export function lineupLines({ pg, rows, names, minGames = 6 }) {
 }
 
 // 0.107.1 (the user, 11/18, on ESPN's "Heat since Oct. 28" card: 0-4, then 8-2): "being able to pinpoint where teams changed
-// their performance over a stretch of games… it doesn't have to be limited to 10-15 game samples". The turn is looked for
-// from four games in (it had needed eight on each side), with a higher bar while a side is short, and the line now says
-// what the team has been since the turn: its league ranks over those same dates, for every team's games in them.
-export const TURN = { early: 4, late: 6, gap: 0.4, shortGap: 0.5, top: 5, most: 4, teams: 20, games: 3 };
+// their performance over a stretch of games… it doesn't have to be limited to 10-15 game samples".
+// 0.107.6 (the user, 2:42 PM the same day, on that morning's seven lines): "those examples… is what I want to mine for. but
+// don't just tie it to the start of the season… some times teams suck at start of season and then turn it around later. or
+// they ebb and flow throughout the year, so they go from good to bad to good… it's always a sliding scale. once the current
+// stretch starts to normalize, then it's not as impressive if it's compared to a 4 game sample to start the season".
+// So a season is no longer cut once. It is cut into as many stretches as the wins and losses support (`stretches`), the line
+// is about the stretch the team is in now against the one before it, and how much it counts is the gap between the two
+// measured against what two samples of those sizes would show by chance (`z`), with no rule about the calendar or about
+// how long a stretch may be. The one rule about size is the user's own: a short stretch stops being a fair comparison once
+// the current one has run past `ratio` times its length (a 0-4 start can be set against at most 16 games). Past that the
+// current stretch is set against everything before it instead, and if that is still too little, nothing is said.
+export const TURN = { min: 4, c: 1, z: 1.9, ratio: 4, top: 5, most: 4, teams: 20, games: 3 };
+/** A run of wins and losses cut into stretches: [[from, to), …]. Least squares about each stretch's winning percentage, plus
+ *  a price for every stretch (c × 0.25 × ln n: 0.25 is the most a game's result can vary), so a new stretch has to explain
+ *  more than chance would. No stretch shorter than `min` games. Exact (every cut is tried), not greedy. */
+export function stretches(wins, { min = TURN.min, c = TURN.c } = {}) {
+  const n = wins.length;
+  if (n < 2 * min) return n ? [[0, n]] : [];
+  const S = [0]; for (const w of wins) S.push(S[S.length - 1] + (w ? 1 : 0));
+  const cost = (i, j) => { const k = S[j] - S[i]; return k - (k * k) / (j - i); };
+  const pen = c * 0.25 * Math.log(n), F = Array(n + 1).fill(Infinity), P = Array(n + 1).fill(0);
+  F[0] = -pen;
+  for (let j = min; j <= n; j++) for (let i = 0; i <= j - min; i++) { if (F[i] === Infinity) continue; const v = F[i] + cost(i, j) + pen; if (v < F[j] - 1e-12) { F[j] = v; P[j] = i; } }
+  const out = []; for (let j = n; j > 0; j = P[j]) out.unshift([P[j], j]);
+  return out;
+}
 const ordinal = (k) => `${k}${["th", "st", "nd", "rd"][k % 10 > 3 || [11, 12, 13].includes(k % 100) ? 0 : k % 10]}`;
 /** Each team's numbers from a date on, and its rank among the teams with enough games: { TRI: { n, ortg: [value, rank], … } }. */
 export function sinceRanks(T, from) {
@@ -161,21 +183,28 @@ function rankWords(since, up) {
   }
   return said;
 }
-export function turnLines({ rows, minSide = 8 }) {
-  const out = [], T = teamGames(rows);
+export function turnLines({ rows }) {
+  const out = [], T = teamGames(rows), wp = (gs) => gs.filter((g) => g.win).length / gs.length;
   for (const [team, games] of Object.entries(T)) {
-    let best = null;
-    for (let k = Math.min(minSide, TURN.early); k <= games.length - Math.min(minSide, TURN.late); k++) {
-      const a = games.slice(0, k), b = games.slice(k);
-      const pa = a.filter((g) => g.win).length / a.length, pb = b.filter((g) => g.win).length / b.length;
-      const need = a.length >= minSide && b.length >= minSide ? TURN.gap : TURN.shortGap;
-      if (Math.abs(pa - pb) >= need && (!best || Math.abs(pa - pb) > best.gap)) best = { k, a, b, gap: Math.abs(pa - pb), up: pb > pa };
-    }
-    if (!best) continue;
+    const P = stretches(games.map((g) => g.win)).map(([i, j]) => games.slice(i, j));
+    if (P.length < 2) continue;
+    const cur = P[P.length - 1];
+    let prev = P[P.length - 2], wide = false;
+    if (cur.length > TURN.ratio * prev.length) { prev = games.slice(0, games.length - cur.length); wide = P.length > 2; }
+    if (cur.length > TURN.ratio * prev.length) continue;
+    const z = Math.abs(wp(cur) - wp(prev)) / (0.5 * Math.sqrt(1 / cur.length + 1 / prev.length));
+    if (z < TURN.z) continue;
     // what it has been since: ranks in the league's top five after a turn for the better, bottom five after one for the worse
-    const since = sinceRanks(T, best.b[0].d)?.[team], said = rankWords(since, best.up);
-    out.push({ kind: "turn", team, key: `turn|${team}`, from: best.b[0].d, ...(since ? { since: { from: best.b[0].d, ...since } } : {}),
-      text: `${team} went ${rec(best.a)} in its first ${best.k} games; ${rec(best.b)} since (${md(best.b[0].d)} on)${said.length ? `. Since then: ${said.join(", ")}` : ""}`, score: 2.7 + best.gap + (said.length >= 3 ? 0.3 : 0) });
+    const since = sinceRanks(T, cur[0].d)?.[team], said = rankWords(since, wp(cur) > wp(prev));
+    let text = `${team} went ${rec(prev)} in its first ${prev.length} games; ${rec(cur)} since (${md(cur[0].d)} on)`;
+    if (wide) text = `${team} is ${rec(cur)} since ${md(cur[0].d)}; it was ${rec(prev)} before`; // the stretch just before was too short to carry the comparison
+    else if (P.length > 2) { // good, bad, good: the stretch before the last one is said too, and the season's record
+      const e = P[P.length - 3];
+      text = `${team} is ${rec(cur)} since ${md(cur[0].d)}; it went ${rec(prev)} in the ${prev.length} games before that (${md(prev[0].d)} on), after ${rec(e)} ${P.length === 3 ? "to start" : `from ${md(e[0].d)}`} (${rec(games)} in all)`;
+    }
+    out.push({ kind: "turn", team, key: `turn|${team}`, from: cur[0].d, z: +z.toFixed(2), phases: P.map((p) => ({ from: p[0].d, n: p.length, w: p.filter((g) => g.win).length })),
+      ...(since ? { since: { from: cur[0].d, ...since } } : {}),
+      text: `${text}${said.length ? `. Since then: ${said.join(", ")}` : ""}`, score: 2.2 + 0.4 * Math.min(z, 3.5) + (said.length >= 3 ? 0.3 : 0) });
   }
   return out;
 }
