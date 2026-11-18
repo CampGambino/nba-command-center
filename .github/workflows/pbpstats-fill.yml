@@ -1,0 +1,36 @@
+# Temporary (0.107): reads from pbpstats.com's public API the player lines ESPN does not have (every Bulls and Pelicans
+# game, 2012-13 to 2017-18; about 990 games, slowly, one request at a time). Resumable; remove once status.json says 0 left.
+name: pbpstats fill
+on:
+  workflow_dispatch:
+  push:
+    paths: [".github/workflows/pbpstats-fill.yml", "tools/fetch-pbpstats.mjs"]
+  schedule:
+    - cron: "41 */6 * * *"
+permissions:
+  contents: write
+concurrency:
+  group: pbpstats-fill
+  cancel-in-progress: false
+jobs:
+  fill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 345
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: read, saving every 40 minutes
+        run: |
+          git config user.name "ncc-bot"
+          git config user.email "ncc-bot@users.noreply.github.com"
+          for i in 1 2 3 4 5 6 7 8; do
+            node tools/fetch-pbpstats.mjs --minutes 38
+            git add tools/outside/pbpstats
+            if ! git diff --cached --quiet; then
+              git commit -q -m "pbpstats: $(TZ=America/New_York date '+%Y-%m-%d %H:%M') ET (automatic)"
+              git pull -q --rebase origin main && git push -q origin HEAD:main || true
+            fi
+            if grep -q '"left":0' tools/outside/pbpstats/status.json; then break; fi
+          done
