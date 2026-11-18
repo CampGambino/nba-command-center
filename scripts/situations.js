@@ -367,7 +367,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
   const pg = playerGames(rows);
   const dates = [...new Set(rows.filter((g) => g.pl).map((g) => g.d))].sort().slice(-7);
   // Career highs before this season (the 2016-17 on back-fill, and the NBA Guide's yearly points highs).
-  let careers = null, logsData = null, seasonsData = null, seasonTag = null, keyFn = (n) => n, awardsData = null;
+  let careers = null, logsData = null, logsFull = null, seasonsData = null, seasonTag = null, keyFn = (n) => n, awardsData = null;
   try {
     const zlib = await import("node:zlib");
     const { strictKey } = await import("../src/records/guide.js");
@@ -378,8 +378,11 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const logFile = path.join(root, "src", "data", "player-logs-history.json.gz");
     const csFile = path.join(root, "src", "data", `nba-career-seasons-${tag}.json`);
     logsData = fs.existsSync(logFile) ? JSON.parse(zlib.gunzipSync(fs.readFileSync(logFile))) : null;
+    // 0.110: the Bulls and Pelicans games of 2016-17 and 2017-18, which ESPN's logs lack, for the readers that may use them
+    const fillFile = path.join(root, "src", "data", "player-logs-fill.json.gz"), { withFill } = await import("../src/situations/logfill.js");
+    logsFull = logsData && fs.existsSync(fillFile) ? withFill(logsData, JSON.parse(zlib.gunzipSync(fs.readFileSync(fillFile)))) : logsData;
     seasonsData = fs.existsSync(csFile) ? JSON.parse(fs.readFileSync(csFile, "utf8")) : null;
-    careers = careerHighs({ logs: logsData, seasons: seasonsData, names: store.names || {}, ids: Object.keys(pg), season: tag, nameKey: strictKey });
+    careers = careerHighs({ logs: logsFull, seasons: seasonsData, names: store.names || {}, ids: Object.keys(pg), season: tag, nameKey: strictKey });
   } catch (e) { console.error(`career highs not read: ${e.message}`); }
   // Prep stats (0.66): season vs career, spans, player streak watch, vs tonight's opponent, through N games.
   let featRuns = null, teamNicks = null;
@@ -404,7 +407,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
       const hf2 = path.join(root, "src", "data", `nba-history-${seasonTag}.json`);
       awardsData = fs.existsSync(hf2) ? JSON.parse(fs.readFileSync(hf2, "utf8")).awards : null;
       const brf = path.join(root, "src", "data", "brothers.json"), brothers = fs.existsSync(brf) ? JSON.parse(fs.readFileSync(brf, "utf8")) : null;
-      const sl = seasonLongLines({ pg, rows, logs: logsData, seasons: seasonsData, awards: awardsData, names: store.names || {}, nameKey: keyFn, season: seasonTag, slate, today, brothers });
+      const sl = seasonLongLines({ pg, rows, logs: logsData, seasons: seasonsData, awards: awardsData, names: store.names || {}, nameKey: keyFn, season: seasonTag, slate, today, brothers, fullLogs: logsFull });
       const yday = new Date(Date.parse(`${today}T12:00:00Z`) - 864e5).toISOString().slice(0, 10);
       lastNight = sl.lines.filter((l) => l.kind === "unique" && l.date >= yday).sort((a, b) => b.score - a.score);
       // 0.82: a first career game without a point, a rebound or an assist (the user, 11/16: Trae Young's first scoreless
@@ -414,7 +417,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
         const { plainName } = await import("../src/anticipate/finder.js");
         const pcf = path.join(root, "src", "data", `nba-postseason-careers-${seasonTag}.json`);
         const allStar = fs.existsSync(pcf) ? Object.fromEntries((JSON.parse(fs.readFileSync(pcf, "utf8")).allStarSelections || []).map((x) => [plainName(x.name), x.selections])) : null;
-        const zargs = { pg, logs: logsData, seasons: seasonsData, names: store.names || {}, nameKey: keyFn };
+        const zargs = { pg, logs: logsFull || logsData, seasons: seasonsData, names: store.names || {}, nameKey: keyFn };
         const zl = zeroLines({ pg, careersBefore: zeroCareers({ ...zargs, before: yday }), since: yday, allStar, plainName });
         lastNight = [...zl, ...lastNight].sort((a, b) => b.score - a.score);
         zeros = zeroWatch(zeroCareers(zargs), new Set(slate.flatMap((g) => [g.away, g.home])));

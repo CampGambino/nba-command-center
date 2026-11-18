@@ -2403,6 +2403,41 @@ await articlesChecks(ok);
       JSON.stringify([tl.map((x) => x.text), fm.map((x) => x.text)]));
   }
   {
+    // 0.110: the games ESPN's logs lack (Bulls and Pelicans, 2016-17 and 2017-18) come from a file of their own and reach
+    // only the readers that may use them.
+    const { withFill, EXACT } = await import("../src/situations/logfill.js");
+    const { careerHighs: CH } = await import("../src/situations/trends.js");
+    const { zeroCareers: ZC } = await import("../src/anticipate/zeros.js");
+    const cols = ["date", "opp", "home", "result", "type", "min", "pts", "reb", "ast", "stl", "blk", "fg3m", "fgm", "fga", "fg3a", "ftm", "fta"];
+    const row = (d, pts, reb, ast, stl, blk, fg3m, min = 30) => [d, "BOS", 1, "W", 2, min, pts, reb, ast, stl, blk, fg3m, 8, 16, 5, 4, 5];
+    const logsT = { columns: cols, players: { 7: [row("2017-11-01", 30, 12, 6, 4, 3, 5), row("2018-11-01", 31, 9, 5, 2, 1, 4)], 8: [row("2019-01-01", 10, 3, 2, 1, 0, 1)] } };
+    const fillT = { columns: [...cols, "src"], players: { 7: [[...row("2017-01-10", 44, 11, 2, 2, 0, 9), "p"], [...row("2017-11-01", 99, 99, 99, 9, 9, 9), "p"], [...row("2018-01-10", 0, 0, 3, 0, 0, 0), "p"]], 99: [[...row("2017-02-02", 50, 1, 1, 1, 1, 1), "p"]] } };
+    const fullT = withFill(logsT, fillT), seasonsT = { keys: ["season", "g", "pts", "reb", "ast", "hi"], players: { "Fill Man": [["2016-17", 260, 3900, 2000, 1500, 20], ["2017-18", 270, 4800, 2100, 1500, 31]] } };
+    const key = (n) => String(n || "").toLowerCase();
+    const hA = CH({ logs: logsT, seasons: seasonsT, names: { 7: "Fill Man" }, ids: ["7"], season: "2026-27", nameKey: key })[7], hB = CH({ logs: fullT, seasons: seasonsT, names: { 7: "Fill Man" }, ids: ["7"], season: "2026-27", nameKey: key })[7];
+    ok(fullT.players[7].length === 4 && fullT.players[7].map((r) => r[0]).join() === "2017-01-10,2017-11-01,2018-01-10,2018-11-01" && fullT.players[7][1][6] === 30 && !fullT.players[99] && fullT.players[8] === logsT.players[8]
+      && logsT.columns.length === 17 && logsT.players[7].length === 2 && fullT.columns[17] === "src" && EXACT.has("pts") && !EXACT.has("reb"),
+      "0.110: the filled logs add a game only where the player has none that day (ESPN's row wins), only for players already in the logs, in date order, and leave the logs themselves as they were",
+      JSON.stringify(fullT.players[7].map((r) => [r[0], r[6], r[17]])));
+    ok(hA.hi.pts === 31 && hB.hi.pts === 44 && hA.hi.fg3m === 5 && hB.hi.fg3m === 9 && hB.hi.reb === 12 && hB.hi.ast === 6 && hB.hi.stl === 4 && hB.hi.blk === 3
+      && hA.known.has("reb") && !hB.known.has("reb") && hB.known.has("ast") && !hB.known.has("stl") && hB.known.has("blk") && hB.known.has("pts"),
+      "0.110: career highs take points and threes from the filled games (31 becomes 44, 5 threes become 9) and nothing else; a stat stays \"known\" unless a filled game's floor comes close enough to pass his high (11 rebounds against 12: not known; 2 assists against 6: known)",
+      JSON.stringify([hB.hi, [...hB.known]]));
+    const pgT = { 7: Array.from({ length: 12 }, (_, i) => ({ d: `2026-11-${String(i + 1).padStart(2, "0")}`, team: "AAA", min: 30, pts: 20, reb: 5, ast: 4 })) };
+    const zA = ZC({ pg: pgT, logs: logsT, seasons: seasonsT, names: { 7: "Fill Man" }, nameKey: key })[7], zB = ZC({ pg: pgT, logs: fullT, seasons: seasonsT, names: { 7: "Fill Man" }, nameKey: key })[7];
+    ok(zA && zB && zA.stats.pts.zeros === 0 && zB.stats.pts.zeros === 1 && zA.stats.reb.zeros === 0 && zB.stats.reb.zeros === 1 && zB.stats.ast.zeros === 0 && zB.logGames === zA.logGames + 2,
+      "0.110: a scoreless game ESPN's logs lack now counts, so \"held scoreless for the first time\" is not said of him; a filled game with no rebound counted is treated as one without a rebound (the careful side), and one with assists is not a zero",
+      JSON.stringify([zA?.stats, zB?.stats, zA?.logGames, zB?.logGames]));
+    // the file itself
+    const FL = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(root, "src", "data", "player-logs-fill.json.gz")))), LG = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(root, "src", "data", "player-logs-history.json.gz"))));
+    const fx = Object.fromEntries(FL.columns.map((c, i) => [c, i])), all = Object.entries(FL.players).flatMap(([id, rs]) => rs.map((r) => [id, r]));
+    const clash = all.filter(([id, r]) => (LG.players[id] || []).some((x) => x[0] === r[fx.date])).length, strangers = Object.keys(FL.players).filter((id) => !LG.players[id]).length;
+    ok(all.length >= 1291 && all.every(([, r]) => r[fx.src] === "p" && r[fx.type] === 2 && r[fx.date] >= "2012-10-01" && r[fx.date] <= "2018-04-30" && r[fx.pts] >= 0 && r[fx.fgm] <= r[fx.fga] && r[fx.fg3m] <= r[fx.fg3a] && r[fx.ftm] <= r[fx.fta]
+      && r[fx.pts] === 2 * r[fx.fgm] + r[fx.fg3m] + r[fx.ftm]) && clash === 0 && strangers === 0 && !LG.columns.includes("src"),
+      "0.110: src/data/player-logs-fill.json.gz: every row is marked \"p\", its points equal its made shots (2 x FGM + 3PM + FTM), no row repeats a game the logs have, every player is in the logs, and the logs file itself has no such rows",
+      JSON.stringify([all.length, clash, strangers]));
+  }
+  {
     // 0.108.0: brothers. Their last N games reading alike, and a big night on the same date.
     const { brotherLines, BRO } = await import("../src/anticipate/seasonlong.js");
     const day = (i) => `2026-11-${String(i + 1).padStart(2, "0")}`;

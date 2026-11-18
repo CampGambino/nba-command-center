@@ -120,11 +120,15 @@ const sd = (a) => { const m = mean(a); return Math.sqrt(a.reduce((x, y) => x + (
  */
 export function careerHighs({ logs = null, seasons = null, names = {}, ids = [], season = null, nameKey = (n) => n }) {
   const L = { min: 5, pts: 6, reb: 7, ast: 8, stl: 9, blk: 10, fg3m: 11 };
+  const SRC = (logs?.columns || []).indexOf("src"), FROM_FILL = new Set(["pts", "fg3m"]), FILL_SLACK = { min: 2, reb: 2, ast: 1, stl: 3, blk: 1 };   // one more than the miss seen in each (assists and blocks matched); a judgment
   const S = Object.fromEntries((seasons?.keys || []).map((k, i) => [k, i]));
   const byName = new Map(Object.entries(seasons?.players || {}).map(([n, rows]) => [nameKey(n), rows]));
   const out = {};
   for (const id of ids) {
-    const rows = (logs?.players?.[id] || []).filter((r) => r[4] === 2 && (!season || seasonOfDate(r[0]) !== season));
+    // 0.110: the logs may carry the games ESPN lacks (src "p", src/situations/logfill.js). Those rows count for points and
+    // threes only; everything else here reads the rows it always read.
+    const every = (logs?.players?.[id] || []).filter((r) => r[4] === 2 && (!season || seasonOfDate(r[0]) !== season));
+    const rows = SRC < 0 ? every : every.filter((r) => r[SRC] !== "p"), filled = every.length - rows.length;
     const sz = byName.get(nameKey(names[id] || "")) || null;
     const past = sz ? sz.filter((r) => r[S.season] !== season) : null;
     const first = past?.length ? past[0][S.season] : rows.length ? seasonOfDate(rows[0][0]) : null;
@@ -134,7 +138,11 @@ export function careerHighs({ logs = null, seasons = null, names = {}, ids = [],
     // 2016-17 (logs that begin in 2016-17 may be the middle of a longer career).
     const whole = rookie || (past?.length ? first >= "2016-17" && rows.length > 0 : first > "2016-17");
     if (whole) for (const k of Object.keys(L)) known.add(k);
-    for (const [k, i] of Object.entries(L)) for (const r of rows) hi[k] = Math.max(hi[k] ?? 0, r[i] || 0);
+    for (const [k, i] of Object.entries(L)) for (const r of FROM_FILL.has(k) ? every : rows) hi[k] = Math.max(hi[k] ?? 0, r[i] || 0);
+    // The other stats in those games are only a floor (steals run short, rebounds can be one off: 5 against 7 and 15
+    // against 16 in the one game checked). A whole career stays "known" in a stat unless one of those games comes
+    // within FILL_SLACK of passing his high: then the high may be in a game we cannot read, and no "career high" is said.
+    if (filled) for (const [k, i] of Object.entries(L)) if (!FROM_FILL.has(k) && every.some((r) => r[SRC] === "p" && (r[i] || 0) + FILL_SLACK[k] > (hi[k] ?? 0))) known.delete(k);
     if (past && S.hi != null) { known.add("pts"); for (const r of past) hi.pts = Math.max(hi.pts ?? 0, r[S.hi] || 0); }
     out[id] = { hi, known, rookie };
   }

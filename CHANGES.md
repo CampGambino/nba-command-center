@@ -2,6 +2,36 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.110.0 (2026-11-18): the Bulls and Pelicans games are merged; the older seasons are being read; the league's record book against the guides
+
+The user, 5:35 PM: "Yes, run those seasons and merge the bulls/pelicans games. doesn't the nba guide new pdf have team single game records? Is that not reliable for records before this season to check against?"
+
+**The merge** (`src/data/player-logs-fill.json.gz`, `src/situations/logfill.js`, both new).
+- The 1,291 player games (87 current players) are in a file of their own, not in the logs. Two reasons: `tools/backfill-matchups.js` rewrites the logs from ESPN and would drop them, and most readers look at rebounds, assists, steals or blocks, which in these rows are only a floor.
+- `withFill(logs, fill)` puts them in at load time for the readers that may use them. Three do so far:
+  - **Career highs** (`careerHighs`): points and threes only. Stephen Curry's most threes on file goes from 12 to 13 (at New Orleans, 11/7/16) and Bobby Portis's most points from 34 to 38. For the other stats, a player whose whole career is on file stays "known" unless one of the filled games comes close enough to pass his high (`FILL_SLACK`: 2 rebounds, 1 assist, 3 steals, 1 block); then no "career high" is said in that stat. Nine players lose one that way, mostly steals (Embiid, Markkanen, Hield, Fox's blocks, Kris Dunn's four).
+  - **First scoreless game and the like** (`zeroCareers`): a scoreless game in the hole now counts (Pascal Siakam one, Dejounte Murray two, Jaylen Brown one), so "held scoreless for the first time" cannot be said of a player who already was. A filled game with no rebound or assist counted is treated as a zero, the careful side. No "never" claim on file today was lost.
+  - **Odd scoring games** (`oddScoringLines`, "the most by a current player in such a game since 2016-17"): points and shooting only, so the pool now has those games. No line this season changes.
+- Every other reader gets the logs exactly as before (the season-long boards, months, prep, the matchup lines, the claims checker). They are not wrong in a new way; they still do not know those games.
+
+**The older seasons** (`.github/workflows/pbpstats-fill.yml`): 2012-13 to 2015-16 are being read now, same job, same pace. `--teams` also takes NOH in case the list of games files the 2012-13 Hornets under that code.
+
+**The league's record book against the guides** (`tools/check-league-book-vs-guides.mjs`, new). The NBA Guide's record book has been on file since v0.32 and is what the "NBA record first" rule reads. It prints the best few ever in each category for the whole league, not each team's own records, so it reaches a franchise mark only where that mark is among the best ever. Until now only its first line per category had been compared.
+- Every line: 308 dated lines for a team in a game. Where a guide prints the same game, 301 numbers agree and 5 do not (three games): Boston's rebounds on 12/24/60 (book 109, both guides 112, Basketball Reference 112); Syracuse's fouls on 11/15/52 (book 60, the 76ers' guide 59); Fort Wayne's free throw attempts on 12/31/54 (book 67, the Lakers' guide 68 for the opponent).
+- The holder's own guide has a mark at least as good in 109 of 115. The six: three are Seattle marks the Thunder's guide leaves out by design; Syracuse's 86 free throw attempts in five overtimes (11/24/49) against the 76ers' guide's 68; the fouls above; and one line in the book file that is misread (a "fewest turnovers, one team" of 3 whose holder is a both-teams line).
+- The 46 marks the book confirms are now counted as checked (`tools/mark-sources.mjs --book`): 1,831 of 2,834 marks, and of the whole-game marks 815 of 837 from 1993-94 on and 220 of 534 before.
+
+Tested: 993 checks (four new: the filled logs, career highs with them, zeros with them, and the file itself: every row marked "p", its points equal to its made shots, no row repeating a game the logs have) and the 81 article checks pass. A full local build ran clean. Before and after were compared reader by reader on today's data (the numbers above), not by eye.
+
+Still unproven: `FILL_SLACK` rests on one game where the box score is known (Davis, 10/26/16: steals 5 against 7, rebounds 15 against 16, assists and blocks the same). Whether pbpstats uses NOH is a guess until the first save. The older seasons will not change any player line (the logs begin in 2016-17); they are for franchise records, and nothing reads them yet.
+
+Self-audit (5:48 PM):
+- **Wrong first:** 0.109.1 said Kris Dunn's and Kentavious Caldwell-Pope's most points "would rise". With the real reader they do not: their highs come from the guide's season highs, which already had those games. Only Portis's and Curry's change. I had compared logs with logs and said so, but the list read as a forecast.
+- **Wrong first:** my first rule took "known" away from every whole-career player with any filled game: 35 players, Tatum and Embiid among them, for a game or two against Chicago. Too blunt; the rule now asks whether the filled game could actually hold the high.
+- **Wrong first:** the first version of the new checker printed "undefined" for every franchise mark (a wrong field name) and compared any guide's mark on the same date, so Portland's 25 threes were set against Memphis's 29 the same night. Both fixed before any number was written here; the numbers above are from the fixed run.
+- **Wrong first:** a comment pasted into the middle of a line broke `tools/fetch-pbpstats.mjs`; `node --check` stopped the commit. Two test fixtures of mine were wrong (too few career games; too few rebounds a game) before the tests said anything about the code.
+- **Not done, on purpose:** the other readers. Sums, months and averages would take a floor as if it were the number.
+
 ## 0.109.1 (2026-11-18): the Bulls and Pelicans fill is complete; measured, not merged
 
 No code or published data changes in this entry. It records where the fill stands so the next step starts from facts.

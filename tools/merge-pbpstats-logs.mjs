@@ -52,4 +52,14 @@ for (const f of fs.readdirSync(SRC).filter((x) => /^box-.*\.jsonl$/.test(x)).sor
 }
 for (const rows of Object.values(L.players)) rows.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
 console.log(JSON.stringify(stats)); console.log("not matched to an ESPN id:", JSON.stringify(unmatched)); console.log("40-point games now on file:", shown.join("; ") || "none");
+// 0.110: the rows go to a file of their own (--fill <file>), not into the logs: tools/backfill-matchups.js rewrites the
+// logs from ESPN and would drop them, and readers that look at rebounds, assists, steals or blocks must not see them.
+if (arg("--fill")) {
+  const players = {}; let n = 0;
+  for (const [id, rows] of Object.entries(L.players)) { const p = rows.filter((r) => r[ix.src] === "p"); if (p.length) { players[id] = p; n += p.length; } }
+  fs.writeFileSync(arg("--fill"), zlib.gzipSync(JSON.stringify({ source: "pbpstats.com (api.pbpstats.com), counted from the league's play-by-play; matched to ESPN ids by tools/merge-pbpstats-logs.mjs",
+    note: "The Bulls and Pelicans games ESPN's game logs lack. Points, field goals, threes and free throws are exact (each game's points add up to ESPN's final score). Rebounds, assists, steals and blocks are a floor: never let a line turn on them.",
+    games: stats.used, columns: cols, players })));
+  console.log(`written ${arg("--fill")}: ${n} rows for ${Object.keys(players).length} players`);
+}
 if (process.argv.includes("--write")) { L.columns = cols; L.note = `${L.note ? L.note + " " : ""}Rows with src "p" are the Bulls and Pelicans games of 2016-17 and 2017-18, from pbpstats: points and shooting exact, rebounds, assists, steals and blocks a floor.`; fs.writeFileSync(OUT, zlib.gzipSync(JSON.stringify(L), { level: 9 })); console.log("written", OUT); }

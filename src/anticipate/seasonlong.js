@@ -386,7 +386,8 @@ const WITHOUT = [
   ["noft", "without a free throw attempt", (g) => g.fta === 0 && g.fga > 0, (g) => `${g.fgm}-of-${g.fga} from the field, ${g.fg3m} threes`, 35],
   ["nomiss", "without a missed shot", (g) => g.fga >= 6 && g.fgm === g.fga && g.ftm === g.fta, (g) => `${g.fgm}-of-${g.fga} from the field${g.fta ? `, ${g.ftm}-of-${g.fta} at the line` : ""}`, 20],
 ];
-export function oddScoringLines({ pg, logs, names, date = null }) {
+export function oddScoringLines({ pg, logs: boxLogs, fullLogs = null, names, date = null }) {
+  const logs = fullLogs || boxLogs;   // 0.110: points and shooting only here, so the games ESPN lacks count (src/situations/logfill.js)
   const days = Object.values(pg).flat().map((g) => g.d).sort();
   const d = date || days[days.length - 1];
   if (!d) return [];

@@ -5,11 +5,12 @@
 //   node tools/check-team-marks.mjs   --dir <espn pages> --no-fetch --out marks.json
 //   node tools/check-period-marks.mjs --dir <pbp> --boards <boards> --no-fetch --out pmarks.json
 //   node tools/check-period-points.mjs --dir <boards> --no-fetch --out ppoints.json
-//   node tools/mark-sources.mjs --marks marks.json --pmarks pmarks.json --ppoints ppoints.json
+//   node tools/check-league-book-vs-guides.mjs --out book.json
+//   node tools/mark-sources.mjs --marks marks.json --pmarks pmarks.json --ppoints ppoints.json --book book.json
 //
 // A mark counts as checked when, for one of the nights the guide prints, a source other than that guide has the same
 // number: ESPN's box score, the other team's guide, the final score (points), ESPN's line score (points by half and
-// quarter), the play-by-play (other stats by half and quarter), or a look-up recorded in tools/team-records-verified.json.
+// quarter), the play-by-play (other stats by half and quarter), the league's record book (the same game), or a look-up recorded in tools/team-records-verified.json.
 // It does NOT show that nobody ever did more: only the guide claims that.
 import fs from "node:fs"; import path from "node:path"; import zlib from "node:zlib"; import { fileURLToPath } from "node:url";
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), ".."), D = (f) => path.join(root, "src", "data", f), js = (f) => JSON.parse(fs.readFileSync(f, "utf8"));
@@ -36,7 +37,9 @@ for (const r of rows) if (r.stat === "pts") for (const [mine, theirs] of score.g
 for (const r of js(arg("--ppoints")).res.same || []) put(key(r.t, r.side, "pts", r.kind, r.period, r.date), "ESPN's line score");
 // 4. other stats by half and quarter: the play-by-play
 for (const r of js(arg("--pmarks")).same || []) put(key(r.t, r.side, r.stat, r.kind, r.period, r.date), "the play-by-play");
-// 5. looked up by hand
+// 5. the league's record book prints the same game with the same number (tools/check-league-book-vs-guides.mjs --out)
+if (arg("--book")) for (const k of js(arg("--book")).sameNight.keys || []) put(k, "the league's record book");
+// 6. looked up by hand
 for (const [kind, dateOf] of [["marks", (e) => e.date], ["revalue", (e) => e.date], ["add", (e) => e.date], ["redate", (e) => null]])
   for (const [t, es] of Object.entries(V[kind] || {})) for (const e of es) if (dateOf(e) && e.second !== false) how.set(key(t, e.side, e.stat, e.kind, e.period, dateOf(e)), "a look-up recorded with its source");
 // mark by mark
