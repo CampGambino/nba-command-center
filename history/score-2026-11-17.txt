@@ -1,0 +1,28 @@
+miss  72%  TOR Ja'Kobe Walter: 400 rebounds (needed 3, got 1)
+HIT   58%  CHA Grant Williams: 3000 points (needed 2, got 12)
+miss  47%  UTA Isaiah Collier: 1400 points (needed 8, got 0)
+HIT   45%  SAS Devin Vassell: 800 3-pointers (needed 2, got 2)
+miss  43%  UTA Kyle Filipowski: 1600 points (needed 4, got 0)
+miss  42%  MIN Cody Williams: 200 assists (needed 4, got 0)
+HIT   33%  POR Donovan Clingan: 600 field goals (needed 6, got 6)
+HIT   31%  UTA Mo Bamba: 1000 field goals (needed 4, got 6)
+miss  28%  UTA Ace Bailey: 1200 points (needed 19, got 5)
+miss  27%  CHA Sion James: 100 3-pointers (needed 2, got 0)
+miss  24%  NYK Dalton Knecht: 300 rebounds (needed 2, got 0)
+miss  23%  NYK Tyler Kolek: 300 assists (needed 7, got 3)
+miss  23%  UTA Svi Mykhailiuk: 2700 points (needed 13, got 8)
+miss  20%  UTA Ace Bailey: 400 rebounds (needed 8, got 1)
+miss  15%  LAL Luka Doncic: pass Michael Cooper (needed 8, got 5)
+miss  15%  SAS Stephon Castle: 900 field goals (needed 9, got 3)
+miss  14%  LAL Luka Doncic: pass George Mikan (needed 1, got 0)
+miss  14%  CHA PJ Hall: 100 rebounds (needed 2, got 0)
+miss   8%  UTA Mo Bamba: 300 3-pointers (needed 3, got 1)
+miss   6%  LAL Luka Doncic: 4000 defensive rebounds (needed 10, got 6)
+miss   6%  NYK Jalen Brunson: 2000 free throws (needed 10, got 7)
+
+234 calls scored, Brier 0.013 (lower is better; always guessing 50% scores 0.250)
+  0-5%     n=213  predicted 0%  happened 0%
+  5-25%    n= 11  predicted 15%  happened 0%
+  25-50%   n=  8  predicted 37%  happened 38%
+  50-75%   n=  2  predicted 65%  happened 50%
+calls given 5%+: 21, happened 4, expected 5.9, Brier 0.140
