@@ -41,7 +41,9 @@ def defunct(name, y):
     """A club that folded (Indianapolis, the first Baltimore): the games against it are in the lists with no opponent code."""
     n = GG.norm(name); n = GG.ALIAS.get(n, n)
     return any(a <= y <= b and t is None for a, b, t in GG.FRANCHISE.get(n, []))
-SEP = re.compile(r"\s+(vs\.?|at|@)\s+|^(vs\.?|at|@)\s*", re.I)
+# 0.107.7 (self-audit of 0.101): the leading "at" had no word boundary, so "Atlanta @ Minnesota", "Atlanta" and "ATL"
+# were read as "at" + "lanta" / "L" and 9 rows sat in "no opponent read" for a year of builds' worth of reports.
+SEP = re.compile(r"\s+(vs\.?|at|@)\s+|^(vs\.?(?![A-Za-z])|at(?![A-Za-z])|@)\s*", re.I)
 def who(text, own, d):
     """The guide's words for a game -> (opponent code or None, site "H"/"A"/None, names not understood)."""
     s = re.sub(r"\([^)]*\)?", " ", text or "")                               # (OT), (2nd), (BLF), (NBA record ...)
@@ -91,7 +93,26 @@ for r in rows:
         else: out["before our games"].append(r)
         continue
     r["played"] = [p[0] for p in played]; r["src"] = played[0][2]
-    if opp is None: out["no opponent read from the words" if not r["text"] or unknown or True else ""].append(r); continue
+    if opp is None:
+        # 0.107.7: before calling the words unreadable, look for the team it did play among them ("7x: last vs. Mem",
+        # "vs.@ Denver", "N.O." for the Jazz of 1979, "New Orleans/Okla."), and for a club that was not that day's
+        # opponent at all (the Lakers' "vs. CHI" in January 1966, months before Chicago had a team): that is a lead, not a blur.
+        words = re.sub(r"\bN\.O\.?", "New Orleans", r["text"] or ""); words = re.sub(r"\b([A-Z])\.([A-Z])\.?", r"\1\2", words); toks = re.findall(r"[A-Za-z][A-Za-z.']*", words)
+        cands = toks + [" ".join(toks[i:i + 2]) for i in range(len(toks) - 1)]
+        def code_of(c, sea):
+            c = c.strip(".")
+            if len(c) < 3 and not c.isupper(): return None
+            return GG.franchise(c, sea, "") or (GG.franchise(OLD.get(c.upper(), ""), sea, "") if c.isupper() else None) or (GG.NICK.get(c.upper()) if len(c) > 3 else None)
+        found = {code_of(c, season(d)) for c in cands} - {None, t}
+        if not found and len(r["played"]) == 1 and r["played"][0]:                   # a name cut short or misspelt: "at Los", "@ Toronoto", "vs. Mem"
+            y0 = int(season(d)[:4]); full = [n for n, spans in GG.FRANCHISE.items() if any(a <= y0 <= b and c == r["played"][0] for a, b, c in spans)]
+            near = lambda a, b: len(a) == len(b) + 1 and any(a[:i] + a[i + 1:] == b for i in range(len(a))) or len(a) == len(b) and sum(x != y for x, y in zip(a, b)) == 1
+            if any(len(c.strip(".")) >= 3 and any(n.startswith(c.lower().strip(".")) or (len(n) >= 6 and near(c.lower(), n)) for n in full) for c in toks): found = {r["played"][0]}
+        ever = {code_of(c, "2025-26") for c in cands} - {None, t}
+        if found & set(r["played"]): r["named"] = sorted(found & set(r["played"]))[0]; r["how"] = "found among the words"; out["same"].append(r)
+        elif (found or ever) and r["text"]: r["named"] = sorted(found or ever)[0]; r["how"] = "names a club it did not play that day, or one with no team that season"; out["another opponent that day"].append(r)
+        else: out["no opponent read from the words"].append(r)
+        continue
     if opp == "(gone)":
         out["same" if None in r["played"] else "another opponent that day"].append(r); continue
     if opp not in r["played"]: out["another opponent that day"].append(r); continue

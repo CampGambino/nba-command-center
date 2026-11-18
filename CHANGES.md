@@ -2,6 +2,31 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.107.7 (2026-11-18): self-audits of 0.100, 0.101 and 0.102; a reader fault in the night-and-opponent check; three Lakers marks against a team that did not exist
+
+The user, 2:42 PM: "handle the self-audits already". These three entries (the team-records checks and the first Kalshi reader, all 11/17) were written before the self-audit rule and had been owed since this morning.
+
+**Wrong things first.**
+
+- **0.101's night-and-opponent check had a fault, and I never looked at its "cannot make out" pile.** The reader took a leading "at" as the word "at" with no check that the word ended there, so "Atlanta @ Minnesota", "Atlanta" and "ATL" were read as "at" + "lanta" and filed as unreadable. Of the 30 rows in that pile on 11/17, 13 were Phoenix's cut-short names (fixed in 0.105). Of the 17 others, still there today with 3 of Phoenix's: 13 name, in plain words, the team that was played that night ("7x: last vs. Mem", "vs.@ Denver", "N.O." for the Jazz of 1979, "@ Toronoto"); 5 print no name at all; and **2 were a real lead hidden as a blur**.
+- **That lead: three Lakers quarter marks are printed against Chicago in January 1966**, most field goals in a quarter (22, "vs. CHI" 1/23/66) and most free throws made and attempted in a quarter (21 and 27, "vs. CHI" 1/25/66). Chicago had no team until the Bulls' first season, 1966-67. The Lakers' own game list has no game on 1/23/66 and Philadelphia on 1/25/66 (neutral site), and no Lakers game against Chicago on those two days in any nearby year (the closest is 1/26/71). The opponent or the year is misprinted; not settled here (no source for quarter totals in the 1960s). The first of the three was already an open lead; the other two are now.
+- **0.101's sentence "30 have an opponent the reader cannot make out (Phoenix's rows are cut short; 21 of them)" was wrong as written:** 13 of the 30 were Phoenix's. The 21 is the count of Phoenix rows cut short anywhere.
+- **0.101's Check 3 figures add up to 1,417, not the 1,419 it names.** It left out two games with no saved scoreboard for that day.
+
+**Fixed** (`tools/check-mark-nights.py`): the word boundary; and before a row is called unreadable the words are searched for the team that was played that night, and for a club that was not (which makes it a lead). Now: 3,436 printed games; **3,324 agree** (was 3,311 this morning, 3,298 on 11/17); 22 open leads (15 another opponent that day, 7 no game that day); 5 with no name printed; 85 before the team's game list; the five buckets add up to 3,436.
+
+**Re-derived today from the committed files and the saved pages, by running each tool again:**
+
+- 0.100: points by period, 220 of 220 printed games and 45 of 45 guide pairs, as stated. Days and games read are 5,239 and 38,871, three fewer each than stated: the three Cup title games taken out in 0.106.1.
+- 0.100/0.101: whole-game marks against ESPN, 920 of 990 the same and none differing, as stated; guide pairs 250 of 251 (one more pair than then).
+- 0.101: period marks by play-by-play, 671 with the printed number and 12 without (669 and 14 then; the difference is the two Hawks rows 0.102 redated), 131 that do not add up, 121 with no play-by-play, 482 before 1996-97, 2 with no scoreboard: 1,419.
+- 0.102: 61 marks that look behind, in 251 periods (186 for a "most", 65 for a "fewest"), from the saved sweep, as stated. Kalshi: 307 NBA series, 147 open, as stated; the midpoint rule is in the code as described (bid and ask within 6 cents); "whether the Actions cache holds the state between runs was not watched" is now answered (the status file says this is not a first look, and eleven lines posted overnight). Nothing of PromoNight is in the code or data.
+- `tools/team-records-verified.json`: 118 rows (44 dates or names, 30 dropped, 30 added, 4 numbers, 1 without a night, 9 prints confirmed), every one with its source.
+
+**Tested on cases by a different route** (reading the saved ESPN scoreboards and box scores directly, not through the tools): the Nets' 16 and 8 at Houston 3/8/03; Denver's 16 and 9 at Phoenix 2/22/00; Minnesota's 52-point third quarter at Memphis 4/10/25; Golden State's 44 and 48 at Chicago 10/29/18; Indiana's 6 offensive and 15 defensive rebounds at Chicago 12/11/06 (ESPN's "total" there says 28 because it adds team rebounds); Sacramento's 3 free throw attempts against Phoenix 4/13/25; Charlotte's 59 three-point attempts at Utah 1/10/26; the Lakers at Portland on 1/17/26 and at San Antonio, not Portland, on 1/7/26; Orlando's overtime at Houston 11/16/25; Brooklyn's 49 defensive rebounds against Atlanta 12/21/19 (the 11, 6, 11 and 21 of 0.102 add to it) and 55 on 1/12/20. All eleven as stated.
+
+**Not re-derived:** 0.100's box-score sweep (38,928 games fetched, 36,770 read) was not run again; its findings were checked through the eleven cases above and the whole-game check. The redates that rest on play-by-play alone (six of 0.101's twelve) still have one source each. 983 checks pass (no site code changed in this entry).
+
 ## 0.107.6 (2026-11-18): a team's season is cut into stretches, as many as its results support
 
 The user, 2:42 PM, on this morning's seven "team turned" lines: "those examples… is what I want to mine for. but don't just tie it to the start of the season or just a 15-game stretch. some times teams suck at start of season and then turn it around later. or they ebb and flow throughout the year, so they go from good to bad to good over a course of games. it's always a sliding scale. once the current stretch starts to normalize, then it's not as impressive if it's compared to a 4 game sample to star the season".
