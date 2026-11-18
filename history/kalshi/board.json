@@ -18,7 +18,7 @@
   "KXNBA2D": {
    "title": "NBA Player Double Double",
    "events": 11,
-   "markets": 106
+   "markets": 109
   },
   "KXNBA3QSPREAD": {
    "title": "NBA 3rd Quarter Spread",
@@ -48,7 +48,7 @@
   "KXNBA3D": {
    "title": "NBA Player Triple Double",
    "events": 11,
-   "markets": 41
+   "markets": 44
   },
   "KXNBAH2HWINS": {
    "title": "NBA Head to Head Win Total",
@@ -58,7 +58,7 @@
   "KXNBASTLPROT": {
    "title": "NBA Player Steals Protected",
    "events": 11,
-   "markets": 209
+   "markets": 211
   },
   "KXNBARACE": {
    "title": "NBA Race to Points",
@@ -68,7 +68,7 @@
   "KXNBAAST": {
    "title": "NBA Player Assists",
    "events": 11,
-   "markets": 411
+   "markets": 412
   },
   "KXNBA2HTOTAL": {
    "title": "NBA 2nd Half Total",
@@ -243,7 +243,7 @@
   "KXNBA2DPROT": {
    "title": "NBA Player Double Double Protected",
    "events": 11,
-   "markets": 106
+   "markets": 109
   },
   "KXNBA3QTOTAL": {
    "title": "NBA 3rd Quarter Total",
@@ -313,7 +313,7 @@
   "KXNBA3DPROT": {
    "title": "NBA Player Triple Double Protected",
    "events": 11,
-   "markets": 41
+   "markets": 44
   },
   "KXNBA4Q": {
    "title": "NBA 4th Quarter Winner",
@@ -323,7 +323,7 @@
   "KXNBASTL": {
    "title": "NBA Player Steals",
    "events": 11,
-   "markets": 209
+   "markets": 211
   },
   "KXNBAFINALSOUTCOME": {
    "title": "NBA Finals Outcome",
@@ -418,17 +418,17 @@
   "KXNBAREBPROT": {
    "title": "NBA Player Rebounds Protected",
    "events": 11,
-   "markets": 526
+   "markets": 527
   },
   "KXNBAPTSPROT": {
    "title": "NBA Player Points Protected",
    "events": 11,
-   "markets": 472
+   "markets": 473
   },
   "KXNBABLKPROT": {
    "title": "NBA Player Blocks Protected",
    "events": 9,
-   "markets": 77
+   "markets": 78
   },
   "KXNBAMIMP": {
    "title": "NBA Most Improved Player",
@@ -483,12 +483,12 @@
   "KXNBAASTPROT": {
    "title": "NBA Player Assists Protected",
    "events": 11,
-   "markets": 411
+   "markets": 412
   },
   "KXNBA3PTPROT": {
    "title": "NBA Player Threes Protected",
    "events": 11,
-   "markets": 522
+   "markets": 523
   },
   "KXNBA1QSPREAD": {
    "title": "NBA 1st Quarter Spread",
@@ -633,7 +633,7 @@
   "KXNBAPTS": {
    "title": "NBA Player Points",
    "events": 11,
-   "markets": 472
+   "markets": 473
   },
   "KXNBANORTHWEST": {
    "title": "Pro Basketball Northwest Division Winner",
@@ -663,7 +663,7 @@
   "KXNBA3PT": {
    "title": "NBA Player Threes",
    "events": 11,
-   "markets": 522
+   "markets": 523
   },
   "KXNBASEEDOU": {
    "title": "NBA Playoff Seed Over/Unders",
@@ -683,7 +683,7 @@
   "KXNBAREB": {
    "title": "NBA Player Rebounds",
    "events": 11,
-   "markets": 526
+   "markets": 527
   },
   "KXNBATEAM": {
    "title": "NBA team",
@@ -738,29 +738,29 @@
  },
  "favorites": {
   "KXNBASOUTHEAST-26": "Miami 50%",
-  "KXNBAROY-27": "Yaxel Lendeborg 31%",
+  "KXNBAROY-27": "Yaxel Lendeborg 32%",
   "KXNBACLUTCH-27": "Tyrese Maxey 18%",
   "KXNBADPOY-27": "Victor Wembanyama 80%",
   "KXNBASIXTH-27": "Payton Pritchard 29%",
   "KXNBAEXEC-27": "Sam Presti 13%",
   "KXNBAEFINMVP-27": "Jayson Tatum 13%",
-  "KXNBACUP-26": "San Antonio 22%",
+  "KXNBACUP-26": "San Antonio 23%",
   "KXNBAMVP-27": "Victor Wembanyama 44%",
   "KXNBA-27": "San Antonio 22%",
   "KXNBAWEST1SEED-26": "San Antonio 51%",
   "KXNBAEAST-27": "Boston 22%",
   "KXNBACUPMVP-27": "Victor Wembanyama 28%",
   "KXNBASOUTHWEST-26": "San Antonio 75%",
-  "KXNBAEAST1SEED-26": "Boston 42%",
-  "KXNBAMIMP-27": "Ty Jerome 37%",
+  "KXNBAEAST1SEED-26": "Boston 40%",
   "KXNBAWEST-27": "San Antonio 35%",
   "KXNBAATLANTIC-26": "Boston 54%",
+  "KXNBAMIMP-27": "Ty Jerome 37%",
   "KXNBARECORD-27BEST": "San Antonio 38%",
   "KXNBARECORD-27WORST": "Sacramento 43%",
   "KXNBACOY-27": "JJ Redick 17%",
   "KXNBAPACIFIC-26": "Los Angeles L 82%",
-  "KXNBACONF-27": "Western Conference 61%",
   "KXNBACENTRAL-26": "Detroit 61%",
+  "KXNBACONF-27": "Western Conference 61%",
   "KXNBANORTHWEST-26": "Oklahoma City 45%",
   "KXNBAWFINMVP-27": "Shai Gilgeous-Alexander 20%",
   "KXNBAFINMVP-27": "Victor Wembanyama 19%"
