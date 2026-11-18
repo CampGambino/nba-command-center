@@ -2,6 +2,24 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.104.0 (2026-11-18): bridge v22: a foul's time no longer counts ESPN's "offensive foul turnover" line; the foul trouble card's back drops the rule
+
+The user sent a foul trouble card for Luka Doncic (11/17 v Charlotte) whose back read "Q1 5:51 · Q1 1:30 · Q1 22.3 · Q1 22.3": "luka didn't get his 4th foul at the same time he got his 3rd foul", and "no need for the explainer line on the bottom".
+
+- **The cause.** ESPN writes one offensive foul as two plays at the same instant: "Luka Doncic offensive foul" and "Luka Doncic offensive foul turnover". NBA Live tags both as fouls (the word is in both), and the bridge's `foulTime` took the turnover line as his next foul. So his 4th was shown at the time of his 3rd, and his real 4th (Q2 8.3, another offensive foul) fell off the list. The front of the card ("4th foul, Q1 22.3") and the time the card was filed at were wrong the same way.
+- **The fix** (`docs/bridge/cc-bridge.js`): a play whose words include "turnover" is not a foul. ESPN's play-by-play for that game now gives Q1 5:51, Q1 1:30, Q1 22.3, Q2 8.3, which is his box score's four.
+- The back of the card no longer prints "Early foul trouble: more fouls than the period number…". It keeps tonight's fouls and the season count.
+- Bridge version 22 (`docs/bridge/version.json`); an open NBA Live page says a newer version is out until it is refreshed.
+- The season counts ("in early foul trouble in 2 of 12 games") were not affected: `src/gameflow/feeds.js` already reads that line as a turnover.
+- The team-marks card for NBA Live, called "bridge v22" in earlier notes, is still not built and will take the next number.
+
+### Tested
+- `node tests/run.js` 970 pass (a new check with the six ESPN plays from that game: the 3rd foul at Q1 22.3, the 4th at Q2 8.3, no 5th); `tests/articles-only.js` 79.
+
+### Unproven
+- Not seen on a live NBA Live page yet; the next foul trouble card after a refresh will show it.
+- Any other ESPN line that names a foul without being one would have the same effect. Technicals, delay of game, defensive three seconds and now turnovers are left out; "flagrant foul type 1" counts as a personal foul, as it does in the box score.
+
 ## 0.103.0 (2026-11-18): Kalshi lines cut from 67 to 7 for the first night; a "connected" line when the webhook first appears
 
 The first night's log, before any webhook existed: five looks in three and a half hours (GitHub ran the hourly job late or skipped it), and the one-rule-for-everything first guess would have posted **67 lines**. Most came from thin markets whose quotes jump with nothing traded (a blocks-leader favorite "changing" from 9% to 85%; a seed going 2% to 14% on 17 contracts), from win-total ladders moving every rung at once, and from "race to 30 points" markets that are tied to one game but were not recognised as such.

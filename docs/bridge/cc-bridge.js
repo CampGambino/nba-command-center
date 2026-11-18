@@ -56,6 +56,9 @@
  *       Live's own QUARTER EXPLOSION card is up for a quarter, the season place and list are added to that card (its
  *       all-time list stays) and the separate season card is not fired; it shows only where NBA Live has no card.
  *       This is the one place the bridge adds to a card of NBA Live's: two fields, on its way through fireStory.
+ *     - (v22, 0.104; the user, 11/18) a foul's time no longer counts ESPN's "offensive foul turnover" line as a foul
+ *       (Luka Doncic's 4th foul was shown at the time of his 3rd), and the back of the foul trouble card no longer
+ *       prints the rule ("more fouls than the period number…").
  *     - (v8, 0.72.2; the user, 11/15) foul trouble only for tonight's starters, players who start half their games or
  *       more, and players averaging 25.0 minutes or more ("no need to send foul trouble alert for a player coming off
  *       the bench unless they are typically a starter or average at least 25.0 minutes per game": Josh Green, 4 starts
@@ -77,7 +80,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 21;
+  var VERSION = 22;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -871,7 +874,10 @@
   // (The user, 11/16: a card read "2nd foul, end of the 1st" midway through the 2nd for a foul midway through the 1st.)
   function foulTime(game, id, n, asPlay) {
     var P = game.plays || [], mine = [];
-    for (var k = 0; k < P.length; k++) if (P[k] && P[k].badge === "foul" && String(P[k].playerId) === String(id) && !/technical|flagrant foul type 2 ejection|defensive 3-seconds|delay/i.test(P[k].desc || "")) mine.push(P[k]);
+    for (var k = 0; k < P.length; k++) if (P[k] && P[k].badge === "foul" && String(P[k].playerId) === String(id) && !/technical|turnover|flagrant foul type 2 ejection|defensive 3-seconds|delay/i.test(P[k].desc || "")) mine.push(P[k]);
+    // v22 (the user, 11/18: "luka didn't get his 4th foul at the same time he got his 3rd foul"): ESPN writes an offensive
+    // foul as two plays at the same instant, "offensive foul" and "offensive foul turnover". The second is the turnover,
+    // not another foul; counted, it put his next foul at the time of this one and dropped the real one off the list.
     if (mine.length < n) return null;
     var num = function (x) { var q = /^OT/.test(x.qtr) ? 4 + Number(String(x.qtr).slice(2)) : Number(String(x.qtr).slice(1)), m = /^(\d+):(\d+)/.exec(String(x.clock || "")); return q * 10000 - (m ? Number(m[1]) * 60 + Number(m[2]) : Math.round(parseFloat(x.clock) || 0)); };
     mine.sort(function (a, b) { return num(a) - num(b) || (a.seqNum || 0) - (b.seqNum || 0); });
@@ -994,7 +1000,8 @@
         // v20 (the user, 11/16: "why am i told how many points he has? this is a foul trouble alert" and "redundancy
         // telling me he has 4 fouls twice"): the back holds only fouls: when each of tonight's came, the season, the rule.
         var times = []; for (var fn = 1; fn <= pf; fn++) { var ftm = foulTime(game, p.id, fn); if (ftm) times.push(ftm); }
-        var rows = (times.length === pf && pf > 1 ? ["Tonight's fouls: " + times.join(" · ")] : []).concat([season, "Early foul trouble: more fouls than the period number (2 in the 1st, 3 by the half, 4 in the 3rd, 5 in the 4th)"]);
+        // v22 (the user, 11/18: "no need for the explainer line on the bottom"): the rule itself is no longer printed.
+        var rows = (times.length === pf && pf > 1 ? ["Tonight's fouls: " + times.join(" · ")] : []).concat([season]);
         var ft = { icon: "⚠️ FOUL TROUBLE", text: name + " (" + team + ") — " + ord(pf) + " foul, " + when + benchNote(p),
           statLine: "", sub: "Command Center · " + (Fo.trouble ? Fo.trouble + " of " + (Fo.gp || "?") + " games this season" : "first time this season"),
           backHtml: '<div class="alert-back-title">' + escH("⚠️ Foul trouble · " + name) + "</div>" + rows.map(function (r) { return '<div class="alert-back-play">' + escH(r) + "</div>"; }).join("") };

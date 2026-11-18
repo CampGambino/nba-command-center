@@ -3927,6 +3927,12 @@ await articlesChecks(ok);
       { badge: "foul", playerId: "9", qtr: "Q1", clock: "5:00", desc: "Y personal foul" }, { badge: "foul", playerId: "7", qtr: "Q1", clock: "6:15", desc: "X personal foul" }, { badge: "foul", playerId: "7", qtr: "Q1", clock: "10:02", desc: "X offensive foul" }];
     ok(foulTime({ plays }, "7", 1) === "Q1 10:02" && foulTime({ plays }, "7", 2) === "Q1 6:15" && foulTime({ plays }, "7", 3) === "Q2 9:44" && foulTime({ plays }, "7", 4) === null && foulTime({ plays: [] }, "7", 1) === null,
       "bridge v18: the time of a player's nth personal foul is read from the play-by-play (technicals not counted), whenever the card is drawn");
+    // v22: ESPN's two plays for one offensive foul (Luka Doncic, 11/17 v CHA: his 3rd at Q1 22.3, his 4th at Q2 8.3)
+    const luka = [["Q1", "5:51", "personal foul"], ["Q1", "1:30", "personal foul"], ["Q1", "22.3", "offensive foul"], ["Q1", "22.3", "offensive foul turnover"], ["Q2", "8.3", "offensive foul"], ["Q2", "8.3", "offensive foul turnover"]]
+      .map(([qtr, clock, d], i) => ({ badge: "foul", playerId: "77", qtr, clock, desc: "Luka Doncic " + d, seqNum: i }));
+    ok(foulTime({ plays: luka }, "77", 3) === "Q1 22.3" && foulTime({ plays: luka }, "77", 4) === "Q2 8.3" && foulTime({ plays: luka }, "77", 5) === null && !/more fouls than the period number/.test(br.slice(br.indexOf("var rows = (times.length === pf"), br.indexOf("var rows = (times.length === pf") + 400)) && /var VERSION = 22;/.test(br),
+      "bridge v22: an offensive foul's 'offensive foul turnover' line is not a second foul (his 4th foul is at its own time, not his 3rd's), and the foul trouble card's back no longer prints the rule",
+      JSON.stringify([3, 4, 5].map((n) => foulTime({ plays: luka }, "77", n))));
   }
 
   // A first career game without a point, rebound or assist.
