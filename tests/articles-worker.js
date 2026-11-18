@@ -4,7 +4,7 @@
  * deploy (tests/articles-only.js); tests/run.js runs them as part of the full suite.
  */
 import fs from "node:fs";
-import { parseLineups, diff as lineupDiff, lastStarters, lineupEmbed, lineupCheck, feedTime, espnStarters, feedDue, suspicion, timingEmbed, lineupContext } from "../cloudflare/lineups.js";
+import { parseLineups, diff as lineupDiff, lastStarters, lineupEmbed, lineupCheck, feedTime, espnStarters, feedDue, suspicion, timingEmbed, lineupContext, parseBoxStarters } from "../cloudflare/lineups.js";
 import { dueAt, dueNow, digestCheck } from "../cloudflare/digest.js";
 import { TEAM_FEEDS, teamFeedGroup, findLiveBlog, parseLiveBlog, LIVE_FEED } from "../cloudflare/articles-worker.js";
 import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey, tagOf as articleTag, embedFor } from "../cloudflare/articles-worker.js";
@@ -227,10 +227,11 @@ export async function articlesChecks(ok) {
       { team: { abbreviation: "NY" }, statistics: [{ athletes: [A("Karl-Anthony Towns", "C"), A("Miles McBride", "G"), A("OG Anunoby", "F"), A("Josh Hart", "F"), A("Jalen Brunson", "G"), A("Mikal Bridges", "G", false)] }] },
       { team: { abbreviation: "IND" }, statistics: [{ athletes: [A("Aaron Nesmith", "G"), A("Kelly Oubre Jr.", "F"), A("Andrew Nembhard", "G"), A("Pascal Siakam", "F"), A("Ivica Zubac", "C")] }] } ] } };
     ok(espnStarters(espn).NYK.length === 5 && espnStarters(espn).NYK[4].name === "Karl-Anthony Towns" && espnStarters(espn).IND, "lineups: who started, from ESPN's box (NY → NYK), guards to center", JSON.stringify(espnStarters(espn)));
-    let reads = 0;
+    let reads = 0, box = null, boxReads = 0;
     globalThis.fetch = async (u, o = {}) => {
       u = String(u);
       if (u.includes("daily_lineups_20261112")) { reads++; return new Response(JSON.stringify(current), { status: 200 }); }
+      if (u.includes("liveData/boxscore/boxscore_0022600300")) { boxReads++; return box ? new Response(JSON.stringify(box), { status: 200 }) : new Response("", { status: 403 }); }
       if (u.includes("raw.githubusercontent.com")) return new Response(JSON.stringify(file), { status: 200 });
       if (u.startsWith("https://discord.com/") && o.method === "PATCH") { edits.push({ id: u.split("/messages/")[1], ...JSON.parse(o.body) }); return new Response("{}", { status: 200 }); }
       if (u.startsWith("https://discord.com/")) { posts.push(JSON.parse(o.body)); return new Response(JSON.stringify({ id: `m${posts.length}` }), { status: 200 }); }
@@ -264,7 +265,8 @@ export async function articlesChecks(ok) {
         "lineups: from 90 minutes out, read on the 5-minute marks only; a confirmed five posted once", JSON.stringify({ reads, r2 }));
       reads = 0;
       const b1 = await lineupCheck(env, T("18:59"), noSleep), b2 = await lineupCheck(env, T("19:20"), noSleep), b3 = await lineupCheck(env, T("19:21"), noSleep), b4 = await lineupCheck(env, T("19:22"), noSleep);
-      ok(reads === 4 && b1.read.length === 2 && b2.read.length === 1 && b3.read.length === 1 && b4.read.length === 0 && posts.length === 1,
+      const nbaReads = (r) => r.read.filter((x) => /nba\.com/.test(x)).length; // 0.107: the box score file is tried beside each read inside 40 minutes
+      ok(reads === 4 && nbaReads(b1) === 2 && nbaReads(b2) === 1 && nbaReads(b3) === 1 && b4.read.length === 0 && posts.length === 1 && b1.read.filter((x) => /box NYK-IND 403/.test(x)).length === 2,
         "lineups: two reads a minute (:00 and :30) from 34:30 to 10 out (11/14 timing), then every 3 minutes (9 out read, 8 not); no repeat post", JSON.stringify([b1.read, b2.read, b3.read, b4.read]));
       current = feed("Confirmed", true);
       const r5 = await lineupCheck(env, T("19:04"), noSleep);
@@ -298,6 +300,31 @@ export async function articlesChecks(ok) {
       ok(r7.skipped === "all of today's games have tipped" && posts.length === 5, "lineups: done for the day once every game's starters were checked", JSON.stringify(r7));
       const early = await lineupCheck(env, Date.parse("2026-11-12T13:00:00Z"));
       ok(early.skipped === "before 10 AM ET", "lineups: nothing before 10 AM ET");
+      { // 0.107 (the user's yes, 11/18): the box score file shows a five before the lineups file confirms it
+        const kv2 = new Map(), env2 = { LINEUPS_WEBHOOK: env.LINEUPS_WEBHOOK, STATE: { get: async (k) => (kv2.has(k) ? JSON.parse(kv2.get(k)) : null), put: async (k, v) => kv2.set(k, v) } };
+        const n0 = posts.length, B = (name, position, starter = "1") => ({ name, position, starter });
+        current = feed("Expected"); box = null; boxReads = 0;
+        const c1 = await lineupCheck(env2, T("18:45"), noSleep), early45 = boxReads;   // 45 out: the lineups file only
+        const c2 = await lineupCheck(env2, T("18:55"), noSleep);                         // 35 out: the box score file is tried, not there yet (403)
+        box = { game: { gameId: "0022600300", gameStatus: 1,
+          homeTeam: { teamTricode: "NYK", players: [B("Karl-Anthony Towns", "C"), B("Josh Hart", "F"), B("Jalen Brunson", "G"), B("OG Anunoby", "F"), B("Mikal Bridges", "G"), B("Mitchell Robinson", "", "0")] },
+          awayTeam: { teamTricode: "IND", players: [B("Aaron Nesmith", "G"), B("Kelly Oubre Jr.", "F"), B("Andrew Nembhard", "G"), B("Pascal Siakam", "F")] } } }; // Indiana shows four: not a five
+        const c3 = await lineupCheck(env2, T("19:00"), noSleep);                         // 30 out: New York's five is in the box score file
+        current = feed("Confirmed");
+        const c4 = await lineupCheck(env2, T("19:02"), noSleep);                         // the lineups file catches up: nothing new to post
+        const st2 = JSON.parse(kv2.get("lineups")), w2 = st2.teams.NYK.when || {};
+        const sum2 = timingEmbed({ date: "2026-11-12", teams: [{ team: "NYK", tip, feedMin: null, seenMin: 30, postedMin: 30, lagSec: null, src: "box", feedLaterSec: 120, changes: [], tipResult: null }] });
+        ok(early45 === 0 && c1.posted === 0 && c2.posted === 0 && c2.read.some((x) => /box NYK-IND 403/.test(x)) && c3.posted === 1 && posts.length === n0 + 1
+          && posts[n0].embeds[0].description.includes("Jalen Brunson\nMikal Bridges\nOG Anunoby\nJosh Hart\nKarl-Anthony Towns") && /NYK/.test(posts[n0].embeds[0].title)
+          && c4.posted === 0 && posts.length === n0 + 1 && w2.src === "box" && w2.feedSeen - w2.seen === 120e3 && st2.teams.IND.posted === null && st2.sched[0].nba === "0022600300"
+          && /\*\*NYK\*\* \(7:30 PM\): from the box score file · seen 30\.0 min · posted 30\.0 min before tip · the lineups file had it 120s later/.test(sum2.description),
+          "lineups (0.107): the live box score file is read beside the lineups file from 40 minutes out; a team showing exactly five starters there is posted at once, in the lineups file's PG-to-C order; four starters is not a five; when the lineups file confirms the same five nothing is posted again, and the night's timing says which file had it and how much later the other did",
+          JSON.stringify({ c2: c2.read, c3: c3.read, posted: [c1.posted, c2.posted, c3.posted, c4.posted], w2, desc: posts[n0]?.embeds?.[0]?.description?.slice(0, 160), sum: sum2.description }));
+        const noNames = parseBoxStarters({ game: { homeTeam: { teamTricode: "NYK", players: [1, 2, 3, 4, 5].map(() => ({ starter: "1", position: "G" })) }, awayTeam: { teamTricode: "IND", players: [1, 2, 3, 4, 5].map((k) => ({ starter: "1", firstName: "First" + k, familyName: "Last" + k })) } } });
+        ok(noNames.teams.length === 1 && noNames.teams[0].tri === "IND" && noNames.teams[0].starters[0].name === "First1 Last1" && parseBoxStarters(null) === null,
+          "lineups (0.107): five starters without five different names are not a five (nothing is posted from them); a name can come from first and family name", JSON.stringify(noNames));
+        box = null;
+      }
       // The Worker's two schedules: "*/5" runs articles only; "* * * * *" runs lineups only.
       const ran = [];
       const env3 = { DISCORD_WEBHOOK: "https://discord.com/api/webhooks/1/test-x", LINEUPS_WEBHOOK: env.LINEUPS_WEBHOOK, STATE: { get: async (k) => { ran.push(k); return null; }, put: async () => {} } };

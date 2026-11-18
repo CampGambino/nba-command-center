@@ -2,6 +2,21 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.107.0 (2026-11-18): #lineups reads the box score file as well as the lineups file
+
+The user, 9:20 AM: "yes to lineups speed upgrade", after being told what it gives (the same confirmed fives, sooner for most teams) and what it costs (more requests to NBA.com before each tip, a second way to fail, one night of evidence).
+
+- **What changes** (`cloudflare/lineups.js`). NBA.com shows a team's starters in two files. Until now the Worker read only the daily lineups file. From 40 minutes before each tip it now also reads that game's live box score file whenever one of its teams is still unconfirmed, at the same moments it reads the lineups file (every 30 seconds from 35 to 10 minutes out, then at 9, 6 and 3). A team that shows exactly five starters there is posted at once, as a confirmed five, in the same card as always. Whichever file shows a five first wins; when the other catches up with the same five nothing is posted again; if it shows a different five, the usual "lineup change" card goes out.
+- **Why both and not one:** on 11/16 the box score file had the five first for 11 of 16 teams (median 80 seconds sooner, up to 340), and later for 5, because it does not exist until 20 to 30 minutes before tip (403 until then).
+- **Limits built in:** at most 8 box score files a run (`BOX_MAX`; a Worker run has 50 requests in all); a file that fails or is cut off is "not this time"; five starters without five different names are not a five and nothing is posted from them; the league's game id and each five's PG-to-C order come from the lineups file, so a game the lineups file has never listed is never looked up.
+- **The night's timing post** says, for a team first seen in the box score file, "from the box score file" and how many seconds later the lineups file had it. That line is how tonight will show whether the change earns its place.
+
+**Tested:** 81 checks in the Worker suite (two new: the box score file tried from 40 minutes and answering 403, then showing New York's five while Indiana shows four, the post in PG-to-C order, no second post when the lineups file confirms it, the timing line; and a "five" with no names refused), 977 in the main suite. The existing run was kept as it was except that its count of reads now counts NBA.com's lineups file apart from the box score file.
+
+**Unproven:** the player's name and position fields in the real box score file. The test script of 0.74 proved `teamTricode` and `starter` on a real night but never read names; today the file could not be opened from here (the league answers 403 to the cloud workspace, and a past game's file answered 403 in the user's browser). If the name fields are not as assumed, the guard means no box-score post at all, and #lineups behaves as before. Not seen on a real night until tonight's 7 PM tips.
+
+**Self-audit:** read the changed loop again for what could post wrongly rather than fail quietly. (1) A five posted from the box score file and then spelled differently in the lineups file would have read as a change: `diff` compares names without accents, punctuation or Jr./III, and the test's second read exercises that path with the same spellings only, so a nickname difference between the two files ("Nic" / "Nicolas") is still a possible false "lineup change" card. (2) The request count: a run can now make up to 16 more requests (8 files at each of two moments); with 12 teams confirming in one minute the old loop already used about 50, so the cap of 8 is a guess that has not been run against a 12-game night. (3) The 11/16 comparison is one night.
+
 ## 0.106.4 (2026-11-18): the pbpstats merge tool, tried on the first 17 games (nothing published)
 
 - **The job is reading.** First save at 9:04 AM: 17 games of 2016-17 in 38 minutes, one to retry. At the user's word (9:14 AM, "324 to get initial stats and see if it's worth it to do the rest") the job now reads 2016-17 and 2017-18 only.

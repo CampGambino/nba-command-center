@@ -233,6 +233,33 @@ export async function readFeed(yyyymmdd) {
   try { return { ok: true, status: res.status, json: JSON.parse(text) }; } catch { return { ok: false, status: res.status, note: "not JSON" }; }
 }
 
+// 0.107 (the user's yes, 11/18): the live box score file marks the five starters too, and on 11/16 it had them first for
+// 11 of 16 teams (median 80 seconds sooner, up to 340). It does not exist until 20 to 30 minutes before tip (403 until
+// then), so it is read beside the lineups file, never instead of it: whichever shows a team's five first is posted.
+export const BOX = (gameId) => `https://cdn.nba.com/static/json/liveData/boxscore/boxscore_${gameId}.json`;
+export const BOX_FROM = 40, BOX_MAX = 8; // minutes before tip from which it is tried; files read per run at most
+export async function readBox(gameId) {
+  const res = await tfetch(BOX(gameId), { headers: { Accept: "application/json", Referer: "https://www.nba.com/", "User-Agent": "ncc-lineups/1.0 (personal use)" } }, LIMIT_MS.feed);
+  if (!res.ok) return { ok: false, status: res.status };
+  const text = await bodyText(res);
+  if (text == null) return { ok: false, status: res.status, note: "cut off" };
+  try { return { ok: true, status: res.status, json: JSON.parse(text) }; } catch { return { ok: false, status: res.status, note: "not JSON" }; }
+}
+/** The box score file in parseLineups' shape: only teams that show exactly five starters, each "Confirmed", src "box". */
+export function parseBoxStarters(json, gameId = null) {
+  const g = json?.game;
+  if (!g) return null;
+  const tris = [g.homeTeam?.teamTricode, g.awayTeam?.teamTricode];
+  const side = (t, home, i) => {
+    const five = (t?.players || []).filter((p) => String(p.starter) === "1");
+    if (!t?.teamTricode || five.length !== 5) return null;
+    const starters = five.map((p) => ({ name: String(p.name || `${p.firstName || ""} ${p.familyName || ""}`).trim(), pos: p.position || "" }));
+    if (starters.some((p) => p.name.length < 3) || new Set(starters.map((p) => nameKey(p.name))).size !== 5) return null; // a five is five different names, or it is not posted
+    return { tri: t.teamTricode, opp: tris[1 - i], home, status: "Confirmed", at: null, src: "box", inactive: [], starters };
+  };
+  return { gameId: g.gameId || gameId, gameStatus: g.gameStatus, statusText: "", teams: [side(g.homeTeam, true, 0), side(g.awayTeam, false, 1)].filter(Boolean) };
+}
+
 /** Today's games from ESPN's scoreboard: [{ id, tip (ms, scheduled), teams: [TRI, TRI] }]. */
 export function readSchedule(board) {
   return (board?.events || []).map((e) => ({ id: e.id, tip: Date.parse(e.date), teams: (e.competitions?.[0]?.competitors || []).map((c) => triOf(c.team?.abbreviation)) }))
@@ -303,6 +330,7 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
   }
   // NBA.com's file at :00, :20 and :40 of this minute, whenever any game is due then (one read covers every game).
   const minute0 = Math.floor(now / 60e3) * 60e3;
+  let boxReads = 0;
   let irep; // the league's latest injury report, read at most once a run (only when a post would warn)
   for (const off of [0, BURST_EVERY_S]) {
     const t = minute0 + off * 1000;
@@ -314,16 +342,45 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
     // 0.68: when the read really happened (a run can start late); the slot time if the clock says otherwise.
     const late = Date.now() - t, readAt = late >= 0 && late < 60e3 ? t + late : t;
     report.read.push(`${off}s nba.com ${feed.status}${feed.note ? ` (${feed.note})` : ""}`);
-    if (!feed.ok) continue;
-    for (const g of parseLineups(feed.json)) {
-      const sg = st.sched.find((x) => x.teams.includes(g.teams[0].tri) && x.teams.includes(g.teams[1].tri));
+    const games = feed.ok ? parseLineups(feed.json) : [];
+    const schedOf = (g) => st.sched.find((x) => x.teams.includes(g.teams[0]?.tri) && x.teams.includes(g.teams[1]?.tri));
+    // the league's game id (the box score file is named by it) and each five's positions come from the lineups file
+    for (const g of games) {
+      const sg = schedOf(g);
+      if (sg && g.gameId && sg.nba !== g.gameId) { sg.nba = g.gameId; changed = true; }
+      for (const tm of g.teams) { const s = st.teams[tm.tri]; if (!s || tm.starters.length !== 5) continue; const pos = Object.fromEntries(tm.starters.map((p) => [nameKey(p.name), p.pos])); if (JSON.stringify(pos) !== JSON.stringify(s.pos || null)) { s.pos = pos; changed = true; } }
+    }
+    // 0.107: the box score file of each game inside 40 minutes with a team still unconfirmed here and in this read
+    for (const sg of st.sched) {
+      const m = (sg.tip - t) / 60e3;
+      if (!sg.nba || boxReads >= BOX_MAX || m <= 0 || m > BOX_FROM) continue;
+      const need = sg.teams.filter((tri) => phaseOf(st.teams[tri], sg.tip, t) === "pregame" && !st.teams[tri].posted && !games.some((g) => g.teams.some((tm) => tm.tri === tri && tm.status === "Confirmed")));
+      if (!need.length) continue;
+      boxReads++;
+      let b = { ok: false, status: 0 };
+      try { b = await readBox(sg.nba); } catch { /* the lineups file still covers this game */ }
+      report.read.push(`${off}s box ${sg.teams.join("-")} ${b.status}${b.note ? ` (${b.note})` : ""}`);
+      const bg = b.ok ? parseBoxStarters(b.json, sg.nba) : null;
+      if (!bg) continue;
+      bg.teams = bg.teams.filter((tm) => need.includes(tm.tri));
+      for (const tm of bg.teams) { // PG-to-C order as in the lineups file, when it has the same players
+        const pos = st.teams[tm.tri]?.pos || {};
+        tm.starters = tm.starters.map((p) => ({ ...p, pos: pos[nameKey(p.name)] || p.pos })).sort((p, q) => (POS_ORDER[p.pos] ?? 9) - (POS_ORDER[q.pos] ?? 9));
+      }
+      bg.sg = sg;
+      if (bg.teams.length) games.push(bg);
+    }
+    for (const g of games) {
+      const sg = g.sg || schedOf(g);
       for (const tm of g.teams) {
         const s = st.teams[tm.tri];
         if (!sg || !s || phaseOf(s, sg.tip, t) !== "pregame") continue;
         const names = tm.starters.map((p) => p.name);
+        // a five first posted from the box score file: note when the lineups file caught up (timing only)
+        if (tm.status === "Confirmed" && !tm.src && s.when?.src === "box" && !s.when.feedSeen) { s.when.feedSeen = readAt; s.when.feed = tm.at; changed = true; }
         if (tm.status === "Expected" && !s.expected) { s.expected = names; changed = true; }
         // Timing (times only, for the nightly summary): when NBA.com stamped it confirmed, when we first saw it.
-        if (tm.status === "Confirmed") { const w = (s.when ??= {}); if (!w.seen) { w.seen = readAt; w.slot = t; w.feed = tm.at; changed = true; } }
+        if (tm.status === "Confirmed") { const w = (s.when ??= {}); if (!w.seen) { w.seen = readAt; w.slot = t; w.feed = tm.at; if (tm.src) w.src = tm.src; changed = true; } }
         if (tm.status !== "Confirmed") continue;
         const again = s.posted && diff(s.posted, names).in.length > 0;
         if (s.posted && !again) continue;
@@ -419,6 +476,7 @@ export function nightTiming(st) {
       lagSec: w.posted && w.feed ? Math.round((w.posted - w.feed) / 1000) : null,
       lateSec: w.seen && w.slot ? Math.round((w.seen - w.slot) / 1000) : null, // 0.68: how late the read ran after its slot
       changes: (w.changes || []).map((c) => ({ seenMin: before(c.seen), feedMin: before(c.feed), postedMin: before(c.posted) })),
+      src: w.src || null, feedLaterSec: w.src === "box" && w.feedSeen && w.seen ? Math.round((w.feedSeen - w.seen) / 1000) : null,
       tipResult: s.tip || null });
   }
   return { date: st.date, teams: rows.sort((a, b) => a.tip - b.tip || a.team.localeCompare(b.team)) };
@@ -432,6 +490,7 @@ export function timingEmbed(timing) {
   const lines = timing.teams.map((r) => {
     const tip = r.tipResult === "posted" ? " · 🚨 started differently" : r.tipResult === "gave up" ? " · box never checked" : "";
     if (r.postedMin == null) return `**${r.team}** (${etClock(r.tip)}): not confirmed before tip${tip}`;
+    if (r.src === "box") return `**${r.team}** (${etClock(r.tip)}): from the box score file · seen ${fmt(r.seenMin)} · posted ${fmt(r.postedMin)} before tip${r.feedLaterSec != null ? ` · the lineups file had it ${r.feedLaterSec}s later` : " · the lineups file never confirmed it"}${r.changes.length ? ` · ${r.changes.length} change${r.changes.length > 1 ? "s" : ""}` : ""}${tip}`;
     const toSeen = r.feedMin != null && r.seenMin != null ? Math.round((r.feedMin - r.seenMin) * 60) : null;
     return `**${r.team}** (${etClock(r.tip)}): NBA.com ${fmt(r.feedMin)} · seen ${fmt(r.seenMin)} · posted ${fmt(r.postedMin)} before tip${r.lagSec != null ? ` (+${r.lagSec}s${toSeen != null ? `; ${toSeen}s to see it` : ""})` : ""}${r.changes.length ? ` · ${r.changes.length} change${r.changes.length > 1 ? "s" : ""}` : ""}${tip}`;
   });
