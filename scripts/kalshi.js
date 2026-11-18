@@ -39,7 +39,7 @@ await Promise.all(Array.from({ length: 4 }, async () => { while (q.length) { con
       cursor = j.cursor || ""; pages++; await sleep(80); } while (cursor && pages < 25);
     if (listed === now) series.find((s) => s.t === t).open = n > 0; } }));
 const { state, alerts, moves, counts } = look(prev, events, now);
-state.series = series; state.seriesAt = listed;
+state.series = series; state.seriesAt = listed; state.hooked = prev.hooked || false;
 const status = { at: now, api: base, calls, series: series.length, seriesOpen: series.filter((s) => s.open !== false).length, ...counts, moves: moves.length, alerts: alerts.length, firstLook: !prev.at, webhook: !!process.env.DISCORD_WEBHOOK_KALSHI };
 console.log("kalshi:", JSON.stringify(status));
 for (const a of alerts) console.log("  " + line(a));
@@ -54,11 +54,13 @@ const board = { series: Object.fromEntries(series.filter((s) => bySeries[s.t]).m
 const boardFile = path.join(out, "board.json"), boardText = JSON.stringify(board, null, 1);
 if (!fs.existsSync(boardFile) || fs.readFileSync(boardFile, "utf8") !== boardText) fs.writeFileSync(boardFile, boardText);
 fs.writeFileSync(path.join(out, "status.json"), JSON.stringify(status, null, 1));
-// Discord
-const url = process.env.DISCORD_WEBHOOK_KALSHI || "";
-if (alerts.length && url) {
+// Discord: the first time the secret is seen, one line to say the channel is connected
+const url = (process.env.DISCORD_WEBHOOK_KALSHI || "").trim();
+if (url) {
   if (!/^https:\/\/(discord|discordapp)\.com\/api\/webhooks\/\d+\/[\w-]+$/.test(url)) { console.error("kalshi: DISCORD_WEBHOOK_KALSHI doesn't look like a Discord webhook; nothing sent"); process.exit(0); }
   const lines = alerts.slice(0, 12).map(line); if (alerts.length > 12) lines.push(`…and ${alerts.length - 12} more`);
+  if (!state.hooked) { lines.unshift(`Kalshi watch is connected: ${counts.markets.toLocaleString("en-US")} open NBA markets read about once an hour. A line appears here when a headline market (MVP, awards, title, conference, division) moves 5+ points or gets a new favorite, or another futures market moves 10+ on real volume. Game-night markets are not posted.`); state.hooked = true; fs.writeFileSync(stateFile, JSON.stringify(state)); }
+  if (!lines.length) process.exit(0);
   let msg = ""; const posts = []; for (const l of lines) { if ((msg + "\n" + l).length > 1900) { posts.push(msg); msg = l; } else msg = msg ? msg + "\n" + l : l; } if (msg) posts.push(msg);
   for (const content of posts) { const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content, allowed_mentions: { parse: [] } }) }); console.log("kalshi: discord", r.status); await sleep(600); }
 }

@@ -2,6 +2,23 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.103.0 (2026-11-18): Kalshi lines cut from 67 to 7 for the first night; a "connected" line when the webhook first appears
+
+The first night's log, before any webhook existed: five looks in three and a half hours (GitHub ran the hourly job late or skipped it), and the one-rule-for-everything first guess would have posted **67 lines**. Most came from thin markets whose quotes jump with nothing traded (a blocks-leader favorite "changing" from 9% to 85%; a seed going 2% to 14% on 17 contracts), from win-total ladders moving every rung at once, and from "race to 30 points" markets that are tied to one game but were not recognised as such.
+
+- **Markets are sorted** (`src/kalshi.js`). Headline: MVP and the other awards, champion, conference, division, top seed, Cup. They keep the 5-point rule (or three times the market's usual day), need 100+ contracts traded in the last day, and are the only ones that get a "new favorite" line. Every other future needs 10 points on 500+ contracts and gives one line per group, its biggest mover, with a count of the rest.
+- **Tied to one game** now also means a date code anywhere in the market's name (`KXNBARACE-26NOV18MILMIA-30`) or a market due to settle within 36 hours. Those are never a line.
+- Replayed over the first night's 67: **7 lines** (San Antonio's Cup and win-streak prices falling, Philadelphia's top-seed price, JJ Redick becoming Coach of the Year favorite, Wembanyama's Finals MVP price, one win total).
+- The first run that sees the `DISCORD_WEBHOOK_KALSHI` secret posts one line saying the watch is connected and what it posts.
+
+### Tested
+- `node tests/run.js` 969 pass (a new check: a win-total ladder gives no line at 7 points, one line at 14 with "1 more in this group", none on thin volume; the tiers; the race market).
+
+### Unproven
+- At the last look (12:11 AM ET) the job still saw no webhook secret. The user says it is set; the next run shows whether the name matches.
+- "Usual daily move" needs three days of closes before it does anything; until then the floors (5 and 10) are the rule.
+- The 100 and 500 contract floors are a judgment from one night.
+
 ## 0.102.0 (2026-11-17): Kalshi's NBA markets read hourly on GitHub; PromoNight assessed (its terms bar it); play-by-play swept for every game since 2002-03
 
 The user asked whether all of Kalshi's NBA markets can be read (on GitHub if possible), how to tell a major move without checking every few minutes, for an assessment of the promo-night site, and what is left on the team records.
