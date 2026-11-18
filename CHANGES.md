@@ -2,6 +2,31 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.107.3 (2026-11-18): the promotions sheet was wrong on about 50 nights; rebuilt with a schedule check on every row
+
+The user, 11:52 AM: "proceed, and remember to emphasize due diligence to limit mistakes."
+
+**What was wrong, first.** The promotions sheet I handed over at noon (531 rows) had about 50 titles on the wrong game, and I had labelled most of those teams "good". Found by the first check I should have run before handing it over: is each row's date a home game for that team, and is the opponent the page prints the one on the league schedule?
+
+- Celtics: 12 of 13 rows sat on road dates. Bulls: every opponent was one game off, which meant the theme nights were too (15 rows). Nuggets: 12 of 15 one card early. Lakers, Warriors, Suns giveaways, Pacers: the same fault on some rows. The Lakers row for tonight said "NBA Cup"; the page says tonight is a Dodgers-style jersey giveaway and the Cup game is Friday.
+- Cause: on those pages the title is printed above its date. The morning script cut each page into lines at every date and attached what followed to that date, so a title went to the game before.
+- Also wrong: four Kings rows were TV station names from road games, and one Raptors night had its description as its title.
+- My noon caveat pointed at the wrong risk. I warned about the six teams I had typed by hand; those were right. The scripted teams I called "good" were the ones that were wrong. The "How well it read" column was my impression of the page's shape, not a check.
+
+**What changed.**
+
+- `tools/promos-sched.mjs` (new): each team's 2026-27 schedule from ESPN, home games by date.
+- `tools/promos-build2.py` (new; no promotions data in it; `promos-build.py` is kept only as the record of the first try): one reader per page layout, and no row is written unless (1) its date is a home game for that team on the league schedule and (2) the opponent the page prints, where it prints one, is the schedule's. Typed rows are also searched for in the stored sweep, beside their date. Opponent names now come from the schedule. Ticket bundles are left out.
+- Second reading, in the user's browser, with a different reader (one that keeps each card whole and reports the one date inside it, or the page's full order where the page is flat): Celtics, Bulls, Nuggets, Warriors, Lakers, Raptors, Suns giveaways, Cavaliers. All eight agree with the rebuilt rows. The five teams typed from news articles (Mavericks, Grizzlies, Trail Blazers, Spurs, Bucks) were compared again, row by row, with the page text the browser had kept; all 80 rows match, and the Mavericks' Star Wars Night line turned out to be whole (the trademark sign had split it).
+- New from the second reading: Bulls Cup Night 11/20; Warriors 1/9 backpack and 2/17 mahjong set; the Raptors' three Lowry nights (1/7, 1/8, 1/10) with the right titles; 21 Hornets dates (their page shows names only inside pictures; names taken from the picture file names where they say one).
+- The private sheet: tab "Nights" is now 481 rows for 28 teams (one row per team and date, so the count fell while coverage rose); the noon tab is kept beside it, renamed "Old (has wrong dates)"; a "Notes" tab says what was checked and what was not. The last column now says how each row was read and checked.
+
+**Tested:** all 481 rows pass both schedule checks (0 left out). A third, independent check: 17 rows name the NBA Cup group stage (15 teams), and all fall on that team's Cup home dates in the Cup media guide already in this repository (16 of them independently; the Lakers' row took its date from that guide). 144 of 145 typed parts were found in the stored sweep beside their date (the one miss is the Lakers' Cup row, whose card shows no date; its date is the Cup schedule's). The rebuilt file was imported and read back from the sheet (A1:F482, first rows as built). No site code changed; the 981 checks were not rerun.
+
+**Unproven:** the Rockets (22 rows) and Pistons (28) were read once and typed; the Rockets' page would not load its games in three tries this afternoon and the Pistons' site needs the user's approval again. Both pass the schedule checks. Ten teams were read once by script (Hawks, Nets, Pacers, Clippers, Heat, Timberwolves, Pelicans, Magic, 76ers, Wizards); on each the page repeats the title beside the date (picture label, description or opponent), which is why I believe the pairing, but they were not read a second time. Nine rows have no readable name. The Knicks have no dates and the Thunder no page.
+
+**Self-audit:** re-derived from the files: 481 rows, 28 teams, 0 schedule failures, 17 of 17 Cup rows, 144 of 145 typed parts. Two claims in my first draft of this entry were wrong and are fixed above (16 teams for 15; "all six bobbleheads" for six of seven). The claim "about 50 wrong" is a count by a rough matcher (rows whose title words now sit on another date): Celtics 12, Bulls 15, Nuggets 12, Lakers 3, Warriors 3, Suns 3, Pacers 2. Checked on cases not used while building: Lunar New Year (2/6/27) lands on the Bulls' and Kings' 2/6 games and the Nuggets' 2/5; the Celtics', Bulls' and Nuggets' fan appreciation nights land on their last home game; six of the Bulls' seven "Statement Edition" bobbleheads land on Statement Edition nights (the seventh, 2/9, is on Hoops and Hearts night as the page shows it), where in the noon sheet none did. What the schedule check cannot see: a title moved to another home game of the same team when the page prints no opponent. That is why the eight ambiguous pages were read a second time, and it is the reason the ten script-only teams are listed above as unproven. A lesson for the next sweep: save the second reading to a file as well (this one is only in the browser's storage and in this session), and run the schedule check before anything is handed over.
+
 ## 0.107.2 (2026-11-18): the National TV player rows say they open
 
 The user, 11:28 AM, with a screenshot of the page: "I don't see the changes for league pass table."
