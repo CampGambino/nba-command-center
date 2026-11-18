@@ -2,6 +2,16 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.108.1 (2026-11-18): one more player known under two names in the pbpstats merge
+
+- pbpstats writes "Walter Lemon Jr."; ESPN's box scores write "Walt Lemon Jr." (eleven of his games on file, with New Orleans in February and March 2018, the same weeks as the four unmatched lines). `SAME` in `tools/merge-pbpstats-logs.mjs` now pairs them.
+
+Tested: the merge report at 4:40 PM: 286 games (2016-17 all 162; 2017-18 124 of 162), every game's points add up to the score, 5,973 of 5,973 lines matched, 1,146 rows would be added. Nothing was written to the logs.
+
+Still unproven: 38 games left, one of which failed once in the last round. The merge stays unpublished until both seasons are complete.
+
+Self-audit: my first edit keyed the pair as "walterlemonjr", which never matched because the script strips "Jr." before comparing; the report still showing four unmatched lines caught it. The pairing rests on name, team and dates, not on an id.
+
 ## 0.108.0 (2026-11-18): searches that look for whoever stands apart, brothers, and one Lakers mark corrected
 
 The user, 4:09 PM, with two Basketball Reference box scores and thirteen posts: "all ideas and concepts on things to track, but not specific to those players or teams. it should be open to all players and teams. one exception is the brothers angle… we're curious if any players are in their own class compared to the rest of the league… there should be some leeway in both what is tracked and how many of each is tracked."

@@ -20,7 +20,7 @@ const norm = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toL
 // names pbpstats and ESPN spell differently (each seen in the data)
 // (0.107.8: the two below were found on the 217-game check, each from the one ESPN name left without a line that night:
 // LAL at NOP 11/12/16, "Marcelinho Huertas"; NOP at OKC 12/4/16, "Enes Freedom", the name ESPN now gives Enes Kanter)
-const SAME = { juanhernangomez: "juanchohernangomez", marcelohuertas: "marcelinhohuertas", eneskanter: "enesfreedom" };
+const SAME = { juanhernangomez: "juanchohernangomez", marcelohuertas: "marcelinhohuertas", eneskanter: "enesfreedom", walterlemon: "waltlemon" };
 const L = JSON.parse(zlib.gunzipSync(fs.readFileSync(LOGS)));
 const cols = L.columns.includes("src") ? L.columns : [...L.columns, "src"], ix = Object.fromEntries(cols.map((c, i) => [c, i]));
 const stats = { games: 0, used: 0, pointsOff: 0, noEspn: 0, lines: 0, matched: 0, current: 0, added: 0, already: 0 }, unmatched = {}, shown = [];
