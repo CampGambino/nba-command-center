@@ -2284,7 +2284,8 @@ await articlesChecks(ok);
     rows.push({ id: `g${i}-${k}`, d: day(i), h, a, hs: hw ? 110 : 100, as: hw ? 100 : 110, hb: box(), ab: box() });
   }
   const turn = S.turnLines({ rows });
-  ok(turn.some((l) => /^OKC went 12-0 in its first 12 games; 2-6 since/.test(l.text)), "season-long (0.70): a record turn (\"24-1 in their first 25, 6-5 since\")", JSON.stringify(turn.map((l) => l.text)));
+  // 0.107.1: the turn may now fall anywhere from four games in to six from the end, so the split is where it really is (13-0, then 1-6; with eight a side it could only say 12-0, then 2-6)
+  ok(turn.some((l) => /^OKC went 13-0 in its first 13 games; 1-6 since/.test(l.text)), "season-long (0.70): a record turn (\"24-1 in their first 25, 6-5 since\")", JSON.stringify(turn.map((l) => l.text)));
   // Players: a trade (two teams), a starter/bench split, a five that keeps winning, a rookie club, an MVP season.
   const g = (d, team, opp, win, o) => ({ d, gameId: `${d}-${team}`, team, opp, home: true, win, starter: false, min: 20, pts: 10, reb: 4, ast: 3, stl: 1, blk: 0, fgm: 4, fga: 9, fg3m: 1, fg3a: 3, ftm: 1, fta: 2, tov: 1, ...o });
   const pg = {
@@ -2353,6 +2354,22 @@ await articlesChecks(ok);
     const giannis = fr2.runs.find((r) => r[0] === "MIL" && r[1] === "pts30" && r[4] === "2024-25" && fr2.names[r[3]] === "Giannis Antetokounmpo" && r[2] === 7);
     ok(cup.length === 3 && inHist === 0 && inLogs === 0 && hist.games.length === 12812 && giannis && !fr2.runs.some((r) => days.has(r[5])),
       "Cup title games (0.106.1): Lakers v Pacers 12/9/23, Bucks v Thunder 12/17/24 and Knicks v Spurs 12/16/25 count for nothing: they are out of the results history (12,812 games), the players' logs and the runs file, where Antetokounmpo's 30-point run of 2024-25 is 7 (the title game, 26 points, had cut it into 5 and 2)", JSON.stringify([inHist, inLogs, hist.games.length, !!giannis]));
+  }
+  {
+    // 0.107.1: a turn found from four games in; a kind of game one player has had more often than everyone else together.
+    const { turnLines, TURN } = await import("../src/anticipate/seasonlong.js");
+    const { findings: find2, MORE } = await import("../src/anticipate/finder.js");
+    const day = (i) => `2026-11-${String(i + 1).padStart(2, "0")}`;
+    const run = (team, wins) => wins.map((w, i) => ({ id: `${team}${i}`, d: day(i), h: team, a: `Z${team}${i}`, hs: w ? 110 : 100, as: w ? 100 : 110 }));
+    const tl = turnLines({ rows: [...run("AAA", [0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0]), ...run("BBB", [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]), ...run("CCC", [0, 0, 0, 1, 1, 1, 0, 1, 1])] });
+    const g2 = (pts, reb, ast) => ({ min: 30, pts, reb, ast, stl: 0, blk: 0, fg3m: 0, team: "LAL" });
+    const pgM = { 1: [g2(46, 6, 9), g2(47, 4, 7), g2(51, 9, 5), g2(20, 3, 3)], 2: [g2(45, 11, 5), g2(18, 2, 2)], 3: [g2(48, 3, 6), g2(31, 5, 5)], 4: [g2(30, 12, 12), g2(31, 11, 10), g2(22, 10, 10)] };
+    for (let k = 10; k < 46; k++) pgM[k] = Array.from({ length: 6 }, () => g2(10, 2, 2)); // the finder says nothing until thirty players qualify
+    const fm = find2({ pg: pgM, names: { 1: "One Guy", 2: "Two Guy", 3: "Three Guy", 4: "Four Guy" } }).filter((x) => x.test === "more");
+    ok(tl.length === 1 && tl[0].team === "AAA" && tl[0].text === "AAA went 0-4 in its first 4 games; 8-2 since (11/5 on)" && TURN.early === 4
+      && fm.length === 1 && fm[0].text === "One Guy has 3 games with 40+ points this season. Every other player combined has 2" && MORE.least === 3,
+      "0.107.1: a team's turn is found from four games in (0-4, then 8-2), with a higher bar while a side is short (an even team and a nine-game sample say nothing; with no box totals, no ranks are claimed); the finder names the kind of game one player has had more often than every other player combined (three against two; of the grids with the same lead it says the broadest, here 40+ points), and a two-against-one case is not said",
+      JSON.stringify([tl.map((x) => x.text), fm.map((x) => x.text)]));
   }
   const W = buzzCounts([{ title: "Memphis Grizzlies vs. Washington Wizards: Game Highlights" }, { title: "Washington leading Memphis early" }, { title: "P.J. Washington scores 30 for Dallas" }, { title: "Tatum continues to impress" }],
     { players: ["P.J. Washington", "Jayson Tatum"], teams: ["WAS", "MEM"] });
@@ -2723,6 +2740,9 @@ await articlesChecks(ok);
     "notes (0.71): '2025-26 SEASON:' and 'PROFESSIONAL CAREER: 2024-25 SEASON:' headers mark last seasons' notes; 'marked a career high' after an old date is that game's; a past header over this season's dates is a typo", JSON.stringify([h.map((x) => x.text.slice(0, 50)), dropped.map((d) => d.reason)]));
   ok(!h.some((x) => /percentile On\/Off|A statistic that/.test(x.text)) && h.some((x) => /99th percentile in offensive on\/off/.test(x.text)),
     "notes (0.71): a stats glossary read into its table is dropped; a real sentence about the stat stays", JSON.stringify(h.map((x) => x.text.slice(0, 60))));
+  ok(N.repairLayout("It marked the seventh time in his career he’s gone 100% fromDate the free-throw line with at least nine attempts") === "It marked the seventh time in his career he’s gone 100% from the free-throw line with at least nine attempts"
+    && N.repairLayout("Date of his last start was 11/2 and the Score was close") === "Date of his last start was 11/2 and the Score was close",
+    "notes (0.107.1): a table's header word stuck inside a sentence is taken out (Denver, 11/18: '100% fromDate the free-throw line'); the same words used as words are left alone");
   ok(N.repairLayout("joining Moussa Cisse and Popeye Jones. 2 0 2 6 - 2 7 D A L L A S M A V E R I C K S G A M E N O T E S.") === "joining Moussa Cisse and Popeye Jones."
     && N.repairLayout("Kornet is just the sixth active player to be undrafted and have 300+ blocks. 17 Find us on X: @spurs | Facebook: http://www.facebook.com/Spurs.") === "Kornet is just the sixth active player to be undrafted and have 300+ blocks.",
     "notes (0.71): a letter-spaced page footer and the PR accounts' footer are cut");

@@ -125,18 +125,52 @@ export function lineupLines({ pg, rows, names, minGames = 6 }) {
   return out;
 }
 
+// 0.107.1 (the user, 11/18, on ESPN's "Heat since Oct. 28" card: 0-4, then 8-2): "being able to pinpoint where teams changed
+// their performance over a stretch of games… it doesn't have to be limited to 10-15 game samples". The turn is looked for
+// from four games in (it had needed eight on each side), with a higher bar while a side is short, and the line now says
+// what the team has been since the turn: its league ranks over those same dates, for every team's games in them.
+export const TURN = { early: 4, late: 6, gap: 0.4, shortGap: 0.5, top: 5, most: 4, teams: 20, games: 3 };
+const ordinal = (k) => `${k}${["th", "st", "nd", "rd"][k % 10 > 3 || [11, 12, 13].includes(k % 100) ? 0 : k % 10]}`;
+/** Each team's numbers from a date on, and its rank among the teams with enough games: { TRI: { n, ortg: [value, rank], … } }. */
+export function sinceRanks(T, from) {
+  const poss = (b) => b[1] + 0.44 * b[5] - b[6] + b[11], sum = (gs, f) => gs.reduce((a, g) => a + f(g), 0);
+  const R = [];
+  for (const [t, all] of Object.entries(T)) {
+    const gs = all.filter((g) => g.d >= from && g.box && g.obox);
+    if (gs.length < TURN.games) continue;
+    const P = sum(gs, (g) => (poss(g.box) + poss(g.obox)) / 2), pf = sum(gs, (g) => g.pf), pa = sum(gs, (g) => g.pa), B = (i) => sum(gs, (g) => g.box[i] || 0);
+    R.push({ t, n: gs.length, ortg: (100 * pf) / P, drtg: (100 * pa) / P, net: (100 * (pf - pa)) / P, fg: (100 * B(0)) / B(1), astPct: (100 * B(8)) / B(0), astTo: B(8) / Math.max(1, B(11)) });
+  }
+  if (R.length < TURN.teams) return null;
+  const out = {};
+  for (const [k, asc] of [["net", false], ["ortg", false], ["drtg", true], ["fg", false], ["astPct", false], ["astTo", false]]) {
+    const L = [...R].sort((x, y) => (asc ? x[k] - y[k] : y[k] - x[k]));
+    L.forEach((x, i) => { (out[x.t] ??= { n: x.n, of: R.length })[k] = [x[k], i + 1]; });
+  }
+  return out;
+}
 export function turnLines({ rows, minSide = 8 }) {
-  const out = [];
-  for (const [team, games] of Object.entries(teamGames(rows))) {
+  const out = [], T = teamGames(rows);
+  for (const [team, games] of Object.entries(T)) {
     let best = null;
-    for (let k = minSide; k <= games.length - minSide; k++) {
+    for (let k = Math.min(minSide, TURN.early); k <= games.length - Math.min(minSide, TURN.late); k++) {
       const a = games.slice(0, k), b = games.slice(k);
       const pa = a.filter((g) => g.win).length / a.length, pb = b.filter((g) => g.win).length / b.length;
-      if (Math.abs(pa - pb) >= 0.4 && (!best || Math.abs(pa - pb) > best.gap)) best = { k, a, b, gap: Math.abs(pa - pb), up: pb > pa };
+      const need = a.length >= minSide && b.length >= minSide ? TURN.gap : TURN.shortGap;
+      if (Math.abs(pa - pb) >= need && (!best || Math.abs(pa - pb) > best.gap)) best = { k, a, b, gap: Math.abs(pa - pb), up: pb > pa };
     }
     if (!best) continue;
-    out.push({ kind: "turn", team, key: `turn|${team}`,
-      text: `${team} went ${rec(best.a)} in its first ${best.k} games; ${rec(best.b)} since (${md(best.b[0].d)} on)`, score: 2.7 + best.gap });
+    // what it has been since: ranks in the league's top five after a turn for the better, bottom five after one for the worse
+    const since = sinceRanks(T, best.b[0].d)?.[team], said = [];
+    if (since) {
+      const W = { net: ["net rating", (v) => (v > 0 ? "+" : "") + v.toFixed(1)], ortg: ["offensive rating", (v) => v.toFixed(1)], drtg: ["defensive rating", (v) => v.toFixed(1)], fg: ["FG%", (v) => v.toFixed(1)], astPct: ["assist rate", (v) => `${Math.round(v)}% of its baskets`], astTo: ["assists per turnover", (v) => v.toFixed(1)] };
+      for (const k of ["net", "ortg", "drtg", "fg", "astPct", "astTo"]) {
+        const [v, r] = since[k]; if (best.up ? r > TURN.top : r <= since.of - TURN.top) continue;
+        if (said.length < TURN.most) said.push(`${ordinal(r)} in ${W[k][0]} (${W[k][1](v)})`);
+      }
+    }
+    out.push({ kind: "turn", team, key: `turn|${team}`, ...(since ? { since: { from: best.b[0].d, ...since } } : {}),
+      text: `${team} went ${rec(best.a)} in its first ${best.k} games; ${rec(best.b)} since (${md(best.b[0].d)} on)${said.length ? `. Since then: ${said.join(", ")}` : ""}`, score: 2.7 + best.gap + (said.length >= 3 ? 0.3 : 0) });
   }
   return out;
 }

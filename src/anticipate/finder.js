@@ -39,6 +39,7 @@ export const PART = { top: 10, half: 25, max: 2 };     // a piece that would ran
 export const TEAMS = { min: 24, least: 3 };            // more than this many of the other 29 teams, with at least 3 of his own
 export const GAP = { ratio: 1.0, lists: 2 };
 export const NOAS = { top: 12 };
+export const MORE = { least: 3, pts: [25, 30, 35, 40, 45, 50], reb: [0, 5, 8, 10, 12, 15], ast: [0, 5, 8, 10, 12, 15] }; // at least three such games, and more than everyone else's together
 /** A name as the All-Star list is matched: lower case, no accents, no punctuation, no Jr./III. */
 export const plainName = (n) => String(n || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\b(?:jr|sr|ii|iii|iv)\b\.?/g, "").replace(/[^a-z ]/g, "").replace(/\s+/g, " ").trim();
 
@@ -145,6 +146,29 @@ export function findings({ pg, names = {}, qsum = {}, teamGp = {}, allStars = nu
       const rookie = !!rookies?.has(top.p.id), last = past[past.length - 1];
       out.push({ kind: "find", test: "first", team: top.p.team, player: top.p.name, key: `find|first|${top.p.id}|${k}`, surprise: 2.9 + (rookie ? 0.4 : 0), rare: true,       // where the leader's "never an All-Star" line used to sit
         text: `${top.p.name} leads the NBA in ${word} (${r1(top.v)} ${unit} a game)${rookie ? " as a rookie" : `: he has never led the league in ${word}`}${last ? ` (last season's leader: ${last.player}, ${r1(last.value)})` : ""}` });
+    }
+  }
+  // `more` (0.107.1; the user, 11/18, on a "most 45/5/5 games: Dončić 3, every other player combined 2" post: "finding
+  // groupings of stats… that leaves all other players combined in a similar or lesser range"): a kind of game one player
+  // has had more often than the rest of the league put together. Every grid of points, rebounds and assists is tried;
+  // a player keeps the one where he is furthest ahead of everyone else's total.
+  {
+    const all = P.flatMap((p) => p.games.map((g) => [p, g])), bestMore = {};
+    for (const pts of MORE.pts) for (const reb of MORE.reb) for (const ast of MORE.ast) {
+      if (pts < 40 && (reb > 0) + (ast > 0) < 1) continue; // a bare "30+ points" is a list, not a kind of game
+      const n = new Map(); let total = 0;
+      for (const [p, g] of all) if (g.pts >= pts && g.reb >= reb && g.ast >= ast) { n.set(p, (n.get(p) || 0) + 1); total++; }
+      if (total < MORE.least) continue;
+      const [top, mine] = [...n.entries()].sort((x, y) => y[1] - x[1])[0], others = total - mine;
+      if (mine < MORE.least || mine <= others) continue;
+      const lead = mine - others, size = pts + 2 * reb + 2 * ast, cur = bestMore[top.id];
+      if (!cur || lead > cur.lead || (lead === cur.lead && (mine > cur.mine || (mine === cur.mine && size < cur.size)))) bestMore[top.id] = { top, mine, others, lead, size, pts, reb, ast };
+    }
+    for (const m of Object.values(bestMore)) {
+      const what = [`${m.pts}+ points`, m.reb ? `${m.reb}+ rebounds` : null, m.ast ? `${m.ast}+ assists` : null].filter(Boolean);
+      const kind = what.length > 1 ? `${what.slice(0, -1).join(", ")} and ${what[what.length - 1]}` : what[0];
+      out.push({ kind: "find", test: "more", team: m.top.team, player: m.top.name, key: `find|more|${m.top.id}`, surprise: 3 + Math.min(1, m.lead * 0.3) + (m.others ? 0 : 0.2), rare: true,
+        text: `${m.top.name} has ${m.mine} games with ${kind} this season. ${m.others ? `Every other player combined has ${m.others}` : "No one else has one"}` });
     }
   }
   // One gap line a player: the list where his lead is widest.

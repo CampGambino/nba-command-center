@@ -217,7 +217,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const upcoming = merged.games.filter((g) => g.d >= today);
     const played = sched.games.filter((g) => g.d <= through).length;
     const espnThrough = Object.keys(espnDays).sort().pop() || null;
-    fs.writeFileSync(path.join(root, "docs", "data", "national.json"), JSON.stringify({ generatedAt: out.generatedAt, through, networks: guide.networks, source: guide.source, played, total: sched.games.length, upcoming, espnThrough, flexed: merged.games.filter((g) => g.status === "added" || g.status === "dropped" || g.status === "changed"), teams: split.teams, players }));
+    fs.writeFileSync(path.join(root, "docs", "data", "national.json"), JSON.stringify({ generatedAt: out.generatedAt, through, networks: guide.networks, source: guide.source, played, total: sched.games.length, aired: split.aired, upcoming, espnThrough, flexed: merged.games.filter((g) => g.status === "added" || g.status === "dropped" || g.status === "changed"), teams: split.teams, players }));
     console.log(`national TV: ${played} of ${sched.games.length} national games played; ${players.length} players with a national game`);
   } else console.log(`national TV: no schedule file for ${season - 1}-${String(season).slice(2)} (src/data/)`);
 }

@@ -16,7 +16,7 @@ export function nationalIndex(schedule) {
   return m;
 }
 
-const STATS = ["min", "pts", "reb", "ast", "fg3m", "fgm", "fga", "ftm", "fta", "stl", "blk", "tov", "pm"];
+const STATS = ["min", "pts", "reb", "ast", "fg3m", "fg3a", "fgm", "fga", "ftm", "fta", "stl", "blk", "tov", "pm"];
 const blank = () => ({ gp: 0, ...Object.fromEntries(STATS.map((k) => [k, 0])) });
 
 /**
@@ -26,13 +26,14 @@ const blank = () => ({ gp: 0, ...Object.fromEntries(STATS.map((k) => [k, 0])) })
  *    counts for each (byNet), once in nat.
  */
 export function nationalSplits(teamFiles, index, { currentTeam = null } = {}) {
-  const teams = {}, players = {};
+  const teams = {}, players = {}, aired = new Map(); // aired (0.107.1): the national games already played, so a page can mark them in a player's game list
   for (const [tri, f] of Object.entries(teamFiles)) {
     const ix = Object.fromEntries((f.keys || []).map((k, i) => [k, i]));
     const t = (teams[tri] = { nat: { w: 0, l: 0 }, other: { w: 0, l: 0 }, byNet: {} });
     for (const g of f.games || []) {
       const key = g.home ? nationalKey(g.d, g.opp, tri) : nationalKey(g.d, tri, g.opp);
       const side = index.has(key) ? "nat" : "other";
+      if (side === "nat" && !aired.has(key)) aired.set(key, { d: g.d, away: g.home ? g.opp : tri, home: g.home ? tri : g.opp, networks: [...new Set(index.get(key) || [])] });
       if (g.pf != null && g.pa != null) {
         const r = g.pf > g.pa ? "w" : "l";
         t[side][r]++;
@@ -49,13 +50,15 @@ export function nationalSplits(teamFiles, index, { currentTeam = null } = {}) {
     }
   }
   const list = Object.values(players).map(({ last, ...p }) => ({ ...p, team: (currentTeam && currentTeam(p.id)) || p.team }));
-  return { teams, players: list };
+  return { teams, players: list, aired: [...aired.values()].sort((x, y) => x.d.localeCompare(y.d)) };
 }
 
 /** Per-game averages and percentages for a totals block. */
 export function perGame(s) {
   const g = s.gp || 0, r = (x) => (g ? Math.round((x / g) * 10) / 10 : null);
   return { gp: g, min: r(s.min), pts: r(s.pts), reb: r(s.reb), ast: r(s.ast), fg3m: r(s.fg3m), stl: r(s.stl), blk: r(s.blk), tov: r(s.tov), pm: r(s.pm),
+    fga: r(s.fga), fg3a: r(s.fg3a), fta: r(s.fta),
+    fg3Pct: s.fg3a ? Math.round((s.fg3m / s.fg3a) * 1000) / 10 : null, ftPct: s.fta ? Math.round((s.ftm / s.fta) * 1000) / 10 : null,
     fgPct: s.fga ? Math.round((s.fgm / s.fga) * 1000) / 10 : null, tsPct: s.fga + s.fta ? Math.round((s.pts / (2 * (s.fga + 0.44 * s.fta))) * 1000) / 10 : null };
 }
 

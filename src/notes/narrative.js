@@ -303,6 +303,9 @@ export function repairLayout(s) {
   let t = s.replace(/\s*\d{1,2}\/\d{1,2}\s+(?:at|vs\.?|@)\s+\p{Lu}[\p{L}.]*(?:\s+\p{Lu}[\p{L}.]*)?\s+(?:\d{2,3}-\d{2,3}\s+)?[WL](?:\s+\d{2,3}-\d{2,3})?(?:\s+\d{1,2}:\d{2})?(?:\s+\d{1,3}(?:-\d{1,3})?)+(?=\s|[.,;]|$)/gu, " ");
   t = t.replace(/\s*\b(?:19|20)\d\d-\d\d Game Notes\.?/g, "");
   t = t.replace(/\b(\d{1,2})-\s+of-(\d{1,2})\b/g, "$1-of-$2"); // "shooting 6- of-26" (Houston, 11/15)
+  // 0.107.1 (the user's image, 11/18): a table's header word printed inside a sentence and stuck to the word before it
+  // ("he's gone 100% fromDate the free-throw line", Denver). 0.77 drops such a word when it stands alone on a line.
+  t = t.replace(/(\p{Ll})(?:Date|Opponent|Result|Score)(?=\s+\p{Ll})/gu, "$1");
   t = t.replace(/^(?:\p{Lu} ){3,}\p{Lu}(?:\s*[\/&]\s*(?:\p{Lu} ){2,}\p{Lu})*\s+(?=\p{Lu}\p{Ll})/u, ""); // a letter-spaced heading before the sentence ("S T E A L S / B L O C K S With five assists…", Chicago; 0.78)
   t = t.replace(/(\))\s+20\d\d-\d\d\.?$/, "$1."); // the next header's season after the last bullet ("…(70 on 3/24/17) 2026-27.", Phoenix)
   // 0.71: a letter-spaced footer ("2 0 2 6 - 2 7 D A L L A S M A V E R I C K S G A M E N O T E S."), and a page number
