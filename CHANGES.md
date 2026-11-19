@@ -2,6 +2,18 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.115.2 (2026-11-19): a calendar month is compared from the player's fourth game in it
+
+The user, 11:52 AM: "for monthly checks, wait 4 games for the player side before starting to compare into the start of the month".
+
+- `OUTDO.month = 4` in `src/anticipate/finder.js`: the player-against-team search says nothing about a calendar month (this one, or the one just ended) until the player has played four games in it. Nothing is asked of the teams. The season and the last-30-days windows are unchanged.
+
+Tested: 1,002 checks pass (one new: no November line with three games, a line with four). Replayed on this season's games as of the mornings of 11/3 and 11/6: the twelve two-games-against-one lines of 0.115.1 are gone; what is left on 11/3 is October ("Wembanyama has 25 blocks in October (6 games): more than 10 whole teams") and two season lines against Sacramento. Today's line is unchanged (61 blocks this season, more than 7 teams).
+
+Still unproven: nothing new. The same early-days effect exists for "this season" in the first week of a season; the user's rule was about months, so it is left alone and noted here.
+
+Self-audit: the replay numbers above are from the run made after the change, on the same two mornings as before, so the comparison is like for like. I did not run a full site build for this one-condition change; the suite and the replay cover the function, and the two builds earlier today cover the pipeline around it.
+
 ## 0.115.1 (2026-11-19): player against team with no conditions; free throws added
 
 The user, 11:45 AM, of the two conditions I had put on 0.115.0's comparison: "no need to put restrictions on comparing player to team stats. It's one player against a whole team. that limits discovery and preparation. what about free-throws made and attempted?"

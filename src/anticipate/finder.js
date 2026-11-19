@@ -54,7 +54,10 @@ export const NOAS = { top: 12 };
 // his total only has to be more than theirs, and a team counts whatever it has played in the window (one game or more).
 // What keeps a second-day-of-the-month line from leading the list is the order, not a filter: `full` games of his own in
 // the window before a line gets full weight.
-export const OUTDO = { teams: 1, full: 6, lines: 12, early: 7 };
+// 0.115.2 (the user, 11/19): "for monthly checks, wait 4 games for the player side before starting to compare into the
+// start of the month". `month`: the games he must have played in a calendar month before that month is compared. Nothing
+// is asked of the teams.
+export const OUTDO = { teams: 1, month: 4, full: 6, lines: 12, early: 7 };
 const OUT_STATS = [["blk", "blocks"], ["stl", "steals"], ["oreb", "offensive rebounds"], ["fg3m", "threes"], ["ftm", "free throws"], ["fta", "free throw attempts"], ["ast", "assists"], ["reb", "rebounds"], ["pts", "points"]];
 const MONTH_NAME = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 export const CLUB = { most: 3, sizes: [4, 3, 2], each: 4, wide: 75, near: 0.92, lines: 6, pool: 30 };   // each bar is cleared by 4 to 75 players; together by at most 3
@@ -254,9 +257,9 @@ export function findings({ pg, names = {}, qsum = {}, teamGp = {}, allStars = nu
     const last = lastDay, ym = last.slice(0, 7);
     const back = (n) => new Date(Date.parse(`${last}T12:00:00Z`) - n * 864e5).toISOString().slice(0, 10);
     const prev = (() => { const d = new Date(Date.parse(`${ym}-01T12:00:00Z`) - 864e5); return d.toISOString().slice(0, 7); })();
-    const wins = [{ key: "season", say: "this season", in: () => true, bonus: 0.4 }, { key: "month", say: `in ${MONTH_NAME[+ym.slice(5) - 1]}`, in: (d) => d.slice(0, 7) === ym, bonus: 0 },
+    const wins = [{ key: "season", say: "this season", in: () => true, bonus: 0.4 }, { key: "month", say: `in ${MONTH_NAME[+ym.slice(5) - 1]}`, in: (d) => d.slice(0, 7) === ym, bonus: 0, monthly: true },
       { key: "d30", say: "in the last 30 days", in: (d) => d > back(30), bonus: 0 }];
-    if (+last.slice(8) <= OUTDO.early) wins.push({ key: "prev", say: `in ${MONTH_NAME[+prev.slice(5) - 1]}`, in: (d) => d.slice(0, 7) === prev, bonus: 0.2 });
+    if (+last.slice(8) <= OUTDO.early) wins.push({ key: "prev", say: `in ${MONTH_NAME[+prev.slice(5) - 1]}`, in: (d) => d.slice(0, 7) === prev, bonus: 0.2, monthly: true });
     const best = {};
     for (const w of wins) {
       const T = {}, mine = [];
@@ -267,7 +270,7 @@ export function findings({ pg, names = {}, qsum = {}, teamGp = {}, allStars = nu
         mine.push({ p, n: gs.length, tot, teams: new Set(gs.map((g) => g.team)) });
       }
       for (const m of mine) for (const [k, word] of OUT_STATS) {
-        const v = m.tot[k]; if (!(v > 0)) continue;
+        const v = m.tot[k]; if (!(v > 0) || (w.monthly && m.n < OUTDO.month)) continue;
         const fewer = Object.entries(T).filter(([t, x]) => !m.teams.has(t) && x[k] < v).sort((a, b) => b[1][k] - a[1][k]);
         if (fewer.length < OUTDO.teams) continue;
         const key = `${m.p.id}|${k}`, surprise = 1 + (0.45 * Math.min(fewer.length, 8) + w.bonus) * Math.min(1, m.n / OUTDO.full);

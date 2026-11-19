@@ -2461,6 +2461,10 @@ await articlesChecks(ok);
       && blk.some((f) => /^P BBB0 has 24 blocks in November \(6 games\): more than all of DDD \(20 in 2\)$/.test(f.text)) && !O.some((f) => /this season/.test(f.text) && /The Blocker/.test(f.text)),
       "0.115.1 (the user: \"no need to put restrictions… It's one player against a whole team\"): a player's total against whole teams' totals, found in the month where it is true and not over the season; a team that has played two games in the window is counted like any other, with its games printed; one team is enough for a line",
       JSON.stringify(O.map((f) => f.text)));
+    // 0.115.2: a calendar month is compared once he has played four games in it
+    const early = (n) => FD({ pg: Object.fromEntries(Object.entries(pgO).map(([id, gs]) => [id, gs.filter((g) => g.d.startsWith("2026-10") || g.d <= nov[n - 1])])), names: namesO }).filter((f) => f.test === "outdo" && /in November/.test(f.text));
+    ok(early(3).length === 0 && early(4).some((f) => /^The Blocker has 20 blocks in November \(4 games\)/.test(f.text)) && OUTDO.month === 4,
+      "0.115.2 (the user: \"wait 4 games for the player side\"): no line about a calendar month until the player has four games in it; from his fourth it is compared", JSON.stringify([early(3).map((f) => f.text), early(4).map((f) => f.text)]));
     const ft = FD({ pg: Object.fromEntries(Object.entries(pgO).map(([id, gs]) => [id, gs.map((g) => ({ ...g, ftm: id === "AAA0" ? 14 : 1, fta: id === "AAA0" ? 16 : 2 }))])), names: namesO }).filter((f) => f.test === "outdo" && /free throw/.test(f.text));
     ok(ft.some((f) => /^The Blocker has \d+ free throws /.test(f.text)) && ft.some((f) => /^The Blocker has \d+ free throw attempts /.test(f.text)),
       "0.115.1: free throws made and free throw attempts are compared too", JSON.stringify(ft.map((f) => f.text)));
