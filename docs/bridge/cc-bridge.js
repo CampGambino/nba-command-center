@@ -56,6 +56,16 @@
  *       Live's own QUARTER EXPLOSION card is up for a quarter, the season place and list are added to that card (its
  *       all-time list stays) and the separate season card is not fired; it shows only where NBA Live has no card.
  *       This is the one place the bridge adds to a card of NBA Live's: two fields, on its way through fireStory.
+ *     - (v25, 0.119; the user, 11/19: "the depending on zero is a good one to flag in the final five minutes… if it
+ *       doesn't ping until the end of the game, it could get lost if it's immediately deactivated. The others seem fine")
+ *       ODD LINES: a player's line with an odd shape (30 points and no free throw attempt, no field goal on 10 shots, a
+ *       guard with 15 rebounds, 5 blocks and no rebound…), with how often it has happened since 1993-94. A line that can
+ *       only grow fires the moment it is true. A line one play can undo fires in the final five minutes of the 4th
+ *       quarter (any time in overtime) as "AS IT STANDS", is greyed if it is undone, and stays at the final. The rules
+ *       are the Command Center's own (lib/situations/oddlines.js, read as text); the counts are oddlive.json. Not in
+ *       the playoffs or a game that counts toward no book. One card a player (his rarest line leads; others follow in the
+ *       small print). Where NBA Live has its own card for the same thing (a no-make or no-miss streak near a record,
+ *       turnovers) this one stands aside, and a number far above his own average is left to NBA Live's high cards.
  *     - (v24, 0.109; the user, 11/18: "you may proceed with team record cards, but I am concerned that not all of the stats
  *       are factual given the errors already spotted") each team's single-game TEAM marks from its media guide
  *       (teammarks.json): a team total that ties or passes its franchise mark (most, live; fewest, at the final), one that
@@ -86,7 +96,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 24;
+  var VERSION = 25;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -117,6 +127,8 @@
   var recordsUrl = url.replace(/watch\.json(\?.*)?$/, "records.json");
   var flowUrl = url.replace(/watch\.json(\?.*)?$/, "flowstats.json");
   var teamMarksUrl = url.replace(/watch\.json(\?.*)?$/, "teammarks.json");
+  var oddUrl = url.replace(/watch\.json(\?.*)?$/, "oddlive.json");
+  var oddRulesUrl = url === DEFAULT_URL ? url.replace(/data\/watch\.json(\?.*)?$/, "lib/situations/oddlines.js") : url.replace(/watch\.json(\?.*)?$/, "oddlines.js");
   var bestsUrl = /watch\.json(\?.*)?$/.test(url) ? url.replace(/watch\.json(\?.*)?$/, "").replace(/data\/$/, "") + "ref/nba-single-game-bests.json" : url;
 
   function has(name) { try { return typeof eval(name) !== "undefined"; } catch (e) { return false; } }
@@ -161,6 +173,12 @@
     // v24: each team's single-game team marks. Optional.
     if (teamMarksUrl !== url) fetch(teamMarksUrl, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) { state.teamMarks = d && d.v === 1 && d.teams ? d : null; }).catch(function (e) { state.teamMarks = null; state.teamMarksError = String(e && e.message || e); });
+    // v25: odd lines. The counts (oddlive.json) and the rules (the site's own module, read as text so nothing depends on
+    // module loading from wherever NBA Live is opened). Both optional: without either, no odd-line cards.
+    if (oddUrl !== url) fetch(oddUrl, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { state.odd = d && d.v === 1 && d.t ? d : null; }).catch(function (e) { state.odd = null; state.oddError = String(e && e.message || e); });
+    if (oddRulesUrl !== url && !state.oddRules) fetch(oddRulesUrl, { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : null; })
+      .then(function (src) { state.oddRules = src ? oddRulesFrom(src) : null; }).catch(function (e) { state.oddRules = null; state.oddError = String(e && e.message || e); });
     // v5: this season's Game Flow facts. Optional.
     if (flowUrl !== url) fetch(flowUrl, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) { state.flow = d && Array.isArray(d.quarters) ? d : null; }).catch(function (e) { state.flowError = String(e && e.message || e); });
@@ -320,6 +338,7 @@
       try { listChecks(game, sides, box, tag, scr); } catch (e) { state.listError = String(e && e.message || e); }
       try { franchiseGameChecks(game, sides, box, tag, scr); } catch (e) { state.fgError = String(e && e.message || e); }
       try { teamMarkChecks(game, sides, box, tag, scr); } catch (e) { state.teamMarkError = String(e && e.message || e); }
+      try { oddLineChecks(game, sides, box, tag, scr); } catch (e) { state.oddCheckError = String(e && e.message || e); }
       try { arenaChecks(game, sides, box, tag, scr); } catch (e) { state.arenaError = String(e && e.message || e); }
       try { lastTimeChecks(game, sides, box, tag, scr); } catch (e) { state.lastTimeError = String(e && e.message || e); }
       try { zeroChecks(game, sides, box, tag, scr); } catch (e) { state.zeroError = String(e && e.message || e); }
@@ -946,6 +965,68 @@
     return Object.assign({}, card, {
       sub: (card.sub ? card.sub + " · " : "") + line.charAt(0).toUpperCase() + line.slice(1),
       backHtml: (card.backHtml || "") + seasonBack("📅 This season · points in a quarter", L, own, qRow, 5),
+    });
+  }
+  // v25: odd lines (see the header). The rules module has no imports; its exports become one object.
+  function oddRulesFrom(src) {
+    var names = [], body = String(src).replace(/^export (const|function) ([A-Za-z_$][\w$]*)/gm, function (_, kind, name) { names.push(name); return kind + " " + name; });
+    if (/^\s*(import|export)\b/m.test(body)) throw new Error("odd-line rules: unexpected import or export");
+    var R = (new Function(body + "\nreturn {" + names.join(",") + "};"))();
+    return R && typeof R.liveHits === "function" && typeof R.liveKind === "function" ? R : null;
+  }
+  // NBA Live's own cards that already say the same thing: a prefix of its key for that player in this game.
+  var ODD_OWN = { ofg: "sr-0fg-", o3: "sr-0tpa-", perft: "sr-pft-", tov: "sr-tov-" };
+  // Left to NBA Live's own season-high and career-high cards: a number far above his own average is a big night, not an
+  // odd line. They stay on the website's list. (Remove an id here to card it.)
+  var ODD_SKIP = { erupt: 1, reb3x: 1, ast3x: 1 };
+  var ODD_GRADE = { rare: "Rare (once a season or less)", few: "A few a season", monthly: "About monthly", common: "Common" };
+  function oddLineChecks(game, sides, box, tag, scr) {
+    var O = state.odd, R = state.oddRules;
+    if (!O || !R || (game.status !== "live" && game.status !== "final")) return;
+    var post = false;
+    try { post = typeof isPlayoffSlate === "function" && !!isPlayoffSlate(); } catch (e) { post = false; }
+    if (post || game.countsForRecords === false) return;                // the counts are regular-season games
+    var live = game.status === "live", fin = game.status === "final", per = Number(game.period) || 0, left = secsLeftNow(game);
+    var lateSecs = R.LATE_SECS || 300;
+    var closing = fin || (live && (per >= 5 || (per === 4 && left != null && left <= lateSecs)));
+    var clock = String(game.clock || "").trim(), when = per >= 5 ? (per === 5 ? "overtime" : (per - 4) + " overtimes in") : "the 4th";
+    state.oddEnded = state.oddEnded || {};
+    ["away", "home"].forEach(function (side) {
+      var ps = (box[side] || []).filter(Boolean), team = sides[side];
+      var known = ps.filter(function (p) { return !!p.starter; }).length === 5;   // "off the bench" only when five starters are marked
+      ps.forEach(function (p) {
+        if (p.id == null) return;
+        var n = function (f) { return Number(p[f]) || 0; };
+        var l = { min: n("min"), pts: n("pts"), fgm: n("fgm"), fga: n("fga"), fg3m: n("tpm"), fg3a: n("tpa"), ftm: n("ftm"), fta: n("fta"), oreb: n("oreb"), dreb: n("dreb"), reb: n("reb"), ast: n("ast"),
+          stl: n("stl"), blk: n("blk"), tov: Number(p.to != null ? p.to : p.tov) || 0, pf: n("pf"), starter: known ? (p.starter ? 1 : 0) : null };
+        var a = (O.avg || {})[String(p.id)], x = { pos: R.posGroup((O.pos || {})[String(p.id)]), avg: a ? { pts: a[0], reb: a[1], ast: a[2] } : null };
+        // One card a player: his rarest line that may be said now is the headline, any others follow in the small print.
+        var key = "cc-odd-" + game.id + "-" + p.id;
+        var hits = R.liveHits(l, x, O.t, O.from).filter(function (h) {
+          if (ODD_SKIP[h.id]) return false;
+          var own = ODD_OWN[h.id] && typeof ALERT_STORIES !== "undefined" && ALERT_STORIES.get(ODD_OWN[h.id] + game.id + "-" + p.id);
+          return (h.live === "grow" || closing) && !(own && !own.ended);
+        });
+        if (!hits.length) {
+          // a card that was up and is no longer true (a late line undone, or a stat taken back): grey it with the line as it is now
+          if (state.keys[key] && !state.oddEnded[key]) {
+            state.oddEnded[key] = 1;
+            if (typeof endStory === "function") endStory(key, p.name + " (" + team + ") — no longer an odd line: " + l.pts + " pts, " + l.fgm + "-" + l.fga + " FG, " + l.ftm + "-" + l.fta + " FT, " + l.reb + " reb, " + l.ast + " ast");
+            else dropCard(key);
+          }
+          return;
+        }
+        delete state.oddEnded[key];
+        var h = hits[0], standing = live && h.live === "late";
+        var also = hits.slice(1).map(function (o) { return o.say + (live && o.live === "late" && !standing ? " (as it stands)" : ""); });
+        var noteText = String(h.note || "").replace(/\.$/, "");
+        fire(key, { type: "streak", icon: standing ? "🧩 ODD LINE · AS IT STANDS" : "🧩 ODD LINE",
+          text: p.name + " (" + team + ") — " + h.say + (standing && clock ? ", " + clock + " left in " + when : ""),
+          statLine: typeof fmtAlertStatLine === "function" ? fmtAlertStatLine([[l.pts, "PTS"], [l.reb, "REB"], [l.ast, "AST"]]) : "",
+          sub: "Command Center · " + (h.grade ? ODD_GRADE[h.grade] + " · " : "") + (noteText ? noteText + " · " : "") + (also.length ? "Also: " + also.join("; ") + " · " : "")
+            + (standing ? "stands only if the game ends here · " : "") + "ESPN box scores, about 3% of games not on file",
+          live: live, gameId: game.id, gameTag: tag, gameScore: scr });
+      });
     });
   }
   function dropCard(key) {

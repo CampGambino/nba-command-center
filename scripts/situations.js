@@ -538,12 +538,27 @@ for (const [tri, games] of Object.entries(perTeam)) {
   const byDate = Object.fromEntries(dates.map((d) => [d, anomalies(pg, store.names || {}, { dates: [d], careers })]));
   // Odd lines (0.117; the user, 11/19: "these are concepts worth tracking and flagging"): the shape of a line, graded by
   // how often it has happened in 33 seasons of box scores (src/data/odd-lines-history.json, tools/odd-games/build-history.mjs).
-  let oddByDate = null;
+  let oddByDate = null, oddTally = null;
   try {
     const { oddNights } = await import("../src/situations/oddlines.js"), { LINE_IX } = await import("../src/situations/trends.js");
     const hf = path.join(root, "src", "data", "odd-lines-history.json"), history = fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null;
     oddByDate = { from: history?.from || null, through: history?.through || null, games: history?.games || null, positions: Object.keys(rosterPos).length,
       nights: oddNights({ rows: rows.filter((g) => !g.cupFinal), history, names: store.names || {}, pos: rosterPos, dates, IX: LINE_IX }) };
+    // 0.119: what the NBA Live bridge needs to judge a live line: each level's count (history plus this season), each
+    // player's averages over his games so far (ODD.games or more), and ESPN's position labels. Rules: docs/lib/situations/oddlines.js.
+    try {
+      const { ODD } = await import("../src/situations/oddlines.js"), r2 = (v) => Math.round(v * 100) / 100, t = {}, avg = {};
+      // Everything in this file is "before today": a game finished this afternoon must not count itself tonight.
+      const before = rows.filter((g) => !g.cupFinal && g.d < today), pgBefore = playerGames(before);
+      oddTally = {}; oddNights({ rows: before, history, names: store.names || {}, pos: rosterPos, dates: [], IX: LINE_IX, tally: oddTally });
+      for (const [k, e] of Object.entries(history?.t || {})) {
+        const mine = oddTally[k] || null, last = mine?.last || e.last?.[0] || null;
+        t[k] = [e.n + (mine?.n || 0), Math.round((e.l5 / ODD.recent) * 10) / 10, last ? last[0] : null, last ? last[1] : null];
+      }
+      for (const [id, gs] of Object.entries(pgBefore)) { const n = gs.length; if (n >= ODD.games) avg[id] = [r2(gs.reduce((a, g) => a + g.pts, 0) / n), r2(gs.reduce((a, g) => a + g.reb, 0) / n), r2(gs.reduce((a, g) => a + g.ast, 0) / n), n]; }
+      if (history) fs.writeFileSync(path.join(root, "docs", "data", "oddlive.json"), JSON.stringify({ v: 1, generatedAt: out.generatedAt, before: today, from: history.from, games: history.games, t, avg, pos: rosterPos }));
+      console.log(`odd lines, live file: ${Object.keys(t).length} levels, averages for ${Object.keys(avg).length} players`);
+    } catch (e) { console.error(`odd lines, live file: ${e.message}`); }
     // 0.118: tonight's watch lists: who on the slate is a game short of a rare run or repeat, and who tends to produce which line.
     try {
       const { oddWatch } = await import("../src/situations/oddlines.js");
@@ -828,7 +843,7 @@ const slim = rows.filter((g) => g.hb && g.ab).map(({ id, d, h, a, hs, as, hb, ab
 fs.writeFileSync(path.join(root, "docs", "data", "games.json"), JSON.stringify({ generatedAt: out.generatedAt, through, games: slim }));
 // The page's copy of the ratings code (kept identical to src; a test checks).
 fs.mkdirSync(path.join(root, "docs", "lib", "situations"), { recursive: true });
-for (const f of ["ratings.js", "withwithout.js", "leaders.js"]) fs.copyFileSync(path.join(root, "src", "situations", f), path.join(root, "docs", "lib", "situations", f));
+for (const f of ["ratings.js", "withwithout.js", "leaders.js", "oddlines.js"]) fs.copyFileSync(path.join(root, "src", "situations", f), path.join(root, "docs", "lib", "situations", f));
 // The record book and single-game lists (static reference data) for the Records page.
 fs.mkdirSync(path.join(root, "docs", "ref"), { recursive: true });
 for (const f of fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^nba-(record-book|single-game-bests|postseason-careers)-/.test(f))) fs.copyFileSync(path.join(root, "src", "data", f), path.join(root, "docs", "ref", f.replace(/-\d{4}-\d\d\.json$/, ".json")));

@@ -1768,7 +1768,7 @@ await articlesChecks(ok);
     { team: "SAS", items: [ item({ espnId: "20", player: "Final Reach", need: 6 }), item({ espnId: "21", player: "Final Miss", need: 30 }) ] },
   ] };
   const pl = (id, o) => ({ id, min: 20, pts: 12, tpm: 3, reb: 5, ast: 2, stl: 1, blk: 0, dreb: 4, oreb: 1, starter: true, ...o });
-  let flowData = null, versionData = null, teamMarksData = null;
+  let flowData = null, versionData = null, teamMarksData = null, oddData = null, oddRulesText = null;
   function run({ date = "20261109", hooks = true, games, extra = {} } = {}) {
     const cards = new Map(); let original = 0;
     const el = { style: {}, textContent: "" };
@@ -1776,7 +1776,7 @@ await articlesChecks(ok);
       URLSearchParams, console, Promise, Object, Number, String, Math, Array, Date, JSON,
       location: { search: "?cc=" + encodeURIComponent("https://cc.example/data/watch.json") },
       document: { readyState: "complete", getElementById: (id) => (id === "cc-bridge-note" ? el : null), createElement: () => el, body: { appendChild() {} } },
-      fetch: async (u) => ({ ok: true, json: async () => (String(u).includes("version.json") ? versionData : String(u).includes("teammarks.json") ? teamMarksData : String(u).includes("flowstats.json") ? flowData : String(u).includes("tonight.json") ? tonightData : String(u).includes("records.json") ? recordsData : String(u).includes("single-game-bests") ? bestsData : watch) }),
+      fetch: async (u) => ({ ok: true, json: async () => (String(u).includes("version.json") ? versionData : String(u).includes("teammarks.json") ? teamMarksData : String(u).includes("flowstats.json") ? flowData : String(u).includes("tonight.json") ? tonightData : String(u).includes("records.json") ? recordsData : String(u).includes("single-game-bests") ? bestsData : String(u).includes("oddlive.json") ? oddData : watch), text: async () => (String(u).includes("oddlines.js") ? oddRulesText : "") }),
       setInterval() {}, setTimeout() {}, clearTimeout() {}, addEventListener() {},
     };
     ctx.window = ctx;
@@ -1983,6 +1983,84 @@ await articlesChecks(ok);
       "bridge v24: a \"fewest\" is a watch only in the last two minutes and a record only at the final; a final drops the close-to-a-record card; no card for a tie at zero, for a box score with fewer than five players, or in the playoffs",
       [K(A), K(late), K(fin), K(fin0), K(few), K(po)].join(" | "));
     teamMarksData = null;
+  }
+  {
+    // v25 (0.119.0): odd lines. A line that can only grow fires at once; one a single play can undo fires in the final
+    // five minutes as it stands, is greyed if undone, and stays at the final. One card a player.
+    const Z = { pts: 0, tpm: 0, tpa: 0, reb: 0, ast: 0, stl: 0, blk: 0, dreb: 0, oreb: 0, fgm: 0, fga: 0, ftm: 0, fta: 0, to: 0, pf: 0, min: 30, starter: false };
+    const P = (id, name, o, starter = false) => ({ ...Z, id, name, starter, ...o });
+    const filler = (pre) => [0, 1, 2, 3, 4].map((i) => P(pre + i, "Filler " + pre + i, { pts: 10, fgm: 4, fga: 9, ftm: 2, fta: 2, reb: 4, ast: 2 }, true));
+    oddRulesText = fs.readFileSync(path.join(root, "docs", "lib", "situations", "oddlines.js"), "utf8");
+    oddData = { v: 1, from: "1993-94", t: { "greb.15": [346, 16, "Jahmai Mashack", "2026-04-10"], "noft.30": [311, 22.8, "Buddy Hield", "2026-04-12"], "ofg.8": [752, 26.6, "A", "2026-03-28"], "ofg.10": [138, 4.8, "Sam Hauser", "2025-12-11"],
+      "min0.30": [692, 17.8, "Rayan Rupert", "2026-03-23"], "blk0reb.4": [37, 1.2, "OG Anunoby", "2026-02-19"], "blk0reb.5": [5, 0.2, "Brook Lopez", "2023-04-04"], "bench.35": [142, 6.8, "B", "2026-03-27"], "erupt.25": [543, 32.4, "C", "2026-04-10"], "erupt.3x": [1255, 67, "D", "2026-04-12"] }, avg: {}, pos: { g1: "G" } };
+    const away = () => [...filler("a"), P("g1", "Guard One", { pts: 8, fgm: 3, fga: 8, reb: 16, dreb: 14, oreb: 2 }), P("s1", "No Trips", { pts: 31, fgm: 13, fga: 22, tpm: 5, tpa: 9, reb: 4, ast: 3 }),
+      P("z1", "Cold One", { fga: 10, tpa: 4, reb: 3 }), P("b1", "Swat Man", { pts: 6, fgm: 3, fga: 5, blk: 5 }), P("x1", "Sixth Man", { pts: 36, fgm: 13, fga: 20, ftm: 8, fta: 9, tpm: 2, tpa: 5, reb: 4, ast: 4 })];
+    const gm = (o = {}) => [{ id: "od1", status: "live", period: 4, clock: "6:00", away: { tricode: "AAA", score: 100 }, home: { tricode: "BBB", score: 96 }, boxscore: { away: away(), home: filler("h") }, ...o }];
+    const odd = (r) => Object.fromEntries([...r.cards].filter(([k]) => k.startsWith("cc-odd-")).map(([k, c]) => [k.replace("cc-odd-od1-", ""), c]));
+    const go = async (games, extra, seed) => { const r = run({ games, extra }); await flush(); if (seed) seed(r); r.ctx.runAlertChecks(); await flush(); return r; };
+    const early = odd(await go(gm())), rLate = await go(gm({ clock: "4:30" })), late = odd(rLate), fin = odd(await go(gm({ status: "final", clock: "0:00" }))), ot = odd(await go(gm({ period: 5, clock: "4:55" })));
+    ok(Object.keys(early).sort().join(" ") === "g1 x1" && early.g1.icon === "🧩 ODD LINE" && early.g1.text === "Guard One (AAA) — 16 rebounds by a guard"
+      && early.g1.sub === "Command Center · Common · A guard with 15+ rebounds: about 16 a season over the last five seasons (last: Jahmai Mashack, 4/10/26) · ESPN box scores, about 3% of games not on file"
+      && early.x1.text === "Sixth Man (AAA) — 36 points off the bench",
+      "bridge v25 (0.119.0; the user: \"The others seem fine to me\"): a line that can only grow (a guard's 16 rebounds, 36 off the bench) is carded the moment it is true, with how often it happens; a line one play can undo waits",
+      JSON.stringify(Object.entries(early).map(([k, c]) => [k, c.icon, c.text, c.sub])));
+    ok(Object.keys(late).sort().join(" ") === "b1 g1 s1 x1 z1" && late.s1.icon === "🧩 ODD LINE · AS IT STANDS" && late.s1.text === "No Trips (AAA) — 31 points without a free throw attempt, 4:30 left in the 4th"
+      && late.s1.sub.includes(" · stands only if the game ends here · ESPN box scores") && late.s1.live === true
+      && late.b1.text === "Swat Man (AAA) — 5 blocks without a rebound, 4:30 left in the 4th" && late.b1.sub.includes("Rare (once a season or less) · 5+ blocks and no rebound: the 6th on file since 1993-94 (last: Brook Lopez, 4/4/23) · stands only")
+      && late.z1.text === "Cold One (AAA) — 0-for-10 from the field, 4:30 left in the 4th"
+      && late.z1.sub.includes("No field goal on 10+ attempts: about 4.8 a season over the last five seasons (last: Sam Hauser, 12/11/25) · Also: 30 minutes without a point (0-for-10) · stands only")
+      && ot.s1?.text === "No Trips (AAA) — 31 points without a free throw attempt, 4:55 left in overtime",
+      "bridge v25 (the user: \"the depending on zero is a good one to flag in the final five minutes\"): 31 points with no free throw attempt, 5 blocks and no rebound and 0-for-10 are carded \"as it stands\" inside the last five minutes of the 4th and any time in overtime, one card a player with his rarest line leading",
+      JSON.stringify(Object.entries(late).map(([k, c]) => [k, c.icon, c.text, c.sub])));
+    ok(fin.s1?.icon === "🧩 ODD LINE" && fin.s1.text === "No Trips (AAA) — 31 points without a free throw attempt" && !/stands only/.test(fin.s1.sub) && fin.s1.live === false && Object.keys(fin).length === 5,
+      "bridge v25: at the final the same cards drop \"as it stands\" and stay", JSON.stringify(fin.s1 || Object.keys(fin)));
+    // undone: he goes to the line with two minutes left
+    const s1 = rLate.ctx.GAMES[0].boxscore.away.find((p) => p.id === "s1");
+    rLate.ctx.GAMES[0].clock = "2:00"; s1.fta = 2; s1.ftm = 1; s1.pts = 32;
+    rLate.ctx.runAlertChecks(); await flush();
+    const undone = odd(rLate).s1;
+    ok(undone?.ended === true && undone.text === "No Trips (AAA) — no longer an odd line: 32 pts, 13-22 FG, 1-2 FT, 4 reb, 3 ast" && odd(rLate).g1.ended !== true,
+      "bridge v25: a card whose line is undone (a free throw with two minutes left) is greyed with the line as it now is, not removed; the others stay", JSON.stringify(undone));
+    // NBA Live's own card for the same streak, the playoffs, a game that counts toward no book, and no rules
+    const own = odd(await go(gm({ clock: "4:30" }), {}, (r) => r.cards.set("sr-0fg-od1-z1", { icon: "0-FOR", text: "NBA Live's own" })));
+    const po = odd(await go(gm({ clock: "4:30" }), { isPlayoffSlate: () => true })), cup = odd(await go(gm({ clock: "4:30", countsForRecords: false })));
+    const keep = oddRulesText; oddRulesText = "export const X = 1;"; const noRules = odd(await go(gm({ clock: "4:30" }))); oddRulesText = keep;
+    ok(own.z1?.text === "Cold One (AAA) — 30 minutes without a point (0-for-10), 4:30 left in the 4th" && !/Also/.test(own.z1.sub) && own.s1 && Object.keys(po).length === 0 && Object.keys(cup).length === 0 && Object.keys(noRules).length === 0,
+      "bridge v25: where NBA Live has its own card for the same no-make streak that line stands aside and his next one leads; none in the playoffs or a game that counts toward no book; none if the rules cannot be read", JSON.stringify([own.z1, Object.keys(po), Object.keys(cup), Object.keys(noRules)]));
+    oddData.avg = { x1: [8, 3, 2, 14] };
+    const big = odd(await go(gm())).x1;
+    ok(big && big.text === "Sixth Man (AAA) — 36 points off the bench" && !/averages/.test(big.text + big.sub),
+      "bridge v25: a number far above his own average (36 for an 8-point scorer) is left to NBA Live's own high cards; the odd line (off the bench) is still said", JSON.stringify(big));
+    oddData = null; oddRulesText = null;
+    // the module's side: every template is in exactly one list, and nothing that only grows can undo a GROW line
+    const M = await import("../src/situations/oddlines.js");
+    const ids = M.TEMPLATES.map((t) => t.id), both = M.GROW.filter((x) => M.LATE.includes(x));
+    let seedN = 7; const rnd = (n) => { seedN = (seedN * 1103515245 + 12345) % 2147483648; return seedN % n; };
+    const EV = [(l) => { l.fga++; l.fgm++; l.pts += 2; }, (l) => { l.fga++; l.fgm++; l.fg3a++; l.fg3m++; l.pts += 3; }, (l) => { l.fga++; }, (l) => { l.fga++; l.fg3a++; }, (l) => { l.fta++; l.ftm++; l.pts++; }, (l) => { l.fta++; },
+      (l) => { l.reb++; l.oreb++; }, (l) => { l.reb++; l.dreb++; }, (l) => { l.ast++; }, (l) => { l.stl++; }, (l) => { l.blk++; }, (l) => { l.tov++; }, (l) => { l.pf++; }, (l) => { l.min++; }];
+    let broke = null, seenGrow = new Set();
+    for (let i = 0; i < 4000 && !broke; i++) {
+      const l = { starter: rnd(2), min: 0, pts: 0, fgm: 0, fga: 0, fg3m: 0, fg3a: 0, ftm: 0, fta: 0, oreb: 0, dreb: 0, reb: 0, ast: 0, stl: 0, blk: 0, tov: 0, pf: 0 }, x = { pos: ["G", "F", "C"][rnd(3)], avg: rnd(3) ? { pts: 2 + rnd(28), reb: 1 + rnd(8), ast: 1 + rnd(6) } : null };
+      const fav = [rnd(EV.length), rnd(EV.length), rnd(EV.length)];   // each simulated player leans on a few kinds of play, so the high lines are reached
+      let was = new Set();
+      for (let k = 0; k < 160 && l.pf < 6; k++) {
+        EV[rnd(3) ? fav[rnd(3)] : rnd(EV.length)](l);
+        const now = new Set(M.matchLine(l, x).map((h) => h.key).filter((key) => M.liveKind(key.split(".")[0]) === "grow"));
+        for (const key of was) if (!now.has(key)) broke = key + " " + JSON.stringify(l);
+        for (const key of now) seenGrow.add(key.split(".")[0]);
+        was = now;
+      }
+    }
+    ok(ids.every((id) => M.GROW.includes(id) !== M.LATE.includes(id)) && !both.length && M.GROW.length + M.LATE.length === ids.length && !broke && M.LATE_SECS === 300 && seenGrow.size >= 11,
+      "0.119.0: every odd-line template is either \"can only grow\" or \"one play can undo\", and in 4,000 simulated games no basket, miss, rebound, assist, steal, block, turnover, foul or minute ever undid a can-only-grow line", String(broke || both) + " reached: " + [...seenGrow].join(","));
+    const lh = M.liveHits({ ...Object.fromEntries(Object.keys(Z).map((k) => [k, 0])), min: 30, starter: 1, fg3m: 0, fg3a: 4, fga: 11, tov: 0 }, { pos: null, avg: null }, { "ofg.8": [752, 26.6, "A", "2026-03-28"], "ofg.10": [138, 4.8, "Sam Hauser", "2025-12-11"], "min0.30": [692, 17.8, "R", "2026-03-23"] });
+    const srcM = fs.readFileSync(path.join(root, "src", "situations", "oddlines.js"), "utf8");
+    ok(lh.length === 2 && lh[0].key === "ofg.10" && lh[1].id === "min0" && lh[0].live === "late" && lh[0].grade === "few" && lh[0].before === 138 && lh[0].say === "0-for-11 from the field"
+      && srcM === fs.readFileSync(path.join(root, "docs", "lib", "situations", "oddlines.js"), "utf8") && !/^\s*import\b|from "/m.test(srcM) && JSON.parse(fs.readFileSync(path.join(root, "docs", "bridge", "version.json"), "utf8")).version === 25,
+      "0.119.0: a live line gets one hit a template (the rarest level it passes), rarest first; the bridge's copy of the rules is the site's module and has no imports; version.json says 25", JSON.stringify(lh.map((h) => h.key)));
+    const sit = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8");
+    ok(/const before = rows\.filter\(\(g\) => !g\.cupFinal && g\.d < today\)/.test(sit) && /oddlive\.json/.test(sit) && /"oddlines\.js"\]\) fs\.copyFileSync/.test(sit),
+      "0.119.0: the live file counts only games before today (a game finished this afternoon does not count itself tonight), and the build publishes the rules beside it");
   }
   const fgTie = t.cards.get("cc-fg-40-pts-tied"), fgNear = t.cards.get("cc-fg-41-pts-near");
   ok(fgTie && fgTie.text === "Big Night (LAL) — 58 points: ties the Lakers record (58, Old Laker vs. Boston 1/1/60)" && fgNear && /6 from the Lakers record \(58, Old Laker/.test(fgNear.text) && !has("cc-fg-40-fg3m") && /Lakers guide p\. 99/.test(fgTie.sub),

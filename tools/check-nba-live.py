@@ -40,6 +40,10 @@ if os.path.exists(_flow): shutil.copy(_flow, os.path.join(SITE, "flowstats.json"
 # bridge v24: each team's single-game team marks
 _tm = os.path.join(os.path.dirname(os.path.abspath(WATCH)), "teammarks.json")
 if os.path.exists(_tm): shutil.copy(_tm, os.path.join(SITE, "teammarks.json"))
+# bridge v25: odd lines (the counts, and the site's rules module read as text)
+_odd = os.path.join(os.path.dirname(os.path.abspath(WATCH)), "oddlive.json")
+if os.path.exists(_odd): shutil.copy(_odd, os.path.join(SITE, "oddlive.json"))
+shutil.copy(os.path.join(HERE, "..", "docs", "lib", "situations", "oddlines.js"), os.path.join(SITE, "oddlines.js"))
 server = subprocess.Popen([sys.executable, "-m", "http.server", "8791", "--directory", SITE], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(1)
 log = {"passed": 0, "blocked": 0, "errors": 0, "hosts": {}}
@@ -92,7 +96,7 @@ async def main():
         await pg.wait_for_timeout(SECONDS * 1000)
         st = await pg.evaluate("() => { const s = window.CC_BRIDGE && window.CC_BRIDGE.state; return s && {connected: s.connected, items: s.items.length, fired: s.fired, error: s.error, today: s.data && s.data.today, wrongNight: s.wrongNight, tonight: s.tonight ? s.tonight.games.length : null, version: window.CC_BRIDGE.version, records: s.recItems ? s.recItems.length : null, bests: !!s.bests, recErr: s.recError || s.recordsError || null, listErr: s.listError || s.bestsError || null, flow: s.flow ? s.flow.games : null, flowErr: s.flowCheckError || s.flowError || null}; }")
         note = await pg.evaluate("() => (document.getElementById('cc-bridge-note')||{}).textContent || null")
-        cards = await pg.evaluate("() => [...document.querySelectorAll('#alerts-scroll > *')].map(e => e.innerText.replace(/\\s+/g,' ').slice(0,230))")
+        cards = await pg.evaluate("() => [...document.querySelectorAll('#alerts-scroll > *')].map(e => e.innerText.replace(/\\s+/g,' ').slice(0,460))")
         games = await pg.evaluate("() => { try { return GAMES.map(g => g.away.tricode+'@'+g.home.tricode+' '+g.status+' box:'+(g.boxscore? (g.boxscore.away||[]).length : 0)); } catch(e) { return String(e); } }")
         await pg.screenshot(path=os.path.join(SITE, "screenshot.png")); print("screenshot:", os.path.join(SITE, "screenshot.png"))
         tmst = await pg.evaluate("() => { const s = window.CC_BRIDGE && window.CC_BRIDGE.state; if (!s) return null; const g = (typeof GAMES !== 'undefined' ? GAMES : []).find(x => x.status === 'live'); return { teams: s.teamMarks ? Object.keys(s.teamMarks.teams).length : 0, loadErr: s.teamMarksError || null, runErr: s.teamMarkError || null, keys: Object.keys(s.keys || {}).filter(k => k.startsWith('cc-tm-')), live: g ? { period: g.period, clock: g.clock, away: g.away && g.away.tricode, p0: g.boxscore && g.boxscore.away && g.boxscore.away[0] } : null }; }")
@@ -106,6 +110,10 @@ async def main():
         tm = [c for c in cards if "media guide" in c and ("number checked" in c or "guide only" in c)]
         print(f"TEAM MARKS: {len(tm)}")
         for c in tm: print("  TM>", c)
+        odd = [c for c in cards if "ODD LINE" in c]
+        ost = await pg.evaluate("() => { const s = window.CC_BRIDGE && window.CC_BRIDGE.state; return s ? { rules: !!s.oddRules, data: !!s.odd, levels: s.odd ? Object.keys(s.odd.t).length : 0, err: s.oddError || null, checkErr: s.oddCheckError || null } : null; }")
+        print(f"ODD LINES: {len(odd)}", json.dumps(ost))
+        for c in odd: print("  ODD>", c)
         for c in cc[:12]: print("  CC>", c)
         for c in [c for c in cards if "Command Center" not in c][:6]: print("  NL>", c)
         print("NET:", {k: v for k, v in log.items() if k != "hosts"}, sorted(log["hosts"].items(), key=lambda x: -x[1])[:8])

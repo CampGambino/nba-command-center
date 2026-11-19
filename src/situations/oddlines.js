@@ -165,7 +165,7 @@ function linesOf(g, IX) {
  * The odd lines on each of `dates`, rarest first.
  *   rows: this season's results rows with `pl` (id -> array indexed by IX; see trends.js LINE_IX)
  *   history: src/data/odd-lines-history.json ({ t: { "id.k": { n, l5, last: [[name, d, team, text]] } }, from, through })
- *   names: { id: name } · pos: { id: ESPN position label } · tally: optional {} filled with this season's count of every level
+ *   names: { id: name } · pos: { id: ESPN position label } · tally: optional {} filled with this season's { n, last } for every level
  * -> { date: [{ id, name, team, opp, home, win, d, min, box, grade, rate, hits: [{ key, f, what, say, grade, rate, before, last, note, text }] }] }
  * One hit a template: the rarest level the line passes (lowest recent rate, then fewest ever).
  * `before` counts the history plus this season's earlier nights (same-night lines do not count each other).
@@ -211,7 +211,7 @@ export function oddNights({ rows = [], history = null, names = {}, pos = {}, dat
     }
     for (const { id, g, home, hits } of tonight) for (const h of hits) (seen[h.key] ??= []).push([names[id] || id, d, home ? g.h : g.a, h.say]);
   }
-  if (tally) for (const [k, v] of Object.entries(seen)) tally[k] = v.length;
+  if (tally) for (const [k, v] of Object.entries(seen)) tally[k] = { n: v.length, last: v[v.length - 1] };
   return out;
 }
 
@@ -343,4 +343,36 @@ export function oddWatch({ rows = [], history = null, players = null, names = {}
   out.runs.sort((a, b) => gi(a.grade) - gi(b.grade) || a.rate - b.rate || a.n - b.n || b.length - a.length || a.name.localeCompare(b.name));
   out.owners.sort((a, b) => gi(a.grade) - gi(b.grade) || (b.league ? b.n / b.league : 0) - (a.league ? a.n / a.league : 0) || b.n - a.n || a.name.localeCompare(b.name));
   return out;
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+ * 0.119.0: live, for the NBA Live bridge (the user, 11/19 2:48 PM: "the depending on zero is a good one to flag in the
+ * final five minutes… if it doesn't ping until the end of the game, it could get lost if it's immediately deactivated.
+ * The others seem fine to me").
+ *
+ * GROW: a line that, once true, stays true however long he plays (every condition is "at least N" of something that
+ * only goes up; a player who has fouled out is finished). It can be said the moment it happens.
+ * LATE: a line that one more basket, free throw, rebound or minute can undo (it rests on a zero, a ratio, an exact
+ * number, a low total, or few minutes). It is said in the final five minutes while it stands, and at the final.
+ * Every template is in exactly one list (tested), and no line that only grows can undo a GROW template (tested).
+ * This file has no imports: the bridge reads its published copy as text.
+ * ------------------------------------------------------------------------------------------------------------- */
+export const GROW = ["fta", "ftmiss", "greb", "cast", "gblk", "c3", "reb3x", "ast3x", "foulout", "tov", "x5", "pair", "bench", "erupt"];
+export const LATE = ["noft", "ftshare", "nofg", "all3", "ofg", "o3", "brick", "perfg", "perft", "empty", "ast0", "reb0", "min0", "noshot", "noshotbig", "tov0", "pts0reb", "blk0reb", "nothing", "quick", "zeromin", "ones", "lowpts", "dud"];
+export const LATE_SECS = 300;
+export const liveKind = (id) => (GROW.includes(id) ? "grow" : "late");
+
+/**
+ * For one live line: one hit a template (the rarest level it passes), with how rare the class is.
+ *   table: docs/data/oddlive.json's `t`: { "id.k": [times before today, per season lately, last name, last date] }
+ * -> [{ id, key, f, live: "grow" | "late", what, say, grade, rate, before, last, note }], rarest first.
+ */
+export function liveHits(l, x, table, from = "1993-94") {
+  const best = {};
+  for (const h of matchLine(l, x)) {
+    const e = table?.[h.key] || null, cand = { ...h, rate: e ? e[1] : 0, before: e ? e[0] : 0, grade: e ? gradeOf(e[1]) : null, last: e && e[2] ? [e[2], e[3]] : null };
+    if (!best[h.id] || rarer(cand, best[h.id])) best[h.id] = cand;
+  }
+  return Object.values(best).map((h) => ({ ...h, live: liveKind(h.id), note: note(h, { from }) }))
+    .sort((a, b) => GRADES.indexOf(a.grade ?? "common") - GRADES.indexOf(b.grade ?? "common") || a.rate - b.rate || a.before - b.before);
 }
