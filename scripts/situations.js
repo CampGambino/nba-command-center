@@ -544,6 +544,20 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const hf = path.join(root, "src", "data", "odd-lines-history.json"), history = fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null;
     oddByDate = { from: history?.from || null, through: history?.through || null, games: history?.games || null, positions: Object.keys(rosterPos).length,
       nights: oddNights({ rows: rows.filter((g) => !g.cupFinal), history, names: store.names || {}, pos: rosterPos, dates, IX: LINE_IX }) };
+    // 0.118: tonight's watch lists: who on the slate is a game short of a rare run or repeat, and who tends to produce which line.
+    try {
+      const { oddWatch } = await import("../src/situations/oddlines.js");
+      const wf = path.join(root, "docs", "data", "watch.json"), w = fs.existsSync(wf) ? JSON.parse(fs.readFileSync(wf, "utf8")) : { games: [] };
+      const games = w.today === today ? w.games || [] : [], vs = {};
+      for (const g of games) { vs[g.homeTri] = `vs ${g.awayTri}`; vs[g.awayTri] = `@ ${g.homeTri}`; }
+      const pf = path.join(root, "src", "data", "odd-lines-players.json"), players = fs.existsSync(pf) ? JSON.parse(fs.readFileSync(pf, "utf8")) : null;
+      if (games.length) {
+        const W = oddWatch({ rows: rows.filter((g) => !g.cupFinal), history, players, names: store.names || {}, pos: rosterPos, teams: new Set(Object.keys(vs)), vs, IX: LINE_IX,
+          teamNow: (id, t) => (rosterChanges[id] ? rosterChanges[id].team || "FA" : t) });
+        oddByDate.tonight = { date: today, since: players?.since || null, runMin: history?.runMin || null, ...W };
+        console.log(`odd lines to watch tonight: ${W.runs.length} run(s) or repeat(s) a game short, ${W.owners.length} player habit(s) on ${games.length} game(s)`);
+      }
+    } catch (e) { console.error(`odd lines, tonight: ${e.message}`); }
     const all = Object.values(oddByDate.nights).flat(), by = (g) => all.filter((o) => o.grade === g).length;
     console.log(`odd lines: ${all.length} over ${dates.length} dates (${by("rare")} rare, ${by("few")} a few a season, ${by("monthly")} monthly, ${by("common")} common); positions for ${Object.keys(rosterPos).length} players`);
   } catch (e) { console.error(`odd lines not run: ${e.message}`); }

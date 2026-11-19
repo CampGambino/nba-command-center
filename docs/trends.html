@@ -104,6 +104,8 @@
   .odd .grade.rare { color: #c084fc; border-color: color-mix(in srgb, #c084fc 70%, transparent); font-weight: 650; }
   .odd .grade.few { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 55%, transparent); }
   .odd .hit { margin: 4px 0 0; }
+  .subh { font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin: 18px 4px 6px; }
+  #oddown { margin-top: 8px; } #oddown summary { cursor: pointer; color: var(--muted); font-size: 13px; margin: 0 4px 6px; }
   #oddlines .box { color: var(--faint); font-size: 12px; margin-top: 4px; }
   .odd .hit small { color: var(--muted); font-size: 12.5px; }
   .ochip { border: 1px solid var(--line); border-radius: 8px; padding: 3px 8px; background: var(--panel2); font-size: 13px; line-height: 1.3; }
@@ -142,6 +144,12 @@
   </div>
   <div class="key" id="oddkey"></div>
   <ul class="odd" id="oddlines"></ul>
+  <div id="oddwatch" hidden>
+    <h3 class="subh" id="oddwatchh">To watch tonight</h3>
+    <div class="key" id="oddwatchkey"></div>
+    <ul class="odd" id="oddruns"></ul>
+    <details id="oddown"><summary id="oddownsum"></summary><ul class="odd" id="oddowners"></ul></details>
+  </div>
 
   <h2>Outlier games</h2>
   <div class="controls">
@@ -209,6 +217,19 @@ function renderOdd() {
   $("oddlines").innerHTML = list.length ? list.map((a) => `<li><div class="pl"><b>${esc(a.name)}</b><span class="team">${a.team} ${a.home ? "vs" : "@"} ${a.opp} · ${a.win ? "W" : "L"}</span>${a.grade ? `<span class="grade ${a.grade}">${GRADE[a.grade]}</span>` : ""}</div>
       ${a.hits.map((h) => `<div class="hit"><b>${esc(h.say[0].toUpperCase() + h.say.slice(1))}.</b> <small>${esc(h.note || "")}</small></div>`).join("")}
       <div class="box">${esc(a.box)}</div></li>`).join("") : `<li class="empty">No odd line for this filter.</li>`;
+}
+// 0.118: tonight's players who are a game short of a rare run or repeat, and who tends to produce which odd line.
+function renderOddWatch() {
+  const W = T.odd && T.odd.tonight, team = $("oddteam").value;
+  if (!W) { $("oddwatch").hidden = true; return; }
+  $("oddwatch").hidden = false;
+  const keep = ograde === "rare" ? ["rare"] : ograde === "few" ? ["rare", "few"] : null, ok = (a) => (!team || a.team === team) && (!keep || keep.includes(a.grade));
+  const li = (a) => `<li><div class="pl"><span class="team" style="margin-left:0">${a.team} ${a.vs}</span>${a.grade ? `<span class="grade ${a.grade}">${GRADE[a.grade]}</span>` : ""}</div><div class="hit">${esc(a.text)}</div></li>`;
+  const runs = W.runs.filter(ok), owners = W.owners.filter(ok);
+  $("oddwatchh").textContent = `To watch tonight (${day(W.date)})`;
+  $("oddruns").innerHTML = runs.length ? runs.map(li).join("") : `<li class="empty">Nobody on tonight's teams is a game short of a run or a repeat for this filter.</li>`;
+  $("oddownsum").textContent = `Who tends to produce which line: ${owners.length} habit${owners.length === 1 ? "" : "s"} on tonight's teams`;
+  $("oddowners").innerHTML = owners.length ? owners.map(li).join("") : `<li class="empty">None for this filter.</li>`;
 }
 function renderOutliers() {
   const team = $("oteam").value;
@@ -332,12 +353,13 @@ fetch("data/trends.json", { cache: "no-store" }).then((r) => r.json()).then((d) 
     $("oddteam").innerHTML += teams.map((t) => `<option>${t}</option>`).join("");
     $("oddkey").innerHTML = `A line is listed for its <b>shape</b>, not its size: all the points from one source, shots without a make, one column and nothing else, a number out of role for his position or his own average, a lot in a few minutes, or a coincidence. Each is counted with the same rule in ESPN's box scores of ${(d.odd.games || 0).toLocaleString()} regular-season games from ${d.odd.from} to ${d.odd.through}, plus this season. "On file" matters: about 3% of the games in that span are not counted, mostly the Bulls' and Pelicans' games of 2012-13 to 2017-18, where ESPN has no player numbers. The grade is how often the line has happened per season over the last five seasons. Positions are ESPN's label for the player; "averages" is his other games this season (10 or more).`;
   }
-  for (const id of ["odate", "oddteam"]) $(id).onchange = renderOdd;
-  for (const b2 of $("ograde").querySelectorAll("button")) b2.onclick = () => { ograde = b2.dataset.g; for (const x of $("ograde").querySelectorAll("button")) x.classList.toggle("on", x === b2); renderOdd(); };
+  for (const id of ["odate", "oddteam"]) $(id).onchange = () => { renderOdd(); renderOddWatch(); };
+  if (d.odd && d.odd.tonight) $("oddwatchkey").innerHTML = `First, players on tonight's teams who are <b>one game short</b>: in a run of bad nights (counted over his games of ${d.odd.tonight.runMin || 20}+ minutes this season), or coming off an odd line that would be a repeat. The grade is how often the next step has happened per season over the last five seasons. Below it, habits: a line he has produced at least twice since ${d.odd.tonight.since || "last season"}, with the league's count over the same games. Injuries are not checked here: a player listed out can appear.`;
+  for (const b2 of $("ograde").querySelectorAll("button")) b2.onclick = () => { ograde = b2.dataset.g; for (const x of $("ograde").querySelectorAll("button")) x.classList.toggle("on", x === b2); renderOdd(); renderOddWatch(); };
   for (const id of ["cat", "steam"]) $(id).onchange = renderStreaks;
   $("sub").textContent = `Through ${d.through} · from ESPN box scores`;
   $("foot").innerHTML = `Outlier games compare a player's game with his other games this season (5+ needed): how far it is from his average, in units of how much his games usually vary (with a minimum, so a steady player's small change doesn't look huge). Listed when that "strength" is 2.5+; when a regular (15+ points or 20+ minutes a game) is 2.5 below; for a clear season or career high ("career high" replaces "season high": his best in any regular-season game on file — points for everyone, other stats when his whole career is in the 2016-17 on game logs, so a rookie's first big game is a career high); for shooting 25 points off his usual FG% on 10+ shots; or 0-for-6+ from three. A low-minutes game often means injury, fouls or a blowout, so check the minutes. "Most notable" weights a streak's length by how hard it is (30+ points counts 3x a game, 10+ points 0.4x); "Longest" is plain length. Streaks count games played, this season only (a run from last season shows only its this-season part). Built ${new Date(d.generatedAt).toLocaleString()}.`;
-  renderOdd(); renderOutliers(); renderStreaks(); renderWatch(); renderTeams();
+  renderOdd(); renderOddWatch(); renderOutliers(); renderStreaks(); renderWatch(); renderTeams();
 }).catch((e) => { $("sub").textContent = "Couldn't load the data: " + e.message; });
 </script>
 </body>

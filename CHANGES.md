@@ -2,6 +2,34 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.118.0 (2026-11-19): odd lines, tonight's watch lists; and "off the bench" counted only where ESPN marks the starters
+
+The user, 1:00 PM: "keep going" (step 2 of the study's order).
+
+**Wrong in 0.117.0, found while building this.** ESPN marks no starters at all for 482 team-games (mostly 2001-02, 2004-05 and 2005-06), so every player in them looked like a reserve. The history had counted Dwyane Wade's 40 on 3/8/06 as "off the bench". Corrected counts: 40+ points off the bench 37 (was 55), 35+ 142 (was 191), 18+ rebounds off the bench 132 (was 142), 20+ 55 (was 58). The last five seasons were not affected (same counts), so no grade moved. The page said Brice Sensabaugh's 40 on 11/17 was "the 56th on file"; it is the 38th. It was live with the wrong number from 12:51 PM until this build. The same guard is now on the site's side: a side with other than five starters marked says nothing about bench or starter.
+
+- `src/situations/oddlines.js`: `RUNS` (four runs of bad nights from the study: a 20-point scorer under half his average; a 22-point scorer under 70%; a starter scoreless; an 18-point scorer at 30% or worse on 10+ shots), counted over his games of 20+ minutes within a season; `runLengths` (runs, and the same template level in consecutive games played); `oddWatch` (tonight's lists); `linesOf` (the starters guard).
+- `tools/odd-games/build-history.mjs` now also writes, with `runLengths`: how often each run reached 2 to 6 games and each level was repeated in consecutive games (`runs` and `again` in `src/data/odd-lines-history.json`), and `src/data/odd-lines-players.json` (48 KB): each player's count of every level over the last three seasons, with the league's.
+- `scripts/situations.js` writes `odd.tonight` into `docs/data/trends.json` when there are games today; `docs/trends.html` shows "To watch tonight" under the odd lines:
+  - **One game short:** "Tyler Herro has been under half his scoring average in 2 straight games of 20+ minutes (8 points on 4-for-11 on 11/18/26; averages 20.3). A third straight for a 20-point scorer under half his average has happened 21 times on file since 1993-94 (last: Desmond Bane, 11/4/25)." Also a player coming off an odd line that would be a repeat. Graded by how often the next step has happened lately.
+  - **Habits** (folded): a line he has produced at least twice since 2023-24, with the league's count: "Josh Hart: a guard with 18+ rebounds, 5 times in 235 games since 2023-24; the league has 10."
+- Nothing posts to Discord; the NBA Live bridge is untouched. Injuries are not checked: a player listed out can appear (the page says so).
+
+Tested: 1,014 checks pass (5 new) and the Worker's 81. New: a run skips a short game and ends with a normal one; tonight's list (a run two games in, a repeat, a habit, and a player whose team is not playing left out); "off the bench" silent when a side has no starters marked; the committed tables (runs, repeats, the corrected bench counts, the players' table). Full local build: tonight 3 lines a game short and 59 habits on four games. Looked at the page.
+
+Tested on games not used while building: last season's 144 mornings (after the first 20 dates) replayed through `oddWatch` with a history that stops at 2024-25, then checked against what each flagged player did that night.
+- A 20-point scorer under half his average, flagged after one: 122 played, 6 did it again (5%). After two: 0 of 6.
+- Under 70% of his average: 42 of 215 after one (20%), 8 of 41 after two (20%), 2 of 7 after three.
+- 30% or worse on 10+ shots: 12 of 192 after one (6%), 0 of 14 after two.
+- A starter scoreless: 0 of 67.
+- Coming off an odd line: 21 of 485 produced the same template again that night (4%).
+- Volume on a full slate: a median of 10 "game short" lines a morning (most 31, the season's last day); habits a median of 142 (which is why they are folded and graded).
+The builder's count for that season alone agrees where the two can be compared (30% or worse twice: 12 and 12; scoreless twice: 1, on a date inside the 20 skipped). Under 70% twice is 42 in the replay and 33 in the builder: the replay judges a night against his average so far, the builder against his whole season.
+
+Unproven: (1) Injuries and rest are not checked, so the list can name a player who is out. (2) A run can be weeks old if he has not played; the date is printed but nothing ages it out. (3) "The league has N" and every count are ESPN's, with the same 3% of games missing. (4) Habits need two instances in three seasons; that floor and the three-season window are my choices. (5) Whether a median of 142 habit lines is useful folded, or noise, is the user's call. (6) The published build has not run at the time of this entry.
+
+Self-audit. Wrong first: the bench counts above, which were in 0.117.0, in the study and in my message to the user ("the 56th on file"); found only because a repeat table listed Dwyane Wade twice as a reserve. I had not checked the starter flag by season before using it. Checked now: 0.6% of team-games lack five starters; the other rules that read the flag (a starter scoreless) only fire when it is set, so they under-count there instead of inventing. Second: two test expectations were mine and wrong (an average of 23.0 that is 24.5). Re-derived from committed files: the run counts against the study's (three straight under half 21 and 21; scoreless three straight 7 and 7; under 70% three, four, five straight 136, 26, 5, the same; 30% or worse three and four straight 75 and 8 against 72 and 8, the difference being 10 other games here against 30-game seasons there). Not re-derived a second way: the players' table (it comes from the same pass as the history; only its shape is tested). Typed from memory: nothing; every name and date above is printed from the data.
+
 ## 0.117.0 (2026-11-19): odd lines on the Streaks & outliers page, graded by how often each has happened since 1993-94
 
 The user, 12:09 PM: "these are concepts worth tracking and flagging"; and at 12:34 PM, on the proposed order of work from the study (0.116.0): "proceed". This is step 1 of that order: the history table and the morning-after lines.

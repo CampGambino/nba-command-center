@@ -149,6 +149,17 @@ const ord = (n) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "
 // With a history entry before without; then the lower recent rate; then the fewer ever.
 const rarer = (a, b) => ((a.grade == null) !== (b.grade == null) ? b.grade == null : a.rate !== b.rate ? a.rate < b.rate : a.before < b.before);
 const lineOf = (v, IX) => { const l = {}; for (const [k, i] of Object.entries(IX)) if (i >= 1) l[k] = v[i] || 0; return l; };
+/**
+ * 0.118.0: ESPN lists no starters at all for 447 team-games (mostly 2001-02, 2004-05 and 2005-06), which made every
+ * player in them look like a reserve (Dwyane Wade's 40 on 3/8/06 counted as "off the bench"). A side's starter flags
+ * are used only when exactly five are marked; otherwise `starter` is null and the bench and starter rules say nothing.
+ */
+export const STARTERS = 5;
+function linesOf(g, IX) {
+  const n = [0, 0];
+  for (const v of Object.values(g.pl)) if (v[IX.starter]) n[v[IX.side] === 0 ? 0 : 1]++;
+  return Object.entries(g.pl).map(([id, v]) => { const l = lineOf(v, IX); if (n[v[IX.side] === 0 ? 0 : 1] !== STARTERS) l.starter = null; return [id, v, l]; });
+}
 
 /**
  * The odd lines on each of `dates`, rarest first.
@@ -174,8 +185,8 @@ export function oddNights({ rows = [], history = null, names = {}, pos = {}, dat
     const d = played[i].d, tonight = [];
     for (; i < played.length && played[i].d === d; i++) {
       const g = played[i];
-      for (const [id, v] of Object.entries(g.pl)) {
-        const l = lineOf(v, IX), x = ctx(id, l), hits = matchLine(l, x);
+      for (const [id, v, l] of linesOf(g, IX)) {
+        const x = ctx(id, l), hits = matchLine(l, x);
         if (!hits.length) continue;
         const home = v[IX.side] === 0;
         tonight.push({ id, g, home, l, x, hits });
@@ -218,3 +229,118 @@ export function note(h, history) {
   return `${cls}: about ${h.rate >= 10 ? Math.round(h.rate) : h.rate} a season over the last five seasons${last}.`;
 }
 export const sentence = (h, history) => `${h.say}. ${note(h, history)}`.trim();
+
+/* ---------------------------------------------------------------------------------------------------------------
+ * 0.118.0: tonight's watch lists (step 2 of the study's order; the user, 11/19 1:00 PM: "keep going").
+ *
+ * RUNS: a bad night repeated. A run is counted over a player's games of RUN_MIN minutes or more within one season
+ * (shorter games neither extend nor break it), with his average taken from his other games that season.
+ * AGAIN: the same template level in consecutive games he played.
+ * The history of both ("a third straight has happened 21 times") is counted by tools/odd-games/build-history.mjs
+ * with `runLengths` below, the same function the site uses on this season.
+ * ------------------------------------------------------------------------------------------------------------- */
+export const RUN_MIN = 20;
+export const RUN_MAX = 6;
+export const RUNS = [
+  { id: "half", what: "a 20-point scorer under half his average", test: (l, x) => !!x.avg && x.avg.pts >= 20 && l.pts < 0.5 * x.avg.pts, say: "under half his scoring average" },
+  { id: "seventy", what: "a 22-point scorer under 70% of his average", test: (l, x) => !!x.avg && x.avg.pts >= 22 && l.pts < 0.7 * x.avg.pts, say: "under 70% of his scoring average" },
+  { id: "st0", what: "a starter scoreless in 20+ minutes", test: (l) => l.starter === 1 && l.pts === 0, say: "scoreless as a starter" },
+  { id: "cold", what: "an 18-point scorer at 30% or worse on 10+ shots", test: (l, x) => !!x.avg && x.avg.pts >= 18 && l.fga >= 10 && l.fgm <= 0.3 * l.fga, say: "at 30% or worse on 10+ shots" },
+];
+/** Template levels that make no sense as "the same again" (a line with no minutes is not a game played). */
+const NOT_AGAIN = new Set(["zeromin.1"]);
+
+/**
+ * One player's season, in date order: games = [{ l, x, d }] (x: his context for that game).
+ * -> { runs: { id: [length after each qualifying game…] }, again: { key: [length…] }, now: { runs: { id: k }, again: { key: k } }, hits: [[keys] per game] }
+ * `runs[id]` lists the length the run had reached at each game that extended it (so "reached 3" is a 3 in the list);
+ * `now` is the run still standing after his latest game of that kind.
+ */
+export function runLengths(games) {
+  const runs = {}, again = {}, cur = {}, curA = {}, hits = [];
+  for (const g of games) {
+    if (g.l.min >= RUN_MIN) for (const r of RUNS) { if (r.test(g.l, g.x)) { cur[r.id] = (cur[r.id] || 0) + 1; (runs[r.id] ??= []).push(cur[r.id]); } else cur[r.id] = 0; }
+    if (g.l.min > 0) {
+      const ks = matchLine(g.l, g.x).map((h) => h.key).filter((k) => !NOT_AGAIN.has(k)); hits.push(ks);
+      for (const k of Object.keys(curA)) if (!ks.includes(k)) curA[k] = 0;
+      for (const k of ks) { curA[k] = (curA[k] || 0) + 1; (again[k] ??= []).push(curA[k]); }
+    } else hits.push([]);
+  }
+  const live = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v > 0));
+  return { runs, again, now: { runs: live(cur), again: live(curA) }, hits };
+}
+
+const nthWord = (n) => ["", "first", "second", "third", "fourth", "fifth", "sixth", "seventh"][n] || ord(n);
+const times = (n) => (n === 0 ? "has not happened" : n === 1 ? "has happened once" : `has happened ${n} times`);
+
+/**
+ * Tonight's watch lists for the players on tonight's teams.
+ *   rows, history, names, pos, IX as in oddNights · players: src/data/odd-lines-players.json (each player's counts over the
+ *   last seasons) · teams: Set of tonight's teams · vs: { TRI: "vs BOS" | "@ BOS" } · teamNow: (id, lastTeam) => his team today
+ * -> { runs: [{ id, name, team, vs, kind: "run" | "again", key, length, next, n, grade, rate, d, text }],
+ *      owners: [{ id, name, team, vs, key, f, what, n, season, games, league, last, grade, rate, text }] }
+ * runs: he is `length` games into something; `next` more would be the (length+1)th, which has happened `n` times on file.
+ * owners: he has done this `n` times since the players' table starts (at least OWN.min), `season` of them this season.
+ */
+export const OWN = { min: 2 };
+export function oddWatch({ rows = [], history = null, players = null, names = {}, pos = {}, teams = new Set(), vs = {}, teamNow = (id, t) => t, IX }) {
+  const played = [...rows].filter((g) => g.pl && /^\d{4}-\d\d-\d\d$/.test(g.d || "")).sort((a, b) => a.d.localeCompare(b.d));
+  const sum = {}, seq = {}, lastTeam = {};
+  for (const g of played) for (const [id, v, l] of linesOf(g, IX)) {
+    lastTeam[id] = v[IX.side] === 0 ? g.h : g.a; (seq[id] ??= []).push({ l, d: g.d });
+    if (l.min > 0) { const s = (sum[id] ??= { n: 0, pts: 0, reb: 0, ast: 0 }); s.n++; s.pts += l.pts; s.reb += l.reb; s.ast += l.ast; }
+  }
+  const H = history?.t || {}, since = history?.from || "1993-94", out = { runs: [], owners: [] };
+  const leagueSeason = {}, mine = {};
+  for (const [id, gs] of Object.entries(seq)) {
+    const s = sum[id];
+    for (const g of gs) { const me = g.l.min > 0 ? 1 : 0, n = (s?.n || 0) - me; g.x = { pos: posGroup(pos[id]), avg: n >= ODD.games ? { pts: (s.pts - me * g.l.pts) / n, reb: (s.reb - me * g.l.reb) / n, ast: (s.ast - me * g.l.ast) / n } : null }; }
+    const R = runLengths(gs), cnt = {}, lastD = {};
+    R.hits.forEach((ks, i) => { for (const k of ks) { cnt[k] = (cnt[k] || 0) + 1; lastD[k] = gs[i].d; leagueSeason[k] = (leagueSeason[k] || 0) + 1; } });
+    mine[id] = { R, cnt, lastD, gp: s?.n || 0, gs };
+  }
+  const lastOf = (e) => (e?.last ? ` (last: ${e.last[0]}, ${md(e.last[1])})` : "");
+  for (const [id, m] of Object.entries(mine)) {
+    const team = teamNow(id, lastTeam[id]); if (!teams.has(team)) continue;
+    const name = names[id] || id, base = { id, name, team, vs: vs[team] || "" };
+    // runs he is in
+    for (const r of RUNS) {
+      const k = m.R.now.runs[r.id] || 0; if (!k || k >= RUN_MAX) continue;
+      const e = history?.runs?.[r.id]?.[k + 1] || null, n = e?.n || 0, rate = e ? Math.round((e.l5 / ODD.recent) * 10) / 10 : 0;
+      const lastG = [...m.gs].reverse().find((g) => g.l.min >= RUN_MIN);
+      out.runs.push({ ...base, kind: "run", key: r.id, length: k, n, rate, grade: history?.runs ? gradeOf(rate) : null, d: lastG?.d || null,
+        text: `${name} ${k === 1 ? "was" : "has been"} ${r.say} in ${k === 1 ? "his last game" : `${k} straight games`} of ${RUN_MIN}+ minutes (${lastG.l.pts} points on ${lastG.l.fgm}-for-${lastG.l.fga} on ${md(lastG.d)}${lastG.x.avg ? `; averages ${r1(lastG.x.avg.pts)}` : ""}). A ${nthWord(k + 1)} straight for ${r.what} ${times(n)} on file since ${since}${lastOf(e)}.` });
+    }
+    // the same odd line again: the rarest level of each template that his latest game passed
+    const best = {};
+    for (const [key, k] of Object.entries(m.R.now.again)) {
+      const [tid] = key.split("."), hist = H[key] || null, cand = { key, k, rate: rateOf(hist), before: hist?.n || 0, grade: hist ? "x" : null };
+      if (!best[tid] || rarer(cand, best[tid])) best[tid] = cand;
+    }
+    const latest = [...m.gs].reverse().find((g) => g.l.min > 0);
+    for (const c of Object.values(best)) {
+      if (c.k >= RUN_MAX) continue;
+      const e = history?.again?.[c.key]?.[c.k + 1] || null, n = e?.n || 0, rate = e ? Math.round((e.l5 / ODD.recent) * 10) / 10 : 0;
+      const hit = matchLine(latest.l, latest.x).find((h) => h.key === c.key);
+      out.runs.push({ ...base, kind: "again", key: c.key, length: c.k, n, rate, grade: history?.again ? gradeOf(rate) : null, d: latest.d,
+        text: `${name}: ${hit.say} on ${md(latest.d)}${c.k > 1 ? `, his ${nthWord(c.k)} straight game with ${H[c.key]?.what || hit.what}` : ""}. ${hit.what[0].toUpperCase()}${hit.what.slice(1)} in ${c.k + 1} straight games ${times(n)} on file since ${since}${lastOf(e)}.` });
+    }
+    // what he tends to do: his count since the players' table starts, plus this season
+    const P = players?.p?.[id] || null, ownBest = {};
+    for (const key of new Set([...Object.keys(P?.k || {}), ...Object.keys(m.cnt)])) {
+      const past = P?.k?.[key]?.[0] || 0, now = m.cnt[key] || 0, n = past + now; if (n < OWN.min) continue;
+      const [tid] = key.split("."), hist = H[key] || null, cand = { key, n, now, rate: rateOf(hist), before: hist?.n || 0, grade: hist ? "x" : null };
+      if (!ownBest[tid] || rarer(cand, ownBest[tid])) ownBest[tid] = cand;
+    }
+    for (const c of Object.values(ownBest)) {
+      const hist = H[c.key], league = (players?.league?.[c.key] || 0) + (leagueSeason[c.key] || 0), games = (P?.g || 0) + m.gp;
+      const last = [P?.k?.[c.key]?.[1], m.lastD[c.key]].filter(Boolean).sort().pop() || null, rate = Math.round(c.rate * 10) / 10;
+      out.owners.push({ ...base, key: c.key, f: TEMPLATES.find((t) => t.id === c.key.split(".")[0])?.f, what: hist?.what || c.key, n: c.n, season: c.now, games, league, last, rate, grade: hist ? gradeOf(c.rate) : null,
+        text: `${name}: ${hist?.what || c.key}, ${c.n === 2 ? "twice" : `${c.n} times`} in ${games} games since ${players?.since || "this season began"}${c.now ? ` (${c.now} this season)` : ""}${league ? `; the league has ${league}` : ""}${last ? `. Last: ${md(last)}` : ""}.` });
+    }
+  }
+  const gi = (g) => GRADES.indexOf(g ?? "common");
+  out.runs.sort((a, b) => gi(a.grade) - gi(b.grade) || a.rate - b.rate || a.n - b.n || b.length - a.length || a.name.localeCompare(b.name));
+  out.owners.sort((a, b) => gi(a.grade) - gi(b.grade) || (b.league ? b.n / b.league : 0) - (a.league ? a.n / a.league : 0) || b.n - a.n || a.name.localeCompare(b.name));
+  return out;
+}

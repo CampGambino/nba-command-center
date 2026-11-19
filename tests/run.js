@@ -2527,6 +2527,49 @@ await articlesChecks(ok);
       "0.117.0: the Streaks & outliers page lists the odd lines with what \"on file\" leaves out; the build writes them beside the outliers, without the Cup's title game");
   }
   {
+    // 0.118.0: tonight's watch lists (runs and repeats a game short; habits), and starters only where ESPN lists five.
+    const { oddNights, oddWatch, runLengths, RUNS, RUN_MIN, RUN_MAX, OWN } = await import("../src/situations/oddlines.js");
+    const { LINE_IX: IX } = await import("../src/situations/trends.js");
+    const Z = { starter: 1, min: 30, pts: 0, fgm: 0, fga: 0, fg3m: 0, fg3a: 0, ftm: 0, fta: 0, oreb: 0, dreb: 0, reb: 0, ast: 0, stl: 0, blk: 0, tov: 0, pf: 0 };
+    const v = (side, l) => { const a = []; a[IX.side] = side; for (const [k, i] of Object.entries(IX)) if (i >= 1) a[i] = ({ ...Z, ...l })[k]; return a; };
+    const day = (i) => `2026-11-${String(i).padStart(2, "0")}`;
+    // a run is counted over games of 20+ minutes: a short game neither extends nor breaks it; a normal game ends it
+    const avg = { pts: 24, reb: 5, ast: 5 }, G = (pts, min = 30) => ({ l: { ...Z, pts, min, fgm: Math.floor(pts / 2), fga: 16 }, x: { pos: null, avg }, d: "x" });
+    const RL = runLengths([G(26), G(8), G(10, 12), G(9), G(30), G(7)]);
+    ok(JSON.stringify(RL.runs.half) === "[1,2,1]" && RL.now.runs.half === 1 && RUN_MIN === 20 && RUNS.some((r) => r.id === "st0") && RUN_MAX === 6,
+      "0.118.0: a run of bad nights is counted over his games of 20+ minutes (a 12-minute game neither extends nor breaks it) and ends with a normal game", JSON.stringify(RL.runs));
+    // tonight: Star is two games into "under half his average"; Big is coming off 13 assists as a center; Idle's team is not playing
+    const rowsW = [];
+    const others = (i) => Object.fromEntries(["a", "b", "c", "d"].map((x) => [`H${x}`, v(0, { pts: 10, fgm: 4, fga: 9, reb: 4, starter: 1 })]).concat(["a", "b", "c", "d"].map((x) => [`V${x}`, v(1, { pts: 10, fgm: 4, fga: 9, reb: 4, starter: 1 })])));
+    for (let i = 1; i <= 13; i++) rowsW.push({ id: `w${i}`, d: day(i), h: "AAA", a: "BBB", hs: 100, as: 90, pl: { ...others(i),
+      S: v(0, i >= 12 ? { pts: 8, fgm: 3, fga: 14 } : { pts: 26, fgm: 10, fga: 20 }), B: v(1, i === 13 ? { pts: 12, fgm: 5, fga: 9, ast: 13 } : { pts: 12, fgm: 5, fga: 9, ast: 4 }), I: v(1, { pts: 5, fgm: 2, fga: 5, starter: 0 }) } });
+    const histW = { from: "1993-94", runMin: 20, t: { "cast.12": { what: "a center with 12+ assists", n: 150, l5: 98 }, "ast3x.1": { what: "12+ assists at three times his average", n: 469, l5: 94 } },
+      runs: { half: { 2: { n: 198, l5: 45, last: ["A", "2026-04-03"] }, 3: { n: 21, l5: 6, last: ["Desmond Bane", "2025-11-04"] } }, seventy: {}, st0: {}, cold: {} },
+      again: { "cast.12": { 2: { n: 20, l5: 14, last: ["Nikola Jokic", "2026-04-06"] } } } };
+    const playersW = { since: "2023-24", league: { "cast.12": 98 }, p: { B: { g: 200, k: { "cast.12": [3, "2026-01-05"] } } } };
+    const W = oddWatch({ rows: rowsW, history: histW, players: playersW, names: { S: "Star One", B: "Big Two", I: "Idle Three" }, pos: { B: "C" }, teams: new Set(["AAA", "BBB"]), vs: { AAA: "vs BBB", BBB: "@ AAA" }, IX,
+      teamNow: (id, t) => (id === "I" ? "CCC" : t) });
+    const run = W.runs.find((r) => r.kind === "run" && r.key === "half" && r.name === "Star One"), rep = W.runs.find((r) => r.kind === "again" && r.key === "cast.12"), own = W.owners.find((o) => o.key === "cast.12");
+    ok(run?.length === 2 && run.n === 21 && run.grade === "few" && /^Star One has been under half his scoring average in 2 straight games of 20\+ minutes \(8 points on 3-for-14 on 11\/13\/26; averages 24\.5\)\. A third straight for a 20-point scorer under half his average has happened 21 times on file since 1993-94 \(last: Desmond Bane, 11\/4\/25\)\.$/.test(run.text)
+      && rep?.length === 1 && rep.n === 20 && /^Big Two: 13 assists by a center on 11\/13\/26\. A center with 12\+ assists in 2 straight games has happened 20 times on file since 1993-94 \(last: Nikola Jokic, 4\/6\/26\)\.$/.test(rep.text)
+      && own?.n === 4 && own.season === 1 && own.league === 99 && /^Big Two: a center with 12\+ assists, 4 times in 213 games since 2023-24 \(1 this season\); the league has 99\. Last: 11\/13\/26\.$/.test(own.text)
+      && !W.runs.concat(W.owners).some((x) => x.name === "Idle Three") && OWN.min === 2,
+      "0.118.0 (the user: \"keep going\"): tonight's list names who is a game short of a run or a repeat, with how often the next step has happened, and who has a habit (twice or more); a player whose team is not playing is left out",
+      JSON.stringify([run?.text, rep?.text, own?.text]));
+    // starters: a side with no starters marked says nothing about "off the bench"
+    const big = { pts: 41, fgm: 15, fga: 25, ftm: 11, fta: 12, reb: 5, ast: 5 };
+    const noStart = { id: "n1", d: day(20), h: "AAA", a: "BBB", hs: 100, as: 90, pl: { X: v(0, { ...big, starter: 0 }), ...Object.fromEntries(["a", "b", "c", "d", "e"].map((x) => [`V${x}`, v(1, { pts: 10, fgm: 4, fga: 9, reb: 4, starter: 1 })])), Y: v(1, { ...big, starter: 0 }) } };
+    const NS = oddNights({ rows: [noStart], history: { t: { "bench.40": { what: "40+ points off the bench", n: 37, l5: 8 } } }, names: { X: "No Flags", Y: "Sixth Man" }, dates: [day(20)], IX })[day(20)];
+    ok(NS.some((o) => o.name === "Sixth Man" && o.hits.some((h) => h.key === "bench.40")) && !NS.some((o) => o.name === "No Flags"),
+      "0.118.0: \"off the bench\" is said only when that side's box score marks five starters (ESPN marks none for 482 old team-games, which had counted Dwyane Wade's 40 on 3/8/06 as a reserve's)", JSON.stringify(NS.map((o) => [o.name, o.hits.map((h) => h.key)])));
+    const HT = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "odd-lines-history.json"), "utf8")), PT = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "odd-lines-players.json"), "utf8"));
+    ok(HT.t["bench.40"].n === 37 && HT.t["bench.35"].n === 142 && HT.noStarters === 482 && HT.runs.half[3].n === 21 && HT.runs.st0[3].n === 7 && HT.runs.seventy[5].n === 5 && HT.runs.cold[4].n === 8 && HT.again["cast.12"][2].n === 20 && !HT.again["zeromin.1"]
+      && PT.since === "2023-24" && Object.keys(PT.p).length > 300 && Object.values(PT.p).every((e) => e.g > 0 && Object.values(e.k).every(([n, d]) => n >= 1 && /^\d{4}-\d\d-\d\d$/.test(d))),
+      "0.118.0: the history holds how often each run reached each length (under half his average three straight: 21 times) and each repeat; 40 points off the bench is 37 on file, not 55; the players' table covers 2023-24 on");
+    const pageT = fs.readFileSync(path.join(root, "docs", "trends.html"), "utf8");
+    ok(/id="oddruns"/.test(pageT) && /function renderOddWatch\(\)/.test(pageT) && /Injuries are not checked here/.test(pageT), "0.118.0: the page shows tonight's list under the odd lines and says injuries are not checked");
+  }
+  {
     // 0.108.0: brothers. Their last N games reading alike, and a big night on the same date.
     const { brotherLines, BRO } = await import("../src/anticipate/seasonlong.js");
     const day = (i) => `2026-11-${String(i + 1).padStart(2, "0")}`;

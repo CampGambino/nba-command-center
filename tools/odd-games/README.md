@@ -23,3 +23,8 @@ of every template in `src/situations/oddlines.js` over the files in `/home/claud
 `src/data/odd-lines-history.json`. Run it again after changing a template or a level, and once a season with
 `--through <year the season started>` after fetching that season's games. `--out` and `--through` also make a table that
 stops early, to replay a later season against it.
+
+0.118.0: the same run also writes `runs` and `again` into the table (how often each run of bad nights reached each length,
+and each level was repeated in consecutive games) and `src/data/odd-lines-players.json` (each player's counts over the last
+three seasons; `--window N` changes that, `--players <file>` the path). ESPN marks no starters for 482 old team-games; a side
+without exactly five is treated as "starters unknown".
