@@ -2444,6 +2444,23 @@ await articlesChecks(ok);
       JSON.stringify([all.length, clash, strangers]));
   }
   {
+    // 0.115: one player's total against whole teams' totals, by window (the user, 11/19: "wembanyama having more blocks
+    // in a month than several teams").
+    const { findings: FD, OUTDO } = await import("../src/anticipate/finder.js");
+    const pgO = {}, namesO = {};
+    const line = (d, team, blk, pts = 10) => ({ d, gameId: `${d}-${team}`, team, opp: "ZZZ", min: 30, pts, reb: 4, ast: 2, stl: 1, blk, fg3m: 1, fgm: 4, ftm: 1, oreb: 1 });
+    const nov = ["02", "04", "06", "08", "10", "12"].map((x) => `2026-11-${x}`), oct = ["22", "24", "26", "28"].map((x) => `2026-10-${x}`);
+    // six teams of five; the Blocker's team is AAA. In October every team blocks plenty; in November BBB and CCC do not.
+    ["AAA", "BBB", "CCC", "DDD", "EEE", "FFF"].forEach((t, ti) => { for (let i = 0; i < 5; i++) { const id = `${t}${i}`; namesO[id] = id === "AAA0" ? "The Blocker" : `P ${id}`;
+      pgO[id] = [...oct.map((d) => line(d, t, id === "AAA0" ? 2 : 2)), ...nov.map((d) => line(d, t, id === "AAA0" ? 5 : t === "BBB" || t === "CCC" ? 0 + (i === 0 ? 4 : 0) : 2))]; } });
+    pgO.FFF0 = pgO.FFF0.filter((g) => g.d < "2026-11-06");                               // a player who left: his team still played
+    for (const id of ["DDD0", "DDD1", "DDD2", "DDD3", "DDD4"]) pgO[id] = pgO[id].filter((g) => g.d < "2026-11-05" || g.d.startsWith("2026-10"));   // DDD has played only 2 games in November
+    const O = FD({ pg: pgO, names: namesO }).filter((f) => f.test === "outdo");
+    ok(O.length === 1 && O[0].text === "The Blocker has 30 blocks in November: more than 2 whole teams (BBB 24, CCC 24)" && O[0].player === "The Blocker" && OUTDO.teams === 2,
+      "0.115: a player's total against whole teams' totals: found in the month where it is true (30 blocks to two teams' 24) and not over the season (38 to 64 or more); a team that has played only two games in the window is not counted against him; nobody else gets a line",
+      JSON.stringify(O.map((f) => f.text)));
+  }
+  {
     // 0.108.0: brothers. Their last N games reading alike, and a big night on the same date.
     const { brotherLines, BRO } = await import("../src/anticipate/seasonlong.js");
     const day = (i) => `2026-11-${String(i + 1).padStart(2, "0")}`;

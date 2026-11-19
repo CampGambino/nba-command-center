@@ -2,6 +2,24 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.115.0 (2026-11-19): one player's total against whole teams' totals, by season, month and last 30 days
+
+The user, 11:34 AM: "does the program check if a player has more than any stat compared to other teams? and it doesn't have to be season long. checking month stats is also viable for trying to find anomolies. a big one that has occured is usually victor wembanyama having more blocks in a month than several teams".
+
+It did half of that. The finder's `teams` test (0.84) sets a player's count of *games* (30-point games, 3-block games, triple-doubles…) against whole teams' counts, over the season only, and wants him ahead of 24 of the other 29. It never compared raw totals and had no month.
+
+- **New search `outdo`** in `src/anticipate/finder.js` (`OUTDO`). A player's total against every other team's total, for blocks, steals, offensive rebounds, threes, assists, rebounds and points, over four windows: the season, this calendar month, the month just ended (during the first seven days of the next), and the last 30 days. A line needs his total to be at least 8 and more than at least 2 whole teams'. A team is counted against him only once it has played 4 games in the window and no more than 2 fewer than he has. One line per player and stat: the window where he outdoes the most teams (the season wins a tie).
+- Today: "Victor Wembanyama has 61 blocks this season: more than 7 whole teams (LAC 59, ORL 59, NYK 58, ATL 58, …)". In November alone it is 36, also more than 7 teams.
+
+Tested: 1,000 checks pass (one new: a made-up league where the total is true in the month and not over the season, a team with two games in the window is not counted, and nobody else gets a line). A full local build ran clean and carries the line in the Spurs' prep. Both of today's numbers were recounted by a second route, the team lines of the box scores and not the players added up: 61 blocks in 15 games against SAC 48, PHX 57, DEN 57, NYK 58, ATL 58, ORL 59, LAC 59; and 36 in nine November games against CHA 29, ATL 33, SAC 33, LAC 34, NYK 34, PHI 35, DEN 35.
+
+Still unproven: only blocks produced a line today, and I expect that to be the rule; the other six stats are there in case. Last season cannot be replayed honestly: the logs hold current players only, so a past team's total comes out short and every line would be flattered. I ran it anyway to see the windows work (it finds Wembanyama in February 2026) and am not quoting its numbers.
+
+Self-audit:
+- **Wrong first:** the first version crashed the test suite: other tests hand the finder players with no dates, and "the last 30 days" had no date to count back from. Guarded; the suite is how I found it.
+- **Changed after seeing the output:** two thresholds. One team was enough at first, which gave six lines about Sacramento alone on a replay; now two. And a team had to be within one game of him, which left Charlotte (29 blocks in 7 games) out of November's count for a reason a reader would not guess; now within two. Both are judgments.
+- **Not the same as the posts:** a post would say "more than 7 teams" with no thought for games played. This says it only of teams that have played about as much, so its count can be lower than a raw one early in a month.
+
 ## 0.114.0 (2026-11-19): last season's bio lines are not this season's; "1 in N" explained; the league line shows records; non-conference records
 
 The user, 10:57 AM, with nine screenshots: Keldon Johnson's "Ranks second in NBA in total bench points (1,081)" and "His 414 made field goals and 439 rebounds each rank second among NBA reserves" ("these stats were from last season"); "i don't understand the 1 in 13 or 1 in 14"; "the home road record says 50%… can you provide the records with the percentages, and can you double check from espn standings?"; "can you provide non-conference records as well?"

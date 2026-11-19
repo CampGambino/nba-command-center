@@ -49,6 +49,9 @@ export const NOAS = { top: 12 };
 //          ("Players with 700 points, 350 rebounds, 150 assists and 30 blocks: one man. Nobody else.")
 //   rate   a player's rank in a season total set against his rank in minutes, for every total
 //   group  a player's ranks inside a group (bench players; rookies), for every total and plus/minus
+export const OUTDO = { least: 8, teams: 2, games: 4, short: 2, lines: 6, early: 7 };   // his total at least 8, more than at least 2 whole teams; a team is compared once it has played 4 games in the window and no more than 2 fewer than he has
+const OUT_STATS = [["blk", "blocks"], ["stl", "steals"], ["oreb", "offensive rebounds"], ["fg3m", "threes"], ["ast", "assists"], ["reb", "rebounds"], ["pts", "points"]];
+const MONTH_NAME = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 export const CLUB = { most: 3, sizes: [4, 3, 2], each: 4, wide: 75, near: 0.92, lines: 6, pool: 30 };   // each bar is cleared by 4 to 75 players; together by at most 3
 export const RATE = { top: 20, ratio: 2.5, gap: 20, lines: 5 };
 export const GROUP = { starts: 0.5, top: 10, need: 3, best: 3, lines: 4 };                              // three top-ten ranks in the group, one of them top three
@@ -233,6 +236,42 @@ export function findings({ pg, names = {}, qsum = {}, teamGp = {}, allStars = nu
         out.push({ kind: "find", test: "group", team: f.t.p.team, player: f.t.p.name, key: `find|group|${label}|${f.t.p.id}`, surprise: 2.8 + Math.min(1.2, f.sum / 20), rare: false,
           text: `${f.t.p.name} among ${label} this season: ${f.said.map(([r, w]) => `${ord(r)} in ${w}`).join(", ")}` });
     }
+  }
+  // 9. outdo (0.115; the user, 11/19: "does the program check if a player has more than any stat compared to other
+  //    teams? and it doesn't have to be season long. checking month stats is also viable… victor wembanyama having more
+  //    blocks in a month than several teams"). The `teams` test sets a count of GAMES against teams' counts, season only.
+  //    This sets a player's raw total against every team's total, for each stat and each window: the season, this
+  //    calendar month, the month just ended (in the first days of the next), and the last 30 days. A team is compared
+  //    only if it has played about as many games in the window as he has. One line a player and stat: the window where
+  //    he outdoes the most teams.
+  const lastDay = P.reduce((m, p) => { const d = String(p.games[p.games.length - 1].d || ""); return d > m ? d : m; }, "");
+  if (/^\d{4}-\d\d-\d\d$/.test(lastDay)) {
+    const last = lastDay, ym = last.slice(0, 7);
+    const back = (n) => new Date(Date.parse(`${last}T12:00:00Z`) - n * 864e5).toISOString().slice(0, 10);
+    const prev = (() => { const d = new Date(Date.parse(`${ym}-01T12:00:00Z`) - 864e5); return d.toISOString().slice(0, 7); })();
+    const wins = [{ key: "season", say: "this season", in: () => true, bonus: 0.4 }, { key: "month", say: `in ${MONTH_NAME[+ym.slice(5) - 1]}`, in: (d) => d.slice(0, 7) === ym, bonus: 0 },
+      { key: "d30", say: "in the last 30 days", in: (d) => d > back(30), bonus: 0 }];
+    if (+last.slice(8) <= OUTDO.early) wins.push({ key: "prev", say: `in ${MONTH_NAME[+prev.slice(5) - 1]}`, in: (d) => d.slice(0, 7) === prev, bonus: 0.2 });
+    const best = {};
+    for (const w of wins) {
+      const T = {}, mine = [];
+      for (const p of P) {
+        const gs = p.games.filter((g) => typeof g.d === "string" && w.in(g.d)); if (!gs.length) continue;
+        const tot = Object.fromEntries(OUT_STATS.map(([k]) => [k, 0]));
+        for (const g of gs) { const t = (T[g.team] ||= { ids: new Set(), ...Object.fromEntries(OUT_STATS.map(([k]) => [k, 0])) }); t.ids.add(g.gameId || g.d); for (const [k] of OUT_STATS) { t[k] += g[k] || 0; tot[k] += g[k] || 0; } }
+        mine.push({ p, n: gs.length, tot, teams: new Set(gs.map((g) => g.team)) });
+      }
+      for (const m of mine) for (const [k, word] of OUT_STATS) {
+        const v = m.tot[k]; if (v < OUTDO.least) continue;
+        const fewer = Object.entries(T).filter(([t, x]) => !m.teams.has(t) && x.ids.size >= Math.max(OUTDO.games, m.n - OUTDO.short) && x[k] < v && x[k] > 0).sort((a, b) => b[1][k] - a[1][k]);
+        if (fewer.length < OUTDO.teams) continue;
+        const key = `${m.p.id}|${k}`, surprise = 1 + 0.45 * Math.min(fewer.length, 8) + w.bonus;
+        if (best[key] && best[key].surprise >= surprise) continue;
+        best[key] = { kind: "find", test: "outdo", team: m.p.team, player: m.p.name, key: `find|outdo|${m.p.id}|${k}`, surprise, rare: fewer.length >= 5,
+          text: `${m.p.name} has ${v} ${word} ${w.say}: more than ${fewer.length === 1 ? `all of ${fewer[0][0]} (${fewer[0][1][k]})` : `${fewer.length} whole teams (${fewer.slice(0, 4).map(([t, x]) => `${t} ${x[k]}`).join(", ")}${fewer.length > 4 ? ", …" : ""})`}` };
+      }
+    }
+    out.push(...Object.values(best).sort((a, b) => b.surprise - a.surprise).slice(0, OUTDO.lines));
   }
   // One gap line a player: the list where his lead is widest.
   const gapBest = {};
