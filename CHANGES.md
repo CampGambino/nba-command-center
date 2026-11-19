@@ -2,6 +2,18 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.111.1 (2026-11-19): the Bulls and Pelicans fill is finished for all six seasons; the temporary workflow is removed
+
+- **2012-13 to 2015-16 are complete:** 648 games (162 a season), the last saved at 12:30 AM on 11/19, about seven hours after the user's go. With 2016-17 and 2017-18 that is 972 games in `tools/outside/pbpstats/box-<season>.jsonl`.
+- **Checked at 12:34 AM:** in every one of the 648 games the players' points add up to the final score for both teams; none failed. Each season's list of games has 162 for Chicago and New Orleans (2012-13 has 1,229 games in all, one short of 1,230: the Boston-Indiana game of April 2013 was never played).
+- **The 2012-13 Hornets are filed as NOH**, as guessed. Without the code added on 11/18, half of that season's New Orleans games (their 41 at home) would have been missed without any error.
+- `.github/workflows/pbpstats-fill.yml` is removed: nothing is left to fetch and it ran every six hours. `tools/fetch-pbpstats.mjs` stays, so the fill can be repeated by hand.
+- **Nothing reads the four older seasons.** The players' logs begin in 2016-17. These games are for franchise records (the feat-runs file says nothing for Chicago or New Orleans players before 2018-19 because of this hole), and that is a piece of work of its own: names have to be matched to ESPN's players first, as was done for the first 324.
+
+Not seen tonight: the rule that keeps yesterday's slate after midnight while a game is in progress. No site build ran between midnight and the last final, so the rule was never asked. It is still untested on a live night.
+
+Self-audit: the counts above are from the committed files, read after the last save. "Add up to the final score" is the only check made on the 648; rebounds, assists, steals and blocks in them are a floor, the same as in the first 324, and no name has been matched yet. That the missing 2012-13 game is Boston-Indiana is from memory of the season, not looked up; the count (1,229) is from the file.
+
 ## 0.111.0 (2026-11-18): a guard on the team-records builder; the Kings' steals mark removed; the Cup's title game locked out by date
 
 The user, 7:51 PM: "confirmed the cup championship is 12/11 this season", "go ahead with 4 and 5", and three more box scores.
