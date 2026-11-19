@@ -33,7 +33,7 @@
   "KXNBAPTSPROT": {
    "title": "NBA Player Points Protected",
    "events": 4,
-   "markets": 172
+   "markets": 174
   },
   "KXNBAONE3PT": {
    "title": "NBA Players to Make One Three",
@@ -73,7 +73,7 @@
   "KXNBAASTPROT": {
    "title": "NBA Player Assists Protected",
    "events": 4,
-   "markets": 168
+   "markets": 169
   },
   "KXNBAFRANCHISECOST": {
    "title": "NBA Franchise Cost",
@@ -153,7 +153,7 @@
   "KXNBAAST": {
    "title": "NBA Player Assists",
    "events": 4,
-   "markets": 168
+   "markets": 169
   },
   "KXNBATEAM": {
    "title": "NBA team",
@@ -183,7 +183,7 @@
   "KXNBAREBPROT": {
    "title": "NBA Player Rebounds Protected",
    "events": 4,
-   "markets": 194
+   "markets": 195
   },
   "KXNBATRADE": {
    "title": "Pro Basketball Trade",
@@ -258,7 +258,7 @@
   "KXNBAPRA": {
    "title": "NBA Player Points + Rebounds + Assists",
    "events": 4,
-   "markets": 144
+   "markets": 145
   },
   "KXNBADPOY": {
    "title": "NBA Defensive Player of the Year",
@@ -309,6 +309,11 @@
    "title": "NBA Regular Season League Leader",
    "events": 11,
    "markets": 693
+  },
+  "KXNBAESCALATORPTS": {
+   "title": "NBA Player Points Escalator",
+   "events": 4,
+   "markets": 15
   },
   "KXNBASTOCK": {
    "title": "NBA Player Steals + Blocks",
@@ -363,7 +368,7 @@
   "KXNBAPTS": {
    "title": "NBA Player Points",
    "events": 4,
-   "markets": 171
+   "markets": 174
   },
   "KXNBAPRAPROT": {
    "title": "Pts + Reb + Ast Protected",
@@ -505,6 +510,11 @@
    "events": 13,
    "markets": 39
   },
+  "KXNBAESCALATOR3PT": {
+   "title": "NBA Player Threes Escalator",
+   "events": 4,
+   "markets": 16
+  },
   "KXNBA1QSPREAD": {
    "title": "NBA 1st Quarter Spread",
    "events": 4,
@@ -548,7 +558,7 @@
   "KXNBAREB": {
    "title": "NBA Player Rebounds",
    "events": 4,
-   "markets": 194
+   "markets": 195
   },
   "KXNBAEFINMVP": {
    "title": "NBA Eastern Conference Finals MVP",
@@ -731,28 +741,28 @@
   "KXNBASOUTHEAST-26": "Miami 52%",
   "KXNBACLUTCH-27": "Tyrese Maxey 18%",
   "KXNBAEAST1SEED-26": "Boston 40%",
-  "KXNBAEXEC-27": "Sam Presti 13%",
   "KXNBACENTRAL-26": "Detroit 61%",
   "KXNBANORTHWEST-26": "Oklahoma City 40%",
+  "KXNBAEXEC-27": "Sam Presti 13%",
   "KXNBAWEST-27": "San Antonio 35%",
   "KXNBAWFINMVP-27": "Shai Gilgeous-Alexander 20%",
-  "KXNBASIXTH-27": "Payton Pritchard 31%",
+  "KXNBASIXTH-27": "Payton Pritchard 30%",
   "KXNBADPOY-27": "Victor Wembanyama 71%",
   "KXNBARECORD-27BEST": "San Antonio 38%",
   "KXNBARECORD-27WORST": "Sacramento 40%",
+  "KXNBAMIMP-27": "Ty Jerome 30%",
   "KXNBAROY-27": "Cameron Boozer 31%",
-  "KXNBAMIMP-27": "Ty Jerome 29%",
+  "KXNBAATLANTIC-26": "Boston 54%",
   "KXNBACOY-27": "JJ Redick 25%",
   "KXNBAMVP-27": "Victor Wembanyama 44%",
   "KXNBACUP-26": "San Antonio 23%",
-  "KXNBAATLANTIC-26": "Boston 54%",
   "KXNBAFINMVP-27": "Victor Wembanyama 19%",
   "KXNBAEFINMVP-27": "Tyrese Maxey 20%",
   "KXNBACUPMVP-27": "Victor Wembanyama 33%",
-  "KXNBAPACIFIC-26": "Los Angeles L 82%",
   "KXNBA-27": "San Antonio 22%",
+  "KXNBAPACIFIC-26": "Los Angeles L 83%",
   "KXNBASOUTHWEST-26": "San Antonio 75%",
   "KXNBAWEST1SEED-26": "San Antonio 53%",
-  "KXNBAEAST-27": "Boston 22%"
+  "KXNBAEAST-27": "Boston 20%"
  }
 }
