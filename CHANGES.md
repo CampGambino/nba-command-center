@@ -36,7 +36,7 @@ The user, 4:32 PM: eleven Basketball Reference box-score screenshots: four of th
 - Wrong first: I typed the test's player count from memory (101) and it failed.
 - Re-derived from the committed files: fill 971 games, 19,979 lines, 78 with turnovers and fouls (102 read, less the 23 in ESPN's own game, less Marquis Teague, who played seconds with nothing and is not a line); 1,016 zeroed less 971 filled plus 233 bad leaves 278 of 37,816 games (0.7%).
 - Cases not used while building: Jimmy Butler, 1/9/17 (AP: one point, 0-for-6, 29 minutes) and Kendall Marshall, 3/4/14 (AP: 22 scoreless minutes, 10 assists; 0-for-4 in the box score) both match what the table now counts.
-- Still resting on pbpstats alone: Batum 12/16/12, Davis 11/2/13, Gasol 3/7/16, Thompson 2/6/16 and Davis 2/23/18 are five of the six box scores still on the screenshot list (the sixth, Joakim Noah 3/15/14, is one steal count short of mattering). Each matches the line I remember for that night, which is memory and not a check.
+- Still resting on pbpstats alone: Batum 12/16/12, Davis 11/2/13, Gasol 3/7/16, Thompson 2/6/16 and Davis 2/23/18 are five of the six box scores still on the screenshot list (the sixth, Joakim Noah 3/15/14, is not an odd line on pbpstats' numbers: 3 steals, and it would take 5). Each matches the line I remember for that night, which is memory and not a check.
 - Page read as a first-time reader: the paragraph says which lines are short of games and by how much. It lists six kinds of line in a parenthesis, which is long; left as is because each is one the reader can see in the table.
 
 ## 0.121.0 (2026-11-19): the strongest shifts on the Watch List; the Bulls' and Pelicans' games counted where they are exact
