@@ -2470,6 +2470,63 @@ await articlesChecks(ok);
       "0.115.1: free throws made and free throw attempts are compared too", JSON.stringify(ft.map((f) => f.text)));
   }
   {
+    // 0.117.0: odd lines. The shape of a line, graded by how often it has happened since 1993-94.
+    const { TEMPLATES, matchLine, oddNights, gradeOf, rateOf, posGroup, ODD } = await import("../src/situations/oddlines.js");
+    const { LINE_IX: IX } = await import("../src/situations/trends.js");
+    const Z = { starter: 1, min: 30, pts: 0, fgm: 0, fga: 0, fg3m: 0, fg3a: 0, ftm: 0, fta: 0, oreb: 0, dreb: 0, reb: 0, ast: 0, stl: 0, blk: 0, tov: 0, pf: 0 };
+    const keys = (l, x) => matchLine({ ...Z, ...l }, x).map((h) => h.key);
+    const has = (l, want, x) => { const k = keys(l, x); return want.every((w) => k.includes(w)); };
+    // the user's posts, as lines: each is caught by a rule that does not name the player or the exact numbers
+    const posts = [
+      ["27 points on two baskets, 22-of-25 at the line", { min: 44, pts: 27, fgm: 2, fga: 9, fg3m: 1, fg3a: 5, ftm: 22, fta: 25, reb: 6, ast: 5, blk: 1 }, ["ftshare.2fg", "ftshare.75", "fta.20"]],
+      ["48 points with no free throw", { min: 43, pts: 48, fgm: 24, fga: 40, reb: 10, ast: 3, blk: 2 }, ["noft.40", "noft.30"]],
+      ["37 points and nothing else", { min: 38, pts: 37, fgm: 16, fga: 20, fg3m: 2, fg3a: 2, ftm: 3, fta: 3, tov: 4, pf: 5 }, ["empty.30", "empty.20near"]],
+      ["29 points in 20 minutes with zeros", { min: 20, pts: 29, fgm: 10, fga: 14, fg3m: 9, fg3a: 13 }, ["empty.25", "quick.25in20"]],
+      ["14 points on 0-for-10 and 14-of-14", { min: 28, pts: 14, fga: 10, fg3a: 1, ftm: 14, fta: 14, reb: 6, ast: 1, stl: 1 }, ["nofg.12", "ofg.10", "perft.14"]],
+      ["a guard with 18 rebounds on 1-for-13", { min: 43, pts: 5, fgm: 1, fga: 13, fg3a: 7, ftm: 3, fta: 4, reb: 18, ast: 4 }, ["greb.18"], { pos: "G" }],
+      ["a triple-double with 4 points", { min: 38, pts: 4, fgm: 2, fga: 6, fg3a: 3, reb: 11, ast: 10, stl: 10, blk: 5 }, ["lowpts.td", "lowpts.ra5"]],
+      ["one of everything", { min: 9, pts: 1, fga: 1, ftm: 1, fta: 2, reb: 1, ast: 1, stl: 1, blk: 1, tov: 1 }, ["ones.5", "ones.6"]],
+      ["17 points in 10 minutes without a basket", { min: 10, pts: 17, fga: 2, ftm: 17, fta: 20 }, ["nofg.12", "quick.15in10", "ftshare.75"]],
+      ["a turnover in 0 minutes", { min: 0, tov: 1 }, ["zeromin.1"]],
+      ["0-for-13 with 0-for-8 from three", { min: 42, pts: 2, fga: 13, fg3a: 8, ftm: 2, fta: 2 }, ["ofg.12", "o3.8"]],
+    ];
+    const missed = posts.filter(([, l, want, x]) => !has(l, want, x)).map(([n, l, , x]) => `${n}: ${keys(l, x).join(",")}`);
+    ok(!missed.length && keys({ min: 32, pts: 20, fgm: 8, fga: 16, fg3m: 2, fg3a: 5, ftm: 2, fta: 2, reb: 5, ast: 4, stl: 1, tov: 2, pf: 2 }).length === 0 && !keys({ min: 43, pts: 5, fgm: 1, fga: 13, reb: 18 }, { pos: "F" }).includes("greb.18"),
+      "0.117.0 (the user: \"these are concepts worth tracking and flagging\"): each of the posted odd lines is caught by a rule about its shape; an ordinary line is not; a position rule needs the position", missed.join(" | "));
+    ok(!keys({ min: 30, pts: 6, fgm: 2, fga: 12 }).some((k) => /^dud|^erupt/.test(k)) && has({ min: 30, pts: 6, fgm: 2, fga: 12 }, ["dud.25", "dud.half"], { avg: { pts: 26, reb: 5, ast: 5 } })
+      && has({ min: 30, pts: 31, fgm: 12, fga: 18, ftm: 7, fta: 8, reb: 3 }, ["erupt.u8", "erupt.3x"], { avg: { pts: 5.5, reb: 3, ast: 1 } }) && posGroup("PG") === "G" && posGroup("C") === "C" && posGroup("") === null,
+      "0.117.0: far-from-his-average rules need an average (10 other games) and say nothing without one");
+    // counting: history plus this season's earlier nights; same-night lines do not count each other; the rarest level is the one said
+    const v = (side, l) => { const a = []; a[IX.side] = side; for (const [k, i] of Object.entries(IX)) if (i >= 1) a[i] = ({ ...Z, ...l })[k]; return a; };
+    const day = (i) => `2026-11-${String(i).padStart(2, "0")}`;
+    const rowsO = [];
+    for (let i = 1; i <= 11; i++) rowsO.push({ id: `g${i}`, d: day(i), h: "AAA", a: "BBB", hs: 100, as: 90, pl: { A: v(0, { pts: 26, fgm: 10, fga: 20, ftm: 6, fta: 6, reb: 5, ast: 5 }), C: v(1, { pts: 10, fgm: 4, fga: 9, ftm: 2, fta: 2, reb: 3 }) } });
+    rowsO.push({ id: "g12", d: day(12), h: "AAA", a: "BBB", hs: 100, as: 90, pl: { A: v(0, { pts: 6, fgm: 2, fga: 12, ftm: 2, fta: 2, reb: 5, ast: 5 }), C: v(1, { fga: 10, reb: 3 }), D: v(1, { fga: 11, reb: 2 }), B: v(0, { pts: 12, fgm: 5, fga: 9, ftm: 2, fta: 2, reb: 9, ast: 13 }) } });
+    rowsO.push({ id: "g13", d: day(13), h: "BBB", a: "AAA", hs: 100, as: 90, pl: { C: v(0, { fga: 10, reb: 3 }) } });
+    const histO = { from: "1993-94", t: { "ofg.8": { n: 752, l5: 133 }, "ofg.10": { n: 5, l5: 2, last: [["Old Guy", "2024-01-01", "XXX", "0-for-11 from the field"]] }, "dud.25": { n: 117, l5: 35 }, "dud.half": { n: 546, l5: 166 }, "cast.12": { n: 150, l5: 98 }, "brick.15": { n: 1464, l5: 207 } } };
+    const NO = oddNights({ rows: rowsO, history: histO, names: { A: "Star One", B: "Big Two", C: "Cold Three", D: "Dry Four" }, pos: { B: "C" }, dates: [day(12), day(13)], IX });
+    const n12 = NO[day(12)], cold = n12.find((o) => o.name === "Cold Three"), dry = n12.find((o) => o.name === "Dry Four"), star = n12.find((o) => o.name === "Star One"), big = n12.find((o) => o.name === "Big Two"), next = NO[day(13)][0];
+    ok(cold?.hits[0].key === "ofg.10" && cold.grade === "rare" && cold.hits[0].before === 5 && cold.hits[0].note === "No field goal on 10+ attempts: the 6th on file since 1993-94 (last: Old Guy, 1/1/24, 0-for-11 from the field)."
+      && dry?.hits[0].before === 5 && n12[0].grade === "rare" && n12[n12.length - 1].grade === "common"
+      && next?.hits[0].before === 7 && /\(last: (Cold Three|Dry Four), 11\/12\/26/.test(next.hits[0].note),
+      "0.117.0: an odd line is counted against the history plus this season's earlier nights (two on one night do not count each other), the rarest level it passes is the one said, and the night is ordered rarest first",
+      JSON.stringify([cold?.hits, dry?.hits, next?.hits, n12.map((o) => o.grade)]));
+    ok(star?.hits.some((h) => h.key === "dud.25" && h.grade === "monthly" && /^6 points in 30 minutes \(averages 26\.0; 2-for-12\)$/.test(h.say) && /about 7 a season over the last five seasons/.test(h.note))
+      && big?.hits[0].key === "cast.12" && big.grade === "common" && big.hits[0].say === "13 assists by a center" && !NO[day(12)].some((o) => o.hits.some((h) => h.key === "dud.half")),
+      "0.117.0: a star's dud is measured against his other games this season; a common line is still listed, graded common (nothing is cut for being common)", JSON.stringify([star?.hits, big?.hits]));
+    ok(gradeOf(1) === "rare" && gradeOf(1.2) === "few" && gradeOf(5) === "few" && gradeOf(15) === "monthly" && gradeOf(15.2) === "common" && rateOf({ l5: 23 }) === 4.6 && ODD.games === 10,
+      "0.117.0: grades are per season over the last five seasons: at most 1 rare, at most 5 a few a season, at most 15 monthly, more common");
+    // the committed table: built with these rules, and it holds the study's numbers
+    const HT = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "odd-lines-history.json"), "utf8")), all = TEMPLATES.flatMap((t) => t.levels.map((l) => `${t.id}.${l.k}`));
+    ok(HT.games === 37816 && HT.seasons === 33 && all.length === new Set(all).size && all.every((k) => HT.t[k]) && Object.keys(HT.t).length === all.length
+      && HT.t["noft.40"].n === 9 && HT.t["noft.30"].n === 311 && HT.t["ofg.10"].n === 138 && HT.t["lowpts.td"].n === 1 && /Draymond Green/.test(HT.t["lowpts.td"].last[0][0]) && HT.t["ones.6"].last[0][0] === "Pervis Ellison"
+      && HT.t["pair.3oreb8"].n === 0 && HT.t["nothing.20"].n === 0 && Object.values(HT.t).every((e) => e.l5 <= e.n && e.era.reduce((a, b) => a + b, 0) === e.n && e.last.length <= 3),
+      "0.117.0: the history table has every level of every template, built from 37,816 games, and holds the study's counts (40 points without a free throw 9 times; a triple-double under 10 points once)");
+    const pageT = fs.readFileSync(path.join(root, "docs", "trends.html"), "utf8"), sitJs = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8");
+    ok(/id="oddlines"/.test(pageT) && /function renderOdd\(\)/.test(pageT) && /On file/.test(pageT) && /odd: oddByDate/.test(sitJs) && /rows\.filter\(\(g\) => !g\.cupFinal\)/.test(sitJs),
+      "0.117.0: the Streaks & outliers page lists the odd lines with what \"on file\" leaves out; the build writes them beside the outliers, without the Cup's title game");
+  }
+  {
     // 0.108.0: brothers. Their last N games reading alike, and a big night on the same date.
     const { brotherLines, BRO } = await import("../src/anticipate/seasonlong.js");
     const day = (i) => `2026-11-${String(i + 1).padStart(2, "0")}`;

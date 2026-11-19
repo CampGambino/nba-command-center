@@ -1,7 +1,7 @@
-# Odd-games study (0.116.0)
+# Odd-games study (0.116.0) and the history table (0.117.0)
 
 What 33 seasons of ESPN box scores say about odd stat lines. The write-up is the project doc `claude/odd-games-study.md`.
-Nothing here runs in the daily build and nothing on the site reads it yet.
+Nothing here runs in the daily build. The site reads one thing made here: `src/data/odd-lines-history.json`.
 
 The data is not in the repo (about 180 MB as a table). To rebuild it in the cloud workspace:
 
@@ -15,3 +15,11 @@ The data is not in the repo (about 180 MB as a table). To rebuild it in the clou
 
 The scripts read and write in the folder they are run from. `season` is the year the season started (2025 = 2025-26).
 `grp` is G, F or C from ESPN's position label for the player, which is coarse and sometimes wrong.
+
+## The history table (0.117.0)
+
+`node --max-old-space-size=3000 tools/odd-games/build-history.mjs` (from the repo root; about ten seconds) counts every level
+of every template in `src/situations/oddlines.js` over the files in `/home/claude/work/full` and writes
+`src/data/odd-lines-history.json`. Run it again after changing a template or a level, and once a season with
+`--through <year the season started>` after fetching that season's games. `--out` and `--through` also make a table that
+stops early, to replay a later season against it.

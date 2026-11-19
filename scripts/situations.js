@@ -87,6 +87,7 @@ fs.writeFileSync(path.join(root, "docs", "data", "situations.json"), JSON.string
 // (Clutch, 4th quarter, Streaks) from the day it's official, before he plays for it. ESPN's 30 rosters,
 // with NBA.com's official transactions as the fallback for changes ESPN hasn't caught up to.
 const coachTeams = {}; // tri -> head coach's name, from ESPN's rosters (for the coaching records)
+const rosterPos = {}; // espn id -> ESPN's position label, from the same rosters (0.117: the odd lines' position rules)
 const rosterChanges = await (async () => {
   const { currentTeams, readMoves, readEspnRoster, ESPN_ROSTER, MOVES_URL, NBA_TEAM_ID } = await import("../src/rosters/current.js");
   const TEAMS = Object.fromEntries(Object.values(NBA_TEAM_ID).map((t) => [t, true]));
@@ -100,7 +101,7 @@ const rosterChanges = await (async () => {
   await Promise.all(Object.keys(TEAMS).map(async (tri) => {
     try {
       const r = await fetch(ESPN_ROSTER(ESPN_CODE[tri] || tri), { signal: AbortSignal.timeout(15000) });
-      if (r.ok) { const j = await r.json(); espn[tri] = readEspnRoster(j); const c = j.coach?.[0]; if (c) coachTeams[tri] = `${c.firstName} ${c.lastName}`; } else problems.push(`${tri} ${r.status}`);
+      if (r.ok) { const j = await r.json(); espn[tri] = readEspnRoster(j); for (const p of espn[tri]) if (p.pos) rosterPos[p.id] = p.pos; const c = j.coach?.[0]; if (c) coachTeams[tri] = `${c.firstName} ${c.lastName}`; } else problems.push(`${tri} ${r.status}`);
     }
     catch (e) { problems.push(`${tri} ${e.name}`); }
   }));
@@ -535,6 +536,17 @@ for (const [tri, games] of Object.entries(perTeam)) {
     }
   } catch (e) { console.error(`flag checks not run: ${e.message}`); }
   const byDate = Object.fromEntries(dates.map((d) => [d, anomalies(pg, store.names || {}, { dates: [d], careers })]));
+  // Odd lines (0.117; the user, 11/19: "these are concepts worth tracking and flagging"): the shape of a line, graded by
+  // how often it has happened in 33 seasons of box scores (src/data/odd-lines-history.json, tools/odd-games/build-history.mjs).
+  let oddByDate = null;
+  try {
+    const { oddNights } = await import("../src/situations/oddlines.js"), { LINE_IX } = await import("../src/situations/trends.js");
+    const hf = path.join(root, "src", "data", "odd-lines-history.json"), history = fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null;
+    oddByDate = { from: history?.from || null, through: history?.through || null, games: history?.games || null, positions: Object.keys(rosterPos).length,
+      nights: oddNights({ rows: rows.filter((g) => !g.cupFinal), history, names: store.names || {}, pos: rosterPos, dates, IX: LINE_IX }) };
+    const all = Object.values(oddByDate.nights).flat(), by = (g) => all.filter((o) => o.grade === g).length;
+    console.log(`odd lines: ${all.length} over ${dates.length} dates (${by("rare")} rare, ${by("few")} a few a season, ${by("monthly")} monthly, ${by("common")} common); positions for ${Object.keys(rosterPos).length} players`);
+  } catch (e) { console.error(`odd lines not run: ${e.message}`); }
   const ch = Object.values(byDate).flat().filter((a) => a.notes.some((n) => n.careerHigh)).length;
   console.log(`outliers: ${Object.values(byDate).flat().length} over ${dates.length} dates, ${ch} with a career high`);
   // Team streak watch (0.65): what tonight would make of each team's run, against the 2016-17 on history.
@@ -547,7 +559,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     watchLines = streakWatch({ history: fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null, rows, today, deep });
     console.log(`team streak watch: ${watchLines.length} lines`);
   } catch (e) { console.error(`team streak watch: ${e.message}`); }
-  fs.writeFileSync(path.join(root, "docs", "data", "trends.json"), JSON.stringify({ generatedAt: out.generatedAt, through, streaks: activeStreaks(pg, store.names || {}).map(nowTeam), teams: teamStreaks(rows), watch: watchLines, highsAllowed: careers ? careerHighsAllowed(pg, careers, store.names || {}) : null, anomalies: byDate }));
+  fs.writeFileSync(path.join(root, "docs", "data", "trends.json"), JSON.stringify({ generatedAt: out.generatedAt, through, streaks: activeStreaks(pg, store.names || {}).map(nowTeam), teams: teamStreaks(rows), watch: watchLines, highsAllowed: careers ? careerHighsAllowed(pg, careers, store.names || {}) : null, anomalies: byDate, odd: oddByDate }));
   // Hot hand (src/situations/form.js, moved from GameFlow in 0.56): each player's game lines for the form section.
   try {
     const { formData } = await import("../src/situations/form.js");

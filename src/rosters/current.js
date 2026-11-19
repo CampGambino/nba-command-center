@@ -46,8 +46,8 @@ export function readMoves(json, { since = "0000" } = {}) {
   return out.sort((a, b) => b.d.localeCompare(a.d));
 }
 
-/** ESPN roster JSON -> [{ id, name }]. */
-export const readEspnRoster = (json) => (json?.athletes || []).map((a) => ({ id: String(a.id), name: a.displayName || a.fullName }));
+/** ESPN roster JSON -> [{ id, name, pos }] (pos: ESPN's position label, "G" | "F" | "C", or null; 0.117 for the odd lines). */
+export const readEspnRoster = (json) => (json?.athletes || []).map((a) => ({ id: String(a.id), name: a.displayName || a.fullName, pos: a.position?.abbreviation || null }));
 
 /**
  * players: { id: { name, team, d } } (team and date of his last box score).
