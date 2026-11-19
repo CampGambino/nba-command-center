@@ -2456,9 +2456,14 @@ await articlesChecks(ok);
     pgO.FFF0 = pgO.FFF0.filter((g) => g.d < "2026-11-06");                               // a player who left: his team still played
     for (const id of ["DDD0", "DDD1", "DDD2", "DDD3", "DDD4"]) pgO[id] = pgO[id].filter((g) => g.d < "2026-11-05" || g.d.startsWith("2026-10"));   // DDD has played only 2 games in November
     const O = FD({ pg: pgO, names: namesO }).filter((f) => f.test === "outdo");
-    ok(O.length === 1 && O[0].text === "The Blocker has 30 blocks in November: more than 2 whole teams (BBB 24, CCC 24)" && O[0].player === "The Blocker" && OUTDO.teams === 2,
-      "0.115: a player's total against whole teams' totals: found in the month where it is true (30 blocks to two teams' 24) and not over the season (38 to 64 or more); a team that has played only two games in the window is not counted against him; nobody else gets a line",
+    const blk = O.filter((f) => /blocks/.test(f.text)), top = O[0];
+    ok(top.text === "The Blocker has 30 blocks in November (6 games): more than 3 whole teams (BBB 24 in 6, CCC 24 in 6, DDD 20 in 2)" && top.player === "The Blocker" && OUTDO.teams === 1
+      && blk.some((f) => /^P BBB0 has 24 blocks in November \(6 games\): more than all of DDD \(20 in 2\)$/.test(f.text)) && !O.some((f) => /this season/.test(f.text) && /The Blocker/.test(f.text)),
+      "0.115.1 (the user: \"no need to put restrictions… It's one player against a whole team\"): a player's total against whole teams' totals, found in the month where it is true and not over the season; a team that has played two games in the window is counted like any other, with its games printed; one team is enough for a line",
       JSON.stringify(O.map((f) => f.text)));
+    const ft = FD({ pg: Object.fromEntries(Object.entries(pgO).map(([id, gs]) => [id, gs.map((g) => ({ ...g, ftm: id === "AAA0" ? 14 : 1, fta: id === "AAA0" ? 16 : 2 }))])), names: namesO }).filter((f) => f.test === "outdo" && /free throw/.test(f.text));
+    ok(ft.some((f) => /^The Blocker has \d+ free throws /.test(f.text)) && ft.some((f) => /^The Blocker has \d+ free throw attempts /.test(f.text)),
+      "0.115.1: free throws made and free throw attempts are compared too", JSON.stringify(ft.map((f) => f.text)));
   }
   {
     // 0.108.0: brothers. Their last N games reading alike, and a big night on the same date.

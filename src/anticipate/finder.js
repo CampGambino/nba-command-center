@@ -49,8 +49,13 @@ export const NOAS = { top: 12 };
 //          ("Players with 700 points, 350 rebounds, 150 assists and 30 blocks: one man. Nobody else.")
 //   rate   a player's rank in a season total set against his rank in minutes, for every total
 //   group  a player's ranks inside a group (bench players; rookies), for every total and plus/minus
-export const OUTDO = { least: 8, teams: 2, games: 4, short: 2, lines: 6, early: 7 };   // his total at least 8, more than at least 2 whole teams; a team is compared once it has played 4 games in the window and no more than 2 fewer than he has
-const OUT_STATS = [["blk", "blocks"], ["stl", "steals"], ["oreb", "offensive rebounds"], ["fg3m", "threes"], ["ast", "assists"], ["reb", "rebounds"], ["pts", "points"]];
+// 0.115.1 (the user, 11/19): "no need to put restrictions on comparing player to team stats. It's one player against a
+// whole team. that limits discovery and preparation." So nothing is asked of the comparison any more: one team is enough,
+// his total only has to be more than theirs, and a team counts whatever it has played in the window (one game or more).
+// What keeps a second-day-of-the-month line from leading the list is the order, not a filter: `full` games of his own in
+// the window before a line gets full weight.
+export const OUTDO = { teams: 1, full: 6, lines: 12, early: 7 };
+const OUT_STATS = [["blk", "blocks"], ["stl", "steals"], ["oreb", "offensive rebounds"], ["fg3m", "threes"], ["ftm", "free throws"], ["fta", "free throw attempts"], ["ast", "assists"], ["reb", "rebounds"], ["pts", "points"]];
 const MONTH_NAME = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 export const CLUB = { most: 3, sizes: [4, 3, 2], each: 4, wide: 75, near: 0.92, lines: 6, pool: 30 };   // each bar is cleared by 4 to 75 players; together by at most 3
 export const RATE = { top: 20, ratio: 2.5, gap: 20, lines: 5 };
@@ -241,9 +246,9 @@ export function findings({ pg, names = {}, qsum = {}, teamGp = {}, allStars = nu
   //    teams? and it doesn't have to be season long. checking month stats is also viable… victor wembanyama having more
   //    blocks in a month than several teams"). The `teams` test sets a count of GAMES against teams' counts, season only.
   //    This sets a player's raw total against every team's total, for each stat and each window: the season, this
-  //    calendar month, the month just ended (in the first days of the next), and the last 30 days. A team is compared
-  //    only if it has played about as many games in the window as he has. One line a player and stat: the window where
-  //    he outdoes the most teams.
+  //    calendar month, the month just ended (in the first days of the next), and the last 30 days. Every other team
+  //    that has played in the window is compared, with no condition (0.115.1). One line a player and stat: the window
+  //    where he outdoes the most teams. Each side's games are printed, so a reader sees an uneven comparison for himself.
   const lastDay = P.reduce((m, p) => { const d = String(p.games[p.games.length - 1].d || ""); return d > m ? d : m; }, "");
   if (/^\d{4}-\d\d-\d\d$/.test(lastDay)) {
     const last = lastDay, ym = last.slice(0, 7);
@@ -262,13 +267,13 @@ export function findings({ pg, names = {}, qsum = {}, teamGp = {}, allStars = nu
         mine.push({ p, n: gs.length, tot, teams: new Set(gs.map((g) => g.team)) });
       }
       for (const m of mine) for (const [k, word] of OUT_STATS) {
-        const v = m.tot[k]; if (v < OUTDO.least) continue;
-        const fewer = Object.entries(T).filter(([t, x]) => !m.teams.has(t) && x.ids.size >= Math.max(OUTDO.games, m.n - OUTDO.short) && x[k] < v && x[k] > 0).sort((a, b) => b[1][k] - a[1][k]);
+        const v = m.tot[k]; if (!(v > 0)) continue;
+        const fewer = Object.entries(T).filter(([t, x]) => !m.teams.has(t) && x[k] < v).sort((a, b) => b[1][k] - a[1][k]);
         if (fewer.length < OUTDO.teams) continue;
-        const key = `${m.p.id}|${k}`, surprise = 1 + 0.45 * Math.min(fewer.length, 8) + w.bonus;
+        const key = `${m.p.id}|${k}`, surprise = 1 + (0.45 * Math.min(fewer.length, 8) + w.bonus) * Math.min(1, m.n / OUTDO.full);
         if (best[key] && best[key].surprise >= surprise) continue;
         best[key] = { kind: "find", test: "outdo", team: m.p.team, player: m.p.name, key: `find|outdo|${m.p.id}|${k}`, surprise, rare: fewer.length >= 5,
-          text: `${m.p.name} has ${v} ${word} ${w.say}: more than ${fewer.length === 1 ? `all of ${fewer[0][0]} (${fewer[0][1][k]})` : `${fewer.length} whole teams (${fewer.slice(0, 4).map(([t, x]) => `${t} ${x[k]}`).join(", ")}${fewer.length > 4 ? ", …" : ""})`}` };
+          text: `${m.p.name} has ${v} ${word} ${w.say} (${m.n} game${m.n === 1 ? "" : "s"}): more than ${fewer.length === 1 ? `all of ${fewer[0][0]} (${fewer[0][1][k]} in ${fewer[0][1].ids.size})` : `${fewer.length} whole teams (${fewer.slice(0, 4).map(([t, x]) => `${t} ${x[k]} in ${x.ids.size}`).join(", ")}${fewer.length > 4 ? ", …" : ""})`}` };
       }
     }
     out.push(...Object.values(best).sort((a, b) => b.surprise - a.surprise).slice(0, OUTDO.lines));
