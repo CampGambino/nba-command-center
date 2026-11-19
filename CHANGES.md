@@ -4,13 +4,13 @@ Each entry: what changed, how it was tested, and what is still unproven.
 
 ## 0.122.0 (2026-11-19): the Bulls' and Pelicans' games count for every odd line that does not need a turnover or a foul
 
-The user, 4:32 PM: eleven Basketball Reference box-score screenshots for five of the ten games on `claude/screenshot-list-pbp-box-scores.md` (CHI at LAL 1/28/16; DEN at NOP 10/26/16; CHI at BKN 4/4/13; CHI at BOS 1/18/13; UTA at NOP 3/28/14), and: "here's a wrinkle: [RealGM's Bulls and Pelicans schedule pages]. It has dropdown for games with links to box scores for those games. maybe them and pelicans for the years in question".
+The user, 4:32 PM: eleven Basketball Reference box-score screenshots: four of the ten games on `claude/screenshot-list-pbp-box-scores.md` (DEN at NOP 10/26/16; CHI at BKN 4/4/13; CHI at BOS 1/18/13; UTA at NOP 3/28/14) and CHI at LAL 1/28/16, the one game that list names as on file at ESPN too. And: "here's a wrinkle: [RealGM's Bulls and Pelicans schedule pages]. It has dropdown for games with links to box scores for those games. maybe them and pelicans for the years in question".
 
 **What the box scores showed.**
 - Read into `tools/outside/bref-screens/box-2026-11-19.json` (102 players; every team adds up to its Team Totals row, with Basketball Reference's team turnover kept beside it).
 - pbpstats against them: 102 of 102 players the same in every column pbpstats has (points, shots, threes, free throws, offensive, defensive and total rebounds, assists, steals, blocks, minutes).
 - Anthony Davis, 10/26/16: Basketball Reference has 15 rebounds and 5 steals, the same as pbpstats. The "16 and 7" this log held against pbpstats in 0.106.2 were night-of reports. So the belief that pbpstats' rebounds, assists, steals and blocks "can run short" rested on one wrong comparison, and 0.121.0's shooting-only rule was built on it.
-- CHI at LAL 1/28/16 turned out to be a game ESPN has whole (the one game in the fill that was already skipped for that reason). ESPN's box score for it equals Basketball Reference for all 23 players in every counting column, turnovers and fouls included (minutes not compared).
+- CHI at LAL 1/28/16 is the game ESPN has whole (the one game the fill skips for that reason). ESPN's box score for it equals Basketball Reference for all 23 players in every counting column, turnovers and fouls included (minutes not compared).
 
 **What changed.**
 - `tools/odd-games/build-history.mjs`: a filled game's lines are whole lines now. Each pbpstats player takes his ESPN id, position and starter flag from ESPN's own (zeroed) box score for the game, by name, so his season average, his runs, his repeats and the bench and position rules see these games. 19,979 lines, all 19,979 named (twelve names are spelled differently in the two sources; each of the eight new ones was read off ESPN's roster for one of his games).
@@ -31,12 +31,12 @@ The user, 4:32 PM: eleven Basketball Reference box-score screenshots for five of
 **Self-audit.**
 - Wrong first: I recorded "101 of 101" players. I had read 102; my comparison skipped Juancho Hernangomez on a spelling difference and did not say so in its total. Compared by hand: 39 seconds, zeros in both. The number is 102 of 102, and the page, the test and the table say 102.
 - Wrong first: four slips reading the screenshots (Darius Miller's block; Kris Humphries's turnovers and fouls swapped; Nate Robinson's fouls in two games), found by adding the players up against Team Totals and re-reading enlarged crops. All four were in the narrow right-hand columns. The one game ESPN also has whole agrees with my reading of all 23 players' turnovers and fouls, which is a check on that reading the other four games do not have.
-- Wrong first: one of the five games I asked the user to screenshot (CHI at LAL) did not need a screenshot; ESPN has it. I built the list from pbpstats' file without checking each game against the fill.
+- Wrong first, and caught only when I re-read the screenshot list after pushing: the first copy of this entry said the user had sent five of the ten games I asked for, and that I had asked for CHI at LAL without needing it. Both were typed from memory. The list has ten games; the user sent four of them plus CHI at LAL, which the list itself names as the one game ESPN has. Six of the ten are still open, not five.
 - Wrong first: the first whole run left 44 lines without an ESPN id (eight players). I fixed the names from ESPN's rosters instead of leaving those lines out of the average-based rules.
 - Wrong first: I typed the test's player count from memory (101) and it failed.
 - Re-derived from the committed files: fill 971 games, 19,979 lines, 78 with turnovers and fouls (102 read, less the 23 in ESPN's own game, less Marquis Teague, who played seconds with nothing and is not a line); 1,016 zeroed less 971 filled plus 233 bad leaves 278 of 37,816 games (0.7%).
 - Cases not used while building: Jimmy Butler, 1/9/17 (AP: one point, 0-for-6, 29 minutes) and Kendall Marshall, 3/4/14 (AP: 22 scoreless minutes, 10 assists; 0-for-4 in the box score) both match what the table now counts.
-- Still resting on pbpstats alone: Batum 12/16/12, Davis 11/2/13, Gasol 3/7/16, Thompson 2/6/16 and Davis 2/23/18 are the five box scores still on the screenshot list. Each matches the line I remember for that night, which is memory and not a check.
+- Still resting on pbpstats alone: Batum 12/16/12, Davis 11/2/13, Gasol 3/7/16, Thompson 2/6/16 and Davis 2/23/18 are five of the six box scores still on the screenshot list (the sixth, Joakim Noah 3/15/14, is one steal count short of mattering). Each matches the line I remember for that night, which is memory and not a check.
 - Page read as a first-time reader: the paragraph says which lines are short of games and by how much. It lists six kinds of line in a parenthesis, which is long; left as is because each is one the reader can see in the table.
 
 ## 0.121.0 (2026-11-19): the strongest shifts on the Watch List; the Bulls' and Pelicans' games counted where they are exact
