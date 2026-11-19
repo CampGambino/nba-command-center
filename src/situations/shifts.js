@@ -204,3 +204,42 @@ export function chanceCounts(pg, { passes = 2, shuffles = 100, seed = 20261119 }
   for (const k of Object.keys(out)) for (const n of CHANCE_LEVELS) out[k][n] = Math.round(out[k][n] * 10) / 10;
   return out;
 }
+
+/**
+ * 0.121.0: the strongest shifts on tonight's teams, as Watch List lines (the user, 11/19, on the Shifts table: "this is
+ * definitely a lot to try to comb through every day. are the most significant ones posted in the watch list?").
+ * One line a player (his least-likely-by-chance shift), only players in the rotation now, and a counting stat that moved
+ * with his minutes is left to the minutes line itself. A team gets at most STORY.shoot shooting lines and STORY.team
+ * others: shooting has its own place (and a small bonus) because it is what the user asked for first and because minutes
+ * changes, the commonest real shift, would otherwise take every place.
+ *   rows: allShifts() · teams: Set of tonight's teams
+ * -> [{ kind: "shift", team, player, id, key, text, score }]
+ */
+export const STORY = { odds: 20, min: 20, team: 2, shoot: 1, base: 3.2, top: 4.2, shootBonus: 0.3 };
+export function shiftStoryLines(rows, teams) {
+  const best = new Map();
+  for (const r of rows || []) {
+    if (!teams.has(r.team) || !(r.odds >= STORY.odds) || r.now.min < STORY.min || (r.role && r.k !== "min")) continue;
+    const cur = best.get(r.id);
+    if (!cur || r.odds > cur.odds || (r.odds === cur.odds && Math.abs(r.z) > Math.abs(cur.z))) best.set(r.id, r);
+  }
+  // his best shooting shift is kept beside his best other one, so a team's shooting place can be filled
+  const shootBest = new Map();
+  for (const r of rows || []) {
+    if (r.kind !== "rate" || !teams.has(r.team) || !(r.odds >= STORY.odds) || r.now.min < STORY.min) continue;
+    const cur = shootBest.get(r.id);
+    if (!cur || r.odds > cur.odds) shootBest.set(r.id, r);
+  }
+  const perTeam = {}, out = [], said = new Set();
+  const pool = [...new Set([...best.values(), ...shootBest.values()])].sort((a, b) => b.odds - a.odds || Math.abs(b.z) - Math.abs(a.z));
+  for (const r of pool) {
+    const slot = `${r.team}|${r.kind === "rate" ? "shoot" : "other"}`, cap = r.kind === "rate" ? STORY.shoot : STORY.team;
+    if (said.has(r.id) || (perTeam[slot] || 0) >= cap) continue;
+    perTeam[slot] = (perTeam[slot] || 0) + 1; said.add(r.id);
+    const odds = r.odds > SHIFT.shuffles ? `under 1 in ${SHIFT.shuffles}` : `1 in ${Math.round(r.odds)}`;
+    // the more unlikely by chance, the higher: 1 in 20 scores STORY.base, "none of the shuffles" STORY.top
+    const score = Math.round((STORY.base + (r.kind === "rate" ? STORY.shootBonus : 0) + (STORY.top - STORY.base) * Math.min(1, Math.log(r.odds / STORY.odds) / Math.log((SHIFT.shuffles + 1) / STORY.odds))) * 100) / 100;
+    out.push({ kind: "shift", team: r.team, player: r.name, id: r.id, key: `shift|${r.id}|${r.k}`, text: `${r.text} (by chance: ${odds})`, score });
+  }
+  return out;
+}

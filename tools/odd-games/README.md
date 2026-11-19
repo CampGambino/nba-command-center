@@ -28,3 +28,6 @@ stops early, to replay a later season against it.
 and each level was repeated in consecutive games) and `src/data/odd-lines-players.json` (each player's counts over the last
 three seasons; `--window N` changes that, `--players <file>` the path). ESPN marks no starters for 482 old team-games; a side
 without exactly five is treated as "starters unknown".
+
+0.121.0: the run also reads `tools/outside/pbpstats/box-*.jsonl` (`--fill <dir>`) and counts the Bulls' and Pelicans' games
+ESPN has no player numbers for, for the `SHOOTING_ONLY` templates and no others (pbpstats is exact for points and shooting only).

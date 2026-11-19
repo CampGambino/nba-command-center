@@ -369,6 +369,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
   const dates = [...new Set(rows.filter((g) => g.pl).map((g) => g.d))].sort().slice(-7);
   // Career highs before this season (the 2016-17 on back-fill, and the NBA Guide's yearly points highs).
   let careers = null, logsData = null, logsFull = null, seasonsData = null, seasonTag = null, keyFn = (n) => n, awardsData = null;
+  let shiftAll = null;   // 0.121: every player's shifts, found once for the Watch List lines and the Shifts table
   try {
     const zlib = await import("node:zlib");
     const { strictKey } = await import("../src/records/guide.js");
@@ -506,6 +507,14 @@ for (const [tri, games] of Object.entries(perTeam)) {
       try { const careers = new Set(Object.keys(seasonsData?.players || {}).map(keyFn)); rookies = new Set(Object.keys(pg).filter((id) => store.names?.[id] && !(logsData?.players?.[id] || []).length && !careers.has(keyFn(store.names[id])))); } catch { /* no rookie list: nobody is treated as one */ }
       const F = finderLines({ pg, names: store.names || {}, qsum, teamGp, allStars, leaders, rookies, rows: rows.filter((g) => !g.cupFinal) }, new Set(slate.flatMap((g) => [g.away, g.home])), { top: 24 });
       prep.lines.push(...F.lines);
+      // 0.121: the strongest shifts on tonight's teams (src/situations/shifts.js), so the Watch List carries them.
+      try {
+        const { allShifts, shiftStoryLines } = await import("../src/situations/shifts.js");
+        shiftAll = allShifts(pg, store.names || {}, (id, last) => nowTeam({ id, team: last }).team);
+        const SL = shiftStoryLines(shiftAll, new Set(slate.flatMap((g) => [g.away, g.home])));
+        prep.lines.push(...SL);
+        console.log(`shifts for the Watch List: ${SL.length} line(s) on tonight's teams`);
+      } catch (e) { prep.errors.push(`shifts: ${e.message}`); }
       finds = F.league;
       console.log(`finder: ${F.n} finding(s) league-wide (${F.teamFinds} about teams), ${F.lines.length} about tonight's teams${Object.keys(qsum).length ? "" : " (no quarter scoring yet: the Game Flow step of the last build)"}`);
     } catch (e) { prep.errors.push(`finder: ${e.message}`); }
@@ -604,7 +613,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const wf = path.join(root, "docs", "data", "watch.json"), w = fs.existsSync(wf) ? JSON.parse(fs.readFileSync(wf, "utf8")) : { games: [] };
     const tonight = w.today === today ? [...new Set((w.games || []).flatMap((g) => [g.homeTri, g.awayTri]))] : [];
     const r1 = (v) => (v == null ? null : Math.round(v * 10) / 10), slim = (x) => ({ ...x, v: r1(x.v), min: r1(x.min) });
-    const all = allShifts(pg, store.names || {}, (id, last) => nowTeam({ id, team: last }).team);
+    const all = shiftAll || allShifts(pg, store.names || {}, (id, last) => nowTeam({ id, team: last }).team);
     const rowsS = all.filter((s) => s.odds >= SHIFT.keep).map((s) => ({ ...s, season: r1(s.season), now: slim(s.now), was: slim(s.was) }));
     fs.writeFileSync(path.join(root, "docs", "data", "shifts.json"), JSON.stringify({ generatedAt: out.generatedAt, through, today, tonight, pairs: pairsSearched(pg), shuffles: SHIFT.shuffles, found: all.length, chance: chanceCounts(pg),
       stats: SHIFT_STATS.map((t) => ({ k: t.k, label: t.label, kind: t.kind })), rows: rowsS }));

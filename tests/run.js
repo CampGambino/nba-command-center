@@ -2597,7 +2597,7 @@ await articlesChecks(ok);
     // the committed table: built with these rules, and it holds the study's numbers
     const HT = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "odd-lines-history.json"), "utf8")), all = TEMPLATES.flatMap((t) => t.levels.map((l) => `${t.id}.${l.k}`));
     ok(HT.games === 37816 && HT.seasons === 33 && all.length === new Set(all).size && all.every((k) => HT.t[k]) && Object.keys(HT.t).length === all.length
-      && HT.t["noft.40"].n === 9 && HT.t["noft.30"].n === 311 && HT.t["ofg.10"].n === 138 && HT.t["lowpts.td"].n === 1 && /Draymond Green/.test(HT.t["lowpts.td"].last[0][0]) && HT.t["ones.6"].last[0][0] === "Pervis Ellison"
+      && HT.t["noft.40"].n === 9 && HT.t["noft.30"].n === 322 && HT.t["ofg.10"].n === 146 && HT.t["lowpts.td"].n === 1 && /Draymond Green/.test(HT.t["lowpts.td"].last[0][0]) && HT.t["ones.6"].last[0][0] === "Pervis Ellison"
       && HT.t["pair.3oreb8"].n === 0 && HT.t["nothing.20"].n === 0 && Object.values(HT.t).every((e) => e.l5 <= e.n && e.era.reduce((a, b) => a + b, 0) === e.n && e.last.length <= 3),
       "0.117.0: the history table has every level of every template, built from 37,816 games, and holds the study's counts (40 points without a free throw 9 times; a triple-double under 10 points once)");
     const pageT = fs.readFileSync(path.join(root, "docs", "trends.html"), "utf8"), sitJs = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8");
@@ -2689,6 +2689,39 @@ await articlesChecks(ok);
     ok(!/^\s*import\b|from "/m.test(srcS) && /id="htab"/.test(pageT) && /function renderShifts\(\)/.test(pageT) && /shuffled into random order/.test(pageT) && /what has happened, not as what comes next/.test(pageT)
       && /shifts\.json/.test(sitJs) && /chance: chanceCounts\(pg\)/.test(sitJs) && /trends\.html#shifts/.test(fs.readFileSync(path.join(root, "docs", "find.html"), "utf8")),
       "0.120.0: the Streaks & outliers page has the Shifts table with the count a shuffled league would show beside the real one, and the Index lists it");
+  }
+  {
+    // 0.121.0: the Bulls' and Pelicans' games in the odd-line counts where they are exact, and the strongest shifts as Watch List lines.
+    const M = await import("../src/situations/oddlines.js"), { shiftStoryLines, STORY, SHIFT } = await import("../src/situations/shifts.js");
+    let sd = 3; const rnd = (n) => { sd = (sd * 1103515245 + 12345) % 2147483648; return sd % n; };
+    let leak = null;
+    for (let i = 0; i < 3000 && !leak; i++) {
+      const fga = rnd(26), fgm = rnd(fga + 1), fg3a = rnd(fga + 1), fg3m = Math.min(fgm, rnd(fg3a + 1)), fta = rnd(24), ftm = rnd(fta + 1);
+      const shot = { pts: 2 * fgm + fg3m + ftm, fgm, fga, fg3m, fg3a, ftm, fta };
+      const a = { ...shot, min: 30, starter: 1, reb: 5, oreb: 1, dreb: 4, ast: 4, stl: 1, blk: 1, tov: 2, pf: 2 }, b = { ...shot, min: rnd(48), starter: rnd(2) ? null : rnd(2), reb: rnd(20), oreb: rnd(8), dreb: rnd(14), ast: rnd(16), stl: rnd(6), blk: rnd(6), tov: rnd(9), pf: rnd(6) };
+      const only = (l, x) => M.matchLine(l, x).filter((h) => M.SHOOTING_ONLY.includes(h.id)).map((h) => h.key).join(",");
+      if (only(a, { pos: "G", avg: { pts: 20, reb: 5, ast: 5 } }) !== only(b, { pos: ["G", "F", "C", null][rnd(4)], avg: rnd(2) ? null : { pts: rnd(30), reb: rnd(10), ast: rnd(9) } })) leak = JSON.stringify([a, b]);
+    }
+    const HT = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "odd-lines-history.json"), "utf8")), ids = M.TEMPLATES.map((t) => t.id);
+    const filled = Object.entries(HT.t).filter(([, e]) => e.filled > 0).map(([k]) => k.split(".")[0]);
+    ok(!leak && M.SHOOTING_ONLY.every((id) => ids.includes(id)) && M.SHOOTING_ONLY.length === 11 && HT.fill?.games === 971 && HT.fill.skippedEspnHasIt === 1 && HT.fill.skippedPoints === 0 && HT.fill.leftForThese === 1016 - 971 + 233
+      && filled.length >= 15 && filled.every((id) => M.SHOOTING_ONLY.includes(id)) && HT.t["ofg.10"].n === 146 && HT.t["ofg.10"].filled === 8 && HT.t["noft.30"].n === 322 && HT.t["blk0reb.5"].n === 5 && !HT.t["blk0reb.5"].filled && HT.games === 37816,
+      "0.121.0 (the user: \"I thought we grabbed and filed all of the bulls and pelicans stats\"): the 971 games pbpstats fills are counted for the eleven templates that read only points and shooting (3,000 random lines: nothing else can change whether one matches) and for no other; 0-for-10 goes from 138 to 146",
+      String(leak || JSON.stringify([HT.fill, [...new Set(filled)]])));
+    const S = (o) => ({ id: "p1", name: "P One", team: "AAA", k: "pts", kind: "count", z: -3, odds: 40, role: false, now: { min: 30 }, text: "P One is averaging 8.0 points over his last 5 games (since 11/8), down from 19.0 over the 7 games before", ...o });
+    const L = shiftStoryLines([
+      S({}), S({ k: "fg3", kind: "rate", odds: 67, text: "P One is shooting 17.6% from three over his last 6 games (6-for-34, since 11/6), down from 42.6% over the 8 games before (29-for-68)" }),   // his shooting line has a place of its own
+      S({ id: "p2", name: "P Two", k: "min", odds: 201, text: "P Two is averaging 31.7 minutes over his last 3 games (since 11/14), up from 21.4 over the 8 games before" }),
+      S({ id: "p3", name: "P Three", odds: 101 }), S({ id: "p4", name: "P Four", odds: 90 }),                                 // a third "other" line for AAA: over the cap
+      S({ id: "p5", name: "Role Change", odds: 150, role: true }), S({ id: "p6", name: "Bench Guy", odds: 150, now: { min: 9 } }), S({ id: "p7", name: "Weak", odds: 12 }), S({ id: "p8", name: "Other Team", team: "ZZZ", odds: 201 }),
+    ], new Set(["AAA"]));
+    const by = Object.fromEntries(L.map((l) => [l.player, l]));
+    ok(L.length === 3 && by["P Two"]?.score === STORY.top && by["P Two"].text.endsWith("(by chance: under 1 in 200)") && by["P Three"] && !by["P Four"] && !by["Role Change"] && !by["Bench Guy"] && !by["Weak"] && !by["Other Team"]
+      && by["P One"]?.key === "shift|p1|fg3" && by["P One"].text.endsWith("(29-for-68) (by chance: 1 in 67)") && by["P One"].score > STORY.base + STORY.shootBonus && L.every((l) => l.kind === "shift" && l.team === "AAA")
+      && /"find", "shift"\]\)/.test(fs.readFileSync(path.join(root, "src", "anticipate", "tonight.js"), "utf8")) && /shift: \["📉", "trends\.html#shifts"\]/.test(fs.readFileSync(path.join(root, "docs", "index.html"), "utf8"))
+      && /shiftStoryLines\(shiftAll/.test(fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8")),
+      "0.121.0 (the user: \"are the most significant ones posted in the watch list?\"): the strongest shifts on tonight's teams become Watch List lines: one a player, a shooting line and two others a team at most, rotation players only, 1 in 20 or rarer, a stat that moved with his minutes left out",
+      JSON.stringify(L.map((l) => [l.player, l.score, l.key])));
   }
   {
     // 0.108.0: brothers. Their last N games reading alike, and a big night on the same date.

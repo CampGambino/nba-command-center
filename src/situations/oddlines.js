@@ -130,6 +130,16 @@ export const TEMPLATES = [
   ] },
 ];
 
+/**
+ * 0.121.0: templates whose every level reads only points and shots (made and attempted: field goals, threes, free
+ * throws). ESPN has no player numbers for the Bulls' and Pelicans' games of 2012-13 to 2017-18; pbpstats has them, with
+ * points and shooting exact and rebounds, assists, steals and blocks only a floor, and no turnovers or fouls. So the
+ * history counts those games for these templates and for no others (the user, 11/19: "I thought we grabbed and filed
+ * all of the bulls and pelicans stats. why are the not being included in some searches?"). Tested: nothing but those
+ * seven numbers can change whether one of these matches.
+ */
+export const SHOOTING_ONLY = ["noft", "ftshare", "nofg", "all3", "fta", "ofg", "o3", "brick", "ftmiss", "perfg", "perft"];
+
 /** ESPN's position label -> "G" | "F" | "C" | null (anything else, or none). */
 export const posGroup = (p) => (p === "G" || p === "PG" || p === "SG" ? "G" : p === "C" ? "C" : p === "F" || p === "SF" || p === "PF" ? "F" : null);
 

@@ -604,7 +604,7 @@ export function injuryStatus(injuries, today) {
  */
 // 0.70 (src/anticipate/seasonlong.js): trade and starter/bench splits, lineups, record turns and "since Christmas",
 // who has beaten the best teams, month ratings and totals, rookies.
-const PREP_KINDS = new Set(["season", "span", "pstreak", "vsopp", "pace", "trade", "role", "lineup", "turn", "brothers", "beaten", "month", "monthp", "rookie", "defense", "cup", "era", "qtr", "clinch", "find"]);
+const PREP_KINDS = new Set(["season", "span", "pstreak", "vsopp", "pace", "trade", "role", "lineup", "turn", "brothers", "beaten", "month", "monthp", "rookie", "defense", "cup", "era", "qtr", "clinch", "find", "shift"]);
 function prepStoryLines(prep, teams, games, today) {
   if (!prep || !Array.isArray(prep.lines) || (prep.today && today && prep.today !== today)) return [];
   const opp = new Map();
