@@ -2,6 +2,21 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.116.0 (2026-11-19): a study of odd stat lines in 33 seasons of box scores (no change to the site)
+
+The user, 12:09 PM, with thirteen posts of odd lines (0-for-13, 27 points on two baskets, 48 points with no free throws, a guard with 18 rebounds, 37 points and nothing else, one of everything, a triple-double with 4 points): "these are concepts worth tracking and flagging" and "are you able to look at the data and find the eyepopping, anomalous games to help us find a way to be better prepared for catching those instances in real time… really dig into the data and find what stands out so we can use that guidelines or templates for constructing more preparation and forecasting".
+
+- Read every player's whole line from ESPN's box score for every regular-season game from 1993-94 to 2025-26: 779,554 lines in 37,816 games (games where the players' points add up to the score). Source: ESPN's game summaries, the same source the site already uses.
+- The findings and the proposed templates are in the project doc `claude/odd-games-study.md`: how often each kind of line happens (in 33 seasons, per season, and per season since 2021-22), the rarest "high number beside a zero" lines, pairs of highs that almost never meet, nights far from a player's own average and runs of them, how the rates moved by era, and which kinds belong to a few players.
+- `tools/odd-games/`: the fetcher, the table builder and the six analysis scripts, with a README. The data is not in the repo.
+- Nothing on the site, in the alerts or in the NBA Live bridge changed. No detector is built yet; the doc proposes the order.
+
+Tested: `an5.py` recomputes every count and rate in Findings 1 and 2 of the doc from the table, separately from the scripts that first produced them; all match. Seven of the user's posts are regular-season games in the data and each line matches the post exactly (Harden 12/26/13, Olajuwon 1/30/97, Houston 12/2/00, Redd 2/20/02, Hamilton 1/6/05, Lillard 3/4/15, Green 2/10/17). C.J. Watson's 4/4/13 is a Bulls game ESPN lacks; the pbpstats file has it and it matches the post. The suite was not run: no file it reads changed.
+
+Unproven: (1) the odds of a live state finishing (0-for-8 after three quarters becoming 0-for-10) are not measured; that needs numbers by quarter from play-by-play. (2) Position counts rest on ESPN's label, which is wrong for some players (Shawn Marion is listed as a guard). (3) The back-to-back split treats a team's game as rested when the night before is one of the 1,249 games left out (3% of games), so the 4.7% against 3.6% is slightly blurred. (4) Playoffs and preseason are not in the data. (5) The roster coincidences in the posts (shared birthdays, a name and a team) were not studied; there is no birth-date or name history on file.
+
+Self-audit. Wrong first: the first run of the "games running" counts let a run carry from one season into the next; with a reset at each season the counts are 197, 21, 136, 26, 5, 111, 7, 637, 72 and 8 (they were 201, 21, 143, 28, 5, 111, 7, 646, 74, 8), and the doc has the corrected ones. The summary of the first pass listed "5+ steals with 5+ blocks" among pairs that rarely meet; it happens as often as chance would give (34 against 33) and is not in the doc. Re-derived: every number in the doc's two main findings by `an5.py`; the own-average, context, era and who-does-it numbers are printed by `an3.py` and `an4.py` and were copied from their output, not recomputed a second way. Checked rather than remembered: Ray Allen's game (6/8/10) and Maggette's (10/22/10) are not in ESPN's regular-season list (the 2010-11 list starts 10/26/10); Rasual Butler's line on 2/12/12 in ESPN's box score is 0 minutes and all zeros, so the turnover in the post is not in this source. Not looked at a second time by anyone else: the thresholds in the templates are my reading of the rates, and the user has corrected narrow thresholds before; they are proposals.
+
 ## 0.115.2 (2026-11-19): a calendar month is compared from the player's fourth game in it
 
 The user, 11:52 AM: "for monthly checks, wait 4 games for the player side before starting to compare into the start of the month".
