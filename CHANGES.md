@@ -2,6 +2,28 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.113.0 (2026-11-19): a streak in the notes is checked before it is called active
+
+The user, 10:40 AM, of the Spurs' notes line "As of Nov. 13, San Antonio has won 11 straight games", which the site tagged "Active streak · 11" with "12 with tonight's game": "this nugget was misinterpreted. it was taken as factual without fact checking". The Spurs won a 12th on 11/15 and lost to Detroit on 11/17. The notes for 11/19 still print the old paragraph; the site repeated it and added a next number of its own.
+
+What was wrong in the code: any line with "N straight" and no "ended" was typed a live streak, and for a team line the hook was simply N+1 "with tonight's game". Only a player's double-doubles and point thresholds were ever set against the box scores, and only to catch notes that were *behind*, never a streak that was over.
+
+- **A team's winning or losing streak is set against its results** (`statedTeamStreak`, `teamRuns`, `checkTeamStreak` in `src/notes/facts.js`). Four outcomes: the same ("Checked against the results (through 11/13). 12 with a win tonight."); behind ("Now 12 straight"); **over** ("Streak over · No longer true: the streak ended at 12 on 11/17 (lost to DET 93-105)."); or never so ("Does not match the results"). The last two are marked stale, which keeps them out of the storylines.
+- **A count nothing here can check is not called active and gets no next number**: a streak over some of the games only (home games, one opponent, overtime), or of something the results do not hold (sellouts). Tag "Streak · N (notes)", hook "The notes' count, not checked"; if the line carries its own date ("As of Nov. 6"), the games played since are counted against it.
+- **A player's streak the box scores have shorter than the notes** is "Streak over · Not active" (it used to be left as "Active streak"). "A block and a steal in N straight games" is now one the box scores can count.
+- **The same count printed while games go by** (`staleCount`, called from `scripts/tonight.js`): a live count moves every game, so the same words after another game are out of date. Used only where nothing else checked the line and the streak is over all games.
+- "N+1 with tonight's game" is gone everywhere: a winning streak grows with a win, not with a game.
+
+Tested: 997 checks (three new: the Spurs' fortnight replayed at four points; a home-games streak and a sellout streak; a player's ended streak and an old count) and the 81 article checks pass. On this morning's published lines, run through the new code with each team's results: of seven streak lines, four change. The Spurs' line reads as above. Wembanyama's "both a block and a steal in 10 straight games to start a season" went from "Active streak · 10, 11 if he does it again tonight" to "Streak over · Not active: … the box scores have 4 through 11/17". Minnesota's two (100+ points in 31 straight against Houston; seven straight wins against Dallas) are now "the notes' count, not checked". The other three are unchanged.
+
+Still unproven: the full notes step (`scripts/tonight.js`) cannot run in the cloud workspace (it reads the teams' PDFs), so the published page is the proof; it is checked after this push builds. Not checked at all, and still shown as the notes print them: ranks, "only player to", and every streak over some of the games only. Those now say they are unchecked where they are streaks; the others never claimed a next number.
+
+Self-audit:
+- **The fault was mine, and old:** the "Active streak" tag has carried an unverified claim since 0.48. On 11/16 the user caught the same thing from the other side (the Knicks' notes behind on Towns), and I fixed only that direction.
+- **Wrong first:** my first version marked Wembanyama's line stale, which would have dropped a true statement (he did do it in his first 10 games). It is now "not active" without being stale.
+- **A judgment:** `SOME_GAMES`, the list of words that mean "not every game" (home, road, against, overtime…), decides what is left unchecked. A phrase it misses would be set against the plain run and could be called over when it is not. The four live cases read right; the list is from reading notes, not from a count.
+- **Not checked by a second route:** that the 12-game streak ended on 11/17 is from our results file, which is ESPN's; the user's screenshot of ESPN's schedule shows the same twelve wins and the loss to Detroit.
+
 ## 0.112.0 (2026-11-19): "wasn't on the floor to finish" says what it measures
 
 The user, 10:22 AM, of "Josh Hart started but wasn't on the floor to finish NYK's last 5 close games; he had finished 4 of 4 before (close: within 5 in the last five minutes)", with the Game Flow chart of 11/11: "how is this calculated? it appears Hart was on the court in the clutch for this game… is it him not on the court in the final possessions?"

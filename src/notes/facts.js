@@ -371,7 +371,9 @@ export function hookFor(line, { race = null, stay = null } = {}) {
   }
   if (d.type === "streak" && d.streak) {
     const t = plain(line.text);
-    if (!line.player) return { text: `${d.streak + 1} with tonight's game.`, live: true };
+    // 0.113: a team line. Its count is the notes' until checkStreaks has set it against the results; it used to read
+    // "12 with tonight's game" on a streak that had ended two days before.
+    if (!line.player) return { text: `The notes' count, not checked against the results.`, live: false, unchecked: true };
     // A games-played streak goes on if he plays; any other streak goes on only if he does it again.
     return /\b(?:appeared|played|games? played|starts|started|consecutive (?:games|starts)(?: played)?\b(?! with| of| in which))/.test(t) && !/\b(?:with (?:at least|a|an|\d)|recorded|scored|made|posted|registered|tallied)\b[^.]{0,40}\b(?:consecutive|straight)\b|\b\d+(?:\+|-plus)\s/.test(t)
       ? { text: `${d.streak + 1} if he plays tonight.`, live: true } : { text: `${d.streak + 1} if he does it again tonight.`, live: true };
@@ -453,7 +455,7 @@ const DOUBLES = [["dd", "double-doubles?", 2], ["td", "triple-doubles?", 3]];
 export function statedStreak(text) {
   const t = plain(text);
   if (/\b(?:snapped|ended|came to an end|was halted|last season|in 20(?:0\d|1\d|2[0-5])-\d\d)\b/i.test(t)) return null;
-  if (!/\bto (?:start|open|begin) (?:the|this|his) (?:season|campaign|year)\b|\b(?:has|have) (?:now |also )?(?:recorded|posted|scored|registered|tallied|had|notched|logged|grabbed|made|hit|dished)\b|\bactive\b|\bthis season\b|\bcurrent\b|\b(?:recorded|posted|notched|registered|logged|tallied) (?:his|her)\b|\bextend(?:ed|s|ing)?\b|\bin (?:each of )?(?:his|the) (?:last|past)\b/i.test(t)) return null;
+  if (!/\bto (?:start|open|begin) (?:the|this|his|a) (?:season|campaign|year)\b|\b(?:has|have) (?:now |also )?(?:recorded|posted|scored|registered|tallied|had|notched|logged|grabbed|made|hit|dished)\b|\bactive\b|\bthis season\b|\bcurrent\b|\b(?:recorded|posted|notched|registered|logged|tallied) (?:his|her)\b|\bextend(?:ed|s|ing)?\b|\bin (?:each of )?(?:his|the) (?:last|past)\b/i.test(t)) return null;
   for (const [key, word, need] of DOUBLES) {
     if (key === "dd" && /triple-double/i.test(t)) continue;
     const m = t.match(new RegExp(`\\b${CNT} ${RUN} (?:games? with (?:an? )?)?${word}`, "i")) || t.match(new RegExp(`\\b${word} in ${SPAN}`, "i"))
@@ -461,6 +463,9 @@ export function statedStreak(text) {
     const n = m && countOf(m[1]);
     if (n) return { n, key, label: key === "dd" ? "double-doubles" : "triple-doubles", test: (row, k) => ["pts", "reb", "ast", "stl", "blk"].filter((x) => row[k[x]] >= 10).length >= need };
   }
+  // 0.113: "both a block and a steal in 10 straight games"
+  const bs = t.match(new RegExp(`\\b(?:both )?(?:a|at least one) (?:block|steal) and (?:a|at least one|one) (?:steal|block) in ${SPAN}`, "i"));
+  if (bs && countOf(bs[1])) return { n: countOf(bs[1]), key: "blkstl", label: "games with a block and a steal", test: (row, k) => row[k.stl] >= 1 && row[k.blk] >= 1 };
   // "30+ points in five straight games", "five straight games with at least 30 points", "five straight 30-point games"
   let m = t.match(new RegExp(`\\b(\\d{1,2})(?:\\+|-plus| or more) ${STREAK_STAT} in ${SPAN}`, "i"));
   let min = m && +m[1], word = m && m[2], n = m && countOf(m[3]);
@@ -487,18 +492,102 @@ export function streakInBox(box, playerId, stated) {
  * Mutates and returns the lines. Each checked line carries streakNow: { key, said, now }.
  */
 export function checkStreaks(lines, box) {
+  const md = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}`;
   for (const l of lines || []) {
-    if (!l.playerId) continue;
+    if (!l.playerId) { checkTeamStreak(l, box); continue; }
     const st = statedStreak(l.text);
     const at = st && streakInBox(box, String(l.playerId), st);
     if (!at) continue;
     l.streakNow = { key: st.key, said: st.n, now: at.now };
-    if (at.now <= st.n) continue;
+    // 0.113: the box scores have it SHORTER than the notes: the streak is over (or the line is a recap of an older
+    // night). It was left reading "Active streak" with "N+1 if he does it again tonight".
+    if (at.now < st.n) {
+      l.tag = "Streak over";
+      // not "stale": what the line says happened did happen; it is the "active" that is wrong
+      l.hook = { text: `Not active: the notes say ${st.n} straight ${st.label.replace(/^games with /, "with ")}; the box scores have ${at.now} through ${md(at.last)}.`, live: false };
+      continue;
+    }
+    if (at.now === st.n) continue;
     const ranked = /\b(?:ranks?|tied|tying|longest|most|history|record)\b/i.test(plain(l.text));
     l.tag = `Now ${at.now} straight`;
-    l.hook = { text: `The notes are behind: the box scores have it at ${at.now} straight ${st.label.replace(/^games with /, "with ")} through ${+at.last.slice(5, 7)}/${+at.last.slice(8, 10)}${at.all ? " (every game he has played this season)" : ""}${ranked ? ", so where this line ranks it is out of date" : ""}. ${at.now + 1} if he does it again tonight.`, live: true };
+    l.hook = { text: `The notes are behind: the box scores have it at ${at.now} straight ${st.label.replace(/^games with /, "with ")} through ${md(at.last)}${at.all ? " (every game he has played this season)" : ""}${ranked ? ", so where this line ranks it is out of date" : ""}. ${at.now + 1} if he does it again tonight.`, live: true };
   }
   return lines;
+}
+
+// ---------- A team's winning or losing streak, against its results (0.113) ----------
+// The user, 11/19, of "As of Nov. 13, San Antonio has won 11 straight games" tagged "Active streak · 11 → 12 with
+// tonight's game" on a morning when the Spurs had won a 12th and then lost: "this nugget was misinterpreted. it was
+// taken as factual without fact checking". A streak of wins or losses is the easiest thing in the notes to check.
+const TEAM_RUN = [
+  ["W", new RegExp(`\\b(?:has|have|had|having) (?:now )?won ${CNT} ${RUN}\\b`, "i")], ["W", new RegExp(`\\bwon ${CNT} in a row\\b`, "i")], ["W", new RegExp(`\\b${CNT}-game win(?:ning)? streak\\b`, "i")],
+  ["L", new RegExp(`\\b(?:has|have|had|having) (?:now )?(?:lost|dropped) ${CNT} ${RUN}\\b`, "i")], ["L", new RegExp(`\\b(?:lost|dropped) ${CNT} in a row\\b`, "i")], ["L", new RegExp(`\\b${CNT}-game losing streak\\b`, "i")]];
+// A streak over some of the games only (home games, against one team, in overtime) is not the plain run of results.
+const SOME_GAMES = /\b(?:home|road|away|on the road|against|versus|vs\.?|overtime|division(?:al)?|conference|series|meetings?|matchups?|head-to-head|openers?|back-to-backs?|when|in (?:January|February|March|April|October|November|December)|on (?:Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)days?)\b/i;
+const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, oct: 10, nov: 11, dec: 12 };
+/** -> { kind: "W"|"L", n, plain, asOf: "MM-DD"|null } for a present-tense line about the team's own run, else null. */
+export function statedTeamStreak(text) {
+  const t = plain(text);
+  if (/\b(?:snapped|ended|came to an end|was halted|last season|in 20(?:0\d|1\d|2[0-5])-\d\d)\b|\bfrom (?:\w+\.? \d{1,2}|\d{1,2}\/\d{1,2})[^.]{0,30}\b(?:to|through|until)\b/i.test(t)) return null;
+  for (const [kind, re] of TEAM_RUN) {
+    const m = t.match(re), n = m && countOf(m[1]);
+    if (!n) continue;
+    const sentence = t.split(/(?<=[.!?])\s+/).find((x) => x.includes(m[0])) || t;
+    const a = t.match(/\bas of (Jan|Feb|Mar|Apr|May|Jun|Oct|Nov|Dec)[a-z]*\.? (\d{1,2})\b/i);
+    return { kind, n, plain: !SOME_GAMES.test(sentence), asOf: a ? `${String(MONTHS[a[1].toLowerCase()]).padStart(2, "0")}-${a[2].padStart(2, "0")}` : null };
+  }
+  return null;
+}
+/** The team's runs of wins and losses, oldest first, from its results (box.games: d, opp, pf, pa). */
+export function teamRuns(box) {
+  const gs = (box?.games || []).filter((g) => g.pf != null && g.pa != null && g.pf !== g.pa).sort((a, b) => (a.d < b.d ? -1 : 1)), runs = [];
+  for (const g of gs) { const k = g.pf > g.pa ? "W" : "L", r = runs[runs.length - 1]; if (r && r.kind === k) { r.n++; r.to = g.d; } else runs.push({ kind: k, n: 1, from: g.d, to: g.d, after: null }); if (runs.length > 1 && runs[runs.length - 1].n === 1) runs[runs.length - 2].after = g; }
+  return runs;
+}
+function checkTeamStreak(l, box) {
+  if (l.player || l.type !== "streak") return;
+  const st = statedTeamStreak(l.text), runs = st && teamRuns(box);
+  const notes = () => { if (/^Active streak/.test(l.tag || "")) l.tag = `${l.tag.replace(/^Active streak/, "Streak")} (notes)`; };   // not checked: not called active
+  if (!st || !runs.length) { if (l.hook?.unchecked) notes(); return; }
+  const md = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}`, word = st.kind === "W" ? "won" : "lost", cur = runs[runs.length - 1];
+  const played = (box.games || []).filter((g) => g.pf != null && g.pa != null).sort((a, b) => (a.d < b.d ? -1 : 1)), lastD = played[played.length - 1].d;
+  if (!st.plain) {
+    // some of the games only: the count cannot be set against the plain run, but its own date can be
+    const since = st.asOf ? played.filter((g) => g.d.slice(5) > st.asOf).length : 0;
+    l.tag = `Streak · ${st.n} (notes)`;
+    l.hook = { text: `The notes' count, not checked${since ? `: it is dated ${+st.asOf.slice(0, 2)}/${+st.asOf.slice(3)} and the team has played ${since} game${since === 1 ? "" : "s"} since` : ""}.`, live: false, unchecked: true };
+    return;
+  }
+  l.teamStreakNow = { kind: st.kind, said: st.n, now: cur.kind === st.kind ? cur.n : 0 };
+  const next = (n) => `${n + 1} with a ${st.kind === "W" ? "win" : "loss"} tonight.`;
+  if (cur.kind === st.kind && cur.n === st.n) { l.tag = `Active streak · ${st.n}`; l.hook = { text: `Checked against the results (through ${md(lastD)}). ${next(st.n)}`, live: true }; return; }
+  if (cur.kind === st.kind && cur.n > st.n) { l.tag = `Now ${cur.n} straight`; l.hook = { text: `The notes are behind: the results have it at ${cur.n} straight through ${md(lastD)}. ${next(cur.n)}`, live: true }; return; }
+  // over, or never as the notes say: the last run of that kind at least as long as the notes' count, and what ended it
+  const was = [...runs].reverse().find((r) => r !== cur && r.kind === st.kind && r.n >= st.n) || (cur.kind === st.kind ? null : [...runs].reverse().find((r) => r.kind === st.kind && r.n >= st.n));
+  const now = `the team has ${cur.kind === "W" ? "won" : "lost"} ${cur.n === 1 ? "its last game" : `${cur.n} straight`}`;
+  l.tag = "Streak over";
+  l.hook = was && was.after
+    ? { text: `No longer true: the streak ended at ${was.n} on ${md(was.after.d)} (${was.after.pf > was.after.pa ? "beat" : "lost to"} ${was.after.opp} ${was.after.pf}-${was.after.pa})${was.after.d === lastD ? "" : `; ${now}`}.`, live: false, stale: true }
+    : { text: `Does not match the results: the notes say ${word} ${st.n} straight; ${now} through ${md(lastD)}.`, live: false, stale: true };
+}
+
+/**
+ * 0.113: a streak count the box scores cannot check, printed unchanged while games went by. A live count moves with
+ * every game, so the same words after another game are out of date: the streak is longer now, or over. Not for a
+ * streak over some of the games only (home games, one opponent), whose count can rightly stand still.
+ * firstSeen: the day these exact words were first read (the notes for that day's game). Mutates and returns the line.
+ */
+export function staleCount(l, firstSeen, box) {
+  if (!l || l.type !== "streak" || !firstSeen || !box || l.hook?.stale || l.streakNow || l.teamStreakNow || !/^Active streak/.test(l.tag || "")) return l;
+  const t = plain(l.text);
+  if (SOME_GAMES.test(t)) return l;
+  const k = Object.fromEntries((box.keys || []).map((x, i) => [x, i]));
+  const since = (box.games || []).filter((g) => g.d >= firstSeen && (l.playerId ? g.pl?.[String(l.playerId)]?.[k.min] > 0 : g.pf != null)).length;
+  if (!since) return l;
+  const who = l.playerId ? "he has" : "the team has", n = (l.tag.match(/\d+/) || [])[0];
+  l.tag = n ? `Streak · ${n} (old count)` : "Streak (old count)";
+  l.hook = { text: `Out of date: the notes have printed this count unchanged since ${+firstSeen.slice(5, 7)}/${+firstSeen.slice(8, 10)} and ${who} played ${since} game${since === 1 ? "" : "s"} since. It is longer now, or over.`, live: false, stale: true };
+  return l;
 }
 
 /** Which list a rank line is about, coarsely: enough to tell a scoring list from an assists list. */

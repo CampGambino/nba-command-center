@@ -3001,8 +3001,8 @@ await articlesChecks(ok);
     && d("Jordan Clarkson has now scored 8,699 points off the bench in his career, passing Thurl Bailey for seventh all-time since the 1968-69 season.").tag === "7th since 1968-69"
     && hk("Has appeared in 176 consecutive games, the third-longest active streak in the NBA.", { player: "Bub Carrington" }) === "177 if he plays tonight."
     && hk("Victor Wembanyama has recorded a block and a steal in 10 consecutive games, the longest active streak in the NBA.", { player: "Victor Wembanyama" }) === "11 if he does it again tonight."
-    && hk("The Warriors' franchise-record home sellout streak is at 613 consecutive games.") === "614 with tonight's game.",
-    "notes, tags and hooks from the 11/13 slate: team history stays team history; games-played vs. do-it-again vs. team streaks");
+    && hk("The Warriors' franchise-record home sellout streak is at 613 consecutive games.") === "The notes' count, not checked against the results.",
+    "notes, tags and hooks from the 11/13 slate: team history stays team history; games-played vs. do-it-again; a team streak's count is the notes' until checked (0.113)");
   const T = F.readTables(doc);
   const blk = T.find((t) => /MOST BLOCKS/.test(t.title)), paint = T.find((t) => /POINTS IN THE PAINT/.test(t.title));
   ok(blk?.rows.length === 3 && blk.rows[1].name === "RUDY GOBERT" && blk.rows[1].value === 1851 && paint?.rows[5]?.name === "WASHINGTON" && paint.rows[5]?.value === 596 && paint.title === "TEAM, MOST POINTS IN THE PAINT NBA, 2026-27",
@@ -3469,6 +3469,35 @@ await articlesChecks(ok);
     { text: "Clarkson has now scored 8,699 points off the bench in his career.", player: "Jordan Clarkson", playerId: "8", score: 3 },
   ], box);
   ok(lines[1].tag === "Now 12 straight" && /box scores have it at 12 straight double-doubles through 11\/12 \(every game he has played this season\), so where this line ranks it is out of date\. 13 if he does it again tonight\./.test(lines[1].hook.text) && !lines[2].streakNow, "streak check: a line behind the box scores says so, with the count and what tonight makes it", lines[1].hook?.text);
+  {
+    // 0.113 (the user, 11/19: "taken as factual without fact checking"): a team's winning or losing streak is set
+    // against its results; a count nothing can check is not called active and promises no next number.
+    const g = (d, opp, pf, pa, pl = {}) => ({ d, opp, pf, pa, pl });
+    const spurs = { keys: ["side", "min", "pts", "stl", "blk"], games: [g("2026-10-23", "HOU", 110, 114), ...["24", "27", "28", "31"].map((x) => g(`2026-10-${x}`, "DAL", 120, 100)), ...["02", "04", "06", "07", "09", "11", "13"].map((x) => g(`2026-11-${x}`, "UTA", 120, 100, { 5: [0, 30, 20, x <= "07" ? 1 : 0, 1] })), g("2026-11-15", "UTA", 110, 102, { 5: [0, 30, 20, 1, 1] }), g("2026-11-17", "DET", 93, 105, { 5: [0, 30, 20, 1, 2] })] };
+    const run = (text, box, extra = {}) => F.checkStreaks([{ text, player: null, playerId: null, type: "streak", tag: "Active streak · 11", hook: F.hookFor({ text, facts: F.describe(text, {}) }, {}), ...extra }], box)[0];
+    const over = run("As of Nov. 13, San Antonio has won 11 straight games.", spurs);
+    const upTo = (n) => ({ ...spurs, games: spurs.games.slice(0, n) });
+    const same = run("As of Nov. 13, San Antonio has won 11 straight games.", upTo(12)), behind = run("As of Nov. 13, San Antonio has won 11 straight games.", upTo(13)), never = run("San Antonio has lost 5 straight games.", spurs);
+    const home = run("As of Nov. 6, San Antonio has won 6 straight home games.", spurs), sell = run("The franchise-record home sellout streak is at 613 consecutive games.", spurs);
+    ok(over.tag === "Streak over" && over.hook.text === "No longer true: the streak ended at 12 on 11/17 (lost to DET 93-105)." && over.hook.stale === true && over.hook.live === false
+      && same.tag === "Active streak · 11" && same.hook.text === "Checked against the results (through 11/13). 12 with a win tonight." && same.hook.live === true
+      && behind.tag === "Now 12 straight" && behind.hook.text === "The notes are behind: the results have it at 12 straight through 11/15. 13 with a win tonight."
+      && never.tag === "Streak over" && never.hook.text === "Does not match the results: the notes say lost 5 straight; the team has lost its last game through 11/17." && never.hook.stale === true,
+      "0.113: a team's winning streak against its results: over (when it ended, at what, and who ended it), the same (and only then \"12 with a win tonight\"), behind the results, and one the results never show",
+      JSON.stringify([over, same, behind, never].map((l) => [l.tag, l.hook.text])));
+    ok(home.tag === "Streak · 6 (notes)" && home.hook.text === "The notes' count, not checked: it is dated 11/6 and the team has played 6 games since." && home.hook.live === false
+      && sell.tag === "Streak · 11 (notes)" && sell.hook.text === "The notes' count, not checked against the results." && F.statedTeamStreak("The Spurs' 10-game winning streak from Oct. 24 to Nov. 11 was their longest since 2019.") === null,
+      "0.113: a streak over some of the games only (home games), or of something the results do not hold (sellouts), is the notes' count: not called active, no next number, and its own date is held against the games played since; a streak that is told as finished is left alone",
+      JSON.stringify([home, sell].map((l) => [l.tag, l.hook.text])));
+    const wem = F.checkStreaks([{ text: "Victor Wembanyama became the 7th player in NBA history to have both a block and a steal in 10 straight games to start a season.", player: "Victor Wembanyama", playerId: "5", type: "streak", tag: "Active streak · 10", hook: { text: "11 if he does it again tonight.", live: true } }], spurs)[0];
+    const old = F.staleCount({ text: "Has appeared in 176 consecutive games.", player: "A B", playerId: "5", type: "streak", tag: "Active streak · 176", hook: { text: "177 if he plays tonight.", live: true } }, "2026-11-13", spurs);
+    const fresh = F.staleCount({ text: "Has appeared in 176 consecutive games.", player: "A B", playerId: "5", type: "streak", tag: "Active streak · 176", hook: { text: "177 if he plays tonight.", live: true } }, "2026-11-18", spurs);
+    ok(wem.tag === "Streak over" && wem.hook.text === "Not active: the notes say 10 straight with a block and a steal; the box scores have 2 through 11/17." && wem.hook.live === false && !wem.hook.stale
+      && old.tag === "Streak · 176 (old count)" && old.hook.text === "Out of date: the notes have printed this count unchanged since 11/13 and he has played 3 games since. It is longer now, or over." && old.hook.stale === true
+      && fresh.tag === "Active streak · 176" && fresh.hook.live === true,
+      "0.113: a player's streak the box scores have shorter than the notes is not active (the line itself stays true); a count printed unchanged while he played three more games is out of date; one first read today is left alone",
+      JSON.stringify([wem, old, fresh].map((l) => [l.tag, l.hook.text])));
+  }
   const tr = F.trimLines(lines, { box, today: "2026-11-13" });
   ok(tr.keep.some((l) => /nine straight/.test(l.text)) && tr.trimmed.length === 1 && /^an older count of the same streak \(8; it is at 12\)/.test(tr.trimmed[0].trimmed), "streak check: the older count of the same streak is trimmed, the latest kept", tr.trimmed.map((l) => l.trimmed).join(" | "));
 

@@ -60,7 +60,7 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
 {
   const { readPdf } = await import("../src/notes/pdf-layout.js");
   const { readHistory } = await import("../src/notes/narrative.js");
-  const { annotate, trimLines } = await import("../src/notes/facts.js");
+  const { annotate, trimLines, staleCount } = await import("../src/notes/facts.js");
   const { readCoachRecord, coachLine, fromTenures } = await import("../src/notes/formats/coach-record.js");
   const ctf = path.join(root, "src", "data", "coach-tenures.json");
   const coachTenures = fs.existsSync(ctf) ? JSON.parse(fs.readFileSync(ctf, "utf8")).coaches || {} : {};
@@ -137,6 +137,7 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
         const k = keyOf(l.text);
         seen[k] ??= today;
         const isNew = seen[k] === today;
+        if (!isNew) staleCount(l, seen[k], box);   // 0.113: a streak count printed unchanged while games went by
         const named = l.player && !l.guessed;
         // The learned scorer (src/data/fact-model.json) weighs in: 0.5 is neutral; a live hook (a race, a club to stay in) adds.
         const stale = l.hook?.stale;
