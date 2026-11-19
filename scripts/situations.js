@@ -596,6 +596,20 @@ for (const [tri, games] of Object.entries(perTeam)) {
     fs.writeFileSync(path.join(root, "docs", "data", "form.json"), JSON.stringify({ generatedAt: out.generatedAt, through, ...F }));
     console.log(`form: ${Object.keys(F.players).length} players with 8+ games`);
   } catch (e) { console.error(`form not written: ${e.message}`); }
+  // Shifts (0.120; the user, 11/19: "shooting slumps or hot shooting stretches… player stats over a period of time to see how
+  // stats are shifting"): each player's season in each stat cut where his numbers changed, the current stretch against the
+  // one before, and how often a random order of the same games would show as much (src/situations/shifts.js).
+  try {
+    const { allShifts, pairsSearched, chanceCounts, SHIFT, SHIFT_STATS } = await import("../src/situations/shifts.js");
+    const wf = path.join(root, "docs", "data", "watch.json"), w = fs.existsSync(wf) ? JSON.parse(fs.readFileSync(wf, "utf8")) : { games: [] };
+    const tonight = w.today === today ? [...new Set((w.games || []).flatMap((g) => [g.homeTri, g.awayTri]))] : [];
+    const r1 = (v) => (v == null ? null : Math.round(v * 10) / 10), slim = (x) => ({ ...x, v: r1(x.v), min: r1(x.min) });
+    const all = allShifts(pg, store.names || {}, (id, last) => nowTeam({ id, team: last }).team);
+    const rowsS = all.filter((s) => s.odds >= SHIFT.keep).map((s) => ({ ...s, season: r1(s.season), now: slim(s.now), was: slim(s.was) }));
+    fs.writeFileSync(path.join(root, "docs", "data", "shifts.json"), JSON.stringify({ generatedAt: out.generatedAt, through, today, tonight, pairs: pairsSearched(pg), shuffles: SHIFT.shuffles, found: all.length, chance: chanceCounts(pg),
+      stats: SHIFT_STATS.map((t) => ({ k: t.k, label: t.label, kind: t.kind })), rows: rowsS }));
+    console.log(`shifts: ${all.length} found in ${pairsSearched(pg)} player-and-stat pairs; ${rowsS.length} written (${rowsS.filter((s) => s.kind === "rate").length} shooting); 1 in 20 or rarer: ${rowsS.filter((s) => s.odds >= 20).length}`);
+  } catch (e) { console.error(`shifts not written: ${e.message}`); }
 }
 // Team leaders: game-by-game leads, season-total leaders, and shooting lines (50 / 40 / 90).
 {

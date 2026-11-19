@@ -182,6 +182,19 @@
   <div class="key" id="fkey"></div>
   <div class="scroll"><table id="ftab"></table></div>
 
+  <h2 id="shifts">Shifts: slumps and hot stretches of any length</h2>
+  <div class="controls">
+    <select id="hstat"></select>
+    <span class="toggle" id="hdir"><button data-d="all" class="on">Up and down</button><button data-d="up">Up</button><button data-d="down">Down</button></span>
+    <select id="hodds"><option value="2">any odds</option><option value="5" selected>1 in 5 or rarer</option><option value="10">1 in 10 or rarer</option><option value="20">1 in 20 or rarer</option><option value="50">1 in 50 or rarer</option></select>
+    <select id="hteam"><option value="">All teams</option></select>
+    <span class="toggle" id="hnight"><button data-n="all" class="on">Everyone</button><button data-n="tonight">Tonight's teams</button></span>
+    <span class="toggle" id="hrole"><button data-r="all" class="on">All</button><button data-r="steady">Minutes steady</button></span>
+    <select id="hmin"><option value="0">any minutes</option><option value="15">15+ min a game now</option><option value="24" selected>24+ min a game now</option><option value="30">30+ min a game now</option></select>
+  </div>
+  <div class="key" id="hkey"></div>
+  <div class="scroll"><table id="htab"></table></div>
+
   <h2 id="watch">Streak watch</h2>
   <div class="key">What the next game would make of a team's current run, against every regular-season game since 2016-17: a win or loss streak a team hasn't had in a season's worth of games, and scoring or allowing runs few teams have matched.</div>
   <div id="watchlist"></div>
@@ -337,6 +350,33 @@ document.querySelectorAll("#fview button").forEach((b) => b.onclick = () => { fv
 $("fstat").onchange = () => { setFloors(); renderForm(); };
 for (const id of ["flen", "fsd", "ffloor", "fmin"]) $(id).onchange = renderForm;
 setFloors();
+// Shifts (0.120): each player's season in each stat, cut where his numbers changed; the current stretch against the one before.
+let SH = null, hdir = "all", hnight = "all", hrole = "all";
+const HGROUP = { shoot: ["fg", "fg3", "fg2", "ft"], score: ["pts", "fga", "fta", "fg3m"], rest: ["reb", "ast", "stl", "blk", "tov"], all: null };
+function renderShifts() {
+  if (!SH) return;
+  const stat = $("hstat").value, minOdds = +$("hodds").value, team = $("hteam").value, minMin = +$("hmin").value;
+  const keys = stat in HGROUP ? HGROUP[stat] : [stat], tonight = new Set(SH.tonight || []);
+  const rows = SH.rows.filter((r) => (!keys || keys.includes(r.k)) && r.odds >= minOdds && (!team || r.team === team) && (hdir === "all" || (hdir === "up") === r.up)
+    && (hnight === "all" || tonight.has(r.team)) && (hrole === "all" || !r.role) && (r.k === "min" || r.now.min >= minMin));
+  const md = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}`, val = (r, x) => (r.kind === "rate" ? `${x.v.toFixed(1)}% <span class="team">${x.made}-${x.att}</span>` : x.v.toFixed(1));
+  const cut = [50, 20, 10, 5].find((n) => n <= Math.max(minOdds, 5)), ks = keys || SH.stats.map((t) => t.k);
+  const atCut = SH.rows.filter((r) => ks.includes(r.k) && r.odds >= cut).length, byChance = Math.round(ks.reduce((a, k) => a + ((SH.chance || {})[k] || {})[cut] || 0, 0));
+  $("hkey").innerHTML = `A player's season in one stat is cut wherever his numbers changed, however long each stretch is, and his <b>current stretch</b> is set against the one before it (or against everything before, when the earlier stretch was short). Percentages are cut shot by shot; a stretch is at least 3 games. <b>By chance</b> is the caution: the cut is chosen after looking, so his same games were put in ${SH.shuffles} random orders and searched the same way; "1 in 40" means one random order in 40 shows a change this big. ${SH.chance ? `For these stats there are <b>${atCut}</b> rows at 1 in ${cut} or rarer (before the team, minutes and direction filters); the same search on a league whose games were shuffled into random order lists about <b>${byChance}</b>. So most rows are the kind of stretch chance produces: ` : ""}read them as what has happened, not as what comes next. <b>Min</b> in amber: his minutes moved by a quarter or more, so the change may be his role. Through ${SH.through}.`;
+  $("htab").innerHTML = `<tr><th>Player</th><th>Team</th><th>Stat</th><th class="num">Current stretch</th><th class="num">Games</th><th class="num">Since</th><th class="num">Before</th><th class="num">Games</th><th class="num">Season</th><th class="num">Min now / before</th><th class="num">By chance</th></tr>` +
+    (rows.slice(0, 80).map((r) => `<tr><td><b>${esc(r.name)}</b></td><td>${r.team}${tonight.has(r.team) ? ` <span class="team">tonight</span>` : ""}</td><td>${esc(r.label)}</td><td class="num ${r.good ? "hi" : "lo"}"><b>${val(r, r.now)}</b></td><td class="num">${r.now.n}</td><td class="num">${md(r.now.from)}</td><td class="num">${val(r, r.was)}</td><td class="num">${r.was.n}${r.was.all ? ` <span class="team" title="everything before the current stretch">all</span>` : ""}</td><td class="num">${r.season == null ? "" : r.kind === "rate" ? r.season.toFixed(1) + "%" : r.season.toFixed(1)}</td><td class="num"${r.role ? ` style="color:var(--warn)"` : ""}>${r.now.min.toFixed(0)} / ${r.was.min.toFixed(0)}</td><td class="num">${r.odds > SH.shuffles ? `under 1 in ${SH.shuffles}` : `1 in ${r.odds >= 10 ? Math.round(r.odds) : r.odds}`}</td></tr>`).join("") || `<tr><td class="empty" colspan="11">No shift for these filters.</td></tr>`)
+    + (rows.length > 80 ? `<tr><td class="team" colspan="11">${rows.length - 80} more; narrow the filters to see them.</td></tr>` : "");
+}
+for (const [id, set] of [["hdir", (b) => { hdir = b.dataset.d; }], ["hnight", (b) => { hnight = b.dataset.n; }], ["hrole", (b) => { hrole = b.dataset.r; }]])
+  document.querySelectorAll(`#${id} button`).forEach((b) => b.onclick = () => { set(b); document.querySelectorAll(`#${id} button`).forEach((x) => x.classList.toggle("on", x === b)); renderShifts(); });
+for (const id of ["hstat", "hodds", "hteam", "hmin"]) $(id).onchange = renderShifts;
+fetch("data/shifts.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => {
+  SH = d && Array.isArray(d.rows) ? d : null;
+  if (!SH) { $("hkey").textContent = "Shifts come with the next build."; return; }
+  $("hstat").innerHTML = `<option value="shoot" selected>Shooting (FG%, 3P%, 2P%, FT%)</option><option value="score">Scoring and volume (points, shots, FTA, threes)</option><option value="rest">Rebounds, assists, steals, blocks, turnovers</option><option value="min">Minutes</option><option value="all">Everything</option>` + SH.stats.filter((t) => t.k !== "min").map((t) => `<option value="${t.k}">${esc(t.label)} only</option>`).join("");
+  $("hteam").innerHTML += [...new Set(SH.rows.map((r) => r.team))].sort().map((t) => `<option>${t}</option>`).join("");
+  renderShifts();
+}).catch(() => { $("hkey").textContent = "Shifts come with the next build."; });
 fetch("data/form.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => { FD = d; if (FD) renderForm(); else $("fkey").textContent = "Form data comes with the next build."; }).catch(() => {});
 fetch("data/trends.json", { cache: "no-store" }).then((r) => r.json()).then((d) => {
   T = d;

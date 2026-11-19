@@ -2648,6 +2648,49 @@ await articlesChecks(ok);
     ok(/id="oddruns"/.test(pageT) && /function renderOddWatch\(\)/.test(pageT) && /Injuries are not checked here/.test(pageT), "0.118.0: the page shows tonight's list under the odd lines and says injuries are not checked");
   }
   {
+    // 0.120.0: shifts. A player's season in one stat cut where his numbers changed; the current stretch against the one before.
+    const { playerShifts, allShifts, rateStretches, countStretches, chanceOdds, chanceCounts, pairsSearched, SHIFT, SHIFT_STATS, CHANCE_LEVELS } = await import("../src/situations/shifts.js");
+    const day = (i) => `2026-11-${String(i + 1).padStart(2, "0")}`;
+    const G = (i, o) => ({ d: day(i), team: "AAA", min: 30, pts: 16, fgm: 6, fga: 13, fg3m: 2, fg3a: 5, ftm: 2, fta: 2, reb: 5, ast: 4, stl: 1, blk: 0, tov: 2, ...o });
+    // a three-point slump: 4-for-8 a night for eight games, then 1-for-9 a night for five; everything else level
+    const slump = Array.from({ length: 13 }, (_, i) => G(i, i < 8 ? { fg3m: 4, fg3a: 8, fgm: 6, fga: 13 } : { fg3m: 1, fg3a: 9, fgm: 6, fga: 13 }));
+    const S1 = playerShifts(slump, "Cold Shooter", { id: "c1" }), three = S1.find((s) => s.k === "fg3");
+    ok(JSON.stringify(rateStretches(slump.map((g) => g.fg3m), slump.map((g) => g.fg3a), { need: 12 })) === "[[0,8],[8,13]]"
+      && three && three.up === false && three.good === false && three.now.n === 5 && three.now.made === 5 && three.now.att === 45 && three.was.n === 8 && three.was.made === 32 && three.was.att === 64 && three.was.all === false
+      && three.text === "Cold Shooter is shooting 11.1% from three over his last 5 games (5-for-45, since 11/9), down from 50.0% over the 8 games before (32-for-64)"
+      && three.odds === SHIFT.shuffles + 1 && three.role === false && !S1.some((s) => s.k === "pts" || s.k === "reb" || s.k === "min"),
+      "0.120.0 (the user: \"Do you tracking shooting slumps or hot shooting stretches?\"): a three-point slump is found where it starts, whatever its length, and said against the stretch before; stats that did not move say nothing",
+      JSON.stringify(S1.map((s) => [s.k, s.text, s.odds])));
+    // a counting stat with his minutes: points and minutes drop together -> flagged as a possible role change
+    const role = Array.from({ length: 12 }, (_, i) => G(i, i < 7 ? { pts: 20 + (i % 2), min: 32 } : { pts: 7 + (i % 2), min: 17 }));
+    const S2 = playerShifts(role, "Role Player", { id: "r1" }), pts = S2.find((s) => s.k === "pts"), mins = S2.find((s) => s.k === "min");
+    ok(JSON.stringify(countStretches(role.map((g) => g.pts))) === "[[0,7],[7,12]]" && pts?.role === true && pts.up === false && /^Role Player is averaging 7\.6 points over his last 5 games \(since 11\/8\), down from 20\.4 over the 7 games before$/.test(pts.text)
+      && mins && mins.role === false && Math.round(pts.now.min) === 17 && Math.round(pts.was.min) === 32,
+      "0.120.0: a counting stat is cut game by game, and a change that came with his minutes moving a quarter or more is marked as a possible role change", JSON.stringify([pts?.text, pts?.role, mins?.text]));
+    // turnovers going down is good; the user's rule for teams: a short early stretch is not a fair comparison for a long one
+    const tovs = Array.from({ length: 12 }, (_, i) => G(i, { tov: i < 6 ? 5 : 1 })), tv = playerShifts(tovs, "Careful", { odds: false }).find((s) => s.k === "tov");
+    const longNow = Array.from({ length: 18 }, (_, i) => G(i, { ast: i < 3 ? 12 : 3 + (i % 2), fga: 13 })), la = playerShifts(longNow, "Passer", { odds: false }).find((s) => s.k === "ast");
+    ok(tv && tv.up === false && tv.good === true && la && la.was.all === true && /over his first 3 games$/.test(la.text) && SHIFT.ratio === 4 && SHIFT.min === 3,
+      "0.120.0: fewer turnovers is the good direction; a current stretch more than four times as long as the one before is set against everything before it and says so", JSON.stringify([tv?.good, la?.text]));
+    // by chance: the same games in random orders. A clean break is never matched; noise usually is. The same input gives the same odds.
+    let sd = 5; const rnd = (n) => { sd = (sd * 1103515245 + 12345) % 2147483648; return sd % n; };
+    const noisy = Array.from({ length: 16 }, (_, i) => { const a = 4 + rnd(6), m = rnd(a + 1) >> 1; return G(i, { fg3m: m, fg3a: a, pts: 8 + rnd(20), reb: 2 + rnd(8), ast: 1 + rnd(7) }); });
+    const N1 = playerShifts(noisy, "Noisy", { id: "n1" }), N2 = playerShifts(noisy, "Noisy", { id: "n1" });
+    const st3 = SHIFT_STATS.find((t) => t.k === "fg3");
+    ok(JSON.stringify(N1) === JSON.stringify(N2) && N1.every((s) => s.odds >= 1 && s.odds <= SHIFT.shuffles + 1) && N1.filter((s) => s.odds > 50).length <= 2 && chanceOdds(st3, slump, three.z, { seed: 9 }) >= 100
+      && JSON.stringify(N1.map((s) => s.odds)) === JSON.stringify([...N1.map((s) => s.odds)].sort((a, b) => b - a)),
+      "0.120.0: every shift carries how often a random order of the same games shows as much; the same games give the same odds on every build; rows are ranked by those odds", JSON.stringify(N1.map((s) => [s.k, s.z, s.odds])));
+    const pgS = { c1: slump, r1: role, n1: noisy, few: slump.slice(0, 5) }, A = allShifts(pgS, { c1: "Cold Shooter", r1: "Role Player", n1: "Noisy" }, (id, t) => (id === "r1" ? "BBB" : t));
+    const CC = chanceCounts(pgS, { passes: 1, shuffles: 30 });
+    ok(pairsSearched(pgS) === 3 * SHIFT_STATS.length && A[0].odds === SHIFT.shuffles + 1 && A.find((s) => s.id === "r1").team === "BBB" && !A.some((s) => s.id === "few") && A.every((s) => s.name && s.last && s.games >= SHIFT.games)
+      && Object.keys(CC).length === SHIFT_STATS.length && CHANCE_LEVELS.every((n) => CC.fg3[n] >= 0 && CC.fg3[n] <= 3) && CC.pts[50] <= CC.pts[5],
+      "0.120.0: the league list leaves out players with under eight games, uses his team today, and comes with what the same search finds when every player's games are shuffled", JSON.stringify([A.length, CC.fg3, CC.pts]));
+    const srcS = fs.readFileSync(path.join(root, "src", "situations", "shifts.js"), "utf8"), pageT = fs.readFileSync(path.join(root, "docs", "trends.html"), "utf8"), sitJs = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8");
+    ok(!/^\s*import\b|from "/m.test(srcS) && /id="htab"/.test(pageT) && /function renderShifts\(\)/.test(pageT) && /shuffled into random order/.test(pageT) && /what has happened, not as what comes next/.test(pageT)
+      && /shifts\.json/.test(sitJs) && /chance: chanceCounts\(pg\)/.test(sitJs) && /trends\.html#shifts/.test(fs.readFileSync(path.join(root, "docs", "find.html"), "utf8")),
+      "0.120.0: the Streaks & outliers page has the Shifts table with the count a shuffled league would show beside the real one, and the Index lists it");
+  }
+  {
     // 0.108.0: brothers. Their last N games reading alike, and a big night on the same date.
     const { brotherLines, BRO } = await import("../src/anticipate/seasonlong.js");
     const day = (i) => `2026-11-${String(i + 1).padStart(2, "0")}`;
