@@ -421,7 +421,7 @@ export function annotate(lines, { doc = null, tables = null, box = null, model =
     const hit = scoped.find((x) => x[1] === m[1] && x[3] === m[2] && [...words(x[4])].filter((w) => mine.has(w)).length >= 2);
     if (hit) { l.text = l.text.replace(new RegExp(`\\bone of ${m[1]} ${m[2]}\\b`), `one of ${m[1]} ${hit[2]} ${m[2]}`); l.facts = describe(l.text, l); }
   }
-  return checkStreaks(dedupe(lines).map((l) => {
+  return notCalledActive(checkStreaks(dedupe(lines).map((l) => {
     const d = l.facts;
     const names = l.player ? [l.player, l.player.split(" ").slice(-1)[0]] : teamNames;
     l.facts = d;
@@ -431,7 +431,19 @@ export function annotate(lines, { doc = null, tables = null, box = null, model =
     const f = { ...d.features, live: hook?.live ? 1 : 0 };
     const p = model ? score(f, model) : null;
     return { ...l, features: f, type: d.type, tag: d.tag, why: d.why, race: race || undefined, stay: stay || undefined, hook: hook || undefined, model: p == null ? undefined : Math.round(p * 1000) / 1000 };
-  }), box);
+  }), box));
+}
+/**
+ * 0.113: "Active streak" is said only of a count the box scores or the results agree with tonight. Every other
+ * streak line keeps its number and is marked as the notes' own: "Streak · 176 (notes)".
+ */
+function notCalledActive(lines) {
+  for (const l of lines) {
+    if (l.type !== "streak" || !/^Active streak/.test(l.tag || "")) continue;
+    const ok = (l.streakNow && l.streakNow.now === l.streakNow.said) || (l.teamStreakNow && l.teamStreakNow.now === l.teamStreakNow.said);
+    if (!ok) l.tag = `${l.tag.replace(/^Active streak/, "Streak")} (notes)`;
+  }
+  return lines;
 }
 
 // ---------- A streak the notes count, against the box scores (0.76) ----------
@@ -578,7 +590,7 @@ function checkTeamStreak(l, box) {
  * firstSeen: the day these exact words were first read (the notes for that day's game). Mutates and returns the line.
  */
 export function staleCount(l, firstSeen, box) {
-  if (!l || l.type !== "streak" || !firstSeen || !box || l.hook?.stale || l.streakNow || l.teamStreakNow || !/^Active streak/.test(l.tag || "")) return l;
+  if (!l || l.type !== "streak" || !firstSeen || !box || l.hook?.stale || l.streakNow || l.teamStreakNow || !/^(?:Active streak|Streak\b.*\(notes\)$)/.test(l.tag || "")) return l;
   const t = plain(l.text);
   if (SOME_GAMES.test(t)) return l;
   const k = Object.fromEntries((box.keys || []).map((x, i) => [x, i]));
