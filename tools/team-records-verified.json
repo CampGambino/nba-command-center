@@ -848,7 +848,7 @@
     "kind": "most",
     "period": "game",
     "date": "1977-11-01",
-    "by": "The franchise page prints 28 at Milwaukee. Basketball Reference's box score (the user's Basketball Reference screenshot, 11/18/26) has Kansas City with 5 steals and 33 turnovers that night, and 28 would be more than the league record (27)"
+    "by": "The franchise page prints 28 at Milwaukee. Basketball Reference's box score (the user's Basketball Reference screenshot, 11/18/26) has Kansas City with 5 steals and 33 turnovers that night and Milwaukee with 19 steals, and 28 would be more than the league record (27): the number belongs to neither team"
    }
   ]
  },
@@ -1102,17 +1102,6 @@
     "date": "2025-04-13",
     "opp": "vs. Phoenix",
     "by": "The guide's low is 6. ESPN's box score and Basketball Reference's box score (the user's screenshot, 11/17/26) both have Sacramento with 3 free throw attempts against Phoenix on 4/13/25"
-   },
-   {
-    "side": "team",
-    "stat": "stl",
-    "kind": "most",
-    "period": "game",
-    "value": 23,
-    "date": "1993-02-26",
-    "opp": "vs. Seattle",
-    "by": "The guide's Sacramento-era page (most steals, game: 23 vs. Seattle, Feb. 26, 1993), used because the franchise page's 28 is wrong. Not checked against a box score, and a Kansas City night (1973-85) above 23 cannot be ruled out",
-    "second": false
    }
   ],
   "HOU": [
@@ -1269,6 +1258,17 @@
     "date": "2025-10-27",
     "opp": "vs. Toronto",
     "by": "The guide's low is 22. ESPN's box score and Basketball Reference's box score (the user's screenshot, 11/17/26) both have Toronto with 20 rebounds (1 + 19) at San Antonio on 10/27/25"
+   }
+  ]
+ },
+ "lost": {
+  "SAC": [
+   {
+    "side": "team",
+    "stat": "stl",
+    "kind": "most",
+    "period": "game",
+    "by": "Both numbers the guide prints for the Kings' most steals are wrong. The franchise page's 28 at Milwaukee (11/1/77): Kansas City had 5. The Sacramento-era page's 23 vs. Seattle (2/26/93): Sacramento had 14 steals and 32 turnovers (the user's Basketball Reference screenshot, 11/18/26); the 23 is Seattle's, which the guide's opponents' page also prints. No right number is known, so there is no mark and no card"
    }
   ]
  }

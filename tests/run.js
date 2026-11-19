@@ -773,6 +773,12 @@ const more = {};
   const row = rowFromGame(r1);
   ok(row && row.ot === 1 && row.h === "BOS" && row.a === "NYK" && row.hs === 110, "results: a finished regular-season game becomes a row, overtime counted", JSON.stringify(row));
   ok(rowFromGame(sb.games.find((g) => g.id === "2")) === null && rowFromGame(sb.games.find((g) => g.id === "3")) === null, "results: unfinished games and preseason games are left out");
+  {
+    // 0.111: the Cup's title game is kept out twice: by ESPN's label (another season type) and by its date
+    const fin = { id: "9", date: "2026-12-11", final: true, seasonType: 2, homeTri: "NYK", awayTri: "OKC", homeScore: 110, awayScore: 104 };
+    ok(rowFromGame(fin) === null && rowFromGame({ ...fin, date: "2026-12-12" }) !== null && rowFromGame({ ...fin, date: "2026-12-12", seasonType: "cup-final" }) === null,
+      "0.111: a game on the day of the NBA Cup's title game (12/11/26, confirmed by the user and by ESPN's schedule) is not collected even if it arrives labelled regular season; the same game a day later is");
+  }
 
   // Collecting: finished dates are kept and not asked for again; a date with an
   // unfinished game is asked again, unless it is 3+ days old (postponed).

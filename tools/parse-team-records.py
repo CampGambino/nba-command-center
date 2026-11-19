@@ -636,6 +636,7 @@ READERS = {
 _vf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "team-records-verified.json")
 _V = json.load(open(_vf)) if os.path.exists(_vf) else {}
 VERIFIED, REDATE, DROP, REVALUE, UNDATE = _V.get("marks", {}), _V.get("redate", {}), _V.get("drop", {}), _V.get("revalue", {}), _V.get("undate", {})
+PROBLEMS, MISSED = [], []      # 0.111: what stops the file from being written (see the end of main)
 ADD = _V.get("add", {})          # 0.100: a game that beats (or is) the mark and is not on the guide's page, found in ESPN's line scores and confirmed elsewhere
 
 # an opponent's name with the end of the cell before it ("77-133)    vs. BOS", "2 OT          vs SAC") or a stray leader dot
@@ -649,23 +650,35 @@ def main():
         # A mark printed two ways and looked up outside the guide (tools/team-records-verified.json): the other row goes.
         checked = {}
         for v in VERIFIED.get(tri, []):
-            k = (v["side"], v["stat"], v["kind"], v["period"]); checked[k] = v["by"]
+            k = (v["side"], v["stat"], v["kind"], v["period"])
+            # 0.111: the entry must name a row the guide prints (that night, that number). On 11/18 two entries that did
+            # not (Boston's and Detroit's 112 rebounds) made the rebuild drop Boston's mark without a word.
+            if not any((r.get("side", "team"), r["stat"], r["kind"], r["period"]) == k and r["date"] == v["date"] and r["value"] == v["value"] for r in rows):
+                PROBLEMS.append(f"{tri}: a 'marks' entry names no printed row ({v['side']} {v['kind']} {v['stat']} {v['period']} {v['value']} on {v['date']}); nothing was changed for it"); continue
+            checked[k] = v["by"]
             rows = [r for r in rows if not ((r.get("side", "team"), r["stat"], r["kind"], r["period"]) == k and r["date"] == v["date"] and r["value"] != v["value"])]
         # 0.99: looked up in ESPN's box scores (tools/check-team-marks.mjs): a wrong date, a game that is not this mark, a wrong number
         K = lambda r: (r.get("side", "team"), r["stat"], r["kind"], r["period"]); KV = lambda v: (v["side"], v["stat"], v["kind"], v["period"]); used = 0
         for v in REDATE.get(tri, []):
+            hit = 0
             for r in rows:
                 if K(r) == KV(v) and r["date"] == v["from"]:
-                    r["date"] = v["to"]; r["fixed"] = v["by"]; used += 1
+                    r["date"] = v["to"]; r["fixed"] = v["by"]; used += 1; hit += 1
                     if v.get("opp"): r["opp"] = v["opp"]                # the guide names the wrong opponent too
+            if not hit: MISSED.append(f"{tri}: redate {v['side']} {v['kind']} {v['stat']} {v['period']} from {v['from']}")
         for v in DROP.get(tri, []):
             n = len(rows); rows = [r for r in rows if not (K(r) == KV(v) and r["date"] == v["date"])]; used += n - len(rows)
+            if n == len(rows): MISSED.append(f"{tri}: drop {v['side']} {v['kind']} {v['stat']} {v['period']} on {v['date']}")
         for v in REVALUE.get(tri, []):
+            hit = 0
             for r in rows:
-                if K(r) == KV(v) and r["date"] == v["date"]: r["value"] = v["value"]; r["fixed"] = v["by"]; used += 1
+                if K(r) == KV(v) and r["date"] == v["date"]: r["value"] = v["value"]; r["fixed"] = v["by"]; used += 1; hit += 1
+            if not hit: MISSED.append(f"{tri}: revalue {v['side']} {v['kind']} {v['stat']} {v['period']} on {v['date']}")
         for v in UNDATE.get(tri, []):                         # the number stays, the night the guide gives for it does not
+            hit = 0
             for r in rows:
-                if K(r) == KV(v) and r["date"] == v["date"]: r["date"] = None; r["opp"] = None; r["times"] = "the night is not confirmed"; used += 1
+                if K(r) == KV(v) and r["date"] == v["date"]: r["date"] = None; r["opp"] = None; r["times"] = "the night is not confirmed"; used += 1; hit += 1
+            if not hit: MISSED.append(f"{tri}: undate {v['side']} {v['kind']} {v['stat']} {v['period']} on {v['date']}")
         for v in ADD.get(tri, []):
             cur = [r["value"] for r in rows if K(r) == KV(v)]
             if cur and (max(cur) > v["value"] if v["kind"] == "most" else min(cur) < v["value"]): print(f"   {tri}: an added game does not reach the printed mark: {v}")
@@ -694,5 +707,19 @@ def main():
     # What "all-time" means where it is not the franchise's whole history: the Thunder's guide starts in Oklahoma City.
     scopes = {"OKC": "in Oklahoma City history (since 2008-09)", "DEN": "in the Nuggets' NBA years (since 1976-77)"}
     notes = {"LAL": "the Lakers' fewest marks leave out games before the shot clock (1954-55)", "BOS": "pp. 197 and 198 print the same game with two values for field goals (72, 77) and free throw attempts (65, 66); Basketball Reference's box scores have 72 and 65", "DEN": "p. 348 heads the fewest offensive rebounds list \"FEWEST DEFENSIVE REBOUNDS, GAME\" (1, 1, 2); it is read as offensive. The guide prints no team points by half or quarter (its half and quarter rows are players' records); its one team mark by half, threes (16 vs. Golden State, 2/13/17, pp. 346-347), is not read", "SAC": "the Kings-Royals franchise pages (pp. 119-120, 126-127); the guide's Sacramento-era pages (pp. 113-117) are not used"}
+    # 0.111: nothing is written when a correction found no row, or when a mark the file had is gone and
+    # tools/team-records-verified.json does not say it should be ("lost": a mark whose only printed row was wrong and
+    # for which no right number is known).
+    for m in MISSED: PROBLEMS.append(m + ": no row for this correction (a typo in the entry, or the reader changed)")
+    if os.path.exists(sys.argv[2]):
+        meant = {(t, v["side"], v["stat"], v["kind"], v["period"]) for t, vs in _V.get("lost", {}).items() for v in vs}
+        old = json.load(open(sys.argv[2]))["teams"]
+        for t, ms in old.items():
+            now = {(m.get("side", "team"), m["stat"], m["kind"], m["period"]) for m in teams.get(t, [])}
+            for m in ms:
+                k = (m.get("side", "team"), m["stat"], m["kind"], m["period"])
+                if k not in now and (t,) + k not in meant: PROBLEMS.append(f"{t}: the mark {k[0]} {k[2]} {k[1]} {k[3]} ({m['value']}) was in the file and is gone; if that is meant, list it under \"lost\" in tools/team-records-verified.json")
+    if PROBLEMS:
+        print("\nNOT WRITTEN. " + str(len(PROBLEMS)) + " problem(s):"); [print("   " + x) for x in PROBLEMS]; sys.exit(1)
     json.dump({"through": "2025-26", "source": "team media guides for 2026-27, team single-game records (tools/parse-team-records.py)", "scopes": scopes, "notes": notes, "teams": teams}, open(sys.argv[2], "w"), separators=(",", ":"))
 main()

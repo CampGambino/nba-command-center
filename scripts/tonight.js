@@ -71,7 +71,7 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
     const out = [];
     try {
       const H = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-results-history.json"), "utf8"));
-      const CUP = new Set(["2023-12-09", "2024-12-17", "2025-12-16"]);     // Cup title games count in no record
+      const CUP = new Set(["2023-12-09", "2024-12-17", "2025-12-16", "2026-12-11"]);     // Cup title games count in no record
       for (const r of H.games) if (r[5] === 2 && !CUP.has(r[0])) out.push({ d: r[0], h: r[1], a: r[2], hs: r[3], as: r[4] });
       const { loadStore, allGames } = await import("../src/situations/results.js");
       const { cupFinal } = await import("../src/situations/standings.js");

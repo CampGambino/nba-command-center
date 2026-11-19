@@ -2,6 +2,25 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.111.0 (2026-11-18): a guard on the team-records builder; the Kings' steals mark removed; the Cup's title game locked out by date
+
+The user, 7:51 PM: "confirmed the cup championship is 12/11 this season", "go ahead with 4 and 5", and three more box scores.
+
+- **The builder cannot drop a mark quietly any more** (`tools/parse-team-records.py`). It now writes nothing and exits with an error when (a) a `marks` entry names a night and number the guide does not print, (b) a `redate`, `drop`, `revalue` or `undate` entry finds no row (it used to print a line and carry on), or (c) a mark that was in the file is gone and `tools/team-records-verified.json` does not list it under the new `lost` key. This is the fault that made Boston's 112 rebounds disappear this afternoon.
+- **The Kings have no "most steals" mark now.** The stand-in I put in at 5 PM was wrong as well. The Sacramento-era page prints "23 vs. Seattle, Feb. 26, 1993"; the box score the user sent has Sacramento with 14 steals and 32 turnovers that night, so the 23 is Seattle's (the guide's opponents' page prints it too, and that mark stays). The franchise page's 28 at Milwaukee (11/1/77): Kansas City had 5 and Milwaukee 19, so 28 belongs to nobody. With no right number known, the mark is listed under `lost` and there is no card for it. 2,833 marks; 1,831 checked.
+- **Lakers, 4 assists vs. Syracuse (11/28/61):** Basketball Reference's box score has no assists at all for that game (played in St. Louis), which is why Stathead did not list it. It stays as the guide prints it; the mark's number is backed on three other nights.
+- **The Cup's title game, by date** (`CUP_TITLE_DATES` in `src/situations/results.js`). It was already kept out by ESPN's own label, which turns it into another season type before it is collected. Now a game on the day of the final is not collected either way. 12/11/26: the user's confirmation, and ESPN's schedule lists one game that day, labelled "NBA Cup Championship", with none the day before.
+
+Tested: 994 checks (one new, for the date lock) and a full local build pass. The guard was tried on three broken inputs made for the purpose (a `marks` entry for a night not printed, a `redate` with a wrong date, and the Kings' mark removed without a `lost` entry): each time nothing was written and the reason was printed; with the inputs restored, the file is rebuilt byte for byte. The rebuilt file differs from the last one in the Kings' mark only.
+
+Still unproven: the guard compares with the file already on disk, so it protects a rebuild, not a first build. The date lock is for a day when ESPN's label is missing, which has not happened in the three seasons on file.
+
+Self-audit (7:57 PM):
+- **Wrong first, and published:** for about two and a half hours `teammarks.json` carried "Kings, most steals: 23". I took it from the Sacramento-era page without a box score because the franchise page's number had just fallen. It was marked "guide only", so a card would have said so, but the right move was no mark until a number was confirmed. That is what `lost` is for.
+- **Wrong first:** my first test of case (c) passed for the wrong reason: the file on disk already lacked the mark, so nothing could be "gone". Redone against the earlier file; it stops as it should.
+- **In doubt, not changed:** the loop I listed as open ("the Cup final is still not excluded from the player lines") was mostly already closed by the reader's label rule. The old note said the player lines would count it; I had not re-read the collector before repeating that to the user.
+- **Not checked:** Seattle's own steals on 2/26/93 (the screenshot shows Sacramento's half). The 23 on the opponents' page rests on the guide printing it twice and on Sacramento's 32 turnovers.
+
 ## 0.110.0 (2026-11-18): the Bulls and Pelicans games are merged; the older seasons are being read; the league's record book against the guides
 
 The user, 5:35 PM: "Yes, run those seasons and merge the bulls/pelicans games. doesn't the nba guide new pdf have team single game records? Is that not reliable for records before this season to check against?"

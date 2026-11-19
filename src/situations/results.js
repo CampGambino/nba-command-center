@@ -26,8 +26,14 @@
  */
 export const RECHECK_DAYS = 3;
 export const QUARTER_DAYS = 10;
+// 0.111: the NBA Cup's title game counts in no record or statistic. ESPN files it under the regular season; the reader
+// (src/espn/parse.js isCupFinal) recognises it by ESPN's own label and gives it another season type, so it never gets
+// here. This is the second lock, by date: no other game is played on the day of the final. 2026-12-11 was confirmed by
+// the user (11/18/26) and is the one game ESPN's schedule lists that day, labelled "NBA Cup Championship".
+export const CUP_TITLE_DATES = new Set(["2023-12-09", "2024-12-17", "2025-12-16", "2026-12-11"]);
 export function rowFromGame(g) {
   if (!g.final || g.seasonType !== 2 || !g.homeTri || !g.awayTri) return null;
+  if (CUP_TITLE_DATES.has(g.date)) return null;
   if (g.homeScore == null || g.awayScore == null || g.homeScore === g.awayScore) return null;
   return {
     id: g.id, d: g.date, h: g.homeTri, a: g.awayTri, hs: g.homeScore, as: g.awayScore,
