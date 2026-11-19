@@ -3139,6 +3139,55 @@ await articlesChecks(ok);
     JSON.stringify([g1, g2.text, g3.keep, g4.keep]));
 }
 
+// ---------- 0.125: the build checks its own output; a dead streak cannot lead; "to watch" without players who are out ----------
+{
+  // the user, 6:33 PM 11/19: "can you run a diagnostic that may find these issues and correct them now rather than having them sit dormant."
+  const { selfCheck, CHECK_NAMES } = await import("../src/site/selfcheck.js");
+  const { briefing } = await import("../src/anticipate/briefing.js");
+  const T0 = Date.parse("2026-11-19T23:20:00Z"), at = (m) => new Date(T0 + m * 60e3).toISOString();
+  const good = () => ({
+    watch: { generatedAt: at(1), today: "2026-11-19", games: [{ awayTri: "GSW", homeTri: "MEM" }], teams: [{ team: "GSW", notesStatus: "current", items: [{ player: "Stephen Curry", label: "points" }] }, { team: "MEM", notesStatus: "current", items: [] }] },
+    tonight: { generatedAt: at(2), today: "2026-11-19", games: [{ away: "GSW", home: "MEM", lines: [{ kind: "injury", team: "GSW", player: "Stephen Curry", text: "Stephen Curry OUT" }, { kind: "find", team: "MEM", player: "Cam Spencer", text: "Cam Spencer leads the NBA in true shooting" }] }] },
+    briefing: { generatedAt: at(2), today: "2026-11-19", top: [{ kind: "find", team: "MEM", player: "Cam Spencer", text: "Cam Spencer leads the NBA in true shooting" }, { kind: "team", team: "MEM", text: "MEM is 11-4" }], deep: [], lastNight: [] },
+    injuries: { generatedAt: at(2), date: "2026-11-19", players: [{ team: "GSW", name: "Stephen Curry", status: "Out" }, { team: "GSW", name: "Jimmy Butler III", status: "Doubtful" }, { team: "MEM", name: "Cam Spencer", status: "Questionable" }] },
+    oddlive: { generatedAt: at(2), before: "2026-11-19" }, prep: { generatedAt: at(2), today: "2026-11-19" } });
+  const run = (edit, extra = {}) => { const data = good(); edit?.(data); return selfCheck({ data, buildStart: T0, ...extra }); };
+  const kinds = (r) => r.map((c) => c.check).join(",");
+  const clean = run();
+  const stale = run((d) => { d.oddlive.generatedAt = at(-200); }), staleKept = run((d) => { d.watch.generatedAt = at(-400); }, { keptFiles: ["watch"] });
+  const day = run((d) => { d.oddlive.before = "2026-11-18"; d.prep.today = "2026-11-18"; });
+  const out = run((d) => { d.briefing.top.unshift({ kind: "history", team: "GSW", player: "Stephen Curry", text: "GSW notes: 2nd all-time · Stephen Curry made his first 51" }); d.tonight.games[0].lines.unshift({ kind: "season", team: "GSW", player: "Jimmy Butler", text: "Jimmy Butler this season" }); });
+  const quest = run((d) => { d.briefing.top[0].player = "Cam Spencer"; });   // questionable is not out
+  const ended = run((d) => { d.briefing.top.unshift({ kind: "history", team: "SAS", player: "Victor Wembanyama", text: "SAS notes: Streak over · Victor Wembanyama became the 7th player" }); });
+  const junk = run((d) => { d.tonight.games[0].lines.push({ kind: "find", team: "MEM", text: "MEM averages NaN points" }); });
+  const empty = run((d) => { d.tonight.games[0].lines = []; d.briefing.top = []; });
+  const conflict = run((d) => { d.watch.teams[1].notesStatus = "conflict"; d.watch.teams[1].notesWhy = "notes are dated 2026-11-19 but name POR as the opponent"; });
+  const other = run(null, { copies: [{ name: "situations/oddlines.js", same: false }, { name: "anticipate/tonight.js", same: true }], bridge: { running: 26, published: 25 }, said: ["situations: odd lines not run: boom"] });
+  ok(CHECK_NAMES.length === 10 && clean.length === 0 && kinds(stale) === "stale" && /oddlive\.json was not rebuilt by this build: it is from 11\/19, 3:00 PM ET/.test(stale[0].text) && staleKept.length === 0
+    && kinds(day) === "day,day" && kinds(out) === "out,out" && /#1 in the briefing is about Stephen Curry, who is listed out tonight/.test(out[0].text) && /line 1 of GSW at MEM \(a pre-game card in NBA Live\) is about Jimmy Butler, who is listed doubtful/.test(out[1].text)
+    && quest.length === 0 && kinds(ended) === "ended" && kinds(junk) === "junk" && /MEM averages NaN/.test(junk[0].text) && kinds(empty) === "empty,empty" && kinds(conflict) === "conflict" && kinds(other) === "copies,bridge,said",
+    "self-check (0.125): a clean build finds nothing; a file the build did not rewrite, a file for another day, a top line about a player who is out, a streak that is over, a broken value, a game with no lines, notes set aside, a stale copy, a bridge version apart and a step's complaint are each named in a sentence (a file the guard kept and a questionable player are not)",
+    JSON.stringify({ clean, stale, day: kinds(day), out: out.map((c) => c.text.slice(0, 70)), quest, ended: kinds(ended), junk: kinds(junk), empty: kinds(empty), conflict: kinds(conflict), other: kinds(other) }));
+  // the briefing: a notes streak that is over cannot be a top line; an old sentence with a new tag in front is not "new today"
+  const games = [{ away: "LAC", home: "SAS" }], H = (o) => ({ kind: "history", team: "SAS", score: 4.8, ...o });
+  const B = briefing({ games, today: "2026-11-19", stars: { "Victor Wembanyama": 1 }, seen: {}, all: [
+    H({ player: "Victor Wembanyama", text: "SAS notes: Streak over · Victor Wembanyama became the 7th player in NBA history", score: 3.3, ended: true, firstSeen: "2026-11-12" }),
+    H({ player: "Stephon Castle", text: "SAS notes: Castle has 10+ assists in three straight", firstSeen: "2026-11-19" }),
+    H({ player: "Devin Vassell", text: "SAS notes: 2nd in team history · Vassell passed Manu Ginobili", firstSeen: "2026-11-10" }),
+    { kind: "team", team: "LAC", text: "LAC has lost 4 straight", score: 3 }] });
+  const byP = Object.fromEntries(B.top.map((l) => [l.player || l.team, l]));
+  const src = (f) => fs.readFileSync(path.join(root, ...f), "utf8"), tn = src(["src", "anticipate", "tonight.js"]), tp = src(["docs", "trends.html"]), ci = src(["scripts", "ci.js"]), ix = src(["docs", "index.html"]);
+  ok(B.top.length === 3 && !byP["Victor Wembanyama"] && !B.deep.some((l) => l.player === "Victor Wembanyama") && byP["Stephon Castle"].age === 0 && byP["Devin Vassell"].age === 9 && byP["Stephon Castle"].rank > byP["Devin Vassell"].rank
+    && B.seen["history|SAS|Devin Vassell|sas notes: #nd in team history · vassell passed manu ginobili"] === "2026-11-10"
+    && /const ended = f\.tag === "Streak over";/.test(tn) && /score: Math\.min\(4\.8, f\.score\) - \(ended \? 1\.5 : 0\)/.test(tn) && tn === src(["docs", "lib", "anticipate", "tonight.js"]) && src(["src", "anticipate", "briefing.js"]) === src(["docs", "lib", "anticipate", "briefing.js"]),
+    "briefing (0.125; \"Streak over · Wembanyama…\" was #1 on 11/19): a notes streak the box scores say is over is never a top line or a deep cut and ranks 1.5 lower in its game; a notes line is as old as the notes' first printing of it, whatever tag is put in front",
+    JSON.stringify([B.top.map((l) => [l.player || l.team, l.age, l.rank]), Object.keys(B.seen)]));
+  ok(/const st = \(a\) => \(INJ && INJ\.date === W\.date \? INJSTATUS/.test(tp) && /id="oddwatchout"/.test(tp) && /fetch\("data\/injuries\.json"/.test(tp)
+    && /const \{ selfCheck \} = await import\("\.\.\/src\/site\/selfcheck\.js"\)/.test(ci) && /\.\.\.\(checks\.length \? \{ checks \} : \{\}\)/.test(ci) && !/not \(\?:written\|read\|updated\|built\)/.test(ci)
+    && /for \(const c of h\?\.checks \|\| \[\]\) notes\.push\(`Build check: \$\{esc\(c\.text\)\}`\)/.test(ix) && fs.existsSync(path.join(root, "tools", "diagnose.mjs")),
+    "0.125: the odd lines' \"to watch tonight\" leaves out players listed out or doubtful and says who; every complaint a step prints reaches the health note (not only ones worded a certain way); the Watch List prints the build's own checks in its warning box; tools/diagnose.mjs is the by-hand version");
+}
+
 // ---------- 0.72: the full diagnostic (11/15): what could break, and what was quietly wrong ----------
 {
   // The Knicks' 11/15 notes: an "on this date" line named the Spurs and carried today's month and day.
@@ -3180,7 +3229,7 @@ await articlesChecks(ok);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ncc-ci-"));
   fs.mkdirSync(path.join(tmp, "scripts")); fs.mkdirSync(path.join(tmp, "docs", "data"), { recursive: true });
   fs.copyFileSync(path.join(root, "scripts", "ci.js"), path.join(tmp, "scripts", "ci.js"));
-  fs.mkdirSync(path.join(tmp, "src", "site"), { recursive: true }); fs.copyFileSync(path.join(root, "src", "site", "notes-guard.js"), path.join(tmp, "src", "site", "notes-guard.js"));   // 0.124: the guard's rule is a module
+  fs.mkdirSync(path.join(tmp, "src", "site"), { recursive: true }); for (const f of ["notes-guard.js", "selfcheck.js"]) fs.copyFileSync(path.join(root, "src", "site", f), path.join(tmp, "src", "site", f));   // 0.124, 0.125: the guard's rule and the self-check are modules
   fs.writeFileSync(path.join(tmp, "package.json"), '{"type":"module"}');
   const watchOld = JSON.stringify({ today: "2026-11-15", teams: [{ notesStatus: "current" }], v: "old" });
   const stub = (name, body) => fs.writeFileSync(path.join(tmp, "scripts", name), body);

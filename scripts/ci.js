@@ -49,15 +49,42 @@ function run(args) {
   const timedOut = r.error?.code === "ETIMEDOUT" || r.signal === "SIGKILL";
   if (timedOut) r.status = 124;
   // What went wrong, for the site's health note: the step's own complaints (never more than a few lines).
-  const notes = String(r.stderr || "").split("\n").map((l) => l.trim()).filter((l) => /not (?:written|read|updated|built)|failed|skipped|results check|unreachable|timed out|Error\b/i.test(l) && !/DeprecationWarning/.test(l)).slice(0, 8).map((l) => l.slice(0, 220));
+  // 0.125: every line a step prints as a complaint (stderr), not only the ones worded a certain way: "odd lines not
+  // run", "bench counts not made" and six more never matched the old word list, and a normal build prints none at all.
+  const notes = String(r.stderr || "").split("\n").map((l) => l.trim()).filter((l) => l && !/DeprecationWarning|ExperimentalWarning|--trace-(?:deprecation|warnings)|UNDICI-EHPA/.test(l)).slice(0, 8).map((l) => l.slice(0, 220));
   steps.push({ step: args[0].replace(/^scripts\/|\.js$/g, ""), ok: r.status === 0, sec: Math.round((Date.now() - t0) / 1000), ...(timedOut ? { error: `stopped after ${LIMIT_MIN[args[0]] || 10} minutes` } : r.status !== 0 ? { error: `exit ${r.status}` } : {}), ...(notes.length ? { notes } : {}) });
   return r;
 }
 /** docs/data/health.json: when the build ran and how each step went, for the Watch List's health note (0.72). */
 function writeHealth(today, extra = {}) {
-  try { fs.writeFileSync(path.join(root, "docs", "data", "health.json"), JSON.stringify({ at: new Date().toISOString(), today, steps, ...(heldNote ? { held: heldNote } : {}), ...extra })); } catch (e) { console.error(`health note not written: ${e.message}`); }
+  const checks = ownChecks(extra);
+  try { fs.writeFileSync(path.join(root, "docs", "data", "health.json"), JSON.stringify({ at: new Date().toISOString(), today, steps, ...(heldNote ? { held: heldNote } : {}), ...extra, ...(checks.length ? { checks } : {}) })); } catch (e) { console.error(`health note not written: ${e.message}`); }
+}
+/**
+ * 0.125: the build reads back what it wrote (src/site/selfcheck.js): a file it did not rewrite, a file for another
+ * day, a top line about a player who is out or a streak that is over, a broken value in print, a slate with no lines.
+ * What it finds goes in the health note, which the Watch List shows. It can never stop a build.
+ */
+function ownChecks(extra) {
+  try {
+    const dir = path.join(root, "docs", "data"), files = {};
+    for (const f of fs.readdirSync(dir).filter((x) => x.endsWith(".json") && x !== "health.json")) { try { files[f.slice(0, -5)] = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")); } catch (e) { files[f.slice(0, -5)] = null; console.error(`${f} could not be read back: ${e.message}`); } }
+    const unread = Object.entries(files).filter(([, j]) => j === null).map(([n]) => `${n}.json is not valid JSON`);
+    const lib = path.join(root, "docs", "lib"), copies = [];
+    const walk = (d) => { for (const e of fs.existsSync(d) ? fs.readdirSync(d, { withFileTypes: true }) : []) { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else if (e.name.endsWith(".js")) { const rel = path.relative(lib, p), src = path.join(root, "src", rel); if (fs.existsSync(src)) copies.push({ name: rel, same: fs.readFileSync(src, "utf8") === fs.readFileSync(p, "utf8") }); } } };
+    walk(lib);
+    let bridge = null;
+    try { bridge = { running: Number(/var VERSION = (\d+);/.exec(fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8"))[1]), published: JSON.parse(fs.readFileSync(path.join(root, "docs", "bridge", "version.json"), "utf8")).version }; } catch { bridge = null; }
+    const kept = extra.kept || steps.some((x) => x.step === "tonight" && !x.ok) ? ["watch"] : [];
+    const found = selfCheck({ data: files, buildStart: BUILD_START, keptFiles: kept, copies, bridge, said: [...unread, ...steps.flatMap((x) => (x.notes || []).map((n) => `${x.step}: ${n}`))] });
+    for (const c of found) console.error(`self-check (${c.check}): ${c.text}`);
+    if (!found.length) console.log("self-check: nothing found");
+    return found.slice(0, 20);
+  } catch (e) { console.error(`self-check not run: ${e.message}`); return [{ check: "said", text: `the build could not check its own output: ${e.message}` }]; }
 }
 const { notesRead, notesGuard } = await import("../src/site/notes-guard.js");
+const { selfCheck } = await import("../src/site/selfcheck.js");
+const BUILD_START = Date.now();
 
 if (mode === "build") await build();
 else if (mode === "score") score();

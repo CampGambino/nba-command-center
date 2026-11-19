@@ -537,7 +537,11 @@ function historyLines(facts, teams, today) {
       const body = f.text.length > 240 ? f.text.slice(0, 237).replace(/\s+\S*$/, "") + "…" : f.text;
       // The tag up front ("1 of 2 this season"), the hook behind ("Stays in it with 18+ points tonight").
       const tag = f.tag && f.tag !== "Notes" ? `${f.tag} · ` : "";
-      out.push({ team, player: f.player, kind: "history", text: `${team} notes${who} ${tag}${body}${f.hook?.text ? ` → ${f.hook.text}` : ""}`, score: Math.min(4.8, f.score), isNew: f.isNew });
+      // 0.125: a streak the box scores say is over ("Streak over") is history, not tonight's storyline: it keeps its place
+      // in the notes list and ranks 1.5 lower here (it was #1 in the briefing on 11/19). firstSeen is the notes' own first
+      // day for the sentence, so a new tag or check in front of an old sentence does not make it "new today".
+      const ended = f.tag === "Streak over";
+      out.push({ team, player: f.player, kind: "history", text: `${team} notes${who} ${tag}${body}${f.hook?.text ? ` → ${f.hook.text}` : ""}`, score: Math.min(4.8, f.score) - (ended ? 1.5 : 0), isNew: f.isNew, ...(ended ? { ended: true } : {}), ...(f.firstSeen ? { firstSeen: f.firstSeen } : {}) });
     }
   }
   return out;

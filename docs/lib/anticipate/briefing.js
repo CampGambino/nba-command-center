@@ -38,7 +38,9 @@ export function briefing({ all, games = [], stars = {}, nationalGames = new Set(
     if (KEEP_OUT.has(l.kind) || !gameOf.has(l.team)) continue;
     const key = lineKey(l);
     if (model?.down?.has(key)) continue; // the user voted this line down (0.67)
-    const first = next[key] || today;
+    // 0.125: a notes line carries the day the notes first printed it (firstSeen); that wins over the day this wording
+    // was first ranked, so a check or tag added in front of an old sentence is not "new today".
+    const first = l.firstSeen && l.firstSeen < (next[key] || today) ? l.firstSeen : next[key] || today;
     next[key] = first;
     const age = today ? dayDiff(first, today) : 0;
     const prom = l.player ? (stars[l.player] ?? 0.3) : 0.5;
@@ -61,10 +63,12 @@ export function briefing({ all, games = [], stars = {}, nationalGames = new Set(
     }
     return out;
   };
-  const top = pick(scored, topN, { perGame: Math.max(3, Math.ceil(topN / Math.max(1, games.length)) + 1), perKind: 3 });
+  // 0.125: a line about something that has ended (a notes streak the box scores say is over) is never a top storyline.
+  const live = scored.filter((l) => !l.ended);
+  const top = pick(live, topN, { perGame: Math.max(3, Math.ceil(topN / Math.max(1, games.length)) + 1), perKind: 3 });
   const taken = new Set(top.map((l) => l.key)), topPlayers = new Set(top.map((l) => l.player).filter(Boolean));
   // Deep cuts: lesser-known players (or a team), rare or big, by their own score (prominence doesn't count here).
-  const deepPool = scored.filter((l) => !taken.has(l.key) && !topPlayers.has(l.player) && l.prom < 0.45 && (l.rare || RARE_KINDS.has(l.kind) || (l.score || 0) >= 3) && l.age < 7)
+  const deepPool = live.filter((l) => !taken.has(l.key) && !topPlayers.has(l.player) && l.prom < 0.45 && (l.rare || RARE_KINDS.has(l.kind) || (l.score || 0) >= 3) && l.age < 7)
     .sort((a, b) => (b.score || 0) + (b.rare ? 0.3 : 0) + b.learned - ((a.score || 0) + (a.rare ? 0.3 : 0) + a.learned));
   const deep = pick(deepPool, deepN, { perGame: 2, perKind: 2 });
   return { top, deep, seen: next };

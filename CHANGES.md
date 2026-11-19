@@ -2,14 +2,61 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.125.0 (2026-11-19): a diagnostic; the build now checks its own output on every run
+
+The user, 6:33 PM: "with all the issues you are catching for yourself, can you run a diagnostic that may find these issues and correct them now rather than having them sit dormant."
+
+**The diagnostic** (`tools/diagnose.mjs`; `--net` adds the parts that need the network). It changes nothing and exits 1 when it finds something. Three parts:
+1. The published data, by the same checks every build now runs (below), plus every line on the page about a player who is out.
+2. The last ten days from the repo's history: builds that kept the old Watch List, failed steps, notes that were set aside, and each day's last list.
+3. The network: all 30 teams' game notes read and compared with ESPN's schedule for the date printed in them; the last 100 workflow runs.
+
+**What it found tonight, and what was done.**
+- **A dead streak led the briefing.** "SAS notes: Streak over · Victor Wembanyama…" was #1, marked new. Two causes. A notes line the box scores say is over was scored like any other; and a line counted as "new today" whenever its wording changed, so the "Streak over" tag in front of a week-old sentence made it new. Fixed in `src/anticipate/tonight.js` and `briefing.js`: such a line is never a top line or a deep cut and ranks 1.5 lower in its game's list; a notes line is as old as the notes' first printing of it. It stays in "History in tonight's notes".
+- **"To watch tonight" (odd lines) listed players who are out:** 14 rows for eight players (Stephen Curry, Anthony Edwards, Draymond Green, Myles Turner, Kyle Kuzma, Ty Jerome, Vit Krejci, Brandon Williams). I had written this down as "not checked" on 11/19 and left it. The page now reads tonight's injury report, leaves out anyone listed out or doubtful, names who was left out, and marks a questionable player.
+- **Eight kinds of failure could never reach the health note.** The note picked up a step's complaints by their wording ("not written", "failed"…). "odd lines not run", "bench counts not made", "flag checks not run", "last-time lines not made", "deep history not used", "team streak watch: …" and the two odd-line parts did not match, so if one of them broke, its file would have stayed old with nothing said. A normal build prints no complaints at all (checked on a full run here), so now every complaint is kept.
+- **Complaints that were kept were behind a hover in the footer.** They are printed in the warning box at the top of the Watch List now.
+- **The count in 0.124.0 was wrong:** fifteen builds were thrown away today, from 10:52 AM, not fourteen from 11:07 AM. Corrected there.
+- **Looked at and found sound:** all 30 teams' notes tonight name the date and opponent ESPN has; no workflow run has failed in the last 100; in ten days the guard held builds on one day only (today); notes were set aside on three occasions (Boston 11/10, no date found, two lists; New York 11/15 and today, both misreads since fixed); all 31 data files are from the last build and for the right day; no "undefined" or "NaN" in any line; the 21 modules copied for the pages match their sources; every page loads at both widths. The Spurs' notes and our count differ by one on Wembanyama's blocks (687 against 688; ESPN's four seasons add to 688), and that milestone is already held for review, as designed. Milestones for players who are out (20 tonight) stay on purpose.
+
+**The build's own checks** (`src/site/selfcheck.js`, run by `scripts/ci.js` at the end of every build; results in `docs/data/health.json` as `checks`, printed on the Watch List as "Build check: …"). Each is one of today's faults made into a rule:
+- a data file this build did not rewrite;
+- a file built for another day than the Watch List (NBA Live's odd-line cards count against one);
+- a line in the top ten, the deep cuts or a game's first three (NBA Live's pre-game cards) about a player listed out or doubtful;
+- a streak the box scores say is over in one of those spots;
+- "undefined", "NaN" or "[object Object]" in a line;
+- a game with no storylines, or a briefing nearly empty;
+- a team's notes set aside as a conflict (twice now a misread header);
+- a copied module that differs from its source; the bridge's version and the published number apart;
+- anything a step printed as a complaint.
+The check cannot stop a build: if it fails itself, that is the note.
+
+**Tested.** 1,037 checks pass (three new: each check fires on a stand-in and a clean build finds nothing, with a kept file and a questionable player left alone; the briefing with an ended streak and an old sentence; the page and build wiring). A full build run here for 11/19: the self-check found nothing but the two lines this workspace causes (it cannot reach the Worker for votes and headlines); the top ten no longer has the dead streak, and Wembanyama's "61 blocks, more than 7 whole teams" took a place. The trends page in a browser: the eight players are gone from "to watch" and named in one line. The Watch List with a stand-in health note: both sentences in the warning box. All pages load at both widths.
+
+**Not proven.**
+- What the checks say on a normal morning. Before the injury report or the notes are posted some may speak when nothing is wrong; the first builds tomorrow show it. I will read tomorrow's health notes.
+- The Worker (Discord posts, votes, headlines) cannot be reached from this workspace, so none of it was diagnosed. Its own tests pass (81).
+- NBA Live itself is not part of this: the checks see what the site publishes for it, not what it does with it.
+- The stale-file check trusts each file's own "generatedAt". A writer that stamped a new time on old contents would pass.
+- Parts 2 and 3 of the diagnostic run by hand only.
+
+**Self-audit.**
+- Wrong first: the question "what else is quietly wrong" should have been asked on 11/15's diagnostic and after each of today's ten pushes. The odd-lines list with injured players was a known gap I had filed under "unproven" and not gone back to.
+- Wrong first: I told the user fourteen builds from 11:07 AM. It was fifteen from 10:52 AM. I had sampled the last fourteen run logs.
+- Wrong first: my first look for what the user remembered at the top of the briefing went to the cap on notes lines; the cause was the injury report (Curry out), found only by comparing the files on either side of 1:52 PM.
+- Wrong first: I threw away the local build's data before running the diagnostic against it; the published data is the same day, so nothing was lost, but it cost a second build.
+- Re-derived from the committed files: the counts in "found sound" are the diagnostic's own output (31 files, 21 copies, 96 builds and 187 lists in ten days, 30 of 30 notes, 0 of 100 runs).
+- Cases not used while building: the full local build (real data through every check) and the other 28 teams' notes.
+- Page read as a first-time reader: "Left out, listed out or doubtful on the injury report (11/19/26 06:15 PM): …" says why a name is missing. "Build check: oddlive.json was not rebuilt…" names a file, which a reader may not know; it says which part of the site is older, which is the part that matters.
+
 ## 0.124.0 (2026-11-19): the Watch List was frozen at 10:48 AM all day; two game headers misread; the guard that froze it
 
 The user, 6:03 PM, with a screenshot of the Watch List's warning ("this build read notes for 6 teams, the published one 7: the published Watch List was kept") and four teams marked stale or in conflict: "what is the warning about a build for 6 teams, and at this point in the day, the game notes should have updated for teams on a back-to-back. what gives?"
 
 **What happened.** The notes had updated. The page was not showing it.
 - `scripts/ci.js` refuses to replace today's Watch List with a build that read notes for fewer teams (so a list is not lost when nba.com refuses a download). "Read" meant current or stale.
-- At 10:48 AM the list had 7 such teams and the Knicks in "conflict". By 11:07 AM Minnesota had posted tonight's notes, and they were read as "dated 11/19 but naming Portland": a second conflict. 7 became 6, and the build was thrown away.
-- So was every build after it: fourteen in all, the last at 6:11 PM. Milwaukee's new notes were read at 12:50 PM and Memphis's at 3:12 PM, and neither reached the page.
+- At 10:48 AM the list had 7 such teams and the Knicks in "conflict". By 10:52 AM Minnesota had posted tonight's notes, and they were read as "dated 11/19 but naming Portland": a second conflict. 7 became 6, and the build was thrown away.
+- So was every build after it: fifteen in all, the last at 6:11 PM. (This entry first said fourteen, from 11:07 AM: I had read the logs of the last fourteen runs and not looked for an earlier one. 0.125's diagnostic counted them from the health notes.) Milwaukee's new notes were read at 12:50 PM and Memphis's at 3:12 PM, and neither reached the page.
 - Both conflicts were misreadings. Minnesota's header is "TIMBERWOLVES (11-4) VS.NEW YORK KNICKS (8-6)" with no space after "VS.", so it was skipped and "LAST GAME STARTERS: NOVEMBER 17 VS. PORTLAND" was taken for tonight's game. New York's header is split over two lines ("NEW YORK KNICKS (8-6) at" and, two lines down, "MINNESOTA TIMBERWOLVES (11-4)"), so a sentence lower on the page ("Knicks 92-88 win at Orlando") was taken instead.
 
 **What changed.**
@@ -24,10 +71,10 @@ The user, 6:03 PM, with a screenshot of the Watch List's warning ("this build re
 - Whether the Knicks' road-game notes (or anyone's) were misread the same way on earlier nights has not been checked.
 
 **Self-audit.**
-- Wrong first, and the biggest miss of the day: the warning was on the Watch List from 11:07 AM. I pushed about ten builds after that and checked each by reading the files I had changed. I never read `docs/data/health.json` or looked at the Watch List's own note, so I told the user builds were "published" while the Watch List itself was seven hours old. From now on a build check reads `health.json` first.
+- Wrong first, and the biggest miss of the day: the warning was on the Watch List from 10:52 AM. I pushed about ten builds after that and checked each by reading the files I had changed. I never read `docs/data/health.json` or looked at the Watch List's own note, so I told the user builds were "published" while the Watch List itself was seven hours old. From now on a build check reads `health.json` first.
 - Wrong first: my first version of the split-header rule joined "NEW YORK KNICKS (8-6) at" to a sentence that mentioned the Celtics. The stand-in test caught it; the rule now requires a bare team name.
 - Wrong first: moving the guard into a module broke the existing test that runs `ci.js` in a temporary folder (it copied one file). The test now copies the module too; nothing in the real build was affected.
-- Re-derived from the logs of all fourteen builds (GitHub run logs, 11:07 AM to 6:11 PM): each says "kept the published data: this build read notes for 6 teams, the published one 7"; Milwaukee is "current" from the 12:50 PM build, Memphis from the 3:12 PM build.
+- Re-derived from the logs of fourteen of the fifteen builds (GitHub run logs, 11:07 AM to 6:11 PM; the 10:52 AM one was found later, see above): each says "kept the published data: this build read notes for 6 teams, the published one 7"; Milwaukee is "current" from the 12:50 PM build, Memphis from the 3:12 PM build.
 - Cases not used while building: the other 28 teams' notes tonight and the 42 stored samples, none of which changed.
 - What this did not affect: the odd lines, shifts, the streak pages and the Watch List's game lines come from the situations step, which ran in every one of those builds. What it did affect: milestones and history lines from the four teams' new notes, on the page, in the briefing and in NBA Live's milestone list.
 

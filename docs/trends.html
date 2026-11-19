@@ -147,6 +147,7 @@
   <div id="oddwatch" hidden>
     <h3 class="subh" id="oddwatchh">To watch tonight</h3>
     <div class="key" id="oddwatchkey"></div>
+    <div class="key" id="oddwatchout" style="margin-top:0"></div>
     <ul class="odd" id="oddruns"></ul>
     <details id="oddown"><summary id="oddownsum"></summary><ul class="odd" id="oddowners"></ul></details>
   </div>
@@ -231,6 +232,10 @@ function renderOdd() {
       ${a.hits.map((h) => `<div class="hit"><b>${esc(h.say[0].toUpperCase() + h.say.slice(1))}.</b> <small>${esc(h.note || "")}</small></div>`).join("")}
       <div class="box">${esc(a.box)}</div></li>`).join("") : `<li class="empty">No odd line for this filter.</li>`;
 }
+// 0.125: tonight's injury report, for the "to watch" list (data/injuries.json; names compared without accents or suffixes).
+let INJ = null, INJSTATUS = {};
+const nkey = (x) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\b(jr|sr|ii|iii|iv)\.?$/, "").replace(/[^a-z]/g, "");
+fetch("data/injuries.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => { INJ = d; INJSTATUS = {}; for (const p of (d && d.players) || []) INJSTATUS[`${p.team}|${nkey(p.name)}`] = p.status; if (T && T.odd) renderOddWatch(); }).catch(() => {});
 // 0.118: tonight's players who are a game short of a rare run or repeat, and who tends to produce which odd line.
 function renderOddWatch() {
   const W = T.odd && T.odd.tonight, team = $("oddteam").value;
@@ -238,11 +243,16 @@ function renderOddWatch() {
   $("oddwatch").hidden = false;
   const keep = ograde === "rare" ? ["rare"] : ograde === "few" ? ["rare", "few"] : null, ok = (a) => (!team || a.team === team) && (!keep || keep.includes(a.grade));
   const li = (a) => `<li><div class="pl"><span class="team" style="margin-left:0">${a.team} ${a.vs}</span>${a.grade ? `<span class="grade ${a.grade}">${GRADE[a.grade]}</span>` : ""}</div><div class="hit">${esc(a.text)}</div></li>`;
-  const runs = W.runs.filter(ok), owners = W.owners.filter(ok);
+  // 0.125: a player listed out or doubtful on tonight's injury report is not "to watch"; questionable is said beside him.
+  const st = (a) => (INJ && INJ.date === W.date ? INJSTATUS[`${a.team}|${nkey(a.name)}`] : null), gone = (a) => /^(out|doubtful)$/i.test(st(a) || "");
+  const left = [...new Set([...W.runs, ...W.owners].filter((a) => ok(a) && gone(a)).map((a) => a.name))];
+  const li0 = li, liQ = (a) => (/^questionable$/i.test(st(a) || "") ? li0(a).replace(`<div class="hit">`, `<div class="hit"><i>(questionable)</i> `) : li0(a));
+  const runs = W.runs.filter((a) => ok(a) && !gone(a)), owners = W.owners.filter((a) => ok(a) && !gone(a));
+  $("oddwatchout").textContent = left.length ? `Left out, listed out or doubtful on the injury report (${INJ.report?.asOf || INJ.asOf || "today"}): ${left.join(", ")}.` : (INJ && INJ.date === W.date ? "" : "Tonight's injury report is not on file yet: players who are out are still listed.");
   $("oddwatchh").textContent = `To watch tonight (${day(W.date)})`;
-  $("oddruns").innerHTML = runs.length ? runs.map(li).join("") : `<li class="empty">Nobody on tonight's teams is a game short of a run or a repeat for this filter.</li>`;
+  $("oddruns").innerHTML = runs.length ? runs.map(liQ).join("") : `<li class="empty">Nobody on tonight's teams is a game short of a run or a repeat for this filter.</li>`;
   $("oddownsum").textContent = `Who tends to produce which line: ${owners.length} habit${owners.length === 1 ? "" : "s"} on tonight's teams`;
-  $("oddowners").innerHTML = owners.length ? owners.map(li).join("") : `<li class="empty">None for this filter.</li>`;
+  $("oddowners").innerHTML = owners.length ? owners.map(liQ).join("") : `<li class="empty">None for this filter.</li>`;
 }
 function renderOutliers() {
   const team = $("oteam").value;
