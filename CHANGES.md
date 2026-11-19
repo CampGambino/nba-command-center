@@ -15,7 +15,7 @@ Tested: 994 checks pass (the fourth-quarter test now has a starter pulled with 1
 
 Still unproven: nothing new, but two things about the rule are judgments worth knowing. The 90 seconds is a line in the sand: at 87 Hart did not "finish", at 90 he would have, with the same last 1:33 on the bench. And only regulation is measured: a starter who sat the end of regulation and then played the overtime does not count as finishing. Neither was changed without the user's say.
 
-Self-audit: I first read my own print-out as showing Hart on the floor in overtime on 11/15. It was a marker of no length at the end of each period, which the stint data carries; the new `gone` ignores those for that reason, and the raw numbers were printed to be sure. The "same three players" claim is from running the lines on the rebuilt file before and after the wording change, not from the rule being untouched alone.
+Self-audit: I first read my own print-out as showing Hart on the floor in overtime on 11/15. It was a marker of no length at the end of each period, which the stint data carries; the new `gone` ignores those for that reason, and the raw numbers were printed to be sure. The "same three players" claim: when I wrote it I had run only the new code. I then ran the previous commit's code beside it on the published file: twelve fourth-quarter lines of all kinds, the same players in both. Said in this order because the first draft of this paragraph claimed the comparison before it had been made.
 
 ## 0.111.1 (2026-11-19): the Bulls and Pelicans fill is finished for all six seasons; the temporary workflow is removed
 
