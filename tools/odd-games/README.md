@@ -30,4 +30,12 @@ three seasons; `--window N` changes that, `--players <file>` the path). ESPN mar
 without exactly five is treated as "starters unknown".
 
 0.121.0: the run also reads `tools/outside/pbpstats/box-*.jsonl` (`--fill <dir>`) and counts the Bulls' and Pelicans' games
-ESPN has no player numbers for, for the `SHOOTING_ONLY` templates and no others (pbpstats is exact for points and shooting only).
+ESPN has no player numbers for.
+
+0.122.0: those games are whole lines now. The user's five Basketball Reference box scores (11/19/26, read into
+`tools/outside/bref-screens/box-2026-11-19.json`; `teamTurnovers` there is the team turnover Basketball Reference adds to
+the players') matched pbpstats for all 102 players in every column it has. Each pbpstats player takes his ESPN id,
+position and starter flag from ESPN's zeroed box score of the same game, by name (`SAME` holds the twelve names spelled
+differently). pbpstats has no turnovers or fouls, so `TOV_PF` (in `src/situations/oddlines.js`) is not counted for these
+games, except for a player whose box score has been read: any `*.json` in `tools/outside/bref-screens` supplies his
+turnovers and fouls (78 lines today; the fifth box score, CHI at LAL 1/28/16, is a game ESPN has whole).

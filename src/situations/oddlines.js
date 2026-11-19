@@ -131,14 +131,18 @@ export const TEMPLATES = [
 ];
 
 /**
- * 0.121.0: templates whose every level reads only points and shots (made and attempted: field goals, threes, free
- * throws). ESPN has no player numbers for the Bulls' and Pelicans' games of 2012-13 to 2017-18; pbpstats has them, with
- * points and shooting exact and rebounds, assists, steals and blocks only a floor, and no turnovers or fouls. So the
- * history counts those games for these templates and for no others (the user, 11/19: "I thought we grabbed and filed
- * all of the bulls and pelicans stats. why are the not being included in some searches?"). Tested: nothing but those
- * seven numbers can change whether one of these matches.
+ * 0.121.0, widened in 0.122.0. ESPN has no player numbers for the Bulls' and Pelicans' games of 2012-13 to 2017-18; pbpstats
+ * has them. The user's five Basketball Reference box scores (11/19/26) matched pbpstats for all 102 players in every
+ * column it has: points, shots, rebounds, assists, steals, blocks, minutes. It has no turnovers and no fouls.
+ *   TOV_PF: what cannot be counted for those games: the templates (and the one level) that need a turnover or a foul.
+ *   NO_TOV_PF: of those, the two a missing (zero) turnover or foul could make TRUE by mistake; the history drops them
+ *   for a filled line. The others simply cannot fire without turnovers or fouls.
+ * Tested: for every other template, changing turnovers and fouls never changes whether it matches.
+ * (0.121.0 counted these games for eleven shooting-only templates; the user: "I thought we grabbed and filed all of the
+ * bulls and pelicans stats. why are the not being included in some searches?")
  */
-export const SHOOTING_ONLY = ["noft", "ftshare", "nofg", "all3", "fta", "ofg", "o3", "brick", "ftmiss", "perfg", "perft"];
+export const TOV_PF = ["tov", "tov0", "foulout", "nothing", "zeromin", "ones.6"];
+export const NO_TOV_PF = ["nothing", "zeromin"];
 
 /** ESPN's position label -> "G" | "F" | "C" | null (anything else, or none). */
 export const posGroup = (p) => (p === "G" || p === "PG" || p === "SG" ? "G" : p === "C" ? "C" : p === "F" || p === "SF" || p === "PF" ? "F" : null);

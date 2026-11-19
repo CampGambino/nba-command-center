@@ -3,7 +3,7 @@
 //   node tools/odd-games/build-history.mjs [--dir /home/claude/work/full] [--out src/data/odd-lines-history.json] [--through 2025]
 // Only games where the players' points add up to the team's score. Season = the year it started.
 import fs from "node:fs"; import path from "node:path";
-import { TEMPLATES, RUNS, RUN_MAX, STARTERS, SHOOTING_ONLY, matchLine, runLengths, posGroup, ODD } from "../../src/situations/oddlines.js";
+import { TEMPLATES, RUNS, RUN_MAX, STARTERS, NO_TOV_PF, TOV_PF, matchLine, runLengths, posGroup, ODD } from "../../src/situations/oddlines.js";
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
 const DIR = arg("--dir", "/home/claude/work/full"), OUT = arg("--out", "src/data/odd-lines-history.json"), THROUGH = +arg("--through", "2025");
 const POUT = arg("--players", OUT.replace(/history\.json$/, "players.json")), WINDOW = +arg("--window", "3");   // each player's counts over the last WINDOW seasons
@@ -31,17 +31,34 @@ for (const f of fs.readdirSync(DIR)) {
     }
   });
 }
-// 0.121.0: the Bulls' and Pelicans' games ESPN has no player numbers for, from pbpstats (tools/outside/pbpstats), counted
-// only for the templates that read points and shooting alone. A game goes in when ESPN's copy of it is the zeroed one
-// (same teams, same date or a day either side), its score is ESPN's, and pbpstats' points add up to it.
+// 0.121.0, widened in 0.122.0: the Bulls' and Pelicans' games ESPN has no player numbers for, from pbpstats
+// (tools/outside/pbpstats). A game goes in when ESPN's copy of it is the zeroed one (same teams, same date or a day either
+// side), its score is ESPN's, and pbpstats' points add up to it.
+// 0.122.0 (the user's five Basketball Reference box scores, 11/19: 102 players, every column pbpstats has the same): the
+// lines are whole lines now. Each player takes his ESPN id, position and starter flag from ESPN's own (zeroed) box score
+// for the game, by name, so his season average, his runs and the bench and position rules see these games too. pbpstats
+// has no turnovers or fouls: they are 0 here, the turnover and foul rules cannot fire, and the two rules a missing
+// turnover or foul could make true by mistake (NO_TOV_PF) are not counted for these lines.
 const FILL_DIR = arg("--fill", "tools/outside/pbpstats"), ALIAS = { GS: "GSW", NO: "NOP", NY: "NYK", SA: "SAS", UTAH: "UTA", WSH: "WAS", PHO: "PHX", NOH: "NOP", NOK: "NOP" }, tri = (a) => ALIAS[a] || a;
-const fill = { games: 0, lines: 0, skippedEspnHasIt: 0, skippedNoMatch: 0, skippedPoints: 0 };
+const fill = { games: 0, lines: 0, named: 0, unnamed: 0, skippedEspnHasIt: 0, skippedNoMatch: 0, skippedPoints: 0 };
+const norm = (x) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\b(jr|sr|ii|iii|iv)\.?$/g, "").replace(/[^a-z]/g, "");
+// names pbpstats and ESPN spell differently (tools/merge-pbpstats-logs.mjs has the same list)
+const SAME = { juanhernangomez: "juanchohernangomez", marcelohuertas: "marcelinhohuertas", eneskanter: "enesfreedom", walterlemon: "waltlemon",
+  // 0.122.0: the eight names left over on the first whole run, each read off ESPN's roster for one of his games
+  erikmurphy: "erikjaymurphy", robbiehummel: "robbiejohnhummel", gustavoayon: "gustavoalfonsoayon", jeromejordan: "jeromeadolphusjordan", viacheslavkravtsov: "slavakravtsov", joshakognon: "joshemmanuelakognon", hamedhaddadi: "hamedehaddadi", gigidatome: "luigidatome" };
+const unnamed = {};
+// Turnovers and fouls for the filled games a box score has been read for (tools/outside/bref-screens/*.json: the user's
+// Basketball Reference screenshots). A line with both is a whole line: every rule counts for it.
+const SCREENS = "tools/outside/bref-screens", screen = new Map();
+if (fs.existsSync(SCREENS)) for (const f of fs.readdirSync(SCREENS).filter((x) => x.endsWith(".json"))) for (const g of JSON.parse(fs.readFileSync(path.join(SCREENS, f), "utf8")).games || [])
+  screen.set(`${g.d}|${[tri(g.h), tri(g.a)].sort().join("|")}`, Object.fromEntries(Object.entries(g.p).map(([name, v]) => [norm(name), { tov: v[13], pf: v[14], pts: v[15], reb: v[9] }])));
 if (fs.existsSync(FILL_DIR)) {
   const zeroedAt = new Map(), whole = new Set();
   for (const f of fs.readdirSync(DIR)) {
     const g = JSON.parse(fs.readFileSync(path.join(DIR, f), "utf8")); if (g.t.length !== 2 || seasonOf(g.d) > THROUGH) continue;
     const k = `${g.d}|${g.t.map((t) => tri(t.t)).sort().join("|")}`;
-    if (g.t.every((t) => t.p.every((p) => !p[5] && !p[14] && !p[15]))) zeroedAt.set(k, g.t.map((t) => t.s).sort((a, b) => a - b).join("-")); else whole.add(k);
+    if (g.t.every((t) => t.p.every((p) => !p[5] && !p[14] && !p[15]))) zeroedAt.set(k, { score: g.t.map((t) => t.s).sort((a, b) => a - b).join("-"),
+      who: Object.fromEntries(g.t.map((t) => [tri(t.t), { five: t.p.filter((p) => p[3]).length === STARTERS, by: Object.fromEntries(t.p.map((p) => [norm(p[1]), p])) }])) }); else whole.add(k);
   }
   const near = (d, k) => { const x = new Date(`${d}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + k); return x.toISOString().slice(0, 10); };
   for (const f of fs.readdirSync(FILL_DIR).filter((x) => /^box-.*\.jsonl$/.test(x)).sort()) for (const row of fs.readFileSync(path.join(FILL_DIR, f), "utf8").split("\n").filter(Boolean)) {
@@ -50,14 +67,23 @@ if (fs.existsSync(FILL_DIR)) {
     if (g.p.Home.reduce((a, p) => a + p[3], 0) !== g.hs || g.p.Away.reduce((a, p) => a + p[3], 0) !== g.as) { fill.skippedPoints++; continue; }
     const key = keys.find((k) => zeroedAt.has(k));
     if (!key) { if (keys.some((k) => whole.has(k))) fill.skippedEspnHasIt++; else fill.skippedNoMatch++; continue; }
-    if (zeroedAt.get(key) !== [g.hs, g.as].sort((a, b) => a - b).join("-")) { fill.skippedNoMatch++; continue; }
+    if (zeroedAt.get(key).score !== [g.hs, g.as].sort((a, b) => a - b).join("-")) { fill.skippedNoMatch++; continue; }
     fill.games++;
     const d = key.slice(0, 10), season = seasonOf(d);
     for (const [side, team, opp] of [["Home", g.h, g.a], ["Away", g.a, g.h]]) for (const p of g.p[side]) {
       // pbpstats row: id, name, "mm:ss", pts, reb, oreb, dreb, ast, stl, blk, fg3m, fg3a, fgm, fga, ftm, fta
       const [mm, ss] = String(p[2] || "0:00").split(":").map(Number);
       const l = { starter: null, min: Math.round((mm || 0) + (ss || 0) / 60), pts: p[3] || 0, reb: p[4] || 0, oreb: p[5] || 0, dreb: p[6] || 0, ast: p[7] || 0, stl: p[8] || 0, blk: p[9] || 0, fg3m: p[10] || 0, fg3a: p[11] || 0, fgm: p[12] || 0, fga: p[13] || 0, ftm: p[14] || 0, fta: p[15] || 0, tov: 0, pf: 0 };
-      fill.lines++; lines.push({ l, fill: true, name: p[1] || String(p[0]), pos: null, d, season, team, opp });
+      if (!(l.min > 0) && !(l.pts + l.reb + l.ast + l.stl + l.blk + l.fga + l.fta > 0)) continue;
+      const W = zeroedAt.get(key).who[tri(team)], k = norm(p[1]), e = W && (W.by[k] || W.by[SAME[k]]);
+      if (e) { fill.named++; l.starter = W.five ? (e[3] ? 1 : 0) : null; } else { fill.unnamed++; unnamed[p[1]] = (unnamed[p[1]] || 0) + 1; }
+      const pk = `${e ? e[0] : `pbp:${p[0]}`}|${season}`;
+      if (l.min > 0) { const sm = sum.get(pk) || { n: 0, pts: 0, reb: 0, ast: 0 }; sm.n++; sm.pts += l.pts; sm.reb += l.reb; sm.ast += l.ast; sum.set(pk, sm); }
+      // his turnovers and fouls, where a box score has been read for this game (and only if its points and rebounds are his)
+      const scr = keys.map((kk) => screen.get(kk)).find(Boolean) || {};   // the box score is filed under its own date; ESPN's can be a day off
+      const sc = scr[k] || scr[SAME[k]] || Object.entries(scr).find(([kk]) => SAME[kk] === k)?.[1];
+      const whole = !!sc && sc.pts === l.pts && sc.reb === l.reb; if (whole) { l.tov = sc.tov; l.pf = sc.pf; fill.withTovPf = (fill.withTovPf || 0) + 1; }
+      fill.lines++; lines.push({ l, fill: !whole, filled: true, pk, pid: e ? String(e[0]) : `pbp:${p[0]}`, name: (e && e[1]) || p[1] || String(p[0]), pos: e ? posGroup(e[2]) : null, d, season, team, opp });
     }
   }
 }
@@ -69,11 +95,10 @@ for (const t of TEMPLATES) for (const lv of t.levels) T[`${t.id}.${lv.k}`] = { w
 const bySeason = new Map();   // pid|season -> his lines in date order, each with its context
 const count = (h, x) => { const e = T[h.key]; e.n++; if (x.season >= last5) e.l5++; const ei = ERAS.findIndex(([a, b]) => x.season >= a && x.season <= b); if (ei >= 0) e.era[ei]++; e.last.unshift([x.name, x.d, x.team, h.say]); if (e.last.length > ODD.list) e.last.pop(); };
 for (const x of lines) {
-  if (x.fill) { for (const h of matchLine(x.l, { pos: null, avg: null })) if (SHOOTING_ONLY.includes(h.id)) { count(h, x); T[h.key].filled = (T[h.key].filled || 0) + 1; } continue; }
   const s = sum.get(x.pk), mine = x.l.min > 0 ? 1 : 0, n = (s?.n || 0) - mine;
   const avg = n >= ODD.games ? { pts: (s.pts - mine * x.l.pts) / n, reb: (s.reb - mine * x.l.reb) / n, ast: (s.ast - mine * x.l.ast) / n } : null;
   x.x = { pos: x.pos, avg }; if (!bySeason.has(x.pk)) bySeason.set(x.pk, []); bySeason.get(x.pk).push(x);
-  for (const h of matchLine(x.l, { pos: x.pos, avg })) count(h, x);   // `last` is newest first
+  for (const h of matchLine(x.l, { pos: x.pos, avg })) { if (x.fill && NO_TOV_PF.includes(h.id)) continue; count(h, x); if (x.filled) { T[h.key].filled = (T[h.key].filled || 0) + 1; if (process.env.SHOW_FILLED) console.error(h.key, "|", x.name, x.d, x.team, "|", h.say); } }   // `last` is newest first
 }
 // Runs and repeats (0.118.0): how often a run reached each length, with the function the site runs on this season.
 const reach = () => Object.fromEntries(Array.from({ length: RUN_MAX - 1 }, (_, i) => [i + 2, { n: 0, l5: 0, last: null }]));
@@ -96,10 +121,10 @@ for (const k of Object.keys(againT)) { for (const n of Object.keys(againT[k])) i
 for (const id of Object.keys(P)) if (!Object.keys(P[id].k).length) delete P[id];
 const tag = (y) => `${y}-${String(y + 1).slice(2)}`;
 const out = { v: 1, from: tag(from), through: tag(THROUGH), seasons: seasons.length, recent: ODD.recent, eras: ERAS.map(([a, b]) => `${tag(a)} to ${tag(b)}`), eraSeasons: ERAS.map(([a, b]) => seasons.filter((y) => y >= a && y <= b).length),
-  games, lines: lines.filter((x) => !x.fill).length, left: { noPlayerNumbers: zeroed, other: bad }, noStarters,
-  fill: { ...fill, source: "pbpstats (tools/outside/pbpstats): the Bulls' and Pelicans' games ESPN has no player numbers for", templates: SHOOTING_ONLY, leftForThese: zeroed - fill.games + bad },
+  games, lines: lines.filter((x) => !x.filled).length, left: { noPlayerNumbers: zeroed, other: bad }, noStarters,
+  fill: { ...fill, source: "pbpstats (tools/outside/pbpstats): the Bulls' and Pelicans' games ESPN has no player numbers for; no turnovers or fouls", notCounted: TOV_PF, left: zeroed - fill.games + bad, checked: "five Basketball Reference box scores (tools/outside/bref-screens/box-2026-11-19.json): 102 players, every column the same" },
   source: "ESPN box scores (site.api.espn.com summary), regular season; only games where the players' points add up to the score. Averages: his other games that season, 10 or more. Position: ESPN's label for the player.",
   t: T, runMin: 20, runs: runsT, again: againT };
 fs.writeFileSync(OUT, JSON.stringify(out));
 fs.writeFileSync(POUT, JSON.stringify({ v: 1, since: tag(firstP), through: tag(THROUGH), seasons: WINDOW, note: "Each player's count of every odd-line level over these seasons (ESPN ids): p[id] = { g: games played, k: { level: [times, last date] } }; league[level] = everyone's.", league: leagueP, p: P }));
-console.log({ games, zeroed, bad, later, noStarters, fill, lines: lines.length, seasons: seasons.length, levels: Object.keys(T).length, bytes: fs.statSync(OUT).size, players: Object.keys(P).length, playersBytes: fs.statSync(POUT).size });
+console.log({ games, zeroed, bad, later, noStarters, fill, unnamed: Object.entries(unnamed).sort((a, b) => b[1] - a[1]).slice(0, 12), lines: lines.length, seasons: seasons.length, levels: Object.keys(T).length, bytes: fs.statSync(OUT).size, players: Object.keys(P).length, playersBytes: fs.statSync(POUT).size });
