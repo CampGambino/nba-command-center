@@ -2,6 +2,29 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.123.0 (2026-11-19): bridge v26: the odd-line card says what its count rests on, per kind of line
+
+The user, 5:20 PM, to "the odd-line card in NBA Live still ends 'about 3% of games not on file' on every line. That is now true only for the turnover and foul lines. Say go and I'll change the wording": "go".
+
+**What changed.**
+- `docs/bridge/cc-bridge.js` (v26; `docs/bridge/version.json` says 26): `oddOnFile(R, h)` writes the card's last words. A line that needs a turnover or a foul (the headline's template or level is in the rules' `TOV_PF`) keeps "ESPN box scores, about 3% of games not on file". Every other line ends "ESPN and pbpstats box scores, under 1% of games not on file". If the copy of the rules NBA Live reads has no `TOV_PF` list (an older cached copy), the old words stay.
+- Nothing else about the card changes: when it fires, what it says, the grade, the "Also:" lines.
+- NBA Live has to be refreshed once to load v26; its status note will say a newer version is published until then.
+
+**Tested.** 1,032 checks pass (one new: a 10-turnover line keeps "about 3%", a guard's 16 rebounds gets "under 1%", the rules without the list keep the old words). In the real NBA Live (headless, the 11/18 copy), 11/15 replayed with HOU at WSH made live: the bridge reports v26, the same eleven Command Center cards as v25 on the same replay, identical apart from the last words; four odd-line cards end "under 1%", and Darius Acuff Jr.'s 9 turnovers ends "about 3%".
+
+**Not proven.**
+- Not yet seen in a real live game; tonight (11/19) is the first night for the odd-line cards at all.
+- "Under 1%" is 278 of 37,816 games (0.7%). "About 3%" is those plus the 967 filled games with no turnovers or fouls (3.3%).
+- The words are chosen by the card's headline line. An "Also:" line of the other kind does not get its own note.
+
+**Self-audit.**
+- Wrong first: my test counted the phrase "of games not on file" in the bridge by lines (four) in my head and by occurrences (five) in the test; the test was right and passed, but I had not worked the number out before writing it. It is a brittle check and says nothing the card tests do not; left in, noted here.
+- Re-derived from the committed files: `TOV_PF` is `tov, tov0, foulout, nothing, zeromin, ones.6`; the bridge matches a template by id and one level by key, and `liveHits` gives both on every hit.
+- Case not used while building: the 11/15 replay was run after the test was written, and its turnover card (Acuff) is a real line, not the stand-in.
+- The replay folder's counts are from before 0.122.0 (built at 3:07 PM). That does not touch the wording, and the counts NBA Live reads tonight are the 4:52 PM build's.
+- The v25 replay output I compared against is the one from 3:08 PM today, same game, same NBA Live copy.
+
 ## 0.122.0 (2026-11-19): the Bulls' and Pelicans' games count for every odd line that does not need a turnover or a foul
 
 The user, 4:32 PM: eleven Basketball Reference box-score screenshots: four of the ten games on `claude/screenshot-list-pbp-box-scores.md` (DEN at NOP 10/26/16; CHI at BKN 4/4/13; CHI at BOS 1/18/13; UTA at NOP 3/28/14) and CHI at LAL 1/28/16, the one game that list names as on file at ESPN too. And: "here's a wrinkle: [RealGM's Bulls and Pelicans schedule pages]. It has dropdown for games with links to box scores for those games. maybe them and pelicans for the years in question".

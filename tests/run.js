@@ -2000,12 +2000,12 @@ await articlesChecks(ok);
     const go = async (games, extra, seed) => { const r = run({ games, extra }); await flush(); if (seed) seed(r); r.ctx.runAlertChecks(); await flush(); return r; };
     const early = odd(await go(gm())), rLate = await go(gm({ clock: "4:30" })), late = odd(rLate), fin = odd(await go(gm({ status: "final", clock: "0:00" }))), ot = odd(await go(gm({ period: 5, clock: "4:55" })));
     ok(Object.keys(early).sort().join(" ") === "g1 x1" && early.g1.icon === "🧩 ODD LINE" && early.g1.text === "Guard One (AAA) — 16 rebounds by a guard"
-      && early.g1.sub === "Command Center · Common · A guard with 15+ rebounds: about 16 a season over the last five seasons (last: Jahmai Mashack, 4/10/26) · ESPN box scores, about 3% of games not on file"
+      && early.g1.sub === "Command Center · Common · A guard with 15+ rebounds: about 16 a season over the last five seasons (last: Jahmai Mashack, 4/10/26) · ESPN and pbpstats box scores, under 1% of games not on file"
       && early.x1.text === "Sixth Man (AAA) — 36 points off the bench",
       "bridge v25 (0.119.0; the user: \"The others seem fine to me\"): a line that can only grow (a guard's 16 rebounds, 36 off the bench) is carded the moment it is true, with how often it happens; a line one play can undo waits",
       JSON.stringify(Object.entries(early).map(([k, c]) => [k, c.icon, c.text, c.sub])));
     ok(Object.keys(late).sort().join(" ") === "b1 g1 s1 x1 z1" && late.s1.icon === "🧩 ODD LINE · AS IT STANDS" && late.s1.text === "No Trips (AAA) — 31 points without a free throw attempt, 4:30 left in the 4th"
-      && late.s1.sub.includes(" · stands only if the game ends here · ESPN box scores") && late.s1.live === true
+      && late.s1.sub.endsWith(" · stands only if the game ends here · ESPN and pbpstats box scores, under 1% of games not on file") && late.s1.live === true
       && late.b1.text === "Swat Man (AAA) — 5 blocks without a rebound, 4:30 left in the 4th" && late.b1.sub.includes("Rare (once a season or less) · 5+ blocks and no rebound: the 6th on file since 1993-94 (last: Brook Lopez, 4/4/23) · stands only")
       && late.z1.text === "Cold One (AAA) — 0-for-10 from the field, 4:30 left in the 4th"
       && late.z1.sub.includes("No field goal on 10+ attempts: about 4.8 a season over the last five seasons (last: Sam Hauser, 12/11/25) · Also: 30 minutes without a point (0-for-10) · stands only")
@@ -2027,6 +2027,20 @@ await articlesChecks(ok);
     const keep = oddRulesText; oddRulesText = "export const X = 1;"; const noRules = odd(await go(gm({ clock: "4:30" }))); oddRulesText = keep;
     ok(own.z1?.text === "Cold One (AAA) — 30 minutes without a point (0-for-10), 4:30 left in the 4th" && !/Also/.test(own.z1.sub) && own.s1 && Object.keys(po).length === 0 && Object.keys(cup).length === 0 && Object.keys(noRules).length === 0,
       "bridge v25: where NBA Live has its own card for the same no-make streak that line stands aside and his next one leads; none in the playoffs or a game that counts toward no book; none if the rules cannot be read", JSON.stringify([own.z1, Object.keys(po), Object.keys(cup), Object.keys(noRules)]));
+    {
+      // bridge v26 (the user's go, 11/19): the card's last words, per kind of line
+      const tovGame = (o = {}) => { const g = gm(o); g[0].boxscore.away.push(P("t1", "Loose Hands", { pts: 12, fgm: 5, fga: 11, ftm: 2, fta: 2, reb: 3, ast: 6, to: 10 })); return g; };
+      oddData.t["tov.8"] = [1341, 40, "E", "2026-04-10"]; oddData.t["tov.10"] = [121, 3.2, "Jahmai Mashack", "2026-04-10"];
+      const tv = odd(await go(tovGame()));
+      const keep2 = oddRulesText; oddRulesText = keep2.replace(/^export const TOV_PF = .*$/m, "export const TOV_PF = [];"); const oldRules = odd(await go(tovGame())); oddRulesText = keep2;
+      const RM = await import("../src/situations/oddlines.js"), bsrc = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");
+      delete oddData.t["tov.8"]; delete oddData.t["tov.10"];
+      ok(tv.t1?.text === "Loose Hands (AAA) — 10 turnovers" && tv.t1.sub.endsWith(" · ESPN box scores, about 3% of games not on file") && tv.g1.sub.endsWith(" · ESPN and pbpstats box scores, under 1% of games not on file")
+        && oldRules.g1?.sub.endsWith(" · ESPN box scores, about 3% of games not on file") && oldRules.t1
+        && RM.TOV_PF.join(",") === "tov,tov0,foulout,nothing,zeromin,ones.6" && (bsrc.match(/of games not on file/g) || []).length === 5 && /var VERSION = 26;/.test(bsrc),
+        "bridge v26 (the user: \"go\"): an odd-line card ends \"ESPN and pbpstats box scores, under 1% of games not on file\", and only a line that needs a turnover or a foul (10 turnovers) keeps \"ESPN box scores, about 3%\"; a copy of the rules without the list keeps the old words",
+        JSON.stringify([tv.t1 && [tv.t1.text, tv.t1.sub], tv.g1?.sub, oldRules.g1?.sub]));
+    }
     oddData.avg = { x1: [8, 3, 2, 14] };
     const big = odd(await go(gm())).x1;
     ok(big && big.text === "Sixth Man (AAA) — 36 points off the bench" && !/averages/.test(big.text + big.sub),
@@ -2056,8 +2070,8 @@ await articlesChecks(ok);
     const lh = M.liveHits({ ...Object.fromEntries(Object.keys(Z).map((k) => [k, 0])), min: 30, starter: 1, fg3m: 0, fg3a: 4, fga: 11, tov: 0 }, { pos: null, avg: null }, { "ofg.8": [752, 26.6, "A", "2026-03-28"], "ofg.10": [138, 4.8, "Sam Hauser", "2025-12-11"], "min0.30": [692, 17.8, "R", "2026-03-23"] });
     const srcM = fs.readFileSync(path.join(root, "src", "situations", "oddlines.js"), "utf8");
     ok(lh.length === 2 && lh[0].key === "ofg.10" && lh[1].id === "min0" && lh[0].live === "late" && lh[0].grade === "few" && lh[0].before === 138 && lh[0].say === "0-for-11 from the field"
-      && srcM === fs.readFileSync(path.join(root, "docs", "lib", "situations", "oddlines.js"), "utf8") && !/^\s*import\b|from "/m.test(srcM) && JSON.parse(fs.readFileSync(path.join(root, "docs", "bridge", "version.json"), "utf8")).version === 25,
-      "0.119.0: a live line gets one hit a template (the rarest level it passes), rarest first; the bridge's copy of the rules is the site's module and has no imports; version.json says 25", JSON.stringify(lh.map((h) => h.key)));
+      && srcM === fs.readFileSync(path.join(root, "docs", "lib", "situations", "oddlines.js"), "utf8") && !/^\s*import\b|from "/m.test(srcM) && JSON.parse(fs.readFileSync(path.join(root, "docs", "bridge", "version.json"), "utf8")).version === 26,
+      "0.119.0: a live line gets one hit a template (the rarest level it passes), rarest first; the bridge's copy of the rules is the site's module and has no imports; version.json says 26 (25 when this was built)", JSON.stringify(lh.map((h) => h.key)));
     const sit = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8");
     ok(/const before = rows\.filter\(\(g\) => !g\.cupFinal && g\.d < today\)/.test(sit) && /oddlive\.json/.test(sit) && /"oddlines\.js"\]\) fs\.copyFileSync/.test(sit),
       "0.119.0: the live file counts only games before today (a game finished this afternoon does not count itself tonight), and the build publishes the rules beside it");

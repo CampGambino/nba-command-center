@@ -56,6 +56,9 @@
  *       Live's own QUARTER EXPLOSION card is up for a quarter, the season place and list are added to that card (its
  *       all-time list stays) and the separate season card is not fired; it shows only where NBA Live has no card.
  *       This is the one place the bridge adds to a card of NBA Live's: two fields, on its way through fireStory.
+ *     - (v26, 0.123; on the user's go, 11/19) the odd-line card's last words say what its count rests on, per kind of
+ *       line: "ESPN and pbpstats box scores, under 1% of games not on file", or, for the six lines that need a turnover
+ *       or a foul, "ESPN box scores, about 3% of games not on file" as before. Nothing else about the card changes.
  *     - (v25, 0.119; the user, 11/19: "the depending on zero is a good one to flag in the final five minutes… if it
  *       doesn't ping until the end of the game, it could get lost if it's immediately deactivated. The others seem fine")
  *       ODD LINES: a player's line with an odd shape (30 points and no free throw attempt, no field goal on 10 shots, a
@@ -96,7 +99,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 25;
+  var VERSION = 26;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -980,6 +983,14 @@
   // odd line. They stay on the website's list. (Remove an id here to card it.)
   var ODD_SKIP = { erupt: 1, reb3x: 1, ast3x: 1 };
   var ODD_GRADE = { rare: "Rare (once a season or less)", few: "A few a season", monthly: "About monthly", common: "Common" };
+  // v26: what the count behind the card rests on. The Bulls' and Pelicans' games of 2012-13 to 2017-18 are in the counts
+  // from pbpstats (no turnovers or fouls), so only a line that needs a turnover or a foul is still short of about 3% of
+  // games; every other line is short of under 1%. The module says which (TOV_PF: a template's id, or one level's key).
+  function oddOnFile(R, h) {
+    var short = R && R.TOV_PF;
+    if (!short || !short.length) return "ESPN box scores, about 3% of games not on file";   // an older copy of the rules: the old wording
+    return short.indexOf(h.id) >= 0 || short.indexOf(h.key) >= 0 ? "ESPN box scores, about 3% of games not on file" : "ESPN and pbpstats box scores, under 1% of games not on file";
+  }
   function oddLineChecks(game, sides, box, tag, scr) {
     var O = state.odd, R = state.oddRules;
     if (!O || !R || (game.status !== "live" && game.status !== "final")) return;
@@ -1024,7 +1035,7 @@
           text: p.name + " (" + team + ") — " + h.say + (standing && clock ? ", " + clock + " left in " + when : ""),
           statLine: typeof fmtAlertStatLine === "function" ? fmtAlertStatLine([[l.pts, "PTS"], [l.reb, "REB"], [l.ast, "AST"]]) : "",
           sub: "Command Center · " + (h.grade ? ODD_GRADE[h.grade] + " · " : "") + (noteText ? noteText + " · " : "") + (also.length ? "Also: " + also.join("; ") + " · " : "")
-            + (standing ? "stands only if the game ends here · " : "") + "ESPN box scores, about 3% of games not on file",
+            + (standing ? "stands only if the game ends here · " : "") + oddOnFile(R, h),
           live: live, gameId: game.id, gameTag: tag, gameScore: scr });
       });
     });
