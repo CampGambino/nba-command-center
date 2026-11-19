@@ -3102,6 +3102,43 @@ await articlesChecks(ok);
     "notes (0.69): 'the only Raptors' is team history; a stray date from the next table cell is cut");
 }
 
+// ---------- 0.124: the notes guard and two game headers (11/19/26) ----------
+{
+  // the user, 6:03 PM: "what is the warning about a build for 6 teams… the game notes should have updated for teams on a back-to-back. what gives?"
+  const { readMeta } = await import("../src/notes/meta.js");
+  const { notesGuard, notesRead, HAS_NOTES } = await import("../src/site/notes-guard.js");
+  const L = (...cells) => ({ text: cells.join("  "), cells: cells.map((text) => ({ text })) });
+  // Minnesota's front page that night, as the layout reader gives it: no space after "VS."
+  const min = readMeta({ pages: [{ lines: [L("GAME NOTES"), L("MINNESOTA TIMBERWOLVES (11-4) VS.NEW YORK KNICKS (8-6) • REGULAR SEASON GAME #16 • REGULAR SEASON HOME GAME #10"),
+    L("TARGET CENTER (MINNEAPOLIS, MN) • THURSDAY, NOVEMBER 19, 2026 AT 7:00 P.M. CT • TV: DAZN"), L("TIMBERWOLVES 2026-27 SCHEDULE", "LAST GAME STARTERS: NOVEMBER 17 VS. PORTLAND TRAIL BLAZERS"),
+    L("10/21", "AT MIAMI", "W, 131-106")] }] }, "MIN");
+  // New York's: the header split over two lines, a schedule heading between them, and an "at Orlando" sentence lower down
+  const nykLines = [L("2026-27 SCHEDULE"), L("NEW YORK KNICKS (8-6) at"), L("DATE", "OPPONENT", "TIME/RESULT", "W/L"), L("MINNESOTA TIMBERWOLVES (11-4)"), L("*Oct. 2", "at Philadelphia", "120-97", "L, 0-1"),
+    L("*Oct. 13", "at Toronto", "148-98", "L, 0-4", "NOVEMBER 19, 2026 *8:00 P.M ET"), L("TARGET CENTER (MINNEAPOLIS, MN)"), L("Oct. 23", "@ Boston", "107-103", "L, 0-2", "GAME 15; AWAY GAME 8"),
+    L("Knicks 92-88 win at Orlando. He finishes the night with 24 points and 16 rebounds.")];
+  const nyk = readMeta({ pages: [{ lines: nykLines }] }, "NYK");
+  // not joined: the cell below is not a bare team name; and a home header on one line is untouched
+  const noJoin = readMeta({ pages: [{ lines: [L("NEW YORK KNICKS (8-6) at"), L("Madison Square Garden hosts the Celtics next week"), L("NOVEMBER 19, 2026 *8:00 P.M ET"), L("Nov. 19  @ Minnesota  8:00pm")] }] }, "NYK");
+  const one = readMeta({ pages: [{ lines: [L("BOSTON CELTICS (9-5) vs. DENVER NUGGETS (10-4)"), L("WEDNESDAY, NOVEMBER 18, 2026"), L("LAST GAME: NOV. 16 VS. CHICAGO BULLS")] }] }, "BOS");
+  ok(min.gameDate === "2026-11-19" && min.opponent === "NYK" && nyk.gameDate === "2026-11-19" && nyk.opponent === "MIN" && nyk.opponentEvidence === "NEW YORK KNICKS (8-6) at MINNESOTA TIMBERWOLVES (11-4)"
+    && noJoin.opponent === "MIN" && one.opponent === "DEN",
+    "notes (0.124): \"TIMBERWOLVES (11-4) VS.NEW YORK KNICKS\" with no space after VS. and \"NEW YORK KNICKS (8-6) at\" with the opponent two lines down are both read as tonight's game (they were read as vs. Portland and vs. Orlando)",
+    JSON.stringify([min.opponent, min.opponentEvidence, nyk.opponent, nyk.opponentEvidence, noJoin.opponent, noJoin.opponentEvidence, one.opponent]));
+  // the guard, with the statuses of 11/19: the 10:48 AM list, the 4:52 PM build as it was read, and a build that really lost a team
+  const W = (st, generatedAt = "2026-11-19T15:48:22.252Z") => ({ today: "2026-11-19", generatedAt, teams: Object.entries(st).map(([team, notesStatus]) => ({ team, notesStatus })) });
+  const am = W({ GSW: "current", MEM: "stale", POR: "current", MIL: "stale", NYK: "conflict", MIN: "stale", LAC: "current", SAS: "current" });
+  const pm = W({ GSW: "current", MEM: "current", POR: "current", MIL: "current", NYK: "conflict", MIN: "conflict", LAC: "current", SAS: "current" });
+  const lostOne = W({ GSW: "current", MEM: "current", POR: "current", MIL: "current", NYK: "conflict", MIN: "unreachable", LAC: "current", SAS: "current" });
+  const g1 = notesGuard(am, pm, "2026-11-19"), g2 = notesGuard(am, lostOne, "2026-11-19"), g3 = notesGuard(am, lostOne, "2026-11-20"), g4 = notesGuard(null, lostOne, "2026-11-19");
+  const oldRule = (w) => w.teams.filter((t) => t.notesStatus === "current" || t.notesStatus === "stale").length;
+  ok(HAS_NOTES.join() === "current,stale,conflict" && oldRule(am) === 7 && oldRule(pm) === 6 && notesRead(am) === 8 && notesRead(pm) === 8 && g1.keep === false && g1.text === null
+    && g2.keep === true && g2.lost.length === 1 && g2.lost[0].team === "MIN" && g2.lost[0].was === "stale" && g2.lost[0].now === "unreachable"
+    && g2.text === "this build could not read the notes for MIN (unreachable); the published Watch List built at 10:48 AM ET has them and was kept, so nothing newer from the other teams' notes is showing"
+    && g3.keep === false && g4.keep === false && /notesGuard\(before, after, today\)/.test(fs.readFileSync(path.join(root, "scripts", "ci.js"), "utf8")),
+    "build (0.124): a team whose notes went from yesterday's file to today's with the opponent in doubt still has notes, so the afternoon build of 11/19 is published (the old count, 7 against 6, threw it away); a team that really cannot be read keeps the published list, and the note names the team and the time",
+    JSON.stringify([g1, g2.text, g3.keep, g4.keep]));
+}
+
 // ---------- 0.72: the full diagnostic (11/15): what could break, and what was quietly wrong ----------
 {
   // The Knicks' 11/15 notes: an "on this date" line named the Spurs and carried today's month and day.
@@ -3143,6 +3180,7 @@ await articlesChecks(ok);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ncc-ci-"));
   fs.mkdirSync(path.join(tmp, "scripts")); fs.mkdirSync(path.join(tmp, "docs", "data"), { recursive: true });
   fs.copyFileSync(path.join(root, "scripts", "ci.js"), path.join(tmp, "scripts", "ci.js"));
+  fs.mkdirSync(path.join(tmp, "src", "site"), { recursive: true }); fs.copyFileSync(path.join(root, "src", "site", "notes-guard.js"), path.join(tmp, "src", "site", "notes-guard.js"));   // 0.124: the guard's rule is a module
   fs.writeFileSync(path.join(tmp, "package.json"), '{"type":"module"}');
   const watchOld = JSON.stringify({ today: "2026-11-15", teams: [{ notesStatus: "current" }], v: "old" });
   const stub = (name, body) => fs.writeFileSync(path.join(tmp, "scripts", name), body);

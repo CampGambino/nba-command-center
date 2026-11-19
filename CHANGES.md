@@ -2,6 +2,35 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.124.0 (2026-11-19): the Watch List was frozen at 10:48 AM all day; two game headers misread; the guard that froze it
+
+The user, 6:03 PM, with a screenshot of the Watch List's warning ("this build read notes for 6 teams, the published one 7: the published Watch List was kept") and four teams marked stale or in conflict: "what is the warning about a build for 6 teams, and at this point in the day, the game notes should have updated for teams on a back-to-back. what gives?"
+
+**What happened.** The notes had updated. The page was not showing it.
+- `scripts/ci.js` refuses to replace today's Watch List with a build that read notes for fewer teams (so a list is not lost when nba.com refuses a download). "Read" meant current or stale.
+- At 10:48 AM the list had 7 such teams and the Knicks in "conflict". By 11:07 AM Minnesota had posted tonight's notes, and they were read as "dated 11/19 but naming Portland": a second conflict. 7 became 6, and the build was thrown away.
+- So was every build after it: fourteen in all, the last at 6:11 PM. Milwaukee's new notes were read at 12:50 PM and Memphis's at 3:12 PM, and neither reached the page.
+- Both conflicts were misreadings. Minnesota's header is "TIMBERWOLVES (11-4) VS.NEW YORK KNICKS (8-6)" with no space after "VS.", so it was skipped and "LAST GAME STARTERS: NOVEMBER 17 VS. PORTLAND" was taken for tonight's game. New York's header is split over two lines ("NEW YORK KNICKS (8-6) at" and, two lines down, "MINNESOTA TIMBERWOLVES (11-4)"), so a sentence lower on the page ("Knicks 92-88 win at Orlando") was taken instead.
+
+**What changed.**
+- `src/notes/meta.js` (`readOpponent`): "vs." needs no space after it; a cell that names the team and ends on "at", "vs." or "@" is joined to the first cell within three lines below that is a team's name and record and nothing else (`bareTeam`).
+- `src/site/notes-guard.js` (new; `scripts/ci.js` uses it): a team in "conflict" has notes (the file was downloaded and dated), so it counts. Only a team whose file could not be read at all can hold a build back. The note on the page now names the teams and the time of the list that was kept: "this build could not read the notes for MIN (unreachable); the published Watch List built at 10:48 AM ET has them and was kept, so nothing newer from the other teams' notes is showing".
+
+**Tested.** 1,034 checks pass (two new: both front pages as the layout reader gives them, a split header that must not be joined to a sentence, a one-line header; the guard with this morning's and this afternoon's statuses, and with a team really lost). Against tonight's real files from nba.com: all 30 teams' notes read with the old and the new reader, 28 the same, Minnesota and New York now naming each other. 42 stored sample notes: all 42 the same. `scripts/tonight.js` run here for 11/19: eight of eight teams "current".
+
+**Not proven.**
+- Other headers that glue or split in ways not seen yet. The reader still picks the best-scoring line on the page; it does not know the header from a sentence except by score.
+- The guard is still all or nothing: if one team's notes cannot be downloaded in a later build, the whole list is kept, and the other teams' newer notes wait. The note now says so. A per-team merge would fix that and is not built.
+- The Knicks' notes have been in "conflict" on other nights for the same reason; I have not gone back over earlier nights.
+
+**Self-audit.**
+- Wrong first, and the biggest miss of the day: the warning was on the Watch List from 11:07 AM. I pushed about ten builds after that and checked each by reading the files I had changed. I never read `docs/data/health.json` or looked at the Watch List's own note, so I told the user builds were "published" while the Watch List itself was seven hours old. From now on a build check reads `health.json` first.
+- Wrong first: my first version of the split-header rule joined "NEW YORK KNICKS (8-6) at" to a sentence that mentioned the Celtics. The stand-in test caught it; the rule now requires a bare team name.
+- Wrong first: moving the guard into a module broke the existing test that runs `ci.js` in a temporary folder (it copied one file). The test now copies the module too; nothing in the real build was affected.
+- Re-derived from the logs of all fourteen builds (GitHub run logs, 11:07 AM to 6:11 PM): each says "kept the published data: this build read notes for 6 teams, the published one 7"; Milwaukee is "current" from the 12:50 PM build, Memphis from the 3:12 PM build.
+- Cases not used while building: the other 28 teams' notes tonight and the 42 stored samples, none of which changed.
+- What this did not affect: the odd lines, shifts, the streak pages and the Watch List's game lines come from the situations step, which ran in every one of those builds. What it did affect: milestones and history lines from the four teams' new notes, on the page, in the briefing and in NBA Live's milestone list.
+
 ## 0.123.0 (2026-11-19): bridge v26: the odd-line card says what its count rests on, per kind of line
 
 The user, 5:20 PM, to "the odd-line card in NBA Live still ends 'about 3% of games not on file' on every line. That is now true only for the turnover and foul lines. Say go and I'll change the wording": "go".

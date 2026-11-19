@@ -57,7 +57,7 @@ function run(args) {
 function writeHealth(today, extra = {}) {
   try { fs.writeFileSync(path.join(root, "docs", "data", "health.json"), JSON.stringify({ at: new Date().toISOString(), today, steps, ...(heldNote ? { held: heldNote } : {}), ...extra })); } catch (e) { console.error(`health note not written: ${e.message}`); }
 }
-const notesRead = (w) => (w?.teams || []).filter((t) => t.notesStatus === "current" || t.notesStatus === "stale").length;
+const { notesRead, notesGuard } = await import("../src/site/notes-guard.js");
 
 if (mode === "build") await build();
 else if (mode === "score") score();
@@ -101,11 +101,13 @@ async function build() {
     process.exit(1);
   }
   const after = JSON.parse(fs.readFileSync(watchFile, "utf8"));
-  if (before && before.today === today && notesRead(after) < notesRead(before)) {
+  // 0.124: the rule and its wording live in src/site/notes-guard.js (a conflict is notes read; the note names the teams).
+  const guard = notesGuard(before, after, today);
+  if (guard.keep) {
     fs.writeFileSync(watchFile, beforeText);
-    console.error(`kept the published data: this build read notes for ${notesRead(after)} teams, the published one ${notesRead(before)}`);
+    console.error(`kept the published data: ${guard.text}`);
     situations(today);
-    writeHealth(today, { kept: `this build read notes for ${notesRead(after)} teams, the published one ${notesRead(before)}: the published Watch List was kept` });
+    writeHealth(today, { kept: guard.text });
     return;
   }
   const pred = path.join(data, `predictions-${today}.json`);

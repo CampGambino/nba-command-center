@@ -76,25 +76,45 @@ function readOpponent(doc, team, gameDate) {
   }
   const lines = doc.pages.slice(0, 2).flatMap((p) => p.lines);
   let best = { opponent: null, score: -1, evidence: null };
+  const cellsOf = (line) => (line.cells?.length ? line.cells : [{ text: line.text }]);
+  const ownIn = (lower) => own.some((w) => new RegExp(`(?:^|[^a-z])${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![a-z])`).test(lower));
   lines.forEach((line, i) => {
-    for (const cell of line.cells?.length ? line.cells : [{ text: line.text }]) {
-      const t = cell.text;
-      if (!/(\bvs\.?\s|@|\bat\s)/i.test(t)) continue;
+    for (const cell of cellsOf(line)) {
+      let t = cell.text;
+      // 0.124 (11/19/26, the Knicks at Minnesota): the game header split over two lines, "NEW YORK KNICKS (8-6) at" and,
+      // two lines down, "MINNESOTA TIMBERWOLVES (11-4)". A cell that names the own team and ends on the connector is
+      // joined to the first cell below (three lines at most) that is a team's name and record and nothing else.
+      if (/(?:\bvs\.?|@|\bat)\s*$/i.test(t) && ownIn(t.toLowerCase())) {
+        const next = lines.slice(i + 1, i + 4).flatMap(cellsOf).map((c) => c.text.trim())
+          .find((x) => { const tri = teamFromText(x); return !!tri && tri !== team && bareTeam(x, tri); });
+        if (next) t = `${t.trim()} ${next}`;
+      }
+      // 0.124 (the same night, Minnesota's notes): "TIMBERWOLVES (11-4) VS.NEW YORK KNICKS (8-6)" has no space after
+      // "VS.", so the header was skipped and "LAST GAME STARTERS: NOVEMBER 17 VS. PORTLAND" was read as tonight's game.
+      if (!/(\bvs\.\s*|\bvs\s|@|\bat\s)/i.test(t)) continue;
       // 0.72: "November 15, 2012: Knicks ride a 27-11 rally… over the Spurs at…" is an "on this date" line, not
       // tonight's game (the Knicks' 11/15/26 notes were read as vs. SAS and set aside as a conflict).
       if (gameYear && [...t.matchAll(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},\s*((?:19|20)\d\d)\b|\b\d{1,2}\/\d{1,2}\/((?:19|20)\d\d)\b/gi)].some((m) => +(m[1] || m[2]) !== gameYear)) continue;
-      const parts = t.split(/\bvs\.?\s|@|\bat\s/i);
+      const parts = t.split(/\bvs\.\s*|\bvs\s|@|\bat\s/i);
       let tri = teamFromText(parts.slice(1).join(" ")) || teamFromCode(parts[1]); // "VS. HOU - 11/9/26"
       // "CLEVELAND CAVALIERS @ CHARLOTTE HORNETS" in Charlotte's own notes.
       if (!tri || tri === team) tri = teamFromText(parts[0]);
       if (!tri || tri === team) continue;
       const lower = t.toLowerCase();
       // Whole words only: "nets" is inside "Hornets" (Brooklyn read as playing Charlotte).
-      const score = (own.some((w) => new RegExp(`(?:^|[^a-z])${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![a-z])`).test(lower)) ? 3 : 0) + (dateRe && dateRe.test(t) ? 2 : 0) + (i < 6 ? 1 : 0);
+      const score = (ownIn(lower) ? 3 : 0) + (dateRe && dateRe.test(t) ? 2 : 0) + (i < 6 ? 1 : 0);
       if (score > best.score) best = { opponent: tri, score, evidence: t.slice(0, 80) };
     }
   });
   return best;
+}
+
+/** "MINNESOTA TIMBERWOLVES (11-4)", "LA Clippers", "Trail Blazers": a team's name, an optional record, and no other word. */
+function bareTeam(text, tri) {
+  const info = TEAMS[tri]; if (!info) return false;
+  const known = new Set([info.city, info.nick, ...(info.alt || []), "LA", "Los Angeles"].join(" ").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
+  const words = String(text).replace(/\(\d+-\d+\)\s*$/, "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  return words.length > 0 && words.length <= 4 && words.every((w) => known.has(w));
 }
 
 /** Year for a month from the season printed in the notes ("2026-27": Aug-Dec -> 2026, Jan-Jul -> 2027). */
