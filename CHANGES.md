@@ -2,6 +2,21 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.112.0 (2026-11-19): "wasn't on the floor to finish" says what it measures
+
+The user, 10:22 AM, of "Josh Hart started but wasn't on the floor to finish NYK's last 5 close games; he had finished 4 of 4 before (close: within 5 in the last five minutes)", with the Game Flow chart of 11/11: "how is this calculated? it appears Hart was on the court in the clutch for this game… is it him not on the court in the final possessions?"
+
+It is. Two windows were in play and the line named one. A game is *close* if the margin was within 5 at any point in the last five minutes of regulation. A starter *finished* it if he was on the floor for at least half of the last three minutes (90 of 180 seconds). On 11/11 Hart played from 7:33 to 1:33 of the 4th: most of the close stretch, 87 seconds of the last three minutes, and none of the last 1:33. The line was right by its rule and read as if he had missed the close of the game.
+
+- `src/anticipate/tonight.js` (and its copy in `docs/lib`): the line now reads "wasn't on the floor **at the end of**", names the latest game and when he left it, says how many of the run he sat the whole 4th of, and gives both rules. Today: "Josh Hart started but wasn't on the floor at the end of NYK's last 5 close games, most recently 11/17 vs TOR (out for the last 5:04); he sat the whole 4th in 2 of them; he had finished 4 of 4 before (close: within 5 in the last five minutes; at the end: on the floor for half of the last three)". The "has not finished any of the N close games" line carries both rules too.
+- `src/gameflow/stats.js`: each close game a starter did not finish now records `gone`, the seconds between his last moment on the floor and the end of regulation.
+
+Tested: 994 checks pass (the fourth-quarter test now has a starter pulled with 1:33 left, one who sat the 4th, and one from a file written before `gone` existed, which gets the line without the clause). On the real files, rebuilt locally: Hart's five are 10/30 vs PHI (out for the last 2:42), 11/11 vs CLE (1:33, the same times as the user's chart), 11/13 vs IND and 11/15 vs TOR (did not play in the 4th), 11/17 vs TOR (5:04). The rule itself is unchanged, so who gets a line is unchanged: the same three players as before.
+
+Still unproven: nothing new, but two things about the rule are judgments worth knowing. The 90 seconds is a line in the sand: at 87 Hart did not "finish", at 90 he would have, with the same last 1:33 on the bench. And only regulation is measured: a starter who sat the end of regulation and then played the overtime does not count as finishing. Neither was changed without the user's say.
+
+Self-audit: I first read my own print-out as showing Hart on the floor in overtime on 11/15. It was a marker of no length at the end of each period, which the stint data carries; the new `gone` ignores those for that reason, and the raw numbers were printed to be sure. The "same three players" claim is from running the lines on the rebuilt file before and after the wording change, not from the rule being untouched alone.
+
 ## 0.111.1 (2026-11-19): the Bulls and Pelicans fill is finished for all six seasons; the temporary workflow is removed
 
 - **2012-13 to 2015-16 are complete:** 648 games (162 a season), the last saved at 12:30 AM on 11/19, about seven hours after the user's go. With 2016-17 and 2017-18 that is 972 games in `tools/outside/pbpstats/box-<season>.jsonl`.

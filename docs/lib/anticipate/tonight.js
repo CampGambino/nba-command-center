@@ -265,24 +265,31 @@ function earlyLines(flow, teams, today) {
  *   rest     a scorer who hasn't played in the 4th in 3+ of his starts (30%+), with his team's record in those games;
  *   benched  a starter not on the floor to finish his team's last 3+ close games when he used to be, or one who
  *            finishes a quarter or fewer of the close games he starts (5+).
- * Close = within 5 in the last five minutes of regulation; finishing = on the floor for most of the last three.
+ * Close = within 5 in the last five minutes of regulation; finishing = on the floor for half of the last three.
+ * 0.112: the two are different windows, and the line named only the first, so a starter who played most of the last
+ * five minutes and was taken out for the final 1:33 read as if he had missed the close of the game altogether (Josh
+ * Hart, 11/11/26; the user asked). The line now says "at the end", when he left in the latest one, and both rules.
  */
 export const FOURTH = { sat: 3, share: 0.3, ppg: 18, miss: 3, close: 5, rarely: 0.25 };
 function fourthLines(flow, teams) {
   if (!flow?.fourth) return [];
   const out = [];
   const r1 = (x) => (Math.round(x * 10) / 10).toFixed(1);
-  // The latest close game: did he sit the whole 4th of it?
-  const satLast = (q) => { const e = q.ends[q.ends.length - 1]; return e && (q.satIn || []).includes(e.gameId) ? `, and didn't play in the 4th at all ${+e.date.slice(5, 7)}/${+e.date.slice(8, 10)} vs ${e.opp}` : ""; };
+  // The latest close game he did not finish: when he left it, and how many of the run he sat the whole 4th of.
+  const sat = (q, e) => (q.satIn || []).includes(e.gameId) || e.gone >= 720;
+  const latest = (q) => { const e = q.ends[q.ends.length - 1]; if (!e || e.fin || !(sat(q, e) || e.gone > 0)) return "";
+    return `, most recently ${+e.date.slice(5, 7)}/${+e.date.slice(8, 10)} vs ${e.opp} (${sat(q, e) ? "didn't play in the 4th" : `out for the last ${Math.floor(e.gone / 60)}:${String(e.gone % 60).padStart(2, "0")}`})`; };
+  const satRun = (q) => { const run = q.ends.slice(-q.miss), n = run.length === q.miss ? run.filter((e) => sat(q, e)).length : 0; return n >= 2 ? `; he sat the whole 4th in ${n} of them` : ""; };
+  const RULE = "close: within 5 in the last five minutes; at the end: on the floor for half of the last three";
   for (const q of Object.values(flow.fourth)) {
     if (!teams.has(q.team)) continue;
     const before = q.close - q.miss, beforeFin = q.closed;                    // close games before the current run, and those he finished
     if (q.miss >= FOURTH.miss && before >= 2 && beforeFin / before >= 0.5) {
       out.push({ team: q.team, player: q.name, kind: "fourth", score: 3.7 + Math.min(0.5, 0.1 * q.miss),
-        text: `${q.name} started but wasn't on the floor to finish ${q.team}'s last ${q.miss} close games; he had finished ${beforeFin} of ${before} before${satLast(q)} (close: within 5 in the last five minutes)` });
+        text: `${q.name} started but wasn't on the floor at the end of ${q.team}'s last ${q.miss} close games${latest(q)}${satRun(q)}; he had finished ${beforeFin} of ${before} before (${RULE})` });
     } else if (q.close >= FOURTH.close && q.closed / q.close <= FOURTH.rarely) {
       out.push({ team: q.team, player: q.name, kind: "fourth", score: 2.7 + (q.closed === 0 ? 0.3 : 0),
-        text: `${q.name} has ${q.closed === 0 ? "not finished any" : `finished ${q.closed}`} of the ${q.close} close games he has started for ${q.team} (close: within 5 in the last five minutes)` });
+        text: `${q.name} has ${q.closed === 0 ? "not finished any" : `finished ${q.closed}`} of the ${q.close} close games he has started for ${q.team} (${RULE})` });
     } else if (q.sat >= FOURTH.sat && q.sat / q.gs >= FOURTH.share && q.satPts / q.sat >= FOURTH.ppg) {
       const m = q.satMargin / q.sat;
       const how = q.satMin >= 15 ? `every one decided by ${Math.floor(q.satMin / 5) * 5}+` : `${m >= 0 ? "+" : ""}${r1(m)} a game`;

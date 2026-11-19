@@ -2646,9 +2646,11 @@ await articlesChecks(ok);
 
 // ---------- 0.72.6: fourth-quarter storylines and two regulars out at once (the user, 11/15: "Start it up") ----------
 {
-  const end = (date, opp, fin, gameId) => ({ date, opp, fin, gameId });
+  const end = (date, opp, fin, gameId, gone) => ({ date, opp, fin, gameId, ...(gone != null ? { gone } : {}) });
   const flow = { fourth: {
-    a: { name: "Was Closing", team: "NYK", gs: 9, sat: 1, satW: 0, satMargin: -2, satMin: 2, satClose: 1, satPts: 6, satIn: ["g7"], close: 7, closed: 4, miss: 3, ends: [end("2026-11-01", "BOS", true, "g4"), end("2026-11-05", "PHI", false, "g5"), end("2026-11-11", "CLE", false, "g6"), end("2026-11-13", "IND", false, "g7")] },
+    a: { name: "Was Closing", team: "NYK", gs: 9, sat: 1, satW: 0, satMargin: -2, satMin: 2, satClose: 1, satPts: 6, satIn: ["g7"], close: 7, closed: 4, miss: 3, ends: [end("2026-11-01", "BOS", true, "g4"), end("2026-11-05", "PHI", false, "g5", 162), end("2026-11-11", "CLE", false, "g6", 93), end("2026-11-13", "IND", false, "g7", 720)] },
+    f: { name: "Pulled Late", team: "NYK", gs: 9, sat: 0, satW: 0, satMargin: 0, satMin: null, satClose: 0, satPts: 0, satIn: [], close: 7, closed: 4, miss: 3, ends: [end("2026-11-01", "BOS", true, "g4"), end("2026-11-05", "PHI", false, "g5", 162), end("2026-11-11", "CLE", false, "g6", 300), end("2026-11-13", "IND", false, "g7", 93)] },
+    g: { name: "Old File", team: "NYK", gs: 9, sat: 0, satW: 0, satMargin: 0, satMin: null, satClose: 0, satPts: 0, satIn: [], close: 7, closed: 4, miss: 3, ends: [end("2026-11-05", "PHI", false, "g5"), end("2026-11-11", "CLE", false, "g6"), end("2026-11-13", "IND", false, "g7")] },
     b: { name: "Rested Star", team: "OKC", gs: 13, sat: 5, satW: 2, satMargin: 5, satMin: 21, satClose: 0, satPts: 131, satIn: [], close: 4, closed: 4, miss: 0, ends: [] },
     c: { name: "Never Closes", team: "DET", gs: 12, sat: 0, satW: 0, satMargin: 0, satMin: null, satClose: 0, satPts: 0, satIn: [], close: 5, closed: 0, miss: 5, ends: [end("2026-11-12", "WAS", false, "g9")] },
     d: { name: "Role Player", team: "OKC", gs: 13, sat: 6, satW: 3, satMargin: 9, satMin: 4, satClose: 0, satPts: 40, satIn: [], close: 4, closed: 3, miss: 1, ends: [] },
@@ -2656,9 +2658,12 @@ await articlesChecks(ok);
   const watch = { today: "2026-11-16", teams: [], games: [{ id: "1", homeTri: "NYK", awayTri: "OKC", home: "NYK", away: "OKC" }, { id: "2", homeTri: "DET", awayTri: "XXX", home: "DET", away: "XXX" }] };
   const { tonightCandidates } = await import("../src/anticipate/tonight.js");
   const L = tonightCandidates({ watch, fouls: flow }).all.filter((l) => l.kind === "fourth").map((l) => l.text);
-  ok(L.length === 3 && L.includes("Was Closing started but wasn't on the floor to finish NYK's last 3 close games; he had finished 4 of 4 before, and didn't play in the 4th at all 11/13 vs IND (close: within 5 in the last five minutes)")
+  const RULE = "close: within 5 in the last five minutes; at the end: on the floor for half of the last three";
+  ok(L.length === 5 && L.includes(`Was Closing started but wasn't on the floor at the end of NYK's last 3 close games, most recently 11/13 vs IND (didn't play in the 4th); he had finished 4 of 4 before (${RULE})`)
+    && L.includes(`Pulled Late started but wasn't on the floor at the end of NYK's last 3 close games, most recently 11/13 vs IND (out for the last 1:33); he had finished 4 of 4 before (${RULE})`)
+    && L.includes(`Old File started but wasn't on the floor at the end of NYK's last 3 close games; he had finished 4 of 4 before (${RULE})`)
     && L.includes("Rested Star hasn't played in the 4th quarter in 5 of his 13 starts: OKC 2-3 in those (every one decided by 20+), and he averages 26.2 points in them")
-    && L.includes("Never Closes has not finished any of the 5 close games he has started for DET (close: within 5 in the last five minutes)"),
+    && L.includes(`Never Closes has not finished any of the 5 close games he has started for DET (${RULE})`),
     "storylines (0.72.6): fourth quarters: a starter who stopped finishing close games, a scorer who sits the 4th of decided games, one who never finishes; a role player sitting and a starter who finishes get none", L.join(" | "));
   // Two regulars out at once: games without both since each joined, this season and last, and the teammate who rises most.
   const { comboAbsences } = await import("../src/injuries/impact.js");

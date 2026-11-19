@@ -71,12 +71,16 @@ export function gameFacts(row, c, lite) {
     // 0.72.6 (fourth-quarter minutes): seconds on the floor in the 4th, and in the last three minutes of regulation.
     const on = (a, b) => st.reduce((n, s) => n + Math.max(0, Math.min(s.et, b) - Math.max(s.st, a)), 0);
     const q4 = on(3 * REG_LEN, 4 * REG_LEN), last3 = on(4 * REG_LEN - 180, 4 * REG_LEN), second = on(2 * REG_LEN, 3 * REG_LEN);
+    // 0.112 (the user, 11/19, of "wasn't on the floor to finish": "is it him not on the court in the final possessions?"):
+    // how long before the end of regulation he left the floor for good, so the line can say it. Stints of no length
+    // (the marker at the end of a period) are not time on the floor.
+    const lastOn = st.reduce((m, s) => (s.et - s.st > 1e-6 && s.st < 4 * REG_LEN ? Math.max(m, Math.min(s.et, 4 * REG_LEN)) : m), 0), gone = Math.round(4 * REG_LEN - lastOn);
     // 0.79 (the user, 11/16: "checking for players who play full halves (rare) and full games (almost never)"): on the
     // floor for every second of a half, or of the whole game with its overtimes.
     const gameLen = 4 * REG_LEN + Math.max(0, G.maxP - 4) * 300;
     const fullH1 = G.maxP >= 2 && on(0, 2 * REG_LEN) >= 2 * REG_LEN - 1, fullH2 = G.maxP >= 4 && on(2 * REG_LEN, 4 * REG_LEN) >= 2 * REG_LEN - 1;
     const fullGame = G.maxP >= 4 && on(0, gameLen) >= gameLen - 1;
-    return { id: String(p.id), name: p.name, team: tri[p.side], opp: tri[1 - p.side], starter: !!p.starter, q4, last3, second, fullH1, fullH2, fullGame,
+    return { id: String(p.id), name: p.name, team: tri[p.side], opp: tri[1 - p.side], starter: !!p.starter, q4, last3, gone, second, fullH1, fullH2, fullGame,
       q: [1, 2, 3, 4].map((k) => pp[k] || 0), out1, back, in1, out3, full1, open3, q1n: q1.length,
       lastOut: st.length ? st[st.length - 1].et : null, min: Math.round(p.calcMin || 0), mins: p.calcMin || 0, pts: p.boxPts || 0,
       trouble: !!p.troubleFrom, fouledOut: !!p.fouledOut };
@@ -348,7 +352,7 @@ export function flowStats(entries, lite = null) {
           if (T) { if (T.after3 >= REST_LEAD) Q.satLed++; if (T.won) Q.satW++; Q.satMargin += T.score - T.oppScore; const m = Math.abs(T.score - T.oppScore); Q.satMin = Q.satMin == null ? m : Math.min(Q.satMin, m); }
           if (F.closeLate) Q.satClose++;
         }
-        if (F.closeLate) { const fin = p.last3 >= FINISH_SEC; Q.close++; if (fin) Q.closed++; Q.ends.push({ date: F.date, opp: p.opp, fin, gameId: F.gameId }); }
+        if (F.closeLate) { const fin = p.last3 >= FINISH_SEC; Q.close++; if (fin) Q.closed++; Q.ends.push({ date: F.date, opp: p.opp, fin, gameId: F.gameId, ...(fin ? {} : { gone: p.gone }) }); }
       }
       const Fo = fouls[p.id] || (fouls[p.id] = { name: p.name, team: p.team, gp: 0, trouble: 0, out: 0, troubleIn: [], outIn: [] });
       Fo.team = p.team; Fo.gp++;
