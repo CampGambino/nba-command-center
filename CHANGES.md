@@ -21,7 +21,7 @@ The user, 6:03 PM, with a screenshot of the Watch List's warning ("this build re
 **Not proven.**
 - Other headers that glue or split in ways not seen yet. The reader still picks the best-scoring line on the page; it does not know the header from a sentence except by score.
 - The guard is still all or nothing: if one team's notes cannot be downloaded in a later build, the whole list is kept, and the other teams' newer notes wait. The note now says so. A per-team merge would fix that and is not built.
-- The Knicks' notes have been in "conflict" on other nights for the same reason; I have not gone back over earlier nights.
+- Whether the Knicks' road-game notes (or anyone's) were misread the same way on earlier nights has not been checked.
 
 **Self-audit.**
 - Wrong first, and the biggest miss of the day: the warning was on the Watch List from 11:07 AM. I pushed about ten builds after that and checked each by reading the files I had changed. I never read `docs/data/health.json` or looked at the Watch List's own note, so I told the user builds were "published" while the Watch List itself was seven hours old. From now on a build check reads `health.json` first.
