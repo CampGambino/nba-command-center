@@ -2903,6 +2903,23 @@ await articlesChecks(ok);
     "season vs career (0.71): shooting percentages against his seasons (enough attempts), and one line for three or more career highs", JSON.stringify(c.filter((x) => /fg|ft|pct/.test(x.stat)).map((x) => x.text)));
 }
 
+// ---------- 0.114: a bio paragraph headed by the bare season ("2025-26: …", San Antonio) is last season's ----------
+{
+  const N = await import("../src/notes/narrative.js");
+  const L = (text) => ({ text, cells: [{ x0: 40, x1: 560, cx: 300, text }], charX: [] });
+  const doc = { pages: [{ page: 1, width: 612, lines: [L("#3 KELDON JOHNSON Guard/Forward • 6-6 • 215 • Kentucky • Eighth Season • DOB: 10/11/99"),
+    L("2025-26: 2025-26 NBA Sixth Man of the Year … One of two Spurs who played in all 82 games … averaged 13.2 points, 5.4 rebounds and 3.7 assists off the bench for San Antonio ... made 99 three-pointers, moving him to fifth all-time in Spurs franchise history ... ranks second in NBA in total bench points (1,081) ... his 414 made field goals and 439 rebounds each rank second among NBA reserves ... led all reserves in win shares (6.4) on second-best team in the NBA."),
+    L("2026-27: Ranks third in the NBA in bench points (212) this season ... has scored in double figures in 11 of 15 games.")] },
+    { page: 2, width: 612, lines: [L("SERIES NOTES The Spurs lead the all-time series. 2025-26: 3-1. San Antonio has won six of the last eight meetings with the Clippers this season and last.")] }] };
+  const dropped = [];
+  const h = N.readHistory(doc, [{ id: "3", name: "Keldon Johnson" }], { seasonStart: "2026-10-01", today: "2026-11-19", teamWords: ["San Antonio", "Spurs"], oppWords: ["Clippers", "LA"], dropped });
+  ok(!h.some((x) => /1,081|414 made field goals|Sixth Man/.test(x.text)) && h.some((x) => /^Ranks third in the NBA in bench points \(212\) this season\.$/.test(x.text))
+    && dropped.filter((d) => d.reason === "past-season").length >= 5 && dropped.some((d) => d.reason === "past-season" && /^2025-26: Ranks second in NBA in total bench points/.test(d.text))
+    && !dropped.some((d) => d.reason === "past-season" && /six of the last eight/.test(d.text)),
+    "notes (0.114; the user, 11/19: \"these stats were from last season\"): a bio paragraph that opens with the bare season and a colon is that season's, so last season's ranks are not shown as this season's; the paragraph headed 2026-27 is kept; a bare \"2025-26: 3-1\" outside a bio is not a heading",
+    JSON.stringify([h.map((x) => x.text), dropped.map((d) => d.reason + ": " + d.text.slice(0, 50))]));
+}
+
 // ---------- 0.71: the user's second 11/15 review (Celtics, Hornets, Mavericks, Hawks notes) ----------
 {
   const N = await import("../src/notes/narrative.js");

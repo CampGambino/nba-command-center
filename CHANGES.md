@@ -2,6 +2,29 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.114.0 (2026-11-19): last season's bio lines are not this season's; "1 in N" explained; the league line shows records; non-conference records
+
+The user, 10:57 AM, with nine screenshots: Keldon Johnson's "Ranks second in NBA in total bench points (1,081)" and "His 414 made field goals and 439 rebounds each rank second among NBA reserves" ("these stats were from last season"); "i don't understand the 1 in 13 or 1 in 14"; "the home road record says 50%… can you provide the records with the percentages, and can you double check from espn standings?"; "can you provide non-conference records as well?"
+
+- **Last season's bio paragraph** (`src/notes/narrative.js`). San Antonio heads each paragraph of a player's bio with the bare season and a colon: "2025-26: 2025-26 NBA Sixth Man of the Year … ranks second in NBA in total bench points (1,081) …". The reader knew "2025-26 SEASON:", "2025-26 NOTABLES:" and the like, not the bare form, so the pieces between the "…" were read as present-tense facts about this season. The bare form is now a season heading inside a player's bio (only there: "2025-26: 3-1" in a series table is not one). Everything under a past season's heading is left out and listed with the trimmed lines as "past-season", as it already was for the other teams' formats.
+- **"1 in N"** (`docs/situations.html`, `docs/standings.html`): it was explained only in a hover note. There is now a sentence under "Most unusual records", the number reads "· 1 in 57 by chance", and an open row begins with what was expected ("A team this good would be expected to win about 7.6 of these 11; league-wide, teams win 50% of them.").
+- **The league line** above tonight's matchups shows the record beside each percentage: "Home 111-110 (50%) · Road 110-111 (50%) · vs teams over .500 77-161 (32%) · vs top-5 records 25-83 (23%) · Trailing at half 44-169 (21%) · Trailing after 3 38-174 (18%) · Leading after 3 174-38 (82%)". Clutch games and games decided by 3 or fewer are no longer listed there: both teams are in them, so the league is 50% by definition, and the line says so.
+- **Non-conference records** (`nonconf` in `src/situations/standings.js`; a "Non-conf" column after "Conf" on the Standings page): overall less conference. The page works it out itself when the standings file predates the column.
+
+Checked against ESPN's standings (the user's screenshot of 11/19): adding ESPN's HOME column for all 30 teams gives 111-110 and its AWAY column 110-111, the same as ours; the 222nd game is a neutral-site one (Denver over Indiana), which ESPN and we both leave out of home and road. Six teams' rows compared field by field (LAL, PHI, SAS, DEN, IND, NYK): the same. The new column adds up to 54-54 across the league, as it must.
+
+How odd is 50% at home: in our results files home teams won between 54.3% and 61.2% in every full season from 2012-13 to 2025-26. Through the first 221 games of each of the last twelve seasons they stood between 113-108 (2020-21) and 137-84; 111-110 is the lowest of the thirteen.
+
+Tested: 999 checks pass (one new: the Spurs' paragraph as printed, a 2026-27 paragraph after it that is kept, and a bare "2025-26: 3-1" outside a bio that is not taken for a heading). Both pages were opened in a browser at 1500 px and read as a first-time reader: the league line, the new sentence, an opened row, and the standings table with the new column (no page errors).
+
+Still unproven: the Spurs fix is tested on the paragraph typed from the user's screenshot, since the PDF itself cannot be read from the cloud workspace; the published page after this push is the proof. Other teams may head a past season in a form not yet seen.
+
+Self-audit:
+- **Why it got through:** a line in the present tense ("ranks second") counts as a standing fact, and nothing asked which season the paragraph belonged to unless the heading had one of six known words after the year. The same hole could exist for other bare headings ("Last season:", "Career:"); not searched for today.
+- **Wrong first:** my first change made the word after the season optional but still anchored at the start of the sentence, and the heading sat in the middle of one (after the player's box line). It did nothing; the fixture, which reproduced the user's two lines, showed that before anything was committed.
+- **Wrong first:** the first wording of the new sentence said "Under 1 in 10 is listed", which reads backwards. Now "listed from 1 in 10 and flagged from 1 in 100".
+- **From our files, not looked up:** the home-court history. The results files do not mark neutral-site games, so a handful a season are counted for the listed home team; the percentages are good to a few tenths.
+
 ## 0.113.0 (2026-11-19): a streak in the notes is checked before it is called active
 
 The user, 10:40 AM, of the Spurs' notes line "As of Nov. 13, San Antonio has won 11 straight games", which the site tagged "Active streak · 11" with "12 with tonight's game": "this nugget was misinterpreted. it was taken as factual without fact checking". The Spurs won a 12th on 11/15 and lost to Detroit on 11/17. The notes for 11/19 still print the old paragraph; the site repeated it and added a next number of its own.

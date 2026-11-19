@@ -532,15 +532,21 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
     if (carry && carry.page === b.page && carry.bio) { bioWho = paraWho = sectionWho = carry.who; sinceWho = 0; paraHead = true; }
     else if (carry && carry.page === b.page && carry.dist <= 700) { paraWho = carry.who; sinceWho = carry.dist; paraHead = true; }
     const keep = () => { carry = paraWho && paraHead ? { who: paraWho, page: b.page, dist: sinceWho, bio: !!(bioWho && paraWho === bioWho) } : null; }; // lastWhen: "old" / "current" for the paragraph's last dated sentence // chars of text since paraWho was named // the player this paragraph is about, for its "He..." sentences
-    for (let s of (sentences(b.text.replace(/\b((?:19|20)\d\d-\d\d)\s+(SEASON HIGHLIGHTS|SEASON|NOTABLES|Season Highlights|NOTES|Notes)(?=\b|:)/g, "$1\u2060$2")).flatMap((x) => x.split(/\s+(?=(?:19|20)\d\d-\d\d\u2060)|\s+(?=(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s+\p{Lu}|#\s?\d{1,2}\s+\p{Lu})/u).flatMap((y) => y.split(/\s*(?:…|\.{3}|[▪●•\u0000-\u0008\u000b\u000c\u000e-\u001f]|\s[o◦▫+]\s(?=[A-Z]))\s*/u).map((z, k, all) => { let w = k > 0 && /^[a-z]/.test(z) ? z[0].toUpperCase() + z.slice(1) : z; if (k < all.length - 1 && /[\p{L}\d%)]$/u.test(w) && !/\b(?:to|the|a|an|of|and|at|in|with|as|by|for|or|his|their|from|on|was|were|who|that|is|are|which)$/i.test(w)) w += "."; return w; }))).map((x) => x.replace(/\s*\*{2,}.*$/, "").trim())).flatMap((x) => splitBullets(x, full))) {
+    for (let s of (sentences(b.text.replace(/\b((?:19|20)\d\d-\d\d)\s+(SEASON HIGHLIGHTS|SEASON|NOTABLES|Season Highlights|NOTES|Notes)(?=\b|:)/g, "$1\u2060$2").replace(/(^|\s)((?:19|20)\d\d-\d\d):(?=\s)/g, "$1$2\u2060:")).flatMap((x) => x.split(/\s+(?=(?:19|20)\d\d-\d\d\u2060)|\s+(?=(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s+\p{Lu}|#\s?\d{1,2}\s+\p{Lu})/u).flatMap((y) => y.split(/\s*(?:…|\.{3}|[▪●•\u0000-\u0008\u000b\u000c\u000e-\u001f]|\s[o◦▫+]\s(?=[A-Z]))\s*/u).map((z, k, all) => { let w = k > 0 && /^[a-z]/.test(z) ? z[0].toUpperCase() + z.slice(1) : z; if (k < all.length - 1 && /[\p{L}\d%)]$/u.test(w) && !/\b(?:to|the|a|an|of|and|at|in|with|as|by|for|or|his|their|from|on|was|were|who|that|is|are|which)$/i.test(w)) w += "."; return w; }))).map((x) => x.replace(/\s*\*{2,}.*$/, "").trim())).flatMap((x) => splitBullets(x, full))) {
       sinceWho += s.length + 1;
       { const at = b.text.indexOf(s.slice(0, 25).replace(/\u2060/g, " "), cursor); if (at >= 0) cursor = at; }
       while (bios.length && bios[0].at <= cursor + 5) { bioWho = paraWho = sectionWho = bios.shift().p; sinceWho = 0; lastWhen = null; seasonHdr = null; }
       if (/#\s?\d{1,2}\s+\p{Lu}/u.test(s)) seasonHdr = null; // another player's box starts in this text
       // 0.71: also "2024-25 SEASON:" and "PROFESSIONAL CAREER: 2024-25 SEASON:" (Boston, Dallas), "2026-27 NOTABLES:" (Atlanta).
-      { const sh = s.match(/^(?:[\p{Lu} ]{3,}:\s*)?((?:19|20)\d\d)-(\d\d)\s*(?:\(([^)]{2,30})\)|\u2060?(?:SEASON HIGHLIGHTS|SEASON|NOTABLES|Season Highlights|NOTES|Notes)(?:\s*\([^)]{2,30}\))?)\s*[:–—-]\s*/u);
-        if (sh) { seasonHdr = `${sh[1]}-${sh[2]}`; s = s.slice(sh[0].length); if (s) s = s[0].toUpperCase() + s.slice(1); } }
+      // 0.114 (the user, 11/19: Keldon Johnson's "ranks second in NBA in total bench points (1,081)" shown as "2nd in
+      // NBA" in November; "these stats were from last season"): San Antonio heads a bio paragraph with the bare season
+      // and a colon ("2025-26: 2025-26 NBA Sixth Man of the Year … One of two Spurs who played in all 82 games …").
+      // The word after the season is now optional; the colon or dash is still required.
+      { const sh = s.match(/^(?:[\p{Lu} ]{3,}:\s*)?((?:19|20)\d\d)-(\d\d)\s*(?:\(([^)]{2,30})\)|\u2060?(?:SEASON HIGHLIGHTS|SEASON|NOTABLES|Season Highlights|NOTES|Notes)(?:\s*\([^)]{2,30}\))?|(\u2060)(?=:))\s*[:–—-]\s*/u);
+        // the bare form only inside a player's bio: elsewhere "2025-26: 3-1" is a table row, not a heading
+        if (sh && (!sh[4] || bioWho)) { seasonHdr = `${sh[1]}-${sh[2]}`; s = s.slice(sh[0].length); if (s) s = s[0].toUpperCase() + s.slice(1); } }
       s = s.replace(/\u2060/g, " ");
+      if (!s.trim()) continue;   // a heading with nothing after it
       // A header that names a past season over this season's games ("2025-26 SEASON: Made his NBA debut at HOU
       // (10/21/26)…", Dallas' rookie Morez Johnson Jr.) is a typo: a full date this season overrules it.
       if (seasonHdr && curSeason && seasonHdr !== curSeason && seasonStart

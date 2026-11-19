@@ -77,7 +77,7 @@ export function standings(rows, { games = GAMES } = {}) {
       for (let k = t.log.length - 1; k >= 0 && t.log[k] === streakWin; k--) streak++;
       return {
         tri: t.tri, seed: i + 1, w: t.w, l: t.l, pct: Math.round(pct(t) * 1000) / 1000, gb: ((top.w - t.w) + (t.l - top.l)) / 2,
-        conf: `${t.confRec.w}-${t.confRec.l}`, div: `${t.divRec.w}-${t.divRec.l}`, home: `${t.home.w}-${t.home.l}`, road: `${t.road.w}-${t.road.l}`,
+        conf: `${t.confRec.w}-${t.confRec.l}`, nonconf: `${t.w - t.confRec.w}-${t.l - t.confRec.l}`, div: `${t.divRec.w}-${t.divRec.l}`, home: `${t.home.w}-${t.home.l}`, road: `${t.road.w}-${t.road.l}`,
         last10: `${last.filter(Boolean).length}-${last.filter((x) => !x).length}`, streak: t.log.length ? `${streakWin ? "W" : "L"}${streak}` : "", diff: t.pf - t.pa, left: games - t.w - t.l,
         // Clinch: ahead of 9 (playoffs), 5 (Play-In or better), 14 (best record), the division's other 4.
         magic: { playoff: nth(need, 9), playin: nth(need, 5), top: nth(need, 14), division: divNeed ? { n: Math.max(0, divNeed.n), vs: divNeed.tri } : null },

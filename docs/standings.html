@@ -102,6 +102,8 @@
   .odd details { padding: 2px 0; }
   .odd summary { cursor: pointer; }
   .odd .glist { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 6px 0 4px 14px; }
+  .odd .glist .exp { flex-basis: 100%; color: var(--faint); font-size: 12px; }
+  #unusualKey { max-width: 900px; margin: 0 0 8px; }
   .odd .g { font-size: 12px; padding: 2px 7px; border-radius: 10px; border: 1px solid var(--line); white-space: nowrap; }
   .odd .g.w b { color: var(--good, #2e9e5b); } .odd .g.l b { color: var(--bad, #d0453a); }
   body[data-view="situations"] .v-standings, body[data-view="standings"] .v-situations { display: none; }
@@ -122,6 +124,7 @@
   <div class="matches" id="tonight"></div>
 
   <h2>Most unusual records</h2>
+  <p class="key" id="unusualKey"><b>1 in N</b> is how often luck alone would give a team this good a record at least this lopsided in that spot. A team's "expected" wins come from its overall record and from how the whole league does in that spot, so the bigger the N, the harder the record is to put down to chance. A record is listed from 1 in 10 and flagged from 1 in 100. Open a row for its games and for what was expected.</p>
   <ul class="odd" id="unusual"></ul>
 
   </div>
@@ -204,8 +207,12 @@ function render() {
 
   // 0.95 (the user, 11/17): the league's win rate in each spot is the same for every game, so it is said once, above
   // the cards, and not as a column on each of them.
-  const lg = MATCH.map(([k0, label0]) => [vsKey(k0), label0]).filter(([k]) => k !== "all" && S.baseline[k]).map(([k, label]) => `${label} <b>${Math.round(S.baseline[k].pct * 100)}%</b>`);
-  $("leagueRow").innerHTML = S.tonight.length && lg.length ? `<b>League:</b> how often any team wins in that spot this season. ${lg.join(" · ")}` : "";
+  // 0.114 (the user, 11/19: "the home road record says 50%… can you provide the records with the percentages"): the
+  // record beside each percentage. A spot both teams of a game are in (a clutch game, a game decided by 3) is 50% by
+  // definition and says nothing, so it is left out and the line says so.
+  const BOTH_IN = ["clutch", "close"];
+  const lg = MATCH.map(([k0, label0]) => [vsKey(k0), label0]).filter(([k]) => k !== "all" && S.baseline[k] && !BOTH_IN.includes(k)).map(([k, label]) => `${label} <b>${S.baseline[k].w}-${S.baseline[k].l}</b> (${Math.round(S.baseline[k].pct * 100)}%)`);
+  $("leagueRow").innerHTML = S.tonight.length && lg.length ? `<b>League:</b> every team's record in that spot this season, added up. ${lg.join(" · ")}. Clutch games and games decided by 3 or fewer are not listed: both teams are in them, so the league is always 50%.` : "";
   $("leagueRow").hidden = !(S.tonight.length && lg.length);
   $("tonight").innerHTML = S.tonight.length ? S.tonight.map((g) => {
     const a = by[g.away], h = by[g.home];
@@ -225,9 +232,11 @@ function render() {
   // 0.65 (the user, 11/14): one row per team, the record alone, and the games behind it on a click.
   const md = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}`;
   const gameList = (u) => (u.list || []).map((g) => `<span class="g ${g.w ? "w" : "l"}">${md(g.d)} ${g.home ? "vs" : g.road ? "@" : "vs"} ${esc(g.opp)} <b>${g.w ? "W" : "L"}</b> ${g.pf}-${g.pa}${g.ot ? " OT" : ""}</span>`).join("");
+  // 0.114: the row says what was expected, so "1 in 13" has something to stand against
+  const expected = (u) => (u.expectedWins != null && u.baseline != null ? `A team this good would be expected to win about ${u.expectedWins} of these ${u.w + u.l}; league-wide, teams win ${Math.round(u.baseline * 100)}% of them.` : "");
   const byTeam = new Map();
   for (const u of S.unusual) { if (!byTeam.has(u.team)) byTeam.set(u.team, []); byTeam.get(u.team).push(u); }
-  $("unusual").innerHTML = byTeam.size ? [...byTeam].map(([team, us]) => `<li><b class="ut">${team}</b><div class="us">${us.map((u) => `<details><summary>${esc(u.short || u.text.replace(/:.*$/, ""))} <span class="luck" title="how often a team this good would have a record at least this far from expected">1 in ${Math.max(2, Math.round(1 / u.p))}${u.p <= 0.01 ? " · flagged" : ""}</span></summary><div class="glist">${gameList(u) || "<i>games not listed</i>"}</div></details>`).join("")}</div></li>`).join("")
+  $("unusual").innerHTML = byTeam.size ? [...byTeam].map(([team, us]) => `<li><b class="ut">${team}</b><div class="us">${us.map((u) => `<details><summary>${esc(u.short || u.text.replace(/:.*$/, ""))} <span class="luck" title="how often a team this good would have a record at least this far from expected">· 1 in ${Math.max(2, Math.round(1 / u.p))} by chance${u.p <= 0.01 ? " · flagged" : ""}</span></summary><div class="glist"><div class="exp">${esc(expected(u))}</div>${gameList(u) || "<i>games not listed</i>"}</div></details>`).join("")}</div></li>`).join("")
     : `<li class="empty">Nothing unusual yet.</li>`;
 
   const sign = dir === "best" ? 1 : -1;
@@ -315,8 +324,11 @@ function renderStandings() {
   if (!ST) return;
   const num = (m) => (m ? (m.n <= 0 ? `<b class="hi" title="Clinched">✓</b>` : `<span title="against ${m.vs}"${m.n <= 5 ? ` style="font-weight:700"` : ""}>${m.n}</span>`) : "–");
   const out = (e) => (e ? (e.n <= 0 ? `<b class="lo" title="Out">✗</b>` : `<span title="against ${e.vs}"${e.n <= 5 ? ` style="font-weight:700"` : ""}>${e.n}</span>`) : "–");
-  $("stab").innerHTML = `<tr><th>#</th><th>Team</th><th class="num">W</th><th class="num">L</th><th class="num">GB</th><th class="num">Conf</th><th class="num">Div</th><th class="num">Home</th><th class="num">Road</th><th class="num">Last 10</th><th class="num">Streak</th><th class="num" title="Magic number for a top-six place">Playoffs</th><th class="num" title="Magic number for at least a Play-In place">Play-In</th><th class="num" title="Magic number for the conference's best record">Top seed</th><th class="num" title="Magic number for the division">Division</th><th class="num" title="Elimination number for a top-six place">Out of top 6</th><th class="num" title="Elimination number for the postseason">Out</th></tr>` +
-    (ST[sconf] || []).map((t) => `<tr${t.seed === 7 || t.seed === 11 ? ` style="border-top:2px solid var(--line)"` : ""}><td>${t.seed}</td><td class="team"><b>${t.tri}</b></td><td class="num">${t.w}</td><td class="num">${t.l}</td><td class="num">${t.gb || "–"}</td><td class="num">${t.conf}</td><td class="num">${t.div}</td><td class="num">${t.home}</td><td class="num">${t.road}</td><td class="num">${t.last10}</td><td class="num">${t.streak}</td><td class="num">${num(t.magic.playoff)}</td><td class="num">${num(t.magic.playin)}</td><td class="num">${num(t.magic.top)}</td><td class="num">${num(t.magic.division)}</td><td class="num">${out(t.elim.playoff)}</td><td class="num">${out(t.elim.playin)}</td></tr>`).join("");
+  // 0.114 (the user, 11/19: "can you provide non-conference records as well?"): overall less conference; worked out
+  // here too, for a standings file written before the column existed.
+  const nonconf = (t) => t.nonconf || (() => { const [cw, cl] = String(t.conf || "").split("-").map(Number); return Number.isFinite(cw) && Number.isFinite(cl) ? `${t.w - cw}-${t.l - cl}` : "–"; })();
+  $("stab").innerHTML = `<tr><th>#</th><th>Team</th><th class="num">W</th><th class="num">L</th><th class="num">GB</th><th class="num">Conf</th><th class="num" title="Record against the other conference">Non-conf</th><th class="num">Div</th><th class="num">Home</th><th class="num">Road</th><th class="num">Last 10</th><th class="num">Streak</th><th class="num" title="Magic number for a top-six place">Playoffs</th><th class="num" title="Magic number for at least a Play-In place">Play-In</th><th class="num" title="Magic number for the conference's best record">Top seed</th><th class="num" title="Magic number for the division">Division</th><th class="num" title="Elimination number for a top-six place">Out of top 6</th><th class="num" title="Elimination number for the postseason">Out</th></tr>` +
+    (ST[sconf] || []).map((t) => `<tr${t.seed === 7 || t.seed === 11 ? ` style="border-top:2px solid var(--line)"` : ""}><td>${t.seed}</td><td class="team"><b>${t.tri}</b></td><td class="num">${t.w}</td><td class="num">${t.l}</td><td class="num">${t.gb || "–"}</td><td class="num">${t.conf}</td><td class="num">${nonconf(t)}</td><td class="num">${t.div}</td><td class="num">${t.home}</td><td class="num">${t.road}</td><td class="num">${t.last10}</td><td class="num">${t.streak}</td><td class="num">${num(t.magic.playoff)}</td><td class="num">${num(t.magic.playin)}</td><td class="num">${num(t.magic.top)}</td><td class="num">${num(t.magic.division)}</td><td class="num">${out(t.elim.playoff)}</td><td class="num">${out(t.elim.playin)}</td></tr>`).join("");
 }
 document.querySelectorAll("#sconf button").forEach((b) => b.onclick = () => { sconf = b.dataset.c; document.querySelectorAll("#sconf button").forEach((x) => x.classList.toggle("on", x === b)); renderStandings(); });
 fetch("data/standings.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => { ST = d; renderStandings(); }).catch(() => {});
