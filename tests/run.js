@@ -954,6 +954,15 @@ const more = {};
     const v3 = vsTop(teamGameLines(G2), 1, "record");
     ok(v3.top.map((x) => x.team).sort().join() === "P,Q" && v3.top.length === 2, "vs top teams: a tie at the cutoff puts both teams in (top 1 has 2 teams at 2-1)", JSON.stringify(v3.top));
     ok(vsTop(LL, 2, "defense").by === "defense" && vsTopDefenses(LL, 2).top.length === 2, "vs top teams: the defense ranking still works");
+    // 0.133.0: the same against the bottom N (the "Teams vs the bottom" tab).
+    const b2 = vsTop(LL, 2, "record", "bottom");
+    ok(R2.S.rbrank === 1 && R2.R.rbrank === 2 && R2.P.rbrank === 4 && b2.side === "bottom" && b2.top.map((x) => x.team).join() === "S,R" && b2.teams.P.vsTop.w === 1 && b2.teams.P.vsTop.games === 1 && b2.teams.S.inTop && !b2.teams.P.inTop,
+      "vs bottom teams: rank from the worst record; W-L against the bottom 2 (a bottom team faces only the others in the group)", JSON.stringify(b2.top));
+    const b3 = vsTop(teamGameLines(G2), 1, "record", "bottom");   // after S beats P: S 1-2, R 1-2 share the worst record
+    ok(b3.top.map((x) => x.team).sort().join() === "R,S", "vs bottom teams: a tie at the cutoff puts both teams in", JSON.stringify(b3.top));
+    const { topSet: topSetB } = await import("../src/situations/ratings.js");
+    const bd = vsTop(LL, 1, "defense", "bottom"), worstD = Object.entries(R2).sort((a, b) => b[1].drtg - a[1].drtg)[0][0];
+    ok(bd.top[0].team === worstD && R2[worstD].dbrank === 1 && [...topSetB(R2, "losing", "record", "bottom")].sort().join() === "R,S", "vs bottom teams: the worst defensive rating ranks 1; 'all losing teams' is every team under .500", JSON.stringify(bd.top));
   }
 
   // Team leaders: game-by-game leads, season totals, shooting lines.

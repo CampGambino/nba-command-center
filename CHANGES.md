@@ -2,6 +2,20 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.133.0 (2026-11-20): vs top teams: a "Teams vs the bottom" tab
+
+The user, 10:38 AM, with the "Teams vs the top" table: "is it possible to check against the worst teams as well? record and defense with all the other same checks. maybe a different tab vs worst teams".
+
+**Changed.**
+- `src/situations/ratings.js` (and its copy in `docs/lib`): `ratings()` also ranks from the bottom: `rbrank` by win % from the lowest, then most losses, ties sharing a rank (the mirror of `rrank`); `dbrank` by the highest defensive rating. `topSet` and `vsTop` take a fourth argument, `side` ("top" by default, so every other caller is unchanged), and `topSet` knows "losing" (every team under .500), the mirror of "all winning teams".
+- `docs/defenses.html`: a "Teams vs the bottom" tab beside "Teams vs the top". It is the same table, columns, league ranks, sorting and Best/Worst first, against the bottom N: "Worst records" / "Worst defenses", "Bottom N", "all losing teams", every header and tooltip reading "vs bottom", and a "bottom" tag on the teams in the group. Ties at the cutoff are all in, as on the top tab. `?view=bottom` opens it.
+
+**Checked.** Loaded in a headless browser on this morning's data: bottom 5 records are MIL 1-15, SAC 1-13, UTA 3-13, BKN 3-11, then CHA, CHI and LAC at 4-10 (a three-way tie at the cutoff, so 7 teams); bottom 10 defenses start SAC 118.4, MIL 118.0, NOP 117.1; 12 teams under .500. Switching tabs swaps "all winning teams" for "all losing teams" and back; no console errors on either tab.
+
+**Tests.** 1,049 checks (three new): rank from the worst record, W-L against the bottom 2 with a bottom team facing only the others in it; a tie at the cutoff puts both teams in; the worst defensive rating ranks 1 and "losing" is every team under .500.
+
+**Self-audit.** The columns' "#" ranks still mean best-to-worst across the league (1 = best), on both tabs, so "#1" in "W-L vs bottom" is the best record against the bottom group; the page's own footnote already says so and I left it. Not built: the "vs bottom" view on Team situations (its "vs top 3/4/5" splits) and the Players tab against the worst defenses; both read the same `topSet`, so either is a small step if wanted.
+
 ## 0.132.0 (2026-11-20): a game whose play-by-play doesn't add up no longer loses its box score; shared group ranks say "tied for"
 
 The user, 10:12 AM, on the Watch List line "Jrue Holiday among bench players this season: 3rd in points, 4th in assists, 4th in steals, 9th in plus/minus": "what are the jrue holiday ranks among bench players? is that checked from game notes or stats?"

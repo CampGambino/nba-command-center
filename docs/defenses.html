@@ -110,11 +110,11 @@
   <div class="sub" id="sub">Loading…</div>
 </header>
 <main>
-  <div class="controls"><span class="toggle" id="view"><button data-v="teams" class="on">Teams vs the top</button><button data-v="players">Players vs top defenses</button><button data-v="thirty">30-point games allowed</button><button data-v="highs">Career highs allowed</button><button data-v="types">Scoring by type</button></span></div>
+  <div class="controls"><span class="toggle" id="view"><button data-v="teams" class="on">Teams vs the top</button><button data-v="bottom">Teams vs the bottom</button><button data-v="players">Players vs top defenses</button><button data-v="thirty">30-point games allowed</button><button data-v="highs">Career highs allowed</button><button data-v="types">Scoring by type</button></span></div>
   <section id="v-teams">
   <div class="controls">
     <span class="toggle" id="by"><button data-b="record" class="on">Best records</button><button data-b="defense">Best defenses</button></span>
-    <label>Top <select id="n"><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option value="winning">all winning teams</option></select> <span id="nWord">records</span></label>
+    <label><span id="nLead">Top</span> <select id="n"><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option value="winning">all winning teams</option><option value="losing" hidden>all losing teams</option></select> <span id="nWord">records</span></label>
     <span class="toggle" id="dir"><button data-d="best" class="on">Best first</button><button data-d="worst">Worst first</button></span>
     <label>Sorted by <b id="sortName"></b>. Click a column to sort; click again to flip.</label>
   </div>
@@ -160,6 +160,10 @@ import { playerGames, vsDefenses, thirtyAllowed, POOL_MIN_PPG, POOL_SHARE, POOL_
 const $ = (id) => document.getElementById(id);
 const q = new URLSearchParams(location.search);
 let D = null, by = q.get("by") === "defense" ? "defense" : "record", dir = "best", lines = [];
+// 0.133.0 (the user, 11/20: "is it possible to check against the worst teams as well? record and defense with all the
+// other same checks. maybe a different tab vs worst teams"): the same table against the bottom N. `side` follows the tab.
+let side = q.get("view") === "bottom" ? "bottom" : "top";
+const lab = (x) => (side === "top" ? x : String(x).replace(/vs top/g, "vs bottom").replace(/the top teams/g, "the bottom teams").replace(/the top defenses/g, "the worst defenses").replace(/top defenses/g, "worst defenses").replace(/the top group/g, "the bottom group"));
 let sortKey = by === "record" ? "pct" : "diff";
 if (q.get("n") && [...$("n").options].some((o) => o.value === q.get("n"))) $("n").value = q.get("n");
 else if (by === "defense") $("n").value = "10";
@@ -199,11 +203,19 @@ const DEFENSE_COLS = [
 ];
 const cols = () => (by === "record" ? RECORD_COLS : DEFENSE_COLS);
 function render() {
-  const n = $("n").value === "winning" ? "winning" : Number($("n").value);
-  const v = vsTop(lines, n, by);
+  const n = $("n").value === "winning" || $("n").value === "losing" ? $("n").value : Number($("n").value);
+  const v = vsTop(lines, n, by, side);
   $("nWord").textContent = by === "record" ? "records" : "defenses";
-  const ties = by === "record" && n !== "winning" && v.top.length > n ? ` Ties at the cutoff are all in, so this group has ${v.top.length} teams.` : "";
-  $("topList").innerHTML = n === "winning"
+  $("nLead").textContent = side === "top" ? "Top" : "Bottom";
+  document.querySelectorAll("#by button").forEach((b) => b.textContent = `${side === "top" ? "Best" : "Worst"} ${b.dataset.b === "record" ? "records" : "defenses"}`);
+  const ties = by === "record" && n !== "winning" && n !== "losing" && v.top.length > n ? ` Ties at the cutoff are all in, so this group has ${v.top.length} teams.` : "";
+  $("topList").innerHTML = side === "bottom"
+    ? (n === "losing"
+      ? `All ${v.top.length} teams with losing records: ${v.top.map((x) => `<b>${x.team}</b> ${x.w}-${x.l}`).join(" · ")}. A team in that group is measured against the others in it.`
+      : by === "record"
+      ? `Bottom ${n} records: ${v.top.map((x) => `<b>${x.team}</b> ${x.w}-${x.l}`).join(" · ")}.${ties} A team in that group is measured against the others in it.`
+      : `Bottom ${n} defenses by defensive rating (points allowed per 100 possessions, most first): ${v.top.map((x) => `<b>${x.team}</b> ${x.drtg.toFixed(1)}`).join(" · ")}. A team in that group is measured against the other ${v.top.length - 1}.`)
+    : n === "winning"
     ? `All ${v.top.length} teams with winning records: ${v.top.map((x) => `<b>${x.team}</b> ${x.w}-${x.l}`).join(" · ")}. A team in that group is measured against the others in it.`
     : by === "record"
     ? `Top ${n} records: ${v.top.map((x) => `<b>${x.team}</b> ${x.w}-${x.l}`).join(" · ")}.${ties} A team in that group is measured against the others in it. Same teams as "vs top ${n}" on Team situations.`
@@ -227,24 +239,24 @@ function render() {
   if (!col) { sortKey = by === "record" ? "pct" : "diff"; col = C.find((c) => c[0] === sortKey); }
   const sign = dir === "best" ? 1 : -1;
   teams.sort((x, y) => { const a = col[2](x), b = col[2](y); if (a == null && b == null) return 0; if (a == null) return 1; if (b == null) return -1; return sign * (b - a) || (x.vsTop?.games ?? 0) - (y.vsTop?.games ?? 0); });
-  $("sortName").textContent = col[1];
-  const th = (c) => `<th class="num sort ${sortKey === c[0] ? "on" : ""}" data-k="${c[0]}" title="${c[4]}">${c[1]}${sortKey === c[0] ? (dir === "best" ? " ▾" : " ▴") : ""}</th>`;
+  $("sortName").textContent = lab(col[1]);
+  const th = (c) => `<th class="num sort ${sortKey === c[0] ? "on" : ""}" data-k="${c[0]}" title="${lab(c[4])}">${lab(c[1])}${sortKey === c[0] ? (dir === "best" ? " ▾" : " ▴") : ""}</th>`;
   const big = by === "record" ? 10 : 5;
-  $("all").innerHTML = `<tr><th>Team</th>${C.map(th).join("")}</tr>` + teams.map((t) => `<tr><td style="white-space:nowrap"><b>${t.code}</b>${t.inTop ? ` <span class="team" title="in the top group">top</span>` : ""}</td>${C.map((c) => {
+  $("all").innerHTML = `<tr><th>Team</th>${C.map(th).join("")}</tr>` + teams.map((t) => `<tr><td style="white-space:nowrap"><b>${t.code}</b>${t.inTop ? ` <span class="team" title="in the ${side} group">${side}</span>` : ""}</td>${C.map((c) => {
     const cls = c[0] === "diff" && t.diff != null ? (t.diff >= big ? "hi" : t.diff <= -big ? "lo" : "") : "";
     return `<td class="num ${cls}">${c[3](t)}${rk(c, t)}</td>`; }).join("")}</tr>`).join("");
   document.querySelectorAll("th.sort").forEach((el) => el.onclick = () => {
     if (sortKey === el.dataset.k) dir = dir === "best" ? "worst" : "best"; else { sortKey = el.dataset.k; dir = "best"; }
     syncDir(); render();
   });
-  const u = new URL(location.href); u.searchParams.set("by", by); u.searchParams.set("n", String(n)); history.replaceState(null, "", u);
+  const u = new URL(location.href); u.searchParams.set("by", by); u.searchParams.set("n", String(n)); if (side === "bottom") u.searchParams.set("view", "bottom"); history.replaceState(null, "", u);
   foot();
 }
 function foot() {
   if (!D) return;
   const big = by === "record" ? 10 : 5;
   const what = by === "record" ? "net rating (points scored minus allowed per 100 possessions)" : "offensive rating";
-  $("foot").innerHTML = `Possessions are estimated from box scores (FGA - OREB + TOV + 0.44 x FTA, averaged over both teams). "Best first" means the better number, except own rank, defensive rating, points allowed and TOV% (lower is better). Green / red Difference: ${what} ${big}+ points per 100 better / worse against the top group than against the rest. The small "#" next to each number is the team's league rank in that column (1 = best; teams showing the same number share a rank). Early in the season most teams have played only a few of these games, so read small samples with care. Built ${new Date(D.generatedAt).toLocaleString()}.`;
+  $("foot").innerHTML = `Possessions are estimated from box scores (FGA - OREB + TOV + 0.44 x FTA, averaged over both teams). "Best first" means the better number, except own rank, defensive rating, points allowed and TOV% (lower is better). Green / red Difference: ${what} ${big}+ points per 100 better / worse against the ${side === "top" ? "top" : "bottom"} group than against the rest. The small "#" next to each number is the team's league rank in that column (1 = best; teams showing the same number share a rank). Early in the season most teams have played only a few of these games, so read small samples with care. Built ${new Date(D.generatedAt).toLocaleString()}.`;
 }
 function syncDir() { document.querySelectorAll("#dir button").forEach((b) => b.classList.toggle("on", b.dataset.d === dir)); }
 function syncBy() { document.querySelectorAll("#by button").forEach((b) => b.classList.toggle("on", b.dataset.b === by)); }
@@ -257,7 +269,7 @@ document.querySelectorAll("#by button").forEach((b) => b.onclick = () => {
 });
 $("n").onchange = render;
 // ---- Players vs top defenses and 30-point games allowed (moved from GameFlow, 11/13): every team's box scores ----
-let view = ["players", "thirty", "highs", "types"].includes(q.get("view")) ? q.get("view") : "teams", PG = null, pside = "fall", hwho = "vets", HA = null;
+let view = ["bottom", "players", "thirty", "highs", "types"].includes(q.get("view")) ? q.get("view") : "teams", PG = null, pside = "fall", hwho = "vets", HA = null;
 async function teamFiles() {
   if (PG) return PG;
   const tris = [...new Set(D.games.flatMap((g) => [g.h, g.a]))].sort();
@@ -315,8 +327,15 @@ async function renderHighs() {
 document.querySelectorAll("#hwho button").forEach((b) => b.onclick = () => { hwho = b.dataset.w; document.querySelectorAll("#hwho button").forEach((x) => x.classList.toggle("on", x === b)); renderHighs(); });
 function showView() {
   document.querySelectorAll("#view button").forEach((b) => b.classList.toggle("on", b.dataset.v === view));
-  for (const v of ["teams", "players", "thirty", "highs", "types"]) $(`v-${v}`).hidden = v !== view;
+  for (const v of ["teams", "players", "thirty", "highs", "types"]) $(`v-${v}`).hidden = v !== (view === "bottom" ? "teams" : view);
   const u = new URL(location.href); if (view === "teams") u.searchParams.delete("view"); else u.searchParams.set("view", view); history.replaceState(null, "", u);
+  // the top and bottom tabs share one table; the widest group is "winning" on one and "losing" on the other
+  if (view === "teams" || view === "bottom") {
+    const was = side; side = view === "bottom" ? "bottom" : "top";
+    $("n").querySelector('option[value="winning"]').hidden = side !== "top"; $("n").querySelector('option[value="losing"]').hidden = side !== "bottom";
+    if (side !== was) { if ($("n").value === "winning" || $("n").value === "losing") $("n").value = side === "top" ? "winning" : "losing"; dir = "best"; syncDir(); }
+    if (D) render();
+  }
   if (!D) return;
   if (view === "players") renderPlayers().catch((e) => { $("pkey").textContent = "Couldn't load the box scores: " + e.message; });
   if (view === "thirty") renderThirty().catch((e) => { $("tkey").textContent = "Couldn't load the box scores: " + e.message; });

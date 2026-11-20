@@ -64,13 +64,21 @@ export function ratings(lines) {
   byRec.forEach((t, i) => { const p = byRec[i - 1]; out[t].rrank = p && out[p].pct === out[t].pct && out[p].w === out[t].w ? out[p].rrank : i + 1; });
   Object.keys(out).sort((a, b) => out[a].drtg - out[b].drtg).forEach((t, i) => { out[t].drank = i + 1; });
   Object.keys(out).sort((a, b) => out[b].ortg - out[a].ortg).forEach((t, i) => { out[t].orank = i + 1; });
+  // 0.133.0: the same ranks counted from the bottom, for "vs the worst teams". Record: win % from the lowest, then
+  // losses (most first); tied teams share a rank. Defense: highest defensive rating first.
+  const byWorst = Object.keys(out).sort((a, b) => out[a].pct - out[b].pct || out[b].l - out[a].l);
+  byWorst.forEach((t, i) => { const p = byWorst[i - 1]; out[t].rbrank = p && out[p].pct === out[t].pct && out[p].l === out[t].l ? out[p].rbrank : i + 1; });
+  Object.keys(out).sort((a, b) => out[b].drtg - out[a].drtg).forEach((t, i) => { out[t].dbrank = i + 1; });
   return out;
 }
 
 /** The top N teams by "record" or "defense". Record: teams tied with the Nth are all in. */
-export function topSet(r, n, by = "defense") {
+export function topSet(r, n, by = "defense", side = "top") {
   // "winning": every team with a winning record (GameFlow's widest group, 11/13).
   if (n === "winning") return new Set(Object.keys(r).filter((t) => r[t].w > r[t].l));
+  // 0.133.0: the bottom N, counted from the worst ("losing": every team with a losing record).
+  if (n === "losing") return new Set(Object.keys(r).filter((t) => r[t].w < r[t].l));
+  if (side === "bottom") return new Set(Object.keys(r).filter((t) => (by === "record" ? r[t].rbrank : r[t].dbrank) <= n));
   if (by === "record") return new Set(Object.keys(r).filter((t) => r[t].rrank <= n));
   return new Set(Object.keys(r).filter((t) => r[t].drank <= n));
 }
@@ -82,9 +90,9 @@ export function topSet(r, n, by = "defense") {
  *   diff = offensive rating vs top minus vs the rest (by "defense"),
  *          net rating vs top minus vs the rest (by "record").
  */
-export function vsTop(lines, n, by = "defense") {
+export function vsTop(lines, n, by = "defense", side = "top") {
   const r = ratings(lines);
-  const top = topSet(r, n, by);
+  const top = topSet(r, n, by, side);
   const byTeam = {};
   for (const l of lines) (byTeam[l.team] ??= []).push(l);
   const teams = {};
@@ -94,9 +102,9 @@ export function vsTop(lines, n, by = "defense") {
     const key = by === "record" ? "net" : "ortg";
     teams[t] = { all: offense(ls), vsTop: vs, rest, diff: vs && rest ? vs[key] - rest[key] : null, drank: r[t].drank, orank: r[t].orank, rrank: r[t].rrank, inTop: top.has(t) };
   }
-  const rk = by === "record" ? "rrank" : "drank";
+  const rk = side === "bottom" ? (by === "record" ? "rbrank" : "dbrank") : by === "record" ? "rrank" : "drank";
   const list = [...top].sort((a, b) => r[a][rk] - r[b][rk] || a.localeCompare(b)).map((t) => ({ team: t, drtg: r[t].drtg, w: r[t].w, l: r[t].l, rank: r[t][rk] }));
-  return { n, by, top: list, teams, ratings: r };
+  return { n, by, side, top: list, teams, ratings: r };
 }
 
 /** Each team's offense against the N best defenses (kept for older callers). */
