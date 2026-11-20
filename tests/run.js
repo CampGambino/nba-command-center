@@ -5538,6 +5538,43 @@ await articlesChecks(ok);
     ok(H.length >= 367 && FH && FH.b > 0.8 && FH.b < 1 && FH.a < 0 && calibrate(0.62, FH) < 0.56 && calibrate(0.62, FH) > 0.48,
       "calibration (0.140): on the scored nights on file (11/10 on) the fit pulls a 62% call down to about 52%, as the held-out test said", JSON.stringify(FH));
   }
+  // 0.141.0: luck, paradox, scarcity, defense by position (src/anticipate/detectors.js).
+  {
+    const D = await import("../src/anticipate/detectors.js");
+    // Ten teams. LCK wins every close game and loses big: 6-4, 6×(+1) and 4×(−16) = −58.
+    const rowsD = [], tris = ["LCK", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
+    let day = 1; const dt = () => `2026-11-${String(day++).padStart(2, "0")}`;
+    for (let k = 0; k < 6; k++) rowsD.push({ id: `w${k}`, d: dt(), h: "LCK", a: tris[1 + k], hs: 101, as: 100, hq: [25, 25, 25, 26], aq: [25, 25, 26, 24] });
+    for (let k = 0; k < 4; k++) rowsD.push({ id: `l${k}`, d: dt(), h: tris[1 + k], a: "LCK", hs: 120, as: 104, hq: [30, 30, 30, 30], aq: [26, 26, 26, 26] });
+    for (let k = 0; k < 40; k++) { const h = tris[1 + (k % 9)], a = tris[1 + ((k + 3) % 9)]; if (h !== a) rowsD.push({ id: `x${k}`, d: dt(), h, a, hs: 110, as: 100, hq: [27, 27, 28, 28], aq: [25, 25, 25, 25] }); }
+    const TL = D.teamLuck(rowsD), lck = TL.find((l) => l.team === "LCK");
+    ok(lck && /^LCK is 6-4 with a point differential of -58 \(-5\.8 a game\), which usually makes an? \d+-\d+ team: [\d.]+ wins more than its scoring margin says, the most above it in the NBA \(6-0 in games decided by 5 or fewer\)$/.test(lck.text),
+      "detectors (0.141): a record far above what the point differential usually makes is said, with the close games", JSON.stringify(TL.map((l) => l.text)));
+    const SC = D.scarcity(rowsD), only = SC.find((l) => l.team === "LCK" && /decided by 5/.test(l.text));
+    ok(only && /^LCK is 6-0 in games decided by 5 or fewer: the only team unbeaten in games decided by 5 or fewer$/.test(only.text), "detectors (0.141): scarcity names the only team (or the few) meeting a condition", JSON.stringify(SC.map((l) => l.text)));
+    // Shooting: a 35% career shooter at 50% on 60 threes; paradox: 30+ four times, all losses.
+    const G = (n, f) => Array.from({ length: n }, (_, i) => ({ d: `2026-11-${String(i + 1).padStart(2, "0")}`, team: "B", opp: "C", min: 34, pts: 20, fg3m: 0, fg3a: 0, ftm: 0, fta: 0, win: true, ...f(i) }));
+    const pgS = { s1: G(10, () => ({ fg3m: 3, fg3a: 6 })), s2: G(10, (i) => (i < 4 ? { pts: 32, win: false } : { pts: 15, win: i % 2 === 0 })) };
+    for (let k = 0; k < 6; k++) pgS[`f${k}`] = G(10, () => ({ fg3m: 2, fg3a: 5 }));   // shooters near their norm
+    const seasonsS = { keys: ["season", "g", "fg3m", "fg3a", "ftm", "fta"], players: { "Hot Hand": [["2025-26", 70, 140, 400, 100, 120]], ...Object.fromEntries(Array.from({ length: 6 }, (_, k) => [`Steady ${k}`, [["2025-26", 70, 160, 400, 100, 120]]])) } };
+    const namesS = { s1: "Hot Hand", s2: "Lone Star", ...Object.fromEntries(Array.from({ length: 6 }, (_, k) => [`f${k}`, `Steady ${k}`])) };
+    const SL = D.shootingLuck({ pg: pgS, names: namesS, seasons: seasonsS });
+    const PX = D.bigGameLosses({ pg: pgS, names: namesS });
+    ok(SL.length === 1 && /^Hot Hand is shooting 50\.0% on threes this season \(30-for-60\), against 35\.0% over his career before it \(400 attempts\): 15\.0 points above his own rate, the furthest above among the 7 players with 40\+ attempts$/.test(SL[0].text)
+      && PX.length === 1 && /^Lone Star has 4 games of 30\+ points this season \(32\.0 a game in them\), and B is 0-4 in those games \(3-3 in the others\)$/.test(PX[0].text),
+      "detectors (0.141): a shooter far from his own career rate on volume (players near theirs are not said); a scorer whose team loses his 30-point games", JSON.stringify({ SL: SL.map((l) => l.text), PX: PX.map((l) => l.text) }));
+    // Defense by position: centers score 5 over their averages against DEF; tonight OFF (with a center) plays DEF.
+    const pgP = {}, posP = {}, namesP = {};
+    for (let k = 0; k < 12; k++) for (const [P, opp] of [["C", "DEF"], ["G", "DEF"], ["C", "OTH"]]) {
+      const id = `${P}${opp}${k}`; posP[id] = P; namesP[id] = id;
+      pgP[id] = Array.from({ length: 6 }, (_, i) => ({ d: `2026-11-${String(i + 1).padStart(2, "0")}`, team: `T${k}`, opp: i % 2 ? opp : `Z${k}`, min: 30, pts: i % 2 && opp === "DEF" && P === "C" ? 20 : 15 }));
+    }
+    pgP.big = Array.from({ length: 6 }, (_, i) => ({ d: `2026-11-0${i + 1}`, team: "OFF", opp: "Q", min: 30, pts: 18 })); posP.big = "C"; namesP.big = "Big Man";
+    const posGroupT = (p) => p;
+    const DP = D.defenseByPosition({ pg: pgP, names: namesP, positions: posP, posGroup: posGroupT, slate: [{ away: "OFF", home: "DEF" }] });
+    ok(DP.length === 1 && /^Opposing centers have scored [\d.]+ points a game more than their own averages against DEF \(36 games of 15\+ minutes\), the most in the NBA; tonight: Big Man \(18\.0 a game\)$/.test(DP[0].text) && DP[0].team === "OFF",
+      "detectors (0.141): what a defense gives up to one position, against those players' own averages, said for tonight's opponent with its players at that position", JSON.stringify(DP.map((l) => l.text)));
+  }
   // 0.135: outliers against the group tonight's opponent is in. Home teams win every game here, so T01 has the best
   // record and defense and T30 the worst. "Feaster" (T14) scores 30 against T26-T30 and 10 against everyone else.
   {

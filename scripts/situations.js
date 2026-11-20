@@ -473,6 +473,15 @@ for (const [tri, games] of Object.entries(perTeam)) {
     } catch (e) { prep.errors.push(`season-long: ${e.message}`); }
     // 0.72.7: a quarter far out of line with a team's other three, and tonight's opponent in that quarter.
     try { const { quarterLines } = await import("../src/situations/quarters.js"); prep.lines.push(...quarterLines(rows, slate)); } catch (e) { prep.errors.push(`quarters: ${e.message}`); }
+    // 0.141 (audit step 5): luck (record vs point differential; shooting vs his career), paradox (30-point games his
+    // team loses), scarcity ("one of 2 teams unbeaten on the road"), what a defense gives up to one position.
+    try {
+      const { detectorLines } = await import("../src/anticipate/detectors.js"), { posGroup } = await import("../src/situations/oddlines.js");
+      const dl = detectorLines({ rows, pg, names: store.names || {}, seasons: seasonsData, nameKey: keyFn, positions: rosterPos, posGroup, slate, errors: prep.errors });
+      prep.lines.push(...dl);
+      const c = {}; for (const l of dl) c[l.kind] = (c[l.kind] || 0) + 1;
+      console.log(`detectors: ${dl.length} lines (${Object.entries(c).map(([k, n]) => `${n} ${k}`).join(", ")})`);
+    } catch (e) { prep.errors.push(`detectors: ${e.message}`); }
     // 0.80: standings with magic and elimination numbers; a line once a team's number is within five.
     try {
       const { standings, clinchLines } = await import("../src/situations/standings.js");

@@ -2,6 +2,26 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.141.0 (2026-11-20): four new detectors, luck, paradox, scarcity and defense by position (audit step 5)
+
+The user, 4:14 PM: "Go" (step 5 of `claude/audit-2026-11-20.md`: regression/luck, turning points, paradoxes, scarcity, storylines that update, what each defense allows to each type of player).
+
+**New: `src/anticipate/detectors.js`** (pure; run in `scripts/situations.js`, errors to `prep.errors`, a count in the build log). Each line is one game's team and enters the candidate pool through `PREP_KINDS`, one per game per kind (`PER_GAME`).
+- **luck**, two ways. (1) Record against point differential: the expected wins from points scored and allowed (Pythagorean, exponent 14, the usual NBA value), said for the team furthest above and the team furthest below when 1.8+ wins apart (8+ games), with its record in games decided by 5 or fewer. (2) Shooting against the player's own career: 3P% this season on 40+ attempts against 300+ career attempts before it, 7+ points apart; FT% on 30+ against 200+, 10+ apart; only the 5 furthest above and the 5 furthest below for each (57 lines without that cap on 11/20).
+- **paradox**: a player with 3+ games of 30 points whose team loses 25%+ more often in them than otherwise ("Darius Acuff Jr. has 5 games of 30+... SAC is 0-5 in those games (1-8 in the others)").
+- **scarce**: 8 tests (no home win, no road win, unbeaten at home or on the road, unbeaten or winless in games decided by 5 or fewer, unbeaten when leading after three quarters, winless when trailing after three), said only when 1 to 3 teams meet one, with the others named ("SAC is 0-9 at home: the only team without a home win").
+- **defpos**: what each defense gives up to guards, forwards and centers, measured against those players' own averages (15+ minutes, 25+ games against that defense, players at 8+ a game), the 3 most and fewest; said for tonight's opponent with its players at that position.
+- Scores 3.4 to 4.9: beside notes history and records (4-5) and above the pool's median (3.35), since each fires only on a real outlier.
+- `docs/index.html`: icons 🎲 luck, 🙃 paradox, 💎 scarce, 🛡️ defpos.
+
+**Checked by hand on 11/20, with separate code, not the detector's.** LAL 13-3, +103: 10.9 expected wins (the line: "an 11-5 team, 2.1 more"); TOR 5-10, points even: 7.5 ("an 8-7 team, 2.5 fewer"), 0-3 in close games; SAC 0-9 at home, 1-13 overall (0-5 in Acuff's 30-point games and 1-8 in the others adds up); Coby White 1,100 of 2,985 threes before this season, 36.9%. Tonight: 16 of the new lines are in the pool. The briefing's top 10 took 3 (Acuff's 0-5, TOR's luck, Mitchell's 1-3), and the storylines 10 across 7 games.
+
+**Already in place, not rebuilt:** turning points (kind "turn", `src/anticipate/seasonlong.js`, since 0.70.0, commit bd14e02) and storylines that update (the ledger's "updated" status, 0.138, lifts a line whose numbers moved).
+
+**Tests.** 1,080 checks (four new, on invented seasons): a 6-4 team at −58 is said with its 6-0 in close games; scarcity names the only team; a 35% career shooter at 50% is said and six near their norm are not; a scorer whose team loses his 30-point games; centers scoring 5 over their averages against one defense, said for tonight's opponent with its center.
+
+**Self-audit.** The thresholds are set from one night's output (11/20), not from how the lines did; whether they're the right lines is for the nightly "used it" taps and the votes to show, and those have not started (0 votes on file). The Pythagorean line ignores who a team played. Positions come from ESPN's rosters (G/F/C), so a wing listed G and one listed F are measured apart. Career rates use the career file's seasons before this one, so a player with no file entry is skipped, not guessed. Not built yet: "streak broken" lines (the end of a streak said once the night after); that is the remaining piece of step 5.
+
 ## 0.140.1 (2026-11-20): every record chance gets the recalibration, not only the main list
 
 After 0.140.0's build: the main record list was recalibrated (93 chances, raw kept), but the briefing's NBA Cup lines still showed the simulation's own chances (Dončić 26%, Davis 84%): the Cup career lists, like the franchise and season-pace lists, are made apart from `rec.items`. Now the correction is applied once to the whole records file just before it is written: every object with a chance tonight and no `pTonightRaw` yet gets one (so nothing is corrected twice). The build log says how many.
