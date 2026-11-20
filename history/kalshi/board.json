@@ -653,7 +653,7 @@
   "KXNBAPRA": {
    "title": "NBA Player Points + Rebounds + Assists",
    "events": 9,
-   "markets": 321
+   "markets": 322
   },
   "KXNBAREBPROT": {
    "title": "NBA Player Rebounds Protected",
@@ -678,7 +678,7 @@
   "KXNBAPRAPROT": {
    "title": "Pts + Reb + Ast Protected",
    "events": 9,
-   "markets": 321
+   "markets": 322
   },
   "KXNBA1Q": {
    "title": "NBA 1st Quarter Winner",
@@ -738,20 +738,20 @@
   "KXNBAEAST1SEED-26": "Boston 37%",
   "KXNBAROY-27": "Cameron Boozer 37%",
   "KXNBA-27": "San Antonio 22%",
-  "KXNBAMIMP-27": "Ty Jerome 24%",
-  "KXNBAWFINMVP-27": "Shai Gilgeous-Alexander 20%",
+  "KXNBAMIMP-27": "Ty Jerome 26%",
   "KXNBAATLANTIC-26": "Boston 58%",
   "KXNBARECORD-27BEST": "San Antonio 39%",
   "KXNBARECORD-27WORST": "Sacramento 39%",
-  "KXNBACENTRAL-26": "Detroit 72%",
+  "KXNBAWFINMVP-27": "Shai Gilgeous-Alexander 20%",
+  "KXNBACENTRAL-26": "Detroit 73%",
   "KXNBAFINMVP-27": "Victor Wembanyama 20%",
   "KXNBADPOY-27": "Victor Wembanyama 79%",
   "KXNBACUPMVP-27": "Victor Wembanyama 33%",
   "KXNBAEXEC-27": "Sam Presti 13%",
   "KXNBACONF-27": "Western Conference 61%",
-  "KXNBAWEST-27": "San Antonio 35%",
   "KXNBASOUTHEAST-26": "Miami 51%",
   "KXNBAWEST1SEED-26": "San Antonio 54%",
+  "KXNBAWEST-27": "San Antonio 35%",
   "KXNBAPACIFIC-26": "Los Angeles L 82%",
   "KXNBACLUTCH-27": "Tyrese Maxey 18%",
   "KXNBANORTHWEST-26": "Oklahoma City 43%",
