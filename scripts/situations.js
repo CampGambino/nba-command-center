@@ -877,3 +877,5 @@ for (const f of ["parse.js", "pbp.js", "misc.js"]) fs.copyFileSync(path.join(roo
 const after = Object.values(store.dates).filter((d) => d.complete).length;
 const flags = Object.values(sit.teams).reduce((a, t) => a + t.flags.length, 0);
 console.log(`situations through ${through}: ${rows.length} games (${after - before} new dates), ${Object.keys(sit.teams).length} teams, ${flags} flags, ${tonight.length} games tonight${warnings.length ? `; ${warnings.length} warnings` : ""}`);
+// 0.132.0: each warning on its own line. A count alone ("1 warnings") hid a game with no box score for a day.
+for (const w of warnings) console.error(`situations: ${w}`);

@@ -810,6 +810,19 @@ const more = {};
     ok(r0.x && same && fixed && oncePerDay && kept && reads === r4,
       "results (0.60): stat corrections: a recent game is re-read once a day (changes noted, a failed read keeps the old line), not past 3 days", JSON.stringify({ same, fixed, oncePerDay, kept, reads, r4 }));
   }
+  // 0.132.0: plays that don't add up hold back clutch only; the box score that matches the final is kept (NYK@MIN 11/19).
+  {
+    let good = false, reads = 0;
+    const det = { scoreboard: async (d) => day(d, true), detail: async (id) => { if (id === "2026-10-20") reads++; return { ok: true, data: { final: true, plays: [1], scoreOk: good, clutch: good ? { home: 5, away: 3 } : null,
+      home: [40, 80, 10, 30, 10, 12, 0], away: [40, 80, 9, 30, 10, 12, 0], players: { 7: { side: "home", starter: true, min: 30, s: [20], name: "P7" }, 8: { side: "away", starter: false, min: 12, s: [4], name: "P8" } } } }; } };
+    const w1 = []; let st = await collectResults({ espn: det, store: null, through: "2026-10-20", warnings: w1 });
+    const r0 = st.dates["2026-10-20"].games[0];
+    const boxKept = r0.pl && r0.pl[7][3] === 20 && r0.pl[8][0] === 1 && r0.hb && !r0.x && !r0.cl && /box score kept/.test(w1.join());
+    const n1 = reads; good = true; st = await collectResults({ espn: det, store: st, through: "2026-10-21" });
+    const r1 = st.dates["2026-10-20"].games[0];
+    ok(boxKept && reads === n1 + 1 && r1.x === 1 && r1.cl && r1.pl[7][3] === 20,
+      "results (0.132): plays that don't add up keep the box score (player lines, team totals) and hold back only clutch; the game is read again until the plays add up", JSON.stringify({ boxKept, x: r1.x, cl: r1.cl, w1 }));
+  }
 
   // Records. Four teams; A beats everyone; quarters set so each situation is exercised.
   const g = (id, d, h, a, hq, aq, extra = {}) => ({ id, d, h, a, hs: hq.reduce((x, y) => x + y), as: aq.reduce((x, y) => x + y), hq, aq, ot: hq.length - 4, ...extra });
@@ -2782,6 +2795,11 @@ await articlesChecks(ok);
       && CLUB.most === 3 && RATE.ratio === 2.5 && GROUP.need === 3,
       "0.108.0: the finder searches every set of two to four season totals for a club of at most three (round bars taken from the candidate's own numbers, each cleared alone by several players, together by one), sets every total against minutes played (first in steals, near last in minutes), and ranks players inside a group (the bench: first in points, assists, threes and plus/minus); none of the names, stats or bars is given to it",
       JSON.stringify({ club: of("club"), rate: of("rate"), group: of("group") }));
+    // 0.132.0: a rank he shares says so ("tied for 4th"), as the Jrue Holiday line should have on 11/20.
+    add("Even Keel", { pm: 8 }, { bench: true });
+    const G2 = f8({ pg: pgN, names: namesN }).filter((x) => x.test === "group").map((x) => x.text), six = G2.find((t) => /^Sixth Man/.test(t)) || "";
+    ok(/1st in points/.test(six) && !/tied for 1st in points/.test(six) && /tied for 1st in plus\/minus$/.test(six),
+      "0.132.0: a group rank shared with another player reads \"tied for\"; an unshared one doesn't", six);
   }
   {
     // 0.107.9: an NBA record comes before a franchise record (the league's own record book is checked first).

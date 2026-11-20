@@ -2,6 +2,26 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.132.0 (2026-11-20): a game whose play-by-play doesn't add up no longer loses its box score; shared group ranks say "tied for"
+
+The user, 10:12 AM, on the Watch List line "Jrue Holiday among bench players this season: 3rd in points, 4th in assists, 4th in steals, 9th in plus/minus": "what are the jrue holiday ranks among bench players? is that checked from game notes or stats?"
+
+**Where it comes from.** Stats, not game notes: the finder's group search (`src/anticipate/finder.js`, `GROUP`) over the ESPN box scores the build stores in `history/results`. A bench player is anyone with 5+ games who started fewer than half of them; ranks are on season totals; a line needs three top-ten ranks, one of them top three; a rank shared by three or more players is not printed.
+
+**Recount.** Every regular-season box score through 11/19 read again from ESPN (226 games, 473 players; 246 bench players by the same rule). Points 3rd (208), assists 4th (64), steals 4th (18) matched. Plus/minus did not: 79 is 8th (tied with Daniss Jenkins), not 9th.
+
+**Why it was off.** One game, NYK at MIN on 11/19 (401910021), was stored with a final score and no player lines at all. ESPN's play-by-play for it doesn't add up to the final, and `collectResults` skipped the whole game on that, box score included, though the box score is checked against the final on its own line just above. Each build read it again and skipped it again, so for a day every season total for the 27 players in that game was one game short (Landry Shamet's plus/minus 129 instead of 145; Trey Lyles above Holiday). The only trace was "1 warnings" in the log and a line in `situations.json` nobody reads.
+
+**Changed.**
+- `src/situations/results.js`: when the plays don't add up, the box score (team totals, player lines, misc) is kept; clutch and 4th-quarter lines wait. `row.x` stays 0, so the game is read again every build until the plays add up, and `records.js` keeps reading its clutch as unknown (`g.x ? !!g.cl : null`). Run on a copy of the real store: the game gets its 27 player lines and Holiday's plus/minus becomes 8th.
+- `scripts/situations.js`: each warning is printed on its own line to stderr, so it becomes a step note and shows in the page's build check, not only as a count.
+- `tools/diagnose.mjs`: part 1 flags any final game stored with no player lines, lists games waiting on play-by-play, and prints the results step's warnings. Run on the store as it was, it flagged NYK@MIN.
+- `src/anticipate/finder.js`: a group rank shared with one other player reads "tied for 4th" (Holiday's steals, 18, are level with Ziaire Williams; his plus/minus with Jenkins).
+
+**Tests.** 1,046 checks (two new): plays that don't add up keep the player lines and team totals, leave clutch empty, and fill clutch on a later read once they add up; a shared group rank reads "tied for", an unshared one doesn't.
+
+**Self-audit.** I checked the line against the stored data first and found it agreed with itself; only a fresh pull from ESPN showed the store was short. The skip had been there since clutch counting was added: a guard meant for the clutch numbers sat in front of the whole box score. The rule that a rank shared by three or more isn't printed is why his threes (5th, 37, level with Anfernee Simons and Saddiq Bey) aren't on the line; that is by design and unchanged. Still open: six season totals differ from ESPN by one steal or assist (Powell, Pritchard, Mitchell Robinson, Collier, Filipowski, Awaka), ESPN corrections made after the three-day re-read window (`RECHECK_DAYS`). None touches a line on the page today; a weekly full re-read would catch them and is not built.
+
 ## 0.131.0 (2026-11-20): #articles: The Athletic's live blog had gone quiet since Tuesday; now it says so, and reads the season blog
 
 The user, 8:41 AM: "did the article discord checker stop providing updates from the athletic blog?" with the address of The Athletic's NBA news live blog (`nba-news-schedule-scores-games-live-updates-2026/CzqWv0txVItd`).

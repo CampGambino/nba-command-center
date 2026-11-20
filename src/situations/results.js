@@ -95,8 +95,18 @@ export async function collectResults({ espn, store, through, warnings = [] }) {
       if (!r.ok) { warnings.push(r.error); continue; }
       const g = r.data;
       if (!g.final || !g.home || !g.away || !g.plays) { warnings.push(`game ${row.id}: summary incomplete`); continue; }
-      if (!g.scoreOk) { warnings.push(`game ${row.id}: play-by-play doesn't add up to the final score; clutch not counted yet`); continue; }
       if (pointsOf(g.home) !== row.hs || pointsOf(g.away) !== row.as) { warnings.push(`game ${row.id}: box totals ${pointsOf(g.home)}-${pointsOf(g.away)} don't match the final ${row.hs}-${row.as}`); continue; }
+      // 0.132.0: a play-by-play that doesn't add up used to skip the whole game, box score included (NYK@MIN 11/19 sat
+      // with no player lines for a day, so every season total and rank was one game short for 19 players). The box score
+      // checks against the final on its own (above), so it is kept; only what the plays feed (clutch, 4th-quarter lines)
+      // waits. row.x stays 0, so the game is read again on every build until the plays add up.
+      if (!g.scoreOk) {
+        warnings.push(`game ${row.id}: play-by-play doesn't add up to the final score; box score kept, clutch and 4th-quarter lines not counted yet`);
+        row.hb = g.home; row.ab = g.away;
+        if (g.players) { row.pl = {}; for (const [id, x] of Object.entries(g.players)) { row.pl[id] = [x.side === "home" ? 0 : 1, x.starter ? 1 : 0, x.min, ...x.s]; if (x.name) (out.names ??= {})[id] = x.name; } }
+        if (g.misc) setMisc(row, g.misc);
+        continue;
+      }
       row.hb = g.home; row.ab = g.away;
       row.cl = g.clutch ? [g.clutch.home, g.clutch.away] : 0;
       // Clutch-time player lines: { ok: lineups were complete, p: { espnId: [0 home | 1 away, ...CLUTCH_KEYS] } }

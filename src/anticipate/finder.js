@@ -239,10 +239,10 @@ export function findings({ pg, names = {}, qsum = {}, teamGp = {}, allStars = nu
       if (G.length < 20) continue;
       const gr = Object.fromEntries([...TOTALS, ["pm", "plus/minus"]].map(([k]) => [k, rankBy(G, (t) => t[k])])), found = [];
       const shared = (k, v) => G.filter((x) => x[k] === v).length;                   // a rank half the group shares (no blocks at all) is not a rank
-      for (const t of G) { const said = [...TOTALS, ["pm", "plus/minus"]].filter(([k]) => t[k] > 0 && shared(k, t[k]) <= 2).map(([k, w]) => [gr[k].get(t), w]).filter(([r]) => r <= GROUP.top); if (said.length >= GROUP.need && said.some(([r]) => r <= GROUP.best)) found.push({ t, said, sum: said.reduce((a, [r]) => a + (GROUP.top + 1 - r), 0) }); }
+      for (const t of G) { const said = [...TOTALS, ["pm", "plus/minus"]].filter(([k]) => t[k] > 0 && shared(k, t[k]) <= 2).map(([k, w]) => [gr[k].get(t), w, shared(k, t[k]) > 1]).filter(([r]) => r <= GROUP.top); if (said.length >= GROUP.need && said.some(([r]) => r <= GROUP.best)) found.push({ t, said, sum: said.reduce((a, [r]) => a + (GROUP.top + 1 - r), 0) }); }
       for (const f of found.sort((a, b) => b.sum - a.sum).slice(0, GROUP.lines))
         out.push({ kind: "find", test: "group", team: f.t.p.team, player: f.t.p.name, key: `find|group|${label}|${f.t.p.id}`, surprise: 2.8 + Math.min(1.2, f.sum / 20), rare: false,
-          text: `${f.t.p.name} among ${label} this season: ${f.said.map(([r, w]) => `${ord(r)} in ${w}`).join(", ")}` });
+          text: `${f.t.p.name} among ${label} this season: ${f.said.map(([r, w, tie]) => `${tie ? "tied for " : ""}${ord(r)} in ${w}`).join(", ")}` });   // 0.132.0: a shared rank says so
     }
   }
   // 9. outdo (0.115; the user, 11/19: "does the program check if a player has more than any stat compared to other

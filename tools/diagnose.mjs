@@ -48,6 +48,17 @@ const bad = (l) => { found++; return `✗ ${l}`; };
   if (W && W.date === data.watch?.today) { const n = [...(W.runs || []), ...(W.owners || [])].filter((a) => gone.has(`${a.team}|${nk(a.name)}`)); if (n.length) lines.push(`· the odd lines' "to watch tonight" data holds ${n.length} rows for players listed out or doubtful (${[...new Set(n.map((a) => a.name))].slice(0, 6).join(", ")}…); the page leaves them out since 0.125`); }
   const ms = (data.watch?.teams || []).flatMap((t) => (t.items || []).filter((it) => gone.has(`${t.team}|${nk(it.player)}`)));
   if (ms.length) lines.push(`· ${ms.length} milestones are for players listed out or doubtful tonight (kept on purpose: they stay in reach for his next game)`);
+  // 0.132.0: a final game stored with no player lines (NYK@MIN 11/19 sat a day like that; every season total and rank
+  // was one game short for its players), and the results step's own warnings, which a count used to hide.
+  try {
+    const { loadStore, allGames } = await import(path.join(root, "src", "situations", "results.js"));
+    const st = loadStore(path.join(root, "history", "results"), fs), rows = st ? allGames(st) : [];
+    const thin = rows.filter((g) => !g.pl || !Object.keys(g.pl).length);
+    for (const g of thin) lines.push(bad(`results: ${g.d} ${g.a}@${g.h} (${g.id}) is final ${g.as}-${g.hs} but has no player lines, so its players' season totals are a game short`));
+    const pc = rows.filter((g) => g.pl && Object.keys(g.pl).length && !g.x);
+    if (pc.length) lines.push(`· ${pc.length} game(s) have box scores but no clutch or 4th-quarter lines yet (play-by-play doesn't add up): ${pc.map((g) => `${g.d} ${g.a}@${g.h}`).join(", ")}`);
+  } catch (e) { lines.push(bad(`results store could not be read: ${e.message}`)); }
+  for (const w of data.situations?.warnings || []) lines.push(`· results step said: ${w}`);
   if (lines.length === 1) lines.push("✓ nothing found");
   say("1. THE PUBLISHED DATA", lines);
 }
