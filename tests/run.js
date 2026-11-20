@@ -5408,6 +5408,43 @@ await articlesChecks(ok);
   const half = rows.map((g, i) => (i % 3 ? { ...g, m: undefined, mq: undefined, mp: undefined } : g));
   ok(Object.keys(teamTypes(half).teams).length === 0 && edges({ rows: half, names, tonight: [{ away: "T01", home: "T30" }] }).games[0].items.filter((i) => !i.cats).length === 0,
     "matchup edges (0.95): while the season's games are still being read (under 80% of a team's games) nothing is ranked or said");
+  // 0.137.0: what the Watch List shows first and what it folds (src/site/trim.js; copied to docs/lib/site).
+  {
+    const { trimStories, trimMatchups, trimNotes, briefTextSet, smallShift, TRIM } = await import("../src/site/trim.js");
+    const BT = briefTextSet({ top: [{ text: "RJ Barrett and Collin Murray-Boyles both out: TOR 2-2" }], deep: [] });
+    const S = trimStories([
+      { kind: "injury", team: "TOR", text: "RJ Barrett and Collin  Murray-Boyles both out: TOR 2-2", score: 3 },
+      { kind: "shift", team: "DET", text: "Daniss Jenkins is averaging 36.5 minutes over his last 6 games", score: 2.5 },
+      { kind: "shift", team: "DET", text: "Jalen Duren is averaging 11.0 rebounds over his last 4 games", score: 2.1 },
+      { kind: "shift", team: "TOR", text: "Michael Porter Jr. is averaging 0.6 steals over his last 10 games", score: 2.4 },
+      { kind: "history", team: "DET", text: "DET notes — Ausar Thompson: career-high 12 assists", score: 2 },
+    ], BT);
+    ok(S.inBrief.length === 1 && S.shown.map((l) => l.text.split(" ")[0]).join() === "Daniss,DET" && S.folded.length === 2 && smallShift(S.folded[1]) && TRIM.shiftsPerTeam === 1,
+      "Watch List (0.137): a storyline already in the briefing isn't repeated (spacing aside); a team keeps its strongest shift; a shift under 1.5 steals, blocks or turnovers folds even when it is a team's only one", JSON.stringify(S));
+    const M = trimMatchups([
+      { edge: true, team: "ORL", tag: "Paint edge · ORL", text: "The Nets score 42.3 points in the paint", score: 2.05 },
+      { team: "ORL", tag: "Series streak · 9", text: "The Magic have won 9 straight against the Nets, their longest since 2012.", score: 4.2 },
+      { team: "ORL", tag: "Series record", text: "A win tonight would be the Magic's 10th straight over the Nets.", score: 2.4 },
+      { team: "ORL", tag: "Season series", text: "The Magic lead the season series 1-0.", score: 1.6 },
+      { team: "ORL", tag: "All-time series", text: "All-time: the Magic lead the Nets 78-60.", score: 1 },
+      { team: "ORL", tag: "Streak vs BKN · 10", text: "Wendell Carter Jr.'s teams have won 10 straight against the Nets.", score: 2.7 },
+      { team: "ORL", tag: "Streak vs BKN · 8", text: "Anthony Black's teams have won 8 straight against the Nets.", score: 2.38 },
+      { team: "BKN", tag: "Streak vs ORL · 6", text: "Day'Ron Sharpe's teams have lost 6 straight against the Magic.", score: 1.54 },
+    ], ["Series streak · 9: The Magic have won 9 straight against the Nets, their longest since 2012."]);
+    ok(M.inStories.length === 1 && M.shown.map((i) => i.tag.split(" ·")[0]).join() === "Paint edge,Streak vs BKN,Series record,Season series,Streak vs ORL" && M.folded.map((i) => i.tag.split(" ·")[0]).join() === "Streak vs BKN,All-time series",
+      "Watch List (0.137): matchups show every edge first, the two strongest series lines of 1.5+, one player-vs-opponent line a team; a line already in the storylines isn't repeated; the rest fold", JSON.stringify(M));
+    const M2 = trimMatchups([{ team: "A", tag: "All-time series", text: "All-time: A leads B 75-68 in the regular season.", score: 1 }, { team: "A", tag: "Series margins", text: "Largest wins in the series: A by 47.", score: 0.9 }]);
+    ok(M2.shown.length === 1 && M2.shown[0].tag === "All-time series", "Watch List (0.137): with no series line of 1.5+, the strongest one still shows", JSON.stringify(M2));
+    const N = trimNotes([
+      { text: "Diabate leads the league in offensive rebounds per game this season.", tag: "Leads NBA", score: 6.5 },
+      { text: "The Hornets have played 14 games this season, going 4-10 so far.", tag: "Notes", score: 7 },
+      { text: "Ball needs 12 assists to pass Muggsy Bogues for the most in team history.", tag: "Notes", score: 3, hook: { live: true } },
+      { text: "Miller is 3rd in team history in threes by a player in his first 3 seasons.", tag: "3rd in team history", score: 4 },
+      { text: "Knueppel has made a three in 30 straight games, the longest streak in the league.", tag: "Streak · 30", score: 5 },
+    ], ["CHA notes — Kon Knueppel: Streak · 30 · Knueppel has made a three in 30 straight games, the longest streak in the league."]);
+    ok(N.inStories.length === 1 && N.shown.map((x) => x.text.split(" ")[0]).join() === "Diabate,Miller,Ball" && N.folded[0].text.startsWith("The Hornets") && TRIM.notesPerTeam === 3,
+      "Watch List (0.137): a team's notes show three facts with a hook (rank, record, streak, in play tonight) before plain ones, none already in the storylines; the rest fold", JSON.stringify(N));
+  }
   // 0.135: outliers against the group tonight's opponent is in. Home teams win every game here, so T01 has the best
   // record and defense and T30 the worst. "Feaster" (T14) scores 30 against T26-T30 and 10 against everyone else.
   {

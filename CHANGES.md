@@ -2,6 +2,22 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.137.0 (2026-11-20): Watch List: the fat folded (audit step 1)
+
+The user, 1:39 PM: "find the fat and redundancies… find a way to highlight the pertinent information"; 2:22 PM: "start with step 1" of the plan in the project doc `claude/audit-2026-11-20.md`.
+
+**Page only.** The data files, Discord and NBA Live get exactly what they got; this only decides what the Watch List shows first and what sits one click away (`details.fold`). Rules in `src/site/trim.js`, copied to `docs/lib/site/` by the build.
+- **Storylines:** a line already in the briefing isn't repeated (matched on its words; the game's header says "N in the briefing"); a team keeps its strongest recent-form shift and folds the rest; a shift under 1.5 steals, blocks or turnovers a game ("0.6 steals over his last 10") folds even as a team's only one.
+- **Matchups:** every marked line (edges, outliers against tonight's opponent's group); the two strongest series lines scoring 1.5 or more (the strongest one if none does: "All-time…" and "Largest wins…" score 1 or under); one player-vs-opponent line a team ("X's teams have won 10 straight against the Nets"); a line already in the storylines isn't repeated (the series streaks were in both). The rest fold under the game.
+- **Notes history:** three facts a team, those with a hook (a rank, record, streak, club, race, or in play tonight) before plain ones, none already in the storylines; the rest fold under the team. Picking a team or "New today only" shows all, as before.
+- **Milestones:** cards for a 25%+ chance tonight (or reached); the 5-25% longer shots fold (they came true 12% of the time over 11 nights). "Next 5 games" and "All milestones" are folded under "Coming up", with their counts.
+
+**Measured** in a headless browser on the 11/20 data (9 games): visible words 10,267 → 6,543; page height 20,534 → 12,058 px; storylines 72 → 54 shown (10 in the briefing, 8 folded: none lost); matchups 68 → 34; notes ~108 → 52; milestone cards 100 → 17; 34 folds. No page errors.
+
+**Tests.** 1,065 checks (four new): briefing repeats and shift caps (spacing differences still match); the matchup families and caps, edges first, a storylines repeat dropped; the strongest series line kept when none reaches 1.5; notes ranked hook first, storyline repeats dropped.
+
+**Self-audit.** The thresholds (1 shift a team, 2 series lines at 1.5+, 3 notes a team, 25% for a card) are first cuts set against one night's data; they are constants in `TRIM` and the card threshold, easy to move. Matching briefing repeats on words works because the briefing copies the storyline text; a reworded copy would show twice. Step 2 (one ledger with claim keys) replaces the word matching.
+
 ## 0.136.4 (2026-11-20): the NYK@MIN play-by-play note leaves the Watch List banner; `/headlines` says what posted
 
 The user, 12:31 PM: the Front Office Sports story "How ESPN's Dave McMenamin Learned to Follow LeBron's 'Breadcrumbs'" (12:12 PM) had not come through on Discord, and the Watch List's build-check banner showed "game 401910021: play-by-play doesn't add up to the final score; box score kept…".

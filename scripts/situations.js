@@ -872,6 +872,8 @@ fs.mkdirSync(path.join(root, "docs", "ref"), { recursive: true });
 for (const f of fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^nba-(record-book|single-game-bests|postseason-careers)-/.test(f))) fs.copyFileSync(path.join(root, "src", "data", f), path.join(root, "docs", "ref", f.replace(/-\d{4}-\d\d\.json$/, ".json")));
 fs.mkdirSync(path.join(root, "docs", "lib", "anticipate"), { recursive: true });
 for (const f of ["tonight.js", "briefing.js", "learn.js", "buzz.js"]) fs.copyFileSync(path.join(root, "src", "anticipate", f), path.join(root, "docs", "lib", "anticipate", f));
+fs.mkdirSync(path.join(root, "docs", "lib", "site"), { recursive: true });
+fs.copyFileSync(path.join(root, "src", "site", "trim.js"), path.join(root, "docs", "lib", "site", "trim.js"));   // 0.137.0: the Watch List's folding rules
 fs.mkdirSync(path.join(root, "docs", "lib", "espn"), { recursive: true });
 for (const f of ["parse.js", "pbp.js", "misc.js"]) fs.copyFileSync(path.join(root, "src", "espn", f), path.join(root, "docs", "lib", "espn", f));
 const after = Object.values(store.dates).filter((d) => d.complete).length;

@@ -103,6 +103,9 @@
   .brief .vote button { border: 1px solid var(--line); background: transparent; border-radius: 8px; padding: 1px 6px; cursor: pointer; font-size: 13px; opacity: .55; }
   .brief .vote button:hover { opacity: 1; } .brief .vote button.on { opacity: 1; border-color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); }
   .brief h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--faint); margin: 12px 0 2px; }
+  details.fold { margin: 6px 0 0; }
+  details.fold > summary { cursor: pointer; color: var(--muted, #6b7280); font-size: 13px; padding: 2px 0; }
+  details.fold[open] > summary { margin-bottom: 4px; }
 </style>
 </head>
 <body>
@@ -123,31 +126,31 @@
   <details class="seen" id="seenBox" hidden><summary id="seenSum"></summary><div class="key">Stats other accounts posted, checked against what our lines said the morning before (from the results as they stood then). Each miss is the next thing to build.</div><ul id="seenList"></ul></details>
 
   <h2>Tonight's storylines</h2>
-  <div class="key">What could happen or end tonight, per game: 📜 history from the teams' notes, 🩹 regulars on the injury report and what changes without them, milestones in reach, streaks on the line, runs leading the team, shooters a make or two from 50 / 40 / 90, and team streaks. The same lines go to Discord at 3 PM. Tap a line for the details.<span id="injAsOf"></span></div>
+  <div class="key">What could happen or end tonight, per game: 📜 history from the teams' notes, 🩹 regulars on the injury report and what changes without them, milestones in reach, streaks on the line, runs leading the team, shooters a make or two from 50 / 40 / 90, and team streaks. The same lines go to Discord at 3 PM. Here, a line already in the briefing isn't repeated (the game's header counts them), and a team's weaker recent-form shifts fold under the game. Tap a line for the details.<span id="injAsOf"></span></div>
   <div class="stories" id="stories"><div class="empty">Loading…</div></div>
 
   <h2 id="matchups">Matchups tonight</h2>
-  <div class="key">What's active or lopsided between tonight's opponents. <b>Marked lines first</b>: a team at one end of the league in points in the paint, on the fast break, on second chances or off turnovers against a team at the other end (top 5 against bottom 5), a league leader in one of those against a defense that allows the most of it, and the players and teams whose scoring changes most against the top 5 defenses when they meet one tonight (the full tables are on <a href="defenses.html?view=types">vs top teams</a>). Then: series streaks (however long), the recent meetings when one-sided (the last 10, reaching further back while it stays 80%+), streaks in tonight's arena, season series, last season's playoff series, and each regular against tonight's opponent (his best or worst average against any team, his teams' record, a streak still going). Regular season, 2016-17 on, plus this season's games.</div>
+  <div class="key">What's active or lopsided between tonight's opponents. <b>Marked lines first</b>: a team at one end of the league in points in the paint, on the fast break, on second chances or off turnovers against a team at the other end (top 5 against bottom 5), a league leader in one of those against a defense that allows the most of it, and the players and teams whose scoring changes most against the top 5 defenses when they meet one tonight (the full tables are on <a href="defenses.html?view=types">vs top teams</a>). Then: series streaks (however long), the recent meetings when one-sided (the last 10, reaching further back while it stays 80%+), streaks in tonight's arena, season series, last season's playoff series, and each regular against tonight's opponent (his best or worst average against any team, his teams' record, a streak still going). Regular season, 2016-17 on, plus this season's games. Shown first: every marked line, the two strongest series lines, and one player's record against tonight's opponent per team; the rest fold under the game, and a line already in the storylines isn't repeated.</div>
   <div class="stories" id="matchupList"><div class="empty">Loading…</div></div>
 
   <h2 id="history">History in tonight's notes</h2>
-  <div class="key">Lines from each team's game notes, word for word as the team's PR staff wrote them: history made or in reach, league ranks, "one of N" clubs, active streaks, races on a list, and the series. The tag says what kind of fact it is; the line under it is what tonight can change (<b>bold</b> = in play tonight), from the table printed beside it in the notes or this season's box scores. <b>New</b> = not in the team's earlier notes. A player is named only when the sentence names him. <b>Trimmed</b> (listed under each team): closed past one-offs nothing tonight can add to (a season-opener total, a pass made weeks ago) unless rare over 10+ years, filler, a home-only stat on a road night, and lines the page layout garbled; a team with few lines keeps its best ones. Every team playing tonight is listed, lines or not.</div>
+  <div class="key">Lines from each team's game notes, word for word as the team's PR staff wrote them: history made or in reach, league ranks, "one of N" clubs, active streaks, races on a list, and the series. The tag says what kind of fact it is; the line under it is what tonight can change (<b>bold</b> = in play tonight), from the table printed beside it in the notes or this season's box scores. <b>New</b> = not in the team's earlier notes. A player is named only when the sentence names him. <b>Trimmed</b> (listed under each team): closed past one-offs nothing tonight can add to (a season-opener total, a pass made weeks ago) unless rare over 10+ years, filler, a home-only stat on a road night, and lines the page layout garbled; a team with few lines keeps its best ones. Every team playing tonight is listed, lines or not. Each team shows its three strongest lines first (a rank, record, streak or something in play tonight before the rest), none already in tonight's storylines; the others fold under the team. Pick a team or "New today only" to see all of them.</div>
   <div class="controls" style="margin:0 0 8px"><select id="histTeam"><option value="">All of tonight's teams</option></select> <label style="font-size:13px"><input type="checkbox" id="histNew"> New today only</label></div>
   <div class="stories" id="historyList"><div class="empty">Loading…</div></div>
 
   <h2>Likely tonight</h2>
   <div class="cards" id="tonight"></div>
+  <details class="fold" id="longBox"><summary id="longSum"></summary><div class="cards" id="longshots"></div></details>
 
-  <h2>Next 5 games</h2>
-  <div id="soon"></div>
-
-  <h2>All milestones</h2>
+  <h2>Coming up</h2>
+  <details class="fold"><summary id="soonSum">Next 5 games</summary><div id="soon"></div></details>
+  <details class="fold"><summary id="allSum">All milestones</summary>
   <div class="controls">
     <select id="teamFilter"><option value="">All teams</option></select>
     <input type="search" id="q" placeholder="Player">
     <label><input type="checkbox" id="showReview"> include review / not live / minor places</label>
   </div>
-  <div id="all"></div>
+  <div id="all"></div></details>
 </main>
 <footer>
   Chances are model estimates from recent games and ESPN's injury list. They are not yet calibrated: treat them as a guide.
@@ -159,6 +162,7 @@
 import { readBox } from "./lib/espn/parse.js";
 import { statFromLine } from "./lib/registry/track.js";
 import { tonightStorylines, injuryStatus } from "./lib/anticipate/tonight.js";
+import { trimStories, trimMatchups, trimNotes, briefTextSet } from "./lib/site/trim.js";   // 0.137.0: what shows first, what folds
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -276,14 +280,18 @@ function render() {
   const projected = items.filter((i) => (i.publishable && !i.minor) || $("showReview").checked);
   const tonight = items.filter((i) => !i.minor && ((i.pTonight ?? 0) >= 0.05 || i.liveHit))
     .sort((a, b) => isOut(a) - isOut(b) || (b.liveHit - a.liveHit) || (b.pTonight * b.importance - a.pTonight * a.importance));
-  $("tonight").innerHTML = tonight.length ? tonight.map(card).join("") : `<div class="empty">No milestone has a 5%+ chance tonight.</div>`;
+  // 0.137.0: cards for a 25%+ chance (or reached); the 5-25% longer shots folded (they came true 12% of the time over 11 nights).
+  const likely = tonight.filter((i) => i.liveHit || (i.pTonight ?? 0) >= 0.25), long = tonight.filter((i) => !likely.includes(i));
+  $("tonight").innerHTML = likely.length ? likely.map(card).join("") : `<div class="empty">No milestone has a 25%+ chance tonight.</div>`;
+  $("longBox").hidden = !long.length; $("longSum").textContent = `${long.length} longer shot${long.length === 1 ? "" : "s"} (5-25% tonight)`; $("longshots").innerHTML = long.map(card).join("");
   const soon = items.filter((i) => i.eta && i.eta.game <= 5 && !i.minor && !tonight.includes(i)).sort((a, b) => isOut(a) - isOut(b) || a.eta.game - b.eta.game || b.importance - a.importance);
-  $("soon").innerHTML = table(soon);
+  $("soon").innerHTML = table(soon); $("soonSum").textContent = `Next 5 games: ${soon.length} milestone${soon.length === 1 ? "" : "s"} expected`;
   const team = $("teamFilter").value, q = $("q").value.trim().toLowerCase();
   const all = projected.filter((i) => (!team || i.team === team) && (!q || i.player.toLowerCase().includes(q)))
     .sort((a, b) => isOut(a) - isOut(b) || (a.eta?.game ?? 99) - (b.eta?.game ?? 99) || b.importance - a.importance);
   const limit = showAll ? all.length : 40;
   { const g = grouped(all).map((x) => x.i); all.length = 0; all.push(...g); }
+  $("allSum").textContent = `All milestones (${all.length})`;
   $("all").innerHTML = table(all.slice(0, limit)) + (all.length > limit ? `<p><button id="more">Show all ${all.length}</button></p>` : "");
   $("more")?.addEventListener("click", () => { showAll = true; render(); });
   const games = gamesList();
@@ -325,6 +333,7 @@ async function poll() {
 const KIND = { find: ["🔎", "#brief"], shift: ["📊", "trends.html#shifts"], matchup: ["🆚", "#matchups"], history: ["📜", "#history"], injury: ["🩹", "players.html"], milestone: ["🎯", "#all"], streak: ["🔥", "trends.html"], lead: ["👑", "leaders.html"], shooting: ["🏹", "leaders.html"], club: ["💯", "leaders.html#club"], tv: ["📺", "national.html"], rest: ["😴", "standings.html#rest"], form: ["♨️", "trends.html#form"], foul: ["⚠️", "gameflow.html"], early: ["🔄", "gameflow.html"], fourth: ["⏳", "clutch.html?mode=l2m"], qtr: ["🕒", "situations.html"], clinch: ["🔒", "standings.html#standings"], team: ["📈", "trends.html"], season: ["📊", "trends.html"], span: ["🧩", "players.html"], pstreak: ["🔥", "trends.html"], vsopp: ["🆚", "#matchups"], pace: ["⏱️", "records.html#season"], record: ["🏛️", "records.html#reach"], context: ["📊", "records.html"], trade: ["🔁", "players.html"], role: ["🪑", "players.html"], lineup: ["🖐️", "trends.html"], turn: ["↪️", "trends.html"], beaten: ["⚔️", "trends.html"], defense: ["🛡️", "defenses.html?view=thirty"], cup: ["🏆", "records.html#cup"], month: ["🗓️", "trends.html"], monthp: ["🗓️", "players.html"], rookie: ["🌱", "leaders.html"], era: ["📆", "leaders.html"], unique: ["🦄", "players.html"] };
 let FACTS = null;
 let INJ = null;
+let STORY_TEXTS = [];   // 0.137.0: tonight's storyline texts, so the notes list doesn't repeat them
 function renderHistory(facts, injuries) {
   if (facts) FACTS = facts;
   if (injuries) INJ = injuries;
@@ -341,12 +350,15 @@ function renderHistory(facts, injuries) {
   const cards = Object.entries(f.teams).filter(([t]) => !only || t === only).sort(([a], [b]) => a.localeCompare(b)).map(([t, all]) => {
     const out = [...new Set(all.filter((x) => /^(?:Out|Doubtful)$/.test(status(t, x.player) || "")).map((x) => `${x.player} (${status(t, x.player)})`))];
     const list = all.filter((x) => !/^(?:Out|Doubtful)$/.test(status(t, x.player) || ""));
-    const show = list.filter((x) => !newOnly || x.isNew).slice(0, only ? 60 : 6);
+    // 0.137.0: on the full list, a team's three strongest facts (a hook first) not already in tonight's storylines; the rest one click away.
+    const T = only || newOnly ? { shown: list.filter((x) => !newOnly || x.isNew).slice(0, 60), folded: [], inStories: [] } : trimNotes(list, STORY_TEXTS);
+    const show = T.shown;
     const tr = TR[t] || [];
     const trimmedHtml = tr.length ? `<details style="padding:6px 0 0"><summary class="empty" style="cursor:pointer">${tr.length} trimmed</summary><ul>${tr.map((x) => `<li><span class="k">✂️</span><span><span class="tag">${esc(x.why)}</span>${x.player ? `<b>${esc(x.player)}</b> · ` : ""}${esc(x.text)}</span></li>`).join("")}</ul></details>` : "";
     const head = `<h3><span>${esc(t)} notes${ST[t] ? ` <span class="when">${ST[t].home ? "vs" : "at"} ${esc(ST[t].opp)}</span>` : ""}</span><span class="when" title="New: first printed in this team's notes today (not in any earlier version this season). It says nothing about when the event happened.">${list.filter((x) => x.isNew).length} new in the notes today · ${list.length} lines</span></h3><div class="empty" style="padding:0 0 4px">${noteWord(ST[t])}</div>`;
     if (!show.length && !out.length) return newOnly && list.length ? "" : `<div class="story">${head}<div class="empty">No lines kept from tonight's notes.</div>${trimmedHtml}</div>`;
-    return `<div class="story">${head}<ul>${show.map((x) => `<li><span class="k">${x.matchup ? "🆚" : x.kind === "pass" || x.kind === "next" || x.hook?.live ? "🎯" : "📜"}</span><span>${x.tag && x.tag !== "Notes" ? `<span class="tag">${esc(x.tag)}</span>` : ""}${x.kept ? `<span class="tag" title="A past one-off kept because the team has few lines tonight">kept: few lines</span>` : ""}${x.isNew ? "<b>New:</b> " : ""}${x.player ? `<b>${esc(x.player)}</b>${status(t, x.player) === "Questionable" ? " <i>(Questionable)</i>" : ""} · ` : ""}${esc(x.text)}${x.hook?.text ? `<span class="hook${x.hook.live ? " live" : ""}">→ ${esc(x.hook.text)}</span>` : ""}</span></li>`).join("")}</ul>${out.length ? `<div class="empty" style="padding:6px 0 0">Hidden, on tonight's injury report: ${esc(out.join(", "))}</div>` : ""}${!only && list.length > show.length ? `<div class="empty" style="padding:6px 0 0"><a href="#history" onclick="document.getElementById('histTeam').value='${esc(t)}';document.getElementById('histTeam').onchange();return false;">All ${list.length} lines</a></div>` : ""}${trimmedHtml}</div>`;
+    const nli = (x) => `<li><span class="k">${x.matchup ? "🆚" : x.kind === "pass" || x.kind === "next" || x.hook?.live ? "🎯" : "📜"}</span><span>${x.tag && x.tag !== "Notes" ? `<span class="tag">${esc(x.tag)}</span>` : ""}${x.kept ? `<span class="tag" title="A past one-off kept because the team has few lines tonight">kept: few lines</span>` : ""}${x.isNew ? "<b>New:</b> " : ""}${x.player ? `<b>${esc(x.player)}</b>${status(t, x.player) === "Questionable" ? " <i>(Questionable)</i>" : ""} · ` : ""}${esc(x.text)}${x.hook?.text ? `<span class="hook${x.hook.live ? " live" : ""}">→ ${esc(x.hook.text)}</span>` : ""}</span></li>`;
+    return `<div class="story">${head}<ul>${show.map(nli).join("")}</ul>${out.length ? `<div class="empty" style="padding:6px 0 0">Hidden, on tonight's injury report: ${esc(out.join(", "))}</div>` : ""}${T.inStories.length ? `<div class="empty" style="padding:6px 0 0">${T.inStories.length} more in tonight's storylines above.</div>` : ""}${T.folded.length ? `<details class="fold"><summary>${T.folded.length} more from the ${esc(t)} notes</summary><ul>${T.folded.map(nli).join("")}</ul></details>` : ""}${trimmedHtml}</div>`;
   }).join("");
   $("historyList").innerHTML = cards || `<div class="empty">Nothing ${newOnly ? "new " : ""}in tonight's notes.</div>`;
 }
@@ -358,9 +370,10 @@ function renderMatchups(m, injuries) {
     const items = (g.items || []).filter((i) => !i.player || !/^(?:Out|Doubtful)$/.test(status(i.team, i.player) || ""));
     // 0.95 (the user, 11/17): the lopsided matchups of the night (scoring by type, the outliers against a top-5
     // defense) come first and are marked; the other lines follow as before.
-    const edge = items.filter((i) => i.edge), rest = items.filter((i) => !i.edge).slice(0, 8);
+    // 0.137.0: every edge, the two strongest series lines (1.5+), one player-vs-opponent line a team; the rest folded.
+    const T = trimMatchups(items, STORY_TEXTS), edge = T.shown.filter((i) => i.edge), rest = T.shown.filter((i) => !i.edge);
     const li = (i) => `<li${i.edge ? ' class="edge"' : ""}><span class="k">${i.edge ? "⚖️" : i.active ? "🔥" : i.lopsided ? "⚖️" : "🆚"}</span><span><span class="tag">${esc(i.tag)}</span>${esc(i.text)}</span></li>`;
-    return `<div class="story"><h3><span>${esc(g.away)} @ ${esc(g.home)}</span><span class="when">${edge.length ? `${edge.length} lopsided · ` : ""}${edge.length + rest.length} lines</span></h3>${items.length ? `<ul>${[...edge, ...rest].map(li).join("")}</ul>` : `<div class="empty">Nothing active or lopsided.</div>`}</div>`;
+    return `<div class="story"><h3><span>${esc(g.away)} @ ${esc(g.home)}</span><span class="when">${edge.length ? `${edge.length} lopsided · ` : ""}${edge.length + rest.length} lines${T.inStories.length ? ` · ${T.inStories.length} in the storylines` : ""}</span></h3>${items.length ? `<ul>${[...edge, ...rest].map(li).join("")}</ul>${T.folded.length ? `<details class="fold"><summary>${T.folded.length} more: series history and other players against tonight's opponent</summary><ul>${T.folded.map(li).join("")}</ul></details>` : ""}` : `<div class="empty">Nothing active or lopsided.</div>`}</div>`;
   }).join("") || `<div class="empty">No games tonight.</div>`;
 }
 
@@ -437,14 +450,19 @@ async function renderStories() {
       const [trends, leaders, national, rest, form, prep] = await Promise.all(["data/trends.json", "data/leaders.json", "data/national.json", "data/rest.json", "data/form.json", "data/prep.json"].map(get));
       stories = tonightStorylines({ watch: data, trends, leaders, injuries, facts, matchups, national, rest, form, prep, maxLines: 8 });
     }
+    STORY_TEXTS = stories.flatMap((g) => g.lines.map((l) => l.text));
+    const BT = briefTextSet(brief && brief.today === data.today ? brief : null);
     renderBriefing(brief, injuries);
     renderSeen(flags);
     renderHistory(facts, injuries);
     renderMatchups(matchups, injuries);
     $("injAsOf").textContent = injuries?.report?.asOf ? ` Injuries from the official NBA injury report of ${injuries.report.asOf} ET${injuries.report.behind?.minutes >= 90 ? ` (the newest one with players on it: ${injuries.report.behind.missing} later slots weren't posted${injuries.report.behind.empty ? `, ${injuries.report.behind.empty} were empty` : ""})` : ""}.` : "";
     const tip = (iso) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-    $("stories").innerHTML = stories.map((g) => `<div class="story"><h3><span>${esc(g.away)} @ ${esc(g.home)}</span><span class="when">${tip(g.start)}</span></h3>
-      ${g.lines.length ? `<ul>${g.lines.map((l) => { const [icon, href0] = KIND[l.kind] || ["•", "#"]; const href = l.kind === "injury" ? `${href0}?team=${encodeURIComponent(l.team)}` : href0; return `<li><span class="k">${icon}</span><a href="${href}">${esc(l.text)}</a></li>`; }).join("")}</ul>` : `<div class="empty">Nothing notable on the line.</div>`}</div>`).join("")
+    // 0.137.0: a line already in the briefing isn't repeated here (the game header counts them); a team's
+    // strongest shift shows, its other shifts fold.
+    const sli = (l) => { const [icon, href0] = KIND[l.kind] || ["•", "#"]; const href = l.kind === "injury" ? `${href0}?team=${encodeURIComponent(l.team)}` : href0; return `<li><span class="k">${icon}</span><a href="${href}">${esc(l.text)}</a></li>`; };
+    $("stories").innerHTML = stories.map((g) => { const T = trimStories(g.lines, BT); return `<div class="story"><h3><span>${esc(g.away)} @ ${esc(g.home)}</span><span class="when">${T.inBrief.length ? `${T.inBrief.length} in the briefing · ` : ""}${tip(g.start)}</span></h3>
+      ${T.shown.length ? `<ul>${T.shown.map(sli).join("")}</ul>` : `<div class="empty">${T.inBrief.length ? "Its lines are in the briefing." : "Nothing notable on the line."}</div>`}${T.folded.length ? `<details class="fold"><summary>${T.folded.length} more recent-form shift${T.folded.length === 1 ? "" : "s"}</summary><ul>${T.folded.map(sli).join("")}</ul></details>` : ""}</div>`; }).join("")
       || `<div class="empty">No games tonight.</div>`;
   } catch (e) {
     console.warn("storylines failed", e);
