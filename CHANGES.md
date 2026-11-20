@@ -2,6 +2,20 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.130.0 (2026-11-20): the hold numbers are out of NBA Live's data and the trends file
+
+The user, 8:30 AM, to "a go, or not, for the 'as it stands' card line ('from here it has held 57% of the time')": "I don't need as it stands."
+
+**What changed.** `scripts/situations.js` no longer copies `src/data/odd-lines-hold.json` into `docs/data/oddlive.json` or `docs/data/trends.json`. Nothing read either copy after 0.129. The study, its tools (`tools/odd-games/late`) and the table stay in the repo.
+
+**Not changed:** the "AS IT STANDS" odd-line cards themselves. I read "I don't need as it stands" as an answer to the question asked (the card line), since the user asked for exactly those late cards on 11/19 ("the depending on zero is a good one to flag in the final five minutes"). If they meant the cards, that is a bridge change and waits for their word.
+
+**Tested.** 1,042 checks pass (the 0.127 check now requires the build script not to read the hold file). A situations build for 11/20 here: both files are written without `hold`, nothing else in them changed, no new complaints.
+
+**Self-audit.**
+- This removes what 0.127 added to two published files on the same night it was added; two of 0.127's three outputs are now gone at the user's word. The one that stays is the study in the repo.
+- Re-derived from the build: `oddlive.json` keys v, generatedAt, before, from, games, t, avg, pos; `trends.json` `odd` keys from, through, games, positions, nights, tonight.
+
 ## 0.129.0 (2026-11-20): the hold table is off the page
 
 The user, 12:28 AM, with a screenshot of "When a line stands late, does it hold?" on the Streaks & outliers page: "I don't need to see this table."

@@ -551,9 +551,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
   try {
     const { oddNights } = await import("../src/situations/oddlines.js"), { LINE_IX } = await import("../src/situations/trends.js");
     const hf = path.join(root, "src", "data", "odd-lines-history.json"), history = fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null;
-    // 0.127: how often a line that stands late still stands at the final (tools/odd-games/late; play-by-play since 2002-03)
-    const holdF = path.join(root, "src", "data", "odd-lines-hold.json"), hold = fs.existsSync(holdF) ? { ...JSON.parse(fs.readFileSync(holdF, "utf8")), names: (await import("../src/situations/oddlines.js")).LATE_NAMES } : null;
-    oddByDate = { from: history?.from || null, through: history?.through || null, games: history?.games || null, positions: Object.keys(rosterPos).length, hold,
+    oddByDate = { from: history?.from || null, through: history?.through || null, games: history?.games || null, positions: Object.keys(rosterPos).length,
       nights: oddNights({ rows: rows.filter((g) => !g.cupFinal), history, names: store.names || {}, pos: rosterPos, dates, IX: LINE_IX }) };
     // 0.119: what the NBA Live bridge needs to judge a live line: each level's count (history plus this season), each
     // player's averages over his games so far (ODD.games or more), and ESPN's position labels. Rules: docs/lib/situations/oddlines.js.
@@ -567,9 +565,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
         t[k] = [e.n + (mine?.n || 0), Math.round((e.l5 / ODD.recent) * 10) / 10, last ? last[0] : null, last ? last[1] : null];
       }
       for (const [id, gs] of Object.entries(pgBefore)) { const n = gs.length; if (n >= ODD.games) avg[id] = [r2(gs.reduce((a, g) => a + g.pts, 0) / n), r2(gs.reduce((a, g) => a + g.reb, 0) / n), r2(gs.reduce((a, g) => a + g.ast, 0) / n), n]; }
-      if (history) fs.writeFileSync(path.join(root, "docs", "data", "oddlive.json"), JSON.stringify({ v: 1, generatedAt: out.generatedAt, before: today, from: history.from, games: history.games, t, avg, pos: rosterPos,
-        // 0.127: per template and seconds left: [times it stood, times it held, of those on the floor, held]. Data only: no card reads it yet.
-        ...(hold ? { hold: { from: hold.from, through: hold.through, marks: hold.marks, t: Object.fromEntries(Object.entries(hold.t).map(([k, e]) => [k, Object.fromEntries(Object.entries(e).map(([m, c]) => [m, c.slice(0, 4)]))])) } } : {}) }));
+      if (history) fs.writeFileSync(path.join(root, "docs", "data", "oddlive.json"), JSON.stringify({ v: 1, generatedAt: out.generatedAt, before: today, from: history.from, games: history.games, t, avg, pos: rosterPos }));
       console.log(`odd lines, live file: ${Object.keys(t).length} levels, averages for ${Object.keys(avg).length} players`);
     } catch (e) { console.error(`odd lines, live file: ${e.message}`); }
     // 0.118: tonight's watch lists: who on the slate is a game short of a rare run or repeat, and who tends to produce which line.
