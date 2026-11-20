@@ -1425,6 +1425,9 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     const it = () => ({ kind: "pass", id: "9", who: "Back Again", stat: "pts", need: 1, tonight: true, team: "RTN", passing: { name: "Old Name", value: 1, live: false } });
     const ret = it(), bench = it();
     addChances([ret], fR, { makeSampler, simulate, sims: 800 }); addChances([bench], fB, { makeSampler, simulate, sims: 800 });
+    const q = it(), out = it();
+    addChances([q], fR, { makeSampler, simulate, sims: 800, tonightStatus: { 9: "Questionable" } }); addChances([out], fR, { makeSampler, simulate, sims: 800, tonightStatus: { 9: "Out" } });
+    ok(q.pPlay === 0.6 && q.pTonight <= 0.65 && out.pTonight === 0 && out.pNext5 > 0.8, "records (0.141.1): tonight's injury report caps tonight only (Questionable 60%, Out 0)", JSON.stringify([q.pPlay, q.pTonight, out.pTonight, out.pNext5]));
     ok(ret.pTonight > 0.8 && bench.pTonight < 0.35, "records (0.141.1): back from 7 games listed Out, he is likely to play; 7 coach's-decision DNPs still count against him", JSON.stringify([ret.pTonight, bench.pTonight]));
   }
   // Storylines: a record line tonight, unless the notes carry the same milestone.

@@ -14,9 +14,13 @@ The user, 5:35 PM, on Steven Adams' card ("1 game from 800 · career", 18% tonig
 - `src/records/guide.js` (record chases): the same, from the game's injury report already attached to the team files (`inj`): a game he was listed Out and didn't play is left out. Adams on file: Out 10/31-11/13 and 11/16, Available 11/15.
 - `src/anticipate/calibrate.js`: games-played and starts (`PLAY_ONLY`: gp, gs) are neither fitted on nor corrected; that fit was learned on points, rebounds and the rest, and "1 game from 800 games" is only whether he plays. 7 of the 378 calls on file were games calls. `src/site/build.js` and the records walk in `scripts/situations.js` skip them.
 
-**Tests.** 1,083 checks (three new): a DNP's reason is kept and an injury isn't benched; a player back from 7 games listed Out is likely to play while 7 coach's decisions still count against him; games and starts calls stay out of the fit.
+- **Found on the first build, fixed in the same version:** the record chases never read tonight's injury status: once the 8 missed games stopped counting, Adams' record lines said 97% to play while the Watch List said 60%. `addChances` now takes `tonightStatus` from tonight's NBA injury report (the last one read, `docs/data/injuries.json`, when it is today's; this step runs before the build reads it again, so it can be one 15-minute slot behind) and caps tonight only: Out 0, Doubtful 25%, Questionable 60% (the Watch List's Day-To-Day cap). All three record lists (main, Cup, franchise), and for a live rival passed too.
 
-**Self-audit.** Measured on the 5:4x build below. A player listed Out but not given a reason in ESPN's box (absent from it) was already left out of the milestone count. Questionable, Doubtful and Probable tonight are not used for the chance to play (ESPN's feed gives only Out and Day-To-Day); tonight's Questionable for Adams is in the 60% cap, not a lower one.
+**Measured (5:49 PM build, before the cap).** Watch List chance to play: Adams 20% → 60% (card 18% → 61%); Obi Toppin 70% → 88%, Tristan da Silva 89% → 97%, Jamal Cain 90% → 97%. Record chases: 11 players moved, Adams 20% → 97% (the gap the cap closes), Ivica Zubac 70% → 97%, Andrew Nembhard 80% → 97%, eight at 90% → 97% (they had a missed game listed Out in their last 10, or under 3 games counted before).
+
+**Tests.** 1,084 checks (four new): a DNP's reason is kept and an injury isn't benched; a player back from 7 games listed Out is likely to play while 7 coach's decisions still count against him; tonight's report caps tonight only (Questionable 60%, Out 0); games and starts calls stay out of the fit.
+
+**Self-audit.** The Watch List reads ESPN's injury feed (Out / Day-To-Day only), so a Questionable or a Doubtful there is the same 60% cap; the record chases now read the NBA's grades. The two can still differ by one report slot. A player missing from a box score altogether (not listed) was already left out of the milestone count.
 
 ## 0.141.0 (2026-11-20): four new detectors, luck, paradox, scarcity and defense by position (audit step 5)
 

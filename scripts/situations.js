@@ -242,7 +242,18 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const franchiseStreaks = fs.existsSync(streaksFile) ? JSON.parse(fs.readFileSync(streaksFile, "utf8")) : null;
     const rec = currentRecords({ guide, teamFiles, today, tonight, scorers, coachList, coachTeams: coachList ? coachTeams : null, current, franchiseStreaks });
     const tonightTeams = new Set((tonight || []).flatMap((g) => [g.home, g.away]));
-    addChances(rec.items, teamFiles, { makeSampler, simulate, tonightTeams });
+    // 0.141.1: tonight's injury report (the last one read, docs/data/injuries.json, if it is today's) caps the chance
+    // to play tonight: Out 0, Doubtful 25%, Questionable 60%. This step runs before this build reads the report again.
+    const tonightStatus = {};
+    try {
+      const ij = path.join(root, "docs", "data", "injuries.json"), rep = fs.existsSync(ij) ? JSON.parse(fs.readFileSync(ij, "utf8")) : null;
+      if (rep?.date === today && Array.isArray(rep.players)) {
+        const { listedIds } = await import("../src/injuries/history.js");
+        const teamIds = Object.fromEntries(Object.entries(teamFiles).map(([tri, f]) => [tri, new Set(Object.keys(f.names || {}))]));
+        for (const L of Object.values(listedIds({ rows: rep.players }, store.names || {}, teamIds))) for (const x of L) tonightStatus[x.id] = x.status;
+      }
+    } catch (e) { warnings.push(`records: tonight's injury report not read (${e.message})`); }
+    addChances(rec.items, teamFiles, { makeSampler, simulate, tonightTeams, tonightStatus });
     // NBA Cup career lists (src/records/cup.js): the Cup media guide's leaders plus this season's Cup games.
     let cupOut = null;
     const cupFile = path.join(root, "src", "data", `nba-cup-${season - 1}-${String(season).slice(2)}.json`);
@@ -251,7 +262,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
       const cup = JSON.parse(fs.readFileSync(cupFile, "utf8"));
       const c = cupRecords({ cup, teamFiles, tonight, today });
       // Chances from his games this season (all of them: a Cup game is a regular game).
-      addChances(c.items, teamFiles, { makeSampler, simulate, tonightTeams: new Set(c.tonight.flatMap((g) => [g.home, g.away])) });
+      addChances(c.items, teamFiles, { makeSampler, simulate, tonightTeams: new Set(c.tonight.flatMap((g) => [g.home, g.away])), tonightStatus });
       rec.items.push(...c.items);
       // Cup games vs the rest of the season, per player and team (src/records/cupform.js, moved from GameFlow in 0.57).
       const { cupVsSeason } = await import("../src/records/cupform.js");
@@ -268,7 +279,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     if (fs.existsSync(fcFile)) {
       const { franchiseRecords } = await import("../src/records/franchise.js");
       const f = franchiseRecords({ careers: JSON.parse(fs.readFileSync(fcFile, "utf8")), teamFiles, tonight });
-      addChances(f.items, teamFiles, { makeSampler, simulate, tonightTeams });
+      addChances(f.items, teamFiles, { makeSampler, simulate, tonightTeams, tonightStatus });
       // The Tip-Off Guide's franchise marks say the same thing: keep one of each (the history list's).
       const seen = new Set(f.items.map((i) => `${strictKey(i.who)}|${i.team}|${i.stat}|${i.target}`));
       rec.items = rec.items.filter((i) => i.kind !== "franchise" || !seen.has(`${strictKey(i.who)}|${i.team}|${i.stat}|${i.target}`));

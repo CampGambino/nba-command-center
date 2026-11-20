@@ -381,7 +381,11 @@ function streak(R) {
  * Brunson 1 point from Giannis on the Cup list while Giannis also plays tonight is not the same as 1 point
  * from a retired name.
  */
-export function addChances(items, teamFiles, { makeSampler, simulate, sims = 3000, tonightTeams = null }) {
+/** Tonight's injury report caps the chance to play tonight (0.141.1); Day-To-Day is ESPN's word, Questionable the NBA's. */
+export const TONIGHT_CAP = { Out: 0, Doubtful: 0.25, Questionable: 0.6, "Day-To-Day": 0.6 };
+
+export function addChances(items, teamFiles, { makeSampler, simulate, sims = 3000, tonightTeams = null, tonightStatus = null }) {
+  const capTonight = (id, p) => { const c = TONIGHT_CAP[tonightStatus?.[id]]; return c == null ? p : Math.min(p, c); };
   const L = seasonLines(teamFiles);
   const byName = new Map();
   for (const p of Object.values(L)) { const k = strictKey(p.name); if (!byName.has(k)) byName.set(k, p); else byName.set(k, null); } // null: two players, same name
@@ -401,7 +405,7 @@ export function addChances(items, teamFiles, { makeSampler, simulate, sims = 300
     if (!cache.has(key)) cache.set(key, { pPlay: playRate(p), sample: makeSampler(lines.slice(0, 20), { smooth: binary ? 0 : 0.2 }) });
     const c = cache.get(key);
     const n = Math.max(1, it.horizonGames ?? 5); // the Cup: his Cup games left
-    const games = Array.from({ length: n }, () => ({ pPlay: c.pPlay }));
+    const games = Array.from({ length: n }, (_, i) => ({ pPlay: i === 0 && it.tonight ? capTonight(it.id, c.pPlay) : c.pPlay }));
     // The players being passed who are still adding to their totals.
     const rivals = [], rivalNames = [];
     if (it.passing?.live && it.passing.name) {
@@ -413,14 +417,14 @@ export function addChances(items, teamFiles, { makeSampler, simulate, sims = 300
         if (ql.length < 3) continue;
         const qp = playRate(q);
         const tonightToo = !tonightTeams || tonightTeams.has(q.team);
-        rivals.push({ sample: makeSampler(ql.slice(0, 20), { smooth: binary ? 0 : 0.2 }), games: Array.from({ length: n }, (_, i) => ({ pPlay: i === 0 && it.tonight && !tonightToo ? 0 : qp })) });
+        rivals.push({ sample: makeSampler(ql.slice(0, 20), { smooth: binary ? 0 : 0.2 }), games: Array.from({ length: n }, (_, i) => ({ pPlay: i === 0 && it.tonight ? (tonightToo ? capTonight(q.id, qp) : 0) : qp })) });
         rivalNames.push({ name: q.name, tonight: !!it.tonight && tonightToo && !!tonightTeams });
       }
     }
     // The bar against a rival is passing him: one more than his total, so need already holds that.
     const sim = simulate({ need: it.need, stat: it.stat, sample: c.sample, games, rivals, sims, seed: hash(`${it.who}|${it.stat}|${it.need}`) });
     if (sim.unknown) continue;
-    it.pPlay = Math.round(c.pPlay * 100) / 100;
+    it.pPlay = Math.round((it.tonight ? games[0].pPlay : c.pPlay) * 100) / 100;
     it.pTonight = it.tonight ? Math.round(sim.byGame[0] * 1000) / 1000 : 0;
     it.pNext5 = Math.round(sim.byGame[Math.min(4, n - 1)] * 1000) / 1000;
     if (rivalNames.length) it.rivals = rivalNames;
