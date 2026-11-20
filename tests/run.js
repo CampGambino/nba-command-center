@@ -5406,8 +5406,25 @@ await articlesChecks(ok);
     "matchup edges (0.95): a top-5 offense in a category against a bottom-5 defense in it is an edge for the offense, with its own league leaders named on the same line and not on lines of their own; a bottom-5 offense against a top-5 defense is the defense's; two mid-table teams have none; a category in which every team has the same number has no ends, so no edge; ranks in words; no player list for fast-break points", JSON.stringify([e0.map((i) => i.text), E.games[1].items.length]));
   // A team with too few games read is not ranked, so a half-read season shows nothing rather than skewed ranks.
   const half = rows.map((g, i) => (i % 3 ? { ...g, m: undefined, mq: undefined, mp: undefined } : g));
-  ok(Object.keys(teamTypes(half).teams).length === 0 && edges({ rows: half, names, tonight: [{ away: "T01", home: "T30" }] }).games[0].items.filter((i) => i.cat !== "topdef").length === 0,
+  ok(Object.keys(teamTypes(half).teams).length === 0 && edges({ rows: half, names, tonight: [{ away: "T01", home: "T30" }] }).games[0].items.filter((i) => !i.cats).length === 0,
     "matchup edges (0.95): while the season's games are still being read (under 80% of a team's games) nothing is ranked or said");
+  // 0.135: outliers against the group tonight's opponent is in. Home teams win every game here, so T01 has the best
+  // record and defense and T30 the worst. "Feaster" (T14) scores 30 against T26-T30 and 10 against everyone else.
+  {
+    const { GROUPS } = await import("../src/situations/edges.js");
+    const tf = Object.fromEntries(tris.map((t) => [t, { keys: ["min", "pts"], names: { [`q${t}`]: `Steady ${t}`, ...(t === "T14" ? { feast: "Feaster" } : {}) }, games: [] }]));
+    for (const g of rows) for (const [t, o, home] of [[g.h, g.a, 1], [g.a, g.h, 0]]) {
+      const pl = { [`q${t}`]: [30, 12] };
+      if (t === "T14") pl.feast = [32, ix(o) >= 25 ? 30 : 10];
+      tf[t].games.push({ d: g.d, opp: o, home, pf: home ? g.hs : g.as, pa: home ? g.as : g.hs, pl });
+    }
+    const EG = edges({ rows, names, tonight: [{ away: "T14", home: "T30" }, { away: "T14", home: "T15" }], teamFiles: tf });
+    const fl = EG.games[0].items.filter((i) => i.player === "Feaster"), mid = EG.games[1].items.filter((i) => i.cats);
+    ok(GROUPS.map((g) => g.cat).join() === "topdef,botdef,toprec,botrec" && fl.length === 1 && fl[0].cats.includes("botrec") && fl[0].cats.includes("botdef")
+      && /^Feaster has averaged 30\.0 points in \d+ games against the (5 worst records|bottom 5 defenses) and 10\.0 in his other \d+ \(\+20\.0\), the biggest rise in the NBA; the T30 are (0-29|\d+\w\w in defensive rating)\. Against the (5 worst records|bottom 5 defenses): 30\.0/.test(fl[0].text)
+      && !mid.some((i) => i.player === "Feaster"),
+      "matchup edges (0.135): a player's outlier against a group tonight's opponent is in gets one line, naming every group (bottom defense and worst record); against a mid-table team, none", JSON.stringify({ fl, mid: mid.map((i) => i.text) }));
+  }
   // A printed mark with no game ("Done 2 times"): the record line and the table say how often, not a date.
   const recs = { teams: { AAA: [{ stat: "oreb", kind: "most", period: "game", value: 29, games: [], times: "2 times" }] } };
   const bx = (oreb) => [40, 85, 10, 30, 20, 25, oreb, 30, 25, 8, 5, 13, 20];

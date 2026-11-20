@@ -110,7 +110,7 @@
   <div class="sub" id="sub">Loading…</div>
 </header>
 <main>
-  <div class="controls"><span class="toggle" id="view"><button data-v="teams" class="on">Teams vs the top</button><button data-v="bottom">Teams vs the bottom</button><button data-v="players">Players vs top defenses</button><button data-v="pbottom">Players vs worst defenses</button><button data-v="thirty">30-point games allowed</button><button data-v="highs">Career highs allowed</button><button data-v="types">Scoring by type</button></span></div>
+  <div class="controls"><span class="toggle" id="view"><button data-v="teams" class="on">Teams vs the top</button><button data-v="bottom">Teams vs the bottom</button><button data-v="players">Players vs the top</button><button data-v="pbottom">Players vs the bottom</button><button data-v="thirty">30-point games allowed</button><button data-v="highs">Career highs allowed</button><button data-v="types">Scoring by type</button></span></div>
   <section id="v-teams">
   <div class="controls">
     <span class="toggle" id="by"><button data-b="record" class="on">Best records</button><button data-b="defense">Best defenses</button></span>
@@ -122,7 +122,7 @@
   <div class="scroll"><table id="all"></table></div>
   </section>
   <section id="v-players" hidden>
-    <div class="controls"><label><span id="pLead">Top</span> <select id="pn"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option selected>8</option><option>9</option><option>10</option></select> defenses</label>
+    <div class="controls"><span class="toggle" id="pby"><button data-b="defense" class="on">Best defenses</button><button data-b="record">Best records</button></span><label><span id="pLead">Top</span> <select id="pn"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option selected>8</option><option>9</option><option>10</option></select> <span id="pWord">defenses</span></label>
       <span class="toggle" id="pside"><button data-s="fall" class="on">Falls off most</button><button data-s="hold">Holds up best</button></span>
       <select id="pteam"><option value="">All teams</option></select></div>
     <div class="key" id="pkey"></div>
@@ -269,7 +269,7 @@ document.querySelectorAll("#by button").forEach((b) => b.onclick = () => {
 });
 $("n").onchange = render;
 // ---- Players vs top defenses and 30-point games allowed (moved from GameFlow, 11/13): every team's box scores ----
-let view = ["bottom", "players", "pbottom", "thirty", "highs", "types"].includes(q.get("view")) ? q.get("view") : "teams", PG = null, pside = "fall", hwho = "vets", HA = null;
+let view = ["bottom", "players", "pbottom", "thirty", "highs", "types"].includes(q.get("view")) ? q.get("view") : "teams", PG = null, pby = q.get("pby") === "record" ? "record" : "defense", pside = "fall", hwho = "vets", HA = null;
 async function teamFiles() {
   if (PG) return PG;
   const tris = [...new Set(D.games.flatMap((g) => [g.h, g.a]))].sort();
@@ -280,19 +280,23 @@ const fgp = (x) => (x && x.pct != null ? x.pct.toFixed(1) + "%" : "–");
 const sg = (x) => (x == null ? "–" : (x > 0 ? "+" : "") + x.toFixed(1));
 async function renderPlayers() {
   // 0.133.1 (the user, 11/20: "I definitely want the player stats as well"): the same split against the worst defenses.
-  const pb = view === "pbottom", pg = await teamFiles(), N = Number($("pn").value), r = teamRatings(lines), top = topSet(r, N, "defense", pb ? "bottom" : "top");
-  $("pLead").textContent = pb ? "Worst" : "Top";
+  // 0.135 (the user, 11/20): records as well as defenses, top and bottom.
+  const pb = view === "pbottom", rec = pby === "record", pg = await teamFiles(), N = Number($("pn").value), r = teamRatings(lines), top = topSet(r, N, pby, pb ? "bottom" : "top");
+  $("pLead").textContent = pb ? "Worst" : "Top"; $("pWord").textContent = rec ? "records" : "defenses";
+  document.querySelectorAll("#pby button").forEach((b) => { b.textContent = `${pb ? "Worst" : "Best"} ${b.dataset.b === "record" ? "records" : "defenses"}`; b.classList.toggle("on", b.dataset.b === pby); });
   document.querySelectorAll("#pside button").forEach((b) => b.textContent = b.dataset.s === "fall" ? (pb ? "Gains least" : "Falls off most") : (pb ? "Feasts most" : "Holds up best"));
   if ($("pteam").options.length === 1) $("pteam").innerHTML += Object.keys(pg.teamGp).sort().map((t) => `<option>${t}</option>`).join("");
   const res = vsDefenses(pg, top), team = $("pteam").value;
   let rows = res.rows.filter((x) => !team || x.tri === team);
   if (pside === "hold") rows = rows.slice().reverse();
   const shown = team ? rows : rows.slice(0, 40);
-  const topList = [...top].sort((a, b) => (pb ? r[a].dbrank - r[b].dbrank : r[a].drank - r[b].drank));
-  $("pkey").innerHTML = `${pb ? "Worst" : "Top"} ${N} defenses by points allowed per 100 possessions${pb ? ", most first" : ""}: ${topList.map((t) => `<b>${t}</b> ${r[t].drtg.toFixed(1)}`).join(" · ")}. ` +
-    `Each player's average against them, against the other ${Object.keys(r).length - N} teams (the two partition his games), and the gap. ${pside === "fall" ? "Biggest drop first" : "Biggest rise first"}${team ? "" : `, ${shown.length} of ${res.rows.length} qualified players`}. ` +
+  const rk = rec ? (pb ? "rbrank" : "rrank") : pb ? "dbrank" : "drank", topList = [...top].sort((a, b) => r[a][rk] - r[b][rk] || a.localeCompare(b));
+  $("pkey").innerHTML = (rec
+    ? `${pb ? "Worst" : "Best"} ${N} records: ${topList.map((t) => `<b>${t}</b> ${r[t].w}-${r[t].l}`).join(" · ")}.${top.size > N ? ` Ties at the cutoff are all in (${top.size} teams).` : ""} `
+    : `${pb ? "Worst" : "Top"} ${N} defenses by points allowed per 100 possessions${pb ? ", most first" : ""}: ${topList.map((t) => `<b>${t}</b> ${r[t].drtg.toFixed(1)}`).join(" · ")}. `) +
+    `Each player's average against them, against the other ${Object.keys(r).length - top.size} teams (the two partition his games), and the gap. ${pside === "fall" ? "Biggest drop first" : "Biggest rise first"}${team ? "" : `, ${shown.length} of ${res.rows.length} qualified players`}. ` +
     `Qualified: ${POOL_MIN_PPG}+ points a game, half his team's games, ${POOL_MIN_SIDE}+ games on each side (${res.quiet} score less, ${res.thin} are short on games, ${res.oneSided} have too few on one side). FG% is makes over attempts. Small samples: a player meets each team 2-4 times a season.`;
-  $("ptab").innerHTML = `<tr><th>Player</th><th>Team</th><th class="num">GP</th><th class="num">Season</th><th class="num">FG%</th><th class="num">vs ${pb ? "worst" : "top"} ${N}</th><th class="num">FG%</th><th class="num">GP</th><th class="num">vs rest</th><th class="num">FG%</th><th class="num">GP</th><th class="num">Pts gap</th><th class="num">FG% gap</th></tr>` +
+  $("ptab").innerHTML = `<tr><th>Player</th><th>Team</th><th class="num">GP</th><th class="num">Season</th><th class="num">FG%</th><th class="num">vs ${pb ? "worst" : "top"} ${N}${rec ? " rec" : ""}</th><th class="num">FG%</th><th class="num">GP</th><th class="num">vs rest</th><th class="num">FG%</th><th class="num">GP</th><th class="num">Pts gap</th><th class="num">FG% gap</th></tr>` +
     (shown.map((x) => `<tr><td><b>${x.name}</b></td><td>${x.tri}</td><td class="num">${x.gp}</td><td class="num">${x.avg.toFixed(1)}</td><td class="num" title="${x.fg.m}-${x.fg.t}">${fgp(x.fg)}</td><td class="num"><b>${x.vsAvg.toFixed(1)}</b></td><td class="num" title="${x.vsFg.m}-${x.vsFg.t}">${fgp(x.vsFg)}</td><td class="num">${x.vsGp}</td><td class="num">${x.restAvg.toFixed(1)}</td><td class="num" title="${x.restFg.m}-${x.restFg.t}">${fgp(x.restFg)}</td><td class="num">${x.restGp}</td><td class="num ${x.gap <= -3 ? "lo" : x.gap >= 3 ? "hi" : ""}"><b>${sg(x.gap)}</b></td><td class="num ${x.fgGap != null && x.fgGap <= -5 ? "lo" : x.fgGap >= 5 ? "hi" : ""}">${sg(x.fgGap)}</td></tr>`).join("") || `<tr><td class="empty" colspan="13">No qualified players.</td></tr>`);
 }
 async function renderThirty() {
@@ -373,6 +377,7 @@ async function renderTypes() {
 }
 document.querySelectorAll("#tyside button").forEach((b) => b.onclick = () => { tyside = b.dataset.s; document.querySelectorAll("#tyside button").forEach((x) => x.classList.toggle("on", x === b)); renderTypes(); });
 document.querySelectorAll("#view button").forEach((b) => b.onclick = () => { view = b.dataset.v; showView(); });
+document.querySelectorAll("#pby button").forEach((b) => b.onclick = () => { pby = b.dataset.b; renderPlayers(); });
 document.querySelectorAll("#pside button").forEach((b) => b.onclick = () => { pside = b.dataset.s; document.querySelectorAll("#pside button").forEach((x) => x.classList.toggle("on", x === b)); renderPlayers(); });
 $("pn").onchange = () => renderPlayers(); $("pteam").onchange = () => renderPlayers();
 syncBy();

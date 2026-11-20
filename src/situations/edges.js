@@ -7,8 +7,13 @@
  *   2. Players. A player in the league's top EDGE.players in paint, second-chance or off-turnover points a game against
  *      a team that allows the most of it. (There is no player number for fast-break points: see espn/misc.js. The
  *      opponent's own numbers are not set against one player.)
- *   3. Outliers against the top defenses. A player whose scoring changes most against the top EDGE.topDef defenses
- *      (the "vs top teams" page, Players vs top defenses) when he meets one of them tonight; a team whose offense does.
+ *   3. Outliers against a group tonight's opponent is in (0.135; the user, 11/20: "I want to make sure we are flagging
+ *      the relevant outliers, especially if there is a match between player and opponent or opponent and opponent").
+ *      Four groups (GROUPS): the top and bottom EDGE.topDef defenses, the EDGE.topDef best and worst records (ties at
+ *      the cutoff all in). A player whose scoring changes most against a group (among the league's EDGE.outliers
+ *      biggest drops or rises, by EDGE.gap points or more), and a team whose rating does (among the EDGE.end biggest,
+ *      by EDGE.teamGap or more per 100), get a line when tonight's opponent is in that group. One opponent in two
+ *      groups (Brooklyn: a bottom-5 defense and a bottom-5 record) gives one line per player or team, naming both.
  *
  * Input rows are the season's results (situations/results.js) with m / mp filled in. Pure: no I/O.
  * The cut-offs in EDGE are first guesses, to be tuned on what the list looks like through a season.
@@ -17,7 +22,14 @@ import { TEAMS } from "../teams.js";
 import { teamGameLines, vsTop, topSet, ratings } from "./ratings.js";
 import { playerGames, vsDefenses } from "./vsplayers.js";
 
-export const EDGE = { end: 5, players: 10, minGames: 5, share: 0.5, coverage: 0.8, topDef: 5, outliers: 10, gap: 4, teamGap: 5, perGame: 5 };
+export const EDGE = { end: 5, players: 10, minGames: 5, share: 0.5, coverage: 0.8, topDef: 5, outliers: 10, gap: 4, teamGap: 5, perGame: 6 };
+// 0.135: the groups an opponent can be in. `by`/`side` as in ratings.js topSet; `what` reads after "against the".
+export const GROUPS = [
+  { cat: "topdef", by: "defense", side: "top", what: (n) => `top ${n} defenses`, tag: (n) => `vs top-${n} defenses` },
+  { cat: "botdef", by: "defense", side: "bottom", what: (n) => `bottom ${n} defenses`, tag: (n) => `vs bottom-${n} defenses` },
+  { cat: "toprec", by: "record", side: "top", what: (n) => `${n} best records`, tag: (n) => `vs top-${n} records` },
+  { cat: "botrec", by: "record", side: "bottom", what: (n) => `${n} worst records`, tag: (n) => `vs bottom-${n} records` },
+];
 export const CATS = [
   { k: "paint", i: 0, pi: 1, words: "points in the paint", tag: "Paint" },
   { k: "fb", i: 1, pi: null, words: "fast-break points", tag: "Fast break" },
@@ -92,10 +104,17 @@ export function edges({ rows, names = {}, tonight = [], teamFiles = null }) {
   const TT = teamTypes(rows), PT = playerTypes(rows, names), of = TT.n;
   const lines = teamGameLines(rows), R = ratings(lines);
   const topD = topSet(R, EDGE.topDef, "defense");
-  const vsD = teamFiles ? vsDefenses(playerGames(teamFiles), topD) : { rows: [] };
-  const drops = vsD.rows.filter((x) => x.gap < 0), rises = vsD.rows.filter((x) => x.gap > 0).reverse();
-  const teamVs = vsTop(lines, EDGE.topDef, "defense").teams;
-  const teamDiffs = Object.entries(teamVs).filter(([, x]) => x.diff != null && x.vsTop?.games >= 2 && x.rest?.games >= 2).map(([t, x]) => ({ t, diff: x.diff, games: x.vsTop.games, vs: x.vsTop.ortg, rest: x.rest.ortg })).sort((a, b) => a.diff - b.diff);
+  // 0.135: each group's players and teams, ranked by how much they change against it (see GROUPS).
+  const PGs = teamFiles ? playerGames(teamFiles) : null, N = EDGE.topDef;
+  const G = GROUPS.map((g) => {
+    const set = topSet(R, N, g.by, g.side), vs = PGs ? vsDefenses(PGs, set) : { rows: [] };
+    const tv = vsTop(lines, N, g.by, g.side).teams, key = g.by === "record" ? "net" : "ortg";
+    const diffs = Object.entries(tv).filter(([, x]) => x.diff != null && x.vsTop?.games >= 2 && x.rest?.games >= 2)
+      .map(([t, x]) => ({ t, diff: x.diff, games: x.vsTop.games, vs: x.vsTop[key], rest: x.rest[key], w: x.vsTop.w, l: x.vsTop.l, rw: x.rest.w, rl: x.rest.l })).sort((a, b) => a.diff - b.diff);
+    const label = g.what(N) + (set.size > N ? ` (${set.size} teams, ties included)` : "");
+    return { ...g, set, label, drops: vs.rows.filter((x) => x.gap < 0), rises: vs.rows.filter((x) => x.gap > 0).reverse(), diffs, key };
+  });
+  const oppWord = (g, def) => (g.by === "defense" ? `the ${nick(def)} are ${ord(R[def].drank)} in defensive rating` : `the ${nick(def)} are ${R[def].w}-${R[def].l}`);
   const out = [];
   for (const g of tonight) {
     const items = [];
@@ -124,20 +143,37 @@ export function edges({ rows, names = {}, tonight = [], teamFiles = null }) {
           score: (1.7 + 0.04 * (EDGE.players + 1 - p.r[k]) + 0.03 * (EDGE.end + 1 - D.ar[c.i])) * role(p.ppg),
           text: `${p.name} scores ${r1(p.v[k])} ${c.words} a game (${inNba(p.r[k])}); the ${nick(def)} allow ${r1(D.a[c.i])} a game (${place(D.ar[c.i], of)}).` });
       }
-      // Against one of the top defenses tonight: the players and teams whose scoring changes most against that group.
-      if (topD.has(def)) {
-        const dword = `the ${nick(def)} are ${ord(R[def].drank)} in defensive rating`;
-        for (const [list, word] of [[drops, "drop"], [rises, "rise"]]) list.slice(0, EDGE.outliers).forEach((x, i) => {
+      // 0.135: against a group tonight's opponent is in. One line per player (and per team) naming every group he is an
+      // outlier against that includes this opponent, scored on the biggest.
+      const hits = {}, teamHits = [];
+      for (const g of G) {
+        if (!g.set.has(def)) continue;
+        for (const [list, word] of [[g.drops, "drop"], [g.rises, "rise"]]) list.slice(0, EDGE.outliers).forEach((x, i) => {
           if (x.tri !== off || Math.abs(x.gap) < EDGE.gap) return;
-          items.push({ kind: "matchup", edge: true, lopsided: true, team: off, player: x.name, cat: "topdef", tag: `vs top-${EDGE.topDef} defenses · ${x.name}`, score: (1.8 + Math.min(0.6, Math.abs(x.gap) / 20) + 0.02 * (EDGE.outliers - i)) * role(x.avg),
-            text: `${x.name} has averaged ${r1(x.vsAvg)} points in ${x.vsGp} games against the top ${EDGE.topDef} defenses and ${r1(x.restAvg)} in his other ${x.restGp} (${x.gap > 0 ? "+" : "−"}${r1(Math.abs(x.gap))}), the ${i === 0 ? "" : `${ord(i + 1)}-`}biggest ${word} in the NBA; ${dword}.` });
+          (hits[x.name] ??= []).push({ g, x, i, word, s: (1.8 + Math.min(0.6, Math.abs(x.gap) / 20) + 0.02 * (EDGE.outliers - i)) * role(x.avg) });
         });
-        const ti = teamDiffs.findIndex((x) => x.t === off), td = teamDiffs[ti];
-        if (td && Math.abs(td.diff) >= EDGE.teamGap && (ti < EDGE.end || ti >= teamDiffs.length - EDGE.end)) {
-          const fromTop = ti < EDGE.end ? ti : teamDiffs.length - 1 - ti, word = ti < EDGE.end ? "drop" : "rise";
-          items.push({ kind: "matchup", edge: true, lopsided: true, team: off, cat: "topdef", tag: `vs top-${EDGE.topDef} defenses · ${off}`, score: 1.8 + Math.min(0.5, Math.abs(td.diff) / 30),
-            text: `The ${nick(off)} have scored ${r1(td.vs)} points per 100 possessions in ${td.games} games against the top ${EDGE.topDef} defenses and ${r1(td.rest)} against everyone else (${td.diff > 0 ? "+" : "−"}${r1(Math.abs(td.diff))}), the ${fromTop === 0 ? "" : `${ord(fromTop + 1)}-`}biggest ${word} in the NBA; ${dword}.` });
+        const ti = g.diffs.findIndex((x) => x.t === off), td = g.diffs[ti];
+        if (td && Math.abs(td.diff) >= EDGE.teamGap && (ti < EDGE.end || ti >= g.diffs.length - EDGE.end)) {
+          const fromTop = ti < EDGE.end ? ti : g.diffs.length - 1 - ti;
+          teamHits.push({ g, td, fromTop, word: ti < EDGE.end ? "drop" : "rise", s: 1.8 + Math.min(0.5, Math.abs(td.diff) / 30) });
         }
+      }
+      const sgn = (v) => `${v > 0 ? "+" : "−"}${r1(Math.abs(v))}`, nth = (i) => (i === 0 ? "" : `${ord(i + 1)}-`);
+      for (const [name, hs] of Object.entries(hits)) {
+        hs.sort((a, b) => b.s - a.s);
+        const [h, ...more] = hs, x = h.x;
+        items.push({ kind: "matchup", edge: true, lopsided: true, team: off, player: name, cat: h.g.cat, cats: hs.map((y) => y.g.cat), tag: `${h.g.tag(N)} · ${name}`, score: h.s + 0.15 * more.length,
+          text: `${name} has averaged ${r1(x.vsAvg)} points in ${x.vsGp} games against the ${h.g.label} and ${r1(x.restAvg)} in his other ${x.restGp} (${sgn(x.gap)}), the ${nth(h.i)}biggest ${h.word} in the NBA; ${oppWord(h.g, def)}.` +
+            more.map((y) => ` Against the ${y.g.label}: ${r1(y.x.vsAvg)} in ${y.x.vsGp} (${sgn(y.x.gap)}, the ${nth(y.i)}biggest ${y.word}); ${oppWord(y.g, def)}.`).join("") });
+      }
+      if (teamHits.length) {
+        teamHits.sort((a, b) => b.s - a.s);
+        const say = (t) => (t.g.by === "defense"
+          ? `scored ${r1(t.td.vs)} points per 100 possessions in ${t.td.games} games against the ${t.g.label} and ${r1(t.td.rest)} against everyone else (${sgn(t.td.diff)})`
+          : `gone ${t.td.w}-${t.td.l} against the ${t.g.label} (net rating ${sgn(t.td.vs)}) and ${t.td.rw}-${t.td.rl} against everyone else (${sgn(t.td.rest)}), a swing of ${sgn(t.td.diff)} per 100`);
+        const [h, ...more] = teamHits;
+        items.push({ kind: "matchup", edge: true, lopsided: true, team: off, cat: h.g.cat, cats: teamHits.map((t) => t.g.cat), tag: `${h.g.tag(N)} · ${off}`, score: h.s + 0.15 * more.length,
+          text: `The ${nick(off)} have ${say(h)}, the ${nth(h.fromTop)}biggest ${h.word} in the NBA; ${oppWord(h.g, def)}.` + more.map((t) => ` They have ${say(t)}, the ${nth(t.fromTop)}biggest ${t.word}.`).join("") });
       }
     }
     items.sort((a, b) => b.score - a.score);

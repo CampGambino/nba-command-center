@@ -2,6 +2,20 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.135.0 (2026-11-20): Watch List: outliers against the best and worst defenses and records, when tonight's opponent is one
+
+The user, 11:07 AM: "how do the players against top teams/defenses and bottom teams/defenses get flagged in the watch list?" Answer: only one of the four was. A player (one of the league's 10 biggest drops or rises, 4+ points) or team (5 biggest, 5+ per 100) against the top 5 defenses got a line when tonight's opponent was a top-5 defense; nothing for the bottom defenses, and nothing on the Watch List for records (Team situations' record splits flag only at under 1% odds, and only on that page). The user, 11:09 AM: "sure. I want to make sure were are flagging the relevant outliers, especially if there is a match between player and opponent or opponent and opponent".
+
+**Changed.**
+- `src/situations/edges.js`: four groups (`GROUPS`): top 5 and bottom 5 defenses, 5 best and 5 worst records (ties at the cutoff all in, said in the line: "the 5 worst records (7 teams, ties included)"). Same rules for each as the top-defense lines had. A player's and a team's lines come only when tonight's opponent is in the group: a player against the opponent, a team against the opponent. One opponent in two groups gives one line naming both (Brooklyn is a bottom-5 defense and a bottom-5 record). A team against a record group is measured by net rating and W-L; against a defense group by offensive rating, as before. Each line names where the opponent stands (26th in defensive rating; 3-11). Lines a game on the Watch List: 6 (was 5), as there are now four groups competing with the scoring-type edges.
+- `docs/defenses.html`: the Players tabs are "Players vs the top" and "Players vs the bottom", each with a Best/Worst defenses or records toggle (`?pby=record`).
+
+**Tonight on this morning's data** (run before the push): Franz Wagner +14.0 against the worst records and +11.3 against the bottom defenses, one line (at Brooklyn); Quentin Grimes +10.5 against the worst records (Lakers vs Sacramento); Austin Reaves −6.2 against the bottom defenses (same game); Jamal Murray +9.8 in 2 games against the best records (vs Houston); the Wizards 3-1 against the worst records and 2-10 otherwise (at Chicago); the Suns 3-0 and 4-7 (at Utah).
+
+**Tests.** 1,054 checks (one new): 30 invented teams where the home team always wins; a player who scores 30 against the bottom five and 10 otherwise gets one line against T30 naming both groups (worst record and bottom defense), and none against a mid-table team. The 0.95 test that a half-read season says nothing now leaves out these lines by their `cats`, not the one category name.
+
+**Self-audit.** The samples are small (a player meets these groups two to six times by now; Murray's +9.8 is two games): the rule asks two games a side, as the page always has, and the line prints the games so a reader can weigh it. The record groups move every night (ties at the cutoff can make "5 worst" seven teams), so a line can come and go with the standings. Not built: a defense's own split (what a defense allows to a kind of player), which would be the other side of "opponent and opponent".
+
 ## 0.134.0 (2026-11-20): #articles: Front Office Sports' basketball stories; vs top teams: players against the worst defenses
 
 The user, 10:53 AM: "I definitely want the player stats as well" (the Players tab against the worst defenses, offered with 0.133.0) and "Is it possible to send newly published articles to the discord from this site? https://frontofficesports.com/tag/basketball/".
