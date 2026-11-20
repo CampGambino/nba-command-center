@@ -12,7 +12,7 @@ The user, 10:53 AM: "I definitely want the player stats as well" (the Players ta
 
 **Tests.** 1,052 in the full suite; 87 watcher checks before the deploy (four new): a Front Office Sports item's writer, title, date, category and dek; its first read posts nothing; a new story posts with its source and writer though its title says "Betting", a muted word still holds one back, and only the top of the feed is read; `/headlines` shows each feed's last read and error and nothing private.
 
-**Self-audit.** Not proven until the deployed Worker has read it: whether Front Office Sports answers Cloudflare's servers (the browser on the user's PC is not Cloudflare). `/headlines` → `sources.fos` will say, within five minutes of the deploy. If WNBA or college stories turn out to be noise, the fix is a filter on the feed's category or title, not a different feed: their NBA-only tag would miss the league-business stories.
+**Self-audit.** Not proven until the deployed Worker has read it: whether Front Office Sports answers Cloudflare's servers (the browser on the user's PC is not Cloudflare). `/headlines` → `sources.fos` will say, within five minutes of the deploy. If WNBA or college stories turn out to be noise, the fix is a filter on the feed's category or title (I have not checked whether the site has an NBA-only tag).
 
 ## 0.133.0 (2026-11-20): vs top teams: a "Teams vs the bottom" tab
 
