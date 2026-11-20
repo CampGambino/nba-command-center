@@ -135,6 +135,11 @@ export const LIVE_SKIP = [
   [/\bmissed (?:our|the) (?:coverage|live blog)\b|\bcatch up on\b.*\b(?:last|previous) week\b/i, /\bcatch up by clicking\b|\bour live blog for the \w+ week\b/i, "pointer to an older live blog"],
 ];
 
+// 0.136.3 (the user, 11/20, on "Submit a question for Christian Clark's November Mavericks mailbag": "I don't need an
+// alert when asked to submit a question"): a call for readers' questions, from any source. The mailbag itself, and
+// headlines that only use the word ("answering all the questions", "raises questions"), still post.
+export const ASK_READERS = /\b(?:submit|send(?: us| in)?|drop|leave)\b[^.:?!]{0,20}\bquestions?\b|\bhave a question for\b|\bask (?:us|me|him|her|them|[A-Z][\w'’.-]*(?: [A-Z][\w'’.-]*){0,2}) anything\b/i;
+
 export function decide(item, rules = {}, now = Date.now()) {
   const by = (item.byline || "").toLowerCase();
   const allowWriter = by && (rules.allowBylines || []).some((b) => by.includes(b.toLowerCase()));
@@ -148,6 +153,7 @@ export function decide(item, rules = {}, now = Date.now()) {
   const t = item.title || "";
   const word = (rules.muteWords || []).find((w) => w && t.toLowerCase().includes(w.toLowerCase()));
   if (word) return { post: false, reason: `muted phrase "${word}"` };
+  if (ASK_READERS.test(t) && !allowWriter) return { post: false, reason: "call for readers' questions" };
   if (item.src === "espn") {
     if (ESPN_SKIP_TYPE[item.type]) return { post: false, reason: ESPN_SKIP_TYPE[item.type] };
     if (!ESPN_KEEP_TYPE.has(item.type)) return { post: false, reason: `type ${item.type}` };

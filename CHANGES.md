@@ -2,6 +2,16 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.136.3 (2026-11-20): #articles: no alert for a call for readers' questions
+
+The user, 12:21 PM, with the 10:23 AM post "Submit a question for Christian Clark's November Mavericks mailbag": "I don't need an alert when asked to submit a question".
+
+**Changed (`cloudflare/articles-worker.js`).** `ASK_READERS`: a title that asks readers to submit, send, drop or leave a question, "Have a question for …", or "Ask <someone> anything" is not posted, from any source; the review log shows it as "call for readers' questions" (Allow there brings one back, and an allowed writer is not held). Checked against the 135 headlines of the last 72 hours on `/headlines`: of the five that mention questions or a mailbag, only the Mavericks call matches; "Pistons mailbag: …", "answering all the questions", "raises questions" and "raise bigger questions" still post.
+
+**Tests.** 94 watcher checks (one new): five calls for questions held back (including "Ask Sam Amick anything" and "Have a question for John Hollinger? Submit it here"), five headlines that use the word posted (including "Mavericks mailbag: Your questions on Cooper Flagg, answered"), and the rule applies to every source.
+
+**Self-audit.** Worded tightly on purpose: a call worded another way ("What do you want to know about the Knicks?") would still post; a "Mark as noise" on it tells me the wording to add.
+
 ## 0.136.2 (2026-11-20): #articles: an NBA.com column's page goes quiet for the day once it has posted
 
 The user, 12:14 PM: "You can keep the early and late checks but go silent the day it normally gets posted after it's confirmed posted. I don't think they'll post it twice in one day."

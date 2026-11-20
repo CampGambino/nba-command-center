@@ -421,6 +421,14 @@ export async function articlesChecks(ok) {
       ok(st2.ok["athletic:NYK"].items < 500, "articles: only the top of a long team feed is downloaded", String(st2.ok["athletic:NYK"].items));
     } finally { globalThis.fetch = realFetch; }
   }
+  // 0.136.3: no alert for a call for readers' questions; the mailbag and headlines that use the word still post.
+  {
+    const T = Date.parse("2026-11-20T15:30:00Z"), it = (title, src = "athletic") => articleDecide({ src, title, published: T - 60e3, byline: "W" }, {}, T);
+    const no = ["Submit a question for Christian Clark's November Mavericks mailbag", "Submit your questions for our Knicks mailbag", "Send us your questions for Friday's chat", "Ask Sam Amick anything: NBA chat at 1 p.m.", "Have a question for John Hollinger? Submit it here"].map((t) => it(t).post);
+    const yes = ["Alperen Şengün is answering all the questions with his hot start to the season", "The NBA's bottom tier is as deep as ever, which raises questions about new lottery odds", "Pistons mailbag: Another big alongside Jalen Duren? Can the offense be accountable?", "Spurs' win streak is over, but Dylan Harper's injury could raise bigger questions", "Mavericks mailbag: Your questions on Cooper Flagg, answered"].map((t) => it(t).post);
+    ok(no.every((x) => x === false) && yes.every((x) => x === true) && it("Submit a question for our NBA mailbag", "fos").reason === "call for readers' questions",
+      "articles (0.136.3): a call for readers' questions is not posted, from any source; the mailbag and headlines that only use the word are", JSON.stringify({ no, yes }));
+  }
   // 0.136.0: NBA.com's Power Rankings and Kia ladders (the user, 11/20). No feed: the category page's own article list.
   {
     const { FEEDS, parseNbaCategory } = await import("../cloudflare/articles-worker.js");
