@@ -198,7 +198,7 @@
   "KXNBAPTS": {
    "title": "NBA Player Points",
    "events": 9,
-   "markets": 418
+   "markets": 419
   },
   "KXNBAATLANTIC": {
    "title": "Pro Basketball Atlantic Division Winner",
@@ -363,7 +363,7 @@
   "KXNBASTOCKPROT": {
    "title": "NBA Player Steals + Blocks Protected",
    "events": 3,
-   "markets": 22
+   "markets": 23
   },
   "KXNBAOT": {
    "title": "NBA Overtime",
@@ -548,7 +548,7 @@
   "KXNBASTOCK": {
    "title": "NBA Player Steals + Blocks",
    "events": 3,
-   "markets": 22
+   "markets": 23
   },
   "KXNBABLKPROT": {
    "title": "NBA Player Blocks Protected",
@@ -718,7 +718,7 @@
   "KXNBAPTSPROT": {
    "title": "NBA Player Points Protected",
    "events": 9,
-   "markets": 418
+   "markets": 419
   },
   "KXNBAWINMARGIN": {
    "title": "NBA Win Margin",
@@ -732,11 +732,11 @@
   }
  },
  "favorites": {
-  "KXNBACUP-26": "San Antonio 23%",
+  "KXNBACUP-26": "San Antonio 24%",
   "KXNBASIXTH-27": "Jrue Holiday 33%",
   "KXNBASOUTHWEST-26": "San Antonio 75%",
   "KXNBAEAST1SEED-26": "Boston 37%",
-  "KXNBAROY-27": "Cameron Boozer 37%",
+  "KXNBAROY-27": "Cameron Boozer 34%",
   "KXNBA-27": "San Antonio 22%",
   "KXNBAMIMP-27": "Ty Jerome 26%",
   "KXNBAATLANTIC-26": "Boston 58%",
@@ -748,14 +748,14 @@
   "KXNBADPOY-27": "Victor Wembanyama 79%",
   "KXNBACUPMVP-27": "Victor Wembanyama 33%",
   "KXNBAEXEC-27": "Sam Presti 13%",
-  "KXNBASOUTHEAST-26": "Miami 51%",
   "KXNBACONF-27": "Western Conference 61%",
   "KXNBAWEST1SEED-26": "San Antonio 54%",
+  "KXNBASOUTHEAST-26": "Miami 51%",
   "KXNBAWEST-27": "San Antonio 35%",
   "KXNBAPACIFIC-26": "Los Angeles L 82%",
-  "KXNBANORTHWEST-26": "Oklahoma City 43%",
   "KXNBACLUTCH-27": "Tyrese Maxey 18%",
-  "KXNBACOY-27": "Micah Nori 14%",
+  "KXNBANORTHWEST-26": "Oklahoma City 43%",
+  "KXNBACOY-27": "Micah Nori 15%",
   "KXNBAEFINMVP-27": "Tyrese Maxey 20%",
   "KXNBAMVP-27": "Victor Wembanyama 44%",
   "KXNBAEAST-27": "Boston 20%"
