@@ -28,6 +28,8 @@ const decimals = (t) => new Set((String(t || "").match(/\d+\.\d+%?/g) || []).map
 export const claimKeyOf = (l) => `${l.team || ""}|${nameKey(l.player)}|${claimSig(l.text)}`;
 /** The key the page can rebuild from what it has (a team and the words), to find a line's claim in ledger.json. */
 export const pageKey = (team, text) => `${team || ""}|${claimSig(text)}`;
+/** A short stable id for a key (FNV-1a, 32 bits, base 36): the page's lookup table carries these, not the long keys. */
+export const hashKey = (s) => { let h = 0x811c9dc5; for (const ch of String(s)) { h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(36); };
 
 export const LEDGER = { sourceBonus: 0.15, sourceCap: 0.3, changed: 0.25, repeat: 0.25, repeatCap: 0.75, keepDays: 30 };
 /** Kinds where moved numbers mean the story moved (a streak one longer, a mark closer). A season average moves every

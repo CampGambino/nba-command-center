@@ -847,7 +847,7 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
         if (r.ok) buzz = buzzCounts((await r.json()).headlines || [], { players: cand.all.map((l) => l.player).filter(Boolean), teams: cand.games.flatMap((g) => [g.away, g.home]), league: Object.values(store.names || {}) });
       } catch (e) { console.error(`headlines not read: ${e.message}`); }
       // 0.138: the ledger: one record per claim across every detector, with what was seen and shown on earlier days.
-      const { buildLedger, markShown, pageKey } = await import("../src/anticipate/ledger.js");
+      const { buildLedger, markShown, pageKey, hashKey } = await import("../src/anticipate/ledger.js");
       const ledgerFile = path.join(root, "history", "ledger-seen.json");
       const ledgerSeen = fs.existsSync(ledgerFile) ? JSON.parse(fs.readFileSync(ledgerFile, "utf8")) : {};
       const ledger = buildLedger(cand.all, { seen: ledgerSeen, today: watch.today });
@@ -861,6 +861,9 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
         claims: ledger.claims.sort((x, y) => (y.best.score || 0) - (x.best.score || 0)).map((c) => ({ key: c.key, team: c.team, player: c.player, game: c.game, kinds: c.kinds, sources: c.lines.length,
           text: c.best.text, score: Math.round((c.best.score || 0) * 100) / 100, first: c.first, status: status(c), shownStreak: c.shownStreak, top: atTop.has(c.key),
           pk: [...new Set(c.lines.map((l) => pageKey(l.team, l.text)))] })) }));
+      // 0.138.1: the page's lookup table (page key -> claim id), small; the full ledger above is for research.
+      const pk = {}; for (const c of ledger.claims) for (const l of c.lines) pk[hashKey(pageKey(l.team, l.text))] = hashKey(c.key);
+      fs.writeFileSync(path.join(root, "docs", "data", "ledger-index.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, pk }));
       console.log(`ledger: ${cand.all.length} lines -> ${ledger.claims.length} claims (${ledger.claims.filter((c) => c.kinds.length > 1).length} found by two detectors); ${ledger.claims.filter((c) => status(c) === "new").length} new, ${ledger.claims.filter((c) => status(c) === "updated").length} updated`);
       const firstRun = !Object.keys(seen).length; // the first build has nothing to compare with: nothing is "new"
       const slimL = (l) => ({ key: l.key, claim: l.claim || null, status: ledgerFirstRun ? null : l.status || null, kind: l.kind, team: l.team, player: l.player || null, game: l.game, text: l.text, rank: l.rank, learned: l.learned || 0, isNew: l.age === 0 && !firstRun, news: l.news || 0, headlines: l.news ? buzz?.titles?.[l.player] || [] : [] });

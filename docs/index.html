@@ -441,7 +441,7 @@ function renderBriefing(b, injuries) {
 async function renderStories() {
   try {
     const get = (f) => fetch(f, { cache: "no-store" }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
-    const [injuries, facts, matchups, brief, flags, built, ledger] = await Promise.all(["data/injuries.json", "data/notes-facts.json", "data/matchups.json", "data/briefing.json", "data/flag-checks.json", "data/tonight.json", "data/ledger.json"].map(get));
+    const [injuries, facts, matchups, brief, flags, built, ledger] = await Promise.all(["data/injuries.json", "data/notes-facts.json", "data/matchups.json", "data/briefing.json", "data/flag-checks.json", "data/tonight.json", "data/ledger-index.json"].map(get));
     CLAIMS = claimIndex(ledger && ledger.today === data.today ? ledger : null);   // 0.138: lines matched by claim
     // 0.72: the storylines the build already made (data/tonight.json: the same ones Discord and NBA Live get, with the
     // record, Cup and foul lines this page never computed), instead of loading six more files (~1 MB by spring) to

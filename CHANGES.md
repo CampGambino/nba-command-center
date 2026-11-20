@@ -2,6 +2,10 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.138.1 (2026-11-20): the Watch List loads a 12 KB claim index, not the 358 KB ledger
+
+My own regression in 0.138.0: the Watch List fetched `ledger.json` (358 KB on the first build) on every visit only to look up which claim a line makes, which undid part of step 1. Now the build also writes `docs/data/ledger-index.json` (page key → claim id, both as 32-bit FNV-1a ids in base 36; 12 KB for 652 lines; no id collision among the 647 claims), and the page reads that. `ledger.json` stays whole for research. Tests: 1,070, the ledger page test now through the index.
+
 ## 0.138.0 (2026-11-20): the ledger: one record per claim, new / updated / repeat across days (audit step 2)
 
 The user, 2:39 PM: "Go" (step 2 of `claude/audit-2026-11-20.md`: ledger + claim keys + scorer with repeat decay).

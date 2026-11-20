@@ -6,15 +6,16 @@
  * template across games, 193 notes items, 327 milestone rows.
  */
 
-import { pageKey } from "../anticipate/ledger.js";
+import { pageKey, hashKey } from "../anticipate/ledger.js";
 
 /**
  * 0.138: lines are matched by claim. ledger.json lists, for each claim, the page keys (team + words with numbers
  * blanked) of every line that makes it; a line's claim is found from its own team and words. Without the ledger a
  * line is its own claim (the same as matching the words, numbers aside).
  */
-export const claimIndex = (ledger) => { const m = new Map(); for (const c of ledger?.claims || []) for (const k of c.pk || []) m.set(k, c.key); return m; };
-export const claimOf = (idx, team, text) => { const pk = pageKey(team, text); return idx?.get(pk) || pk; };
+// ledger-index.json (0.138.1): { pk: { hashKey(page key): claim id } }, about 20 KB, so the Watch List doesn't load the full ledger.
+export const claimIndex = (index) => { const m = new Map(); for (const [k, id] of Object.entries(index?.pk || {})) m.set(k, id); return m; };
+export const claimOf = (idx, team, text) => { const pk = hashKey(pageKey(team, text)); return idx?.get(pk) || pk; };
 export const claimSet = (lines, idx) => new Set((lines || []).map((l) => claimOf(idx, l.team, l.text)));
 
 export const TRIM = { shiftsPerTeam: 1, seriesLines: 2, seriesMin: 1.5, playerVsTeamPerTeam: 1, notesPerTeam: 3 };

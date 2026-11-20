@@ -5447,7 +5447,7 @@ await articlesChecks(ok);
   }
   // 0.138.0: the ledger: one record per claim across detectors, with new / updated / repeat across days.
   {
-    const { buildLedger, ledgerAdjust, markShown, claimKeyOf, pageKey, LEDGER } = await import("../src/anticipate/ledger.js");
+    const { buildLedger, ledgerAdjust, markShown, claimKeyOf, pageKey, hashKey, LEDGER } = await import("../src/anticipate/ledger.js");
     const { claimIndex, claimOf, trimStories, briefClaimSet } = await import("../src/site/trim.js");
     const day1 = [
       { kind: "streak", team: "LAL", player: "Luka Doncic", text: "Luka Doncic: 30+ points in 10 straight games", score: 3 },
@@ -5480,10 +5480,10 @@ await articlesChecks(ok);
     ok(jok3.shownStreak === 2 && ledgerAdjust(jok3) === -2 * LEDGER.repeat && L3b.claims[0].shownStreak === 2 && !L3b.claims[0].changed && jok3.first === "2026-11-18",
       "ledger (0.138): two days on top unchanged fades twice as much; a later build the same day agrees; the first day seen is kept", JSON.stringify(jok3));
     // The page: a storyline worded as the briefing's season line is found in the briefing through the ledger's merged claim.
-    const idx = claimIndex({ claims: L1.claims.map((c) => ({ key: c.key, pk: [...new Set(c.lines.map((l) => pageKey(l.team, l.text)))] })) });
+    const idx = claimIndex({ pk: Object.fromEntries(L1.claims.flatMap((c) => c.lines.map((l) => [hashKey(pageKey(l.team, l.text)), hashKey(c.key)]))) });
     const B = briefClaimSet({ top: [{ team: "HOU", text: day1[2].text }], deep: [] }, idx);
     const S = trimStories([{ kind: "context", team: "HOU", text: day1[1].text, score: 2 }, { kind: "streak", team: "CLE", text: day1[3].text, score: 2 }], B, idx);
-    ok(S.inBrief.length === 1 && S.inBrief[0].kind === "context" && S.shown.length === 1 && claimOf(idx, "HOU", day1[1].text) === smith.key,
+    ok(S.inBrief.length === 1 && S.inBrief[0].kind === "context" && S.shown.length === 1 && claimOf(idx, "HOU", day1[1].text) === hashKey(smith.key),
       "ledger (0.138): on the page, a storyline making the same claim as a briefing line in other words isn't repeated", JSON.stringify(S));
   }
   // 0.135: outliers against the group tonight's opponent is in. Home teams win every game here, so T01 has the best
