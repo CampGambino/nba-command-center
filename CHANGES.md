@@ -14,7 +14,7 @@ The user, 10:12 AM, on the Watch List line "Jrue Holiday among bench players thi
 
 **Changed.**
 - `src/situations/results.js`: when the plays don't add up, the box score (team totals, player lines, misc) is kept; clutch and 4th-quarter lines wait. `row.x` stays 0, so the game is read again every build until the plays add up, and `records.js` keeps reading its clutch as unknown (`g.x ? !!g.cl : null`). Run on a copy of the real store: the game gets its 27 player lines and Holiday's plus/minus becomes 8th.
-- `scripts/situations.js`: each warning is printed on its own line to stderr, so it becomes a step note and shows in the page's build check, not only as a count.
+- `scripts/situations.js`: each warning is printed on its own line to stderr, so it becomes a step note and shows in the page's build check, not only as a count. (First push printed "situations: situations: …"; `ci.js` already names the step, so the line now carries the warning alone.) Until ESPN's plays for NYK@MIN add up, the build check shows that one note on every build: the game's clutch and 4th-quarter lines are still missing, and that is worth seeing.
 - `tools/diagnose.mjs`: part 1 flags any final game stored with no player lines, lists games waiting on play-by-play, and prints the results step's warnings. Run on the store as it was, it flagged NYK@MIN.
 - `src/anticipate/finder.js`: a group rank shared with one other player reads "tied for 4th" (Holiday's steals, 18, are level with Ziaire Williams; his plus/minus with Jenkins).
 
