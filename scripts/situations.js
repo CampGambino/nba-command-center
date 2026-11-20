@@ -243,12 +243,6 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const rec = currentRecords({ guide, teamFiles, today, tonight, scorers, coachList, coachTeams: coachList ? coachTeams : null, current, franchiseStreaks });
     const tonightTeams = new Set((tonight || []).flatMap((g) => [g.home, g.away]));
     addChances(rec.items, teamFiles, { makeSampler, simulate, tonightTeams });
-    // 0.140: a record chase's chance tonight is the same simulation as a milestone's: the same recalibration.
-    try {
-      const { fitCalibration, readCalls, calibrate } = await import("../src/anticipate/calibrate.js");
-      const cf = path.join(root, "history", "calls.jsonl"), fit = fitCalibration(readCalls(fs.existsSync(cf) ? fs.readFileSync(cf, "utf8") : ""));
-      if (fit) for (const it of rec.items) if (it.pTonight != null) { it.pTonightRaw = it.pTonight; it.pTonight = calibrate(it.pTonight, fit); }
-    } catch (e) { console.error(`record chances not recalibrated: ${e.message}`); }
     // NBA Cup career lists (src/records/cup.js): the Cup media guide's leaders plus this season's Cup games.
     let cupOut = null;
     const cupFile = path.join(root, "src", "data", `nba-cup-${season - 1}-${String(season).slice(2)}.json`);
@@ -362,10 +356,22 @@ for (const [tri, games] of Object.entries(perTeam)) {
     }
     // 0.64: every pass (all-time, franchise history, NBA Cup) to a place not worth saying is flagged for the pages.
     { const { isMinorPass } = await import("../src/records/notable.js"); for (const i of rec.items) if (isMinorPass(i)) i.minor = true; }
-    fs.writeFileSync(path.join(root, "docs", "data", "records.json"), JSON.stringify({ titles, awards, context,
+    const recordsOut = { titles, awards, context,
       generatedAt: out.generatedAt, through: rec.through, today, source: guide.source, items: rec.items, boards, checks, problems: rec.problems, errata: [...(guide.errata || []), ...settledErrata],
       coaches: coachTeams, teamRecords: guide.teamRecords, cup: cupOut, franchise: franchiseOut, seasonPace: seasonPaceOut, franchiseGame: franchiseGameOut,
-    }));
+    };
+    // 0.140: every chance tonight in the records (all-time and franchise passes, NBA Cup lists, season pace) is the same
+    // simulation as a milestone's, so it gets the same recalibration (src/anticipate/calibrate.js); the raw one is kept.
+    try {
+      const { fitCalibration, readCalls, calibrate } = await import("../src/anticipate/calibrate.js");
+      const cf = path.join(root, "history", "calls.jsonl"), fit = fitCalibration(readCalls(fs.existsSync(cf) ? fs.readFileSync(cf, "utf8") : ""));
+      let n = 0;
+      const walk = (o) => { if (!o || typeof o !== "object") return; if (Array.isArray(o)) { for (const x of o) walk(x); return; }
+        if (typeof o.pTonight === "number" && !("pTonightRaw" in o)) { o.pTonightRaw = o.pTonight; o.pTonight = calibrate(o.pTonight, fit); n++; }
+        for (const v of Object.values(o)) walk(v); };
+      if (fit) { walk(recordsOut); console.log(`records: ${n} chances tonight recalibrated`); }
+    } catch (e) { console.error(`record chances not recalibrated: ${e.message}`); }
+    fs.writeFileSync(path.join(root, "docs", "data", "records.json"), JSON.stringify(recordsOut));
     console.log(`records: ${rec.players.filter((p) => p.id).length} guide players playing this season, ${rec.items.length} within reach (${rec.items.filter((i) => i.tonight).length} playing tonight); vs notes/ESPN: ${checks.same} agree, ${checks.differ.length} differ${rec.problems.length ? `; ${rec.problems.length} problems` : ""}`);
   } else console.log(`records: no Tip-Off Guide file for ${season - 1}-${String(season).slice(2)} (src/data/)`);
 }

@@ -2,6 +2,10 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.140.1 (2026-11-20): every record chance gets the recalibration, not only the main list
+
+After 0.140.0's build: the main record list was recalibrated (93 chances, raw kept), but the briefing's NBA Cup lines still showed the simulation's own chances (Dončić 26%, Davis 84%): the Cup career lists, like the franchise and season-pace lists, are made apart from `rec.items`. Now the correction is applied once to the whole records file just before it is written: every object with a chance tonight and no `pTonightRaw` yet gets one (so nothing is corrected twice). The build log says how many.
+
 ## 0.140.0 (2026-11-20): milestone and record chances recalibrated from the scored nights (audit step 4)
 
 The user, 3:54 PM: "Go" (step 4 of `claude/audit-2026-11-20.md`).
