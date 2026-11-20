@@ -2,6 +2,18 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.134.0 (2026-11-20): #articles: Front Office Sports' basketball stories; vs top teams: players against the worst defenses
+
+The user, 10:53 AM: "I definitely want the player stats as well" (the Players tab against the worst defenses, offered with 0.133.0) and "Is it possible to send newly published articles to the discord from this site? https://frontofficesports.com/tag/basketball/".
+
+**Players vs worst defenses (`docs/defenses.html`).** A tab beside "Players vs top defenses": the same table and qualifying rules, split on the worst N defenses (highest defensive rating; `topSet(..., "defense", "bottom")` from 0.133.0). Its toggle reads "Feasts most" / "Gains least", and it opens on the biggest rise. Checked in a headless browser on this morning's data: worst 8 are SAC 118.4, MIL, NOP, CHI, BKN, WAS, LAC, PHX 114.2; first rows Egor Demin +13.5, Daniel Gafford +12.1, Tyler Herro +11.1; the top tab still opens on "Falls off most" (Ty Jerome -12.1); no page errors.
+
+**Front Office Sports (`cloudflare/articles-worker.js`).** The tag page is WordPress (6.9) and has the standard feed, `frontofficesports.com/tag/basketball/feed/` (read through the built-in browser on the user's PC; my web tools can't open it). It carries 50 items, two or three a day, each with the whole article in `content:encoded` (313 KB in all), so the watcher reads only the top 90 KB. The tag is basketball, not only the NBA: of the last 50, NBA business, WNBA, college basketball, Big3 and a few videos. All of it posts (labeled "Front Office Sports", blue), with the user's muted writers and words still applied. ESPN's title rules are not applied: they would drop business stories such as "LeBron Takes AI Betting App to Court Over Fake Endorsement" as betting. The feed has an `id`, so its first read marks what is there as seen and posts nothing. `/headlines` also shows each main feed's last read and any error (`sources`), so a new source can be confirmed from outside the review page.
+
+**Tests.** 1,052 in the full suite; 87 watcher checks before the deploy (four new): a Front Office Sports item's writer, title, date, category and dek; its first read posts nothing; a new story posts with its source and writer though its title says "Betting", a muted word still holds one back, and only the top of the feed is read; `/headlines` shows each feed's last read and error and nothing private.
+
+**Self-audit.** Not proven until the deployed Worker has read it: whether Front Office Sports answers Cloudflare's servers (the browser on the user's PC is not Cloudflare). `/headlines` → `sources.fos` will say, within five minutes of the deploy. If WNBA or college stories turn out to be noise, the fix is a filter on the feed's category or title, not a different feed: their NBA-only tag would miss the league-business stories.
+
 ## 0.133.0 (2026-11-20): vs top teams: a "Teams vs the bottom" tab
 
 The user, 10:38 AM, with the "Teams vs the top" table: "is it possible to check against the worst teams as well? record and defense with all the other same checks. maybe a different tab vs worst teams".

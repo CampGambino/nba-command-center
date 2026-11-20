@@ -419,6 +419,39 @@ export async function articlesChecks(ok) {
       ok(st2.ok["athletic:NYK"].items < 500, "articles: only the top of a long team feed is downloaded", String(st2.ok["athletic:NYK"].items));
     } finally { globalThis.fetch = realFetch; }
   }
+  // 0.134.0: Front Office Sports' basketball tag (the user, 11/20). WordPress feed: CDATA writer and category, the whole
+  // article in content:encoded; its first read posts nothing; business stories the ESPN title rules would drop go out.
+  {
+    const { FEEDS } = await import("../cloudflare/articles-worker.js");
+    const fos = FEEDS.find((f) => f.src === "fos");
+    const kv = new Map([["state", JSON.stringify({ started: 1, seen: {}, errors: {}, base: null, lastWrite: 0 })], ["rules", JSON.stringify({ muteBylines: [], muteWords: ["Big3"], allowBylines: [], allowKeys: [] })]]), posts = [];
+    const env = { DISCORD_WEBHOOK: "https://discord.com/api/webhooks/5/test-t", STATE: { get: async (k, t) => (kv.has(k) ? (t === "json" ? JSON.parse(kv.get(k)) : kv.get(k)) : null), put: async (k, v) => kv.set(k, v) } };
+    const T = Date.parse("2026-11-20T16:00:00Z");
+    const item = (slug, title, by, cat, pub) => `<item><title>${title}</title><link>https://frontofficesports.com/article/${slug}/</link><dc:creator><![CDATA[${by}]]></dc:creator><pubDate>${new Date(pub).toUTCString()}</pubDate><category><![CDATA[${cat}]]></category><guid isPermaLink="false">https://frontofficesports.com/?p=${slug.length}</guid><description><![CDATA[A short dek.]]></description><content:encoded><![CDATA[<p>${"Body text. ".repeat(900)}</p>]]></content:encoded></item>`;
+    let list = [item("lsu-backtracks", "LSU Backtracks on Rostering Ex-NBA Player", "Amanda Christovich", "College Sports", T - 2 * 3600e3)];
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async (u, o = {}) => {
+      u = String(u);
+      if (u === fos.url) return new Response(`<?xml version="1.0"?><rss><channel><title>Basketball News</title>${list.join("")}${item("old", "Old story", "X", "Leagues", T - 30 * 864e5).repeat(40)}</channel></rss>`, { status: 200 });
+      if (u.startsWith("https://discord.com/")) { posts.push(JSON.parse(o.body)); return new Response("{}", { status: 200 }); }
+      return new Response("", { status: 404 });
+    };
+    try {
+      const P = parseRss(list[0], "fos")[0];
+      ok(P.byline === "Amanda Christovich" && P.title.startsWith("LSU Backtracks") && P.published === T - 2 * 3600e3 && P.categories[0] === "College Sports" && P.description === "A short dek.",
+        "articles (0.134): a Front Office Sports item reads its writer, title, date, category and dek", JSON.stringify({ ...P, description: P.description.slice(0, 20) }));
+      await articlesCheck(env, T, { feeds: [fos] });
+      const st1 = JSON.parse(kv.get("state"));
+      ok(posts.length === 0 && st1.feedStarted.fos && st1.seen["frontofficesports.com/article/lsu-backtracks"] !== undefined || (posts.length === 0 && st1.feedStarted.fos && Object.keys(st1.seen).some((k) => k.includes("lsu-backtracks"))),
+        "articles (0.134): Front Office Sports' first read marks what is there as seen and posts nothing", JSON.stringify(Object.keys(st1.seen)));
+      list = [item("lebron-ai-betting-app", "LeBron Takes AI Betting App to Court Over Fake Endorsement", "Ben Horney", "Law", T + 60e3), item("haynes-big3", "NBA Insider Chris Haynes Joins Big3's Business Side", "Ryan Glasspiegel", "Leagues", T + 90e3), ...list];
+      await articlesCheck(env, T + 5 * 60e3, { feeds: [fos] });
+      const log = JSON.parse(kv.get("log") || "[]"), e = posts[0]?.embeds?.[0] || {};
+      ok(posts.length === 1 && e.title?.startsWith("LeBron Takes AI Betting App") && JSON.stringify(e).includes("Front Office Sports") && JSON.stringify(e).includes("Ben Horney")
+        && log.some((l) => /Big3/.test(l.title || "") && !l.posted) && JSON.parse(kv.get("state")).ok.fos.items < 20,
+        "articles (0.134): a new Front Office Sports story posts with its source and writer, even with 'Betting' in the title; a muted word still holds one back; only the top of the feed is read", JSON.stringify({ posts: posts.length, log: log.map((l) => [l.title, l.posted, l.reason]) }));
+    } finally { globalThis.fetch = realFetch; }
+  }
   // The Athletic's weekly NBA news live blog (11/12).
   {
     ok(findLiveBlog('<a href="/athletic/live-blogs/nba-cup-2026-live/AbC123/">x</a><a href="https://www.nytimes.com/athletic/live-blogs/nba-news-scores-games-schedule-stats-live-updates/3O8C8RgzvHTs/">y</a>') === "https://www.nytimes.com/athletic/live-blogs/nba-news-scores-games-schedule-stats-live-updates/3O8C8RgzvHTs/" && findLiveBlog("<p>none</p>") === null,
@@ -532,6 +565,14 @@ export async function articlesChecks(ok) {
     const other = await handleHeadlines(new Request("https://w.example/votes"), env, new URL("https://w.example/votes"), now);
     ok(j.headlines.length === 1 && j.headlines[0].title === "Jared McCain is thriving in OKC" && !("reason" in j.headlines[0]) && !("url" in j.headlines[0]) && other === null,
       "headlines (0.70): the last 72 hours' titles only (no review-page reasons or links); other paths pass through", JSON.stringify(j));
+  }
+  {
+    const now = Date.parse("2026-11-20T18:00:00Z");
+    const state = { ok: { fos: { at: now - 60e3, items: 6 }, espn: { at: now - 60e3, items: 25 } }, errors: { athletic: { msg: "HTTP 403", at: now } }, seen: { a: 1 } };
+    const env = { STATE: { get: async (k) => (k === "state" ? state : k === "log" ? [] : null) } };
+    const j = await (await handleHeadlines(new Request("https://w.example/headlines"), env, new URL("https://w.example/headlines"), now)).json();
+    ok(j.sources.fos.items === 6 && j.sources.fos.readAt === now - 60e3 && j.sources.athletic.problem === "HTTP 403" && !("seen" in j) && !JSON.stringify(j).includes("rules"),
+      "headlines (0.134): each main feed's last read and any error, public (no seen list, no rules)", JSON.stringify(j.sources));
   }
   // ---------- 0.73: time limits, the build check, and no duplicate storylines (the user's OK, 11/15) ----------
   {

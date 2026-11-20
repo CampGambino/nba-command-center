@@ -34,9 +34,14 @@ import { healthCheck } from "./health.js";
 import { tfetch, LIMIT_MS } from "./net.js";
 export const ARTICLES_CRON = "*/5 * * * *";
 
-const FEEDS = [
+export const FEEDS = [
   { src: "espn", kind: "espn", url: "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/news?limit=25" },
   { src: "athletic", kind: "rss", url: "https://www.nytimes.com/athletic/rss/nba/" }, // NBA feed only (the user's choice, 11/11)
+  // 0.134.0 (the user, 11/20: "Is it possible to send newly published articles to the discord from this site?
+  // https://frontofficesports.com/tag/basketball/"): the tag page's WordPress feed. Each item carries the whole article,
+  // so only the top ~90 KB is read (the newest five or more stories; the tag gets two or three a day). `id` makes its
+  // first read mark what is already there as seen instead of posting it.
+  { src: "fos", id: "fos", kind: "rss", url: "https://frontofficesports.com/tag/basketball/feed/", maxBytes: 90000 },
 ];
 // The Athletic's 30 NBA team feeds (11/12): team beat stories are only there (Mikal Bridges, Knicks, 11/12), and
 // so are some follow-ups (Curry's MRI result, Warriors). Read on the 1-minute schedule, a group at a time
@@ -57,8 +62,8 @@ export const LIVE_FEED = { src: "athletic-live", kind: "liveblog", id: "athletic
 // is read. If none has had a post for LIVE_STALE_H hours, the review page says so in red and #articles gets one note.
 export const LIVE_SEEDS = ["https://www.nytimes.com/athletic/live-blogs/nba-news-schedule-scores-games-live-updates-2026/CzqWv0txVItd/"];
 export const LIVE_STALE_H = 24;
-const SOURCE = { espn: "ESPN", athletic: "The Athletic", nyt: "NYT / The Athletic", "athletic-live": "The Athletic live blog" };
-const COLOR = { espn: 0xd00000, athletic: 0x1f1f1f, nyt: 0x1f1f1f, "athletic-live": 0x1f1f1f };
+const SOURCE = { espn: "ESPN", athletic: "The Athletic", nyt: "NYT / The Athletic", "athletic-live": "The Athletic live blog", fos: "Front Office Sports" };
+const COLOR = { espn: 0xd00000, athletic: 0x1f1f1f, nyt: 0x1f1f1f, "athletic-live": 0x1f1f1f, fos: 0x0a5cff };
 const FRESH_MIN = 20;        // first run: post only what was published in the last 20 minutes
 const MAX_AGE_H = 6;         // never post anything published more than 6 hours ago
 const MAX_POSTS_PER_RUN = 10;
@@ -131,6 +136,9 @@ export function decide(item, rules = {}, now = Date.now()) {
     for (const [re, why] of ATHLETIC_SKIP) if (re.test(t)) return { post: false, reason: why };
     return { post: true, reason: item.team ? `Athletic (${item.team} feed)` : "Athletic NBA story" };
   }
+  // Front Office Sports: every story on its basketball tag (NBA, WNBA, college, Big3; the user's pick, 11/20). The
+  // title rules above are for ESPN's feed: they would drop its business stories ("LeBron Takes AI Betting App to Court").
+  if (item.src === "fos") return { post: true, reason: "Front Office Sports basketball story" };
   if (!allowWriter) for (const [re, why] of TITLE_SKIP) if (re.test(t)) return { post: false, reason: why };
   return { post: true, reason: allowWriter ? "allowed writer" : "kept" };
 }
