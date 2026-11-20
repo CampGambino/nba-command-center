@@ -2,6 +2,27 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.128.0 (2026-11-20): the next day's slate is built after midnight, not first at 8 AM
+
+The user, 12:06 AM, with the Watch List still showing Thursday's four finals: "it's past midnight and the games from the day before had been [final] for a while. why is the command center not updated for the next slate?"
+
+**Why.** Nothing was wrong with the build; none was scheduled. The site built at 8 and 10:30 AM and 1, 3 and 5:30 PM Eastern, and on a push. The two overnight runs (3:30 and 7 AM) only score the night before; they do not build a slate. So on a night without a push, Thursday's list stayed up until 8 AM. The rule from 11/18 ("wait until all the games are completed from the previous day after midnight") decides which day a build after midnight publishes, but there was no build after midnight to apply it.
+
+**What changed.** `.github/workflows/daily.yml`: three more builds, at 12:15, 1:30 and 2:45 AM Eastern in winter (an hour later on the clock in summer; GitHub's schedule is in UTC). Each one keeps yesterday's slate while one of its games is unfinished and moves to the new day once they are all final, so the first covers an early night, the second a night with late west-coast games, and the third a long game or a late start by GitHub. Pushing this change started a build, which is the one that put Friday's slate up tonight.
+
+**Tested.** 1,042 checks pass (one new: the schedule has three build runs after midnight Eastern and they run the build job, not the scoring job).
+
+**Not proven.**
+- GitHub can start a scheduled run late (87 minutes on 11/11), so "12:15 AM" is the earliest, not a promise.
+- What an overnight build looks like before any team has posted notes for the day: every team's notes will read "stale", which is true, and the briefing leans on streaks, finds and last night's results. The 9:30 AM follow-up reads these builds' health notes.
+- The Worker sends Discord's digest on its own clock from whatever is published; an earlier slate should only give it fresher data, and I have not looked at the Worker's side tonight.
+
+**Self-audit.**
+- Wrong first, and repeated in the handoff since 11/19: I wrote that the site builds at "3:30, 7, 8 and 10:30 AM". The 3:30 and 7 AM runs are the scoring job. I had read the workflow's list of times without reading which job each one runs. The handoff is corrected.
+- Wrong first: when the 11/18 rule was built (0.105) I tested which day a build after midnight would pick and never asked when such a build would run. A rule with nothing to trigger it sat there for two nights.
+- Re-derived from the workflow file: ten schedule lines; "30 8" and "0 12" are scoring; "15 5", "30 6", "45 7" UTC are the new builds.
+- Case not used while building: the build this push starts is itself the first one after midnight with the rule live; its result is checked before I answer.
+
 ## 0.127.0 (2026-11-19): how often an "as it stands" odd line holds (play-by-play of 28,853 games)
 
 Step 3 of the odd-lines order, and the first forecasting number out of that work. NBA Live cards a line that one play can undo inside the last five minutes of the 4th, with the words "stands only if the game ends here". This is how often it does.

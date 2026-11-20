@@ -1154,6 +1154,13 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
     const wfFile = path.join(root, ".github", "workflows", "daily.yml");
     const wf = fs.existsSync(wfFile) ? fs.readFileSync(wfFile, "utf8") : null;
     // Since 0.28.1 the Cloudflare Worker sends the #alerts digest; no GitHub step gets the webhook any more.
+    if (wf) {
+      // 0.128: the next day's slate is built after midnight Eastern, not first at 8 AM
+      const crons = [...wf.matchAll(/^\s*- cron: "(\d+) (\d+) \* \* \*"/gm)].map((m) => `${m[2]}:${m[1].padStart(2, "0")}`), score = [...(/"30 8 \* \* \*"\|"0 12 \* \* \*"\) job=score/.test(wf) ? ["8:30", "12:00"] : [])];
+      const overnight = crons.filter((c) => !score.includes(c) && +c.split(":")[0] >= 5 && +c.split(":")[0] < 9);   // 05:00 to 08:59 UTC is after midnight Eastern, winter and summer
+      ok(crons.length === 10 && score.length === 2 && overnight.join() === "5:15,6:30,7:45" && /\*\) job=build ;;/.test(wf),
+        "schedule (0.128): three builds after midnight Eastern (12:15, 1:30 and 2:45 AM in winter) publish the next day's slate once last night's games are final; they run the build job, not the scoring job", JSON.stringify([crons, overnight]));
+    }
     if (wf) ok(!/secrets\.DISCORD_WEBHOOK/.test(wf) && !/node scripts\/notify\.js/.test(wf.replace(/^\s*#.*$/gm, "")), "Discord: no GitHub step receives the #alerts webhook or runs notify.js (Cloudflare sends the digest)");
   }
   ok(pay.length >= 3 && pay.every((p) => p.embeds.length <= 10) && sizes.every((n) => n <= 6000) && pay.reduce((a, p) => a + p.embeds.length, 0) === 23 && pay[0].content && !pay[1].content && pay.every((p) => p.allowed_mentions.parse.length === 0),
