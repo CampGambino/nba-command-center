@@ -1,0 +1,22 @@
+miss  81%  NYK Jalen Brunson: 2000 free throws (needed 3, got 1)
+HIT   68%  GSW Will Richard: 200 field goals (needed 1, got 5)
+HIT   55%  SAS Stephon Castle: 900 field goals (needed 6, got 7)
+HIT   49%  NYK Tyler Kolek: 300 assists (needed 4, got 5)
+miss  38%  MEM Cam Spencer: 200 3-pointers (needed 3, got 1)
+miss  36%  MIN Cody Williams: 200 assists (needed 4, got 0)
+miss  32%  MEM Cam Spencer: 200 defensive rebounds (needed 3, got 1)
+miss  30%  POR Jrue Holiday: 1750 3-pointers (needed 4, got 2)
+HIT   26%  MEM Jaylen Wells: 300 3-pointers (needed 3, got 4)
+miss  24%  NYK Dalton Knecht: 300 rebounds (needed 2, got 0)
+miss  24%  MIN Joan Beringer: 200 rebounds (needed 9, got 3)
+HIT   19%  MEM Javon Small: 200 assists (needed 6, got 7)
+miss  17%  MIL Kel'el Ware: 900 defensive rebounds (needed 8, got 4)
+HIT   14%  SAS Devin Vassell: 400 steals (needed 3, got 3)
+
+124 calls scored, Brier 0.031 (lower is better; always guessing 50% scores 0.250)
+  0-5%     n=110  predicted 0%  happened 0%
+  5-25%    n=  5  predicted 20%  happened 40%
+  25-50%   n=  6  predicted 35%  happened 33%
+  50-75%   n=  2  predicted 62%  happened 100%
+  75-95%   n=  1  predicted 81%  happened 0%
+calls given 5%+: 14, happened 6, expected 5.1, Brier 0.270
