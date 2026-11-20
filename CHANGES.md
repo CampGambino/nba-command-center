@@ -2,6 +2,58 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.127.0 (2026-11-19): how often an "as it stands" odd line holds (play-by-play of 28,853 games)
+
+Step 3 of the odd-lines order, and the first forecasting number out of that work. NBA Live cards a line that one play can undo inside the last five minutes of the 4th, with the words "stands only if the game ends here". This is how often it does.
+
+**The study** (`tools/odd-games/late`: `reduce.mjs`, `fetch-late.mjs`, `eval-late.mjs`).
+- ESPN's play-by-play for every game on file from 2002-03 through 2025-26 (28,880 games read in 470 seconds; 27 have no plays). Each player's running line is rebuilt play by play and taken with 5:00, 3:00, 2:00 and 1:00 left in the 4th.
+- Only players whose rebuilt final line equals the box score in all fifteen columns are used: 478,690 of 598,896 player-games (80%). Older seasons lose more, mostly to steals the plays do not credit.
+- The site's own rules (`src/situations/oddlines.js`) are run on the line at each mark and on the box-score line. A line "held" when the same template still matched at the final.
+- Who was on the floor at each mark comes from the 4th quarter's substitutions; the five who start the 4th are worked out from who is subbed out or makes a play before being subbed in (known for 99% of the clean player-games).
+
+**What it found** (regulation finishes; 22 templates one play can undo).
+
+| Time left in the 4th | Lines standing | Held at the final | On the bench then | On the floor then |
+|---|---|---|---|---|
+| 5:00 | 3,528 | 70% | 94% (1,255) | 57% (2,273) |
+| 3:00 | 3,675 | 81% | 98% | 69% |
+| 2:00 | 3,781 | 85% | 99% | 75% |
+| 1:00 | 3,852 | 91% | 100% | 84% |
+
+- Whether he is still in the game matters more than which line it is. A line on a player who is on the bench with five minutes left holds 94 times in 100; on the floor, 57.
+- By line with five minutes left: a scorer far under his average 57% (771); 15+ shots at 20% or worse 70% (469); no field goal on 8+ attempts 78% (390); most of his points from the line 70% (305); long minutes and no points 72% (225); 8+ field goals without a miss 77% (180); 0-for-8 or worse from three 85% (132); 14+ free throws without a miss 89% (72).
+- When the game goes to overtime, 38% of the lines standing at 5:00 hold (101 of 263).
+- Of the lines that stood at the final, 60% already stood at 5:00. The rest came later, which is why the card keeps checking through the last five minutes.
+
+**What changed on the site.**
+- `src/data/odd-lines-hold.json` (written by `eval-late.mjs --write`): per template and mark, lines standing, held, on the floor, held on the floor, and the same for overtime games.
+- Streaks & outliers page, under the odd lines: "When a line stands late, does it hold?", a paragraph and the table.
+- `docs/data/oddlive.json` now carries the table too (`hold`). **No card reads it.** Putting "has held 57% of the time from here" on the NBA Live card is a bridge change and waits for the user's go.
+- `LATE_NAMES` in the odd-lines module: a short name for each of those templates.
+
+**Tested.** 1,041 checks pass (one new: the table's totals, that every row is a rule one play can undo, that the rows add up to the total, that the share held rises as time runs down, and the page and data wiring). A full situations build ran clean here with the new code. The page section read in a browser at desktop and phone widths.
+
+**Checks on the study itself.**
+- An independent field: for every team whose players are all clean, the players' points at the mark were added up and compared with the scoreboard the play-by-play carries at that moment. They agree for 26,956 of 27,125 team sides at 5:00 (99.4%) and 26,985 of 27,125 at 1:00.
+- One case by hand from the raw plays: Gordon Hayward, 4/11/16, 0-for-8 from three with five minutes left, made one with 17 seconds left, final 1-for-9. The table has it as a line that did not hold.
+
+**Not proven.**
+- The clean 80% may not be a fair sample of the rest. A player the plays miscount is left out whether his line held or not, so I do not expect a lean, but it is not measured.
+- Minutes at a mark are the box score's whole minutes less his seconds on the floor after it, so they can be a minute off. The rules that turn on a minutes threshold (long minutes and no points, long minutes without a shot, a burst in few minutes) carry that error; the two that turn on exactly zero minutes are left out of the table.
+- "Held" means the same template at any level. At the same level the figures are two points lower overall (64% against 66% before the two rules were dropped; 51% against 57% for a scorer under his average).
+- The live card fires at the first check inside the window, which may be at 4:40 or 2:10, not on a mark. The table gives four points on a curve, not the exact moment.
+- Overtime: minutes cannot be worked out past regulation here, so the overtime figure is for all 22 rules together and its minutes-based lines are rougher.
+- Score margin is in the files but not used. A blowout sends starters to the bench, which the bench column already catches in part.
+
+**Self-audit.**
+- Wrong first: the first rebuild double-counted an offensive foul (ESPN writes it as two plays, a lesson already in the handoff) and missed most missed threes through a slip in a condition. Both showed as low agreement with the box score on four sample games before anything was counted.
+- Wrong first: the first table included "a box-score entry in 0 minutes" holding 25% of the time with 0% on the floor. That was the minutes estimate, not basketball. It and "minutes with nothing" are out.
+- Wrong first: the page first printed the span as "2002-2026".
+- Re-derived from `odd-lines-hold.json`: 2,462 of 3,528 is 69.8%; bench 1,174 of 1,255 is 93.5%; floor 1,288 of 2,273 is 56.7%; overtime 101 of 263 is 38.4%.
+- Cases not used while building: the scoreboard comparison above covers every game; the Hayward case was picked from the output and then read in the raw plays.
+- Page read as a first-time reader: the paragraph says what "as it stands" is before giving numbers, and the two bold figures are the ones to remember. The grey number beside each percentage is the count; the paragraph does not say so, and the column heads do not either. Fixed in the same commit: the first column head reads "Line as it stands (share held, then how many lines)".
+
 ## 0.126.0 (2026-11-19): a star's absence can lead the briefing; one shift line in the ten; the notes guard keeps one team, not the list
 
 At 7:08 PM I put three calls to the user as theirs, each with what I would do. The user, 10:04 PM: "you can work on the other things as well". I took that as a go for all three, done the way I had recommended. Each is one constant or one function to undo.

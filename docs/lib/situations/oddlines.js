@@ -144,6 +144,19 @@ export const TEMPLATES = [
 export const TOV_PF = ["tov", "tov0", "foulout", "nothing", "zeromin", "ones.6"];
 export const NO_TOV_PF = ["nothing", "zeromin"];
 
+/**
+ * 0.127: a short name for each template whose line a later play can undo (LATE), for the "does it hold" table
+ * (src/data/odd-lines-hold.json, tools/odd-games/late). The levels' own wording names a number; this names the shape.
+ */
+export const LATE_NAMES = {
+  noft: "Points without a free throw attempt", ftshare: "Most of his points from the line", nofg: "Points without a field goal", all3: "Every basket a three",
+  ofg: "No field goal on 8+ attempts", o3: "0-for-8 or worse from three", brick: "15+ shots at 20% or worse", perfg: "8+ field goals without a miss", perft: "14+ free throws without a miss",
+  empty: "Points and next to nothing else", ast0: "Assists and no points", reb0: "Rebounds and no points", min0: "Long minutes and no points", noshot: "Long minutes without a shot",
+  noshotbig: "A big rebound, assist, steal or block night without a shot", tov0: "Turnovers and no points", pts0reb: "30+ points and no rebound", blk0reb: "Blocks and no rebound",
+  quick: "A scoring burst in few minutes", ones: "Exactly one (or two) of everything", lowpts: "Double figures in rebounds and assists, few points", dud: "A scorer far under his average",
+  nothing: "Minutes with nothing in the box score", zeromin: "A box-score entry in 0 minutes",
+};
+
 /** ESPN's position label -> "G" | "F" | "C" | null (anything else, or none). */
 export const posGroup = (p) => (p === "G" || p === "PG" || p === "SG" ? "G" : p === "C" ? "C" : p === "F" || p === "SF" || p === "PF" ? "F" : null);
 

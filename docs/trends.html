@@ -19,6 +19,7 @@
   header { padding: 18px 16px 8px; max-width: 980px; margin: 0 auto; }
   h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
   .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .dim { color: var(--muted); font-size: 12px; }
   main { max-width: 980px; margin: 0 auto; padding: 0 12px 40px; }
   h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 22px 4px 10px; }
   .games { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 6px; }
@@ -151,6 +152,11 @@
     <ul class="odd" id="oddruns"></ul>
     <details id="oddown"><summary id="oddownsum"></summary><ul class="odd" id="oddowners"></ul></details>
   </div>
+  <div id="oddhold" hidden>
+    <h3 class="subh">When a line stands late, does it hold?</h3>
+    <div class="key" id="oddholdkey"></div>
+    <div class="scroll"><table id="oddholdtab"></table></div>
+  </div>
 
   <h2>Outlier games</h2>
   <div class="controls">
@@ -231,6 +237,20 @@ function renderOdd() {
   $("oddlines").innerHTML = list.length ? list.map((a) => `<li><div class="pl"><b>${esc(a.name)}</b><span class="team">${a.team} ${a.home ? "vs" : "@"} ${a.opp} · ${a.win ? "W" : "L"}</span>${a.grade ? `<span class="grade ${a.grade}">${GRADE[a.grade]}</span>` : ""}</div>
       ${a.hits.map((h) => `<div class="hit"><b>${esc(h.say[0].toUpperCase() + h.say.slice(1))}.</b> <small>${esc(h.note || "")}</small></div>`).join("")}
       <div class="box">${esc(a.box)}</div></li>`).join("") : `<li class="empty">No odd line for this filter.</li>`;
+}
+// 0.127: how often an odd line that stands with 5:00, 3:00, 2:00 or 1:00 left in the 4th is still there at the final
+// (ESPN play-by-play since 2002-03, tools/odd-games/late). The NBA Live card says "stands only if the game ends here";
+// this is how often it does.
+function renderOddHold() {
+  const H = T && T.odd && T.odd.hold; if (!H || !H.t || !H.t.ALL) return;
+  $("oddhold").hidden = false;
+  const pc = (a, b) => (b ? Math.round((100 * a) / b) + "%" : "–"), M = H.marks || [300, 180, 120, 60], lab = (m) => `${m / 60}:00`;
+  const A = H.t.ALL, a5 = A[M[0]];
+  $("oddholdkey").innerHTML = `Some odd lines can only grow (a 20-rebound night stays one). Others one play can undo: a scoreless night, a perfect shooting night, 30 points without a free throw. NBA Live cards those inside the last five minutes of the 4th as "as it stands". This is how often they then stood at the final, from ESPN's play-by-play of ${H.counts.games.toLocaleString()} games (2002-03 to 2025-26), regulation finishes only. <b>With five minutes left, ${pc(a5[1], a5[0])} held</b> (${a5[0].toLocaleString()} lines): <b>${pc(a5[1] - a5[3], a5[0] - a5[2])}</b> when the player was on the bench at that moment and <b>${pc(a5[3], a5[2])}</b> when he was on the floor. When the game went to overtime instead, ${pc(a5[5], a5[4])} held (${a5[4]}). A row with few lines is a rough guide. Minutes at each moment are worked out to the nearest minute, so two rules that turn on exactly zero minutes are left out.`;
+  const rows = Object.entries(H.t).filter(([k]) => k !== "ALL").sort((x, y) => y[1][M[0]][0] - x[1][M[0]][0]);
+  const cell = (c) => `<td class="num">${pc(c[1], c[0])} <span class="dim">${c[0].toLocaleString()}</span></td>`;
+  const tr = (name, e, b) => `<tr><td>${b ? "<b>" : ""}${esc(name)}${b ? "</b>" : ""}</td>${M.map((m) => cell(e[m])).join("")}<td class="num">${pc(e[M[0]][1] - e[M[0]][3], e[M[0]][0] - e[M[0]][2])} <span class="dim">${(e[M[0]][0] - e[M[0]][2]).toLocaleString()}</span></td><td class="num">${pc(e[M[0]][3], e[M[0]][2])} <span class="dim">${e[M[0]][2].toLocaleString()}</span></td></tr>`;
+  $("oddholdtab").innerHTML = `<thead><tr><th>Line as it stands <span class="dim">(share held, then how many lines)</span></th>${M.map((m) => `<th class="num">${lab(m)} left</th>`).join("")}<th class="num">On the bench at 5:00</th><th class="num">On the floor at 5:00</th></tr></thead><tbody>${tr("Every such line", A, true)}${rows.map(([k, e]) => tr((H.names && H.names[k]) || k, e, false)).join("")}</tbody>`;
 }
 // 0.125: tonight's injury report, for the "to watch" list (data/injuries.json; names compared without accents or suffixes).
 let INJ = null, INJSTATUS = {};
@@ -409,7 +429,7 @@ fetch("data/trends.json", { cache: "no-store" }).then((r) => r.json()).then((d) 
   for (const id of ["cat", "steam"]) $(id).onchange = renderStreaks;
   $("sub").textContent = `Through ${d.through} · from ESPN box scores`;
   $("foot").innerHTML = `Outlier games compare a player's game with his other games this season (5+ needed): how far it is from his average, in units of how much his games usually vary (with a minimum, so a steady player's small change doesn't look huge). Listed when that "strength" is 2.5+; when a regular (15+ points or 20+ minutes a game) is 2.5 below; for a clear season or career high ("career high" replaces "season high": his best in any regular-season game on file — points for everyone, other stats when his whole career is in the 2016-17 on game logs, so a rookie's first big game is a career high); for shooting 25 points off his usual FG% on 10+ shots; or 0-for-6+ from three. A low-minutes game often means injury, fouls or a blowout, so check the minutes. "Most notable" weights a streak's length by how hard it is (30+ points counts 3x a game, 10+ points 0.4x); "Longest" is plain length. Streaks count games played, this season only (a run from last season shows only its this-season part). Built ${new Date(d.generatedAt).toLocaleString()}.`;
-  renderOdd(); renderOddWatch(); renderOutliers(); renderStreaks(); renderWatch(); renderTeams();
+  renderOdd(); renderOddWatch(); renderOddHold(); renderOutliers(); renderStreaks(); renderWatch(); renderTeams();
 }).catch((e) => { $("sub").textContent = "Couldn't load the data: " + e.message; });
 </script>
 </body>

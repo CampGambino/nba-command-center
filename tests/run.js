@@ -3233,6 +3233,21 @@ await articlesChecks(ok);
     JSON.stringify([K.lost, K.text, Object.fromEntries(Object.entries(byT).map(([t, v]) => [t, [v.notesStatus, v.items.length, v.notesKept]]))]));
 }
 
+// ---------- 0.127: how often an "as it stands" line holds ----------
+{
+  const M = await import("../src/situations/oddlines.js");
+  const H = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "odd-lines-hold.json"), "utf8")), A = H.t.ALL, late = M.TEMPLATES.map((t) => t.id).filter((id) => M.liveKind(id) === "late");
+  const sums = H.marks.map((m) => Object.entries(H.t).filter(([k]) => k !== "ALL").reduce((a, [, e]) => a.map((v, i) => v + e[m][i]), [0, 0, 0, 0, 0, 0]));
+  const rising = H.marks.every((m, i) => i === 0 || A[m][1] / A[m][0] > A[H.marks[i - 1]][1] / A[H.marks[i - 1]][0]);
+  const tp = fs.readFileSync(path.join(root, "docs", "trends.html"), "utf8"), sj = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8");
+  ok(H.marks.join() === "300,180,120,60" && H.from === "2002-10-29" && H.through === "2026-04-12" && H.counts.games === 28853 && H.counts.overtime === 1704 && H.skipped.join() === "zeromin,nothing"
+    && A[300].join() === "3528,2462,2273,1288,263,101" && H.marks.every((m, i) => sums[i].join() === A[m].join()) && rising
+    && Object.keys(H.t).filter((k) => k !== "ALL").every((k) => late.includes(k) && M.LATE_NAMES[k]) && late.every((id) => M.LATE_NAMES[id]) && Object.values(H.t).every((e) => H.marks.every((m) => e[m][1] <= e[m][0] && e[m][3] <= e[m][2] && e[m][2] <= e[m][0]))
+    && /function renderOddHold\(\)/.test(tp) && /id="oddholdtab"/.test(tp) && /hold: \{ from: hold\.from/.test(sj) && fs.existsSync(path.join(root, "tools", "odd-games", "late", "eval-late.mjs")),
+    "odd lines (0.127): the hold table (play-by-play of 28,853 games since 2002-03): of 3,528 lines standing with five minutes left 2,462 held (70%), more with less time left; every row is a rule one play can undo, the rows add up to the total, and the page and NBA Live's data file carry it",
+    JSON.stringify([A, sums[0], rising]));
+}
+
 // ---------- 0.72: the full diagnostic (11/15): what could break, and what was quietly wrong ----------
 {
   // The Knicks' 11/15 notes: an "on this date" line named the Spurs and carried today's month and day.
