@@ -23,17 +23,19 @@ export function features(l, stars = {}) {
   return f;
 }
 
+// 0.139: v = 2 is "used it" (the line was copied to be posted): it counts twice, as two 👍, and is listed in `used`.
 export function learn(votes = [], stars = {}) {
   const tally = {};
-  const down = new Set(), up = new Set();
+  const down = new Set(), up = new Set(), used = new Set(), usedClaims = new Set();
   for (const v of votes) {
     if (!v || !v.key || !v.v) continue;
     (v.v > 0 ? up : down).add(v.key);
-    for (const f of features(v, stars)) { const t = (tally[f] ??= { up: 0, down: 0 }); t[v.v > 0 ? "up" : "down"]++; }
+    if (v.v === 2) { used.add(v.key); if (v.claim) usedClaims.add(v.claim); }
+    for (const f of features(v, stars)) { const t = (tally[f] ??= { up: 0, down: 0 }); t[v.v > 0 ? "up" : "down"] += Math.abs(v.v) >= 2 ? 2 : 1; }
   }
   const weights = {};
   for (const [f, t] of Object.entries(tally)) if (t.up + t.down >= 2) weights[f] = Math.round((0.8 * (t.up - t.down)) / (t.up + t.down + 2) * 100) / 100;
-  return { weights, up, down, n: up.size + down.size, tally };
+  return { weights, up, down, used, usedClaims, n: up.size + down.size, tally };
 }
 
 export function boost(l, model, stars = {}) {

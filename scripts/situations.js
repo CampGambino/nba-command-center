@@ -862,8 +862,9 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
           text: c.best.text, score: Math.round((c.best.score || 0) * 100) / 100, first: c.first, status: status(c), shownStreak: c.shownStreak, top: atTop.has(c.key),
           pk: [...new Set(c.lines.map((l) => pageKey(l.team, l.text)))] })) }));
       // 0.138.1: the page's lookup table (page key -> claim id), small; the full ledger above is for research.
-      const pk = {}; for (const c of ledger.claims) for (const l of c.lines) pk[hashKey(pageKey(l.team, l.text))] = hashKey(c.key);
-      fs.writeFileSync(path.join(root, "docs", "data", "ledger-index.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, pk }));
+      const pk = {}, who = {}; for (const c of ledger.claims) { for (const l of c.lines) pk[hashKey(pageKey(l.team, l.text))] = hashKey(c.key); if (c.player) who[hashKey(c.key)] = c.player; }
+      // 0.139: who each claim is about, so a storyline marked "used" teaches the ranking about the right player.
+      fs.writeFileSync(path.join(root, "docs", "data", "ledger-index.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, pk, who }));
       console.log(`ledger: ${cand.all.length} lines -> ${ledger.claims.length} claims (${ledger.claims.filter((c) => c.kinds.length > 1).length} found by two detectors); ${ledger.claims.filter((c) => status(c) === "new").length} new, ${ledger.claims.filter((c) => status(c) === "updated").length} updated`);
       const firstRun = !Object.keys(seen).length; // the first build has nothing to compare with: nothing is "new"
       const slimL = (l) => ({ key: l.key, claim: l.claim || null, status: ledgerFirstRun ? null : l.status || null, kind: l.kind, team: l.team, player: l.player || null, game: l.game, text: l.text, rank: l.rank, learned: l.learned || 0, isNew: l.age === 0 && !firstRun, news: l.news || 0, headlines: l.news ? buzz?.titles?.[l.player] || [] : [] });
@@ -890,7 +891,7 @@ for (const f of fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^n
 fs.mkdirSync(path.join(root, "docs", "lib", "anticipate"), { recursive: true });
 for (const f of ["tonight.js", "briefing.js", "learn.js", "buzz.js", "ledger.js"]) fs.copyFileSync(path.join(root, "src", "anticipate", f), path.join(root, "docs", "lib", "anticipate", f));
 fs.mkdirSync(path.join(root, "docs", "lib", "site"), { recursive: true });
-fs.copyFileSync(path.join(root, "src", "site", "trim.js"), path.join(root, "docs", "lib", "site", "trim.js"));   // 0.137.0: the Watch List's folding rules
+for (const f of ["trim.js", "post.js"]) fs.copyFileSync(path.join(root, "src", "site", f), path.join(root, "docs", "lib", "site", f));   // 0.137/0.139: the Watch List's folding rules and post-ready wording
 fs.mkdirSync(path.join(root, "docs", "lib", "espn"), { recursive: true });
 for (const f of ["parse.js", "pbp.js", "misc.js"]) fs.copyFileSync(path.join(root, "src", "espn", f), path.join(root, "docs", "lib", "espn", f));
 const after = Object.values(store.dates).filter((d) => d.complete).length;

@@ -3,7 +3,8 @@
  * daily build can learn what the user wants on top (src/anticipate/learn.js).
  *
  *   GET  /votes            every vote, public (the lines are public anyway), read by the build and the page.
- *   POST /vote?k=<key>     one vote: { key, kind, team, player, text, d, v: 1 | -1 | 0 }; 0 takes a vote back.
+ *   POST /vote?k=<key>     one vote: { key, kind, team, player, text, d, v: 1 | -1 | 0 | 2 }; 0 takes a vote back;
+ *                          2 (0.139) = "used it": the user copied the line to post it (counts as a strong 👍).
  *                          Only with the private key (the review page's): the page gets it once from the review
  *                          page's "Vote on the briefing" link (in the URL's #fragment, which never reaches a server).
  *
@@ -25,10 +26,10 @@ export async function handleVotes(req, env, url, key) {
     let b;
     try { b = JSON.parse(await req.text()); } catch { return json({ error: "bad body" }, 400); }
     const v = Number(b?.v);
-    if (!b || typeof b.key !== "string" || !b.key || ![1, -1, 0].includes(v)) return json({ error: "bad vote" }, 400);
+    if (!b || typeof b.key !== "string" || !b.key || ![1, -1, 0, 2].includes(v)) return json({ error: "bad vote" }, 400);
     const k = clip(b.key, 200);
     const votes = ((await env.STATE.get("votes", "json")) || []).filter((x) => x.key !== k);
-    if (v) votes.push({ key: k, kind: clip(b.kind, 20), team: clip(b.team, 4), player: clip(b.player, 60), text: clip(b.text, 300), d: clip(b.d, 10), v, at: Date.now() });
+    if (v) votes.push({ key: k, kind: clip(b.kind, 20), team: clip(b.team, 4), player: clip(b.player, 60), text: clip(b.text, 300), d: clip(b.d, 10), v, at: Date.now(), ...(b.claim ? { claim: clip(b.claim, 16) } : {}) });
     const kept = votes.slice(-MAX);
     await env.STATE.put("votes", JSON.stringify(kept));
     return json({ ok: true, n: kept.length });

@@ -21,7 +21,9 @@
 const plain = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "");
 export const nameKey = (n) => plain(n).toLowerCase().replace(/\b(jr|sr|ii|iii|iv)\.?$/, "").replace(/[^a-z]/g, "");
 /** The words of a line with its numbers blanked: the same claim tomorrow, whatever the numbers then. */
-export const claimSig = (t) => plain(t).replace(/ · questionable tonight$/, "").replace(/[\d.,%]+/g, "#").replace(/\s+/g, " ").trim().toLowerCase().slice(0, 140);
+// 0.139: words are taken without a plural "s" ("4 free throws" and "1 free throw" are the same claim). The key is only
+// compared with keys made the same way, so "plus" → "plu" on both sides does no harm.
+export const claimSig = (t) => plain(t).replace(/ · questionable tonight$/, "").replace(/[\d.,%]+/g, "#").replace(/\s+/g, " ").trim().toLowerCase().replace(/\b([a-z]{3,})s\b/g, "$1").slice(0, 140);
 /** A line's numbers, in order: what "changed" is measured on. */
 export const numbersOf = (t) => (String(t || "").match(/\d[\d,]*\.?\d*%?/g) || []).join(" ");
 const decimals = (t) => new Set((String(t || "").match(/\d+\.\d+%?/g) || []).map((x) => x.replace(/%$/, "")));

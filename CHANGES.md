@@ -2,6 +2,26 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.139.0 (2026-11-20): post-ready wording and one-tap "used it" (audit step 3)
+
+The user, 3:36 PM: "Go" (step 3 of `claude/audit-2026-11-20.md`).
+
+**Post-ready wording (`src/site/post.js`, copied to `docs/lib/site/`).** `postText()` takes off what the page adds to a line (where it came from: "SAC notes — Darius Acuff Jr.: Team history ·"; the matchup tag; "(66% tonight)"; "(by chance: 1 in 67)"; "(2× MVP)"; "· questionable tonight"; the "→ …tonight" hook) and gives a notes sentence its subject back ("He's shooting…" → "Nikola Jokic is shooting…"; "Tallied fifth 30+ point game…" → "Darius Acuff Jr. tallied…"; "One of three players…", "As of Nov. 19, ranks…", "Over his past 7 games, averaging…" likewise). A countdown says "is" ("Naz Reid is 8 points from 6,000 career points"). It never adds a number, an "ever" or an adjective, and cuts at a sentence or clause to stay under 280 characters. Run over every line the page showed today (154): 123 reworded, none over 280; all 22 notes rewrites and a sample of the rest read by hand.
+
+**One-tap "used it".** A 📋 on every briefing, storyline and matchup line copies the post-ready text. With the voting key in that browser (the review page's "Vote on the briefing" link, once) it also records the line as used at the Worker (`/vote`, v = 2, with the claim's id). Without the key it only copies and says how to turn recording on. Then:
+- `src/anticipate/learn.js`: a used line counts as two 👍 for its features (kind, star or not, what it claims), so one use already moves the weights a little (0.4 for its kind).
+- `src/anticipate/briefing.js`: a used claim stays out of the briefing until its numbers move; then it comes back marked updated (a streak one game longer is news again; the same line twice is not).
+- Under the briefing: "📋 Used this week: N (by kind)", from the public `/votes`.
+- `docs/data/ledger-index.json` now also says who each claim is about, so a storyline marked used teaches the ranking about the right player.
+
+**Found while testing.** A countdown reaching 1 changes its words ("4 free throws" → "1 free throw"), which made the ledger read it as a new claim, not an update. Claim keys now drop a plural "s" (on both sides of every comparison); today's pool merged no extra claims (621 of 626 lines, as before).
+
+**Checked in a headless browser.** 23 briefing, 62 storyline and 70 matchup 📋 buttons; copying a briefing record line, a notes storyline and a matchup line put the post-ready text on the clipboard; with no key nothing was sent; with a key (Worker stood in for) each tap sent one v = 2 with the claim id and the button said "✓ used"; the used-this-week note counted it. No page errors.
+
+**Tests.** 1,074 in the full suite (three new: 13 wording cases including every rule above and a 280 cut; a used vote counts double and lists its claim; a used claim is held back, then returns updated when its numbers move); 95 watcher checks before the Worker deploy (one new: v = 2 kept with its claim id).
+
+**Self-audit.** The learning only starts when the voting link is opened in a browser: 0 votes so far suggests the link has never been opened, so the 📋 copy works for everyone but teaches nothing until then. The wording rules are fitted to today's 154 lines; a notes sentence shaped another way keeps its "Name:" prefix rather than being guessed at.
+
 ## 0.138.1 (2026-11-20): the Watch List loads a 12 KB claim index, not the 358 KB ledger
 
 My own regression in 0.138.0: the Watch List fetched `ledger.json` (358 KB on the first build) on every visit only to look up which claim a line makes, which undid part of step 1. Now the build also writes `docs/data/ledger-index.json` (page key → claim id, both as 32-bit FNV-1a ids in base 36; 12 KB for 652 lines; no id collision among the 647 claims), and the page reads that. `ledger.json` stays whole for research. Tests: 1,070, the ledger page test now through the index.

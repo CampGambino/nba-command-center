@@ -616,6 +616,9 @@ export async function articlesChecks(ok) {
     const other = await call("GET", "/review");
     ok(denied.status === 403 && up.status === 200 && up.headers.get("Access-Control-Allow-Origin") === "https://campgambino.github.io" && list.votes.length === 1 && list.votes[0].v === -1 && bad.status === 400 && other === null,
       "votes (0.67): a vote needs the key; the latest vote per line is kept, 0 takes it back; anyone can read; other paths pass through", JSON.stringify(list));
+    await call("POST", "/vote?k=KEY1", { key: "claim:abc", claim: "abc", kind: "matchup", team: "ORL", text: "The Magic have won 9 straight", v: 2 });
+    const list2 = await (await call("GET", "/votes")).json(), u = list2.votes.find((x) => x.key === "claim:abc");
+    ok(u && u.v === 2 && u.claim === "abc", "votes (0.139): \"used it\" (v = 2) is kept with its claim id", JSON.stringify(u));
   }
   // ---------- 0.70: headlines for the briefing's "in the news" boost ----------
   {

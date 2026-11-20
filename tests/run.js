@@ -5486,6 +5486,44 @@ await articlesChecks(ok);
     ok(S.inBrief.length === 1 && S.inBrief[0].kind === "context" && S.shown.length === 1 && claimOf(idx, "HOU", day1[1].text) === hashKey(smith.key),
       "ledger (0.138): on the page, a storyline making the same claim as a briefing line in other words isn't repeated", JSON.stringify(S));
   }
+  // 0.139.0: post-ready wording, "used it", and a used claim held back until it updates.
+  {
+    const { postText, POST_MAX } = await import("../src/site/post.js");
+    const P = (t, player) => postText(t, { player });
+    const cases = [
+      ["DEN notes — Nikola Jokic: 5th in NBA · He’s shooting 89.8% from the free-throw line this season, marking the fifth-best in the NBA (min. 50 FTM).", null, "Nikola Jokic is shooting 89.8% from the free-throw line this season, marking the fifth-best in the NBA (min. 50 FTM)."],
+      ["SAC notes — Darius Acuff Jr.: Team history · Tallied fifth 30+ point game, becoming the fourth rookie in franchise history with five or more 30+ point games, vs. PHX (11/18).", null, "Darius Acuff Jr. tallied fifth 30+ point game, becoming the fourth rookie in franchise history with five or more 30+ point games, vs. PHX (11/18)."],
+      ["LAL notes: 1 of 2 in team history · Dončić averaged 41.2 points during an 11-game streak.", null, "Dončić averaged 41.2 points during an 11-game streak."],
+      ["TOR notes — Ja'Kobe Walter: Streak · 13 (notes) · Has made a career-high 13 consecutive starts (Oct. 25 - Nov. 18); Averaging 12.8 points in that span. → 14 if he does it again tonight.", null, "Ja'Kobe Walter has made a career-high 13 consecutive starts (Oct. 25 - Nov. 18); averaging 12.8 points in that span."],
+      ["WAS notes — Anthony Davis: 1 of 3 this season · One of three players in the league averaging 24+ points. → Stays in it with 9+ rebounds tonight.", null, "Anthony Davis is one of three players in the league averaging 24+ points."],
+      ["ORL notes — Wendell Carter Jr.: T-9th in NBA · As of Nov. 19, ranks ninth in the NBA in field goal percentage.", null, "As of Nov. 19, Wendell Carter Jr. ranks ninth in the NBA in field goal percentage."],
+      ["HOU notes — Fred VanVleet: Notes · Over his past 7 games played, averaging 14.9 ppg on 48.7% shooting.", null, "Over his past 7 games played, Fred VanVleet is averaging 14.9 ppg on 48.7% shooting."],
+      ["Gilgeous-Alexander (2× MVP): 4 free throws from passing Giannis Antetokounmpo (121) for the NBA Cup record; 3 ties him (66% tonight)", "Shai Gilgeous-Alexander", "Shai Gilgeous-Alexander is 4 free throws from passing Giannis Antetokounmpo (121) for the NBA Cup record; 3 ties him"],
+      ["Naz Reid: 8 points from 6,000 career points (89% tonight)", "Naz Reid", "Naz Reid is 8 points from 6,000 career points"],
+      ["Amen Thompson is averaging 8.3 rebounds over his last 7 games (since 11/4), up from 3.6 over the 5 games before (by chance: under 1 in 200)", null, "Amen Thompson is averaging 8.3 rebounds over his last 7 games (since 11/4), up from 3.6 over the 5 games before"],
+      ["Series streak · 9: The Magic have won 9 straight against the Nets, their longest since a run of 10 that ended in 2012.", null, "The Magic have won 9 straight against the Nets, their longest since a run of 10 that ended in 2012."],
+      ["Luka Doncic: 25+ points in 12 straight games", "Luka Doncic", "Luka Doncic: 25+ points in 12 straight games"],
+      ["RJ Barrett OUT (right hamstring strain): TOR 0-1 without him (-4.0 a game), 5-9 with · questionable tonight", null, "RJ Barrett OUT (right hamstring strain): TOR 0-1 without him (-4.0 a game), 5-9 with"],
+    ];
+    const bad = cases.filter(([t, pl, want]) => P(t, pl) !== want).map(([t, pl, want]) => ({ got: P(t, pl), want }));
+    const long = P("A".repeat(10) + " " + "word ".repeat(70) + ". Second sentence " + "more ".repeat(20));
+    ok(!bad.length && long.length <= POST_MAX && !/ $/.test(long), "post-ready (0.139): page labels, chances and odds off; a notes sentence gets its subject back (He's → name, a bare verb, One of / As of / Over his…); a countdown says \"is\"; never over 280; nothing added", JSON.stringify(bad));
+    const { learn } = await import("../src/anticipate/learn.js");
+    const M = learn([{ key: "k1", claim: "abc", kind: "record", team: "OKC", player: "P", text: "x record", v: 2 }]);
+    ok(M.used.has("k1") && M.usedClaims.has("abc") && M.up.has("k1") && M.weights["kind:record"] === 0.4, "learn (0.139): a used line counts as two 👍 (a feature weight from one use) and its claim is listed as used", JSON.stringify(M.weights));
+    const { buildLedger, hashKey } = await import("../src/anticipate/ledger.js");
+    const { briefing } = await import("../src/anticipate/briefing.js");
+    const lineA = { kind: "record", team: "OKC", player: "Shai Gilgeous-Alexander", text: "Gilgeous-Alexander: 4 free throws from passing Giannis Antetokounmpo (121) for the NBA Cup record", score: 4 };
+    const lineB = { kind: "streak", team: "OKC", player: "Chet Holmgren", text: "Chet Holmgren: 2+ blocks in 6 straight games", score: 3 };
+    const L0 = buildLedger([lineA, lineB], { today: "2026-11-20" }), usedId = hashKey(L0.of.get(lineA).key);
+    const model = { weights: {}, down: new Set(), up: new Set(), usedClaims: new Set([usedId]) };
+    const B1 = briefing({ all: [lineA, lineB], games: [{ away: "NOP", home: "OKC" }], today: "2026-11-20", ledger: L0, model });
+    const lineA2 = { ...lineA, text: lineA.text.replace("4 free throws", "1 free throw") };
+    const L1 = buildLedger([lineA2, lineB], { seen: L0.seen, today: "2026-11-21" });
+    const B2 = briefing({ all: [lineA2, lineB], games: [{ away: "NOP", home: "OKC" }], today: "2026-11-21", ledger: L1, model });
+    ok(B1.top.map((l) => l.kind).join() === "streak" && B2.top.some((l) => l.kind === "record" && l.status === "updated"),
+      "briefing (0.139): a claim marked used stays out of the briefing; once its numbers move it comes back, as updated", JSON.stringify({ b1: B1.top.map((l) => l.text), b2: B2.top.map((l) => [l.status, l.text]) }));
+  }
   // 0.135: outliers against the group tonight's opponent is in. Home teams win every game here, so T01 has the best
   // record and defense and T30 the worst. "Feaster" (T14) scores 30 against T26-T30 and 10 against everyone else.
   {

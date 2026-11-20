@@ -19,7 +19,7 @@
  */
 import { boost } from "./learn.js";
 import { buzzBoost } from "./buzz.js";
-import { ledgerAdjust } from "./ledger.js";
+import { ledgerAdjust, hashKey } from "./ledger.js";
 const KEEP_OUT = new Set(["injury", "rest", "tv", "context"]);
 /** 0.126: an injury line reaches the top ten when one of its players is at least this prominent (tonight.json `stars`). */
 export const STAR_OUT = 0.6;
@@ -56,6 +56,8 @@ export function briefing({ all, games = [], stars = {}, nationalGames = new Set(
     if ((KEEP_OUT.has(l.kind) && starOut < STAR_OUT) || !gameOf.has(l.team)) continue;
     const key = lineKey(l);
     if (model?.down?.has(key)) continue; // the user voted this line down (0.67)
+    // 0.139: a claim the user copied to post ("used it") stays out until its numbers move (then it's an update).
+    if (claim && model?.usedClaims?.has(hashKey(claim.key)) && !claim.changed) continue;
     // 0.125: a notes line carries the day the notes first printed it (firstSeen); that wins over the day this wording
     // was first ranked, so a check or tag added in front of an old sentence is not "new today".
     const first = [l.firstSeen, next[key] || today, claim?.first].filter(Boolean).sort()[0];

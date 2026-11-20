@@ -104,6 +104,9 @@
   .brief .vote button:hover { opacity: 1; } .brief .vote button.on { opacity: 1; border-color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); }
   .brief h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--faint); margin: 12px 0 2px; }
   .bnew.upd { background: #e0ecff; color: #1d4ed8; }
+  button.cp { border: 0; background: transparent; cursor: pointer; font-size: 13px; padding: 0 4px; margin-left: 4px; opacity: 0.55; vertical-align: baseline; }
+  button.cp:hover, button.cp.done { opacity: 1; }
+  button.cp.done { font-size: 11px; color: var(--accent); }
   details.fold { margin: 6px 0 0; }
   details.fold > summary { cursor: pointer; color: var(--muted, #6b7280); font-size: 13px; padding: 2px 0; }
   details.fold[open] > summary { margin-bottom: 4px; }
@@ -163,7 +166,9 @@
 import { readBox } from "./lib/espn/parse.js";
 import { statFromLine } from "./lib/registry/track.js";
 import { tonightStorylines, injuryStatus } from "./lib/anticipate/tonight.js";
-import { trimStories, trimMatchups, trimNotes, briefClaimSet, claimIndex, claimSet } from "./lib/site/trim.js";   // 0.137.0: what shows first, what folds
+import { trimStories, trimMatchups, trimNotes, briefClaimSet, claimIndex, claimSet, claimOf } from "./lib/site/trim.js";
+import { postText } from "./lib/site/post.js";   // 0.139: post-ready wording
+import { hashKey } from "./lib/anticipate/ledger.js";   // 0.137.0: what shows first, what folds
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -373,7 +378,8 @@ function renderMatchups(m, injuries) {
     // defense) come first and are marked; the other lines follow as before.
     // 0.137.0: every edge, the two strongest series lines (1.5+), one player-vs-opponent line a team; the rest folded.
     const T = trimMatchups(items, STORY_TEXTS, STORY_CLAIMS, CLAIMS), edge = T.shown.filter((i) => i.edge), rest = T.shown.filter((i) => !i.edge);
-    const li = (i) => `<li${i.edge ? ' class="edge"' : ""}><span class="k">${i.edge ? "⚖️" : i.active ? "🔥" : i.lopsided ? "⚖️" : "🆚"}</span><span><span class="tag">${esc(i.tag)}</span>${esc(i.text)}</span></li>`;
+    const li = (i) => { const id = claimOf(CLAIMS, i.team, `${i.tag}: ${i.text}`);
+      return `<li${i.edge ? ' class="edge"' : ""}><span class="k">${i.edge ? "⚖️" : i.active ? "🔥" : i.lopsided ? "⚖️" : "🆚"}</span><span><span class="tag">${esc(i.tag)}</span>${esc(i.text)}</span>${copyBtn({ key: `claim:${id}`, claim: id, kind: "matchup", team: i.team, player: i.player || CLAIM_WHO[id] || null, text: i.text })}</li>`; };
     return `<div class="story"><h3><span>${esc(g.away)} @ ${esc(g.home)}</span><span class="when">${edge.length ? `${edge.length} lopsided · ` : ""}${edge.length + rest.length} lines${T.inStories.length ? ` · ${T.inStories.length} in the storylines` : ""}</span></h3>${items.length ? `<ul>${[...edge, ...rest].map(li).join("")}</ul>${T.folded.length ? `<details class="fold"><summary>${T.folded.length} more: series history and other players against tonight's opponent</summary><ul>${T.folded.map(li).join("")}</ul></details>` : ""}` : `<div class="empty">Nothing active or lopsided.</div>`}</div>`;
   }).join("") || `<div class="empty">No games tonight.</div>`;
 }
@@ -387,7 +393,30 @@ const WORKER = "https://ncc-articles.dukie0813.workers.dev";
   if (m) { try { localStorage.setItem("ncc-vote-key", m[1]); } catch {} history.replaceState(null, "", location.pathname + location.search); }
 })();
 const voteKey = () => { try { return localStorage.getItem("ncc-vote-key"); } catch { return null; } };
-let MYVOTES = null, BRIEF = null, BRIEF_INJ = null;
+// 0.139 (audit step 3): 📋 on a line copies it worded for a post (src/site/post.js). With the voting key in this
+// browser it also records the line as used (v = 2 at the Worker): the ranking learns from what was posted, and a
+// used claim stays out of the briefing until its numbers move.
+const COPY = [];
+let CLAIM_WHO = {};
+const copyBtn = (p) => `<button class="cp" type="button" data-c="${COPY.push(p) - 1}" title="Copy, worded for a post${voteKey() ? ", and mark it used" : ""}">📋</button>`;
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest && e.target.closest("button.cp");
+  if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  const p = COPY[+b.dataset.c]; if (!p) return;
+  const text = postText(p.text, { player: p.player });
+  let copied = true;
+  try { await navigator.clipboard.writeText(text); } catch { copied = false; window.prompt("Copy this:", text); }
+  b.textContent = copied ? "✓" : "📋"; b.classList.add("done");
+  const k = voteKey();
+  if (!k) { b.title = "Copied. To have copies teach the ranking, open the briefing's voting link once in this browser (review page → Vote on the briefing)."; return; }
+  try {
+    const r = await fetch(`${WORKER}/vote?k=${k}`, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ key: p.key, claim: p.claim || null, kind: p.kind, team: p.team, player: p.player || null, text: p.text, d: data.today, v: 2 }) });
+    b.textContent = r.ok ? "✓ used" : "✓"; b.title = r.ok ? "Copied and marked used: the ranking learns from it, and this claim stays out of the briefing until its numbers move." : `Copied; not recorded (error ${r.status})`;
+    if (r.ok) MYVOTES?.set(p.key, 2);
+  } catch { b.title = "Copied; not recorded (the Worker couldn't be reached)"; }
+});
+let MYVOTES = null, BRIEF = null, BRIEF_INJ = null, USED = null;
 const FEATURE_WORDS = { "kind:find": "found-in-the-numbers lines", "who:star": "stars", "who:regular": "regular starters", "who:lesser": "lesser-known players", "who:team": "team lines", "kind:season": "season-vs-career lines", "kind:span": "in-that-span lines", "kind:pstreak": "player streaks", "kind:vsopp": "vs-opponent lines", "kind:pace": "pace lines", "kind:history": "notes lines", "kind:team": "team streaks", "kind:matchup": "head-to-head lines", "kind:record": "record chases", "kind:milestone": "milestones", "says:career-low": "career lows", "says:career-high": "career highs", "says:since": "\"first/highest since\" lines", "says:nba-history": "NBA-history lines", "says:team-history": "franchise-history lines", "says:streak": "streaks", "says:only": "\"only/no one else\" lines", "says:shooting": "shooting numbers", "says:defense": "defense lines", "says:notes": "the teams' notes" };
 async function vote(l, v) {
   const k = voteKey();
@@ -423,17 +452,22 @@ function renderBriefing(b, injuries) {
   const all = [...b.top, ...b.deep, ...(b.finds || [])];
   const btns = (l) => { if (!k || !l.key) return ""; const v = MYVOTES?.get(l.key) || 0, i = all.indexOf(l);
     return `<span class="vote"><button data-i="${i}" data-v="1" class="${v > 0 ? "on" : ""}" title="More like this">👍</button><button data-i="${i}" data-v="-1" class="${v < 0 ? "on" : ""}" title="Less like this (and hide this line)">👎</button></span>`; };
-  const li = (l, i) => { const kd = KIND[l.kind] || ["•", "#"]; return `<li><span class="n">${i + 1}</span><span class="k">${kd[0]}</span><span class="t">${l.isNew ? `<span class="bnew">new</span>` : l.status === "updated" ? `<span class="bnew upd" title="Shown before; its numbers have moved since (a streak one longer, a mark closer)">updated</span>` : ""}<span class="bg">${esc(l.game.replace("@", " @ "))}</span> ${esc(l.text)}${l.player && status(l.team, l.player) === "Questionable" ? " <i>(questionable)</i>" : ""}${l.news ? ` <span class="bnews" title="${esc((l.headlines || []).join("\n"))}">📰 in ${l.news} headline${l.news === 1 ? "" : "s"}</span>` : ""}</span>${btns(l)}</li>`; };
+  const li = (l, i) => { const kd = KIND[l.kind] || ["•", "#"]; return `<li><span class="n">${i + 1}</span><span class="k">${kd[0]}</span><span class="t">${l.isNew ? `<span class="bnew">new</span>` : l.status === "updated" ? `<span class="bnew upd" title="Shown before; its numbers have moved since (a streak one longer, a mark closer)">updated</span>` : ""}<span class="bg">${esc(l.game.replace("@", " @ "))}</span> ${esc(l.text)}${l.player && status(l.team, l.player) === "Questionable" ? " <i>(questionable)</i>" : ""}${l.news ? ` <span class="bnews" title="${esc((l.headlines || []).join("\n"))}">📰 in ${l.news} headline${l.news === 1 ? "" : "s"}</span>` : ""}</span>${copyBtn({ key: l.key, claim: l.claim ? hashKey(l.claim) : null, kind: l.kind, team: l.team, player: l.player, text: l.text })}${btns(l)}</li>`; };
   const top = b.top.filter(ok), deep = b.deep.filter(ok);
   const V = b.votes || { n: 0, learned: [] };
   const words = (V.learned || []).filter(([f]) => FEATURE_WORDS[f]).slice(0, 4).map(([f, w]) => `${w > 0 ? "more" : "fewer"} ${FEATURE_WORDS[f]}`);
+  // 0.139: what was copied to post in the last 7 days, by kind (the Worker's public /votes, v = 2).
+  if (USED === null) { USED = []; fetch(`${WORKER}/votes`, { cache: "no-store" }).then((r) => r.json()).then((j) => { USED = (j.votes || []).filter((x) => x.v === 2); renderBriefing(); }).catch(() => {}); }
+  const wk = (USED || []).filter((x) => Date.now() - (x.at || 0) < 7 * 864e5), byKind = {};
+  for (const x of wk) byKind[x.kind || "other"] = (byKind[x.kind || "other"] || 0) + 1;
+  const usedNote = wk.length ? `📋 Used this week: ${wk.length} (${Object.entries(byKind).sort((a, b) => b[1] - a[1]).map(([kk, n]) => `${n} ${kk}`).join(", ")}).` : `📋 copies a line worded for a post${k ? " and marks it used: the ranking learns from what you post, and a used claim stays out of the briefing until its numbers move" : "; with the voting link opened once in this browser, it also marks the line used so the ranking learns from what you post"}.`;
   const learnedNote = V.n ? `Learning from ${V.n} vote${V.n === 1 ? "" : "s"}${words.length ? `: ${words.join(", ")}` : ""}.` : "";
   // 0.81: what the finder turned up league-wide (not only tonight's teams): suggestions, each with the same 👍/👎.
-  const finds = (b.finds || []).map((l) => `<li><span class="k">🔎</span><span class="t"><span class="bg">${esc(l.team || "")}</span> ${esc(l.text)}</span>${btns(l)}</li>`).join("");
+  const finds = (b.finds || []).map((l) => `<li><span class="k">🔎</span><span class="t"><span class="bg">${esc(l.team || "")}</span> ${esc(l.text)}</span>${copyBtn({ key: l.key, kind: l.kind, team: l.team, player: l.player, text: l.text })}${btns(l)}</li>`).join("");
   const last = (b.lastNight || []).map((l) => `<li><span class="k">${(KIND[l.kind] || ["•"])[0]}</span><span class="t">${esc(l.text)}</span></li>`).join("");
   const news = (b.news || []).length ? `<div class="empty" style="padding:6px 2px 0">📰 In the news (last 72 hours of ESPN and Athletic headlines; their lines move up): ${b.news.map((x) => `<span title="${esc(x.titles.join("\n"))}">${esc(x.name)} (${x.n})</span>`).join(", ")}</div>` : "";
   $("brief").innerHTML = `<ol class="top">${top.map(li).join("")}</ol>${deep.length ? `<h3>Deep cuts</h3><ol class="deep">${deep.map(li).join("")}</ol>` : ""}${last ? `<h3>From last night</h3><div class="key">Lines no other current player has had since 2016-17 (or only one or two): the post-game kind.</div><ul class="last">${last}</ul>` : ""}${finds ? `<h3>Found in the numbers</h3><div class="key">Nobody asked for these: every player's season is cut several ways (through three quarters, without free throws, against whole teams' totals) and a cut is listed only when it is far out of line with the league. The whole league, not only tonight's teams. 👍 keeps a kind coming; 👎 drops it.</div><ul class="last">${finds}</ul>` : ""}${news}
-    <div class="empty" style="padding:6px 2px 0">Ranked from ${b.candidates} candidate lines. ${learnedNote} ${k ? `Your votes count from the next build (several a day). <a href="#" id="voteOff">Turn voting off in this browser</a>` : ""}</div><div class="empty" id="briefNote"></div>`;
+    <div class="empty" style="padding:6px 2px 0">Ranked from ${b.candidates} candidate lines. ${usedNote} ${learnedNote} ${k ? `Your votes count from the next build (several a day). <a href="#" id="voteOff">Turn voting off in this browser</a>` : ""}</div><div class="empty" id="briefNote"></div>`;
   document.querySelectorAll("#brief .vote button").forEach((x) => x.onclick = () => vote(all[+x.dataset.i], +x.dataset.v));
   if ($("voteOff")) $("voteOff").onclick = (e) => { e.preventDefault(); try { localStorage.removeItem("ncc-vote-key"); } catch {} MYVOTES = null; renderBriefing(); };
 }
@@ -443,6 +477,7 @@ async function renderStories() {
     const get = (f) => fetch(f, { cache: "no-store" }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
     const [injuries, facts, matchups, brief, flags, built, ledger] = await Promise.all(["data/injuries.json", "data/notes-facts.json", "data/matchups.json", "data/briefing.json", "data/flag-checks.json", "data/tonight.json", "data/ledger-index.json"].map(get));
     CLAIMS = claimIndex(ledger && ledger.today === data.today ? ledger : null);   // 0.138: lines matched by claim
+    CLAIM_WHO = (ledger && ledger.today === data.today && ledger.who) || {};
     // 0.72: the storylines the build already made (data/tonight.json: the same ones Discord and NBA Live get, with the
     // record, Cup and foul lines this page never computed), instead of loading six more files (~1 MB by spring) to
     // work them out again here. If that file is missing or from another day, they're worked out here as before.
@@ -463,7 +498,8 @@ async function renderStories() {
     const tip = (iso) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
     // 0.137.0: a line already in the briefing isn't repeated here (the game header counts them); a team's
     // strongest shift shows, its other shifts fold.
-    const sli = (l) => { const [icon, href0] = KIND[l.kind] || ["•", "#"]; const href = l.kind === "injury" ? `${href0}?team=${encodeURIComponent(l.team)}` : href0; return `<li><span class="k">${icon}</span><a href="${href}">${esc(l.text)}</a></li>`; };
+    const sli = (l) => { const [icon, href0] = KIND[l.kind] || ["•", "#"]; const href = l.kind === "injury" ? `${href0}?team=${encodeURIComponent(l.team)}` : href0; const id = claimOf(CLAIMS, l.team, l.text);
+      return `<li><span class="k">${icon}</span><a href="${href}">${esc(l.text)}</a>${copyBtn({ key: `claim:${id}`, claim: id, kind: l.kind, team: l.team, player: CLAIM_WHO[id] || null, text: l.text })}</li>`; };
     $("stories").innerHTML = stories.map((g) => { const T = trimStories(g.lines, BT, CLAIMS); return `<div class="story"><h3><span>${esc(g.away)} @ ${esc(g.home)}</span><span class="when">${T.inBrief.length ? `${T.inBrief.length} in the briefing · ` : ""}${tip(g.start)}</span></h3>
       ${T.shown.length ? `<ul>${T.shown.map(sli).join("")}</ul>` : `<div class="empty">${T.inBrief.length ? "Its lines are in the briefing." : "Nothing notable on the line."}</div>`}${T.folded.length ? `<details class="fold"><summary>${T.folded.length} more recent-form shift${T.folded.length === 1 ? "" : "s"}</summary><ul>${T.folded.map(sli).join("")}</ul></details>` : ""}</div>`; }).join("")
       || `<div class="empty">No games tonight.</div>`;
