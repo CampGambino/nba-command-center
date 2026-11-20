@@ -2,6 +2,18 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.136.1 (2026-11-20): #articles: NBA.com's columns are read only on their publishing day
+
+The user, 11:46 AM, with the three category pages: "based on the publishing schedule for nba.com articles, I don't think you need to check every day".
+
+**The schedule, from the pages' own publish times (36 articles).** Power Rankings: Mondays, 12 of 12, 8 AM to 4:30 PM ET. Kia MVP Ladder: Fridays in the season, 9 AM to 1 PM (the June Finals MVP Ladders came on a Tuesday, Monday and Saturday). Kia Rookie Ladder: Wednesdays, 11 of 12, 6:55 AM to 8:49 PM; once a Thursday at 10:08 PM.
+
+**Changed.** Each NBA.com feed has a `day` (ET): Power Rankings Monday, MVP Ladder Friday, Rookie Ladder Wednesday. It is read every 15 minutes on that day from 6 AM to midnight ET, and once from noon to 12:15 PM the next day, for one that comes late (the Thursday Rookie Ladder would have been posted the next noon; 96 hours of "new" covers it). From 3 × 288 reads a day to about 75 a week for each page. `onItsDay` in `cloudflare/articles-worker.js`.
+
+**Tests.** 92 watcher checks (one new: Friday 11:05 AM yes, 5:30 AM no; Saturday 12:05 PM yes, 12:20 PM no; Monday 11:55 PM yes, Tuesday 12:05 AM no; feeds without a day always). The 0.60-era check that a failing feed writes nothing more now runs on ESPN, The Athletic and Front Office Sports only: an NBA.com page read for the first time is a real write.
+
+**Self-audit.** The cost of the narrower window: an off-day column (Finals MVP Ladders, a Rookie Ladder on a Thursday afternoon) posts late, at noon the next day, or not at all if it lands two days off its day. That is the trade the user asked for. If the schedule moves (a ladder switching days), it will show as a column that never posts; `/headlines` → `sources` keeps each page's last read time.
+
 ## 0.136.0 (2026-11-20): #articles: NBA.com's Power Rankings, Kia MVP Ladder and Kia Rookie Ladder
 
 The user, 11:24 AM, with the three category pages: "three more rss feeds for sending to discord articles channel when new articles are posted. can you set it up?"

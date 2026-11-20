@@ -46,9 +46,14 @@ export const FEEDS = [
   // posted"): NBA.com's Power Rankings, Kia MVP Ladder and Kia Rookie Ladder. NBA.com has no feed for a category
   // (/feed is a 404; /news/rss.xml redirects to an "Access Denied" page), so the category page is read: it carries its
   // latest 12 articles as data (__NEXT_DATA__). Weekly columns, so each page is read every 15 minutes, one a run.
-  { src: "nba", id: "nba:power-rankings", label: "Power Rankings", kind: "nbacat", url: "https://www.nba.com/news/category/power-rankings", every: 15, slot: 0 },
-  { src: "nba", id: "nba:mvp-ladder", label: "Kia MVP Ladder", kind: "nbacat", url: "https://www.nba.com/news/category/kia-race-to-the-mvp-ladder", every: 15, slot: 1 },
-  { src: "nba", id: "nba:rookie-ladder", label: "Kia Rookie Ladder", kind: "nbacat", url: "https://www.nba.com/news/category/kia-rookie-ladder", every: 15, slot: 2 },
+  // 0.136.1 (the user, 11/20: "based on the publishing schedule for nba.com articles, I don't think you need to check
+  // every day"): only on its day (`day`, 0 = Sunday, ET), 6 AM to midnight, and once around noon the next day for a late
+  // one. The publish times on the pages (36 of them): Power Rankings every Monday 8 AM to 4:30 PM (12 of 12); MVP Ladder
+  // Fridays 9 AM to 1 PM in the season (the June Finals MVP Ladders came on other days); Rookie Ladder Wednesdays,
+  // once a Thursday at 10:08 PM (caught by the next-day read).
+  { src: "nba", id: "nba:power-rankings", label: "Power Rankings", kind: "nbacat", url: "https://www.nba.com/news/category/power-rankings", every: 15, slot: 0, day: 1 },
+  { src: "nba", id: "nba:mvp-ladder", label: "Kia MVP Ladder", kind: "nbacat", url: "https://www.nba.com/news/category/kia-race-to-the-mvp-ladder", every: 15, slot: 1, day: 5 },
+  { src: "nba", id: "nba:rookie-ladder", label: "Kia Rookie Ladder", kind: "nbacat", url: "https://www.nba.com/news/category/kia-rookie-ladder", every: 15, slot: 2, day: 3 },
 ];
 // The Athletic's 30 NBA team feeds (11/12): team beat stories are only there (Mikal Bridges, Knicks, 11/12), and
 // so are some follow-ups (Curry's MRI result, Warriors). Read on the 1-minute schedule, a group at a time
@@ -75,6 +80,14 @@ const COLOR = { espn: 0xd00000, athletic: 0x1f1f1f, nyt: 0x1f1f1f, "athletic-liv
 // hours (an article can be stamped before it goes up: the 11/20 MVP Ladder is dated 11/19). Under SEEN_DAYS, so an item
 // is always still remembered as seen past this window, and an old column never posts again.
 const NBA_FRESH_H = 96;
+const WD = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+/** 0.136.1: is this a time to read a feed that has a publishing day? Its day from 6 AM ET, or noon to 12:15 PM ET the day after. */
+export function onItsDay(feed, now) {
+  if (feed.day == null) return true;
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", hour: "numeric", hourCycle: "h23", minute: "numeric" }).formatToParts(new Date(now)).map((x) => [x.type, x.value]));
+  const wd = WD[p.weekday], h = Number(p.hour), m = Number(p.minute);
+  return (wd === feed.day && h >= 6) || (wd === (feed.day + 1) % 7 && h === 12 && m < 15);
+}
 const FRESH_MIN = 20;        // first run: post only what was published in the last 20 minutes
 const MAX_AGE_H = 6;         // never post anything published more than 6 hours ago
 const MAX_POSTS_PER_RUN = 10;
@@ -368,6 +381,7 @@ export async function check(env, now = Date.now(), { feeds = FEEDS } = {}) {
   for (const feed of feeds) {
     const id = feed.id || feed.src;
     if (feed.every && slot5 % (feed.every / 5) !== (feed.slot || 0)) continue; // 0.136: read every `every` minutes, in its slot
+    if (!onItsDay(feed, now)) continue;                                           // 0.136.1: and only on its publishing day
     try {
       const items = await readFeed(feed, st, now);
       const meta = items.meta || null;

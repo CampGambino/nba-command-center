@@ -78,9 +78,11 @@ export async function articlesChecks(ok) {
     failAthletic = true; puts = 0;
     espn = [...espn, espnArt(5, "Story", "Trade deadline primer", "Bobby Marks", "/nba/story", 1503)];
     posts.length = 0;
-    await articlesCheck(env, T1 + 4 * 60e3);
+    // (on ESPN, The Athletic and Front Office Sports: an NBA.com page read for the first time in this window is a real write)
+    const { FEEDS: ALLF } = await import("../cloudflare/articles-worker.js"), CORE = { feeds: ALLF.filter((f) => f.src !== "nba") };
+    await articlesCheck(env, T1 + 4 * 60e3, CORE);
     const w1 = puts;
-    await articlesCheck(env, T1 + 6 * 60e3);
+    await articlesCheck(env, T1 + 6 * 60e3, CORE);
     ok(titles().join("|") === "Trade deadline primer" && JSON.parse(kv.get("state")).errors.athletic.msg === "HTTP 503" && puts === w1, "articles: a failing feed is logged once and the others still post", `${titles()} ${puts} ${w1}`);
     failAthletic = false;
     // 6. Review page: hidden without the key; muting a writer works on the next article.
@@ -450,12 +452,19 @@ export async function articlesChecks(ok) {
       list = [art("kia-mvp-ladder-nov-20-2026", "Kia MVP Ladder: Giannis charges into Top 3", "Shaun Powell", T + 15 * 60e3 - 36 * H), art("kia-mvp-ladder-nov-10-2026", "Kia MVP Ladder: an old one", "Shaun Powell", T - 10 * 24 * H), ...list];
       asked.length = 0;
       await articlesCheck(env, T + 5 * 60e3, { feeds: nbaFeeds });     // minute 10: not its slot
-      const skipped = !asked.includes("kia-race-to-the-mvp-ladder") && asked.length === 1 && posts.length === 0;   // minute 10 is the rookie ladder's slot
+      const skipped = asked.length === 0 && posts.length === 0;   // minute 10 is the Rookie Ladder's slot, but Friday is not its day
       await articlesCheck(env, T + 15 * 60e3, { feeds: nbaFeeds });    // minute 20: its slot again
       const e = posts[0]?.embeds?.[0] || {}, log = JSON.parse(kv.get("log") || "[]");
       ok(skipped && posts.length === 1 && e.title === "Kia MVP Ladder: Giannis charges into Top 3" && e.author.name.includes("NBA.com Kia MVP Ladder · Shaun Powell") && log.length === 1
         && JSON.parse(kv.get("state")).seen["nba.com/news/kia-mvp-ladder-nov-10-2026"],
         "articles (0.136): a new column posts once in its slot (labeled with the column and writer) even when stamped 36 hours earlier; an unseen ten-day-old one is marked seen, not posted", JSON.stringify({ skipped, posts: posts.map((p) => p.embeds[0].title), log }));
+      // 0.136.1: only on its publishing day (ET), from 6 AM; once around noon the next day.
+      const { onItsDay } = await import("../cloudflare/articles-worker.js");
+      const at = (iso) => Date.parse(iso), pr = nbaFeeds.find((f) => f.id === "nba:power-rankings"), rk = nbaFeeds.find((f) => f.id === "nba:rookie-ladder");
+      const when = [onItsDay(mvp, at("2026-11-20T16:05:00Z")), onItsDay(mvp, at("2026-11-20T10:30:00Z")), onItsDay(mvp, at("2026-11-21T17:05:00Z")), onItsDay(mvp, at("2026-11-21T17:20:00Z")), onItsDay(mvp, at("2026-11-18T16:05:00Z")),
+        onItsDay(pr, at("2026-11-23T21:30:00Z")), onItsDay(pr, at("2026-11-24T04:55:00Z")), onItsDay(pr, at("2026-11-24T05:05:00Z")), onItsDay(rk, at("2026-11-26T17:10:00Z")), onItsDay({}, at("2026-11-26T17:10:00Z"))];
+      ok(JSON.stringify(when) === "[true,false,true,false,false,true,true,false,true,true]",
+        "articles (0.136.1): an NBA.com column is read on its day from 6 AM ET to midnight (Friday 11:05 AM yes, 5:30 AM no; Monday 11:55 PM yes, 12:05 AM Tuesday no) and noon to 12:15 PM the next day; other feeds always", JSON.stringify(when));
     } finally { globalThis.fetch = realFetch; }
   }
   // 0.134.0: Front Office Sports' basketball tag (the user, 11/20). WordPress feed: CDATA writer and category, the whole
