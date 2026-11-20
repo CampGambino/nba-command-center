@@ -2,6 +2,16 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.136.2 (2026-11-20): #articles: an NBA.com column's page goes quiet for the day once it has posted
+
+The user, 12:14 PM: "You can keep the early and late checks but go silent the day it normally gets posted after it's confirmed posted. I don't think they'll post it twice in one day."
+
+**Changed (`cloudflare/articles-worker.js`).** When a column from one of the three NBA.com pages posts to Discord, the watcher notes that ET date for that page (`st.done`), and `onItsDay` skips the page for the rest of that day. A post Discord did not accept does not count, so the page is read again until it goes through. The checks before it is found (every 15 minutes from 6 AM ET) and the next day's noon read stay. Today's MVP Ladder was already out when the page was first read (marked seen, not posted), so today that page is read until midnight; from next week each page goes quiet after its column posts.
+
+**Tests.** 93 watcher checks (one new, one extended): after a column posts, its page is not read again that Friday; Saturday's noon read still happens and posts nothing new; with that day marked, the next noon and the next week are read.
+
+**Self-audit.** A second column from the same page on the same day would wait for the next day's noon read (and post then, being within 96 hours). The user judged that unlikely; the 36 publish times on the pages have no two on one day.
+
 ## 0.136.1 (2026-11-20): #articles: NBA.com's columns are read only on their publishing day
 
 The user, 11:46 AM, with the three category pages: "based on the publishing schedule for nba.com articles, I don't think you need to check every day".

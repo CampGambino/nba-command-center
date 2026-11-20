@@ -81,12 +81,16 @@ const COLOR = { espn: 0xd00000, athletic: 0x1f1f1f, nyt: 0x1f1f1f, "athletic-liv
 // is always still remembered as seen past this window, and an old column never posts again.
 const NBA_FRESH_H = 96;
 const WD = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
-/** 0.136.1: is this a time to read a feed that has a publishing day? Its day from 6 AM ET, or noon to 12:15 PM ET the day after. */
-export function onItsDay(feed, now) {
+const etDay = (ms) => new Date(ms).toLocaleDateString("en-CA", { timeZone: "America/New_York" });   // "2026-11-20"
+/** 0.136.1: is this a time to read a feed that has a publishing day? Its day from 6 AM ET, or noon to 12:15 PM ET the day after.
+ *  0.136.2 (the user, 11/20: "go silent the day it normally gets posted after it's confirmed posted. I don't think they'll
+ *  post it twice in one day"): not again on its day once a column from it has posted that day (`done` = that ET date).
+ *  The next day's noon read stays. */
+export function onItsDay(feed, now, done = null) {
   if (feed.day == null) return true;
   const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", hour: "numeric", hourCycle: "h23", minute: "numeric" }).formatToParts(new Date(now)).map((x) => [x.type, x.value]));
   const wd = WD[p.weekday], h = Number(p.hour), m = Number(p.minute);
-  return (wd === feed.day && h >= 6) || (wd === (feed.day + 1) % 7 && h === 12 && m < 15);
+  return (wd === feed.day && h >= 6 && done !== etDay(now)) || (wd === (feed.day + 1) % 7 && h === 12 && m < 15);
 }
 const FRESH_MIN = 20;        // first run: post only what was published in the last 20 minutes
 const MAX_AGE_H = 6;         // never post anything published more than 6 hours ago
@@ -309,7 +313,7 @@ async function readFeed(feed, st, now) {
   if (feed.kind === "nbacat") {
     const r = await tfetch(feed.url, { headers: { ...UA, Accept: "text/html" } }, LIMIT_MS.page);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return parseNbaCategory(await r.text(), feed.src, feed.label);
+    return parseNbaCategory(await r.text(), feed.src, feed.label).map((it) => ({ ...it, feedId: feed.id }));
   }
   const res = await tfetch(feed.url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; NBA-Command-Center articles watcher)", Accept: feed.kind === "espn" ? "application/json" : "application/rss+xml, application/xml, text/xml" } }, LIMIT_MS.page);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -381,7 +385,7 @@ export async function check(env, now = Date.now(), { feeds = FEEDS } = {}) {
   for (const feed of feeds) {
     const id = feed.id || feed.src;
     if (feed.every && slot5 % (feed.every / 5) !== (feed.slot || 0)) continue; // 0.136: read every `every` minutes, in its slot
-    if (!onItsDay(feed, now)) continue;                                           // 0.136.1: and only on its publishing day
+    if (!onItsDay(feed, now, st.done?.[id])) continue;                            // 0.136.1: and only on its publishing day
     try {
       const items = await readFeed(feed, st, now);
       const meta = items.meta || null;
@@ -436,6 +440,7 @@ export async function check(env, now = Date.now(), { feeds = FEEDS } = {}) {
     }
     st.seen[it.key] = now;
     if (sent) for (const k of it.articleKeys || []) st.seen[k] ??= now; // the article it links to won't post again
+    if (sent && it.feedId) (st.done ||= {})[it.feedId] = etDay(now);     // 0.136.2: that column is in for the day
     log = log || (await load(env, "log", []));
     log.unshift({ at: now, key: it.key, src: it.src, type: it.type, title: it.title, url: it.url, byline: it.byline, published: it.published, description: (it.description || "").slice(0, 200), premium: it.premium || false, posted: sent, reason: d.reason });
     changed = true;

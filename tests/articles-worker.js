@@ -458,13 +458,20 @@ export async function articlesChecks(ok) {
       ok(skipped && posts.length === 1 && e.title === "Kia MVP Ladder: Giannis charges into Top 3" && e.author.name.includes("NBA.com Kia MVP Ladder · Shaun Powell") && log.length === 1
         && JSON.parse(kv.get("state")).seen["nba.com/news/kia-mvp-ladder-nov-10-2026"],
         "articles (0.136): a new column posts once in its slot (labeled with the column and writer) even when stamped 36 hours earlier; an unseen ten-day-old one is marked seen, not posted", JSON.stringify({ skipped, posts: posts.map((p) => p.embeds[0].title), log }));
+      // 0.136.2: once the column has posted, its page is not read again that day; the next day's noon read stays.
+      asked.length = 0;
+      await articlesCheck(env, T + 30 * 60e3, { feeds: nbaFeeds });    // minute 35: its slot, same Friday
+      const quiet = asked.length === 0 && JSON.parse(kv.get("state")).done["nba:mvp-ladder"] === "2026-11-20";
+      await articlesCheck(env, Date.parse("2026-11-21T17:05:00Z"), { feeds: nbaFeeds });   // Saturday 12:05 PM ET
+      ok(quiet && asked.join() === "kia-race-to-the-mvp-ladder" && posts.length === 1,
+        "articles (0.136.2): after a column posts, its page is not read again that day; the next day's noon read still happens and posts nothing new", JSON.stringify({ quiet, asked, posts: posts.length }));
       // 0.136.1: only on its publishing day (ET), from 6 AM; once around noon the next day.
       const { onItsDay } = await import("../cloudflare/articles-worker.js");
       const at = (iso) => Date.parse(iso), pr = nbaFeeds.find((f) => f.id === "nba:power-rankings"), rk = nbaFeeds.find((f) => f.id === "nba:rookie-ladder");
       const when = [onItsDay(mvp, at("2026-11-20T16:05:00Z")), onItsDay(mvp, at("2026-11-20T10:30:00Z")), onItsDay(mvp, at("2026-11-21T17:05:00Z")), onItsDay(mvp, at("2026-11-21T17:20:00Z")), onItsDay(mvp, at("2026-11-18T16:05:00Z")),
-        onItsDay(pr, at("2026-11-23T21:30:00Z")), onItsDay(pr, at("2026-11-24T04:55:00Z")), onItsDay(pr, at("2026-11-24T05:05:00Z")), onItsDay(rk, at("2026-11-26T17:10:00Z")), onItsDay({}, at("2026-11-26T17:10:00Z"))];
-      ok(JSON.stringify(when) === "[true,false,true,false,false,true,true,false,true,true]",
-        "articles (0.136.1): an NBA.com column is read on its day from 6 AM ET to midnight (Friday 11:05 AM yes, 5:30 AM no; Monday 11:55 PM yes, 12:05 AM Tuesday no) and noon to 12:15 PM the next day; other feeds always", JSON.stringify(when));
+        onItsDay(pr, at("2026-11-23T21:30:00Z")), onItsDay(pr, at("2026-11-24T04:55:00Z")), onItsDay(pr, at("2026-11-24T05:05:00Z")), onItsDay(rk, at("2026-11-26T17:10:00Z")), onItsDay({}, at("2026-11-26T17:10:00Z")), onItsDay(mvp, at("2026-11-20T18:05:00Z"), "2026-11-20"), onItsDay(mvp, at("2026-11-21T17:05:00Z"), "2026-11-20"), onItsDay(mvp, at("2026-11-27T16:05:00Z"), "2026-11-20")];
+      ok(JSON.stringify(when) === "[true,false,true,false,false,true,true,false,true,true,false,true,true]",
+        "articles (0.136.1): an NBA.com column is read on its day from 6 AM ET to midnight (Friday 11:05 AM yes, 5:30 AM no; Monday 11:55 PM yes, 12:05 AM Tuesday no) and noon to 12:15 PM the next day; other feeds always; posted today: not again today, yes at the next noon and the next week", JSON.stringify(when));
     } finally { globalThis.fetch = realFetch; }
   }
   // 0.134.0: Front Office Sports' basketball tag (the user, 11/20). WordPress feed: CDATA writer and category, the whole
