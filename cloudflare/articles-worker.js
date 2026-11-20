@@ -42,6 +42,13 @@ export const FEEDS = [
   // so only the top ~90 KB is read (the newest five or more stories; the tag gets two or three a day). `id` makes its
   // first read mark what is already there as seen instead of posting it.
   { src: "fos", id: "fos", kind: "rss", url: "https://frontofficesports.com/tag/basketball/feed/", maxBytes: 90000 },
+  // 0.136.0 (the user, 11/20: "three more rss feeds for sending to discord articles channel when new articles are
+  // posted"): NBA.com's Power Rankings, Kia MVP Ladder and Kia Rookie Ladder. NBA.com has no feed for a category
+  // (/feed is a 404; /news/rss.xml redirects to an "Access Denied" page), so the category page is read: it carries its
+  // latest 12 articles as data (__NEXT_DATA__). Weekly columns, so each page is read every 15 minutes, one a run.
+  { src: "nba", id: "nba:power-rankings", label: "Power Rankings", kind: "nbacat", url: "https://www.nba.com/news/category/power-rankings", every: 15, slot: 0 },
+  { src: "nba", id: "nba:mvp-ladder", label: "Kia MVP Ladder", kind: "nbacat", url: "https://www.nba.com/news/category/kia-race-to-the-mvp-ladder", every: 15, slot: 1 },
+  { src: "nba", id: "nba:rookie-ladder", label: "Kia Rookie Ladder", kind: "nbacat", url: "https://www.nba.com/news/category/kia-rookie-ladder", every: 15, slot: 2 },
 ];
 // The Athletic's 30 NBA team feeds (11/12): team beat stories are only there (Mikal Bridges, Knicks, 11/12), and
 // so are some follow-ups (Curry's MRI result, Warriors). Read on the 1-minute schedule, a group at a time
@@ -62,8 +69,12 @@ export const LIVE_FEED = { src: "athletic-live", kind: "liveblog", id: "athletic
 // is read. If none has had a post for LIVE_STALE_H hours, the review page says so in red and #articles gets one note.
 export const LIVE_SEEDS = ["https://www.nytimes.com/athletic/live-blogs/nba-news-schedule-scores-games-live-updates-2026/CzqWv0txVItd/"];
 export const LIVE_STALE_H = 24;
-const SOURCE = { espn: "ESPN", athletic: "The Athletic", nyt: "NYT / The Athletic", "athletic-live": "The Athletic live blog", fos: "Front Office Sports" };
-const COLOR = { espn: 0xd00000, athletic: 0x1f1f1f, nyt: 0x1f1f1f, "athletic-live": 0x1f1f1f, fos: 0x0a5cff };
+const SOURCE = { espn: "ESPN", athletic: "The Athletic", nyt: "NYT / The Athletic", "athletic-live": "The Athletic live blog", fos: "Front Office Sports", nba: "NBA.com" };
+const COLOR = { espn: 0xd00000, athletic: 0x1f1f1f, nyt: 0x1f1f1f, "athletic-live": 0x1f1f1f, fos: 0x0a5cff, nba: 0x1d428a };
+// 0.136: a category page lists months of weekly columns, so "new" is anything not seen before and dated within NBA_FRESH_H
+// hours (an article can be stamped before it goes up: the 11/20 MVP Ladder is dated 11/19). Under SEEN_DAYS, so an item
+// is always still remembered as seen past this window, and an old column never posts again.
+const NBA_FRESH_H = 96;
 const FRESH_MIN = 20;        // first run: post only what was published in the last 20 minutes
 const MAX_AGE_H = 6;         // never post anything published more than 6 hours ago
 const MAX_POSTS_PER_RUN = 10;
@@ -111,7 +122,7 @@ export function decide(item, rules = {}, now = Date.now()) {
   const by = (item.byline || "").toLowerCase();
   const allowWriter = by && (rules.allowBylines || []).some((b) => by.includes(b.toLowerCase()));
   if ((rules.allowKeys || []).includes(item.key)) return { post: true, reason: "you allowed it" };
-  if (item.published && now - item.published > MAX_AGE_H * 3600e3) return { post: false, reason: `published over ${MAX_AGE_H}h ago` };
+  if (item.published && now - item.published > (item.freshH || MAX_AGE_H) * 3600e3) return { post: false, reason: `published over ${item.freshH || MAX_AGE_H}h ago` };
   if (REPEAT.test(item.title || "")) return { post: false, reason: "ICYMI (a repeat)" };
   if (item.src === "athletic-live") {
     for (const [title, body, why] of LIVE_SKIP) if (title.test(item.title || "") || (body && body.test(item.description || ""))) return { post: false, reason: why };
@@ -139,6 +150,7 @@ export function decide(item, rules = {}, now = Date.now()) {
   // Front Office Sports: every story on its basketball tag (NBA, WNBA, college, Big3; the user's pick, 11/20). The
   // title rules above are for ESPN's feed: they would drop its business stories ("LeBron Takes AI Betting App to Court").
   if (item.src === "fos") return { post: true, reason: "Front Office Sports basketball story" };
+  if (item.src === "nba") return { post: true, reason: `NBA.com ${item.label || "column"}` };
   if (!allowWriter) for (const [re, why] of TITLE_SKIP) if (re.test(t)) return { post: false, reason: why };
   return { post: true, reason: allowWriter ? "allowed writer" : "kept" };
 }
@@ -192,6 +204,15 @@ export function parseRss(xml, src) {
 }
 
 const UA = { "User-Agent": "Mozilla/5.0 (compatible; NBA-Command-Center articles watcher)" };
+/** 0.136: an NBA.com category page's latest articles, from the page's own data (props.pageProps.category.latest.items). */
+export function parseNbaCategory(html, src = "nba", label = "") {
+  const m = String(html).match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+  if (!m) throw new Error("no article list in the page (__NEXT_DATA__ missing)");
+  const items = JSON.parse(m[1])?.props?.pageProps?.category?.latest?.items;
+  if (!Array.isArray(items)) throw new Error("no article list in the page (category.latest.items missing)");
+  return items.filter((x) => x && x.permalink && x.title).map((x) => ({ src, key: normUrl(x.permalink), id: x.slug || x.permalink, type: "Article", title: decode(x.title), url: x.permalink,
+    byline: x.authorHide ? "" : x.author?.name || "", description: decode(x.excerpt || ""), published: Number(x.timestamp) || Date.parse(x.date) || null, freshH: NBA_FRESH_H, label }));
+}
 /** The first maxBytes of a response body (then the download is stopped). */
 async function readHead(res, maxBytes) {
   if (!res.body) return (await res.text()).slice(0, maxBytes);
@@ -272,6 +293,11 @@ export function parseLiveBlog(html, blogUrl) {
 
 async function readFeed(feed, st, now) {
   if (feed.kind === "liveblog") return readLiveBlogs(feed, st, now);
+  if (feed.kind === "nbacat") {
+    const r = await tfetch(feed.url, { headers: { ...UA, Accept: "text/html" } }, LIMIT_MS.page);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return parseNbaCategory(await r.text(), feed.src, feed.label);
+  }
   const res = await tfetch(feed.url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; NBA-Command-Center articles watcher)", Accept: feed.kind === "espn" ? "application/json" : "application/rss+xml, application/xml, text/xml" } }, LIMIT_MS.page);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   if (feed.kind === "espn") return parseEspn(await res.json());
@@ -287,7 +313,7 @@ const etDate = (ms) => new Date(ms).toLocaleDateString("en-US", { timeZone: "Ame
 const mins = (ms) => (ms < 90e3 ? "under 2 min" : ms < 90 * 60e3 ? `${Math.round(ms / 60e3)} min` : `${(ms / 3600e3).toFixed(1)} h`);
 
 export function embedFor(item, { now = Date.now(), base = null, key = null } = {}) {
-  const who = [SOURCE[item.src] || item.src, item.byline].filter(Boolean).join(" · ");
+  const who = [item.src === "nba" && item.label ? `NBA.com ${item.label}` : SOURCE[item.src] || item.src, item.byline].filter(Boolean).join(" · ");
   const when = item.published ? `Published ${etTime(item.published)} ET (${etDate(item.published)}) · seen ${mins(Math.max(0, now - item.published))} later` : "Publish time not given";
   // No emoji in the links (11/16): on a phone Discord opens its emoji sheet when the emoji is tapped, so only the word worked.
   const buttons = base && key ? `\n\n[Mark as noise](${base}/act?k=${key}&do=noise&key=${encodeURIComponent(item.key)})` +
@@ -338,8 +364,10 @@ export async function check(env, now = Date.now(), { feeds = FEEDS } = {}) {
   const key = await adminKey(env);
   let changed = false;
   const fresh = [];
+  const slot5 = Math.floor(new Date(now).getUTCMinutes() / 5);
   for (const feed of feeds) {
     const id = feed.id || feed.src;
+    if (feed.every && slot5 % (feed.every / 5) !== (feed.slot || 0)) continue; // 0.136: read every `every` minutes, in its slot
     try {
       const items = await readFeed(feed, st, now);
       const meta = items.meta || null;
@@ -381,7 +409,7 @@ export async function check(env, now = Date.now(), { feeds = FEEDS } = {}) {
   let posted = 0;
   for (const it of fresh) {
     // Older than a day (a long feed's back pages coming round again after "seen" expires): mark, don't log.
-    if (it.published && now - it.published > 24 * 3600e3) { st.seen[it.key] = now; changed = true; continue; }
+    if (it.published && now - it.published > (it.freshH || 24) * 3600e3) { st.seen[it.key] = now; changed = true; continue; }
     let d = decide(it, rules, now);
     if (first && d.post && it.published && now - it.published > FRESH_MIN * 60e3) d = { post: false, reason: "already out when the watcher started" };
     if (d.post && posted >= MAX_POSTS_PER_RUN) continue; // next run
@@ -417,7 +445,7 @@ function page(st, log, rules, key, labels) {
   const teamOk = TEAM_FEEDS.filter((f) => st.ok?.[f.id] && !st.errors?.[f.id]).length, teamBad = TEAM_FEEDS.filter((f) => st.errors?.[f.id]).map((f) => `${f.team}: ${st.errors[f.id].msg}`);
   const lo = st.ok?.[LIVE_FEED.id], where = lo?.blog ? ` · reading ${esc(shortBlog(lo.blog))}${lo.newest ? `, newest post ${etTime(lo.newest)} ET ${etDate(lo.newest)}` : ""}${lo.hub ? ` · ${esc(lo.hub)}` : ""}` : "";
   const live = (st.errors?.[LIVE_FEED.id] ? `<span class="bad">${esc(st.errors[LIVE_FEED.id].msg)}</span>` : lo ? `OK, ${lo.items} posts when last read` : "not read yet") + where;
-  const src = `<li><b>The Athletic live blog</b>: ${live}</li><li><b>The Athletic team feeds</b>: ${teamOk} of 30 OK${teamBad.length ? ` · <span class="bad">${esc(teamBad.join("; "))}</span>` : ""}</li>` + FEEDS.map((f) => `<li><b>${SOURCE[f.src]}</b>: ${st.errors?.[f.src] ? `<span class="bad">error: ${esc(st.errors[f.src].msg)}</span> (${ago(st.errors[f.src].at)})` : st.ok?.[f.src] ? `OK, ${st.ok[f.src].items} items when last saved` : "not read yet"}</li>`).join("");
+  const src = `<li><b>The Athletic live blog</b>: ${live}</li><li><b>The Athletic team feeds</b>: ${teamOk} of 30 OK${teamBad.length ? ` · <span class="bad">${esc(teamBad.join("; "))}</span>` : ""}</li>` + FEEDS.map((f) => { const id = f.id || f.src; return `<li><b>${SOURCE[f.src]}${f.label ? ` ${f.label}` : ""}</b>: ${st.errors?.[id] ? `<span class="bad">error: ${esc(st.errors[id].msg)}</span> (${ago(st.errors[id].at)})` : st.ok?.[id] ? `OK, ${st.ok[id].items} items when last saved` : "not read yet"}</li>`; }).join("");
   const list = (name, arr, undo) => `<p><b>${name}:</b> ${arr.length ? arr.map((x) => `${esc(x)} ${a(undo, x, "✕")}`).join(" · ") : "<span class=m>none</span>"}</p>`;
   const lab = Object.fromEntries((labels || []).map((l) => [l.key, l.v]));
   // When the watcher first saw it, and how long after publishing (the first column is the publish time).

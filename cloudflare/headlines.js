@@ -23,6 +23,6 @@ export async function handleHeadlines(req, env, url, now = Date.now()) {
   const lo = st.ok?.["athletic:live"] || null, err = st.errors?.["athletic:live"] || null;
   const live = { url: st.live?.url || lo?.blog || null, newest: st.live?.newest || lo?.newest || null, readAt: lo?.at || null, problem: err ? err.msg : null };
   // 0.134.0: each main feed's last read (time, items, any error), so a new source can be confirmed from outside.
-  const sources = Object.fromEntries(["espn", "athletic", "fos"].map((k) => [k, { readAt: st.ok?.[k]?.at || null, items: st.ok?.[k]?.items ?? null, problem: st.errors?.[k]?.msg || null }]));
+  const sources = Object.fromEntries(["espn", "athletic", "fos", "nba:power-rankings", "nba:mvp-ladder", "nba:rookie-ladder"].map((k) => [k, { readAt: st.ok?.[k]?.at || null, items: st.ok?.[k]?.items ?? null, problem: st.errors?.[k]?.msg || null }]));
   return Response.json({ hours: HOURS, headlines: recent, live, sources }, { headers });
 }

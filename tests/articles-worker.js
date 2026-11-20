@@ -419,6 +419,45 @@ export async function articlesChecks(ok) {
       ok(st2.ok["athletic:NYK"].items < 500, "articles: only the top of a long team feed is downloaded", String(st2.ok["athletic:NYK"].items));
     } finally { globalThis.fetch = realFetch; }
   }
+  // 0.136.0: NBA.com's Power Rankings and Kia ladders (the user, 11/20). No feed: the category page's own article list.
+  {
+    const { FEEDS, parseNbaCategory } = await import("../cloudflare/articles-worker.js");
+    const nbaFeeds = FEEDS.filter((f) => f.src === "nba"), mvp = nbaFeeds.find((f) => f.id === "nba:mvp-ladder");
+    const T = Date.parse("2026-11-20T16:05:00Z"), H = 3600e3;   // minute 05: slot 1 of 3, the MVP ladder's
+    const art = (slug, title, by, ts) => ({ permalink: `https://www.nba.com/news/${slug}`, slug, title, author: { name: by }, authorHide: false, excerpt: "Dek &amp; more.", date: new Date(ts - 20 * H).toISOString(), timestamp: ts });
+    let list = [art("kia-mvp-ladder-nov-13-2026", "Kia MVP Ladder: Luka and Wemby lead", "Shaun Powell", T - 7 * 24 * H)];
+    const page = (mine = true) => `<html><body><div>${"x".repeat(5000)}</div><script id="__NEXT_DATA__" type="application/json">${JSON.stringify({ props: { pageProps: { category: { latest: { items: mine ? list : [art("power-rankings-week-5", "Power Rankings, Week 5", "John Schuhmann", T - 4 * 24 * H)] } } } } })}</script></body></html>`;
+    const P = parseNbaCategory(page(), "nba", "Kia MVP Ladder")[0];
+    ok(nbaFeeds.length === 3 && P.title.startsWith("Kia MVP Ladder") && P.byline === "Shaun Powell" && P.description === "Dek & more." && P.published === T - 7 * 24 * H && P.key === "nba.com/news/kia-mvp-ladder-nov-13-2026",
+      "articles (0.136): an NBA.com category page's article list reads title, writer, dek and the real publish time (timestamp, not the earlier stamped date)", JSON.stringify(P));
+    let threw = ""; try { parseNbaCategory("<html>no data</html>"); } catch (e) { threw = e.message; }
+    ok(/__NEXT_DATA__ missing/.test(threw), "articles (0.136): a page without the article list is an error the review page shows, not an empty read", threw);
+    const kv = new Map([["state", JSON.stringify({ started: 1, seen: {}, errors: {}, base: null, lastWrite: 0 })]]), posts = [], asked = [];
+    const env = { DISCORD_WEBHOOK: "https://discord.com/api/webhooks/5/test-t", STATE: { get: async (k, t) => (kv.has(k) ? (t === "json" ? JSON.parse(kv.get(k)) : kv.get(k)) : null), put: async (k, v) => kv.set(k, v) } };
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async (u, o = {}) => {
+      u = String(u);
+      if (u.startsWith("https://www.nba.com/news/category/")) { asked.push(u.split("/").pop()); return new Response(page(u.endsWith("mvp-ladder")), { status: 200 }); }
+      if (u.startsWith("https://discord.com/")) { posts.push(JSON.parse(o.body)); return new Response("{}", { status: 200 }); }
+      return new Response("", { status: 404 });
+    };
+    try {
+      await articlesCheck(env, T, { feeds: nbaFeeds });
+      const st1 = JSON.parse(kv.get("state"));
+      ok(asked.join() === "kia-race-to-the-mvp-ladder" && posts.length === 0 && st1.feedStarted["nba:mvp-ladder"] && !st1.feedStarted["nba:power-rankings"],
+        "articles (0.136): one category page a run, in its own 15-minute slot; its first read posts nothing", JSON.stringify({ asked, started: st1.feedStarted }));
+      // A new ladder stamped a day and a half before it shows up still posts; a column from ten days ago that the watcher has forgotten does not.
+      list = [art("kia-mvp-ladder-nov-20-2026", "Kia MVP Ladder: Giannis charges into Top 3", "Shaun Powell", T + 15 * 60e3 - 36 * H), art("kia-mvp-ladder-nov-10-2026", "Kia MVP Ladder: an old one", "Shaun Powell", T - 10 * 24 * H), ...list];
+      asked.length = 0;
+      await articlesCheck(env, T + 5 * 60e3, { feeds: nbaFeeds });     // minute 10: not its slot
+      const skipped = !asked.includes("kia-race-to-the-mvp-ladder") && asked.length === 1 && posts.length === 0;   // minute 10 is the rookie ladder's slot
+      await articlesCheck(env, T + 15 * 60e3, { feeds: nbaFeeds });    // minute 20: its slot again
+      const e = posts[0]?.embeds?.[0] || {}, log = JSON.parse(kv.get("log") || "[]");
+      ok(skipped && posts.length === 1 && e.title === "Kia MVP Ladder: Giannis charges into Top 3" && e.author.name.includes("NBA.com Kia MVP Ladder · Shaun Powell") && log.length === 1
+        && JSON.parse(kv.get("state")).seen["nba.com/news/kia-mvp-ladder-nov-10-2026"],
+        "articles (0.136): a new column posts once in its slot (labeled with the column and writer) even when stamped 36 hours earlier; an unseen ten-day-old one is marked seen, not posted", JSON.stringify({ skipped, posts: posts.map((p) => p.embeds[0].title), log }));
+    } finally { globalThis.fetch = realFetch; }
+  }
   // 0.134.0: Front Office Sports' basketball tag (the user, 11/20). WordPress feed: CDATA writer and category, the whole
   // article in content:encoded; its first read posts nothing; business stories the ESPN title rules would drop go out.
   {

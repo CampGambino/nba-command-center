@@ -2,6 +2,23 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.136.0 (2026-11-20): #articles: NBA.com's Power Rankings, Kia MVP Ladder and Kia Rookie Ladder
+
+The user, 11:24 AM, with the three category pages: "three more rss feeds for sending to discord articles channel when new articles are posted. can you set it up?"
+
+**There are no feeds.** `…/category/<name>/feed` is a 404 for all three, and `nba.com/news/rss.xml` redirects to an "Access Denied" page. What each category page does carry is its latest 12 articles as data (`__NEXT_DATA__` → `props.pageProps.category.latest.items`): title, writer, dek, link, and a `timestamp` that is the real publish time (today's MVP Ladder: timestamp 10:41 AM ET 11/20, while its `date` field says 11/19). These are articles, not stats, so the rule against NBA.com as a stats source is not touched.
+
+**Changed (`cloudflare/articles-worker.js`).**
+- `parseNbaCategory` reads that list; a page without it is an error on the review page ("no article list in the page"), not a quiet empty read.
+- Three feeds (`kind: "nbacat"`), each read every 15 minutes in its own 5-minute slot, so one page (~265 KB) a run.
+- "New" for these is anything not seen before and published within 96 hours (`NBA_FRESH_H`), not 6: an article can carry a stamp from before it went up. 96 hours is under the five days the watcher remembers what it has seen, so an old column on the page never posts again. Each feed's first read marks what is on the page as seen (today's MVP Ladder and this week's Power Rankings and Rookie Ladder included).
+- The post reads "NBA.com Kia MVP Ladder · Shaun Powell" (and so on), NBA blue. Muted writers and words apply.
+- The review page lists each feed by its own id (it keyed by source, which three NBA.com feeds share); `/headlines` → `sources` shows the three.
+
+**Tests.** 91 watcher checks before deploy (five new): the list's title, writer, dek and real publish time; a page without the list is an error; one page a run in its own slot, first read posts nothing; a new column stamped 36 hours before it shows up posts once, labeled; an unseen ten-day-old one is marked seen, not posted.
+
+**Self-audit.** Not proven until the deployed Worker has read each page: whether NBA.com answers Cloudflare's servers (it answers this workspace). `/headlines` → `sources.nba:*` will say within 15 minutes. The watcher reads the page as any visitor would and identifies itself; if NBA.com turns it away, I will say so, not work around it. A redesign of NBA.com's pages would break the reader; the review page and `/headlines` would show the error.
+
 ## 0.135.0 (2026-11-20): Watch List: outliers against the best and worst defenses and records, when tonight's opponent is one
 
 The user, 11:07 AM: "how do the players against top teams/defenses and bottom teams/defenses get flagged in the watch list?" Answer: only one of the four was. A player (one of the league's 10 biggest drops or rises, 4+ points) or team (5 biggest, 5+ per 100) against the top 5 defenses got a line when tonight's opponent was a top-5 defense; nothing for the bottom defenses, and nothing on the Watch List for records (Team situations' record splits flag only at under 1% odds, and only on that page). The user, 11:09 AM: "sure. I want to make sure were are flagging the relevant outliers, especially if there is a match between player and opponent or opponent and opponent".
