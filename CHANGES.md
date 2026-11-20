@@ -2,6 +2,27 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.138.0 (2026-11-20): the ledger: one record per claim, new / updated / repeat across days (audit step 2)
+
+The user, 2:39 PM: "Go" (step 2 of `claude/audit-2026-11-20.md`: ledger + claim keys + scorer with repeat decay).
+
+**What was measured first.**
+- Within the briefing's candidate pool (626 lines today) detectors rarely say the same thing twice: 5 claims found by two detectors (Smith's, Murray's and Young's career highs/lows as a "context" and a "season" line; Dončić's 38.1 scoring lead as a notes fact and a finder line). The duplication the user saw was between page sections, not inside the pool.
+- Repeats at the top across days, replayed from git (7 days, 105 top/deep slots): 9 were a claim already shown on an earlier day, and in all 9 the numbers had moved (Dončić 30+ in 10 straight → 11; Towns' double-double streak 13 → 14). None was a stale repeat. So moved numbers mark an update, not a repeat, and the fade for unchanged repeats is a guard that will rarely fire.
+- Claim matching: same subject and same words with numbers blanked; or the same player with two or more of the same decimal numbers in other words (all 5 such pairs today right). Shared whole numbers alone were tried and rejected (14 pairs, nearly all different claims: two Thunder absences both "6-6 without him"). The same template about two players (Mitchell and Harden, "made a three in 15 straight") stays two claims.
+
+**Changed.**
+- `src/anticipate/ledger.js`: `buildLedger` (claims, which line speaks for each, merged keys kept as `aka`), `ledgerAdjust` (+0.15 for a second detector, at most +0.3; +0.25 when a streak, milestone, record or pace claim's numbers moved since the last earlier day it was seen; −0.25 a day for each day running it was already at the top with the same numbers, at most −0.75), `markShown`. Moved numbers in any other kind (a season average moves every game) only stop the fade. Memory in `history/ledger-seen.json` (30 days).
+- `src/anticipate/briefing.js`: ranks one line per claim (the claim's best), with `ledgerAdjust` added; each line carries its claim key, status (new / updated / seen) and how many detectors found it.
+- `docs/data/ledger.json`: every claim tonight (key, subject, kinds, sources, best text, score, first seen, status, days on top, and the page keys of its lines).
+- Watch List: sections match by claim through `ledger.json` (a storyline making the briefing's claim in other words isn't repeated), falling back to the words with numbers blanked; the briefing marks **updated** beside **new**. `src/site/trim.js` and the page's copies of ledger.js and briefing.js.
+
+**Checked.** On today's data the new briefing's top 10 is the same as the published one: on its first day the ledger has no memory, and nothing in today's top was found twice. Its effect starts tomorrow (updated streaks up, unchanged repeats down).
+
+**Tests.** 1,070 checks (five new): Smith's two lines are one claim and the better one speaks; Mitchell and Harden, and two absences with the same record, stay apart; a second detector adds a little; Dončić's streak one game longer is the same claim, updated, and moves up; a line on top yesterday with the same numbers fades, two days twice as much, and a second build the same day agrees; the first day seen is kept; on the page a storyline making the briefing's claim in other words isn't repeated.
+
+**Self-audit.** The weights (0.15, 0.25, 0.25 a day) are set to be small next to a line's own score (most 2-4): they reorder close calls, not the whole list. Whether "updated" is the right word for every moved number (a shooting line's percentage moving is not progress) is why the bonus is limited to streaks, milestones, records and pace. Not built yet (step 3): the post-ready wording and the one-tap "used it" that will give the scorer something to learn from.
+
 ## 0.137.0 (2026-11-20): Watch List: the fat folded (audit step 1)
 
 The user, 1:39 PM: "find the fat and redundancies… find a way to highlight the pertinent information"; 2:22 PM: "start with step 1" of the plan in the project doc `claude/audit-2026-11-20.md`.

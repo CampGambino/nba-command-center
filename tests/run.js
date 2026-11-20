@@ -5410,8 +5410,8 @@ await articlesChecks(ok);
     "matchup edges (0.95): while the season's games are still being read (under 80% of a team's games) nothing is ranked or said");
   // 0.137.0: what the Watch List shows first and what it folds (src/site/trim.js; copied to docs/lib/site).
   {
-    const { trimStories, trimMatchups, trimNotes, briefTextSet, smallShift, TRIM } = await import("../src/site/trim.js");
-    const BT = briefTextSet({ top: [{ text: "RJ Barrett and Collin Murray-Boyles both out: TOR 2-2" }], deep: [] });
+    const { trimStories, trimMatchups, trimNotes, briefClaimSet, smallShift, TRIM } = await import("../src/site/trim.js");
+    const BT = briefClaimSet({ top: [{ team: "TOR", text: "RJ Barrett and Collin Murray-Boyles both out: TOR 2-2" }], deep: [] });
     const S = trimStories([
       { kind: "injury", team: "TOR", text: "RJ Barrett and Collin  Murray-Boyles both out: TOR 2-2", score: 3 },
       { kind: "shift", team: "DET", text: "Daniss Jenkins is averaging 36.5 minutes over his last 6 games", score: 2.5 },
@@ -5444,6 +5444,47 @@ await articlesChecks(ok);
     ], ["CHA notes — Kon Knueppel: Streak · 30 · Knueppel has made a three in 30 straight games, the longest streak in the league."]);
     ok(N.inStories.length === 1 && N.shown.map((x) => x.text.split(" ")[0]).join() === "Diabate,Miller,Ball" && N.folded[0].text.startsWith("The Hornets") && TRIM.notesPerTeam === 3,
       "Watch List (0.137): a team's notes show three facts with a hook (rank, record, streak, in play tonight) before plain ones, none already in the storylines; the rest fold", JSON.stringify(N));
+  }
+  // 0.138.0: the ledger: one record per claim across detectors, with new / updated / repeat across days.
+  {
+    const { buildLedger, ledgerAdjust, markShown, claimKeyOf, pageKey, LEDGER } = await import("../src/anticipate/ledger.js");
+    const { claimIndex, claimOf, trimStories, briefClaimSet } = await import("../src/site/trim.js");
+    const day1 = [
+      { kind: "streak", team: "LAL", player: "Luka Doncic", text: "Luka Doncic: 30+ points in 10 straight games", score: 3 },
+      { kind: "context", team: "HOU", player: "Jabari Smith Jr.", text: "Smith: career highs in FG%, 3P% and FT% (45.5%, 38.8%, 84.6%)", score: 2 },
+      { kind: "season", team: "HOU", player: "Jabari Smith Jr.", text: "Jabari Smith Jr. this season (16 games): 45.5% FG (career-high), 38.8% 3PT (career-high)", score: 2.6 },
+      { kind: "streak", team: "CLE", player: "Donovan Mitchell", text: "Donovan Mitchell: made a three in 15 straight games, every game this season", score: 2 },
+      { kind: "streak", team: "CLE", player: "James Harden", text: "James Harden: made a three in 15 straight games, every game this season", score: 2 },
+      { kind: "injury", team: "OKC", player: null, text: "Jalen Williams OUT (left ankle surgery): OKC 6-6 without him (+2.9 a game), 3-0 with", score: 2 },
+      { kind: "injury", team: "OKC", player: null, text: "Chet Holmgren OUT (right knee): OKC 6-6 without him (+2.9 a game), 3-0 with", score: 2 },
+      { kind: "shooting", team: "DEN", player: "Nikola Jokic", text: "Nikola Jokic is shooting 89.8% from the line", score: 2 },
+    ];
+    const L1 = buildLedger(day1, { seen: {}, today: "2026-11-18" });
+    const smith = L1.of.get(day1[1]);
+    ok(L1.claims.length === 7 && smith === L1.of.get(day1[2]) && smith.best === day1[2] && smith.kinds.join() === "season,context" && L1.of.get(day1[3]) !== L1.of.get(day1[4]) && L1.of.get(day1[5]) !== L1.of.get(day1[6]) && L1.claims.every((c) => c.isNew),
+      "ledger (0.138): the same claim from two detectors is one record (same player, two shared decimals: Smith's career highs); the same words about two players, or two absences with the same record, stay two", JSON.stringify(L1.claims.map((c) => [c.kinds, c.sources])));
+    ok(Math.abs(ledgerAdjust(smith) - LEDGER.sourceBonus) < 1e-9 && ledgerAdjust(L1.of.get(day1[0])) === 0, "ledger (0.138): a claim two detectors found ranks a little higher", String(ledgerAdjust(smith)));
+    const top1 = [L1.of.get(day1[0]), L1.of.get(day1[7])];
+    let seen = markShown(L1.seen, top1, "2026-11-18");
+    // Day 2: Luka's streak one longer (moved numbers, a streak: updated, up); Jokic's line unchanged after a day on top (fades).
+    const day2 = [{ ...day1[0], text: "Luka Doncic: 30+ points in 11 straight games" }, day1[7], day1[3]];
+    const L2 = buildLedger(day2, { seen, today: "2026-11-19" });
+    const luka = L2.of.get(day2[0]), jok = L2.of.get(day2[1]), mitch = L2.of.get(day2[2]);
+    ok(luka.key === claimKeyOf(day1[0]) && luka.changed && !luka.isNew && luka.shownStreak === 0 && ledgerAdjust(luka) === LEDGER.changed
+      && !jok.changed && jok.shownStreak === 1 && ledgerAdjust(jok) === -LEDGER.repeat && !mitch.changed && mitch.shownStreak === 0 && ledgerAdjust(mitch) === 0,
+      "ledger (0.138): a streak one game longer is the same claim, updated (moves up); a line already on top yesterday with the same numbers fades; one seen but never on top is neither", JSON.stringify({ luka: [luka.changed, luka.shownStreak], jok: [jok.changed, jok.shownStreak] }));
+    seen = markShown(L2.seen, [jok], "2026-11-19");
+    const L3 = buildLedger([day1[7]], { seen, today: "2026-11-20" }), jok3 = L3.claims[0];
+    // a second build the same day: what is compared is still the numbers of the last earlier day
+    const L3b = buildLedger([day1[7]], { seen: L3.seen, today: "2026-11-20" });
+    ok(jok3.shownStreak === 2 && ledgerAdjust(jok3) === -2 * LEDGER.repeat && L3b.claims[0].shownStreak === 2 && !L3b.claims[0].changed && jok3.first === "2026-11-18",
+      "ledger (0.138): two days on top unchanged fades twice as much; a later build the same day agrees; the first day seen is kept", JSON.stringify(jok3));
+    // The page: a storyline worded as the briefing's season line is found in the briefing through the ledger's merged claim.
+    const idx = claimIndex({ claims: L1.claims.map((c) => ({ key: c.key, pk: [...new Set(c.lines.map((l) => pageKey(l.team, l.text)))] })) });
+    const B = briefClaimSet({ top: [{ team: "HOU", text: day1[2].text }], deep: [] }, idx);
+    const S = trimStories([{ kind: "context", team: "HOU", text: day1[1].text, score: 2 }, { kind: "streak", team: "CLE", text: day1[3].text, score: 2 }], B, idx);
+    ok(S.inBrief.length === 1 && S.inBrief[0].kind === "context" && S.shown.length === 1 && claimOf(idx, "HOU", day1[1].text) === smith.key,
+      "ledger (0.138): on the page, a storyline making the same claim as a briefing line in other words isn't repeated", JSON.stringify(S));
   }
   // 0.135: outliers against the group tonight's opponent is in. Home teams win every game here, so T01 has the best
   // record and defense and T30 the worst. "Feaster" (T14) scores 30 against T26-T30 and 10 against everyone else.

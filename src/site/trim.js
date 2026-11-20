@@ -6,6 +6,17 @@
  * template across games, 193 notes items, 327 milestone rows.
  */
 
+import { pageKey } from "../anticipate/ledger.js";
+
+/**
+ * 0.138: lines are matched by claim. ledger.json lists, for each claim, the page keys (team + words with numbers
+ * blanked) of every line that makes it; a line's claim is found from its own team and words. Without the ledger a
+ * line is its own claim (the same as matching the words, numbers aside).
+ */
+export const claimIndex = (ledger) => { const m = new Map(); for (const c of ledger?.claims || []) for (const k of c.pk || []) m.set(k, c.key); return m; };
+export const claimOf = (idx, team, text) => { const pk = pageKey(team, text); return idx?.get(pk) || pk; };
+export const claimSet = (lines, idx) => new Set((lines || []).map((l) => claimOf(idx, l.team, l.text)));
+
 export const TRIM = { shiftsPerTeam: 1, seriesLines: 2, seriesMin: 1.5, playerVsTeamPerTeam: 1, notesPerTeam: 3 };
 
 const norm = (s) => String(s || "").replace(/\s+/g, " ").trim().toLowerCase();
@@ -17,13 +28,13 @@ export const smallShift = (l) => { const m = String(l.text || "").match(/\bavera
  * strongest shift (the rest are often a few tenths of a steal or a turnover), and none under 1.5 steals, blocks or
  * turnovers a game. -> { shown, folded, inBrief }
  */
-export function trimStories(lines, briefTexts = new Set()) {
+export function trimStories(lines, briefClaims = new Set(), idx = null) {
   const inBrief = [], shown = [], folded = [], shifts = {};
   const byScore = [...lines].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
   const keepShift = new Set();
   for (const l of byScore) if (l.kind === "shift" && !smallShift(l)) { const k = l.team || "?"; if ((shifts[k] = (shifts[k] || 0) + 1) <= TRIM.shiftsPerTeam) keepShift.add(l); }
   for (const l of lines) {
-    if (briefTexts.has(norm(l.text))) inBrief.push(l);
+    if (briefClaims.has(claimOf(idx, l.team, l.text))) inBrief.push(l);
     else if (l.kind === "shift" && !keepShift.has(l)) folded.push(l);
     else shown.push(l);
   }
@@ -40,9 +51,9 @@ export function matchupFamily(i) {
  * One game's matchup lines: none already in tonight's storylines; every edge; the two strongest series lines scoring 1.5 or more (one if none does: the
  * "All-time" and "Largest wins" lines score 1 or under); one player-vs-opponent line a team. -> { shown, folded }
  */
-export function trimMatchups(items, storyTexts = []) {
-  // A line already in tonight's storylines (the series streaks are both) is not repeated.
-  const stories = storyTexts.map(norm), said = (i) => { const t = norm(i.text); return t.length > 20 && stories.some((s) => s.includes(t)); };
+export function trimMatchups(items, storyTexts = [], storyClaims = new Set(), idx = null) {
+  // A line already in tonight's storylines (the series streaks are both) is not repeated: the same claim, or its words inside a storyline.
+  const stories = storyTexts.map(norm), said = (i) => { const t = norm(i.text); return storyClaims.has(claimOf(idx, i.team, `${i.tag}: ${i.text}`)) || (t.length > 20 && stories.some((s) => s.includes(t))); };
   const inStories = items.filter(said);
   const by = items.filter((i) => !said(i)).sort((a, b) => (b.score ?? 0) - (a.score ?? 0)), keep = new Set(), perTeam = {};
   const series = by.filter((i) => matchupFamily(i) === "series"), strong = series.filter((i) => (i.score ?? 0) >= TRIM.seriesMin);
@@ -70,4 +81,4 @@ export function trimNotes(list, storyTexts = []) {
   return { shown: ranked.slice(0, TRIM.notesPerTeam), folded: ranked.slice(TRIM.notesPerTeam), inStories };
 }
 
-export const briefTextSet = (b) => new Set([...(b?.top || []), ...(b?.deep || [])].map((l) => norm(l.text)));
+export const briefClaimSet = (b, idx = null) => claimSet([...(b?.top || []), ...(b?.deep || [])], idx);

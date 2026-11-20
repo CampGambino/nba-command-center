@@ -846,10 +846,24 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
         const r = await fetch("https://ncc-articles.dukie0813.workers.dev/headlines", { signal: AbortSignal.timeout(15000) });
         if (r.ok) buzz = buzzCounts((await r.json()).headlines || [], { players: cand.all.map((l) => l.player).filter(Boolean), teams: cand.games.flatMap((g) => [g.away, g.home]), league: Object.values(store.names || {}) });
       } catch (e) { console.error(`headlines not read: ${e.message}`); }
-      const b = briefing({ all: cand.all, games: cand.games, stars: args.prep?.stars || {}, nationalGames: nat, seen, today: watch.today, model, buzz });
+      // 0.138: the ledger: one record per claim across every detector, with what was seen and shown on earlier days.
+      const { buildLedger, markShown, pageKey } = await import("../src/anticipate/ledger.js");
+      const ledgerFile = path.join(root, "history", "ledger-seen.json");
+      const ledgerSeen = fs.existsSync(ledgerFile) ? JSON.parse(fs.readFileSync(ledgerFile, "utf8")) : {};
+      const ledger = buildLedger(cand.all, { seen: ledgerSeen, today: watch.today });
+      const b = briefing({ all: cand.all, games: cand.games, stars: args.prep?.stars || {}, nationalGames: nat, seen, today: watch.today, model, buzz, ledger });
       fs.writeFileSync(seenFile, JSON.stringify(b.seen));
+      const atTop = new Set([...b.top, ...b.deep].map((l) => l.claim).filter(Boolean));
+      fs.writeFileSync(ledgerFile, JSON.stringify(markShown(ledger.seen, ledger.claims.filter((c) => atTop.has(c.key)), watch.today)));
+      const ledgerFirstRun = !Object.keys(ledgerSeen).length;
+      const status = (c) => (ledgerFirstRun ? "seen" : c.isNew ? "new" : c.changed ? "updated" : "seen");
+      fs.writeFileSync(path.join(root, "docs", "data", "ledger.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, lines: cand.all.length,
+        claims: ledger.claims.sort((x, y) => (y.best.score || 0) - (x.best.score || 0)).map((c) => ({ key: c.key, team: c.team, player: c.player, game: c.game, kinds: c.kinds, sources: c.lines.length,
+          text: c.best.text, score: Math.round((c.best.score || 0) * 100) / 100, first: c.first, status: status(c), shownStreak: c.shownStreak, top: atTop.has(c.key),
+          pk: [...new Set(c.lines.map((l) => pageKey(l.team, l.text)))] })) }));
+      console.log(`ledger: ${cand.all.length} lines -> ${ledger.claims.length} claims (${ledger.claims.filter((c) => c.kinds.length > 1).length} found by two detectors); ${ledger.claims.filter((c) => status(c) === "new").length} new, ${ledger.claims.filter((c) => status(c) === "updated").length} updated`);
       const firstRun = !Object.keys(seen).length; // the first build has nothing to compare with: nothing is "new"
-      const slimL = (l) => ({ key: l.key, kind: l.kind, team: l.team, player: l.player || null, game: l.game, text: l.text, rank: l.rank, learned: l.learned || 0, isNew: l.age === 0 && !firstRun, news: l.news || 0, headlines: l.news ? buzz?.titles?.[l.player] || [] : [] });
+      const slimL = (l) => ({ key: l.key, claim: l.claim || null, status: ledgerFirstRun ? null : l.status || null, kind: l.kind, team: l.team, player: l.player || null, game: l.game, text: l.text, rank: l.rank, learned: l.learned || 0, isNew: l.age === 0 && !firstRun, news: l.news || 0, headlines: l.news ? buzz?.titles?.[l.player] || [] : [] });
       const learned = Object.entries(model.weights).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 12);
       fs.writeFileSync(path.join(root, "docs", "data", "briefing.json"), JSON.stringify({ generatedAt: out.generatedAt, today: watch.today, candidates: cand.all.length, votes: { n: model.n, up: model.up.size, down: model.down.size, learned }, top: b.top.map(slimL), deep: b.deep.map(slimL),
         lastNight: (args.prep?.lastNight || []).slice(0, 6).map((l) => ({ key: l.key, kind: l.kind, team: l.team, player: l.player, text: l.text })),
@@ -871,7 +885,7 @@ for (const f of ["ratings.js", "withwithout.js", "leaders.js", "oddlines.js"]) f
 fs.mkdirSync(path.join(root, "docs", "ref"), { recursive: true });
 for (const f of fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^nba-(record-book|single-game-bests|postseason-careers)-/.test(f))) fs.copyFileSync(path.join(root, "src", "data", f), path.join(root, "docs", "ref", f.replace(/-\d{4}-\d\d\.json$/, ".json")));
 fs.mkdirSync(path.join(root, "docs", "lib", "anticipate"), { recursive: true });
-for (const f of ["tonight.js", "briefing.js", "learn.js", "buzz.js"]) fs.copyFileSync(path.join(root, "src", "anticipate", f), path.join(root, "docs", "lib", "anticipate", f));
+for (const f of ["tonight.js", "briefing.js", "learn.js", "buzz.js", "ledger.js"]) fs.copyFileSync(path.join(root, "src", "anticipate", f), path.join(root, "docs", "lib", "anticipate", f));
 fs.mkdirSync(path.join(root, "docs", "lib", "site"), { recursive: true });
 fs.copyFileSync(path.join(root, "src", "site", "trim.js"), path.join(root, "docs", "lib", "site", "trim.js"));   // 0.137.0: the Watch List's folding rules
 fs.mkdirSync(path.join(root, "docs", "lib", "espn"), { recursive: true });

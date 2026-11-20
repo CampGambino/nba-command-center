@@ -9,6 +9,9 @@
  *        + new today (first seen today; a line seen for days fades)
  *        + rare (a detector's "only / first / most since" flag)
  *        + in the news (0.70: the player, or failing that his team, in the last 72 hours' headlines; src/anticipate/buzz.js)
+ *        + the ledger (0.138: src/anticipate/ledger.js): one line per claim, whichever detectors found it (two of them:
+ *          a little more); a streak or mark whose numbers moved since the last day it was seen; a claim already at the
+ *          top on the days just before with the same numbers fades
  *
  * Top 10: mixed (at most 3 from one game, 3 of one kind, 1 per player); no injuries, rest, TV or context lines there
  * (each game's card keeps those). Deep cuts: the rare and the big about lesser-known players, which would never beat
@@ -16,6 +19,7 @@
  */
 import { boost } from "./learn.js";
 import { buzzBoost } from "./buzz.js";
+import { ledgerAdjust } from "./ledger.js";
 const KEEP_OUT = new Set(["injury", "rest", "tv", "context"]);
 /** 0.126: an injury line reaches the top ten when one of its players is at least this prominent (tonight.json `stars`). */
 export const STAR_OUT = 0.6;
@@ -36,13 +40,16 @@ const dayDiff = (a, b) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(
  * seen: { key: "YYYY-MM-DD" first seen }; today.
  * -> { top: [line+], deep: [line+], seen }
  */
-export function briefing({ all, games = [], stars = {}, nationalGames = new Set(), seen = {}, today, topN = 10, deepN = 5, model = null, buzz = null }) {
+export function briefing({ all, games = [], stars = {}, nationalGames = new Set(), seen = {}, today, topN = 10, deepN = 5, model = null, buzz = null, ledger = null }) {
   const gameOf = new Map();
   for (const g of games) { gameOf.set(g.away, `${g.away}@${g.home}`); gameOf.set(g.home, `${g.away}@${g.home}`); }
   const next = {};
   for (const [k, d] of Object.entries(seen || {})) if (today && dayDiff(d, today) <= 30) next[k] = d;
   const scored = [];
   for (const l of all || []) {
+    // 0.138: one line per claim: the claim's best line speaks for it; the others are the same story found again.
+    const claim = ledger?.of?.get(l) || null;
+    if (claim && claim.best !== l) continue;
     // 0.126 (the user was asked on 11/19 whether a star's absence belongs up top; "you can work on the other things"):
     // an injury line is let in when it is about a star listed out or doubtful. Other injury lines stay in the game cards.
     const starOut = l.kind === "injury" && /^(out|doubtful)$/i.test(l.status || "") ? Math.max(0, ...(l.who || []).map((n) => stars[n] ?? 0)) : 0;
@@ -51,7 +58,7 @@ export function briefing({ all, games = [], stars = {}, nationalGames = new Set(
     if (model?.down?.has(key)) continue; // the user voted this line down (0.67)
     // 0.125: a notes line carries the day the notes first printed it (firstSeen); that wins over the day this wording
     // was first ranked, so a check or tag added in front of an old sentence is not "new today".
-    const first = l.firstSeen && l.firstSeen < (next[key] || today) ? l.firstSeen : next[key] || today;
+    const first = [l.firstSeen, next[key] || today, claim?.first].filter(Boolean).sort()[0];
     next[key] = first;
     // an absence is as old as the games he has already missed (about two days a game), however new the wording
     const age = Math.max(today ? dayDiff(first, today) : 0, l.kind === "injury" ? 2 * (l.missed || 0) : 0);
@@ -61,9 +68,10 @@ export function briefing({ all, games = [], stars = {}, nationalGames = new Set(
     const game = gameOf.get(l.team);
     const learned = boost(l, model, stars);   // 0.67: the user's votes, by feature
     const news = buzzBoost(l, buzz);
-    const rank = (l.score || 0) + 0.9 * prom + (nationalGames.has(game) ? 0.25 : 0) + fresh + rare + learned + news;
+    const led = ledgerAdjust(claim);
+    const rank = (l.score || 0) + 0.9 * prom + (nationalGames.has(game) ? 0.25 : 0) + fresh + rare + learned + news + led;
     const inNews = l.player && buzz?.players?.[l.player] ? buzz.players[l.player] : 0;
-    scored.push({ ...l, game, prom, age, learned, news: inNews, rank: Math.round(rank * 100) / 100, key });
+    scored.push({ ...l, game, prom, age, learned, news: inNews, rank: Math.round(rank * 100) / 100, key, claim: claim?.key || null, status: claim ? (claim.isNew ? "new" : claim.changed ? "updated" : "seen") : null, sources: claim ? claim.kinds.length : 1 });
   }
   scored.sort((a, b) => b.rank - a.rank);
   const pick = (list, n, { perGame, perKind }) => {
