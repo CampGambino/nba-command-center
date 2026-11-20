@@ -3134,7 +3134,7 @@ await articlesChecks(ok);
   ok(HAS_NOTES.join() === "current,stale,conflict" && oldRule(am) === 7 && oldRule(pm) === 6 && notesRead(am) === 8 && notesRead(pm) === 8 && g1.keep === false && g1.text === null
     && g2.keep === true && g2.lost.length === 1 && g2.lost[0].team === "MIN" && g2.lost[0].was === "stale" && g2.lost[0].now === "unreachable"
     && g2.text === "this build could not read the notes for MIN (unreachable); the published Watch List built at 10:48 AM ET has them and was kept, so nothing newer from the other teams' notes is showing"
-    && g3.keep === false && g4.keep === false && /notesGuard\(before, after, today\)/.test(fs.readFileSync(path.join(root, "scripts", "ci.js"), "utf8")),
+    && g3.keep === false && g4.keep === false,
     "build (0.124): a team whose notes went from yesterday's file to today's with the opponent in doubt still has notes, so the afternoon build of 11/19 is published (the old count, 7 against 6, threw it away); a team that really cannot be read keeps the published list, and the note names the team and the time",
     JSON.stringify([g1, g2.text, g3.keep, g4.keep]));
 }
@@ -3186,6 +3186,51 @@ await articlesChecks(ok);
     && /const \{ selfCheck \} = await import\("\.\.\/src\/site\/selfcheck\.js"\)/.test(ci) && /\.\.\.\(checks\.length \? \{ checks \} : \{\}\)/.test(ci) && !/not \(\?:written\|read\|updated\|built\)/.test(ci)
     && /for \(const c of h\?\.checks \|\| \[\]\) notes\.push\(`Build check: \$\{esc\(c\.text\)\}`\)/.test(ix) && fs.existsSync(path.join(root, "tools", "diagnose.mjs")),
     "0.125: the odd lines' \"to watch tonight\" leaves out players listed out or doubtful and says who; every complaint a step prints reaches the health note (not only ones worded a certain way); the Watch List prints the build's own checks in its warning box; tools/diagnose.mjs is the by-hand version");
+}
+
+// ---------- 0.126: a star's absence up top; one shift line; the notes guard keeps one team, not the list ----------
+{
+  const { briefing, STAR_OUT, KIND_CAP } = await import("../src/anticipate/briefing.js");
+  const { tonightCandidates } = await import("../src/anticipate/tonight.js");
+  const { keepLostTeams } = await import("../src/site/notes-guard.js");
+  const games = [{ away: "GSW", home: "MEM" }, { away: "POR", home: "MIL" }], stars = { "Stephen Curry": 0.86, "Anthony Edwards": 1, "Tyler Herro": 0.7 };
+  const inj = (o) => ({ kind: "injury", status: "Out", missed: 0, score: 5, ...o });
+  const B = briefing({ games, today: "2026-11-19", stars, seen: {}, all: [
+    inj({ team: "GSW", who: ["Stephen Curry", "Draymond Green"], text: "Stephen Curry and Draymond Green both out: GSW 5-7 without both", score: 5.04, missed: 0 }),
+    inj({ team: "GSW", who: ["Stephen Curry"], text: "Stephen Curry OUT (right oblique tear): GSW 1-4 without him", score: 4.9, missed: 3 }),     // the same player again: one line
+    inj({ team: "GSW", who: ["Draymond Green"], text: "Draymond Green OUT: GSW 1-1 without him", score: 4.44 }),                               // not a star: stays in the game card
+    inj({ team: "MIL", who: ["Kyle Kuzma", "Myles Turner"], text: "Kyle Kuzma and Myles Turner both out", score: 5.3 }),
+    inj({ team: "MEM", who: ["Anthony Edwards"], status: "Questionable", text: "Anthony Edwards QUESTIONABLE", score: 5.5 }),                  // questionable is not an absence
+    { kind: "rest", team: "MIL", text: "MIL on a back-to-back", score: 6 },
+    { kind: "shift", team: "MIL", player: "Tyler Herro", text: "Tyler Herro is shooting 17.6% from three over his last 6 games", score: 4.5 },
+    { kind: "shift", team: "MEM", player: "Cam Spencer", text: "Cam Spencer is averaging 31.7 minutes over his last 3 games", score: 4.4 },
+    { kind: "shift", team: "POR", player: "Kris Dunn", text: "Kris Dunn is averaging 21.4 minutes over his last 5 games", score: 4.3 },
+    { kind: "team", team: "MIL", text: "MIL is 1-14: its worst start through 15 games in franchise history", score: 3.9 }] });
+  const txt = B.top.map((l) => l.text.slice(0, 24));
+  const old = briefing({ games, today: "2026-11-19", stars, seen: {}, all: [inj({ team: "MEM", who: ["Anthony Edwards"], text: "Anthony Edwards OUT (knee): MIN 8-3 without him", score: 4.6, missed: 11 }), inj({ team: "GSW", who: ["Stephen Curry"], text: "Stephen Curry OUT", score: 4.6, missed: 0 })] });
+  const cand = tonightCandidates({ watch: { today: "2026-11-19", games: [{ id: "1", awayTri: "GSW", homeTri: "MEM" }], teams: [] }, injuries: { date: "2026-11-19", players: [], impact: [{ team: "GSW", name: "Stephen Curry", status: "Out", missedInARow: 3, text: "Stephen Curry OUT", score: 4.9 }, { team: "GSW", names: ["Stephen Curry", "Draymond Green"], text: "both out", score: 5 }, { team: "GSW", name: "Draymond Green", status: "Out", missedInARow: 0, text: "Draymond Green OUT", score: 4.4 }] } }).all.filter((l) => l.kind === "injury");
+  ok(STAR_OUT === 0.6 && KIND_CAP.shift === 1 && KIND_CAP.injury === 2 && B.top.length === 3 && B.top[0].kind === "injury" && /^Stephen Curry and Draymond Green both out/.test(B.top[0].text) && B.top[0].prom === 0.86 && B.top[0].age === 0
+    && B.top.filter((l) => l.kind === "injury").length === 1 && B.top.filter((l) => l.kind === "shift").length === 1 && B.top.find((l) => l.kind === "shift").player === "Tyler Herro" && B.top.some((l) => /^MIL is 1-14/.test(l.text))
+    && old.top.length === 2 && old.top[0].who[0] === "Stephen Curry" && old.top[1].age === 22 && old.top[1].rank < old.top[0].rank - 1
+    && cand.length === 3 && cand[0].who.join() === "Stephen Curry" && cand[0].missed === 3 && cand[0].status === "Out" && cand[1].who.length === 2 && cand[1].status === "Out" && cand[1].missed === 0 && !cand.some((l) => "player" in l),
+    "briefing (0.126): a star listed out or doubtful can be a top line (one line a player; a role player's absence, a questionable star and rest stay in the game cards; an absence 11 games old ranks as old news); one shift line in the top ten, so a team's record line is not pushed out by a second",
+    JSON.stringify([txt, B.top.map((l) => [l.kind, l.rank, l.age]), old.top.map((l) => [l.who, l.age, l.rank]), cand.map((l) => [l.who, l.status, l.missed])]));
+  // the guard: one team's download fails in the evening build
+  const W = (st, at) => ({ today: "2026-11-19", generatedAt: at, games: [1, 2], teams: Object.entries(st).map(([team, [notesStatus, n]]) => ({ team, notesStatus, items: Array.from({ length: n }, (_, i) => ({ player: `${team} ${i}` })) })) });
+  const before = W({ GSW: ["current", 3], MEM: ["stale", 2], MIN: ["current", 4] }, "2026-11-19T15:48:22.252Z"), after = W({ GSW: ["current", 5], MEM: ["current", 6], MIN: ["unreachable", 0] }, "2026-11-19T22:00:00.000Z");
+  const F = (o) => ({ today: "2026-11-19", teams: Object.fromEntries(Object.entries(o).map(([t, n]) => [t, Array.from({ length: n }, () => ({ text: "x" }))])), status: Object.fromEntries(Object.keys(o).map((t) => [t, { read: o[t] > 0 }])), trimmed: [] });
+  const K = keepLostTeams({ before, after, beforeFacts: F({ GSW: 2, MEM: 1, MIN: 7 }), afterFacts: F({ GSW: 3, MEM: 4, MIN: 0 }), today: "2026-11-19" });
+  const byT = Object.fromEntries(K.watch.teams.map((t) => [t.team, t]));
+  const none = keepLostTeams({ before, after: W({ GSW: ["current", 5], MEM: ["current", 6], MIN: ["conflict", 0] }, "x"), today: "2026-11-19" }), otherDay = keepLostTeams({ before: { ...before, today: "2026-11-18" }, after, today: "2026-11-19" });
+  const ci = fs.readFileSync(path.join(root, "scripts", "ci.js"), "utf8");
+  ok(K.lost.length === 1 && K.lost[0].team === "MIN" && K.lost[0].now === "unreachable" && byT.MIN.notesStatus === "current" && byT.MIN.items.length === 4 && byT.MIN.notesKept === "10:48 AM ET"
+    && byT.GSW.items.length === 5 && byT.MEM.notesStatus === "current" && byT.MEM.items.length === 6 && !byT.GSW.notesKept && K.watch.generatedAt === after.generatedAt
+    && K.facts.teams.MIN.length === 7 && K.facts.teams.MEM.length === 4 && K.facts.status.MIN.read === true
+    && K.text === "this build could not read the notes for MIN (unreachable); that team's notes and milestones are from the 10:48 AM ET build, and everything else is new"
+    && none.lost.length === 0 && none.watch.teams[2].notesStatus === "conflict" && otherDay.lost.length === 0
+    && /keepLostTeams\(\{ before, after, beforeFacts, afterFacts: readJson\(factsFile\), today \}\)/.test(ci) && !/kept the published data/.test(ci) && /if \(h\?\.keptTeams\) notes\.push/.test(fs.readFileSync(path.join(root, "docs", "index.html"), "utf8")),
+    "build (0.126): when one team's notes cannot be read in a later build, that team keeps its published milestones and history lines and every other team's are new (the whole list used to be kept); a conflict is not a loss; nothing is kept from another day",
+    JSON.stringify([K.lost, K.text, Object.fromEntries(Object.entries(byT).map(([t, v]) => [t, [v.notesStatus, v.items.length, v.notesKept]]))]));
 }
 
 // ---------- 0.72: the full diagnostic (11/15): what could break, and what was quietly wrong ----------
@@ -3241,6 +3286,18 @@ await articlesChecks(ok);
   const B = runCi();
   stub("tonight.js", good);
   const C = runCi();
+  // 0.126: the build itself, with one team's notes unreadable: that team is kept from the published list, the rest is new, the run is green
+  const dd = path.join(tmp, "docs", "data"), T = (team, notesStatus, n) => ({ team, notesStatus, items: Array.from({ length: n }, (_, i) => ({ player: `${team} ${i}` })) });
+  stub("tonight.js", `import fs from "node:fs"; fs.writeFileSync("docs/data/watch.json", JSON.stringify({ today: "2026-11-15", generatedAt: new Date().toISOString(), teams: [${JSON.stringify(T("GSW", "current", 5))}, ${JSON.stringify(T("MIN", "unreachable", 0))}] })); fs.writeFileSync("docs/data/notes-facts.json", JSON.stringify({ today: "2026-11-15", teams: { GSW: [1, 2, 3], MIN: [] }, status: { GSW: { read: true }, MIN: { read: false } } }));`);
+  fs.writeFileSync(path.join(dd, "notes-facts.json"), JSON.stringify({ today: "2026-11-15", teams: { GSW: [1], MIN: [1, 2, 3, 4] }, status: { GSW: { read: true }, MIN: { read: true } } }));
+  fs.writeFileSync(path.join(dd, "watch.json"), JSON.stringify({ today: "2026-11-15", generatedAt: "2026-11-15T15:48:00.000Z", teams: [T("GSW", "stale", 2), T("MIN", "current", 4)] }));
+  const rD = spawnSync(process.execPath, ["scripts/ci.js", "build", "--today", "2026-11-15"], { cwd: tmp, encoding: "utf8" });
+  const D = { code: rD.status, health: JSON.parse(fs.readFileSync(path.join(dd, "health.json"), "utf8")), watch: JSON.parse(fs.readFileSync(path.join(dd, "watch.json"), "utf8")), facts: JSON.parse(fs.readFileSync(path.join(dd, "notes-facts.json"), "utf8")) };
+  fs.rmSync(path.join(dd, "notes-facts.json"));
+  ok(D.code === 0 && D.watch.teams[0].notesStatus === "current" && D.watch.teams[0].items.length === 5 && D.watch.teams[1].notesStatus === "current" && D.watch.teams[1].items.length === 4 && D.watch.teams[1].notesKept === "10:48 AM ET"
+    && D.facts.teams.GSW.length === 3 && D.facts.teams.MIN.length === 4 && D.facts.status.MIN.read === true && !D.health.kept && !(D.health.checks || []).length
+    && D.health.keptTeams === "this build could not read the notes for MIN (unreachable); that team's notes and milestones are from the 10:48 AM ET build, and everything else is new",
+    "build (0.126), run for real with stand-in steps: one team's notes unreadable keeps that team from the published list (milestones and history lines), publishes the other team's new ones, ends green and says so in the health note", JSON.stringify([D.code, D.health, D.watch.teams.map((t) => [t.team, t.notesStatus, t.items.length]), rD.stderr.slice(0, 200)]));
   fs.rmSync(tmp, { recursive: true, force: true });
   ok(A.code === 1 && A.watch.v === "new" && A.health.steps.map((x) => `${x.step}:${x.ok}`).join() === "tonight:true,situations:false,flow:true" && /not written: boom/.test(A.health.steps[1].notes?.[0] || "")
     && B.code === 1 && B.watch.v === "old" && B.health.steps.map((x) => `${x.step}:${x.ok}`).join() === "tonight:false,situations:true,flow:true"

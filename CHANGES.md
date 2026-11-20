@@ -2,6 +2,37 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.126.0 (2026-11-19): a star's absence can lead the briefing; one shift line in the ten; the notes guard keeps one team, not the list
+
+At 7:08 PM I put three calls to the user as theirs, each with what I would do. The user, 10:04 PM: "you can work on the other things as well". I took that as a go for all three, done the way I had recommended. Each is one constant or one function to undo.
+
+**1. A star's absence in the top ten** (`src/anticipate/briefing.js`, `tonight.js`).
+- Injury lines were kept out of the top ten by design, so on 11/19 "Stephen Curry and Draymond Green both out" sat only in the Warriors' game card.
+- An injury line is now let in when one of its players is listed out or doubtful and is a star (`STAR_OUT = 0.6` on the same 0-to-1 prominence the briefing already uses). A role player's absence, a questionable star and rest stay in the game cards.
+- One line a player (a "both out" line and the same star's own line do not both appear), two absences at most in the ten (`KIND_CAP.injury`).
+- An absence ages with the games already missed (two days a game), so a star who has been out for weeks ranks as old news.
+- With 11/19's data: Dylan Harper's first absence #1, Curry and Green both out #2.
+
+**2. One shift line in the top ten** (`KIND_CAP.shift = 1`). Two of them pushed "MIL is 1-14, its worst start" and "SAS has the best record since 2004-05" out on 11/19. The strongest one stays; the others stay in their games' lists and on the Shifts table. I had said "ranked just below team-record lines"; a cap does the same job without changing where a shift line sits in a game's own list.
+
+**3. The notes guard, per team** (`keepLostTeams` in `src/site/notes-guard.js`; `scripts/ci.js`). When a later build cannot read one team's notes, that team keeps its published milestones and history lines (marked with the time of the build they are from), and every other team's are new. The whole list used to be kept. The health note says which team in `keptTeams`, and the Watch List prints it. A conflict is still not a loss, and nothing is kept from another day.
+
+**Tested.** 1,040 checks pass (three new: the briefing with stand-in absences of each kind and three shift lines; the guard as a function; and the build itself run with stand-in steps where one team's notes are unreadable, which ends green with that team kept and the other new). A full build here for 11/19 during the fourth quarters: the top ten as above, health note clean apart from the two lines this workspace causes, and no in-progress game counted anywhere I looked (Milwaukee still "lost 11 straight" mid-game). The Watch List in a browser shows the absence lines with the bandage icon.
+
+**Not proven.**
+- Whether `STAR_OUT = 0.6` draws the line where the user would. Dylan Harper (0.7) and Ty Jerome (0.87) count as stars by it; that number comes from minutes, scoring and headlines, and it is generous.
+- The per-team guard has not met a real failed download. The stand-in run is the closest thing.
+- A kept team's "current" status is the published one; the page does not yet mark that team's card as kept (the note at the top does).
+- I held the push until tonight's games were final, as I told the user, though the local build suggests a mid-game build is harmless.
+
+**Self-audit.**
+- Wrong first: the first full build put three absences in the ten with two on top. I added the cap of two after seeing it, not before.
+- Wrong first: my first test called `tonightCandidates` with arguments it does not take; the failure was a crash, not a wrong number.
+- Judgment the user did not spell out: "you can work on the other things" is not "yes to all three as you recommended". I have said so in the reply, with how to undo each.
+- Re-derived from the build's output: ranks 6.47 (Harper), 6.16 (Curry and Green), then Brunson's notes line at 6.02; with the cap, "Ty Jerome and Zach Edey both out" (5.34) is the one left to the game card.
+- Case not used while building: the stand-in `ci.js` run was written after the function's own test passed and exercises the file reads and writes the function test does not.
+- Also done tonight, no code: at 10:07 PM and 10:17 PM I ran the odd-line rules over the four live box scores. No player had an odd line as it stood at either time, so no odd-line card was due in NBA Live. The rate on file (about three a night on a full slate) makes a blank four-game night ordinary.
+
 ## 0.125.0 (2026-11-19): a diagnostic; the build now checks its own output on every run
 
 The user, 6:33 PM: "with all the issues you are catching for yourself, can you run a diagnostic that may find these issues and correct them now rather than having them sit dormant."

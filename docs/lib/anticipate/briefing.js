@@ -17,6 +17,14 @@
 import { boost } from "./learn.js";
 import { buzzBoost } from "./buzz.js";
 const KEEP_OUT = new Set(["injury", "rest", "tv", "context"]);
+/** 0.126: an injury line reaches the top ten when one of its players is at least this prominent (tonight.json `stars`). */
+export const STAR_OUT = 0.6;
+/**
+ * 0.126: kinds held to fewer than three of the ten. One shift line: on 11/19 two of them (a shooting slump and a
+ * minutes bump) pushed out "MIL is 1-14, its worst start" and "SAS has the best record since 2004-05". The others stay
+ * in their games' lists and on the Shifts table.
+ */
+export const KIND_CAP = { shift: 1, injury: 2 };   // two absences at most: a full build on 11/19 put three in the ten, two of them on top
 const RARE_KINDS = new Set(["pstreak", "pace", "record"]);
 const strip = (t) => String(t).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[\d.,%]+/g, "#").replace(/\s+/g, " ").trim().toLowerCase();
 export const lineKey = (l) => l.key || `${l.kind}|${l.team}|${l.player || ""}|${strip(l.text).slice(0, 90)}`;
@@ -35,15 +43,19 @@ export function briefing({ all, games = [], stars = {}, nationalGames = new Set(
   for (const [k, d] of Object.entries(seen || {})) if (today && dayDiff(d, today) <= 30) next[k] = d;
   const scored = [];
   for (const l of all || []) {
-    if (KEEP_OUT.has(l.kind) || !gameOf.has(l.team)) continue;
+    // 0.126 (the user was asked on 11/19 whether a star's absence belongs up top; "you can work on the other things"):
+    // an injury line is let in when it is about a star listed out or doubtful. Other injury lines stay in the game cards.
+    const starOut = l.kind === "injury" && /^(out|doubtful)$/i.test(l.status || "") ? Math.max(0, ...(l.who || []).map((n) => stars[n] ?? 0)) : 0;
+    if ((KEEP_OUT.has(l.kind) && starOut < STAR_OUT) || !gameOf.has(l.team)) continue;
     const key = lineKey(l);
     if (model?.down?.has(key)) continue; // the user voted this line down (0.67)
     // 0.125: a notes line carries the day the notes first printed it (firstSeen); that wins over the day this wording
     // was first ranked, so a check or tag added in front of an old sentence is not "new today".
     const first = l.firstSeen && l.firstSeen < (next[key] || today) ? l.firstSeen : next[key] || today;
     next[key] = first;
-    const age = today ? dayDiff(first, today) : 0;
-    const prom = l.player ? (stars[l.player] ?? 0.3) : 0.5;
+    // an absence is as old as the games he has already missed (about two days a game), however new the wording
+    const age = Math.max(today ? dayDiff(first, today) : 0, l.kind === "injury" ? 2 * (l.missed || 0) : 0);
+    const prom = starOut || (l.player ? (stars[l.player] ?? 0.3) : 0.5);
     const fresh = age === 0 ? 0.35 : age >= 7 ? -1 : age >= 3 ? -0.5 : 0;
     const rare = l.rare || RARE_KINDS.has(l.kind) ? 0.3 : 0;
     const game = gameOf.get(l.team);
@@ -58,8 +70,9 @@ export function briefing({ all, games = [], stars = {}, nationalGames = new Set(
     const out = [], g = {}, k = {}, p = new Set();
     for (const l of list) {
       if (out.length >= n) break;
-      if ((g[l.game] || 0) >= perGame || (k[l.kind] || 0) >= perKind || (l.player && p.has(l.player))) continue;
-      out.push(l); g[l.game] = (g[l.game] || 0) + 1; k[l.kind] = (k[l.kind] || 0) + 1; if (l.player) p.add(l.player);
+      const names = l.player ? [l.player] : l.who || [];   // an absence line names one or two players: one line each
+      if ((g[l.game] || 0) >= perGame || (k[l.kind] || 0) >= (KIND_CAP[l.kind] ?? perKind) || names.some((n) => p.has(n))) continue;
+      out.push(l); g[l.game] = (g[l.game] || 0) + 1; k[l.kind] = (k[l.kind] || 0) + 1; for (const n of names) p.add(n);
     }
     return out;
   };

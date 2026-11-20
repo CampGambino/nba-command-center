@@ -508,7 +508,14 @@ const nameKey = (n) => String(n || "").normalize("NFD").replace(/[\u0300-\u036f]
 
 function injuryLines(injuries, teams, today) {
   if (!injuries || (injuries.date && today && injuries.date !== today)) return [];
-  return (injuries.impact || []).filter((x) => teams.has(x.team)).map((x) => ({ team: x.team, kind: "injury", text: x.text, score: x.score }));
+  // 0.126: who the line is about, his status and how many straight games he has already missed, for the briefing
+  // (a star's absence can be a top line; one he has been out for a while is old news). No `player` field on purpose:
+  // the one-line-a-player rules elsewhere do not apply to an absence.
+  const missedOf = Object.fromEntries((injuries.impact || []).filter((x) => x.name).map((x) => [x.name, x.missedInARow ?? 0]));
+  return (injuries.impact || []).filter((x) => teams.has(x.team)).map((x) => {
+    const who = x.names || (x.name ? [x.name] : []);
+    return { team: x.team, kind: "injury", text: x.text, score: x.score, who, status: x.status || (x.names ? "Out" : null), missed: who.length ? Math.min(...who.map((n) => missedOf[n] ?? 0)) : 0 };
+  });
 }
 
 // Tonight's matchups (records/matchup.js via docs/data/matchups.json): the series, and players against tonight's opponent.

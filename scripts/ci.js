@@ -75,14 +75,14 @@ function ownChecks(extra) {
     walk(lib);
     let bridge = null;
     try { bridge = { running: Number(/var VERSION = (\d+);/.exec(fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8"))[1]), published: JSON.parse(fs.readFileSync(path.join(root, "docs", "bridge", "version.json"), "utf8")).version }; } catch { bridge = null; }
-    const kept = extra.kept || steps.some((x) => x.step === "tonight" && !x.ok) ? ["watch"] : [];
+    const kept = steps.some((x) => x.step === "tonight" && !x.ok) ? ["watch"] : [];
     const found = selfCheck({ data: files, buildStart: BUILD_START, keptFiles: kept, copies, bridge, said: [...unread, ...steps.flatMap((x) => (x.notes || []).map((n) => `${x.step}: ${n}`))] });
     for (const c of found) console.error(`self-check (${c.check}): ${c.text}`);
     if (!found.length) console.log("self-check: nothing found");
     return found.slice(0, 20);
   } catch (e) { console.error(`self-check not run: ${e.message}`); return [{ check: "said", text: `the build could not check its own output: ${e.message}` }]; }
 }
-const { notesRead, notesGuard } = await import("../src/site/notes-guard.js");
+const { notesRead, keepLostTeams } = await import("../src/site/notes-guard.js");
 const { selfCheck } = await import("../src/site/selfcheck.js");
 const BUILD_START = Date.now();
 
@@ -115,6 +115,8 @@ async function build() {
   const today = await pickDay();
   const before = fs.existsSync(watchFile) ? JSON.parse(fs.readFileSync(watchFile, "utf8")) : null;
   const beforeText = before ? fs.readFileSync(watchFile, "utf8") : null;
+  const factsFile = path.join(root, "docs", "data", "notes-facts.json"), readJson = (f) => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch { return null; } };
+  const beforeFacts = readJson(factsFile);
   const r = run(["scripts/tonight.js", "--today", today]);
   process.stdout.write(r.stdout || "");
   process.stderr.write(r.stderr || "");
@@ -129,19 +131,19 @@ async function build() {
   }
   const after = JSON.parse(fs.readFileSync(watchFile, "utf8"));
   // 0.124: the rule and its wording live in src/site/notes-guard.js (a conflict is notes read; the note names the teams).
-  const guard = notesGuard(before, after, today);
-  if (guard.keep) {
-    fs.writeFileSync(watchFile, beforeText);
-    console.error(`kept the published data: ${guard.text}`);
-    situations(today);
-    writeHealth(today, { kept: guard.text });
-    return;
+  // 0.126: a team whose notes this build could not read keeps its published entry; the rest of the list is new
+  // (the whole list used to be kept, which on 11/19 hid two teams' new notes for seven hours).
+  const kept = keepLostTeams({ before, after, beforeFacts, afterFacts: readJson(factsFile), today });
+  if (kept.lost.length) {
+    fs.writeFileSync(watchFile, JSON.stringify(kept.watch));
+    if (kept.facts) fs.writeFileSync(factsFile, JSON.stringify(kept.facts));
+    console.log(`kept ${kept.lost.map((t) => t.team).join(", ")} from the published list: ${kept.text}`);
   }
   const pred = path.join(data, `predictions-${today}.json`);
   if (fs.existsSync(pred)) fs.writeFileSync(path.join(hist, `predictions-${today}.json.gz`), zlib.gzipSync(fs.readFileSync(pred), { level: 9 }));
   console.log(`site data for ${today}: ${after.teams.length} teams, notes read for ${notesRead(after)}`);
   situations(today);
-  writeHealth(today);
+  writeHealth(today, kept.lost.length ? { keptTeams: kept.text } : {});
   // A later step failing leaves its last data up, but the run still ends red (it used to end green and go unseen).
   if (steps.some((x) => !x.ok)) { console.error(`steps failed: ${steps.filter((x) => !x.ok).map((x) => x.step).join(", ")}`); process.exit(1); }
 }

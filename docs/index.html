@@ -467,6 +467,7 @@ async function renderHealth(watch) {
   const failed = (h?.steps || []).filter((x) => !x.ok);
   if (failed.length) notes.push(`The ${esc(clock)} build had a problem: <b>${failed.map((x) => esc(STEP[x.step] || x.step)).join("</b> and <b>")}</b> didn't finish (${failed.map((x) => esc(x.error || "failed")).join("; ")}). That part of the site shows the last good build.`);
   if (h?.kept) notes.push(esc(h.kept) + ".");
+  if (h?.keptTeams) notes.push(esc(h.keptTeams) + ".");   // 0.126: one team kept from an earlier build, the rest new
   // 0.125: what the build found when it read back its own output (src/site/selfcheck.js), in full, not behind a hover.
   for (const c of h?.checks || []) notes.push(`Build check: ${esc(c.text)}`);
   if (h?.held) notes.push(`Not switched to the new day yet (${esc(h.held)}). The next build after the last game ends moves on.`);
