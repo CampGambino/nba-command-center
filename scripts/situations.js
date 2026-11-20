@@ -878,4 +878,6 @@ const after = Object.values(store.dates).filter((d) => d.complete).length;
 const flags = Object.values(sit.teams).reduce((a, t) => a + t.flags.length, 0);
 console.log(`situations through ${through}: ${rows.length} games (${after - before} new dates), ${Object.keys(sit.teams).length} teams, ${flags} flags, ${tonight.length} games tonight${warnings.length ? `; ${warnings.length} warnings` : ""}`);
 // 0.132.0: each warning on its own line. A count alone ("1 warnings") hid a game with no box score for a day.
-for (const w of warnings) console.error(w);   // ci.js names the step
+// 0.136.4 (the user, 11/20, with the banner): a game whose box score is kept while ESPN's plays don't add up is ESPN's gap,
+// not a build problem, and nothing the reader can act on: it goes to the log and the diagnostic, not the build check.
+for (const w of warnings) (/box score kept/.test(w) ? console.log : console.error)(w);   // ci.js names the step

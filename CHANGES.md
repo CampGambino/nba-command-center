@@ -2,6 +2,16 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.136.4 (2026-11-20): the NYK@MIN play-by-play note leaves the Watch List banner; `/headlines` says what posted
+
+The user, 12:31 PM: the Front Office Sports story "How ESPN's Dave McMenamin Learned to Follow LeBron's 'Breadcrumbs'" (12:12 PM) had not come through on Discord, and the Watch List's build-check banner showed "game 401910021: play-by-play doesn't add up to the final score; box score kept…".
+
+**The story.** The watcher read it at the 12:15 PM check and Discord accepted the post (`posted: true`). To tell posted from held back without the private review page, `/headlines` now carries `posted` for each item (not the reason, which can name muted writers or words). Of the last 134 items, 47 were held back; the 12 newest are all posted except three ESPN fantasy pieces.
+
+**The banner.** ESPN's play-by-play for NYK@MIN still ends at 97-102 (the sum of its scoring plays and its last play agree) while the final is 99-102: one Minnesota basket is missing from the plays, not misread here. The box score is whole; only that game's clutch and 4th-quarter lines wait. That is ESPN's gap and nothing a reader can act on, so this kind of warning now goes to the log (stdout), not the build check; the diagnostic still lists it ("1 game(s) have box scores but no clutch or 4th-quarter lines yet"). Other warnings stay in the build check.
+
+**Self-audit.** In 0.132.0 I put every warning in the build check and wrote that this one "is worth seeing"; on the page it was a warning the reader could do nothing with. The test for a build-check note is whether the reader can act on it or should distrust the page.
+
 ## 0.136.3 (2026-11-20): #articles: no alert for a call for readers' questions
 
 The user, 12:21 PM, with the 10:23 AM post "Submit a question for Christian Clark's November Mavericks mailbag": "I don't need an alert when asked to submit a question".
