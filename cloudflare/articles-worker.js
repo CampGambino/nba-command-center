@@ -51,6 +51,12 @@ export const teamFeedGroup = (minute) => (minute % 5 === 0 ? [] : TEAM_FEEDS.fil
 // The Athletic's NBA news live blog (11/12): a new one each week (11/9 6 AM – 11/16 3 PM ET), linked near the top of
 // their NBA page, so it's found there each time. Its posts carry a writer, a time, a title and text.
 export const LIVE_FEED = { src: "athletic-live", kind: "liveblog", id: "athletic:live", url: "https://www.nytimes.com/athletic/nba/" };
+// 0.131 (the user, 11/20: "did the article discord checker stop providing updates from the athletic blog?" with this
+// address): the last live blog post read was 11/17, 2:45 PM, while the RSS feeds kept going. The NBA page's link is
+// still tried first; then the last blog that had a fresh post; then this season blog. Whichever has the newest post
+// is read. If none has had a post for LIVE_STALE_H hours, the review page says so in red and #articles gets one note.
+export const LIVE_SEEDS = ["https://www.nytimes.com/athletic/live-blogs/nba-news-schedule-scores-games-live-updates-2026/CzqWv0txVItd/"];
+export const LIVE_STALE_H = 24;
 const SOURCE = { espn: "ESPN", athletic: "The Athletic", nyt: "NYT / The Athletic", "athletic-live": "The Athletic live blog" };
 const COLOR = { espn: 0xd00000, athletic: 0x1f1f1f, nyt: 0x1f1f1f, "athletic-live": 0x1f1f1f };
 const FRESH_MIN = 20;        // first run: post only what was published in the last 20 minutes
@@ -188,11 +194,48 @@ async function readHead(res, maxBytes) {
   return text.slice(0, maxBytes);
 }
 
+/**
+ * Every NBA live blog the NBA page links to, news blogs first (0.131: also a link without the trailing slash,
+ * which the first version needed and would have missed without a word).
+ */
+export function findLiveBlogs(html) {
+  const all = [...String(html).matchAll(/\/athletic\/live-blogs\/(nba-[a-z0-9-]+)\/([A-Za-z0-9]+)(?=[/"'?#\s<>]|$)/g)];
+  const out = [];
+  for (const m of [...all.filter((x) => /nba-news/.test(x[1])), ...all]) { const u = `https://www.nytimes.com/athletic/live-blogs/${m[1]}/${m[2]}/`; if (!out.includes(u)) out.push(u); }
+  return out;
+}
 /** The current NBA news live blog's address, from the top of The Athletic's NBA page. */
-export function findLiveBlog(html) {
-  const all = [...String(html).matchAll(/\/athletic\/live-blogs\/(nba-[a-z0-9-]+)\/([A-Za-z0-9]+)\//g)];
-  const m = all.find((x) => /nba-news/.test(x[1])) || all[0];
-  return m ? `https://www.nytimes.com/athletic/live-blogs/${m[1]}/${m[2]}/` : null;
+export function findLiveBlog(html) { return findLiveBlogs(html)[0] || null; }
+const msOf = (x) => (typeof x === "number" ? x : Date.parse(x) || 0);
+const shortBlog = (u) => String(u || "").replace(/^https:\/\/www\.nytimes\.com\/athletic\/live-blogs\//, "").replace(/\/$/, "");
+/**
+ * 0.131: read the live blog with the newest post among the NBA page's links, the last good blog and LIVE_SEEDS.
+ * Returns its posts, with .meta = { blog, newest, tried: [{ url, posts, newest, error }], hub }.
+ */
+async function readLiveBlogs(feed, st = {}, now = Date.now()) {
+  let hubNote = null, found = [];
+  try {
+    const hub = await tfetch(feed.url, { headers: UA }, LIMIT_MS.page);
+    if (!hub.ok) hubNote = `NBA page HTTP ${hub.status}`;
+    else { found = findLiveBlogs(await readHead(hub, 400000)); if (!found.length) hubNote = "the NBA page links no NBA live blog"; }
+  } catch (e) { hubNote = `NBA page: ${String(e.message || e).slice(0, 80)}`; }
+  const cands = [...found.slice(0, 2), st.live?.url, ...LIVE_SEEDS].filter((u, i, a) => u && a.indexOf(u) === i).slice(0, 4);
+  const tried = []; let best = null;
+  for (const u of cands) {
+    let items = [], error = null;
+    try {
+      const res = await tfetch(u, { headers: UA }, LIMIT_MS.page);
+      if (!res.ok) error = `HTTP ${res.status}`; else { items = parseLiveBlog(await res.text(), u); if (!items.length) error = "no posts read"; }
+    } catch (e) { error = String(e.message || e).slice(0, 80); }
+    const newest = items.reduce((m, it) => Math.max(m, msOf(it.published)), 0) || null;
+    tried.push({ url: u, posts: items.length, newest, error });
+    if (items.length && (!best || (newest || 0) > (best.newest || 0))) best = { url: u, items, newest };
+    if (best && best.newest && now - best.newest < LIVE_STALE_H * 3600e3) break; // fresh enough: no need to read more pages
+  }
+  const meta = { blog: best?.url || null, newest: best?.newest || null, tried, hub: hubNote };
+  if (!best) { const e = new Error(`no live blog read (${[hubNote, ...tried.map((t) => `${shortBlog(t.url)}: ${t.error}`)].filter(Boolean).join("; ")})`.slice(0, 300)); e.meta = meta; throw e; }
+  const items = best.items; items.meta = meta;
+  return items;
 }
 
 /** A live blog page -> items (one per post), newest first. Posts are in the page's __NEXT_DATA__ JSON. */
@@ -219,16 +262,8 @@ export function parseLiveBlog(html, blogUrl) {
   });
 }
 
-async function readFeed(feed) {
-  if (feed.kind === "liveblog") {
-    const hub = await tfetch(feed.url, { headers: UA }, LIMIT_MS.page);
-    if (!hub.ok) throw new Error(`NBA page HTTP ${hub.status}`);
-    const blog = findLiveBlog(await readHead(hub, 120000));
-    if (!blog) return []; // no live blog this week
-    const res = await tfetch(blog, { headers: UA }, LIMIT_MS.page);
-    if (!res.ok) throw new Error(`live blog HTTP ${res.status}`);
-    return parseLiveBlog(await res.text(), blog);
-  }
+async function readFeed(feed, st, now) {
+  if (feed.kind === "liveblog") return readLiveBlogs(feed, st, now);
   const res = await tfetch(feed.url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; NBA-Command-Center articles watcher)", Accept: feed.kind === "espn" ? "application/json" : "application/rss+xml, application/xml, text/xml" } }, LIMIT_MS.page);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   if (feed.kind === "espn") return parseEspn(await res.json());
@@ -298,9 +333,18 @@ export async function check(env, now = Date.now(), { feeds = FEEDS } = {}) {
   for (const feed of feeds) {
     const id = feed.id || feed.src;
     try {
-      const items = await readFeed(feed);
-      if (st.errors[id]) { delete st.errors[id]; changed = true; }
-      st.ok = st.ok || {}; st.ok[id] = { at: now, items: items.length };
+      const items = await readFeed(feed, st, now);
+      const meta = items.meta || null;
+      // 0.131: a live blog that reads fine but has had no post for a day is not "OK".
+      // The newest post known never goes backwards: one failed read of the good blog does not hand the watcher back
+      // to an old blog the NBA page still links, and does not count as quiet.
+      const known = meta ? Math.max(meta.newest || 0, st.live?.newest || 0) : 0;
+      const staleMsg = meta && known && now - known > LIVE_STALE_H * 3600e3
+        ? `no new post since ${etTime(known)} ET ${etDate(known)} (read: ${meta.tried.map((t) => `${shortBlog(t.url)}${t.error ? ` ${t.error}` : ""}`).join(", ")}${meta.hub ? `; ${meta.hub}` : ""})` : null;
+      if (staleMsg) { if (st.errors[id]?.msg !== staleMsg) { st.errors[id] = { msg: staleMsg, at: now }; changed = true; } }
+      else if (st.errors[id]) { delete st.errors[id]; changed = true; }
+      st.ok = st.ok || {}; st.ok[id] = { at: now, items: items.length, ...(meta ? { blog: meta.blog, newest: meta.newest, hub: meta.hub } : {}) };
+      if (meta && meta.blog && (meta.newest || 0) >= (st.live?.newest || 0)) { if (st.live?.url !== meta.blog) changed = true; st.live = { url: meta.blog, newest: meta.newest }; }
       // A feed read for the first time (added after the watcher started): what's in it now is already out,
       // so it's marked seen quietly instead of logged as hundreds of skips.
       if (!first && feed.id && !(st.feedStarted ||= {})[id]) {
@@ -312,7 +356,17 @@ export async function check(env, now = Date.now(), { feeds = FEEDS } = {}) {
     } catch (e) {
       const msg = String(e.message || e).slice(0, 160);
       if (st.errors[id]?.msg !== msg) changed = true;
-      st.errors[id] = { msg, at: now };
+      st.errors[id] = { msg, at: now, since: st.errors[id]?.since || now };
+    }
+  }
+  // 0.131: the live blog quiet for a day (or unreadable while the last post read is a day old): one note to
+  // #articles, and one when posts come back. Nothing in between, so a long outage is two messages.
+  if (feeds.some((f) => f.kind === "liveblog")) {
+    const lastNew = st.live?.newest || 0, er = st.errors[LIVE_FEED.id], quiet = !!er && (lastNew ? now - lastNew : now - (er.since || now)) > LIVE_STALE_H * 3600e3;
+    if (quiet && !st.liveWarned) {
+      if (await discord(env, { content: `⚠️ The Athletic live blog: ${st.errors[LIVE_FEED.id].msg}. Live blog posts are paused here until a newer blog turns up; the RSS feeds are unaffected.`.slice(0, 1900) })) { st.liveWarned = now; changed = true; }
+    } else if (!quiet && st.liveWarned && !st.errors[LIVE_FEED.id]) {
+      if (await discord(env, { content: `✅ The Athletic live blog is back: reading ${shortBlog(st.live?.url)}, newest post ${etTime(lastNew)} ET.` })) { delete st.liveWarned; changed = true; }
     }
   }
   fresh.sort((a, b) => (a.published || now) - (b.published || now));
@@ -353,7 +407,8 @@ function page(st, log, rules, key, labels) {
   const a = (doIt, v, label, extra = "") => `<a class="b" href="/act?k=${key}&do=${doIt}&${extra}v=${encodeURIComponent(v)}">${label}</a>`;
   const ago = (t) => (t ? mins(Date.now() - t) + " ago" : "never");
   const teamOk = TEAM_FEEDS.filter((f) => st.ok?.[f.id] && !st.errors?.[f.id]).length, teamBad = TEAM_FEEDS.filter((f) => st.errors?.[f.id]).map((f) => `${f.team}: ${st.errors[f.id].msg}`);
-  const live = st.errors?.[LIVE_FEED.id] ? `<span class="bad">error: ${esc(st.errors[LIVE_FEED.id].msg)}</span>` : st.ok?.[LIVE_FEED.id] ? `OK, ${st.ok[LIVE_FEED.id].items} posts when last read` : "not read yet";
+  const lo = st.ok?.[LIVE_FEED.id], where = lo?.blog ? ` · reading ${esc(shortBlog(lo.blog))}${lo.newest ? `, newest post ${etTime(lo.newest)} ET ${etDate(lo.newest)}` : ""}${lo.hub ? ` · ${esc(lo.hub)}` : ""}` : "";
+  const live = (st.errors?.[LIVE_FEED.id] ? `<span class="bad">${esc(st.errors[LIVE_FEED.id].msg)}</span>` : lo ? `OK, ${lo.items} posts when last read` : "not read yet") + where;
   const src = `<li><b>The Athletic live blog</b>: ${live}</li><li><b>The Athletic team feeds</b>: ${teamOk} of 30 OK${teamBad.length ? ` · <span class="bad">${esc(teamBad.join("; "))}</span>` : ""}</li>` + FEEDS.map((f) => `<li><b>${SOURCE[f.src]}</b>: ${st.errors?.[f.src] ? `<span class="bad">error: ${esc(st.errors[f.src].msg)}</span> (${ago(st.errors[f.src].at)})` : st.ok?.[f.src] ? `OK, ${st.ok[f.src].items} items when last saved` : "not read yet"}</li>`).join("");
   const list = (name, arr, undo) => `<p><b>${name}:</b> ${arr.length ? arr.map((x) => `${esc(x)} ${a(undo, x, "✕")}`).join(" · ") : "<span class=m>none</span>"}</p>`;
   const lab = Object.fromEntries((labels || []).map((l) => [l.key, l.v]));

@@ -17,5 +17,10 @@ export async function handleHeadlines(req, env, url, now = Date.now()) {
   const log = (env.STATE && (await env.STATE.get("log", "json"))) || [];
   const recent = log.filter((x) => x && x.title && now - (x.published || x.at || 0) <= HOURS * 3600e3)
     .slice(0, MAX).map((x) => ({ at: x.published || x.at, src: String(x.src || "").slice(0, 20), title: String(x.title).slice(0, 200) }));
-  return Response.json({ hours: HOURS, headlines: recent }, { headers });
+  // 0.131: the live blog's state, public like the rest (a public blog address and times; no rules, no review link),
+  // so a reader without the review page can tell whether it is being read.
+  const st = (env.STATE && (await env.STATE.get("state", "json"))) || {};
+  const lo = st.ok?.["athletic:live"] || null, err = st.errors?.["athletic:live"] || null;
+  const live = { url: st.live?.url || lo?.blog || null, newest: st.live?.newest || lo?.newest || null, readAt: lo?.at || null, problem: err ? err.msg : null };
+  return Response.json({ hours: HOURS, headlines: recent, live }, { headers });
 }

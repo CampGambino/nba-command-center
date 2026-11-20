@@ -2,6 +2,36 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.131.0 (2026-11-20): #articles: The Athletic's live blog had gone quiet since Tuesday; now it says so, and reads the season blog
+
+The user, 8:41 AM: "did the article discord checker stop providing updates from the athletic blog?" with the address of The Athletic's NBA news live blog (`nba-news-schedule-scores-games-live-updates-2026/CzqWv0txVItd`).
+
+**What happened.** Yes. The Worker's public `/headlines` (read through the built-in browser on the user's PC; the cloud workspace cannot reach the Worker, and nytimes.com is blocked to my web tools) has The Athletic's RSS stories up to 7:05 AM today and ESPN's likewise, but the last live blog post at 2:45 PM Tuesday 11/17. Nothing reached #articles from the blog for two and a half days, and nothing said so.
+
+**Why it was silent.** The watcher finds the blog through a link near the top of The Athletic's NBA page, which was a weekly blog when this was built (11/12). Every way that can fail left no trace: a page with no matching link returned an empty list as "OK"; an old blog still linked returned its old posts as "OK, N posts"; a link written without the trailing slash would not have matched at all. Which of these it was cannot be seen from here (the review page with its error line is behind the user's key). The new blog's address is a different pattern from the old weekly ones and looks like one blog for the season.
+
+**What changed** (`cloudflare/articles-worker.js`, `cloudflare/headlines.js`; deployed by the "deploy articles watcher" workflow):
+- **Three places to look:** the NBA page's links (now up to 400 KB of it, slash or no slash, news blogs first), then the last blog that had a fresh post, then the season blog the user sent (`LIVE_SEEDS`). The one with the newest post is read; once one has a post from the last day, the rest are not fetched.
+- **Quiet is not OK:** if the newest post found is more than 24 hours old (`LIVE_STALE_H`), the review page shows it in red with what was read, and #articles gets one note ("⚠️ The Athletic live blog: no new post since …"), then one when posts come back. Nothing in between.
+- **One bad read does not count:** the newest post known never goes backwards, so a failed read of the good blog does not switch back to an old one or set off the note.
+- **`/headlines`** now carries `live`: which blog is read, its newest post, when it was read and any problem. Public, like the headlines (a public address and times); it lets this be checked without the review key.
+- **Review page:** the live blog line names the blog it reads and its newest post.
+
+**Tested.** 83 watcher checks pass (one new: the NBA page still linking Tuesday's blog while the season blog has fresh posts, which are read and posted; the season blog then failing five minutes later, which is not quiet; a day without posts, one note, not repeated; posts coming back, one all-clear; `/headlines` showing the blog). 1,042 site checks pass.
+
+**Not proven.**
+- That the season address is the one The Athletic keeps using. If a new blog appears only on the NBA page, the page link is still read first; if it appears nowhere the watcher can see, the note says so within a day.
+- That the season blog's page has the same data layout as the weekly ones (`__NEXT_DATA__`, `LiveBlogPostsConnection`). If not, "no posts read" will be the reason in the note, and the reading needs changing.
+- Cloudflare may be refused by nytimes.com for the blog page. The RSS feeds from the same site still work, so this is not expected.
+- What the first read after deploy posts: posts from the last six hours not yet seen will go to #articles (up to ten), older ones are logged as skipped.
+
+**Self-audit.**
+- Wrong first: when the live blog was added (0.29.1) its "Still unproven" listed CPU time and nothing about the week it would roll over. The link-finding was tested on one page shape. A source that returns nothing was reported as fine, which is the same mistake as the health note's word list (0.125): a failure that does not look like an error. The diagnostic built last night cannot see the Worker at all; this change gives it a public place to look.
+- Wrong first: my first test run showed a fresh blog failing once making the watcher fall back to Tuesday's blog and warn at once. Fixed before deploy (the newest post known never goes backwards).
+- Wrong first: I typed the expected time in the test ("9:35 AM") without working it out; it was 1:45 PM, and after the fix the check uses a time the code computes from the test's own clock.
+- Re-derived: the 11/17 2:45 PM last post, and the RSS sources up to 7:05 AM 11/20, are from the Worker's `/headlines` read at 8:45 AM.
+- Not checked by me: the blog page itself (blocked to my tools). The deploy's first reads, through `/headlines`, are the check.
+
 ## 0.130.0 (2026-11-20): the hold numbers are out of NBA Live's data and the trends file
 
 The user, 8:30 AM, to "a go, or not, for the 'as it stands' card line ('from here it has held 57% of the time')": "I don't need as it stands."

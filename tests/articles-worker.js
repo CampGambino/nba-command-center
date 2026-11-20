@@ -457,6 +457,53 @@ export async function articlesChecks(ok) {
       ok(sent.length === 1, "articles: the article a live blog post links to isn't posted again; the same post isn't either", String(sent.length));
     } finally { globalThis.fetch = realFetch; }
   }
+  // 0.131: the live blog went quiet on 11/17 while the RSS feeds kept going (the user, 11/20)
+  {
+    const { findLiveBlogs, LIVE_SEEDS, LIVE_STALE_H } = await import("../cloudflare/articles-worker.js");
+    const OLD = "https://www.nytimes.com/athletic/live-blogs/nba-news-scores-games-schedule-stats-live-updates/3O8C8RgzvHTs/", SEED = LIVE_SEEDS[0];
+    ok(findLiveBlogs('<a href="/athletic/live-blogs/nba-news-schedule-scores-games-live-updates-2026/CzqWv0txVItd">x</a> "/athletic/live-blogs/nba-cup-2026-live/AbC123/"').join() === `${SEED},https://www.nytimes.com/athletic/live-blogs/nba-cup-2026-live/AbC123/` && findLiveBlogs("nothing").length === 0 && LIVE_STALE_H === 24,
+      "articles (0.131): a live blog link without the trailing slash is found; news blogs come first");
+    const T = Date.parse("2026-11-20T13:45:00Z"), H = 3600e3;
+    const lb = (posts) => `<html><script id="__NEXT_DATA__" type="application/json">${JSON.stringify({ props: { pageProps: { blog: { posts: { __typename: "LiveBlogPostsConnection", items: posts.map(([id, at, title]) => ({ __typename: "LiveBlogPost", id, permalink: `https://x/${id}/`, title, body: `<p>${title}.</p>`, publishedAt: at, createdAt: at, user: { name: "Writer A" }, attachments: [] })) } } } } })}</script></html>`;
+    let hub = `<a href="${OLD.replace("https://www.nytimes.com", "")}">live</a>`, oldPage = lb([["O1", T - 67 * H, "Old post from Tuesday"]]), seedPage = lb([["N1", T - 2 * H, "Seed post two hours ago"], ["N2", T - 10 * 60e3, "Seed post ten minutes ago"]]), seedOk = true;
+    const kv = new Map([["state", JSON.stringify({ started: 1, seen: { "lb:O1": T - 67 * H }, errors: {}, base: null, lastWrite: 0, feedStarted: { "athletic:live": 1 } })]]), sent = [];
+    const env = { DISCORD_WEBHOOK: "https://discord.com/api/webhooks/6/test-l2", STATE: { get: async (k, t) => (kv.has(k) ? (t === "json" ? JSON.parse(kv.get(k)) : kv.get(k)) : null), put: async (k, v) => kv.set(k, v) } };
+    const realFetch = globalThis.fetch, asked = [];
+    globalThis.fetch = async (u, o = {}) => {
+      u = String(u); asked.push(u);
+      if (u === LIVE_FEED.url) return new Response(hub, { status: 200 });
+      if (u === OLD) return new Response(oldPage, { status: 200 });
+      if (u === SEED) return seedOk ? new Response(seedPage, { status: 200 }) : new Response("", { status: 403 });
+      if (u.startsWith("https://discord.com/")) { sent.push(JSON.parse(o.body)); return new Response("{}", { status: 200 }); }
+      return new Response("", { status: 404 });
+    };
+    try {
+      const { check: C } = await import("../cloudflare/articles-worker.js");
+      // 1. The NBA page still links Tuesday's blog; the season blog has fresh posts: those are read and posted
+      await C(env, T, { feeds: [LIVE_FEED] });
+      let st = JSON.parse(kv.get("state"));
+      const r1 = { posts: sent.filter((p) => p.embeds).map((p) => p.embeds[0].title), notes: sent.filter((p) => p.content).length, blog: st.ok["athletic:live"].blog, err: st.errors["athletic:live"], live: st.live };
+      // 2. Then the season blog fails too and stays quiet: after a day, one note; not again on the next run
+      seedOk = false; sent.length = 0;
+      await C(env, T + 5 * 60e3, { feeds: [LIVE_FEED] });
+      const r2 = { err: JSON.parse(kv.get("state")).errors["athletic:live"]?.msg, notes: sent.length, live: JSON.parse(kv.get("state")).live };   // five minutes after a fresh post: not quiet, still the season blog
+      await C(env, T + 25 * H, { feeds: [LIVE_FEED] }); await C(env, T + 25 * H + 5 * 60e3, { feeds: [LIVE_FEED] });
+      const r3 = { notes: sent.filter((p) => p.content).map((p) => p.content) };
+      // 3. It comes back: one all-clear
+      seedOk = true; sent.length = 0; seedPage = lb([["N3", T + 26 * H - 60e3, "Back again"]]);
+      await C(env, T + 26 * H, { feeds: [LIVE_FEED] });
+      st = JSON.parse(kv.get("state"));
+      const r4 = { notes: sent.filter((p) => p.content).map((p) => p.content), posts: sent.filter((p) => p.embeds).length, warned: st.liveWarned || null, err: st.errors["athletic:live"] || null };
+      const hl = await (await handleHeadlines(new Request("https://w.example/headlines"), env, new URL("https://w.example/headlines"), T + 26 * H)).json();
+      ok(r1.posts.length === 2 && r1.posts[1] === "Seed post ten minutes ago" && r1.notes === 0 && r1.blog === SEED && !r1.err && r1.live.url === SEED && r1.live.newest === T - 10 * 60e3
+        && !r2.err && r2.notes === 0 && r2.live.url === SEED
+        && r3.notes.length === 1 && /^⚠️ The Athletic live blog: no new post since 8:35 AM ET Fri, Nov 20 \(read: nba-news-scores-games-schedule-stats-live-updates\/3O8C8RgzvHTs, nba-news-schedule-scores-games-live-updates-2026\/CzqWv0txVItd HTTP 403\)/.test(r3.notes[0])
+        && r4.notes.length === 1 && /^✅ The Athletic live blog is back: reading nba-news-schedule-scores-games-live-updates-2026\/CzqWv0txVItd/.test(r4.notes[0]) && r4.posts === 1 && !r4.warned && !r4.err
+        && hl.live.url === SEED && hl.live.newest === T + 26 * H - 60e3 && hl.live.problem === null && Array.isArray(hl.headlines),
+        "articles (0.131): with the NBA page still linking an old blog, the season blog's fresh posts are read and posted; when nothing has a post for a day, #articles gets one note (not one a run) and one when posts come back; /headlines says which blog is read and how new its last post is",
+        JSON.stringify({ r1, r2, r3, r4, live: hl.live }));
+    } finally { globalThis.fetch = realFetch; }
+  }
   // ---------- 0.67: briefing votes ----------
   {
     const kv = new Map();
