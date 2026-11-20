@@ -3250,8 +3250,8 @@ await articlesChecks(ok);
   ok(H.marks.join() === "300,180,120,60" && H.from === "2002-10-29" && H.through === "2026-04-12" && H.counts.games === 28853 && H.counts.overtime === 1704 && H.skipped.join() === "zeromin,nothing"
     && A[300].join() === "3528,2462,2273,1288,263,101" && H.marks.every((m, i) => sums[i].join() === A[m].join()) && rising
     && Object.keys(H.t).filter((k) => k !== "ALL").every((k) => late.includes(k) && M.LATE_NAMES[k]) && late.every((id) => M.LATE_NAMES[id]) && Object.values(H.t).every((e) => H.marks.every((m) => e[m][1] <= e[m][0] && e[m][3] <= e[m][2] && e[m][2] <= e[m][0]))
-    && /function renderOddHold\(\)/.test(tp) && /id="oddholdtab"/.test(tp) && /hold: \{ from: hold\.from/.test(sj) && fs.existsSync(path.join(root, "tools", "odd-games", "late", "eval-late.mjs")),
-    "odd lines (0.127): the hold table (play-by-play of 28,853 games since 2002-03): of 3,528 lines standing with five minutes left 2,462 held (70%), more with less time left; every row is a rule one play can undo, the rows add up to the total, and the page and NBA Live's data file carry it",
+    && !/oddhold|renderOddHold/.test(tp) && /hold: \{ from: hold\.from/.test(sj) && fs.existsSync(path.join(root, "tools", "odd-games", "late", "eval-late.mjs")),
+    "odd lines (0.127): the hold table (play-by-play of 28,853 games since 2002-03): of 3,528 lines standing with five minutes left 2,462 held (70%), more with less time left; every row is a rule one play can undo, the rows add up to the total, and NBA Live's data file carries it (0.129: the table is off the page; the user: \"I don't need to see this table\")",
     JSON.stringify([A, sums[0], rising]));
 }
 

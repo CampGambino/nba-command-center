@@ -2,6 +2,18 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.129.0 (2026-11-20): the hold table is off the page
+
+The user, 12:28 AM, with a screenshot of "When a line stands late, does it hold?" on the Streaks & outliers page: "I don't need to see this table."
+
+**What changed.** The section is removed from `docs/trends.html` (the block, its code and its one style). Nothing else: the study, its tools and `src/data/odd-lines-hold.json` stay, and the numbers stay in `docs/data/oddlive.json` for the NBA Live card if the user gives a go. `docs/data/trends.json` still carries a copy under `odd.hold` that no page reads now.
+
+**Tested.** 1,042 checks pass (the 0.127 check now requires the section to be absent). The page loads with no errors and the odd-lines sections above it are unchanged.
+
+**Self-audit.**
+- Wrong first: the user told me on 11/19 that a table is a lot to comb through and asked for the significant part somewhere useful. I answered a forecasting question with a 22-row table on a page. The useful form of this result is one line on the card at the moment it matters, which is still waiting for a go; I should have offered that and left the page alone.
+- Not removed: the unused copy in `trends.json`. Taking it out means a change to the build script for about three kilobytes; it goes the next time that script is touched.
+
 ## 0.128.0 (2026-11-20): the next day's slate is built after midnight, not first at 8 AM
 
 The user, 12:06 AM, with the Watch List still showing Thursday's four finals: "it's past midnight and the games from the day before had been [final] for a while. why is the command center not updated for the next slate?"
