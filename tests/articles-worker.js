@@ -626,7 +626,7 @@ export async function articlesChecks(ok) {
     const r = await handleHeadlines(new Request("https://w.example/headlines"), env, new URL("https://w.example/headlines"), now);
     const j = await r.json();
     const other = await handleHeadlines(new Request("https://w.example/votes"), env, new URL("https://w.example/votes"), now);
-    ok(j.headlines.length === 1 && j.headlines[0].title === "Jared McCain is thriving in OKC" && !("reason" in j.headlines[0]) && !("url" in j.headlines[0]) && other === null,
+    ok(j.headlines.length === 1 && j.headlines[0].title === "Jared McCain is thriving in OKC" && !("reason" in j.headlines[0]) && !("url" in j.headlines[0]) && j.headlines[0].posted === false && other === null,
       "headlines (0.70): the last 72 hours' titles only (no review-page reasons or links); other paths pass through", JSON.stringify(j));
   }
   {

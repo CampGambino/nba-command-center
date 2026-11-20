@@ -16,7 +16,7 @@ export async function handleHeadlines(req, env, url, now = Date.now()) {
   if (req.method !== "GET") return Response.json({ error: "not found" }, { status: 404, headers });
   const log = (env.STATE && (await env.STATE.get("log", "json"))) || [];
   const recent = log.filter((x) => x && x.title && now - (x.published || x.at || 0) <= HOURS * 3600e3)
-    .slice(0, MAX).map((x) => ({ at: x.published || x.at, src: String(x.src || "").slice(0, 20), title: String(x.title).slice(0, 200) }));
+    .slice(0, MAX).map((x) => ({ at: x.published || x.at, src: String(x.src || "").slice(0, 20), title: String(x.title).slice(0, 200), posted: !!x.posted }));   // 0.136.4: posted or held back (not why: the reasons can name muted writers or words)
   // 0.131: the live blog's state, public like the rest (a public blog address and times; no rules, no review link),
   // so a reader without the review page can tell whether it is being read.
   const st = (env.STATE && (await env.STATE.get("state", "json"))) || {};
