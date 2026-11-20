@@ -169,12 +169,14 @@ function score() {
   if (!fs.existsSync(gz)) { console.log(`no predictions kept for ${date}; nothing to score`); process.exit(0); }
   const pred = path.join(data, `predictions-${date}.json`);
   fs.writeFileSync(pred, zlib.gunzipSync(fs.readFileSync(gz)));
-  const cal = path.join(hist, "calibration.jsonl");
+  const cal = path.join(hist, "calibration.jsonl"), callsH = path.join(hist, "calls.jsonl");
   if (fs.existsSync(cal)) fs.copyFileSync(cal, path.join(data, "calibration.jsonl"));
+  if (fs.existsSync(callsH)) fs.copyFileSync(callsH, path.join(data, "calls.jsonl"));   // 0.140: the scored calls the recalibration fits
   const r = run(["scripts/score.js", pred]);
   process.stderr.write(r.stderr || "");
   if (r.status !== 0) { console.error(`scoring failed (exit ${r.status})`); process.exit(1); }
   process.stdout.write(r.stdout);
   fs.writeFileSync(path.join(hist, `score-${date}.txt`), r.stdout);
   if (fs.existsSync(path.join(data, "calibration.jsonl"))) fs.copyFileSync(path.join(data, "calibration.jsonl"), cal);
+  if (fs.existsSync(path.join(data, "calls.jsonl"))) fs.copyFileSync(path.join(data, "calls.jsonl"), callsH);
 }

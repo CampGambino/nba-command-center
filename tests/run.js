@@ -5524,6 +5524,20 @@ await articlesChecks(ok);
     ok(B1.top.map((l) => l.kind).join() === "streak" && B2.top.some((l) => l.kind === "record" && l.status === "updated"),
       "briefing (0.139): a claim marked used stays out of the briefing; once its numbers move it comes back, as updated", JSON.stringify({ b1: B1.top.map((l) => l.text), b2: B2.top.map((l) => [l.status, l.text]) }));
   }
+  // 0.140.0: milestone chances recalibrated from the scored nights.
+  {
+    const { fitCalibration, calibrate, readCalls, CAL } = await import("../src/anticipate/calibrate.js");
+    // 600 invented calls whose chances run high: a call said p came true at 0.8 × p.
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const calls = Array.from({ length: 600 }, () => { const p = 0.05 + 0.9 * rnd(); return { p, hit: rnd() < 0.8 * p }; });
+    const F = fitCalibration(calls), few = fitCalibration(calls.slice(0, CAL.min - 1));
+    const said = calls.reduce((a, c) => a + c.p, 0), got = calls.filter((c) => c.hit).length, now = calls.reduce((a, c) => a + calibrate(c.p, F), 0);
+    ok(F && F.n === 600 && Math.abs(now - got) < Math.abs(said - got) * 0.25 && calibrate(0.6, F) < 0.6 && few === null && calibrate(0.6, null) === 0.6 && calibrate(0.03, F) === 0.03 && calibrate(null, F) === null,
+      "calibration (0.140): fitted to calls that ran high, the corrected chances add up to about what happened; under 100 calls, under 5% or no fit, a chance is left as it is", JSON.stringify({ F, said: said.toFixed(1), got, now: now.toFixed(1) }));
+    const file = fs.readFileSync(path.join(root, "history", "calls.jsonl"), "utf8"), H = readCalls(file), FH = fitCalibration(H);
+    ok(H.length >= 367 && FH && FH.b > 0.8 && FH.b < 1 && FH.a < 0 && calibrate(0.62, FH) < 0.56 && calibrate(0.62, FH) > 0.48,
+      "calibration (0.140): on the scored nights on file (11/10 on) the fit pulls a 62% call down to about 52%, as the held-out test said", JSON.stringify(FH));
+  }
   // 0.135: outliers against the group tonight's opponent is in. Home teams win every game here, so T01 has the best
   // record and defense and T30 the worst. "Feaster" (T14) scores 30 against T26-T30 and 10 against everyone else.
   {

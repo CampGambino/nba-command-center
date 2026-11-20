@@ -1,3 +1,4 @@
+import { calibrate } from "../anticipate/calibrate.js";
 import { sameName, nameKey } from "../notes/names.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -51,7 +52,7 @@ export function moveTraded(teams, roster, rosterNames = {}) {
   return teams;
 }
 
-export async function buildSite({ entries, games = [], uncounted = [], espn, nba = null, today, root }) {
+export async function buildSite({ entries, games = [], uncounted = [], espn, nba = null, today, root, calibration = null }) {
   // Outside confirmations (Basketball Reference pages the user checked) settle a notes-vs-ESPN difference (0.72.4).
   let verified = null;
   try { verified = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "verified-totals.json"), "utf8")); } catch { /* none: nothing is settled */ }
@@ -119,7 +120,9 @@ export async function buildSite({ entries, games = [], uncounted = [], espn, nba
         passing: i.passing ? { player: i.passing.player ?? (i.passing.rank ? `No. ${i.passing.rank}` : null), rank: i.passing.rank ?? null } : null,
         importance: i.importance, why: i.why,
         publishable, status: i.status, review, tracking: i.tracking,
-        pTonight: i.pTonight ?? null, pNext3: i.pNext3 ?? null, pNext5: i.pNext5 ?? null, eta: i.eta ?? null,
+        // 0.140: the chance tonight as recalibrated from the scored nights (src/anticipate/calibrate.js); the
+        // simulation's own figure is kept beside it. The saved predictions (what is scored) stay the raw ones.
+        pTonight: calibrate(i.pTonight ?? null, calibration), pTonightRaw: i.pTonight ?? null, pNext3: i.pNext3 ?? null, pNext5: i.pNext5 ?? null, eta: i.eta ?? null,
         pPlayTonight: i.pPlayTonight ?? null,
         injury: i.injury ? { status: i.injury.status, returnDate: i.injury.returnDate } : null,
         confidence: i.confidence ?? null, games: i.form?.games ?? null, lineup: i.lineup ?? null,

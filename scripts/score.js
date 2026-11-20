@@ -58,6 +58,14 @@ for (const b of bands.filter((b) => b.n)) console.log(`  ${b.band.padEnd(8)} n=$
 const real = calls.filter((c) => c.p >= 0.05);
 const brierReal = real.length ? real.reduce((a, c) => a + (c.p - (c.hit ? 1 : 0)) ** 2, 0) / real.length : null;
 if (real.length) console.log(`calls given 5%+: ${real.length}, happened ${real.filter((c) => c.hit).length}, expected ${real.reduce((a, c) => a + c.p, 0).toFixed(1)}, Brier ${brierReal.toFixed(3)}`);
+// 0.140: every call given 5%+ (the raw chance and whether it happened), kept for the recalibration
+// (src/anticipate/calibrate.js). Re-scoring a night replaces that night's calls.
+{
+  const file = "data/calls.jsonl";
+  const keep = fs.existsSync(file) ? fs.readFileSync(file, "utf8").split("\n").filter((l) => l.trim() && JSON.parse(l).d !== today) : [];
+  for (const c of calls.filter((c) => c.p >= 0.05)) keep.push(JSON.stringify({ d: today, team: c.team, player: c.player, what: c.what, need: c.need, got: c.got, p: c.p, hit: c.hit }));
+  fs.writeFileSync(file, keep.join("\n") + "\n");
+}
 // One line per night: re-scoring the same night replaces its line.
 if (calls.length) {
   const file = "data/calibration.jsonl";

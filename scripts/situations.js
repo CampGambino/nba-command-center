@@ -243,6 +243,12 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const rec = currentRecords({ guide, teamFiles, today, tonight, scorers, coachList, coachTeams: coachList ? coachTeams : null, current, franchiseStreaks });
     const tonightTeams = new Set((tonight || []).flatMap((g) => [g.home, g.away]));
     addChances(rec.items, teamFiles, { makeSampler, simulate, tonightTeams });
+    // 0.140: a record chase's chance tonight is the same simulation as a milestone's: the same recalibration.
+    try {
+      const { fitCalibration, readCalls, calibrate } = await import("../src/anticipate/calibrate.js");
+      const cf = path.join(root, "history", "calls.jsonl"), fit = fitCalibration(readCalls(fs.existsSync(cf) ? fs.readFileSync(cf, "utf8") : ""));
+      if (fit) for (const it of rec.items) if (it.pTonight != null) { it.pTonightRaw = it.pTonight; it.pTonight = calibrate(it.pTonight, fit); }
+    } catch (e) { console.error(`record chances not recalibrated: ${e.message}`); }
     // NBA Cup career lists (src/records/cup.js): the Cup media guide's leaders plus this season's Cup games.
     let cupOut = null;
     const cupFile = path.join(root, "src", "data", `nba-cup-${season - 1}-${String(season).slice(2)}.json`);

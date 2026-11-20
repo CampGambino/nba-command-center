@@ -2,6 +2,26 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.140.0 (2026-11-20): milestone and record chances recalibrated from the scored nights (audit step 4)
+
+The user, 3:54 PM: "Go" (step 4 of `claude/audit-2026-11-20.md`).
+
+**The problem, measured.** The nightly scoring (scripts/score.js) had checked 367 calls given a 5%+ chance tonight over 10 nights (11/10-11/19): 149 came true against 170.7 expected. By band: 5-25% happened 12% (said 14%), 25-50% happened 30% (37%), 50-75% happened 51% (62%), 75-95% happened 81% (86%). By stat, rebounds were furthest off (19 of 28.4 expected) but on 54 calls.
+
+**The fix (`src/anticipate/calibrate.js`).** One correction on the log-odds, p' = 1/(1+e^-(a + b·logit p)), fitted to every scored call and pulled toward "no change" (ridge 2 on a = 0, b = 1). On file now: a = −0.365, b = 0.907 (367 calls): 30% → 24%, 50% → 41%, 62% → 52%, 80% → 71%, 95% → 91%. Under 5% and with fewer than 100 calls on file, chances are left as simulated.
+
+**Tested on nights it didn't see.** Fit on 11/10-11/15 (196 calls), tested on 11/16-11/19 (171): expected hits 73.8 → 64.0 against 65 that happened; Brier 0.1575 → 0.1562; log-loss 0.4873 → 0.4799. Leaving out each night in turn: 7 of 9 nights better, Brier 0.1666 → 0.1625. A per-stat correction (rebounds, free throws, blocks) gained too little to trust yet (0.1625 → 0.1614) and is not used.
+
+**Changed.**
+- `history/calls.jsonl`: every scored call (raw chance, hit), backfilled from the 10 `score-*.txt` files (378 lines, 367 at 5%+); `scripts/score.js` adds each night's calls (a re-score replaces that night), `scripts/ci.js` carries the file between history/ and data/ as it does calibration.jsonl.
+- `scripts/tonight.js` fits at every build and passes it to `src/site/build.js`: `watch.json` items carry the corrected `pTonight` and the simulation's own `pTonightRaw`. The saved predictions (what is scored) stay raw, so the fit always learns from the model, never from its own output. `docs/data/calibration.json` publishes the fit in use.
+- `scripts/situations.js`: a record chase's chance tonight (the "(66% tonight)" lines; same simulation) gets the same correction, with `pTonightRaw` kept.
+- Everything that reads `pTonight` shows the corrected chance: the Watch List's cards and lines, the briefing, Discord's 3 PM lines, and NBA Live (which reads watch.json). "Within 3 / 5 games" stay as simulated: they have never been scored.
+
+**Tests.** 1,076 checks (two new): on 600 invented calls that run 20% high, the corrected chances add up to about what happened; under 100 calls, under 5% or with no fit nothing changes; on the calls on file a 62% call comes out near 52%.
+
+**Self-audit.** Ten nights is a small base; the ridge keeps the correction mild and the nightly refit lets it move as calls accrue. The record-chase chances share the simulation but have never been scored themselves; applying the milestone fit to them is a judgment, not a measurement, and is the first thing to check once those calls are scored too.
+
 ## 0.139.0 (2026-11-20): post-ready wording and one-tap "used it" (audit step 3)
 
 The user, 3:36 PM: "Go" (step 3 of `claude/audit-2026-11-20.md`).
