@@ -56,6 +56,13 @@ export async function buildSite({ entries, games = [], uncounted = [], espn, nba
   // Outside confirmations (Basketball Reference pages the user checked) settle a notes-vs-ESPN difference (0.72.4).
   let verified = null;
   try { verified = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "verified-totals.json"), "utf8")); } catch { /* none: nothing is settled */ }
+  // 0.141.2: tonight's NBA injury report (the last one read by situations.js, docs/data/injuries.json) when it is
+  // today's: it sets each card's chance to play tonight; ESPN's feed is kept for return dates and as the fallback.
+  let report = null;
+  try {
+    const ij = JSON.parse(fs.readFileSync(path.join(root, "docs", "data", "injuries.json"), "utf8"));
+    if (ij?.date === today && Array.isArray(ij.players)) report = { asOf: ij.report?.asOf || null, rows: ij.players };
+  } catch { /* no report on file: ESPN's feed only */ }
   // 0.80: each active player's career totals through last season, from the NBA Guide's year-by-year lines: the count
   // that breaks a tie between the notes and ESPN (see trackMilestones).
   let guideBase = null;
@@ -78,7 +85,7 @@ export async function buildSite({ entries, games = [], uncounted = [], espn, nba
     }
     let watchItems = [], tonightGame = null;
     if (parsed) {
-      const w = await buildWatch({ team: e.team, notesDate: parsed.meta.gameDate, milestones: parsed.milestones, espn, nba, today, verified, guideBase });
+      const w = await buildWatch({ team: e.team, notesDate: parsed.meta.gameDate, milestones: parsed.milestones, espn, nba, today, verified, guideBase, report });
       reports.push({ ...w, opponent: parsed.meta.opponent, notesStatus: base.notesStatus });
       watchItems = w.items; tonightGame = w.tonightGame; problems.push(...w.problems);
     }
@@ -88,7 +95,7 @@ export async function buildSite({ entries, games = [], uncounted = [], espn, nba
     const found = await discoverMilestones({ team: e.team, espn, skip: watchItems, today });
     problems.push(...found.problems);
     if (found.milestones.length) {
-      const w2 = await buildWatch({ team: e.team, notesDate: today, milestones: found.milestones, espn, nba, today });
+      const w2 = await buildWatch({ team: e.team, notesDate: today, milestones: found.milestones, espn, nba, today, report });
       reports.push({ ...w2, origin: "espn" });
       watchItems = [...watchItems, ...w2.items];
       tonightGame = tonightGame || w2.tonightGame;
@@ -124,7 +131,7 @@ export async function buildSite({ entries, games = [], uncounted = [], espn, nba
         // simulation's own figure is kept beside it. The saved predictions (what is scored) stay the raw ones.
         pTonight: PLAY_ONLY.has(i.stat) ? i.pTonight ?? null : calibrate(i.pTonight ?? null, calibration), pTonightRaw: i.pTonight ?? null, pNext3: i.pNext3 ?? null, pNext5: i.pNext5 ?? null, eta: i.eta ?? null,
         pPlayTonight: i.pPlayTonight ?? null,
-        injury: i.injury ? { status: i.injury.status, returnDate: i.injury.returnDate } : null,
+        injury: i.injury ? { status: i.injury.status, returnDate: i.injury.returnDate, source: i.injury.source ?? null, asOf: i.injury.asOf ?? null, comment: i.injury.source === "nba" ? i.injury.comment ?? null : null } : null,
         confidence: i.confidence ?? null, games: i.form?.games ?? null, lineup: i.lineup ?? null,
         reached: !!i.reached, stale: !!i.stale, note: i.note ?? null,
         ...(i.minor ? { minor: true } : {}),   // 0.64: a pass to a place not worth saying (src/records/notable.js)

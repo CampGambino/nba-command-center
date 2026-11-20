@@ -34,7 +34,16 @@ const seasonEndYear = (iso) => { const [y, m] = iso.split("-").map(Number); retu
 const STARTER_PLAY = 0.95;   // listed in tonight's starting five: very likely to play
 const START_IF_LISTED = { Confirmed: 0.98, Expected: 0.85 };
 
-export async function buildWatch({ team, notesDate, milestones, espn, today, sims = 4000, nba = null, verified = null, guideBase = null }) {
+/** Tonight's NBA injury report grade -> the most his chance to play tonight can be (0.141.2; the record chases use
+ *  the same, src/records/guide.js TONIGHT_CAP). Probable and Available: no cap. */
+export const REPORT_CAP = { Out: 0, Doubtful: 0.25, Questionable: 0.6 };
+
+/** His row on tonight's NBA report for this team, if the report lists him. */
+export function reportRow(report, team, player) {
+  return (report?.rows || []).find((r) => r.team === team && sameName(r.name, player)) || null;
+}
+
+export async function buildWatch({ team, notesDate, milestones, espn, today, sims = 4000, nba = null, verified = null, guideBase = null, report = null }) {
   const tracked = await trackMilestones({ team, notesDate, milestones, espn, nba, today, verified, guideBase });
   const warnings = [...tracked.warnings], problems = [...tracked.problems];
   let tonightGame = null;
@@ -127,19 +136,30 @@ export async function buildWatch({ team, notesDate, milestones, espn, today, sim
     const injury = injuries[t.espnId] || null;
     const listed = lineup ? lineup.find((p) => sameName(p.name, m.player)) : null;
     const lineupFinal = !!lineup?.length && lineup.every((p) => p.lineupStatus === "Confirmed");
-    let pTonight = injury?.status === "Out" ? 0 : injury?.status === "Day-To-Day" ? Math.min(f.pBase, DTD_CAP) : f.pBase;
+    // Tonight: the NBA's report when today's has been read and lists his team's game; he is matched by name. Listed:
+    // its grade caps him. Not listed: available, unless ESPN has him Out (a name the match missed, or a report that
+    // left him off; Out stands). No report for his game: ESPN's feed, as before.
+    const reportHasGame = !!report && tonight && report.rows.some((r) => r.team === team);
+    const nbaRow = reportHasGame ? reportRow(report, team, m.player) : null;
+    let pTonight;
+    if (nbaRow) pTonight = REPORT_CAP[nbaRow.status] != null ? Math.min(f.pBase, REPORT_CAP[nbaRow.status]) : f.pBase;
+    else if (reportHasGame && injury?.status !== "Out") pTonight = f.pBase;
+    else pTonight = injury?.status === "Out" ? 0 : injury?.status === "Day-To-Day" ? Math.min(f.pBase, DTD_CAP) : f.pBase;
     // A listed starter plays, unless ESPN has him Out (then the conflict is shown, Out wins).
-    if (listed && injury?.status !== "Out") pTonight = Math.max(pTonight, STARTER_PLAY);
+    if (listed && injury?.status !== "Out" && nbaRow?.status !== "Out") pTonight = Math.max(pTonight, STARTER_PLAY);
     const pStartTonight = listed ? START_IF_LISTED[listed.lineupStatus] ?? null : lineupFinal ? 0.02 : null;
     // Out with a return date: 0 until then.
     const games = upcoming.map((g, i) => {
       let p = i === 0 ? pTonight : f.pBase;
-      if (injury?.status === "Out" && injury.returnDate && g.date < injury.returnDate) p = 0;
+      if (injury?.status === "Out" && injury.returnDate && g.date < injury.returnDate && !(i === 0 && nbaRow)) p = 0;   // tonight: the NBA's report, when it lists him
       return { date: g.date, pPlay: p, pStart: i === 0 && tonight ? pStartTonight : null };
     });
     const sim = simulate({ need: t.need, stat: m.stat, sample: f.sample, games, sims, seed: hash(`${m.player}|${m.stat}|${t.need}`) });
     if (sim.unknown) { it.note = `no game-by-game data for ${m.stat}`; continue; }
-    it.injury = injury ? { status: injury.status, comment: injury.comment, returnDate: injury.returnDate } : null;
+    // The card shows the NBA's grade when the report lists him (ESPN's return date kept), else ESPN's status, unless
+    // the report has his game and leaves him off (then he is shown as no one's injury, as he will be treated).
+    it.injury = nbaRow ? { status: nbaRow.status, comment: nbaRow.reason || null, returnDate: injury?.returnDate ?? null, source: "nba", asOf: report.asOf }
+      : injury && !(reportHasGame && injury.status !== "Out") ? { status: injury.status, comment: injury.comment, returnDate: injury.returnDate, source: "espn" } : null;
     it.pPlayTonight = tonight ? games[0].pPlay : 0;
     if (listed) it.lineup = { status: listed.lineupStatus, position: listed.position };
     if (listed && injury?.status === "Out") it.note = `listed in tonight's starting five but ESPN has him Out`;

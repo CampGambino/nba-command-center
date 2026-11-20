@@ -157,7 +157,7 @@
   <div id="all"></div></details>
 </main>
 <footer>
-  Chances are model estimates from recent games and ESPN's injury list. They are not yet calibrated: treat them as a guide.
+  Chances are model estimates from recent games, corrected by how past calls came out. Tonight's chance to play follows the NBA injury report (Out 0%, Doubtful at most 25%, Questionable at most 60%), or ESPN's injury list before the day's report is posted; hover an injury tag for which.
   <b>Review</b> means something didn't check out: the sources disagree, the list's scope is unproven, or the notes look stale. Those items are not for publishing as fact.
   Live countdowns read ESPN's box scores in your browser every 30 seconds while a game is on.
 </footer>
@@ -202,8 +202,9 @@ function chips(i) {
   const c = [];
   if (i.liveHit) c.push(`<span class="chip hit">✓ reached tonight</span>`);
   else if (i.liveVal != null) c.push(i.liveState === "in" ? `<span class="chip live">LIVE · ${fmt(i.liveVal)} tonight</span>` : `<span class="chip">final · ${fmt(i.liveVal)} tonight</span>`);
-  if (i.injury?.status === "Out") c.push(`<span class="chip out">Out${i.injury.returnDate ? ` · back ~${esc(nice(i.injury.returnDate))}` : ""}</span>`);
-  else if (i.injury) c.push(`<span class="chip dtd">${esc(i.injury.status)}</span>`);
+  const injSrc = i.injury?.source === "nba" ? `NBA injury report${i.injury.asOf ? `, ${i.injury.asOf}` : ""}${i.injury.comment ? `: ${i.injury.comment}` : ""}` : "ESPN's injury list";
+  if (i.injury?.status === "Out") c.push(`<span class="chip out" title="${esc(injSrc)}">Out${i.injury.returnDate ? ` · back ~${esc(nice(i.injury.returnDate))}` : ""}</span>`);
+  else if (i.injury) c.push(`<span class="chip dtd" title="${esc(injSrc)}">${esc(i.injury.status)}</span>`);
   if (i.origin === "espn") c.push(`<span class="chip review">from ESPN only</span>`);
   else if (!i.publishable) c.push(`<span class="chip review">${i.tracking === "off-roster" ? "not live" : "review"}</span>`);
   else if (i.tracking === "confirmed") c.push(`<span class="chip">ESPN ✓</span>`);

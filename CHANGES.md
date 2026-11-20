@@ -2,6 +2,23 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.141.2 (2026-11-20): the milestone cards take tonight's chance to play from the NBA injury report
+
+The user, 6:44 PM: "Why can't the cards read the injury report instead of espn?" Then: "yes".
+
+**Why they didn't.** No reason beyond build order: the cards are made in the build's first step (scripts/tonight.js), which predates reading the league's report; the report is read in the second (scripts/situations.js) and saved as `docs/data/injuries.json`. ESPN's feed has only Out and Day-To-Day, so Questionable, Doubtful and Probable were all one 60% cap.
+
+**Changed.**
+- `src/site/build.js` reads `docs/data/injuries.json` when it is today's (the report the last build read; it can be one 15-minute slot behind the newest) and passes it to `buildWatch`.
+- `src/anticipate/watch.js`, tonight only, when the report has the team's game: listed, its grade caps him (`REPORT_CAP`: Out 0, Doubtful 25%, Questionable 60%; Probable and Available none), and it overrules ESPN for tonight, an ESPN Out with a later return date included. Left off the report: available, unless ESPN has him Out (a missed name match, or a report that left him off; Out stands). No report for his game (early in the day, or none on file): ESPN's feed, as before. Later games: ESPN's return date, as before (the league's report covers only tonight).
+- The card's tag shows the NBA's grade when the report lists him (`injury.source` "nba", with the report's time and reason on hover), else ESPN's. The page's note under the cards said "ESPN's injury list. They are not yet calibrated" (out of date since 0.140); now it says what is used.
+- The record chases (0.141.1) already used the report the same way; the two now agree.
+- Checked: NBA Live and its bridge (`docs/bridge/cc-bridge.js`) don't read the card's injury tag; nothing there changes.
+
+**Tests.** 1,086 checks (two new, on the CHA notes fixture): the report caps Doubtful at 25% and Questionable at 60%, and its Questionable overrules ESPN's Out for tonight; ESPN's Out stands when the report leaves him off, and a report without the team's game changes nothing.
+
+**Self-audit.** Measured on the next build (below). Matching is by name within the team (`sameName`: an initial matches a full first name), so two players with one surname and initial on one team could be confused; none tonight. The report on file is the previous build's: a downgrade posted after it reaches the cards one build later.
+
 ## 0.141.1 (2026-11-20): a player back from an injury isn't scored as if the coach sat him
 
 The user, 5:35 PM, on Steven Adams' card ("1 game from 800 · career", 18% tonight): "is this because he is on the nba submitted injury report? otherwise it would be closer to 100?" Then: "yes" (to the fix).
