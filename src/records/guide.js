@@ -58,7 +58,7 @@ export function seasonLines(teamFiles) {
         const v = (k) => row[ix[k]] || 0;
         const played = v("min") > 0 || ["pts", "reb", "ast", "stl", "blk", "fga", "fta", "tov", "pf"].some((k) => v(k) > 0);
         const p = (out[id] ??= { id, name: (f.names || {})[id] || id, team: tri, last: "", lines: [], teamGames: {} });
-        (p.teamGames[tri] ??= []).push({ d: g.d, played });
+        (p.teamGames[tri] ??= []).push({ d: g.d, played, out: !played && g.inj?.[id] === "Out" });
         if (!played) continue;
         const stats = Object.fromEntries(BOX.map((k) => [k, v(k)]));
         stats.gp = 1;
@@ -387,7 +387,8 @@ export function addChances(items, teamFiles, { makeSampler, simulate, sims = 300
   for (const p of Object.values(L)) { const k = strictKey(p.name); if (!byName.has(k)) byName.set(k, p); else byName.set(k, null); } // null: two players, same name
   const cache = new Map();
   const playRate = (p) => {
-    const tg = (p.teamGames[p.team] || []).slice(-10);
+    // Games he was listed Out on the injury report don't count against him (0.141.1, as in src/anticipate/watch.js).
+    const tg = (p.teamGames[p.team] || []).filter((g) => !g.out).slice(-10);
     return Math.min(0.97, tg.length >= 3 ? Math.max(0.05, tg.filter((g) => g.played).length / tg.length) : 0.9);
   };
   for (const it of items) {

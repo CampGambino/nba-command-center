@@ -18,8 +18,13 @@ const logit = (p) => Math.log(clamp(p) / (1 - clamp(p)));
 const sig = (z) => 1 / (1 + Math.exp(-z));
 
 /** calls: [{ p, hit }] (raw chances, 5%+). -> { a, b, n } or null (too few calls: no correction). */
+/** Games played and starts: the chance is only whether he plays (or starts), not a stat to reach, so the fit
+ *  (learned on points, rebounds…) is neither fitted on them nor applied to them (0.141.1). */
+export const PLAY_ONLY = new Set(["gp", "gs"]);
+export const playOnlyCall = (c) => / (games|starts)$/.test(String(c?.what || ""));
+
 export function fitCalibration(calls, { min = CAL.min, ridge = CAL.ridge } = {}) {
-  const cs = (calls || []).filter((c) => c && Number.isFinite(c.p) && c.p >= CAL.floor);
+  const cs = (calls || []).filter((c) => c && Number.isFinite(c.p) && c.p >= CAL.floor && !playOnlyCall(c));
   if (cs.length < min) return null;
   let a = 0, b = 1;
   for (let it = 0; it < 100; it++) {

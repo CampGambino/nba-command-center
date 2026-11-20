@@ -97,7 +97,8 @@ function readStatRow(keys, values) {
 
 /**
  * /summary?event=:id -> { final, date, players: [{ id, name, team, started, played, stats }] }
- * `played` is false for DNPs and for rows with no minutes.
+ * `played` is false for DNPs and for rows with no minutes. `dnpReason` is ESPN's reason for a DNP ("COACH'S DECISION",
+ * "RIGHT SOLEUS STRAIN", "SUSPENDED BY LEAGUE"…), null when he played or ESPN gives none.
  */
 export function readBox(json) {
   const header = json?.header?.competitions?.[0];
@@ -111,7 +112,8 @@ export function readBox(json) {
     for (const a of block.athletes || []) {
       const stats = readStatRow(keys, a.stats);
       const played = !a.didNotPlay && Array.isArray(a.stats) && a.stats.length > 0 && (stats.min ?? 0) > 0;
-      players.push({ id: String(a.athlete?.id), name: a.athlete?.displayName, team, started: a.starter === true, played, stats });
+      const dnpReason = played ? null : (typeof a.reason === "string" && a.reason.trim()) || null;
+      players.push({ id: String(a.athlete?.id), name: a.athlete?.displayName, team, started: a.starter === true, played, dnpReason, stats });
     }
   }
   return {

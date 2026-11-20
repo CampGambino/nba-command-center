@@ -1415,6 +1415,18 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
       "records: 15 from passing a retired name is likely tonight; 15 from passing a 30-a-game player who also plays tonight isn't; if he's off tonight the odds tonight are about a retired name's",
       JSON.stringify([frozen.pTonight, both.pTonight, off.pTonight, both.rivals]));
   }
+  {
+    // 0.141.1: games he was listed Out on the injury report don't count against his chance to play (Steven Adams,
+    // 11/20: 2 of HOU's last 10 played, the other 8 out with a soleus strain; given 20%).
+    const back = (d, played, out) => ({ ...g(d, "ZZZ", true, 100, 90, { 9: played ? L({ min: 25, pts: 8 }) : L({}) }), inj: out ? { 9: "Out" } : {} });
+    const days = Array.from({ length: 10 }, (_, i) => `2026-11-${String(i + 1).padStart(2, "0")}`);
+    const fR = { RTN: { team: "RTN", keys, names: { 9: "Back Again" }, games: days.map((d, i) => back(d, i >= 7, i < 7)) } };
+    const fB = { RTN: { team: "RTN", keys, names: { 9: "Back Again" }, games: days.map((d, i) => back(d, i >= 7, false)) } };
+    const it = () => ({ kind: "pass", id: "9", who: "Back Again", stat: "pts", need: 1, tonight: true, team: "RTN", passing: { name: "Old Name", value: 1, live: false } });
+    const ret = it(), bench = it();
+    addChances([ret], fR, { makeSampler, simulate, sims: 800 }); addChances([bench], fB, { makeSampler, simulate, sims: 800 });
+    ok(ret.pTonight > 0.8 && bench.pTonight < 0.35, "records (0.141.1): back from 7 games listed Out, he is likely to play; 7 coach's-decision DNPs still count against him", JSON.stringify([ret.pTonight, bench.pTonight]));
+  }
   // Storylines: a record line tonight, unless the notes carry the same milestone.
   const watch = { today: "2026-11-09", games: [{ id: "1", awayTri: "BBB", homeTri: "AAA" }], teams: [] };
   const recs = { today: "2026-11-09", items: [{ ...p2, pTonight: 0.4 }, { kind: "coach", team: "AAA", stat: "wins", need: 1, tonight: true, text: "Coach: 1 win from passing Old Coach (503) for 9th in career coaching wins", score: 3 }] };
@@ -5537,6 +5549,22 @@ await articlesChecks(ok);
     const file = fs.readFileSync(path.join(root, "history", "calls.jsonl"), "utf8"), H = readCalls(file), FH = fitCalibration(H);
     ok(H.length >= 367 && FH && FH.b > 0.8 && FH.b < 1 && FH.a < 0 && calibrate(0.62, FH) < 0.56 && calibrate(0.62, FH) > 0.48,
       "calibration (0.140): on the scored nights on file (11/10 on) the fit pulls a 62% call down to about 52%, as the held-out test said", JSON.stringify(FH));
+  }
+  // 0.141.1: ESPN's DNP reason kept; only the coach's decisions count against a player's chance to play; games-played
+  // and starts milestones are left out of the recalibration (fitted on stats, not on whether a man plays).
+  {
+    const P = await import("../src/espn/parse.js"), W = await import("../src/anticipate/watch.js"), C = await import("../src/anticipate/calibrate.js");
+    const ath = (id, o) => ({ athlete: { id, displayName: `P${id}` }, starter: false, ...o });
+    const bx = P.readBox({ boxscore: { players: [{ team: { displayName: "Houston Rockets" }, statistics: [{ keys: ["minutes", "points"], athletes: [
+      ath("1", { stats: ["30", "12"], reason: "COACH'S DECISION" }), ath("2", { didNotPlay: true, stats: [], reason: "RIGHT SOLEUS STRAIN" }), ath("3", { didNotPlay: true, stats: [], reason: "COACH'S DECISION" })] }] }] } });
+    const r = Object.fromEntries(bx.players.map((p) => [p.id, p.dnpReason]));
+    ok(r[1] === null && r[2] === "RIGHT SOLEUS STRAIN" && r[3] === "COACH'S DECISION" && !W.isBenched(r[2]) && W.isBenched(r[3]) && W.isBenched(null),
+      "watch (0.141.1): a DNP's reason is kept (none when he played; ESPN marks players who played \"COACH'S DECISION\" too); an injury doesn't count as benched", JSON.stringify(r));
+    const calls = Array.from({ length: 300 }, (_, i) => ({ p: 0.6, hit: i % 10 < 4, what: "1000 points" })).concat(Array.from({ length: 300 }, () => ({ p: 0.6, hit: false, what: "800 games" })));
+    const fit = C.fitCalibration(calls), fitStats = C.fitCalibration(calls.slice(0, 300));
+    ok(C.PLAY_ONLY.has("gp") && C.PLAY_ONLY.has("gs") && !C.PLAY_ONLY.has("pts") && C.playOnlyCall({ what: "800 games" }) && C.playOnlyCall({ what: "500 starts" }) && !C.playOnlyCall({ what: "1000 points" })
+      && Math.abs(C.calibrate(0.6, fit) - C.calibrate(0.6, fitStats)) < 1e-9,
+      "calibrate (0.141.1): games-played and starts calls are left out of the fit", JSON.stringify([C.calibrate(0.6, fit), C.calibrate(0.6, fitStats)]));
   }
   // 0.141.0: luck, paradox, scarcity, defense by position (src/anticipate/detectors.js).
   {

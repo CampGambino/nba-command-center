@@ -26,6 +26,9 @@ const DTD_CAP = 0.6;         // Day-To-Day: chance of playing at most this
 const MIN_LINES = 8;         // fewer recent games than this -> "low" confidence
 const MAX_PLAY = 0.97;       // late scratches and early exits happen: never 100%
 
+/** A DNP that counts against a player's chance to play: the coach's call (or no reason given), not an absence. */
+export const isBenched = (reason) => !reason || /coach/i.test(reason);
+
 const seasonEndYear = (iso) => { const [y, m] = iso.split("-").map(Number); return m >= 8 ? y + 1 : y; };
 
 const STARTER_PLAY = 0.95;   // listed in tonight's starting five: very likely to play
@@ -94,11 +97,13 @@ export async function buildWatch({ team, notesDate, milestones, espn, today, sim
         l.stats = { ...l.stats, dreb: Math.round(l.stats.reb * dShare), oreb: l.stats.reb - Math.round(l.stats.reb * dShare) };
       }
     }
-    // How often he has played in the team's recent games (coach's decisions count against).
+    // How often he has played in the team's recent games he was available for. Coach's decisions count against him;
+    // games ESPN marks missed for an injury, illness, suspension or personal reason do not (0.141.1: Steven Adams
+    // came back 11/15 after 8 games out with a soleus strain and was given 20% for "2 of 10").
     const recentTen = boxes.slice(0, 10);
-    const inBox = recentTen.filter(({ box }) => box.players.some((p) => p.id === id));
-    const playedTen = inBox.filter(({ box }) => box.players.find((p) => p.id === id)?.played).length;
-    const pBase = Math.min(MAX_PLAY, inBox.length >= 3 ? Math.max(0.05, playedTen / inBox.length) : 0.9);
+    const avail = recentTen.map(({ box }) => box.players.find((p) => p.id === id)).filter((l) => l && (l.played || isBenched(l.dnpReason)));
+    const playedTen = avail.filter((l) => l.played).length;
+    const pBase = Math.min(MAX_PLAY, avail.length >= 3 ? Math.max(0.05, playedTen / avail.length) : 0.9);
     const f = { lines, source, pBase, sample: makeSampler(lines) };
     formCache.set(id, f);
     return f;

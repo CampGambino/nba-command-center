@@ -1,4 +1,4 @@
-import { calibrate } from "../anticipate/calibrate.js";
+import { calibrate, PLAY_ONLY } from "../anticipate/calibrate.js";
 import { sameName, nameKey } from "../notes/names.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -122,7 +122,7 @@ export async function buildSite({ entries, games = [], uncounted = [], espn, nba
         publishable, status: i.status, review, tracking: i.tracking,
         // 0.140: the chance tonight as recalibrated from the scored nights (src/anticipate/calibrate.js); the
         // simulation's own figure is kept beside it. The saved predictions (what is scored) stay the raw ones.
-        pTonight: calibrate(i.pTonight ?? null, calibration), pTonightRaw: i.pTonight ?? null, pNext3: i.pNext3 ?? null, pNext5: i.pNext5 ?? null, eta: i.eta ?? null,
+        pTonight: PLAY_ONLY.has(i.stat) ? i.pTonight ?? null : calibrate(i.pTonight ?? null, calibration), pTonightRaw: i.pTonight ?? null, pNext3: i.pNext3 ?? null, pNext5: i.pNext5 ?? null, eta: i.eta ?? null,
         pPlayTonight: i.pPlayTonight ?? null,
         injury: i.injury ? { status: i.injury.status, returnDate: i.injury.returnDate } : null,
         confidence: i.confidence ?? null, games: i.form?.games ?? null, lineup: i.lineup ?? null,

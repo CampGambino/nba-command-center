@@ -2,6 +2,22 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.141.1 (2026-11-20): a player back from an injury isn't scored as if the coach sat him
+
+The user, 5:35 PM, on Steven Adams' card ("1 game from 800 · career", 18% tonight): "is this because he is on the nba submitted injury report? otherwise it would be closer to 100?" Then: "yes" (to the fix).
+
+**Why 18%.** Not the injury tag: Day-To-Day only caps the chance to play at 60%. The chance to play came from how often he played in HOU's last 10 games, 2 of 10 (11/15 and 11/18), counting the 8 he missed with a strain the same as benchings. 20% to play; the recalibration (0.140) then took 21.5% to 17.7%.
+
+**Fixed.**
+- `src/espn/parse.js`: a box score row keeps ESPN's DNP reason (`dnpReason`). Read on ESPN's HOU box scores of 11/11, 11/13 and 11/16: Adams "RIGHT SOLEUS STRAIN" (11/11, 11/13) and "LOWER LEG" (11/16); Capela "RIGHT ANKLE SPRAIN"; Smart "SUSPENDED BY LEAGUE"; Tate, Crawford and Thornton "COACH'S DECISION". (ESPN also writes "COACH'S DECISION" on rows of players who played, so the reason is kept only for a DNP.)
+- `src/anticipate/watch.js` (milestones): the chance to play counts only the games he was available for: played, or DNP for the coach's decision (`isBenched`; no reason given counts as benched, as before). Injury, illness, suspension and personal DNPs are left out. Under 3 such games, 90% as before; Day-To-Day still caps at 60%, Out still 0.
+- `src/records/guide.js` (record chases): the same, from the game's injury report already attached to the team files (`inj`): a game he was listed Out and didn't play is left out. Adams on file: Out 10/31-11/13 and 11/16, Available 11/15.
+- `src/anticipate/calibrate.js`: games-played and starts (`PLAY_ONLY`: gp, gs) are neither fitted on nor corrected; that fit was learned on points, rebounds and the rest, and "1 game from 800 games" is only whether he plays. 7 of the 378 calls on file were games calls. `src/site/build.js` and the records walk in `scripts/situations.js` skip them.
+
+**Tests.** 1,083 checks (three new): a DNP's reason is kept and an injury isn't benched; a player back from 7 games listed Out is likely to play while 7 coach's decisions still count against him; games and starts calls stay out of the fit.
+
+**Self-audit.** Measured on the 5:4x build below. A player listed Out but not given a reason in ESPN's box (absent from it) was already left out of the milestone count. Questionable, Doubtful and Probable tonight are not used for the chance to play (ESPN's feed gives only Out and Day-To-Day); tonight's Questionable for Adams is in the 60% cap, not a lower one.
+
 ## 0.141.0 (2026-11-20): four new detectors, luck, paradox, scarcity and defense by position (audit step 5)
 
 The user, 4:14 PM: "Go" (step 5 of `claude/audit-2026-11-20.md`: regression/luck, turning points, paradoxes, scarcity, storylines that update, what each defense allows to each type of player).

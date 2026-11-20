@@ -363,11 +363,11 @@ for (const [tri, games] of Object.entries(perTeam)) {
     // 0.140: every chance tonight in the records (all-time and franchise passes, NBA Cup lists, season pace) is the same
     // simulation as a milestone's, so it gets the same recalibration (src/anticipate/calibrate.js); the raw one is kept.
     try {
-      const { fitCalibration, readCalls, calibrate } = await import("../src/anticipate/calibrate.js");
+      const { fitCalibration, readCalls, calibrate, PLAY_ONLY } = await import("../src/anticipate/calibrate.js");
       const cf = path.join(root, "history", "calls.jsonl"), fit = fitCalibration(readCalls(fs.existsSync(cf) ? fs.readFileSync(cf, "utf8") : ""));
       let n = 0;
       const walk = (o) => { if (!o || typeof o !== "object") return; if (Array.isArray(o)) { for (const x of o) walk(x); return; }
-        if (typeof o.pTonight === "number" && !("pTonightRaw" in o)) { o.pTonightRaw = o.pTonight; o.pTonight = calibrate(o.pTonight, fit); n++; }
+        if (typeof o.pTonight === "number" && !("pTonightRaw" in o) && !PLAY_ONLY.has(o.stat)) { o.pTonightRaw = o.pTonight; o.pTonight = calibrate(o.pTonight, fit); n++; }
         for (const v of Object.values(o)) walk(v); };
       if (fit) { walk(recordsOut); console.log(`records: ${n} chances tonight recalibrated`); }
     } catch (e) { console.error(`record chances not recalibrated: ${e.message}`); }
