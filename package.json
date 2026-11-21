@@ -15,7 +15,7 @@
     "situations": "node scripts/situations.js"
   },
   "dependencies": {
-    "pdfjs-dist": "4.10.38"
+    "pdfjs-dist": "6.5.438"
   },
   "engines": {
     "node": ">=20.19"
