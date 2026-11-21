@@ -23,7 +23,7 @@ The user, 11/21: "I'm more concerned about flagging this stuff in real time in t
 
 **The archive** (`src/data/line-rarity-archive.json.gz`, 119 KB, from `tools/line-rarity-archive.mjs`): 39,062 regular-season games, 11/5/93 through 4/12/26, as counts per combination plus the named games. The three NBA Cup title games are left out (they count toward no regular-season total). This season's games before today are added at each build.
 
-**How often.** Replayed: about 17 cards last season (4 "one of one": Jokić's 56-16-15, Kawhi's 55 with 5 steals, and others) and 4 so far this season. That excludes the warnings. The replay counts later games too, so live there'll be a few more.
+**How often.** Replayed: about 17 cards last season and 4 so far this season. The "one of one" lines: Cade Cunningham's 46 points, 11 assists and 5 steals (11/10/25), Jalen Johnson's 31-14 with 7 steals (11/13/25), Luka Dončić's 45-14 with 5 steals (12/18/25), Nikola Jokić's 56 points and 15 assists (12/25/25), and Victor Wembanyama's 52 and 24 (11/4/26). (Corrected after publishing: the first version named Kawhi Leonard's 55 with 5 steals, which the replay has as the 4th, since his 3 blocks are under the notable floor.) That excludes the warnings. The replay counts later games too, so live there'll be a few more.
 
 **Why not before 1993-94.** ESPN's player box scores start in 1993-94 (tested: 1992-93 dates return no games, a 1985 game has no player stats). Basketball-Reference's terms rule out tools built on scraped data and prompting AI with it, and its datasets start at $5,000. NBA.com stats are excluded by the user's rule. So the cards say "since 1993-94", never "ever".
 
