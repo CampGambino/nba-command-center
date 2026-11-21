@@ -32,8 +32,8 @@
   },
   "KXNBAESCALATOR3PT": {
    "title": "NBA Player Threes Escalator",
-   "events": 1,
-   "markets": 4
+   "events": 2,
+   "markets": 11
   },
   "KXNBAECFQUAL": {
    "title": "NBA Eastern Conference Finals Qualifiers",
@@ -203,7 +203,7 @@
   "KXNBA3PTPROT": {
    "title": "NBA Player Threes Protected",
    "events": 6,
-   "markets": 295
+   "markets": 296
   },
   "KXNBAROOKIE2NDTEAM": {
    "title": "NBA All-Rookie 2nd Team",
@@ -378,7 +378,7 @@
   "KXNBAAST": {
    "title": "NBA Player Assists",
    "events": 6,
-   "markets": 220
+   "markets": 221
   },
   "KXNBA1STTEAM": {
    "title": "All-NBA 1st Team",
@@ -477,8 +477,8 @@
   },
   "KXNBAESCALATORPTS": {
    "title": "NBA Player Points Escalator",
-   "events": 1,
-   "markets": 6
+   "events": 5,
+   "markets": 21
   },
   "KXNBAPACIFIC": {
    "title": "Pro Basketball Pacific Division Winner",
@@ -523,7 +523,7 @@
   "KXNBA3PT": {
    "title": "NBA Player Threes",
    "events": 6,
-   "markets": 294
+   "markets": 296
   },
   "KXNBANEXTGOVERNOR": {
    "title": "Pro Basketball Next Governor",
@@ -687,8 +687,8 @@
   },
   "KXNBA4QTOTAL": {
    "title": "NBA 4th Quarter Total",
-   "events": 5,
-   "markets": 65
+   "events": 6,
+   "markets": 78
   },
   "KXNBAFIRSTTIMECHAMP": {
    "title": "NBA First Time Champion",
@@ -734,25 +734,25 @@
  "favorites": {
   "KXNBAEAST1SEED-26": "Boston 36%",
   "KXNBAATLANTIC-26": "Boston 56%",
-  "KXNBACOY-27": "Micah Nori 17%",
   "KXNBACUP-26": "San Antonio 26%",
+  "KXNBACOY-27": "Micah Nori 17%",
+  "KXNBADPOY-27": "Victor Wembanyama 82%",
+  "KXNBAROY-27": "Cameron Boozer 36%",
   "KXNBARECORD-27BEST": "San Antonio 40%",
   "KXNBARECORD-27WORST": "Sacramento 41%",
-  "KXNBAMIMP-27": "Ty Jerome 27%",
-  "KXNBADPOY-27": "Victor Wembanyama 83%",
-  "KXNBAROY-27": "Cameron Boozer 36%",
   "KXNBACUPMVP-27": "Victor Wembanyama 33%",
-  "KXNBASIXTH-27": "Jrue Holiday 33%",
+  "KXNBAMIMP-27": "Ty Jerome 28%",
   "KXNBAWEST-27": "San Antonio 35%",
   "KXNBASOUTHEAST-26": "Miami 52%",
+  "KXNBASIXTH-27": "Jrue Holiday 33%",
   "KXNBAMVP-27": "Victor Wembanyama 44%",
   "KXNBAFINMVP-27": "Victor Wembanyama 20%",
-  "KXNBASOUTHWEST-26": "San Antonio 75%",
   "KXNBAEXEC-27": "Sam Presti 13%",
+  "KXNBASOUTHWEST-26": "San Antonio 75%",
   "KXNBA-27": "San Antonio 22%",
   "KXNBAPACIFIC-26": "Los Angeles L 82%",
   "KXNBAEAST-27": "Boston 21%",
-  "KXNBACLUTCH-27": "Jamal Murray 12%",
+  "KXNBACLUTCH-27": "Jamal Murray 13%",
   "KXNBAWEST1SEED-26": "San Antonio 53%",
   "KXNBAWFINMVP-27": "Shai Gilgeous-Alexander 20%",
   "KXNBACENTRAL-26": "Detroit 68%",
