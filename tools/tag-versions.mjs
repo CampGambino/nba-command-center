@@ -8,8 +8,8 @@
  * that only mentions an old version ("self-audit of 0.106.0") doesn't move its tag. The bot's data commits are skipped.
  * Versions no commit names are left untagged and listed. Existing tags are never moved.
  *
- * Run by "test and publish" after each publish with --since=<main before>: only versions finished in what it just
- * published are tagged and pushed. GitHub refuses a tag made by the job's own key on an older commit whose workflow
+ * Run by "test and publish" after each publish with --since=last-tag: versions finished after the newest tagged one
+ * are tagged and pushed (0.141.6: v0.141.6 was made but not pushed, so a missed tag is caught up next time). GitHub refuses a tag made by the job's own key on an older commit whose workflow
  * files differ from today's (0.141.5: 203 of 220 refused), so older history isn't pushed as tags; --list prints
  * every version's commit, which is all a rollback needs (git revert / git diff against it).
  *   node tools/tag-versions.mjs --list        every version and its commit
@@ -21,7 +21,12 @@ import { execFileSync } from "node:child_process";
 const git = (...a) => execFileSync("git", a, { encoding: "utf8", maxBuffer: 64 << 20 }).trim();
 const dry = process.argv.includes("--dry");
 const ref = process.argv.find((a) => a.startsWith("--ref="))?.slice(6) || "HEAD";
-const since = process.argv.find((a) => a.startsWith("--since="))?.slice(8) || null;
+let since = process.argv.find((a) => a.startsWith("--since="))?.slice(8) || null;
+// --since=last-tag: everything after the newest version that has a tag, so a tag missed once is made next time.
+if (since === "last-tag") {
+  const tagged = git("tag", "--list", "v*", "--sort=-v:refname").split("\n").filter(Boolean)[0];
+  since = tagged ? git("rev-list", "-n", "1", tagged) : null;
+}
 const list = process.argv.includes("--list");
 
 const changes = fs.readFileSync(new URL("../CHANGES.md", import.meta.url), "utf8");

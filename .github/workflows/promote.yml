@@ -49,6 +49,14 @@ jobs:
             exit 1
           fi
           echo "Commits to publish:"; git log --oneline origin/main..HEAD
+          # The bot owns docs/data and history. A code commit that changes them is almost always a stale copy riding
+          # along (0.141.6: a commit made on an out-of-date dev carried half-hour-old data that would have replaced the
+          # live files). Allowed only when a commit message says so with [data].
+          data=$(git diff --name-only origin/main..HEAD | grep -E '^(docs/data/|history/)' || true)
+          if [ -n "$data" ] && ! git log --format=%B origin/main..HEAD | grep -q '\[data\]'; then
+            echo "::error::these commits change the bot's data ($(echo "$data" | head -5 | tr '\n' ' ')…). Nothing published. If that's meant, say [data] in the commit message."
+            exit 1
+          fi
           if [ -z "$(git log --oneline origin/main..HEAD)" ]; then echo "nothing new on dev"; echo "NOTHING=1" >> "$GITHUB_ENV"; fi
 
       - name: Articles watcher checks
@@ -84,8 +92,10 @@ jobs:
         if: ${{ !cancelled() && env.PUBLISHED == '1' }}
         run: |
           git fetch --quiet --tags origin
-          node tools/tag-versions.mjs --since="$BASE"
-          if [ -n "$NEW_TAGS" ]; then git push --quiet origin $NEW_TAGS || echo "::warning::tags not pushed: $NEW_TAGS"; fi
+          node tools/tag-versions.mjs --since=last-tag
+          # Only the remote's tags and the ones just made are here, so --tags sends just the new ones. (0.141.6: the
+          # list in $GITHUB_ENV only reaches later steps, so pushing "$NEW_TAGS" here pushed nothing.)
+          git push --quiet origin --tags || echo "::warning::new tags not pushed"
 
       - name: Start the jobs a push to main starts
         if: ${{ !cancelled() && env.PUBLISHED == '1' }}
