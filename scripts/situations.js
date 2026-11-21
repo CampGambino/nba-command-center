@@ -258,7 +258,22 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const current = curFile ? JSON.parse(fs.readFileSync(path.join(root, "src", "data", curFile), "utf8")) : null;
     const streaksFile = path.join(root, "src", "data", `nba-franchise-streaks-${season - 1}-${String(season).slice(2)}.json`);
     const franchiseStreaks = fs.existsSync(streaksFile) ? JSON.parse(fs.readFileSync(streaksFile, "utf8")) : null;
-    const rec = currentRecords({ guide, teamFiles, today, tonight, scorers, coachList, coachTeams: coachList ? coachTeams : null, current, franchiseStreaks });
+    // 0.142: the points list deeper than the Guide's 68 (retired players, src/data/nba-career-points-deep-<date>.json) and
+    // every active player's points through last season from the Guide's year-by-year pages, near or above its floor.
+    let deepPoints = null, activeTotals = null;
+    const deepFile = fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^nba-career-points-deep-\d{4}-\d\d-\d\d\.json$/.test(f)).sort().pop();
+    const yearsFile = path.join(root, "src", "data", `nba-career-seasons-${season - 1}-${String(season).slice(2)}.json`);
+    if (deepFile && fs.existsSync(yearsFile)) {
+      const D = JSON.parse(fs.readFileSync(path.join(root, "src", "data", deepFile), "utf8"));
+      deepPoints = { asOf: D.asOf, floor: D.floor, rows: D.rows.map(([rank, name, pts]) => ({ rank, name, pts })) };
+      const Y = JSON.parse(fs.readFileSync(yearsFile, "utf8")), ki = Object.fromEntries(Y.keys.map((k, i) => [k, i]));
+      const last = `${season - 2}-${String(season - 1).slice(2)}`;
+      // The file also carries each team's totals under its nickname in capitals (HAWKS, CELTICS…): players only.
+      activeTotals = Object.entries(Y.players).filter(([name]) => /[a-z]/.test(name)).map(([name, rows]) => ({ name, stat: "pts", value: rows.filter((r) => r[ki.season] <= last).reduce((a, r) => a + r[ki.pts], 0) }))
+        .filter((r) => r.value >= D.floor - 4000);
+      console.log(`career points: ${deepPoints.rows.length} retired players from ${deepFile} (complete above ${D.floor.toLocaleString("en-US")}), ${activeTotals.length} active players within 4,000 of that`);
+    }
+    const rec = currentRecords({ guide, teamFiles, today, tonight, scorers, deepPoints, activeTotals, coachList, coachTeams: coachList ? coachTeams : null, current, franchiseStreaks });
     const tonightTeams = new Set((tonight || []).flatMap((g) => [g.home, g.away]));
     // 0.141.1: tonight's injury report caps the chance to play tonight: Out 0, Doubtful 25%, Questionable 60%. 0.141.5:
     // the newest report (latestInj, read at the top); the last saved one only if none could be read.
@@ -351,7 +366,8 @@ for (const [tri, games] of Object.entries(perTeam)) {
         }
       }
     } catch { /* no watch list yet */ }
-    const boards = Object.fromEntries(Object.entries(rec.boards).map(([stat, rows]) => [stat, rows.slice(0, 40).map(({ name, team, live, now, base, rank, preRank }) => ({ name, team, live, now, base, rank: rank ?? null, preRank: preRank ?? null }))]));
+    // 0.142: the points list to its floor (about 120 ranked names), for the top-100 lines and NBA Live's tier cards; the rest 40.
+    const boards = Object.fromEntries(Object.entries(rec.boards).map(([stat, rows]) => [stat, rows.slice(0, stat === "pts" ? Math.max(40, rows.filter((r) => r.rank).length) : 40).map(({ name, team, live, now, base, rank, preRank }) => ({ name, team, live, now, base, rank: rank ?? null, preRank: preRank ?? null }))]));
     // Stat titles in context (src/records/titles.js), from the NBA Guide's yearly leaders.
     let titles = null, awards = {};
     const histFile = path.join(root, "src", "data", `nba-history-${season - 1}-${String(season).slice(2)}.json`);
@@ -386,7 +402,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
       rec.problems = s.problems; settledErrata = s.errata;
     }
     // 0.64: every pass (all-time, franchise history, NBA Cup) to a place not worth saying is flagged for the pages.
-    { const { isMinorPass } = await import("../src/records/notable.js"); for (const i of rec.items) if (isMinorPass(i)) i.minor = true; }
+    { const { isMinorPass, isSiteOnlyPass } = await import("../src/records/notable.js"); for (const i of rec.items) { if (isMinorPass(i)) i.minor = true; else if (isSiteOnlyPass(i)) i.siteOnly = true; } }
     const recordsOut = { titles, awards, context,
       generatedAt: out.generatedAt, through: rec.through, today, source: guide.source, items: rec.items, boards, checks, problems: rec.problems, errata: [...(guide.errata || []), ...settledErrata],
       coaches: coachTeams, teamRecords: guide.teamRecords, cup: cupOut, franchise: franchiseOut, seasonPace: seasonPaceOut, franchiseGame: franchiseGameOut,
@@ -421,6 +437,23 @@ for (const [tri, games] of Object.entries(perTeam)) {
     } catch (e) { console.error(`record chances not kept for scoring: ${e.message}`); }
     console.log(`records: ${rec.players.filter((p) => p.id).length} guide players playing this season, ${rec.items.length} within reach (${rec.items.filter((i) => i.tonight).length} playing tonight); vs notes/ESPN: ${checks.same} agree, ${checks.differ.length} differ${rec.problems.length ? `; ${rec.problems.length} problems` : ""}`);
   } else console.log(`records: no Tip-Off Guide file for ${season - 1}-${String(season).slice(2)} (src/data/)`);
+}
+// 0.142: career feat boards (the user's screenshots, plus our box scores since) and the streaks NBA Live follows live
+// (src/records/featboards.js, rules in src/records/featlive.js) -> docs/data/featlive.json.
+{
+  const ff = fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^feat-boards-\d{4}-\d\d-\d\d\.json$/.test(f)).sort().pop();
+  if (ff) {
+    try {
+      const { buildFeatLive } = await import("../src/records/featboards.js");
+      const nf = path.join(root, "docs", "data", "notes-facts.json");
+      const notesFacts = fs.existsSync(nf) ? JSON.parse(fs.readFileSync(nf, "utf8")) : null;
+      const F = buildFeatLive({ file: JSON.parse(fs.readFileSync(path.join(root, "src", "data", ff), "utf8")), pg: playerGames(rows.filter((g) => !g.cupFinal)), names: store.names || {},
+        tonightTeams: new Set((tonight || []).flatMap((g) => [g.home, g.away])), notesFacts });
+      fs.writeFileSync(path.join(root, "docs", "data", "featlive.json"), JSON.stringify({ generatedAt: out.generatedAt, today, ...F }));
+      for (const p of F.problems) warnings.push(`feat boards: ${p}`);
+      console.log(`feat boards: ${Object.keys(F.boards).length} boards from ${ff} (through ${F.asOf}, plus our games to ${F.through}); ${F.pre.length} lines for tonight; streaks live: ${F.streaks.map((x) => `${x.name} ${x.n} (${x.label})`).join(", ") || "none"}; team: ${F.teamStreaks.map((x) => `${x.team} ${x.n} ${x.label}`).join(", ") || "none"}${F.teamEnded.length ? ` (over since the notes: ${F.teamEnded.map((x) => `${x.team} ${x.label} at ${x.n}, ${x.d}`).join("; ")})` : ""}${F.problems.length ? `; ${F.problems.length} problems` : ""}`);
+    } catch (e) { console.error(`feat boards not written: ${e.message}`); }
+  }
 }
 // Streaks and anomalies: active streaks, team streaks, unusual games on each of the last 7 game dates.
 {
@@ -860,9 +893,9 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
     const records = fs.existsSync(path.join(root, "docs", "data", "records.json")) ? rd("records.json") : null;
     const matchupData = fs.existsSync(path.join(root, "docs", "data", "matchups.json")) ? rd("matchups.json") : null;
     const opt = (f) => { try { return rd(f); } catch { return null; } };
-    const args = { watch, trends: rd("trends.json"), leaders: rd("leaders.json"), injuries, facts, records, matchups: matchupData, national: opt("national.json"), rest: opt("rest.json"), form: opt("form.json"), fouls: opt("flowstats.json"), prep: opt("prep.json"), maxLines: 8 };
+    const args = { watch, trends: rd("trends.json"), leaders: rd("leaders.json"), injuries, facts, records, matchups: matchupData, national: opt("national.json"), rest: opt("rest.json"), form: opt("form.json"), fouls: opt("flowstats.json"), prep: opt("prep.json"), featlive: opt("featlive.json"), maxLines: 8 };
     const games = tonightStorylines(args)
-      .map((g) => ({ ...g, lines: g.lines.map(({ kind, team, text, score, standing }) => ({ kind, team, text, score: Math.round(score * 100) / 100, ...(standing ? { bg: 1 } : {}) })) }));
+      .map((g) => ({ ...g, lines: g.lines.map(({ kind, team, text, score, standing, siteOnly }) => ({ kind, team, text, score: Math.round(score * 100) / 100, ...(standing ? { bg: 1 } : {}), ...(siteOnly ? { siteOnly: 1 } : {}) })) }));
     // 0.71: 30- and 40-point games each defense has allowed, for NBA Live's "first one allowed" card (the user, 11/15: the Celtics).
     let defense = null;
     try { const { allowedCounts } = await import("../src/anticipate/seasonlong.js"); const C = allowedCounts({ pg: playerGames(rows), rows }); defense = { n30: C.n30, n40: C.n40, teams: Object.fromEntries(Object.entries(C.teams).map(([t, x]) => [t, { gp: x.gp, t30: x.t30, t40: x.t40 }])) }; } catch (e) { console.error(`defense counts not written: ${e.message}`); }

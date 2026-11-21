@@ -24,7 +24,7 @@
 import { roundStep, CADENCE_STATS } from "../anticipate/cadence.js";
 import { nameKey } from "../notes/names.js";
 import { TEAMS } from "../teams.js";
-import { isMinorPass } from "./notable.js";
+import { isMinorPass, isSiteOnlyPass, tierEntered } from "./notable.js";
 
 /** Name match that keeps suffixes: the guide's Gary Payton is not this season's Gary Payton II. */
 export const strictKey = (n) => {
@@ -84,7 +84,7 @@ export function teamResults(teamFiles) {
   return out;
 }
 
-export function currentRecords({ guide, teamFiles, today = null, tonight = [], scorers = [], coachList = null, coachTeams = null, current = null, franchiseStreaks = null, where = "all-time", record = "the NBA record", rounds = true, kind = null, horizon = HORIZON }) {
+export function currentRecords({ guide, teamFiles, today = null, tonight = [], scorers = [], deepPoints = null, activeTotals = null, coachList = null, coachTeams = null, current = null, franchiseStreaks = null, where = "all-time", record = "the NBA record", rounds = true, kind = null, horizon = HORIZON }) {
   const problems = [];
   const lines = seasonLines(teamFiles);
   const byKey = {};
@@ -125,6 +125,12 @@ export function currentRecords({ guide, teamFiles, today = null, tonight = [], s
     depth.pts ??= { n: scorers.length, floor: scorers[scorers.length - 1].pts };
     for (const k of ["gp", "fgm", "ftm", "reb", "ast", "min"]) if (r[k] != null) put(r.name, k, r[k], null, "career scorers, NBA Guide p. 136");
   }
+  // 0.142: deeper than the Guide's 68: every retired player down to a floor (src/data/nba-career-points-deep-*.json), and
+  // every active player's total through last season (the Guide's year-by-year pages), so the points list is complete above
+  // that floor and ranks to about 118 are known.
+  for (const r of deepPoints?.rows || []) put(r.name, "pts", r.pts, null, `career points list through ${deepPoints.asOf}`);
+  for (const r of activeTotals || []) put(r.name, r.stat, r.value, null, "NBA Guide year-by-year (active players)");
+  if (deepPoints?.floor && (!depth.pts || deepPoints.floor < depth.pts.floor)) depth.pts = { n: null, floor: deepPoints.floor };
   for (const t of guide.targets || []) if (t.scope === "nba") put(t.name, t.stat, t.value, t.rank, `milestone watch p. ${t.page}`);
   // A rank tie in the top-10 lists ("tied for 29th") is fine; a rank the milestone pages give wins.
   for (const w of [...(guide.watch || []), ...(guide.targets || [])]) if (w.scope === "nba" && w.rank) person(w.player || w.name).preRank[w.stat] = w.rank;
@@ -173,6 +179,7 @@ export function currentRecords({ guide, teamFiles, today = null, tonight = [], s
     const t = playing.get(it.team);
     const row = { ...it, ...(kind ? { kind } : {}), gamesAway, tonight: !!t, opp: t?.opp || null };
     if (isMinorPass(row)) row.minor = true;   // 0.64: a place not worth saying stays off the Tonight tab and the storylines
+    else if (isSiteOnlyPass(row)) row.siteOnly = true;   // 0.142: on the site, never an NBA Live card
     items.push(row);
   };
   for (const p of players) {
@@ -183,18 +190,23 @@ export function currentRecords({ guide, teamFiles, today = null, tonight = [], s
       if (stat === "min") continue; // box-score minutes are rounded: not exact enough to count down
       const rate = rateOf({ season: src }, stat);
       const board = boards[stat] || [];
+      const myRank = board.find((r) => r.name === p.name)?.rank ?? null;
       // Ranked players ahead (nearest first), and the rank he'd reach. Unranked names (from the active and
       // per-game lists) aren't landmarks: passing the 40th-best total nobody numbered isn't news.
       const ahead = board.filter((r) => r.rank && r.name !== p.name && r.now >= T.now).sort((a, b) => a.now - b.now || a.rank - b.rank);
       // Players level with each other are passed together: "passing Kyle Lowry and Buddy Hield (2,209) for 14th".
       const groups = [];
       for (const r of ahead) { const g = groups[groups.length - 1]; if (g && g[0].now === r.now) g.push(r); else groups.push([r]); }
+      const tiersSaid = new Set();
       for (const grp of groups.slice(0, AHEAD)) {
         const a = { ...grp[0], name: grp.map((x) => x.name).join(" and "), rank: Math.min(...grp.map((x) => x.rank)), live: grp.some((x) => x.live) };
         const need = a.now - T.now + 1;
+        // Only the pass that crosses the line enters the tier: once past it, the next names ahead are inside already.
+        let tier = where === "all-time" ? tierEntered(stat, myRank, a.rank) : null;
+        if (tier && tiersSaid.has(tier)) tier = null; else if (tier) tiersSaid.add(tier);
         add({ kind: "pass", who: p.name, last, id: p.id, team: p.team, stat, label: LABEL[stat], now: T.now, target: a.now + 1, need, rate,
-          passing: { name: a.name, value: a.now, rank: a.rank || null, live: a.live }, rank: a.rank || null,
-          text: `${last}: ${fmt(need)} ${statWord(stat, need)} from passing ${a.name} (${fmt(a.now)})${a.rank === 1 ? ` for ${record}` : a.rank ? ` for ${ORD(a.rank)} ${where}` : ""}${a.rank === 1 && need > 1 ? `; ${fmt(need - 1)} ties him` : ""}`,
+          passing: { name: a.name, value: a.now, rank: a.rank || null, live: a.live }, rank: a.rank || null, ...(tier ? { tier, fromRank: myRank } : {}),
+          text: `${last}: ${fmt(need)} ${statWord(stat, need)} from passing ${a.name} (${fmt(a.now)})${a.rank === 1 ? ` for ${record}` : a.rank ? ` for ${ORD(a.rank)} ${where}` : ""}${tier ? `, into the top ${tier}` : ""}${a.rank === 1 && need > 1 ? `; ${fmt(need - 1)} ties him` : ""}`,
           score: a.rank ? (a.rank === 1 ? 5 : a.rank <= 5 ? 4.2 : a.rank <= 10 ? 3.6 : a.rank <= 25 ? 2.8 : 2.2) : 2 });
       }
       // Round numbers: the guide's own marks, and the usual steps past the floor.

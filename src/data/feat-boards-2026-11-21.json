@@ -1,0 +1,182 @@
+{
+  "source": "The user's screenshots of Basketball-Reference Stathead career game-finder results (NBA/BAA, regular season), taken 11/21/26; Basketball-Reference had not yet added the 11/20 games (checked: Harden's 40 on 11/20 is missing, and every player who played 11/20 is short by exactly that game), so the counts are through 11/19. Transcribed by hand. Rows: [player, first season, last season with such a game, count].",
+  "asOf": "2026-11-19",
+  "boards": {
+    "p30a10": {
+      "label": "30-point, 10-assist games", "one": "30-point, 10-assist game", "short": "30-10 (pts/ast)", "min": { "pts": 30, "ast": 10 }, "complete": false,
+      "rows": [
+        ["Oscar Robertson", "1960-61", "1970-71", 228], ["James Harden", "2012-13", "2025-26", 110], ["LeBron James", "2003-04", "2025-26", 107],
+        ["Luka Dončić", "2018-19", "2026-27", 105], ["Trae Young", "2018-19", "2026-27", 92], ["Russell Westbrook", "2008-09", "2022-23", 84],
+        ["Tiny Archibald", "1971-72", "1976-77", 76], ["Jerry West", "1960-61", "1972-73", 69], ["Nikola Jokić", "2017-18", "2026-27", 68],
+        ["Magic Johnson", "1980-81", "1995-96", 58], ["Damian Lillard", "2013-14", "2024-25", 54]
+      ]
+    },
+    "p40": {
+      "label": "40-point games", "one": "40-point game", "short": "40-point games", "min": { "pts": 40 }, "complete": false,
+      "rows": [
+        ["Wilt Chamberlain", "1959-60", "1970-71", 271], ["Michael Jordan", "1984-85", "2002-03", 173], ["Kobe Bryant", "1999-00", "2015-16", 122],
+        ["James Harden", "2011-12", "2025-26", 107], ["Elgin Baylor", "1958-59", "1969-70", 88], ["Allen Iverson", "1996-97", "2007-08", 79],
+        ["LeBron James", "2003-04", "2024-25", 79], ["Oscar Robertson", "1960-61", "1969-70", 77], ["Stephen Curry", "2009-10", "2026-27", 77],
+        ["Kevin Durant", "2007-08", "2025-26", 74], ["Kareem Abdul-Jabbar", "1969-70", "1985-86", 70], ["Rick Barry", "1965-66", "1977-78", 70],
+        ["Luka Dončić", "2019-20", "2026-27", 69], ["George Gervin", "1976-77", "1985-86", 68], ["Jerry West", "1961-62", "1971-72", 66],
+        ["Damian Lillard", "2013-14", "2024-25", 60], ["Bob McAdoo", "1972-73", "1978-79", 58], ["Dominique Wilkins", "1984-85", "1994-95", 56],
+        ["Giannis Antetokounmpo", "2016-17", "2025-26", 56], ["Adrian Dantley", "1978-79", "1987-88", 52], ["Russell Westbrook", "2010-11", "2020-21", 50],
+        ["Shaquille O'Neal", "1992-93", "2008-09", 49], ["Joel Embiid", "2017-18", "2025-26", 49], ["Bob Pettit", "1955-56", "1963-64", 47],
+        ["Larry Bird", "1979-80", "1991-92", 47], ["Anthony Davis", "2013-14", "2026-27", 46]
+      ]
+    },
+    "td30": {
+      "label": "30-point triple-doubles", "one": "30-point triple-double", "short": "30-point triple-doubles", "min": { "pts": 30 }, "td": true, "complete": false,
+      "rows": [
+        ["Oscar Robertson", "1960-61", "1969-70", 106], ["Nikola Jokić", "2017-18", "2026-27", 59], ["Luka Dončić", "2018-19", "2025-26", 55],
+        ["Russell Westbrook", "2010-11", "2021-22", 48], ["LeBron James", "2004-05", "2024-25", 42], ["James Harden", "2014-15", "2025-26", 37],
+        ["Wilt Chamberlain", "1959-60", "1971-72", 35], ["Giannis Antetokounmpo", "2017-18", "2026-27", 26], ["Magic Johnson", "1980-81", "1990-91", 17],
+        ["Larry Bird", "1982-83", "1991-92", 17], ["Michael Jordan", "1984-85", "1996-97", 16], ["Elgin Baylor", "1958-59", "1968-69", 10],
+        ["Kareem Abdul-Jabbar", "1971-72", "1975-76", 9], ["Jerry West", "1960-61", "1970-71", 8], ["John Havlicek", "1969-70", "1971-72", 7],
+        ["Lenny Wilkens", "1967-68", "1970-71", 6], ["Pete Maravich", "1974-75", "1976-77", 6], ["Jason Kidd", "1994-95", "2006-07", 6],
+        ["Kevin Durant", "2013-14", "2021-22", 6], ["Joel Embiid", "2018-19", "2025-26", 6], ["Richie Guerin", "1960-61", "1961-62", 5],
+        ["Clyde Drexler", "1986-87", "1990-91", 5], ["Hakeem Olajuwon", "1986-87", "1995-96", 5], ["Kobe Bryant", "2002-03", "2014-15", 5],
+        ["Domantas Sabonis", "2020-21", "2023-24", 5]
+      ]
+    },
+    "p35t5": {
+      "label": "35-point games with 5+ threes", "one": "35-point game with 5+ threes", "short": "35 points + 5 threes", "min": { "pts": 35, "fg3m": 5 }, "complete": false,
+      "rows": [
+        ["Stephen Curry", "2009-10", "2026-27", 157], ["James Harden", "2011-12", "2025-26", 121], ["Damian Lillard", "2012-13", "2024-25", 84],
+        ["Luka Dončić", "2019-20", "2026-27", 80], ["Kyrie Irving", "2012-13", "2026-27", 55], ["Donovan Mitchell", "2017-18", "2026-27", 52],
+        ["Paul George", "2012-13", "2026-27", 50], ["LeBron James", "2003-04", "2024-25", 49], ["Trae Young", "2018-19", "2025-26", 48],
+        ["Anthony Edwards", "2020-21", "2026-27", 44], ["Devin Booker", "2016-17", "2025-26", 42], ["Jayson Tatum", "2019-20", "2024-25", 40],
+        ["Zach LaVine", "2014-15", "2025-26", 37], ["Kevin Durant", "2008-09", "2025-26", 37], ["Klay Thompson", "2013-14", "2023-24", 36],
+        ["Kobe Bryant", "2002-03", "2015-16", 31], ["Ray Allen", "1997-98", "2010-11", 28], ["CJ McCollum", "2015-16", "2025-26", 27],
+        ["Gilbert Arenas", "2003-04", "2006-07", 25], ["Jamal Murray", "2018-19", "2026-27", 25], ["Bradley Beal", "2013-14", "2023-24", 24],
+        ["Kemba Walker", "2012-13", "2021-22", 23], ["Tracy McGrady", "2001-02", "2007-08", 21], ["Vince Carter", "2000-01", "2009-10", 21],
+        ["Jalen Brunson", "2022-23", "2026-27", 21], ["Glen Rice", "1991-92", "1998-99", 19], ["Russell Westbrook", "2014-15", "2022-23", 19],
+        ["Tyrese Maxey", "2022-23", "2025-26", 17]
+      ]
+    },
+    "p30r10": {
+      "label": "30-point, 10-rebound games", "one": "30-point, 10-rebound game", "short": "30-10 (pts/reb)", "min": { "pts": 30, "reb": 10 }, "complete": false,
+      "rows": [
+        ["Wilt Chamberlain", "1959-60", "1971-72", 516], ["Kareem Abdul-Jabbar", "1969-70", "1985-86", 355], ["Karl Malone", "1986-87", "2001-02", 307],
+        ["Elgin Baylor", "1958-59", "1969-70", 297], ["Bob Pettit", "1954-55", "1964-65", 252], ["Shaquille O'Neal", "1992-93", "2008-09", 247],
+        ["Giannis Antetokounmpo", "2016-17", "2026-27", 243], ["Elvin Hayes", "1968-69", "1981-82", 236], ["Moses Malone", "1977-78", "1991-92", 212],
+        ["Walt Bellamy", "1961-62", "1973-74", 190], ["Bob McAdoo", "1972-73", "1981-82", 189], ["Charles Barkley", "1985-86", "1998-99", 188],
+        ["Hakeem Olajuwon", "1984-85", "1998-99", 186], ["Anthony Davis", "2013-14", "2026-27", 175], ["Oscar Robertson", "1960-61", "1969-70", 161],
+        ["LeBron James", "2003-04", "2024-25", 156], ["Joel Embiid", "2016-17", "2025-26", 151], ["Nikola Jokić", "2016-17", "2026-27", 149],
+        ["Patrick Ewing", "1985-86", "1998-99", 148], ["Bob Lanier", "1970-71", "1979-80", 134], ["David Robinson", "1989-90", "2000-01", 133],
+        ["Larry Bird", "1979-80", "1991-92", 120], ["Kevin Durant", "2007-08", "2025-26", 116], ["Dirk Nowitzki", "2000-01", "2015-16", 112],
+        ["Luka Dončić", "2018-19", "2026-27", 112], ["Tim Duncan", "1997-98", "2014-15", 110], ["Karl-Anthony Towns", "2015-16", "2025-26", 105]
+      ]
+    },
+    "p25r10a5": {
+      "label": "25-point, 10-rebound, 5-assist games", "one": "25-10-5 game", "short": "25-10-5", "min": { "pts": 25, "reb": 10, "ast": 5 }, "complete": false,
+      "rows": [
+        ["Kareem Abdul-Jabbar", "1969-70", "1984-85", 259], ["Nikola Jokić", "2016-17", "2026-27", 242], ["Giannis Antetokounmpo", "2015-16", "2026-27", 237],
+        ["LeBron James", "2003-04", "2025-26", 233], ["Oscar Robertson", "1960-61", "1970-71", 225], ["Wilt Chamberlain", "1959-60", "1972-73", 206],
+        ["Larry Bird", "1979-80", "1991-92", 171], ["Elgin Baylor", "1958-59", "1969-70", 164], ["Karl Malone", "1985-86", "2002-03", 161],
+        ["Russell Westbrook", "2010-11", "2025-26", 148], ["Charles Barkley", "1985-86", "1999-00", 144], ["Luka Dončić", "2018-19", "2026-27", 142],
+        ["Kevin Garnett", "1997-98", "2007-08", 119], ["Kevin Durant", "2007-08", "2024-25", 96], ["Chris Webber", "1993-94", "2005-06", 95],
+        ["James Harden", "2012-13", "2025-26", 92], ["Shaquille O'Neal", "1992-93", "2008-09", 86], ["Michael Jordan", "1984-85", "2002-03", 85],
+        ["Hakeem Olajuwon", "1985-86", "1996-97", 82], ["Joel Embiid", "2017-18", "2026-27", 80], ["John Havlicek", "1967-68", "1974-75", 78],
+        ["Billy Cunningham", "1965-66", "1974-75", 73], ["Bob Lanier", "1971-72", "1980-81", 69], ["Tim Duncan", "1997-98", "2013-14", 66],
+        ["David Robinson", "1989-90", "1997-98", 64], ["Magic Johnson", "1979-80", "1990-91", 63], ["Bob McAdoo", "1973-74", "1979-80", 61]
+      ]
+    },
+    "p30r10a5": {
+      "label": "30-point, 10-rebound, 5-assist games", "one": "30-10-5 game", "short": "30-10-5", "min": { "pts": 30, "reb": 10, "ast": 5 }, "complete": false,
+      "rows": [
+        ["Giannis Antetokounmpo", "2016-17", "2026-27", 164], ["Oscar Robertson", "1960-61", "1969-70", 157], ["Kareem Abdul-Jabbar", "1969-70", "1984-85", 157],
+        ["Wilt Chamberlain", "1959-60", "1971-72", 149], ["LeBron James", "2003-04", "2024-25", 135], ["Nikola Jokić", "2016-17", "2026-27", 135],
+        ["Elgin Baylor", "1958-59", "1969-70", 115], ["Luka Dončić", "2018-19", "2026-27", 107], ["Karl Malone", "1986-87", "2001-02", 95],
+        ["Russell Westbrook", "2010-11", "2024-25", 94], ["Larry Bird", "1979-80", "1991-92", 87], ["Charles Barkley", "1985-86", "1996-97", 72],
+        ["James Harden", "2012-13", "2025-26", 68], ["Kevin Durant", "2007-08", "2024-25", 62], ["Michael Jordan", "1984-85", "2002-03", 61],
+        ["Joel Embiid", "2017-18", "2025-26", 58], ["Shaquille O'Neal", "1992-93", "2006-07", 47], ["Hakeem Olajuwon", "1985-86", "1996-97", 46],
+        ["Bob Lanier", "1971-72", "1979-80", 41], ["John Havlicek", "1968-69", "1974-75", 39], ["Chris Webber", "1994-95", "2005-06", 39],
+        ["Tim Duncan", "1997-98", "2013-14", 38], ["Kevin Garnett", "1997-98", "2006-07", 37], ["David Robinson", "1989-90", "1997-98", 36],
+        ["Billy Cunningham", "1968-69", "1974-75", 35]
+      ]
+    },
+    "b5": {
+      "label": "5-block games", "one": "5-block game", "short": "5-block games", "min": { "blk": 5 }, "complete": false,
+      "caveat": "Blocks became an official stat in 1973-74; Basketball-Reference's game logs include researched games before that (Wilt Chamberlain's 126, part of Elvin Hayes's).",
+      "rows": [
+        ["Hakeem Olajuwon", "1984-85", "2001-02", 283], ["Mark Eaton", "1982-83", "1992-93", 256], ["Dikembe Mutombo", "1991-92", "2007-08", 234],
+        ["David Robinson", "1989-90", "2002-03", 214], ["Kareem Abdul-Jabbar", "1970-71", "1988-89", 203], ["Manute Bol", "1985-86", "1993-94", 183],
+        ["Patrick Ewing", "1985-86", "1999-00", 171], ["Shawn Bradley", "1993-94", "2003-04", 160], ["Tree Rollins", "1977-78", "1989-90", 158],
+        ["Alonzo Mourning", "1992-93", "2006-07", 155], ["Marcus Camby", "1996-97", "2011-12", 154], ["Theo Ratliff", "1995-96", "2007-08", 135],
+        ["Shaquille O'Neal", "1992-93", "2010-11", 132], ["Wilt Chamberlain", "1959-60", "1972-73", 126], ["Tim Duncan", "1997-98", "2015-16", 124],
+        ["George Johnson", "1972-73", "1984-85", 122], ["Ben Wallace", "1997-98", "2008-09", 101], ["Anthony Davis", "2012-13", "2025-26", 85],
+        ["Elmore Smith", "1971-72", "1977-78", 84], ["Larry Nance", "1982-83", "1993-94", 84], ["Elvin Hayes", "1968-69", "1981-82", 82],
+        ["Jermaine O'Neal", "1997-98", "2012-13", 82], ["Serge Ibaka", "2009-10", "2018-19", 82], ["Dwight Howard", "2004-05", "2019-20", 78],
+        ["Benoit Benjamin", "1985-86", "1995-96", 74], ["Brook Lopez", "2008-09", "2025-26", 74], ["Robert Parish", "1976-77", "1995-96", 67],
+        ["Artis Gilmore", "1976-77", "1986-87", 65], ["Myles Turner", "2015-16", "2026-27", 65], ["Andrei Kirilenko", "2001-02", "2009-10", 62],
+        ["Josh Smith", "2004-05", "2014-15", 61], ["Rudy Gobert", "2014-15", "2025-26", 61], ["Victor Wembanyama", "2023-24", "2026-27", 61]
+      ]
+    },
+    "b5t5": {
+      "label": "games with 5 blocks and 5 threes", "one": "game with 5 blocks and 5 threes", "short": "5 blocks + 5 threes", "min": { "blk": 5, "fg3m": 5 }, "complete": true,
+      "rows": [
+        ["Victor Wembanyama", "2023-24", "2025-26", 6], ["Raef LaFrentz", "2001-02", "2001-02", 4], ["Kristaps Porziņģis", "2017-18", "2023-24", 3],
+        ["Brook Lopez", "2016-17", "2024-25", 2], ["Robert Horry", "1995-96", "1995-96", 1], ["Clifford Robinson", "1995-96", "1995-96", 1],
+        ["Dennis Scott", "1995-96", "1995-96", 1], ["Walt Williams", "1996-97", "1996-97", 1], ["Shawn Marion", "2007-08", "2007-08", 1],
+        ["Donté Greene", "2009-10", "2009-10", 1], ["Nicolas Batum", "2012-13", "2012-13", 1], ["Danny Green", "2014-15", "2014-15", 1],
+        ["Paul Millsap", "2015-16", "2015-16", 1], ["DeMarcus Cousins", "2016-17", "2016-17", 1], ["Mo Bamba", "2021-22", "2021-22", 1],
+        ["Myles Turner", "2023-24", "2023-24", 1], ["Matas Buzelis", "2025-26", "2025-26", 1], ["Branden Carlson", "2025-26", "2025-26", 1],
+        ["Jaden McDaniels", "2025-26", "2025-26", 1]
+      ]
+    },
+    "s3b3t3": {
+      "label": "games with 3 steals, 3 blocks and 3 threes", "one": "game with 3 steals, 3 blocks and 3 threes", "short": "3 steals + 3 blocks + 3 threes", "min": { "stl": 3, "blk": 3, "fg3m": 3 }, "complete": false,
+      "rows": [
+        ["Shawn Marion", "2001-02", "2007-08", 11], ["Eddie Jones", "1995-96", "2002-03", 6], ["Robert Covington", "2015-16", "2021-22", 6],
+        ["Robert Horry", "1994-95", "1997-98", 5], ["Rasheed Wallace", "2001-02", "2008-09", 5], ["James Harden", "2018-19", "2021-22", 5],
+        ["Victor Wembanyama", "2023-24", "2025-26", 5], ["Vince Carter", "2000-01", "2004-05", 4], ["Otto Porter Jr.", "2016-17", "2018-19", 4],
+        ["Anthony Davis", "2017-18", "2020-21", 4], ["Anthony Edwards", "2021-22", "2023-24", 4], ["Jalen Suggs", "2022-23", "2025-26", 4],
+        ["Shai Gilgeous-Alexander", "2024-25", "2026-27", 4], ["Doug Christie", "1996-97", "1999-00", 3], ["Paul Pierce", "1998-99", "2001-02", 3],
+        ["Cuttino Mobley", "2001-02", "2004-05", 3], ["Kyle Korver", "2004-05", "2012-13", 3], ["LeBron James", "2008-09", "2014-15", 3],
+        ["Kevin Durant", "2010-11", "2016-17", 3], ["Kyrie Irving", "2012-13", "2022-23", 3], ["Brook Lopez", "2018-19", "2024-25", 3],
+        ["Fred VanVleet", "2020-21", "2023-24", 3], ["Jaren Jackson Jr.", "2022-23", "2024-25", 3]
+      ]
+    },
+    "lowtd": {
+      "label": "10-rebound, 10-assist games with 9 points or fewer", "one": "10-10 game with single-digit points", "short": "10-10 with single-digit points", "min": { "reb": 10, "ast": 10 }, "max": { "pts": 9 }, "complete": false,
+      "rows": [
+        ["Jason Kidd", "1995-96", "2011-12", 25], ["Draymond Green", "2015-16", "2024-25", 20], ["Norm Van Lier", "1969-70", "1975-76", 8],
+        ["Wes Unseld", "1974-75", "1979-80", 8], ["Rajon Rondo", "2007-08", "2015-16", 8], ["Sam Lacey", "1974-75", "1979-80", 7],
+        ["Bill Russell", "1964-65", "1968-69", 6], ["Magic Johnson", "1982-83", "1995-96", 6], ["Nate McMillan", "1986-87", "1989-90", 6],
+        ["Nikola Jokić", "2017-18", "2022-23", 6], ["Russell Westbrook", "2017-18", "2024-25", 6], ["Darrell Walker", "1989-90", "1990-91", 5]
+      ]
+    },
+    "t15": {
+      "label": "15-15-15 games (points, rebounds, assists)", "one": "15-15-15 game", "short": "15-15-15", "min": { "pts": 15, "reb": 15, "ast": 15 }, "complete": true,
+      "rows": [
+        ["Nikola Jokić", "2017-18", "2025-26", 18], ["Oscar Robertson", "1960-61", "1964-65", 14], ["Russell Westbrook", "2014-15", "2023-24", 10],
+        ["Wilt Chamberlain", "1966-67", "1967-68", 8], ["Magic Johnson", "1980-81", "1988-89", 3], ["Luka Dončić", "2019-20", "2023-24", 3],
+        ["Michael Ray Richardson", "1979-80", "1980-81", 2], ["Larry Bird", "1981-82", "1986-87", 2], ["Jason Kidd", "1995-96", "2009-10", 2],
+        ["Domantas Sabonis", "2022-23", "2022-23", 2], ["Giannis Antetokounmpo", "2019-20", "2024-25", 2], ["Jalen Johnson", "2025-26", "2025-26", 2],
+        ["Richie Guerin", "1960-61", "1960-61", 1], ["Guy Rodgers", "1962-63", "1962-63", 1], ["Donnie Butcher", "1963-64", "1963-64", 1],
+        ["Walt Frazier", "1967-68", "1967-68", 1], ["Rajon Rondo", "2011-12", "2011-12", 1], ["James Harden", "2016-17", "2016-17", 1]
+      ]
+    }
+  },
+  "streaks": {
+    "fg3": {
+      "label": "a made three", "short": "made-three streak", "min": { "fg3m": 1 }, "since": "1967-68",
+      "rows": [
+        ["Stephen Curry", "GSW", 268, "2018-12-01", "2023-12-16", false], ["Stephen Curry", "GSW", 157, "2014-11-13", "2016-11-03", false],
+        ["Damian Lillard", "MIL,POR", 150, "2021-11-06", "2024-04-10", false], ["Kyle Korver", "ATL", 127, "2012-11-04", "2014-03-02", false],
+        ["Luka Dončić", "DAL,LAL", 114, "2023-10-25", "2025-03-31", false], ["Bogdan Bogdanović", "ATL", 110, "2023-03-17", "2025-01-18", false],
+        ["Stephen Curry", "GSW", 102, "2024-12-21", "2026-11-11", true], ["Jordan Clarkson", "UTA", 99, "2020-01-29", "2021-10-30", false],
+        ["Klay Thompson", "GSW", 95, "2016-12-11", "2018-01-08", false], ["Dana Barros", "BOS,PHI", 89, "1994-12-23", "1996-01-10", false],
+        ["Buddy Hield", "SAC", 87, "2019-11-03", "2021-02-03", false], ["Karl-Anthony Towns", "MIN", 83, "2019-10-23", "2021-05-13", false],
+        ["Donovan Mitchell", "CLE", 82, "2024-01-22", "2025-03-05", false], ["Tyler Herro", "MIA", 79, "2023-12-18", "2025-01-29", false],
+        ["Joe Harris", "BRK", 79, "2019-11-12", "2021-01-25", false], ["James Harden", "HOU", 79, "2017-03-10", "2018-03-20", false],
+        ["Michael Adams", "DEN", 79, "1988-01-28", "1989-01-23", false], ["Dennis Scott", "ORL", 78, "1995-04-17", "1996-04-04", false],
+        ["Derrick White", "BOS", 77, "2025-01-15", "2026-01-12", false], ["Fred VanVleet", "TOR", 77, "2021-04-21", "2022-10-26", false],
+        ["JJ Redick", "LAC", 77, "2015-12-12", "2016-12-04", false], ["Fred VanVleet", "TOR", 76, "2019-12-20", "2021-04-02", false],
+        ["Stephen Curry", "GSW", 75, "2013-11-18", "2014-11-09", false], ["Jayson Tatum", "BOS", 72, "2024-11-24", "2026-04-09", false],
+        ["Stephen Curry", "GSW", 70, "2017-02-28", "2018-03-06", false]
+      ]
+    }
+  }
+}

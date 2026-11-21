@@ -1,4 +1,4 @@
-import { isMinorPass } from "../records/notable.js";
+import { isMinorPass, isSiteOnlyPass } from "../records/notable.js";
 import { trackMilestones } from "../registry/track.js";
 import { makeSampler, simulate } from "./model.js";
 import { importance } from "./importance.js";
@@ -191,6 +191,7 @@ export async function buildWatch({ team, notesDate, milestones, espn, today, sim
       publishable: live && m.status === "ok" && t.status !== "disagrees",
       source: m.sources?.[0]?.text || null,
       ...(isMinorPass({ kind: m.kind, scope: m.scope, stat: m.stat, passing: m.passing }) ? { minor: true } : {}),   // 0.64
+      ...(isSiteOnlyPass({ kind: m.kind, scope: m.scope, stat: m.stat, passing: m.passing }) ? { siteOnly: true } : {}),   // 0.142: points 51st-100th
     };
   }
 }

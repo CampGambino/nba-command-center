@@ -30,7 +30,7 @@ export async function bridgeChecks(ok, root, deps = {}) {
     { team: "SAS", items: [ item({ espnId: "20", player: "Final Reach", need: 6 }), item({ espnId: "21", player: "Final Miss", need: 30 }) ] },
   ] };
   const pl = (id, o) => ({ id, min: 20, pts: 12, tpm: 3, reb: 5, ast: 2, stl: 1, blk: 0, dreb: 4, oreb: 1, starter: true, ...o });
-  let flowData = null, versionData = null, teamMarksData = null, oddData = null, oddRulesText = null, rareData = null, rareRulesText = null;
+  let flowData = null, versionData = null, teamMarksData = null, oddData = null, oddRulesText = null, rareData = null, rareRulesText = null, featData = null;
   function run({ date = "20261109", hooks = true, games, extra = {} } = {}) {
     const cards = new Map(); let original = 0;
     const el = { style: {}, textContent: "" };
@@ -38,7 +38,7 @@ export async function bridgeChecks(ok, root, deps = {}) {
       URLSearchParams, URL, console, Promise, Object, Number, String, Math, Array, Date, JSON,
       location: { search: "?cc=" + encodeURIComponent("https://campgambino.github.io/nba-command-center/data/watch.json") },
       document: { readyState: "complete", getElementById: (id) => (id === "cc-bridge-note" ? el : null), createElement: () => el, body: { appendChild() {} } },
-      fetch: async (u) => ({ ok: true, json: async () => (String(u).includes("version.json") ? versionData : String(u).includes("teammarks.json") ? teamMarksData : String(u).includes("flowstats.json") ? flowData : String(u).includes("tonight.json") ? tonightData : String(u).includes("records.json") ? recordsData : String(u).includes("single-game-bests") ? bestsData : String(u).includes("oddlive.json") ? oddData : String(u).includes("linerare.json") ? rareData : watch), text: async () => (String(u).includes("oddlines.js") ? oddRulesText : String(u).includes("linerare.js") ? rareRulesText : "") }),
+      fetch: async (u) => ({ ok: true, json: async () => (String(u).includes("version.json") ? versionData : String(u).includes("teammarks.json") ? teamMarksData : String(u).includes("flowstats.json") ? flowData : String(u).includes("tonight.json") ? tonightData : String(u).includes("records.json") ? recordsData : String(u).includes("single-game-bests") ? bestsData : String(u).includes("oddlive.json") ? oddData : String(u).includes("linerare.json") ? rareData : String(u).includes("featlive.json") ? featData : watch), text: async () => (String(u).includes("oddlines.js") ? oddRulesText : String(u).includes("linerare.js") ? rareRulesText : "") }),
       setInterval() {}, setTimeout() {}, clearTimeout() {}, addEventListener() {},
     };
     ctx.window = ctx;
@@ -592,7 +592,7 @@ export async function bridgeChecks(ok, root, deps = {}) {
     // is downloaded at all (the rules are compiled in, and must equal their sources).
     const B = await import(path.join(root, "tools", "bundle-bridge-rules.mjs"));
     const src = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");
-    const want = B.bundle(fs.readFileSync(path.join(root, "src", "situations", "oddlines.js"), "utf8"), fs.readFileSync(path.join(root, "src", "situations", "linerare.js"), "utf8"));
+    const want = B.bundle(fs.readFileSync(path.join(root, "src", "situations", "oddlines.js"), "utf8"), fs.readFileSync(path.join(root, "src", "situations", "linerare.js"), "utf8"), fs.readFileSync(path.join(root, "src", "records", "featlive.js"), "utf8"));
     const loadWith = async (cc) => {
       const fetched = [], el = { style: {}, textContent: "" };
       const ctx = { URLSearchParams, URL, console, Promise, Object, Number, String, Math, Array, Date, JSON,
@@ -615,6 +615,59 @@ export async function bridgeChecks(ok, root, deps = {}) {
       && JSON.parse(fs.readFileSync(path.join(root, "docs", "bridge", "version.json"), "utf8")).version === +(/var VERSION = (\d+);/.exec(src) || [])[1],
       "bridge v28 (0.141.18): an outside ?cc= (attacker.example, a lookalike host) fetches nothing from it and is said in the note; a relative .json path and the site still work; ?cc=off fetches nothing; no .js file is ever fetched and nothing is run with new Function or eval; the rules compiled in equal their sources",
       JSON.stringify({ bad: bad.fetched.slice(0, 4), look: outside(look), rel: rel.fetched.slice(0, 3), codeFetched, noEval, note: bad.note }));
+  }
+  {
+    // v29 (0.142.0; the user, 11/21: "proceed with your suggestions"): career feat boards, live streaks, team streaks.
+    featData = { v: 1, today: "2026-11-09", asOf: "2026-11-07", through: "2026-11-08", boards: {
+      p30r10a5: { label: "30-point, 10-rebound, 5-assist games", one: "30-10-5 game", min: { pts: 30, reb: 10, ast: 5 }, rows: [
+        { name: "Big Ten", now: 164 }, { name: "Old Guard", now: 157 }, { name: "Tie Man", id: "f1", team: "AAA", live: true, now: 136, games: ["fz1"] }, { name: "Other Tie", now: 135 }, { name: "Verge Guy", id: "f4", team: "AAA", live: true, now: 156, games: [] }] },
+      t15: { label: "15-15-15 games", one: "15-15-15 game", min: { pts: 15, reb: 15, ast: 15 }, rows: [{ name: "Triple Man", id: "f2", team: "AAA", live: true, now: 18, games: [] }, { name: "Oscar Old", now: 14 }] },
+      lowtd: { label: "10-10 games with single-digit points", one: "10-10 game with single-digit points", min: { reb: 10, ast: 10 }, max: { pts: 9 }, rows: [{ name: "Pass First", id: "f3", team: "AAA", live: true, now: 24, games: [] }, { name: "Old Kidd", now: 25 }] } },
+      streaks: [{ id: "s1", name: "Dub Guy", team: "AAA", tests: ["dd"], label: "a double-double", n: 15, source: "notes" },
+        { id: "s2", name: "Three Guy", team: "AAA", tests: [{ k: "fg3m", min: 1 }], label: "a made three", n: 102, source: "list", since: "1967-68", list: [{ name: "Long One", n: 268 }, { name: "Six Man", n: 110 }, { name: "Nine Nine", n: 99 }] },
+        { id: "s3", name: "Dime Guy", team: "AAA", tests: [{ k: "ast", min: 5 }], label: "5+ assists", n: 13, source: "notes" }],
+      teamStreaks: [{ team: "AAA", kind: "ptsVs", n: 31, min: 100, opp: "BBB", label: "games with 100+ points against the Bees" }, { team: "BBB", kind: "winHolding", n: 33, max: 105, label: "wins when holding the opponent to 105 or fewer" }] };
+    const Z = { pts: 0, tpm: 0, tpa: 0, reb: 0, ast: 0, stl: 0, blk: 0, dreb: 0, oreb: 0, fgm: 0, fga: 0, ftm: 0, fta: 0, to: 0, pf: 0, min: 30, starter: true };
+    const P = (id, name, o) => ({ ...Z, id, name, ...o });
+    const team = () => [P("f1", "Tie Man", { pts: 31, reb: 12, ast: 6 }), P("f2", "Triple Man", { pts: 16, reb: 15, ast: 15 }), P("f3", "Pass First", { pts: 6, reb: 11, ast: 12 }),
+      P("f4", "Verge Guy", { pts: 27, reb: 11, ast: 6 }), P("s1", "Dub Guy", { pts: 18, reb: 7, ast: 3 }), P("s2", "Three Guy", { pts: 9, tpm: 1 }), P("s3", "Dime Guy", { pts: 12, ast: 3 })];
+    const gm = (o = {}) => [{ id: "fz1", status: "live", period: 3, clock: "6:00", away: { tricode: "AAA", score: 96 }, home: { tricode: "BBB", score: 90 }, boxscore: { away: team(), home: [P("h9", "Home Nine", { pts: 10 })] }, ...o }];
+    const pick = (r, pre) => Object.fromEntries([...r.cards].filter(([k]) => k.startsWith(pre)).map(([k, c]) => [k.slice(pre.length), c]));
+    const go = async (games, date = "20261109") => { const r = run({ games, date }); await flush(); r.ctx.runAlertChecks(); await flush(); return r; };
+    const r3 = await go(gm()), f3 = pick(r3, "cc-feat-");
+    ok(f3["p30r10a5-f1-fz1"]?.icon === "📊 CAREER FEAT" && f3["p30r10a5-f1-fz1"].text === "Tie Man (AAA) — his 136th 30-10-5 game, passing Other Tie (135) for 4th all-time"
+      && f3["t15-f2-fz1"]?.icon === "🏆 CAREER FEAT · RECORD" && f3["t15-f2-fz1"].text === "Triple Man (AAA) — his 19th 15-15-15 game, adding to his NBA record (Oscar Old is next with 14)"
+      && !f3["lowtd-f3-fz1"] && f3["p30r10a5-f4-fz1"]?.icon === "👀 ON THE VERGE" && f3["p30r10a5-f4-fz1"].text === "Verge Guy (AAA) — 3 points from his 157th 30-10-5 game, tying Old Guard for 2nd all-time"
+      && /Basketball-Reference through 2026-11-07 plus box scores since/.test(f3["p30r10a5-f1-fz1"].sub),
+      "bridge v29 (0.142.0): a qualifying line that moves him on a career board is carded (a count that already holds tonight's game is taken back first); adding to a record he holds is a record card; one stat a step short from the 3rd quarter is \"on the verge\"; a board with a ceiling (single-digit points) waits for the end",
+      JSON.stringify(Object.entries(f3).map(([k, c]) => [k, c.icon, c.text])));
+    const r4 = await go(gm({ period: 4, clock: "4:00" })), f4 = pick(r4, "cc-feat-");
+    ok(f4["lowtd-f3-fz1"]?.icon === "🏆 CAREER FEAT · RECORD · AS IT STANDS" && f4["lowtd-f3-fz1"].text === "Pass First (AAA) — his 25th 10-10 game with single-digit points, tying Old Kidd for the NBA record, 4:00 left",
+      "bridge v29: the ceiling board is carded \"as it stands\" in the last five minutes", JSON.stringify(f4["lowtd-f3-fz1"]));
+    const pf = r4.ctx.GAMES[0].boxscore.away.find((p) => p.id === "f3"); pf.pts = 11; r4.ctx.runAlertChecks(); await flush();
+    ok(pick(r4, "cc-feat-")["lowtd-f3-fz1"]?.ended === true, "bridge v29: more points undo it and the card is greyed", JSON.stringify(pick(r4, "cc-feat-")["lowtd-f3-fz1"]));
+    // Streaks: the night is after the file's through date. Live in the 3rd: the made three extends; nothing else yet.
+    const s3 = pick(r3, "cc-streak-");
+    ok(s3["s2-fz1"]?.icon === "🔥 STREAK EXTENDED" && s3["s2-fz1"].text === "Three Guy (AAA) — a made three in 103 straight games, the 3rd-longest since 1967-68; Six Man's 110 is next" && !s3["s1-fz1"] && !s3["s3-fz1"],
+      "bridge v29: a run on the all-time list extends the moment the line meets it, with where it now stands", JSON.stringify(s3));
+    const late = await go(gm({ period: 4, clock: "4:30" })), sl = pick(late, "cc-streak-");
+    ok(sl["s1-fz1"]?.icon === "⚠️ STREAK IN DANGER" && sl["s1-fz1"].text === "Dub Guy (AAA) — 3 rebounds short of a double-double for 16 straight games, 4:30 left in the 4th"
+      && sl["s3-fz1"]?.text === "Dime Guy (AAA) — 2 assists short of 5+ assists for 14 straight games, 4:30 left in the 4th",
+      "bridge v29: inside the last six minutes, a notes run he hasn't met yet is \"in danger\", saying what's missing", JSON.stringify(sl));
+    const d = late.ctx.GAMES[0].boxscore.away.find((p) => p.id === "s3"); d.ast = 5; late.ctx.GAMES[0].status = "final"; late.ctx.runAlertChecks(); await flush();
+    const sf = pick(late, "cc-streak-");
+    ok(sf["s3-fz1"]?.icon === "🔥 STREAK EXTENDED" && sf["s3-fz1"].text === "Dime Guy (AAA) — 5+ assists in 14 straight games" && sf["s1-fz1"]?.icon === "🧊 STREAK ENDS" && /^Dub Guy \(AAA\) — his run of 15 straight games with a double-double ends \(18 pts, 7 reb, 3 ast\)$/.test(sf["s1-fz1"].text),
+      "bridge v29: getting there replaces the warning; at the final an unmet run ends, with his line", JSON.stringify(sf));
+    // Team runs: 100+ against that one opponent, live; a win while holding the opponent under the bar, at stake only under it.
+    const t3 = pick(await go(gm({ away: { tricode: "AAA", score: 101 }, home: { tricode: "BBB", score: 99 } })), "cc-tstreak-");
+    ok(t3["AAA-ptsVs-fz1"]?.icon === "🔥 TEAM STREAK EXTENDED" && t3["AAA-ptsVs-fz1"].text === "AAA — 32 straight games with 100+ points against the Bees" && !t3["BBB-winHolding-fz1"],
+      "bridge v29: a team run vs one opponent extends when the bar is reached; one that needs a win waits", JSON.stringify(t3));
+    const tl = pick(await go(gm({ period: 4, clock: "2:00", away: { tricode: "AAA", score: 98 }, home: { tricode: "BBB", score: 96 } })), "cc-tstreak-");
+    ok(tl["BBB-winHolding-fz1"]?.icon === "⚠️ TEAM STREAK IN DANGER" && tl["BBB-winHolding-fz1"].text === "BBB — 33 straight wins when holding the opponent to 105 or fewer on the line: 96-98, 2:00 left in the 4th",
+      "bridge v29: late, trailing while holding the opponent under the bar puts the team run in danger", JSON.stringify(tl));
+    const old = pick(await go(gm(), "20261108"), "cc-streak-");
+    ok(!Object.keys(old).length, "bridge v29: a night the file already counts gets no streak cards", Object.keys(old).join(" "));
+    featData = null;
   }
   flowData = null;
 }

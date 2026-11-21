@@ -143,6 +143,7 @@ export async function buildSite({ entries, games = [], uncounted = [], espn, nba
         confidence: i.confidence ?? null, games: i.form?.games ?? null, lineup: i.lineup ?? null,
         reached: !!i.reached, stale: !!i.stale, note: i.note ?? null,
         ...(i.minor ? { minor: true } : {}),   // 0.64: a pass to a place not worth saying (src/records/notable.js)
+        ...(i.siteOnly ? { siteOnly: true } : {}),   // 0.142: a site line, never an NBA Live card
       };
     });
     teams.push({ ...base, opponent: parsed?.meta.opponent ?? null, notesDate: parsed?.meta.gameDate ?? null, tonightGame, problems, items,

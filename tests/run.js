@@ -3916,7 +3916,7 @@ await bridgeChecks(ok, root);
   {
     const src = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");
     const sl = fs.readFileSync(path.join(root, "src", "anticipate", "seasonlong.js"), "utf8");
-    ok(/var VERSION = (?:1[4-9]|[2-9]\d);/.test(src) && /return !l\.bg && \(l\.kind !== "foul"/.test(src) && (sl.match(/standing: true/g) || []).length === 2 && /era\|decade\|[^\n]*\n[^\n]*\n[^\n]*standing: true/.test(sl),
+    ok(/var VERSION = (?:1[4-9]|[2-9]\d);/.test(src) && /return !l\.bg && (?:!l\.siteOnly && )?\(l\.kind !== "foul"/.test(src) && (sl.match(/standing: true/g) || []).length === 2 && /era\|decade\|[^\n]*\n[^\n]*\n[^\n]*standing: true/.test(sl),
       "bridge v14: a standing fact (\"leads the decade in…\") is marked bg and gets no pre-game card in NBA Live");
   }
 
@@ -4976,6 +4976,55 @@ await bridgeChecks(ok, root);
     && wemb.hits[0]?.line === "52 points and 24 rebounds" && wemb.hits[0].n === 0 && !bam.hits.length && trivial.hits[0]?.line === "50 points and 23 rebounds" && exact,
     "rare combinations (0.141.17): the bridge's copy is the build's; 39,062 games since 1993-94 (Cup title games out); 52 and 24 is no one else's; an 83-point night is the single-game lists' card, not this one; a trivial qualifier (1 block) is never what makes a line rare; the boundary equals a brute-force count",
     JSON.stringify({ wemb: wemb.hits[0], bam: bam.hits, trivial: trivial.hits[0], exact }));
+}
+
+// ---------- 0.142: all-time points to the top 100, career feat boards, live streaks ----------
+{
+  const N = await import("../src/records/notable.js");
+  ok(N.worthPlace("nba", "pts", 50) && !N.worthPlace("nba", "pts", 51) && N.worthPlace("nba", "pts", 100, { site: true }) && !N.worthPlace("nba", "pts", 101, { site: true }) && !N.worthPlace("nba", "reb", 26)
+    && N.tierEntered("pts", 101, 100) === 100 && N.tierEntered("pts", 101, 74) === 75 && N.tierEntered("pts", 76, 75) === 75 && N.tierEntered("pts", 75, 74) === null && N.tierEntered("pts", null, 99) === 100 && N.tierEntered("reb", 30, 25) === null
+    && N.isSiteOnlyPass({ kind: "pass", stat: "pts", rank: 80 }) && !N.isSiteOnlyPass({ kind: "pass", stat: "pts", rank: 80, tier: 100 }) && !N.isSiteOnlyPass({ kind: "pass", stat: "pts", rank: 40 })
+    && !N.isMinorPass({ kind: "pass", stat: "pts", rank: 80 }) && N.isMinorPass({ kind: "pass", stat: "pts", rank: 101 }) && !N.isMinorPass({ kind: "pass", stat: "pts", rank: 100, tier: 100 })
+    && N.isSiteOnlyPass({ kind: "pass", scope: "nba", stat: "pts", passing: { rank: 60 } }),
+    "points (0.142, the user 11/21): a live card to 50th, a site line to 100th, and entering the top 100/75/50/25 from below is a card wherever it lands; the other stats keep their rule");
+  // The guide: the deeper list and active totals make the points list complete to its floor; only the pass that crosses a tier enters it.
+  const { currentRecords } = await import("../src/records/guide.js");
+  const tf = { AAA: { keys: ["min", "pts"], names: { "9": "Climber Guy" }, games: Array.from({ length: 10 }, (_, i) => ({ d: `2026-11-${String(i + 1).padStart(2, "0")}`, opp: "BBB", home: true, pf: 100, pa: 90, pl: { "9": [30, 30] } })) } };
+  const tag = (i) => `${String.fromCharCode(65 + (i % 26))}${String.fromCharCode(97 + Math.floor(i / 26))}x`;   // names, not numbers (names match without digits)
+  const scorers = Array.from({ length: 70 }, (_, i) => ({ rank: i + 1, name: `Old Scorer ${tag(i)}`, pts: 40000 - i * 300 }));
+  const deep = { asOf: "2026-11-01", floor: 17000, rows: Array.from({ length: 30 }, (_, i) => ({ name: `Deep Guy ${tag(i)}`, pts: 19190 - i * 40 })) };   // ranks 71-100
+  const R = currentRecords({ guide: {}, teamFiles: tf, today: "2026-11-11", tonight: [{ home: "AAA", away: "BBB" }], scorers, deepPoints: deep, activeTotals: [{ name: "Climber Guy", stat: "pts", value: 17720 }] });
+  const me = R.boards.pts.find((r) => r.name === "Climber Guy"), mine = R.items.filter((i) => i.kind === "pass" && i.who === "Climber Guy");
+  ok(me?.now === 18020 && me.rank === 101 && mine.length === 3 && JSON.stringify(mine.map((i) => [i.rank, i.tier || null, !!i.siteOnly, !!i.minor])) === "[[100,100,false,false],[99,null,true,false],[98,null,true,false]]"
+    && /for 100th all-time, into the top 100$/.test(mine[0].text),
+    "points (0.142): ranks run past the Guide's 68 with the deeper list and every active total; a tier is tagged once, on the crossing pass", JSON.stringify({ me, mine: mine.map((i) => [i.text, i.tier]) }));
+  // Feat boards: the rules, and the build's counts on top of the screenshot's.
+  const F = await import("../src/records/featlive.js"), FB = await import("../src/records/featboards.js");
+  const b = { label: "30-point, 10-rebound, 5-assist games", one: "30-10-5 game", min: { pts: 30, reb: 10, ast: 5 }, rows: [{ name: "Leader", now: 164 }, { name: "Tied Man", now: 135 }, { name: "Me", now: 135 }] };
+  const td = { label: "30-point triple-doubles", one: "30-point triple-double", min: { pts: 30 }, td: true, rows: [{ name: "Top", now: 106 }, { name: "Me", now: 59 }] };
+  ok(F.featNext(b, b.rows[2])?.line === "Me: his next 30-10-5 game would be his 136th, passing Tied Man (135) for 2nd all-time" && F.featNext(td, td.rows[1]) === null
+    && F.featNext(b, b.rows[0]).what === "adding to his NBA record (Tied Man is next with 135)"
+    && JSON.stringify(F.shortOf(td, { pts: 31, reb: 12, ast: 8 })) === '[["ast",2]]' && F.shortOf({ min: { reb: 10, ast: 10 }, max: { pts: 9 } }, { pts: 10, reb: 9, ast: 9 }) === null
+    && F.featLive(b, "Me", 135, { pts: 24, reb: 11, ast: 6 }) === null && F.featLive(b, "Me", 135, { pts: 28, reb: 11, ast: 6 }).warn.k === "pts" && F.featLive(b, "Me", 135, { pts: 30, reb: 10, ast: 5 }).hit.place === 2
+    && F.streakMet(["dd"], { pts: 10, reb: 10 }) && !F.streakMet(["start"], { starter: 0 }) && F.shortText(F.streakShort([{ k: "ast", min: 5 }], { ast: 3 })) === "2 assists",
+    "feat boards (0.142): his next one is said only when it passes or ties a name or adds to his record; on the verge is one stat a step short; a ceiling broken can't be met");
+  const pg = { p1: [{ d: "2026-11-05", gameId: "g1", team: "AAA", opp: "BBB", home: true, pts: 31, reb: 11, ast: 6, starter: 1 }, { d: "2026-11-10", gameId: "g2", team: "AAA", opp: "CCC", home: false, pts: 33, reb: 12, ast: 7, starter: 1 },
+    { d: "2026-11-12", gameId: "g3", team: "AAA", opp: "BBB", home: true, pts: 20, reb: 12, ast: 9, starter: 1 }],
+    p2: [{ d: "2026-11-12", gameId: "g3", team: "BBB", opp: "AAA", home: false, pts: 90, reb: 0, ast: 0, starter: 1 }] };
+  const file = { asOf: "2026-11-08", source: "test", boards: { b: { label: b.label, one: b.one, min: b.min, rows: [["Leader", "1960-61", "1970-71", 164], ["Tied Man", "2003-04", "2024-25", 135], ["Me Player", "2016-17", "2026-27", 134]] } },
+    streaks: { fg3: { label: "a made three", min: { fg3m: 1 }, since: "1967-68", rows: [] } } };
+  const out = FB.buildFeatLive({ file, pg, names: { p1: "Me Player", p2: "Them" }, tonightTeams: new Set(["AAA"]),
+    notesFacts: { teams: { AAA: [{ text: "The Aces have won 11 consecutive home games against the Bees.", playerId: null, firstSeen: "2026-11-11" }, { text: "Me Player has recorded a double-double in three straight games to start the season.", playerId: "p1", firstSeen: "2026-11-11" }] } } });
+  const row = out.boards.b.rows.find((r) => r.name === "Me Player");
+  ok(row.now === 135 && row.base === 134 && JSON.stringify(row.games) === '["g2"]' && out.pre[0]?.line === "Me Player: his next 30-10-5 game would be his 136th, passing Tied Man (135) for 2nd all-time (2 of his 3 games this season)"
+    && out.streaks.some((s) => s.name === "Me Player" && s.n === 3 && s.source === "notes") && !out.teamStreaks.length && out.teamEnded.length === 0 && !out.problems.length
+    && FB.teamStreakOf("The Mavericks have won 11 consecutive home games against Utah.", "DAL")?.opp === "UTA" && FB.teamStreakOf("In defeating Portland 106-105 on Nov. 17, the Wolves have now won 33 consecutive games when holding opponents to 105 points or fewer.", "MIN")?.asOf === "11-17",
+    "feat boards (0.142): the screenshot's count plus his qualifying games after its date (named, so NBA Live can't count tonight twice); a notes run the box scores confirm is followed; a team's home run over one opponent waits for a home game against it",
+    JSON.stringify({ row, pre: out.pre, streaks: out.streaks, team: out.teamStreaks, problems: out.problems }));
+  // The real file: every board's count and filter agree with our box scores this season (its own consistency check), through 11/19.
+  const real = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "feat-boards-2026-11-21.json"), "utf8"));
+  ok(real.asOf === "2026-11-19" && Object.values(real.boards).every((x) => x.one && x.rows.every((r) => r.length === 4 && r[3] > 0) && x.rows.every((r, i, a) => !i || a[i - 1][3] >= r[3])),
+    "feat boards (0.142): the transcribed boards are sorted, complete rows, each with a one-game name; counts through 11/19 (Basketball-Reference hadn't added 11/20)");
 }
 
 // ---------- 0.141.14: the Worker's saved data, backed up (tools/kv-backup.mjs, .github/workflows/kv-backup.yml) ----------

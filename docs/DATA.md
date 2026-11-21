@@ -12,8 +12,8 @@ What they read is listed below and checked against the real published files on e
 | File | The bridge takes it when | Fields it reads |
 |---|---|---|
 | `data/watch.json` | always (its main file) | top: `today`, `teams[]`; team: `team`, `items[]`; item: `espnId`, `player`, `stat`, `label`, `kind`, `scope`, `target`, `need`, `importance`, `pTonight`, `publishable`, `tracking`, `review`, `origin`. It skips items with `origin: "espn"`, `stale`, no `espnId` or no `need`. |
-| `data/records.json` | `items` is a list | item: `id`, `who`, `team`, `stat`, `label`, `kind` (only `pass`, `round`, `franchise`, `cup`), `need`, `target`, `score`, `text`; `passing` (who is passed) and `rank` on passes; `pTonight` where a chance was worked out |
-| `data/tonight.json` | `games` is a list | game: `away`, `home`, `lines[]`; line: `kind`, `text` |
+| `data/records.json` | `items` is a list | item: `id`, `who`, `team`, `stat`, `label`, `kind` (only `pass`, `round`, `franchise`, `cup`), `need`, `target`, `score`, `text`; `passing` (who is passed) and `rank` on passes; `pTonight` where a chance was worked out; (v29) `tier` on a points pass that enters the top 100/75/50/25; `boards.pts` runs to about 120 ranked names |
+| `data/tonight.json` | `games` is a list | game: `away`, `home`, `lines[]`; line: `kind`, `text`; a line with `bg` or (v29) `siteOnly` gets no pre-game card |
 | `data/teammarks.json` | `v === 1` and `teams` | each team's single-game marks |
 | `data/oddlive.json` | `v === 1` and `t` | the odd-line counts |
 | `data/flowstats.json` | `quarters` is a list | `quarters`, `halves`, `teamQuarters` (season-best lists) |
@@ -21,6 +21,8 @@ What they read is listed below and checked against the real published files on e
 | (none since v28) | | the odd-line rules (`src/situations/oddlines.js`) are compiled into the bridge by `tools/bundle-bridge-rules.mjs`; the bridge downloads data only |
 | `data/linerare.json` | `v === 1` and `combos` | the rare-combination boundaries and named games (0.141.17) |
 | (none since v28) | | the rare-combination rules (`src/situations/linerare.js`), compiled in the same way |
+| `data/featlive.json` | `v === 1` and `boards` | (v29, 0.142) `asOf`, `through`; `boards[key]`: `label`, `one`, `min`, `max`, `td`, `caveat`, `rows[]` (`name`, `id`, `team`, `live`, `now`, `games`); `streaks[]`: `id`, `name`, `team`, `tests`, `label`, `n`, `source`, `since`, `list`; `teamStreaks[]`: `team`, `kind`, `n`, `opp`, `home`, `min`, `max`, `label` |
+| (none) | | the feat and streak rules (`src/records/featlive.js`), compiled in the same way (FEAT_RULES) |
 | `bridge/version.json` | `version` is a number | tells NBA Live a newer bridge exists |
 
 ## The Worker
