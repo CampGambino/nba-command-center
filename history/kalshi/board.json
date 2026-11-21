@@ -88,7 +88,7 @@
   "KXNBAASTPROT": {
    "title": "NBA Player Assists Protected",
    "events": 6,
-   "markets": 223
+   "markets": 224
   },
   "KXNBA2NDTEAM": {
    "title": "All-NBA 2nd Team",
@@ -173,7 +173,7 @@
   "KXNBAREB": {
    "title": "NBA Player Rebounds",
    "events": 6,
-   "markets": 260
+   "markets": 263
   },
   "KXNBATEAMMATE": {
    "title": "NBA Teammate of the Year",
@@ -288,7 +288,7 @@
   "KXNBAPRAPROT": {
    "title": "Pts + Reb + Ast Protected",
    "events": 6,
-   "markets": 183
+   "markets": 186
   },
   "KXNBAMVP": {
    "title": "NBA MVP",
@@ -333,7 +333,7 @@
   "KXNBAPRA": {
    "title": "NBA Player Points + Rebounds + Assists",
    "events": 6,
-   "markets": 183
+   "markets": 186
   },
   "KXNBA4D": {
    "title": "Any Player to Record a Quadruple Double",
@@ -343,7 +343,7 @@
   "KXNBAPTSLEADER": {
    "title": "NBA Game Points Leader",
    "events": 6,
-   "markets": 67
+   "markets": 70
   },
   "KXNBASJC": {
    "title": "NBA Social Justice Champion",
@@ -378,7 +378,7 @@
   "KXNBAAST": {
    "title": "NBA Player Assists",
    "events": 6,
-   "markets": 222
+   "markets": 223
   },
   "KXNBA1STTEAM": {
    "title": "All-NBA 1st Team",
@@ -553,7 +553,7 @@
   "KXNBASTLPROT": {
    "title": "NBA Player Steals Protected",
    "events": 6,
-   "markets": 113
+   "markets": 114
   },
   "KXNBA4Q": {
    "title": "NBA 4th Quarter Winner",
@@ -658,7 +658,7 @@
   "KXNBASTL": {
    "title": "NBA Player Steals",
    "events": 6,
-   "markets": 113
+   "markets": 114
   },
   "KXCOACHOUTNBADATE": {
    "title": "NBA Coach Out Date",
@@ -735,10 +735,10 @@
   "KXNBAEAST1SEED-26": "Boston 36%",
   "KXNBAATLANTIC-26": "Boston 56%",
   "KXNBACOY-27": "Micah Nori 16%",
-  "KXNBACUP-26": "San Antonio 26%",
-  "KXNBAMIMP-27": "Ty Jerome 27%",
-  "KXNBARECORD-27BEST": "San Antonio 41%",
+  "KXNBACUP-26": "San Antonio 25%",
+  "KXNBARECORD-27BEST": "San Antonio 40%",
   "KXNBARECORD-27WORST": "Sacramento 41%",
+  "KXNBAMIMP-27": "Ty Jerome 27%",
   "KXNBADPOY-27": "Victor Wembanyama 82%",
   "KXNBAROY-27": "Cameron Boozer 36%",
   "KXNBACUPMVP-27": "Victor Wembanyama 33%",
@@ -751,8 +751,8 @@
   "KXNBAEXEC-27": "Sam Presti 13%",
   "KXNBA-27": "San Antonio 22%",
   "KXNBAPACIFIC-26": "Los Angeles L 82%",
-  "KXNBAEAST-27": "Boston 21%",
   "KXNBACLUTCH-27": "Jamal Murray 11%",
+  "KXNBAEAST-27": "Boston 21%",
   "KXNBAWEST1SEED-26": "San Antonio 53%",
   "KXNBAWFINMVP-27": "Shai Gilgeous-Alexander 20%",
   "KXNBACENTRAL-26": "Detroit 68%",
