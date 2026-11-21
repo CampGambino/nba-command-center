@@ -1,4 +1,5 @@
 import { checkLine, statClaims, thresholdClaims, meetsThresholds } from "./boxscore.js";
+import { SEASON, SEASON_RE, SEASON_SHORT } from "../season.js";
 import { normStat, num } from "./stats.js";
 
 /**
@@ -392,8 +393,10 @@ const SERIES = /\bseason series\b|\bseries (?:history|between)\b|\bthis season['
 const SINCE_CLAUSE = /^Since (?:entering|joining|being drafted|he (?:joined|entered|arrived)|his (?:arrival|debut|rookie))[^,]{0,140},\s*/i;
 const PASSY = /\b(?:pass|passing|tie|tying|surpass|move (?:up|into|past)|jump)\b/i;
 const NOT_NBA = /\b(?:program record|against No\. \d+|high school|school history|program(?:'s)? (?:history|all-time)|NCAA|college|freshman|sophomore|junior|senior year|AAU|conference tournament|EuroLeague|Olympic|FIBA|national team|G League|summer league|preseason)\b/i;
-const CURRENT = /\b(?:active streak|longest active|this season|this year|2026-27|26-27|tonight|last game|last night|his last|over (?:his|the) (?:past|last) \d+|in (?:each of )?the first \d+ games|through \d+ games|to (?:begin|start|open) (?:the|his|their) (?:season|campaign|year)|for the \w+ (?:straight|consecutive) game|season opener|today|so far|is now|currently|this campaign|in (?:his|their) (?:\w+ )?debut with|(?:has|have) (?:now )?(?:recorded|scored|made|posted|had|tallied|grabbed|dished|hit|logged|notched) [^.]{0,60}\b(?:straight|consecutive) games)\b|\b(?:Oct|Nov|Dec)\.? \d{1,2}\b|\b1[0-2]\/\d{1,2}\b/i;
-const OLDER = /\b(?:last season|in 20(?:0\d|1\d|2[0-5])-\d\d|20(?:0\d|1\d|2[0-5])-\d\d:|during (?:the )?20(?:0\d|1\d|2[0-5])|previous (?:season|\d+ seasons)|career-long|as a rookie in)\b/i;
+const CURRENT = new RegExp(String.raw`\b(?:active streak|longest active|this season|this year|${SEASON_RE}|${SEASON_SHORT}|tonight|last game|last night|his last|over (?:his|the) (?:past|last) \d+|in (?:each of )?the first \d+ games|through \d+ games|to (?:begin|start|open) (?:the|his|their) (?:season|campaign|year)|for the \w+ (?:straight|consecutive) game|season opener|today|so far|is now|currently|this campaign|in (?:his|their) (?:\w+ )?debut with|(?:has|have) (?:now )?(?:recorded|scored|made|posted|had|tallied|grabbed|dished|hit|logged|notched) [^.]{0,60}\b(?:straight|consecutive) games)\b|\b(?:Oct|Nov|Dec)\.? \d{1,2}\b|\b1[0-2]\/\d{1,2}\b`, "i");   // 0.141.6: the season from src/season.js
+// 0.141.6: seasons before this one (src/season.js), not a typed "2025-26" that next season would read as current.
+const PAST_YEARS = Array.from({ length: Number(SEASON.slice(0, 4)) - 2000 }, (_, i) => String(i).padStart(2, "0")).join("|");
+const OLDER = new RegExp(String.raw`\b(?:last season|in 20(?:${PAST_YEARS})-\d\d|20(?:${PAST_YEARS})-\d\d:|during (?:the )?20(?:${PAST_YEARS})|previous (?:season|\d+ seasons)|career-long|as a rookie in)\b`, "i");
 
 const TABLEY = /\b(?:ASTS?|STLS?|REBS?|BLKS?|TREB|PTS|TOV)\s+\d|\d+[prab]-\d+[prab]\b|\s\*\s|\b\d+K (?:PTS|AST|REB)\b|(?:\b[A-Z0-9’'&]{2,}\b\s+){3,}|\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\s+\d{1,3}\s|\b[A-Z]{2,3}\s+\d{1,3}\s+\d{1,2}\/\d{1,2}\b/;
 const MONTHS = "janfebmaraprmayjunjulaugsepoctnovdec";

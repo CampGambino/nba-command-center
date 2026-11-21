@@ -1,3 +1,4 @@
+import { seasonFile } from "../season.js";
 import { calibrate, PLAY_ONLY } from "../anticipate/calibrate.js";
 import { sameName, nameKey } from "../notes/names.js";
 import fs from "node:fs";
@@ -74,7 +75,7 @@ export async function buildSite({ entries, games = [], uncounted = [], espn, nba
   // that breaks a tie between the notes and ESPN (see trackMilestones).
   let guideBase = null;
   try {
-    const cs = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-career-seasons-2026-27.json"), "utf8"));
+    const cs = JSON.parse(fs.readFileSync(path.join(root, "src", "data", seasonFile("nba-career-seasons")), "utf8"));
     const K = Object.fromEntries(cs.keys.map((k, i) => [k, i])), STAT = { gp: "g" };
     const loose = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[.'’]/g, "").replace(/\s+(jr|sr|ii|iii|iv)$/, "").replace(/\s+/g, " ").trim();
     const by = new Map(Object.entries(cs.players).map(([n, rows]) => [loose(n), rows]));

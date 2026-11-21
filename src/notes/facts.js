@@ -13,6 +13,9 @@
  * SINCE 2018-19 SEASON RANK PLAYER ASSISTS 1 NIKOLA JOKIĆ 5,164 2 TRAE YOUNG 4,968 …"), so a line can say who is
  * next and by how much: the race.
  */
+import { SEASON, SEASON_RE } from "../season.js";
+// 0.141.6: "this season" by the season constant, not a typed "2026-27" (src/season.js; docs/SEASON.md).
+const THIS_SEASON_RE = new RegExp(`\\bthis (?:season|year|campaign)\\b|\\bso far\\b|\\bcurrently\\b|\\b${SEASON_RE}\\b|\\bover the first \\d+ games of the season\\b|\\bwhich leads the league\\b`, "i");
 import { blocks } from "./narrative.js";
 
 const WORDNUM = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12 };
@@ -69,7 +72,7 @@ export function features(text, meta = {}) {
   const history = /\bin (?:NBA|league) history\b|\ball-time\b|\bsince (?:the )?(?:19[5-9]\d)\b|\bever\b|\bsince \w+ (?:began|were) (?:being )?(?:officially )?tracked\b/i.test(t);
   const teamOnly = /\bby any [A-Z][a-z]+s? player\b|\bby a [A-Z][a-z]+s? player\b|\bon the team\b|\bamong (?:all )?(?:[A-Z][a-z]+s?|team) (?:players|rookies)\b/.test(t);
   const franchise = /\b(?:in|on) (?:the )?[A-Z][a-z]+(?:['’]s?)? all-time\b|\b[A-Z][a-z]+['’]s? (?:all-time|career|franchise) (?:list|leaders?)\b|\b(?:franchise|team|club) (?:history|annals)\b/.test(t) || /\b(?:team|franchise|club) (?:history|annals|record)\b|\b[A-Z][a-z]+ (?:history|annals)\b(?<!NBA history)|\bof a [A-Z][a-z]+ career\b|\bby an? [A-Z][a-z]+(?: rookie)? (?:in|since)\b|\b(?:first|only|\w+) [A-Z][a-z]+s? (?:rookie|duo|trio|player)s? (?:to|since|in)\b/.test(t) && !/\bin (?:NBA|league) history\b/i.test(t);
-  const season = /\bthis (?:season|year|campaign)\b|\bso far\b|\bcurrently\b|\b2026-27\b|\bover the first \d+ games of the season\b|\bwhich leads the league\b/i.test(t);
+  const season = THIS_SEASON_RE.test(t);
   const streak = /\b\d{2,} (?:consecutive|straight) (?:[\w-]+ ){0,2}(?:games|starts|contests)\b|\bactive streak\b|\blongest active\b/i.test(t);
   const race = /\bonly\b[^.;]{0,80}\bmore\b[^.;]{0,60}\bthan\b|\bsecond only to\b|\bbehind only\b|\b(?:owns|has|holds) the most\b[^.;]{0,40}\b(?:since|in the NBA)\b/i.test(t);
   const f = {
@@ -363,7 +366,7 @@ export function hookFor(line, { race = null, stay = null } = {}) {
   if (race) {
     // Live: this season's lists, active streaks, and counting lists (100+) where the gap is a game's worth (10 or less).
     const single = /\b(?:IN A|DEBUT|OPENER|SEASON-?OPENER|OVER \d+ (?:CAREER )?GAMES)\b/.test(race.title || "");
-    const live = (gap) => !single && (/ACTIVE/.test(race.title || "") || race.scope === "season" && !/20\d\d-\d\d/.test((race.title || "").replace(/2026-27/, "")) || race.value >= 100 && gap <= 10);
+    const live = (gap) => !single && (/ACTIVE/.test(race.title || "") || race.scope === "season" && !/20\d\d-\d\d/.test((race.title || "").replace(SEASON, "")) || race.value >= 100 && gap <= 10);
     if (race.rank === 1 && race.below) return race.below.gap === 0
       ? { text: `Tied with ${race.below.name} at ${race.valueText} on the list, listed first.`, live: live(0), race }
       : { text: `Leads ${race.below.name} by ${fmt(race.below.gap, race.valueText)} (${race.valueText} to ${race.below.text}).`, live: live(race.below.gap), race };

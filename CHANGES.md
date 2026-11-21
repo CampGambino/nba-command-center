@@ -2,6 +2,26 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.141.6 (2026-11-21): an evening build, data contracts, the season in one place, the first test-file split; the two update requests tested
+
+The user, 1:00 AM: "proceed" (the open items: an evening build, testing the two Dependabot requests, data formats, a season-rollover checklist, splitting the oversized files).
+
+**An evening build.** `daily.yml`: a build at 6:40 PM ET (23:40 UTC). No build ran between 5:30 PM and 12:15 AM, so the 6:30 PM injury report and late scratches never reached the site before 7 PM tips (NBA Live reads the report itself). A build takes about 4-5 minutes. The schedule test now expects 11 runs.
+
+**The two Dependabot requests, tested (not merged: the user's to merge).**
+- **#1 pdfjs-dist 4.10.38 → 6.5.438** (needs Node 22.13+; the builds use 22). Tested in a separate copy of the repo with the notes PDFs: 1,091 checks pass, including the 296 that read the PDFs, with the parsed-milestone snapshots unchanged. Full live builds on each version, run one after the other, first differed by one milestone (Ayo Dosunmu, 1,000 defensive rebounds). The cause: the Timberwolves posted new notes between the two runs, so the builds read different files. On identical files, pdfjs 4 and 6 read the same milestones (51 from the 11/19 notes, 50 from the new). Same injury report rows (53). The site doesn't load pdfjs. Safe.
+- **#2 the GitHub tools:** checkout 5.1.0 → 7.0.1, setup-node 5.0.0 → 7.1.0, cache 4.3.0 → 6.1.0, wrangler-action 3.15.0 → 4.1.3 (release notes read from the request). checkout 6 keeps git credentials in a separate file (the bot's and the publish job's pushes rely on them); checkout 7 blocks fork pull requests in `pull_request_target` and `workflow_run`, which nothing here uses; cache 6 and setup-node 7 are internal updates. wrangler-action 4 deploys with Wrangler 4 instead of 3: `npx wrangler@4 deploy --dry-run` on the Worker builds cleanly (89.76 KiB, the STATE binding). The pushes are proven only by running: merging it into `dev` runs the publish job on the new tools, and a failure there publishes nothing.
+
+**Data contracts.** `docs/DATA.md` lists what the two readers outside the repo's release cycle read from the published files: NBA Live (through the bridge: watch, records, tonight, teammarks, oddlive, flowstats, the single-game bests, the odd-line rules, the bridge version) and the Worker (tonight, health, injuries, read from raw.githubusercontent.com). `tests/contracts.js` checks the real published files against that list every test run, and runs the bridge itself on them in a stand-in NBA Live: it must accept every file. Tried with two deliberate breaks in a copy of the data: an item field renamed (`importance` → `weight`) and `oddlive.json`'s `v` set to 2. Both were caught, naming the field and all 342 items, and the file the bridge would have dropped.
+
+**The season in one place.** `src/season.js`: `SEASON = "2026-27"`, `seasonFor`, `seasonFile`, `seasonNotice`. The five places the build and the site load a season's reference file by name now use it (`scripts/situations.js`, `src/site/build.js`). So do the three notes patterns that decide "this season" and "an older season" (`src/notes/facts.js`, `src/notes/narrative.js`: they had "2026-27", "26-27" and seasons through 2025-26 typed in, so next season's notes would have read as old), and franchise lists' "still playing" season (`src/records/franchise.js`). The new patterns give the same answer as the old ones on every case tried, and the notes snapshots are unchanged. `scripts/tonight.js` now reads the one list of NBA Cup final dates (it had its own copy). From Aug 1 every build warns on the page and in the log, and a test fails, until `docs/SEASON.md` is done: key dates, the 24 reference files with their sources and tools, the one-off tools that name files, then the switch. A missing trade deadline or Cup final date for the season is also warned.
+
+**Splitting the oversized test file (a first step).** The NBA Live bridge tests (541 lines, 75 checks) moved unchanged from `tests/run.js` to `tests/bridge.js`; the new contract checks start in their own file. `tests/run.js`: 5,738 → 5,191 lines. The same 1,100 checks run (804 without the notes PDFs). `docs/gameflow.html` (5,675 lines) is not split yet: its script would move to its own file, which needs a look in a browser, not only the tests.
+
+**Tests.** 1,100 checks (nine new: the contracts six, the season three); 804 on GitHub. The Worker's 98.
+
+**Self-audit.** One false alarm on the way: I first read `flowstats.json` as missing the `quarters` list the bridge needs (it would have meant NBA Live's Game Flow cards were off). I had printed only the first ten field names; the file has `quarters` (30). The contract test now checks every field instead of eyeballing. The Dependabot verdicts rest on the tests, the builds and a dry-run deploy; #2's git pushes on the new checkout can only be proven by running it. The season warning's dates assume the NBA calendar keeps an October start and a June finish.
+
 ## 0.141.5 (2026-11-21): version tags, update notices, a current README; the injury report read fresh where it's used
 
 The user, 12:35 AM: "yes" (to items 5-7 of the code-management list: tags for rollback, the stale README, update notices).

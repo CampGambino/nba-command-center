@@ -23,13 +23,13 @@ Personal use. Runs for $0 on free tiers (GitHub Actions and Pages, Cloudflare Wo
 
 ## How it runs
 
-**Builds (GitHub Actions, `.github/workflows/daily.yml`).** `scripts/ci.js build` runs `scripts/tonight.js` (milestones and the Watch List), `scripts/situations.js` (records, situations, injuries, storylines), `scripts/flow.js`, then writes `docs/data/health.json`, the build's own check of its output. The bot commits the data to `main` and Pages publishes it. Times (Eastern, winter; an hour later in summer): builds at 8:00 AM, 10:30 AM, 1:00 PM, 3:00 PM, 5:30 PM, 12:15 AM, 1:30 AM and 2:45 AM; scoring (how last night's calls came out, `scripts/score.js`) at 3:30 AM and 7:00 AM. A code change also starts a build.
+**Builds (GitHub Actions, `.github/workflows/daily.yml`).** `scripts/ci.js build` runs `scripts/tonight.js` (milestones and the Watch List), `scripts/situations.js` (records, situations, injuries, storylines), `scripts/flow.js`, then writes `docs/data/health.json`, the build's own check of its output. The bot commits the data to `main` and Pages publishes it. Times (Eastern, winter; an hour later in summer): builds at 8:00 AM, 10:30 AM, 1:00 PM, 3:00 PM, 5:30 PM, 6:40 PM (the evening injury report, before 7 PM tips), 12:15 AM, 1:30 AM and 2:45 AM; scoring (how last night's calls came out, `scripts/score.js`) at 3:30 AM and 7:00 AM. A code change also starts a build.
 
 **Kalshi** (`kalshi.yml`): hourly at :17, odds from Kalshi's API only, posted to Discord.
 
 **Discord alerts (Cloudflare Worker `ncc-articles`, `cloudflare/`).** Every 5 minutes: new articles (ESPN, The Athletic, Front Office Sports, NBA.com's power rankings and ladders on their publishing days) to #articles. Every minute: lineups (#lineups), the storyline digests and health alerts (#alerts). Deployed by `deploy-articles.yml` after its own checks. Admin pages need the review key, votes need the separate vote key; neither is in the repo.
 
-**NBA Live** stays on the PC only and is never published. It loads `docs/bridge/cc-bridge.js` from the site to add the Command Center's cards to its League Alerts.
+**NBA Live** stays on the PC only and is never published. It loads `docs/bridge/cc-bridge.js` from the site to add the Command Center's cards to its League Alerts. What it and the Worker read from the published files is written down in [`docs/DATA.md`](docs/DATA.md) and checked on every test run.
 
 ## Data sources
 
@@ -44,15 +44,19 @@ ESPN (box scores, play-by-play, schedules, injuries feed, rosters), each team's 
 
 Rolling back: `git revert` the change on `dev` (it goes through the same checks). To find a version's commit: its tag, or `node tools/tag-versions.mjs --list`.
 
+## Each season
+
+The season is set in one place (`SEASON` in `src/season.js`). From August 1 the build warns and a test fails until the rollover in [`docs/SEASON.md`](docs/SEASON.md) is done: the new guides' reference files, the trade deadline and NBA Cup final, then the switch.
+
 ## Tests
 
 ```
-node tests/run.js           # 1,091 checks; the 296 that read the notes PDFs are skipped where samples/ isn't present
+node tests/run.js           # 1,100 checks; the 296 that read the notes PDFs are skipped where samples/ isn't present
 node tests/articles-only.js # the Worker's 98 checks
 node tests/run.js --update  # after reviewing a deliberate change to the parsed milestones (snapshots in tests/expected/)
 ```
 
-Both run offline. On GitHub's servers `tests/run.js` runs 795 checks (no notes PDFs there); the full 1,091 run before each push to `dev` (counts as of v0.141.5).
+Both run offline. On GitHub's servers `tests/run.js` runs 804 checks (no notes PDFs there); the full 1,100 run before each push to `dev` (counts as of v0.141.6). `tests/run.js` also runs `tests/bridge.js` (NBA Live's bridge on invented data) and `tests/contracts.js` (what NBA Live and the Worker read, on the real published files).
 
 ## Secrets (names only; values never in the repo or in chat)
 
@@ -78,5 +82,5 @@ Both run offline. On GitHub's servers `tests/run.js` runs 795 checks (no notes P
 | `docs/` | the website; `docs/data/` is the published data, `docs/lib/` the copies of `src/` modules the pages load (kept identical by a test) |
 | `history/` | the build's memory between runs (what was seen and shown, scored calls, injury reports) |
 | `cloudflare/` | the Worker |
-| `tests/` | the checks, fixtures and parsed-milestone snapshots |
+| `tests/` | the checks (`run.js`, with `bridge.js` and `contracts.js`; `articles-only.js` for the Worker), fixtures and parsed-milestone snapshots |
 | `tools/` | one-off utilities and diagnostics (`tools/diagnose.mjs`, `tools/tag-versions.mjs`…) |

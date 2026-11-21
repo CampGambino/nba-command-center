@@ -21,6 +21,7 @@ on:
     - cron: "0 18 * * *"   # 1 PM ET: fresh storylines for the 2 PM digest (sent by Cloudflare)
     - cron: "0 20 * * *"
     - cron: "30 22 * * *"
+    - cron: "40 23 * * *"   # 6:40 PM ET (0.141.6): the 6:30 PM injury report and any late scratches reach the site before 7 PM tips (no build ran 5:30 PM-12:15 AM)
     # 0.128 (the user, 12:06 AM 11/20: "it's past midnight and the games from the day before had been [final] for a
     # while. why is the command center not updated for the next slate?"): nothing built between 5:30 PM and 8 AM.
     # A build after midnight stays on yesterday's slate while one of its games is unfinished (src/espn/slate.js),

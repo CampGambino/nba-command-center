@@ -16,6 +16,7 @@
  */
 import { strictKey, seasonLines, LABEL, statWord } from "./guide.js";
 import { TEAMS } from "../teams.js";
+import { SEASON } from "../season.js";
 
 const STAT = { g: "gp", pts: "pts", reb: "reb", oreb: "oreb", dreb: "dreb", ast: "ast", stl: "stl", blk: "blk", fgm: "fgm", ftm: "ftm", fg3m: "fg3m" };
 const RANKED = { pts: 20, reb: 20, ast: 20 }; // passes for a place in a franchise's top 20 (points, rebounds, assists) or top 10
@@ -55,7 +56,7 @@ export function franchiseRecords({ careers, teamFiles, tonight = [], horizon = H
         const base = p.base?.[key] || 0;
         const season = p.lines.reduce((a, l) => a + (l.stats[stat] || 0), 0);
         // Same name as a retired player on the list but no total with them before: a different player.
-        rows.set(!p.base && rows.has(k) ? `${k}|now` : k, { name: p.base?.name || p.name, id: p.id, now: base + season, base, season, first: p.base?.first || null, last: "2026-27", live: true, current: p.current,
+        rows.set(!p.base && rows.has(k) ? `${k}|now` : k, { name: p.base?.name || p.name, id: p.id, now: base + season, base, season, first: p.base?.first || null, last: SEASON, live: true, current: p.current,
           rate: p.lines.length ? season / p.lines.length : 0 });
       }
       const sorted = [...rows.values()].sort((a, b) => b.now - a.now);

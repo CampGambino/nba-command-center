@@ -12,6 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { seasonFile, seasonNotice, SEASON } from "../src/season.js";   // 0.141.6: the season in one place (docs/SEASON.md)
 
 // 0.87: the deep history is built for the streak watch and used again for the all-time series further down.
 const deepShared = { deep: null, official: null, tried: false };
@@ -22,10 +23,10 @@ async function loadDeep() {
   deepShared.tried = true;
   try {
     const zl = await import("node:zlib"); const { deepSeqs } = await import("../src/situations/deepseq.js");
-    const sf = path.join(root, "src", "data", "nba-team-seasons-2026-27.json");
+    const sf = path.join(root, "src", "data", seasonFile("nba-team-seasons"));
     deepShared.official = fs.existsSync(sf) ? JSON.parse(fs.readFileSync(sf, "utf8")).teams : null;
     const gz = (f) => { const p = path.join(root, "src", "data", f); return fs.existsSync(p) ? JSON.parse(zl.gunzipSync(fs.readFileSync(p))) : null; };
-    const deep = deepSeqs({ older: gz("nba-results-older.json.gz"), guide: gz("guide-games-2026-27.json.gz"), official: deepShared.official });
+    const deep = deepSeqs({ older: gz("nba-results-older.json.gz"), guide: gz(seasonFile("guide-games", ".json.gz")), official: deepShared.official });
     const fr = {}; for (const [t, s] of Object.entries(deep.from)) (fr[s] ??= []).push(t);
     console.log(`deep history: every team from ${deep.league}; further back: ${Object.entries(fr).filter(([s]) => s < deep.league).sort().map(([s, ts]) => `${ts.join(", ")} from ${s}`).join("; ") || "none"}`);
     deepShared.deep = deep;
@@ -59,6 +60,14 @@ const warnings = [];
 // 0.141.5: tonight's NBA injury report, the newest posted one, read once here and used by the record chances and the
 // injuries step below. Before, the record chances (which run first) used the copy the previous build saved: between
 // the 5:30 PM and 12:15 AM builds, hours old.
+// 0.141.6: the season check (src/season.js, docs/SEASON.md): from Aug 1 the calendar is in the next season, and a
+// season needs its trade deadline and NBA Cup final on file. Said on the page and in the build log.
+try {
+  const { DEADLINE } = await import("../src/anticipate/seasonlong.js"), { CUP_TITLE_DATES } = await import("../src/situations/results.js");
+  const y = SEASON.slice(0, 4);
+  const n = seasonNotice(today, { keyDates: { "trade deadline": DEADLINE[SEASON], "NBA Cup final date": [...CUP_TITLE_DATES].find((d) => d.startsWith(`${y}-`)) } });
+  if (n) { warnings.push(`season: ${n}`); console.log(`season: ${n}`); }
+} catch (e) { warnings.push(`season check: ${e.message}`); }
 let latestInj = null;
 try {
   const { latestReport, reportClock } = await import("../src/injuries/report.js");
@@ -429,7 +438,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const slate = (w.today === today ? w.games : []).map((g) => ({ away: g.awayTri, home: g.homeTri }));
     // 0.106: every player's runs by franchise since 1993-94, so a streak line can say where a run stands in his team's history.
     try {
-      const rf = path.join(root, "src", "data", "player-feat-runs-2026-27.json.gz");
+      const rf = path.join(root, "src", "data", seasonFile("player-feat-runs", ".json.gz"));
       const zlib = await import("node:zlib");
       if (fs.existsSync(rf)) { featRuns = JSON.parse(zlib.gunzipSync(fs.readFileSync(rf))); const { TEAMS: T } = await import("../src/teams.js"); teamNicks = Object.fromEntries(Object.entries(T).map(([k, v]) => [k, v.nick])); }
     } catch (e) { console.error(`franchise runs not read: ${e.message}`); }
@@ -750,7 +759,7 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
     const serName = fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^nba-series-history-\d{4}-\d{2}\.json$/.test(f)).sort().pop();
     const series = serName ? JSON.parse(fs.readFileSync(path.join(root, "src", "data", serName), "utf8")) : null;
     // 0.90: the largest win each way as three guides print it, the check on the margins counted from the games.
-    const sbf = path.join(root, "src", "data", "series-bests-2026-27.json"), seriesBests = fs.existsSync(sbf) ? JSON.parse(fs.readFileSync(sbf, "utf8")) : null;
+    const sbf = path.join(root, "src", "data", seasonFile("series-bests")), seriesBests = fs.existsSync(sbf) ? JSON.parse(fs.readFileSync(sbf, "utf8")) : null;
     if (series) {
       try {
         const { seriesTable, countedPairs } = await import("../src/records/series.js");
