@@ -3303,6 +3303,16 @@ await bridgeChecks(ok, root);
       && !/function buildStints\(/.test(fs.readFileSync(path.join(root, "docs", "gameflow.js"), "utf8"))
       && /<script type="module" src="gameflow\.js"><\/script>/.test(fs.readFileSync(path.join(root, "docs", "gameflow.html"), "utf8")),
       "game flow (0.59): the page imports the stint model the build runs (one copy, no second definition in the page)");
+    // 0.141.11: on a phone the timeline column got nothing (172px names + three 52px stat columns > the screen).
+    {
+      const css = fs.readFileSync(path.join(root, "docs", "gameflow.css"), "utf8");
+      const tmin = +((css.match(/--trackmin:(\d+)px/) || [])[1] || 0);
+      ok(tmin >= 300 && /grid-template-columns:var\(--namew\) minmax\(var\(--trackmin\),1fr\) repeat\(3,var\(--statw\)\)/.test(css)
+        && /\.grid\{min-width:calc\(var\(--namew\) \+ var\(--trackmin\) \+ 3\*var\(--statw\)\)\}/.test(css)
+        && /\.grid>\.nm\{position:sticky;left:0/.test(css)
+        && css.indexOf("@media (max-width:600px)") > css.indexOf("  .grid .nm{padding-right"),
+        "game flow (0.141.11): the timeline keeps at least " + tmin + "px on a phone, the rows scroll sideways with the names pinned, and the phone rule comes after the rules it overrides");
+    }
     const S = await import("../src/gameflow/stats.js");
     const row = { id: c.id, d: "2026-11-12" };
     const Fg = S.gameFacts(row, JSON.parse(JSON.stringify(c)));

@@ -2,6 +2,25 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.141.11 (2026-11-21): the Game Flow chart fits a phone
+
+The user's phone screenshots (11:06 AM, NYK @ MIN 11/19 and SAC @ LAL 11/20) checked 0.141.10. The split itself is fine: the styles and script loaded and the page read the games. They also showed an older fault, there since 0.52.0.
+
+**The fault.** The stint chart's columns were 172px of names, the timeline (`1fr`), and three 52px stat columns. On a ~390px phone the names and stats already fill the card, so the timeline got about 0px. The bars shrank to a sliver, Q1-Q4 were drawn on top of each other ("Q4" over "Q1"), and the run, swing and lineup rows were blank. The score-margin chart showed only because it spills out of its box.
+
+**Changed (`docs/gameflow.css`).**
+- The timeline keeps at least 380px (`--trackmin`). Each row is at least as wide as its columns, and the card (already `overflow-x:auto`) scrolls sideways.
+- Names stay pinned at the left while scrolling, on the card's colour, so bars pass under them.
+- Up to 600px wide: names 140px, stat columns 42px, and the "score margin" label fills the chart's height so it isn't a box over the line.
+- Wider screens: no change.
+
+**Tested.** 1,103 tests (one new: the minimum, the pinned names, and the phone rule placed after the rules it overrides, which my first try got wrong). In headless Chrome, a test page built like the chart, with the real stylesheet:
+- At 390px, the old styles reproduce the screenshots (the pile of quarter labels and the sliver bars).
+- The new styles give a readable timeline at 390px, and the names stay pinned when scrolled 400px.
+- At 1400px the old and new styles render pixel for pixel the same.
+
+**Self-audit.** ESPN can't be reached from my workspace, so the real page wasn't drawn here, only a copy of its structure. The user's phone is the check. The other tabs (Season rotation, On/off court) use a similar name-plus-timeline grid (`.heat`). Without a screenshot I don't know whether they collapse too, so I didn't change them.
+
 ## 0.141.10 (2026-11-21): the Game Flow page split into page, styles and script
 
 The user said "Yes" at 9:38 AM to the morning's order. This was item 7: split `docs/gameflow.html` (5,675 lines), checked on the user's phone.
