@@ -71,21 +71,24 @@ jobs:
             git rebase --quiet origin/main || { git rebase --abort; echo "::error::conflict with main's new data"; exit 1; }
             if git push --quiet origin HEAD:main; then
               git push --quiet --force origin HEAD:dev   # dev = main again, ready for the next change
+              echo "PUBLISHED=1" >> "$GITHUB_ENV"
               echo "published $(git rev-parse --short HEAD)"; exit 0
             fi
             sleep 10
           done
           echo "::error::couldn't push to main"; exit 1
 
-      - name: Tag new versions (v0.141.4 and so on, for rollback)
-        if: env.NOTHING != '1'
+      # Only versions finished in what was just published (older history: node tools/tag-versions.mjs --list). A tag
+      # GitHub refuses is a warning, not a failure: the publish already happened and the next step must still run.
+      - name: Tag new versions (for rollback)
+        if: ${{ !cancelled() && env.PUBLISHED == '1' }}
         run: |
           git fetch --quiet --tags origin
-          node tools/tag-versions.mjs
-          git push --quiet origin --tags
+          node tools/tag-versions.mjs --since="$BASE"
+          if [ -n "$NEW_TAGS" ]; then git push --quiet origin $NEW_TAGS || echo "::warning::tags not pushed: $NEW_TAGS"; fi
 
       - name: Start the jobs a push to main starts
-        if: env.NOTHING != '1'
+        if: ${{ !cancelled() && env.PUBLISHED == '1' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

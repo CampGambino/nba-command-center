@@ -8,7 +8,12 @@
  * that only mentions an old version ("self-audit of 0.106.0") doesn't move its tag. The bot's data commits are skipped.
  * Versions no commit names are left untagged and listed. Existing tags are never moved.
  *
- * Run by "test and publish" after each publish (it pushes the new tags). By hand: node tools/tag-versions.mjs [--dry]
+ * Run by "test and publish" after each publish with --since=<main before>: only versions finished in what it just
+ * published are tagged and pushed. GitHub refuses a tag made by the job's own key on an older commit whose workflow
+ * files differ from today's (0.141.5: 203 of 220 refused), so older history isn't pushed as tags; --list prints
+ * every version's commit, which is all a rollback needs (git revert / git diff against it).
+ *   node tools/tag-versions.mjs --list        every version and its commit
+ *   node tools/tag-versions.mjs --dry         what would be tagged
  */
 import fs from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -16,6 +21,8 @@ import { execFileSync } from "node:child_process";
 const git = (...a) => execFileSync("git", a, { encoding: "utf8", maxBuffer: 64 << 20 }).trim();
 const dry = process.argv.includes("--dry");
 const ref = process.argv.find((a) => a.startsWith("--ref="))?.slice(6) || "HEAD";
+const since = process.argv.find((a) => a.startsWith("--since="))?.slice(8) || null;
+const list = process.argv.includes("--list");
 
 const changes = fs.readFileSync(new URL("../CHANGES.md", import.meta.url), "utf8");
 const heads = [...changes.matchAll(/^## (\d+\.\d+(?:\.\d+)?)\b[^\n]*?:\s*([^\n]*)/gm)];
@@ -31,6 +38,7 @@ const matches = versions.map((v) => {
 });
 
 const existing = new Set(git("tag", "--list", "v*").split("\n").filter(Boolean));
+const fresh = since ? new Set(git("rev-list", `${since}..${ref}`).split("\n").filter(Boolean)) : null;   // commits just published
 const plan = [], unnamed = [];
 versions.forEach((v, k) => {
   const m = matches[k];
@@ -41,12 +49,16 @@ versions.forEach((v, k) => {
     const before = m.filter((i) => i > nextBegan);
     if (before.length) pick = Math.min(...before);
   }
+  if (list) { console.log(`v${v}\t${log[pick].h.slice(0, 7)}\t${log[pick].s.slice(0, 90)}`); return; }
+  if (fresh && !fresh.has(log[pick].h)) return;
   if (!existing.has(`v${v}`)) plan.push({ tag: `v${v}`, commit: log[pick].h, msg: `${v}: ${titles[v]}`.slice(0, 200) });
 });
 
+if (list) process.exit(0);
 for (const p of plan) {
   if (dry) console.log(`would tag ${p.tag} at ${p.commit.slice(0, 7)}`);
   else git("tag", "-a", p.tag, p.commit, "-m", p.msg);
 }
 console.log(`${versions.length} versions in CHANGES.md; ${existing.size} already tagged; ${plan.length} ${dry ? "to tag" : "tagged now"}${unnamed.length ? `; no commit names ${unnamed.join(", ")}` : ""}`);
 if (!dry && plan.length) console.log(`new tags: ${plan.map((p) => p.tag).join(" ")}`);
+if (process.env.GITHUB_ENV && !dry) fs.appendFileSync(process.env.GITHUB_ENV, `NEW_TAGS=${plan.map((p) => p.tag).join(" ")}\n`);

@@ -3,7 +3,7 @@
 A personal tool that anticipates NBA milestones, records and storylines before they happen, and checks them. It reads every team's game notes, the league's injury report and ESPN's box scores, works out what could happen tonight and how likely it is, and publishes it as a website, Discord alerts and cards inside NBA Live.
 
 - **Website:** https://campgambino.github.io/nba-command-center/ (GitHub Pages, from `docs/`)
-- **Changes:** [`CHANGES.md`](CHANGES.md), newest first, one entry per version with a self-audit. Each version is tagged (`v0.141.5`).
+- **Changes:** [`CHANGES.md`](CHANGES.md), newest first, one entry per version with a self-audit. Versions from 0.141.5 on are tagged (`v0.141.5`); `node tools/tag-versions.mjs --list` gives every version's commit.
 - **Design and status docs:** the claude.ai project "NBA Command Center" (`command-center-architecture.md`, `anticipation-engine.md`, `standing-rules.md`, `build-status-update.md`, `security-check-2026-11-20.md`…).
 
 Personal use. Runs for $0 on free tiers (GitHub Actions and Pages, Cloudflare Workers).
@@ -42,7 +42,7 @@ ESPN (box scores, play-by-play, schedules, injuries feed, rosters), each team's 
 3. **"check main"** (`check-main.yml`) tests code that reached `main` some other way and turns red if it fails.
 4. **Dependabot** (`.github/dependabot.yml`) opens a weekly request, to `dev`, when a pinned GitHub Action or npm dependency has an update.
 
-Rolling back: `git revert` the change on `dev` (it goes through the same checks), or compare against a tag (`git diff v0.141.3 v0.141.4`).
+Rolling back: `git revert` the change on `dev` (it goes through the same checks). To find a version's commit: its tag, or `node tools/tag-versions.mjs --list`.
 
 ## Tests
 
