@@ -3303,6 +3303,22 @@ await bridgeChecks(ok, root);
       && !/function buildStints\(/.test(fs.readFileSync(path.join(root, "docs", "gameflow.js"), "utf8"))
       && /<script type="module" src="gameflow\.js"><\/script>/.test(fs.readFileSync(path.join(root, "docs", "gameflow.html"), "utf8")),
       "game flow (0.59): the page imports the stint model the build runs (one copy, no second definition in the page)");
+    // 0.141.13: ESPN writes a period's last minute as seconds ("58.8"); it was read as 0:00. And the running score for +/-
+    // comes from the made baskets, so a score field that moves a play late (or on a turnover) can't shift points across a sub.
+    {
+      const raw = sum.plays.filter((p) => /^\d+(\.\d+)?$/.test(p.clock?.displayValue || ""));
+      const lastMin = orig.pbp.game.actions.filter((a) => /^PT00M(?!00\.00)/.test(a.clock));
+      ok(raw.length > 5 && lastMin.length >= raw.length - 2 && orig.pbp.game.actions.some((a) => a.clock === "PT00M58.80S" || /^PT00M\d\d\.\d0S$/.test(a.clock)),
+        `game flow (0.141.13): last-minute clocks are read ("58.8" is 0:58.8, not the buzzer): ${lastMin.length} of ${raw.length} plays`);
+      const Mm = await import("../src/gameflow/model.js");
+      const glitch = F.expandFeeds(JSON.parse(JSON.stringify(c)));
+      const acts = glitch.pbp.game.actions.slice().sort((x, y) => x.orderNumber - y.orderNumber);
+      const to = acts.findIndex((a, i) => i > 50 && a.actionType === "turnover");
+      for (let i = to; i < acts.length; i++) { if (acts[i].scoreHome != null) acts[i].scoreHome = String(+acts[i].scoreHome + 3); }
+      const pmOf = (fe) => JSON.stringify(Mm.buildStints(fe.pbp, fe.box).recon.map((r) => r.dpm));
+      ok(to > 0 && pmOf(glitch) === pmOf(F.expandFeeds(JSON.parse(JSON.stringify(c)))),
+        "game flow (0.141.13): +/- follows the made baskets, not the feed's score field (3 phantom points on a turnover change nothing)");
+    }
     // 0.141.11: on a phone the timeline column got nothing (172px names + three 52px stat columns > the screen).
     {
       const css = fs.readFileSync(path.join(root, "docs", "gameflow.css"), "utf8");

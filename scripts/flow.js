@@ -45,7 +45,11 @@ const prevIdx = (() => { try { return JSON.parse(fs.readFileSync(idxFile, "utf8"
 const checked = prevIdx.checked || {};
 const recent = (r) => (Date.parse(today) - Date.parse(r.d)) / 864e5 <= RECHECK_DAYS;
 const recheck = rows.filter((r) => have.has(String(r.id)) && recent(r) && checked[r.id] !== today);
-const todo = [...rows.filter((r) => !have.has(String(r.id))), ...recheck].slice(0, max);
+// 0.141.13: a file written by an older reader (FLOW_VERSION) is read again, oldest games first.
+const fileV = (id) => { try { return JSON.parse(fs.readFileSync(path.join(dir, `${id}.json`), "utf8")).v || 0; } catch { return 0; } };
+const stale = rows.filter((r) => have.has(String(r.id)) && !recheck.includes(r) && fileV(r.id) < FLOW_VERSION);
+const todo = [...rows.filter((r) => !have.has(String(r.id))), ...recheck, ...stale].slice(0, max);
+if (stale.length) console.log(`game flow: ${stale.length} game file(s) from an older reader, read again`);
 const corrected = [];
 const missing = [];
 let wrote = 0, last = 0;
@@ -79,7 +83,12 @@ if (process.env.FLOW_SAMPLE && rows.length) {
 const ids = rows.map((r) => String(r.id)).filter((id) => have.has(id));
 const keepChecked = Object.fromEntries(Object.entries(checked).filter(([id]) => rows.some((r) => String(r.id) === id && recent(r))));
 fs.writeFileSync(idxFile, JSON.stringify({ season, v: FLOW_VERSION, ids, missing: missing.filter((id) => !have.has(id)), checked: keepChecked, updated: new Date().toISOString() }));
-if (corrected.length) console.log(`game flow: stat corrections in ${corrected.length} recent game(s): ${corrected.join(", ")}`);
+{
+  const staleIds = new Set(stale.map((r) => String(r.id)));
+  const real = corrected.filter((id) => !staleIds.has(id));
+  if (real.length) console.log(`game flow: stat corrections in ${real.length} recent game(s): ${real.join(", ")}`);
+  if (corrected.length > real.length) console.log(`game flow: ${corrected.length - real.length} game file(s) rewritten by the newer reader`);
+}
 // Season facts for the bridge. Never fatal: the flow files above are already written.
 try {
   const { flowStats, seededCounts } = await import("../src/gameflow/stats.js");

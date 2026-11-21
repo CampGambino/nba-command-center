@@ -36,9 +36,12 @@ export function espnToFeeds(sum){
   const away = comp.competitors.find(c=>c.homeAway==="away");
   const plays = (sum.plays||[]).slice();
 
+  // ESPN writes the last minute of a period as seconds ("58.8"), not "0:58" (0.141.13: before this, every play in the
+  // last minute of every period was read as 0:00, the buzzer).
   const clockOf = p => {
-    const m=/^(\d+):(\d+)(?:\.(\d+))?$/.exec((p.clock&&p.clock.displayValue)||"0:00");
-    const mm = m? +m[1] : 0, ss = m? +m[2] : 0;
+    const t=String((p.clock&&p.clock.displayValue)||"0:00").trim();
+    const m=/^(\d+):(\d+)(?:\.(\d+))?$/.exec(t), s=/^(\d+(?:\.\d+)?)$/.exec(t);
+    const mm = m? +m[1] : 0, ss = m? +m[2] : s? +s[1] : 0;
     return `PT${String(mm).padStart(2,"0")}M${ss.toFixed(2).padStart(5,"0")}S`;
   };
   const T = p => (p.type && p.type.text) || "";
@@ -190,7 +193,8 @@ export function espnToFeeds(sum){
 }
 
 /* ==================== compact game files ==================== */
-export const FLOW_VERSION = 1;
+// 2 (0.141.13): last-minute clocks read ("58.8" was 0:00); files of an older version are read again by scripts/flow.js.
+export const FLOW_VERSION = 2;
 const STAT_KEYS = ["points", "plusMinusPoints", "foulsPersonal", "assists", "reboundsTotal", "steals", "blocks", "turnovers",
   "fieldGoalsMade", "fieldGoalsAttempted", "threePointersMade", "threePointersAttempted", "freeThrowsMade", "freeThrowsAttempted"];
 const clockNum = (c) => { const m = /PT(\d+)M([\d.]+)S/.exec(c || ""); return m ? Number(m[1]) * 60 + Number(m[2]) : 0; };

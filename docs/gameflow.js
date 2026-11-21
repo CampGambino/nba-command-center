@@ -338,12 +338,18 @@ function render(G, gameInfo){
   const bada = G.recon.filter(r=>r.dast!==0);
   const n=G.recon.length;
   const src=SOURCE[ACTIVE]||{label:"?",detail:""};
-  const b=el("span","badge "+((bad.length||bada.length)?"warn":"ok"),
-    `${src.label} · minutes ${n-bad.length}/${n}, +/− ${n-badp.length}/${n}, ast ${n-bada.length}/${n}`);
+  /* 0.141.13: when the play-by-play doesn't add up to the box score (ESPN left a play out: NYK @ MIN 11/19 is missing a
+     LaMelo Ball basket), nobody's +/− can be fixed for that play, so say so and whose points are missing. */
+  const ptsGap=[...G.players.values()].filter(p=>p.played && (p.calcPts||0)!==(p.boxPts||0));
+  const b=el("span","badge "+((bad.length||bada.length||ptsGap.length)?"warn":"ok"),
+    `${src.label} · minutes ${n-bad.length}/${n}, +/− ${n-badp.length}/${n}, ast ${n-bada.length}/${n}`+(ptsGap.length?" · plays missing":""));
   b.title = [`Source: ${src.label} (${src.detail}).`,
              ACTIVE==="espn"
                ? `Minutes are checked to within ${MIN_SLACK} min because ESPN publishes whole minutes only.`
                : `Minutes are checked to the second.`,
+             ...(ptsGap.length?["",`${src.label}'s play-by-play doesn't add up to its box score, so a play is missing: `+
+               ptsGap.map(p=>`${p.name} has ${p.calcPts||0} points in the plays and ${p.boxPts||0} in the box score`).join("; ")+
+               `. The +/− of the players on the floor for it can't be matched, and the score line is short by that much.`]:[]),
              "",
              ...bad.map(r=>`${r.name}: ${sgn(+r.d.toFixed(1))} min`),
              ...badp.map(r=>`${r.name}: ${sgn(r.dpm)} on +/−`),

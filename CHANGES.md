@@ -2,6 +2,38 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.141.13 (2026-11-21): Game Flow reads the last minute of every period, and +/- follows the baskets
+
+Item 2 of the user's order (11:46 AM): why NYK @ MIN 11/19 showed "+/− 9/19" on the user's phone. Three causes turned up, two of them in our code.
+
+**1. Last-minute clocks (our bug, every game).** ESPN writes a period's last minute as seconds ("58.8"), not "0:58". `clockOf` in `src/gameflow/feeds.js` only read "M:SS", so every play in the last minute of every period was stamped 0:00, the buzzer: 15,595 plays across the season's 235 games. A sub at 0:56 counted as one at the horn. The other two ESPN clock readers (`src/espn/pbp.js`, `parse.js`) already read both forms.
+- Effects: minutes, the chart's late bars and score line, and the time-based season facts in `flowstats.json` (full halves, left early, rotations, fourth quarters, shots) and `l2m-players.json`.
+- Example: the one "played a whole half" entry (Max Christie, DAL vs IND 10/23) was false. ESPN has Cissé checking in for him with 56.2 seconds left. It's gone.
+- Fixed in both copies. `FLOW_VERSION` is now 2, and `scripts/flow.js` re-reads any game file of an older version. All 235 were re-read from ESPN here, so 1,698 plays stamped 0:00 remain, all real buzzer plays.
+- The log no longer calls those re-reads "stat corrections".
+
+**2. The running score (our choice, now changed).** The model took the score for +/- from the feed's score fields. Those often move a play late (a basket's points land on the foul or substitution after it) and now and then on the wrong play (GSW @ LAL 10/22: +3 on a turnover). Across a substitution that hands the points to the wrong five. The score now comes from the made baskets, the same way the score line and the points already did. The free-throw rule stays: without it, 80.5%.
+
+**3. A play missing from ESPN (not fixable).** NYK @ MIN's play-by-play ends 102-97, but the final was 102-99. LaMelo Ball has 13 points in the plays and 15 in the box score. The ten players on the floor for that basket are each off by 2. In 4 of 235 games a player's points don't add up like this. The badge now adds "· plays missing" and its tooltip names whose points are missing, rather than leaving a bare "+/− 9/19".
+
+**Measured on all 235 games against ESPN's box score** (player-games):
+
+| | minutes within 1 | +/− exact | games exact for everyone |
+|---|---|---|---|
+| before | 95.7% | 85.9% | 65 |
+| clocks read | 99.7% | 92.0% | 180 |
+| + score from baskets | 99.7% | **98.2%** | **209** |
+
+**Also tested and rejected.** Variants of the free-throw rule: no change for technicals, and the new five taking a sub between free throws. Both did worse (87.1% and 82.5% against 87.6%, before the other fixes).
+
+**Tests.** 1,106 (two new: last-minute clocks are read from the ESPN fixture; 3 phantom points on a turnover change nobody's +/-).
+
+**Self-audit.**
+- The free-throw rule's own comment said it hadn't been re-measured on NBA data since the WNBA build. Measuring it is what turned up all three causes.
+- The clock bug was in the reader the page and build share since 0.52 (11/13), and no test read a last-minute clock.
+- The remaining 1.8% is mostly games like CLE @ ATL 10/30 (10 players off) and the NYK @ MIN kind. I haven't found a rule that fixes CLE @ ATL without breaking others.
+- `flowstats.json` feeds NBA Live's bridge, so the bridge's facts change with the corrected data. The bridge code is unchanged.
+
 ## 0.141.12 (2026-11-21): record chases against an active player are scored as passing him
 
 The user said "Use that order" at 11:46 AM. Item 1: why milestone and record chances missed in different directions. The question was whether the "now" totals were stale.
