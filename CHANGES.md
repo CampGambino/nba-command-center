@@ -17,7 +17,7 @@ The user, 12:17 AM: "what else is considered proper code management… what have
 
 **Not done (the user's call):** a rule on GitHub that blocks pushes to `main` that skip the gate (branch protection) would also block the bot's data pushes unless set up around them; "check main" flags such pushes instead.
 
-**Self-audit.** The gate is only as good as the checks: 296 of them can't run on GitHub without the PDFs. The first run of "test and publish" is this change itself; a deliberate failing push was sent after it to confirm a red check publishes nothing (below).
+**Self-audit.** The gate is only as good as the checks: 296 of them can't run on GitHub without the PDFs. The first run of "test and publish" is this change itself; a deliberate failing push was sent after it to confirm a red check publishes nothing. Results: this change, run 44870906876, 98 + 794 checks passed, published to `main` as d48bf65; the deliberate failure (an `ok(false)` added to the watcher checks), run 44870969491, stopped at the first suite, the full checks and the publish skipped, `main` left at d48bf65; the test commit then dropped from `dev`.
 
 ## 0.141.3 (2026-11-20): security fixes from the security check
 
