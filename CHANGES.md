@@ -2,6 +2,29 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.141.7 (2026-11-21): the backtest: four seasons of calls, 33 seasons of streaks; scored calls record the chance to play
+
+The user, 9:38 AM: "couldn't you check box scores from the last 1-4 years to increase the volume of scored calls across all stats possibilities? Thats a reservoir deep enough to understand trends and timeframes and player hot and cold streaks while highlighting the outliers?" (and "Yes" to the morning's order). The findings are in the project doc `claude/backtest-2026-11-21.md`.
+
+**New tools.**
+- `tools/fetch-box-history.mjs`: past seasons' box scores from ESPN in the results store's own format (one store per season, regular season and playoffs, `t` = season type), resumable and polite; checked on two days of 2025-26: every team's player points add up to its final score (30 of 30). Run 11/21 for 2022-10-01 to 2026-06-30 into scratch (`/home/claude/box-history/`, not committed).
+- `tools/backtest/run.mjs`: replays the live model exactly (his games in his team's last 20, topped up from last season; 80% his games, 20% a smoothed normal; the one-game chance in closed form) over every player-game of 2022-23 to 2025-26 using only earlier games, and over 33 seasons for streaks. Read the 39,065 regular-season box scores already in scratch (`/home/claude/work/full`, 1993-94 to 4/12/26). 2 min 16 s.
+
+**What it found** (details and tables in the doc).
+- **Calibration, given that he plays (4.3 million calls):** close for points, rebounds, assists and made field goals (expected 208,109 points calls hit, 204,303 did; 72% → 69%); overconfident for steals (83% → 72%) and blocks (83% → 75%).
+- **The live calls, split:** the saved predictions carry each call's chance to play, so 326 of the 448 scored calls could be split after the fact. Whether he plays was right on average (300.7 expected, 295 played) but not at the low end (12 calls given about 12% played 92%, the kind 0.141.1 fixed). Given that he played, 138.8 hits expected and 123 happened: 11% overconfident, more than the backtest's 2-10%.
+- **Hot and cold stretches (33 seasons):** most of a hot streak is minutes. Points over five games carry 55%, but only 28% per minute; minutes carry 71%. Threes per minute 25%, steals 27%, blocks 30%. Cold runs stick a little more than hot ones.
+- **Timeframes:** the season to date predicts the next game best for every stat; the model's 20-game window is within 1-2%; 3-5 games are clearly worse.
+- **Outliers:** real nights have fat tails. A points night 3 of his spreads above his norm is 1.6% of games, against 0.13% on a bell curve.
+
+**Changed.** `scripts/score.js`: each scored call records `stat`, `pPlay` (the chance to play the build gave) and `played`. `tools/backfill-calls.mjs` filled them in for 326 of the 448 calls on file (`history/calls.jsonl`); 122 couldn't be matched to a saved prediction or game and are left as they were.
+
+**Not changed: the live correction.** A held-out test of "per-stat backtest correction, then the live fit refit" against today's single live fit came out nearly even: train through 11/15, test 11/16-20, score 0.1542 against 0.1545; train through 11/17, 0.1515 against 0.1524. That's within chance, so the switch waits for more calls that record the chance to play.
+
+**Tests.** 1,100 checks, unchanged (no checked behaviour changed).
+
+**Self-audit.** In chat I first told the user that most of the live gap was whether a player plays. The split of the live calls says the opposite: availability is right on average and the gap is in what players do once they play. I corrected it in chat and in the doc. The backtest replays the stat model only. It can't replay injuries or the notes' totals, so it doesn't explain why milestone calls run hotter than all player-games; one candidate is notes totals a game behind, which is unchecked. The calls file is the bot's (`history/`), so this commit carries [data] on purpose.
+
 ## 0.141.6 (2026-11-21): an evening build, data contracts, the season in one place, the first test-file split; the two update requests tested
 
 The user, 1:00 AM: "proceed" (the open items: an evening build, testing the two Dependabot requests, data formats, a season-rollover checklist, splitting the oversized files).

@@ -36,7 +36,10 @@ for (const rep of reports) {
     const line = box.data.players.find((p) => (i.espnId ? p.id === i.espnId : p.team === rep.team && p.name && sameish(p.name, i.player)));
     const v = statFromLine(i.stat, line);
     if (v === null) continue;
-    calls.push({ team: rep.team, player: i.player, what: i.kind === "pass" ? `pass ${i.passing?.player}` : `${i.target} ${i.label}`, need: i.need, p: i.pTonight, got: v, hit: v >= i.need });
+    // 0.141.7: the stat, the chance to play and whether he played, so the "does he play" and "how much" parts of a call can
+    // be scored apart (the backtest, claude/backtest-2026-11-21.md).
+    calls.push({ team: rep.team, player: i.player, what: i.kind === "pass" ? `pass ${i.passing?.player}` : `${i.target} ${i.label}`, need: i.need, p: i.pTonight, got: v, hit: v >= i.need,
+      stat: i.stat || null, pPlay: i.pPlayTonight ?? null, played: line ? (line.played ?? (line.min ?? 0) > 0) : false });
   }
 }
 function sameish(a, b) {
@@ -63,7 +66,7 @@ if (real.length) console.log(`calls given 5%+: ${real.length}, happened ${real.f
 {
   const file = "data/calls.jsonl";
   const keep = fs.existsSync(file) ? fs.readFileSync(file, "utf8").split("\n").filter((l) => l.trim() && JSON.parse(l).d !== today) : [];
-  for (const c of calls.filter((c) => c.p >= 0.05)) keep.push(JSON.stringify({ d: today, team: c.team, player: c.player, what: c.what, need: c.need, got: c.got, p: c.p, hit: c.hit }));
+  for (const c of calls.filter((c) => c.p >= 0.05)) keep.push(JSON.stringify({ d: today, team: c.team, player: c.player, what: c.what, need: c.need, got: c.got, p: c.p, hit: c.hit, stat: c.stat, pPlay: c.pPlay, played: c.played }));
   fs.writeFileSync(file, keep.join("\n") + "\n");
 }
 // One line per night: re-scoring the same night replaces its line.
