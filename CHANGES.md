@@ -2,6 +2,31 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.141.18 (2026-11-21): the bridge refuses outside addresses and runs no downloaded code (bridge v28)
+
+The user pasted NBA Live's security check (11/21): "cc-bridge.js still takes ?cc= from the page address with no restriction, and it downloads oddlines.js and linerare.js from beside that address and runs them with new Function. A link like ?cc=https://attacker.example/watch.json ran outside code inside NBA Live (tested on v27: 11 files fetched, both rules files ran)." They asked for (1) ?cc= only when off, under the site, or a relative .json path, (2) no downloaded files run as code, and (3) branch protection on main with a way around it for the data bot.
+
+**(1) The address.** `safeAddress` takes ?cc= only when it is:
+- `off`
+- an https address whose origin is `https://campgambino.github.io` and whose path starts with `/nba-command-center/` (parsed with `URL`, so a lookalike host, `..` or credentials don't pass)
+- a relative `.json` path: no scheme, no leading slash or backslash, no `//`, no `..`
+
+Anything else is refused, the note says "ignored an outside ?cc= address", and the site's own address is used. 24 cases were checked by hand, including `https://campgambino.github.io.evil.com/...`, `//attacker.example/...`, `javascript:`, `data:`, plain `http`, `user:pw@`, `../watch.json` and `https:attacker.example/...`.
+
+**(2) No downloaded code.** The odd-line and rare-combination rules are compiled into the bridge between BUNDLED RULES markers by `tools/bundle-bridge-rules.mjs`. Each module is wrapped in a function returning its exports. The bridge no longer fetches any `.js` file, and `oddRulesFrom` / `rareRulesFrom` (the `new Function` calls) are gone. The bridge downloads JSON only. The one `eval` left is NBA Live's own global names, written in the bridge (`has("fireStory")`), never anything downloaded. A test fails if the compiled-in rules ever differ from `src/situations/oddlines.js` / `linerare.js`. Run the tool after changing either.
+
+**(3) Branch protection.** This session's GitHub access can't change repository settings (the ruleset call was refused: "Write access to this GitHub API path is not permitted"), so the user sets it up. GitHub doesn't let a ruleset exempt the built-in Actions token (`GITHUB_TOKEN`, which the builds, Kalshi and the gate push with). So "only these actors may push to main" would stop every build. The ruleset that works: block force pushes and deletion of `main`, for everyone. No workflow force-pushes or deletes `main` (checked: every push to main is `git push origin HEAD:main`; the only `--force` is the gate resetting `dev`), so nothing needs a way around it. Who may add commits is watched by the existing "check main" workflow. A stricter version needs a GitHub App of the user's own for the bot (an app token can be exempted); offered, not done.
+
+**Tests.** 1,121 (one new, plus updates):
+- An attacker address and a lookalike host fetch nothing from that host, and the note says so. A relative path and the site work, and `off` fetches nothing.
+- No `.js` is fetched in any case. No `new Function`, and no `eval` outside `has(name)`. The compiled-in block equals its sources, and `version.json` equals `VERSION`.
+- Shown to fail with the old `url = param("cc") || DEFAULT_URL` put back.
+- The stand-in NBA Live in the tests now has `URL` (every browser has it) and uses the site address. The two tests that simulated a missing or older downloaded rules file now set the bridge's rules state directly, because a downloaded rules file no longer exists.
+
+**Self-audit.**
+- v25 (0.119) introduced running a downloaded file as code, and v27 copied the pattern this morning. Neither restricted ?cc=. The security check of 11/20 covered the Worker and the pages, not the bridge's address parameter. It's caught now, by NBA Live's own check.
+- The bridge still renders text from the data files into NBA Live's cards. That data now only comes from the site or a file beside NBA Live.
+
 ## 0.141.17 (2026-11-21): NBA Live flags rare combinations live, with a warning before (bridge v27)
 
 The user, 11/21: "I'm more concerned about flagging this stuff in real time in the nba live app for player lines that are occurring live", then "Should warn ahead of time" and "Five or fewer". The bridge change is on that go.

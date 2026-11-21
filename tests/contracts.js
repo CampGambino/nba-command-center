@@ -94,8 +94,8 @@ export async function contractChecks(ok, root) {
   };
   const el = { style: {}, textContent: "", classList: { add() {}, contains: () => false } };
   const ctx = {
-    URLSearchParams, console: { log() {}, warn() {}, error() {} }, Promise, Object, Number, String, Math, Array, Date, JSON, RegExp, Map, Set,
-    location: { search: "?cc=" + encodeURIComponent("https://cc.example/data/watch.json") },
+    URLSearchParams, URL, console: { log() {}, warn() {}, error() {} }, Promise, Object, Number, String, Math, Array, Date, JSON, RegExp, Map, Set,
+    location: { search: "?cc=" + encodeURIComponent("https://campgambino.github.io/nba-command-center/data/watch.json") },
     document: { readyState: "complete", getElementById: (id) => (id === "cc-bridge-note" ? el : null), createElement: () => el, body: { appendChild() {} }, querySelector: () => null },
     fetch: fetchFn, setInterval() {}, setTimeout() {}, clearTimeout() {}, addEventListener() {},
     GAMES: [], MILESTONE_LADDERS: {}, fireStory() {}, runAlertChecks() {}, activeDateYMD: () => String(watch.today || "").replace(/-/g, ""),

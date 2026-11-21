@@ -35,8 +35,8 @@ export async function bridgeChecks(ok, root, deps = {}) {
     const cards = new Map(); let original = 0;
     const el = { style: {}, textContent: "" };
     const ctx = {
-      URLSearchParams, console, Promise, Object, Number, String, Math, Array, Date, JSON,
-      location: { search: "?cc=" + encodeURIComponent("https://cc.example/data/watch.json") },
+      URLSearchParams, URL, console, Promise, Object, Number, String, Math, Array, Date, JSON,
+      location: { search: "?cc=" + encodeURIComponent("https://campgambino.github.io/nba-command-center/data/watch.json") },
       document: { readyState: "complete", getElementById: (id) => (id === "cc-bridge-note" ? el : null), createElement: () => el, body: { appendChild() {} } },
       fetch: async (u) => ({ ok: true, json: async () => (String(u).includes("version.json") ? versionData : String(u).includes("teammarks.json") ? teamMarksData : String(u).includes("flowstats.json") ? flowData : String(u).includes("tonight.json") ? tonightData : String(u).includes("records.json") ? recordsData : String(u).includes("single-game-bests") ? bestsData : String(u).includes("oddlive.json") ? oddData : String(u).includes("linerare.json") ? rareData : watch), text: async () => (String(u).includes("oddlines.js") ? oddRulesText : String(u).includes("linerare.js") ? rareRulesText : "") }),
       setInterval() {}, setTimeout() {}, clearTimeout() {}, addEventListener() {},
@@ -286,7 +286,8 @@ export async function bridgeChecks(ok, root, deps = {}) {
     // NBA Live's own card for the same streak, the playoffs, a game that counts toward no book, and no rules
     const own = odd(await go(gm({ clock: "4:30" }), {}, (r) => r.cards.set("sr-0fg-od1-z1", { icon: "0-FOR", text: "NBA Live's own" })));
     const po = odd(await go(gm({ clock: "4:30" }), { isPlayoffSlate: () => true })), cup = odd(await go(gm({ clock: "4:30", countsForRecords: false })));
-    const keep = oddRulesText; oddRulesText = "export const X = 1;"; const noRules = odd(await go(gm({ clock: "4:30" }))); oddRulesText = keep;
+    // v28: the rules are built into the bridge; "can't be read" is now the bridge holding no rules (a broken build of it).
+    const noRules = odd(await go(gm({ clock: "4:30" }), undefined, (r) => { r.ctx.CC_BRIDGE.state.oddRules = null; }));
     ok(own.z1?.text === "Cold One (AAA) — 30 minutes without a point (0-for-10), 4:30 left in the 4th" && !/Also/.test(own.z1.sub) && own.s1 && Object.keys(po).length === 0 && Object.keys(cup).length === 0 && Object.keys(noRules).length === 0,
       "bridge v25: where NBA Live has its own card for the same no-make streak that line stands aside and his next one leads; none in the playoffs or a game that counts toward no book; none if the rules cannot be read", JSON.stringify([own.z1, Object.keys(po), Object.keys(cup), Object.keys(noRules)]));
     {
@@ -294,7 +295,7 @@ export async function bridgeChecks(ok, root, deps = {}) {
       const tovGame = (o = {}) => { const g = gm(o); g[0].boxscore.away.push(P("t1", "Loose Hands", { pts: 12, fgm: 5, fga: 11, ftm: 2, fta: 2, reb: 3, ast: 6, to: 10 })); return g; };
       oddData.t["tov.8"] = [1341, 40, "E", "2026-04-10"]; oddData.t["tov.10"] = [121, 3.2, "Jahmai Mashack", "2026-04-10"];
       const tv = odd(await go(tovGame()));
-      const keep2 = oddRulesText; oddRulesText = keep2.replace(/^export const TOV_PF = .*$/m, "export const TOV_PF = [];"); const oldRules = odd(await go(tovGame())); oddRulesText = keep2;
+      const oldRules = odd(await go(tovGame(), undefined, (r) => { const st = r.ctx.CC_BRIDGE.state; st.oddRules = Object.assign({}, st.oddRules, { TOV_PF: [] }); }));
       const RM = await import("../src/situations/oddlines.js"), bsrc = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");
       delete oddData.t["tov.8"]; delete oddData.t["tov.10"];
       ok(tv.t1?.text === "Loose Hands (AAA) — 10 turnovers" && tv.t1.sub.endsWith(" · ESPN box scores, about 3% of games not on file") && tv.g1.sub.endsWith(" · ESPN and pbpstats box scores, under 1% of games not on file")
@@ -584,6 +585,36 @@ export async function bridgeChecks(ok, root, deps = {}) {
     const po = rare(await go(gm({ countsForRecords: false })));
     ok(!Object.keys(po).length, "bridge v27: nothing for a game that counts toward no book", Object.keys(po).join(" "));
     rareData = null; rareRulesText = null;
+  }
+  {
+    // v28 (0.141.18; NBA Live's security check, 11/21): "?cc=https://attacker.example/watch.json" made the bridge fetch from
+    // that host and run oddlines.js and linerare.js from beside it. Now: only off, the site, or a relative .json path; no code
+    // is downloaded at all (the rules are compiled in, and must equal their sources).
+    const B = await import(path.join(root, "tools", "bundle-bridge-rules.mjs"));
+    const src = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");
+    const want = B.bundle(fs.readFileSync(path.join(root, "src", "situations", "oddlines.js"), "utf8"), fs.readFileSync(path.join(root, "src", "situations", "linerare.js"), "utf8"));
+    const loadWith = async (cc) => {
+      const fetched = [], el = { style: {}, textContent: "" };
+      const ctx = { URLSearchParams, URL, console, Promise, Object, Number, String, Math, Array, Date, JSON,
+        location: { search: cc == null ? "" : "?cc=" + encodeURIComponent(cc) },
+        document: { readyState: "complete", getElementById: (id) => (id === "cc-bridge-note" ? el : null), createElement: () => el, body: { appendChild() {} } },
+        fetch: async (u) => { fetched.push(String(u)); return { ok: true, json: async () => (String(u).includes("watch.json") ? watch : null), text: async () => "throw new Error('ran downloaded code')" }; },
+        setInterval() {}, setTimeout() {}, clearTimeout() {}, addEventListener() {},
+        GAMES: [], MILESTONE_LADDERS: {}, fireStory() {}, runAlertChecks() {}, activeDateYMD: () => "20261109", fmtAlertStatLine: () => "", ALERT_STORIES: { get: () => undefined, delete() {} }, endStory() {} };
+      ctx.window = ctx; vm.createContext(ctx); vm.runInContext(src, ctx); await flush(); await flush();
+      return { fetched, st: ctx.CC_BRIDGE.state, note: el.textContent };
+    };
+    const bad = await loadWith("https://attacker.example/watch.json"), look = await loadWith("https://campgambino.github.io.attacker.example/nba-command-center/data/watch.json");
+    const rel = await loadWith("data/watch.json"), site = await loadWith(null), off = await loadWith("off");
+    const outside = (r) => r.fetched.filter((u) => !/^https:\/\/campgambino\.github\.io\/nba-command-center\//.test(u) && !/^data\//.test(u));
+    const codeFetched = [bad, look, rel, site].flatMap((r) => r.fetched.filter((u) => /\.js(\?|$)/.test(u)));
+    const noEval = !/new Function|\beval\((?!name\))/.test(src.split("\n").filter((l) => !/^\s*(\*|\/\/)/.test(l)).join("\n"));
+    ok(B.currentBlock(src) === want && !!site.st.oddRules && !!site.st.rareRules && typeof site.st.rareRules.liveRare === "function"
+      && bad.st.refusedCc === "https://attacker.example/watch.json" && !outside(bad).length && /ignored an outside \?cc= address/.test(bad.note) && !outside(look).length && look.st.refusedCc
+      && rel.fetched.includes("data/watch.json") && !rel.st.refusedCc && !site.st.refusedCc && !off.fetched.length && !codeFetched.length && noEval
+      && JSON.parse(fs.readFileSync(path.join(root, "docs", "bridge", "version.json"), "utf8")).version === +(/var VERSION = (\d+);/.exec(src) || [])[1],
+      "bridge v28 (0.141.18): an outside ?cc= (attacker.example, a lookalike host) fetches nothing from it and is said in the note; a relative .json path and the site still work; ?cc=off fetches nothing; no .js file is ever fetched and nothing is run with new Function or eval; the rules compiled in equal their sources",
+      JSON.stringify({ bad: bad.fetched.slice(0, 4), look: outside(look), rel: rel.fetched.slice(0, 3), codeFetched, noEval, note: bad.note }));
   }
   flowData = null;
 }
