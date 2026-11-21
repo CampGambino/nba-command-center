@@ -1923,6 +1923,13 @@ await bridgeChecks(ok, root);
   const pg3 = { l1: [28, 45, 42, 40, 53].map((p, i) => line(day(i), "LAL", "CCC", { pts: p })) };
   const T = P.streakLines({ pg: pg3, logs, names: { l1: "Luka Guy", h1: "James Harden" } });
   ok(T[0] && /40\+ points in 4 straight games: one more tonight would put him with James Harden '18-19/.test(T[0].text), "prep (0.66): a 5th straight 40-point game tonight, with who else did it since 2016-17", T[0]?.text);
+  // 0.141.7: the run ends. The same 40+ run (4 straight), then 31 on the latest date: said once, with what one more meant;
+  // a player whose run goes on, or who didn't play on the latest date, gets nothing.
+  const pgB = { l1: [28, 45, 42, 40, 53, 31].map((p, i) => line(day(i), "LAL", "CCC", { pts: p })), k1: [41, 43, 44, 40, 45, 46].map((p, i) => line(day(i), "BOS", "DDD", { pts: p })) };
+  const Bk = P.brokenLines({ pg: pgB, logs, names: { l1: "Luka Guy", h1: "James Harden", k1: "Keeps Going" } });
+  const BkNext = P.brokenLines({ pg: { ...pgB, z9: [line(day(6), "NYK", "EEE", {})] }, logs, names: { l1: "Luka Guy", h1: "James Harden", k1: "Keeps Going", z9: "Other Guy" } });
+  ok(Bk.length === 1 && Bk[0].kind === "broken" && /^Luka Guy's run of 4 straight games with 40\+ points ended \d+\/\d+ \(31 points\): one more would have put him with James Harden '18-19$/.test(Bk[0].text) && !BkNext.some((l) => l.player === "Luka Guy"),
+    "prep (0.141.7): a streak that ended last night is said once, the day after, with what one more would have meant; not for a run that goes on, and not the next day", JSON.stringify({ Bk: Bk.map((l) => l.text), BkNext: BkNext.map((l) => l.text) }));
   // Vs tonight's opponent: triple-doubles in 6 of 8 against NOP, 2 of 20 against everyone else.
   const L4 = { columns: logs.columns, players: { j1: [...Array.from({ length: 8 }, (_, i) => [`2019-0${(i % 9) + 1}-10`, "NOP", 1, "W", 2, 34, 27, i < 6 ? 12 : 8, i < 6 ? 11 : 7, 1, 1, 1, 10, 18, 3, 4, 5]),
     ...Array.from({ length: 20 }, (_, i) => [`2020-0${(i % 9) + 1}-${10 + (i % 15)}`, "XXX", 1, "W", 2, 34, 24, i < 2 ? 12 : 9, i < 2 ? 10 : 6, 1, 1, 1, 9, 17, 3, 4, 5])] } };

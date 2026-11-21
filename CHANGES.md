@@ -2,6 +2,18 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.141.8 (2026-11-21): "streak broken" lines: the end of a run said once, the day after (audit step 5's last piece)
+
+The user said "Yes" at 9:38 AM to the morning's order. This was item 5: "streak broken" lines, the piece of the audit's step 5 still open ("storylines that update as they grow… and end").
+
+**New:** `brokenLines` in `src/anticipate/prep.js` (kind `broken`, ⛓️ on the Watch List, one a game). It reruns the player-streak finder (`streakLines`, the same feats, history and rarity bar) without each player's game on the latest date. A run that finder would have said, which that game ended, becomes, for example, "Luka Doncic's run of 11 straight games with 30+ points ended 11/18 (29 points): one more would have put him with James Harden '18-19, Joel Embiid '23-24 and his own '25-26 run". It is said only while that game is the latest on file, so it appears the day after and not again. A player's own earlier run reads "his own … run" (the streak line names him beside himself). Score: the streak line's score less 0.3.
+
+**Checked on the season so far** (each of the last 12 dates replayed with only the games through it): 5 lines. Doncic 40+ in 4 (ended 11/9, 32); Wembanyama 5+ blocks in 2 (11/13); Giannis Antetokounmpo 30+ in 3 and Franz Wagner 30+ in 4 (11/16); Doncic 30+ in 11 (11/18). Doncic's 11 checked by separate code from the box scores: 30+ every game from 10/25 to 11/17, then 29 on 11/18.
+
+**Tests.** 1,101 checks (one new: the run ends with 31 after four 40-point games, said once; a run that goes on and the day after say nothing).
+
+**Self-audit.** Only player runs from box scores. Notes streaks (kind `streak`) and team runs (`streakwatch`) don't get an "ended" line yet. A broken line rides the candidate pool like any prep line, so it shows on the Watch List only when the player's team plays that day.
+
 ## 0.141.7 (2026-11-21): the backtest: four seasons of calls, 33 seasons of streaks; scored calls record the chance to play
 
 The user, 9:38 AM: "couldn't you check box scores from the last 1-4 years to increase the volume of scored calls across all stats possibilities? Thats a reservoir deep enough to understand trends and timeframes and player hot and cold streaks while highlighting the outliers?" (and "Yes" to the morning's order). The findings are in the project doc `claude/backtest-2026-11-21.md`.

@@ -330,6 +330,46 @@ export function streakLines({ pg, logs, names, runs = null, nicks = null }) {
 
 // 5. Against tonight's opponent: a feat he does far more often against this team (career logs + this season).
 const VS = [["td", "a triple-double", td], ["pts30", "30+ points", (g) => g.pts >= 30], ["dd", "a double-double", dd], ["pts40", "40+ points", (g) => g.pts >= 40]];
+// 4c. A streak that ended last night (0.141.7, audit step 5's last piece: "storylines that update", the end said once).
+// The same finder as above, run without each player's game on the latest date: a run it would have said, which that
+// game ended, becomes "X's run of 5 straight games with 30+ points ended last night (24)", with what one more would have
+// meant. Said only while that game is the latest on file, so once, the day after.
+const FEAT_STAT = { pts50: "pts", pts40: "pts", pts35: "pts", pts30: "pts", reb20: "reb", reb15: "reb", ast15: "ast", ast12: "ast", fg3m7: "fg3m", fg3m5: "fg3m", blk5: "blk" };
+const STAT_WORD = { pts: "points", reb: "rebounds", ast: "assists", fg3m: "threes", blk: "blocks" };
+export function brokenLines({ pg, logs, names, runs = null, nicks = null }) {
+  const last = Object.values(pg).reduce((m, gs) => (gs.length && gs[gs.length - 1].d > m ? gs[gs.length - 1].d : m), "");
+  if (!last) return [];
+  const before = {}, lastGame = {};
+  for (const [id, gs] of Object.entries(pg)) {
+    if (gs.length < 3 || gs[gs.length - 1].d !== last) continue;
+    before[id] = gs.slice(0, -1); lastGame[id] = gs[gs.length - 1];
+  }
+  const was = streakLines({ pg: before, logs, names, runs, nicks });
+  const out = [];
+  for (const l of was) {
+    const k = l.key.split("|")[2], f = FEATS.find((x) => x[0] === k), g = lastGame[l.id];
+    if (!f || !g || f[2](g)) continue;                      // the run went on: nothing ended
+    const n = runsOf(before[l.id], f[2]).pop()?.n;
+    if (!n) continue;
+    const st = FEAT_STAT[k], got = st ? `${g[st]} ${STAT_WORD[st]}` : `${g.pts}-${g.reb}-${g.ast}`;
+    const label = f[1].replace(/^a /, "");
+    // "one more would have put him with A '18-19, B '23-24" (his own past run reads "his own '25-26 run")
+    const withWho = /one more tonight would put him with (.*?) as the only current players/.exec(l.text)?.[1];
+    let more = /no current player has done it/.test(l.text) ? "one more would have been a run no current player has had since 2016-17" : null;
+    if (withWho) {
+      const parts = withWho.split(", "), own = parts.filter((x) => x.startsWith(`${l.player} `)), others = parts.filter((x) => !x.startsWith(`${l.player} `));
+      const ownTxt = own.map((x) => `his own ${x.slice(l.player.length + 1)} run`);
+      const all = [...others, ...ownTxt], list = all.length > 1 ? `${all.slice(0, -1).join(", ")} and ${all.at(-1)}` : all[0];
+      more = !others.length ? `one more would have matched ${ownTxt.join(" and ")}` : `one more would have put him with ${list}`;
+    }
+    const [, mm, dd] = last.split("-");
+    out.push({ kind: "broken", team: g.team, player: l.player, id: l.id, key: `broken|${l.id}|${k}|${last}`,
+      text: `${l.player}'s run of ${n} straight games with ${label}${/^a /.test(f[1]) ? "s" : ""} ended ${+mm}/${+dd} (${got})${more ? `: ${more}` : ""}`,
+      score: Math.max(3, (l.score || 3.4) - 0.3), rare: true, ended: last });
+  }
+  return out;
+}
+
 export function vsOppLines({ pg, logs, names, games: slate, lastN = 20 }) {
   const L = logRows(logs);
   const opp = new Map();
@@ -549,7 +589,7 @@ export function prominence(pg, names) {
 
 /** All of it, for scripts/situations.js -> docs/data/prep.json. */
 export function prepLines(args) {
-  const parts = [["season", seasonLines], ["absence", absenceLines], ["run", runLines], ["streak", streakLines], ["vsopp", vsOppLines], ["pace", paceLines], ["own", ownStartLines], ["already", alreadyLines], ["slump", slumpLines]];
+  const parts = [["season", seasonLines], ["absence", absenceLines], ["run", runLines], ["streak", streakLines], ["broken", brokenLines], ["vsopp", vsOppLines], ["pace", paceLines], ["own", ownStartLines], ["already", alreadyLines], ["slump", slumpLines]];
   const lines = [], errors = [];
   for (const [k, f] of parts) { try { lines.push(...f(args)); } catch (e) { errors.push(`${k}: ${e.message}`); } }
   return { lines, errors, stars: prominence(args.pg, args.names) };
