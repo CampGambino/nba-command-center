@@ -3298,8 +3298,10 @@ await bridgeChecks(ok, root);
     ok(fs.readFileSync(path.join(root, "src", "gameflow", "feeds.js"), "utf8") === fs.readFileSync(path.join(root, "docs", "lib", "gameflow", "feeds.js"), "utf8"), "game flow: the page's copy of the reader is the build's");
     // 0.59: the model moved out of the page, and the season facts built on it (src/gameflow/model.js, stats.js).
     ok(fs.readFileSync(path.join(root, "src", "gameflow", "model.js"), "utf8") === fs.readFileSync(path.join(root, "docs", "lib", "gameflow", "model.js"), "utf8")
-      && /from "\.\/lib\/gameflow\/model\.js"/.test(fs.readFileSync(path.join(root, "docs", "gameflow.html"), "utf8"))
-      && !/function buildStints\(/.test(fs.readFileSync(path.join(root, "docs", "gameflow.html"), "utf8")),
+      // 0.141.10: the page's script is docs/gameflow.js (moved out of the page unchanged); the page loads it.
+      && /from "\.\/lib\/gameflow\/model\.js"/.test(fs.readFileSync(path.join(root, "docs", "gameflow.js"), "utf8"))
+      && !/function buildStints\(/.test(fs.readFileSync(path.join(root, "docs", "gameflow.js"), "utf8"))
+      && /<script type="module" src="gameflow\.js"><\/script>/.test(fs.readFileSync(path.join(root, "docs", "gameflow.html"), "utf8")),
       "game flow (0.59): the page imports the stint model the build runs (one copy, no second definition in the page)");
     const S = await import("../src/gameflow/stats.js");
     const row = { id: c.id, d: "2026-11-12" };

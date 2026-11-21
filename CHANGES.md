@@ -2,6 +2,16 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.141.10 (2026-11-21): the Game Flow page split into page, styles and script
+
+The user said "Yes" at 9:38 AM to the morning's order. This was item 7: split `docs/gameflow.html` (5,675 lines), checked on the user's phone.
+
+**Changed.** `docs/gameflow.html` is now the page alone (127 lines). Its styles moved to `docs/gameflow.css` (425 lines, linked) and its script to `docs/gameflow.js` (5,122 lines, loaded as a module, as it was inline). Nothing inside them changed. Put back together, the three give the old file byte for byte (5,676 lines, identical). The script's imports (`./lib/gameflow/…`) resolve the same from the same folder. A module script runs after the page is parsed either way. The poster download reads the styles from every stylesheet on the page, which includes a linked one from the same site.
+
+**Tests.** 1,102. The check that the page uses the shared model (`./lib/gameflow/model.js`, no copy of `buildStints`) now reads `gameflow.js` and checks the page loads it.
+
+**Self-audit.** The tests can't run a browser, so the page is checked on the user's phone after publishing. This is the mechanical step: the script is still one 5,122-line file. Splitting it by what it does (data loading, the chart, tooltips, posters) is the next step, a real refactor, best done a section at a time with a look after each.
+
 ## 0.141.9 (2026-11-21): the record chases are scored, and get their own correction
 
 The user said "Yes" at 9:38 AM to the morning's order. This was item 6: score the record-chase chances. They had been corrected with the milestones' fit since 0.140 but never scored themselves.

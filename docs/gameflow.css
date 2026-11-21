@@ -1,0 +1,426 @@
+/* Game Flow page styles (moved out of gameflow.html, 0.141.10: the user 11/21, "proper code management"). */
+  :root{
+    --bg:#0e1116; --panel:#161b23; --panel2:#1c222c; --line:#2a3140;
+    --text:#e8ecf2; --dim:#8d97a8; --dimmer:#5d6675;
+    --pos:#2f9e6a; --neg:#d0453f; --accent:#7aa2f7;
+    --rowh:26px; --namew:172px; --statw:52px;
+  }
+  /* A light look to match the rest of the Command Center (0.59): the same palette the other pages switch to.
+     Pale team colours are darkened in script (lowerForLight); the posters were always white. */
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f5f6f8; --panel:#fff; --panel2:#f0f2f5; --line:#e1e4ea;
+      --text:#161a22; --dim:#5b6474; --dimmer:#8a93a3; --accent:#3b6fd8; }
+    .lane{background:#e9ecf1 !important}
+    .stint.hot,.cell:hover,.amx .acell:hover{outline-color:#161a22 !important}
+    .foul:not(.warn):not(.dq){background:rgba(22,26,34,.55) !important}
+    .pf.warn{border-color:#e3c77a !important;background:#fff6dc !important;color:#7a5a10 !important}
+    .pf.dq{border-color:#efb3ab !important;background:#fdecea !important;color:#9b2b22 !important}
+    table.per tr:nth-child(even) td{background:rgba(0,0,0,.025) !important}
+    #tip{background:#fff !important;box-shadow:0 10px 30px rgba(0,0,0,.18) !important}
+    .amx .acell{background:#eef1f5 !important}
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font:13px/1.4 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  a{color:var(--accent)}
+  .wrap{max-width:1500px;margin:0 auto;padding:18px 20px 60px}
+
+  header.top{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between;margin-bottom:16px}
+  h1{font-size:17px;font-weight:650;margin:0;letter-spacing:.2px}
+  h1 small{display:block;font-weight:400;font-size:11.5px;color:var(--dim);letter-spacing:.3px;margin-top:3px}
+
+  /* One tab per section, wrapping on a narrow window. The tabs are generated from the
+     #view select's own options, so the two can never disagree about what exists. */
+  .tabs{display:flex;flex-wrap:wrap;align-items:center;gap:1px;margin:0 0 12px;
+    border-bottom:1px solid var(--line);padding-bottom:0}
+  .tabs button{background:none;border:0;border-bottom:2px solid transparent;
+    color:var(--dim);font:inherit;font-size:12px;padding:7px 11px;border-radius:0;
+    margin-bottom:-1px;white-space:nowrap}
+  .tabs button:hover{color:var(--text);border-color:transparent}
+  .tabs button[aria-selected="true"]{color:var(--text);font-weight:600;
+    border-bottom-color:var(--accent)}
+  .tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .tabs .tsep{width:1px;height:14px;background:var(--line);margin:0 8px}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .controls [hidden]{display:none}
+  select,input,button{background:var(--panel2);color:var(--text);border:1px solid var(--line);
+    border-radius:7px;padding:6px 9px;font:inherit;font-size:12.5px;outline:none}
+  select:focus,input:focus{border-color:var(--accent)}
+  button{cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button:disabled{opacity:.4;cursor:default}
+  select#game{min-width:330px}
+  label.ck{display:flex;gap:5px;align-items:center;color:var(--dim);font-size:12px;cursor:pointer;user-select:none}
+  label.ck input{accent-color:var(--accent);width:14px;height:14px;padding:0}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px 18px;overflow-x:auto}
+
+  .gamehead{display:flex;flex-wrap:wrap;align-items:center;gap:16px;margin-bottom:14px}
+  .score{display:flex;align-items:center;gap:12px;font-size:22px;font-weight:650;letter-spacing:-.3px}
+  .score .tri{display:inline-flex;align-items:center;gap:7px;font-size:15px;font-weight:600}
+  .score .dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+  .score .n{font-variant-numeric:tabular-nums}
+  .score .n.w{color:var(--text)} .score .n.l{color:var(--dim)}
+  .meta{color:var(--dim);font-size:12px}
+  .meta b{color:var(--text);font-weight:500}
+
+  /* ---- chart grid ---- */
+  .grid{display:grid;
+    grid-template-columns:var(--namew) 1fr repeat(3,var(--statw));
+    align-items:center;column-gap:0}
+  .grid .nm{padding-right:9px;text-align:right;white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis;font-size:12px;height:var(--rowh);line-height:var(--rowh)}
+  .grid .nm .jn{color:var(--dimmer);font-size:10.5px;margin-right:4px;font-variant-numeric:tabular-nums}
+  .grid .st{text-align:right;padding-right:10px;font-size:11.5px;font-variant-numeric:tabular-nums;
+    height:var(--rowh);line-height:var(--rowh);color:var(--dim)}
+  .grid .st.pts{color:var(--text)}
+  .hdr{color:var(--dimmer);font-size:10px;text-transform:uppercase;letter-spacing:.7px;height:20px;line-height:20px}
+  .hdr.st{color:var(--dimmer)}
+
+  .track{position:relative;height:var(--rowh)}
+  .track .bgq{position:absolute;inset:0}
+  .lane{position:absolute;top:3px;bottom:3px;left:0;right:0;background:#10151d;border-radius:3px}
+  .stint{position:absolute;top:3px;bottom:3px;border-radius:3px;overflow:hidden;cursor:pointer;
+    display:flex;align-items:center;justify-content:space-between;padding:0 4px;
+    font-size:10.5px;font-variant-numeric:tabular-nums;line-height:1;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.35)}
+  .stint span{pointer-events:none;white-space:nowrap}
+  .stint .sp{font-weight:700}
+  .stint .spm{opacity:.8}
+  .stint.faded{opacity:.18}
+  .stint.hot{outline:1.5px solid #fff;outline-offset:-1px;z-index:5}
+
+  /* foul marks sit on top of the stint bars */
+  .foul{position:absolute;top:1px;bottom:1px;width:2px;border-radius:1px;
+    background:rgba(255,255,255,.62);pointer-events:none;z-index:4}
+  .foul.warn{width:3px;background:#ffcf6b;box-shadow:0 0 0 1px rgba(0,0,0,.45)}
+  .foul.dq{width:3px;background:#ff7b6b;box-shadow:0 0 0 1px rgba(0,0,0,.45)}
+  .pf{display:inline-block;margin-left:5px;padding:0 4px;border-radius:3px;
+    font-size:9.5px;font-variant-numeric:tabular-nums;vertical-align:1px;
+    border:1px solid var(--line);color:var(--dim)}
+  .pf.warn{border-color:#5b4a22;background:#221d10;color:#e2c078}
+  .pf.dq{border-color:#5b2b2b;background:#1e1416;color:#f0a9a1}
+
+  .qline{position:absolute;top:0;bottom:0;width:1px;background:var(--line)}
+  .qlabels{position:relative;height:20px}
+  .qlabels div{position:absolute;top:0;font-size:10px;letter-spacing:.7px;text-transform:uppercase;
+    color:var(--dimmer);transform:translateX(-50%)}
+
+  .lprow .track{height:20px}
+  .lp{position:absolute;top:2px;bottom:2px;border-radius:2px;display:flex;align-items:center;
+    justify-content:center;font-size:9.5px;font-variant-numeric:tabular-nums;overflow:hidden;
+    color:#dfe6f0;cursor:pointer}
+  .runrow .track{height:19px}
+  .run{position:absolute;top:2px;bottom:2px;border-radius:3px;display:flex;align-items:center;
+    justify-content:center;font-size:9.5px;font-weight:650;font-variant-numeric:tabular-nums;
+    color:#0d1117;overflow:hidden}
+  /* the swing is an outline, not a fill: it must not read as the same kind of thing
+     as a run sitting directly above it */
+  .run.swing{background:transparent!important;border:1.5px dashed;color:var(--dim)}
+  .runnone{position:absolute;left:3px;top:3px;font-size:10px;color:var(--dim)}
+
+  .chartrow .track{height:132px}
+  .chartrow svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+  .axlabel{position:absolute;right:-6px;transform:translate(100%,-50%);font-size:10px;color:var(--dimmer);
+    font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  .sect{color:var(--dimmer);font-size:10px;text-transform:uppercase;letter-spacing:.8px;
+    height:22px;line-height:22px}
+  .rule{height:1px;background:var(--line);margin:9px 0}
+
+  /* Sized to its content, not to the card. At 1500px wide a seven-column table of short
+     values was handing ~800px of slack to the gaps between columns, which is what made these
+     tables read as sparse: the eye has to travel further than the data is wide. */
+  table.per{width:auto;max-width:100%;border-collapse:collapse;font-size:11.5px;
+    font-variant-numeric:tabular-nums;margin-top:4px}
+  table.per th,table.per td{padding:4px 11px;text-align:right;
+    border-bottom:1px solid var(--line);white-space:nowrap}
+  table.per th{color:var(--dimmer);font-weight:500;text-transform:uppercase;font-size:9.5px;
+    letter-spacing:.6px}
+  table.per td:first-child,table.per th:first-child{text-align:left}
+  /* A tint every other row, to carry the eye across a long line of numbers. */
+  table.per tr:nth-child(even) td{background:rgba(255,255,255,.022)}
+  table.per tr:last-child td{border-bottom:none}
+
+  #tip{position:fixed;z-index:99;pointer-events:none;opacity:0;transition:opacity .08s;
+    background:#0a0d12;border:1px solid var(--line);border-radius:9px;padding:9px 11px;
+    font-size:11.5px;max-width:290px;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+  #tip .th{font-weight:650;margin-bottom:4px;font-size:12px}
+  #tip .kv{display:flex;justify-content:space-between;gap:14px;color:var(--dim)}
+  #tip .kv b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+  #tip .mates{margin-top:6px;padding-top:5px;border-top:1px solid var(--line);color:var(--dim);font-size:11px}
+
+  /* ---- season rotation heatmap ---- */
+  .heat{display:grid;grid-template-columns:var(--namew) 1fr;align-items:center}
+  .heat .nm{padding-right:9px;text-align:right;white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis;font-size:12px;height:19px;line-height:19px}
+  .heat .nm .jn{color:var(--dimmer);font-size:10.5px;margin-right:4px;font-variant-numeric:tabular-nums}
+  .cells{display:flex;gap:1.5px;height:19px;padding:2px 0}
+  .cell{flex:1;border-radius:2px;min-width:0;cursor:pointer}
+  .cell:hover{outline:1.5px solid #fff;outline-offset:-1px}
+  .qmark{display:flex;gap:1.5px;height:18px}
+  .qmark div{flex:1;font-size:10px;text-transform:uppercase;letter-spacing:.7px;
+    color:var(--dimmer);display:flex;align-items:center}
+  .qsep{border-left:1px solid var(--line)}
+  /* ---- assist matrix ---- */
+  .amx{display:grid;gap:2px;align-items:stretch;margin-top:4px}
+  .amx .ah{font-size:10px;color:var(--dimmer);text-align:center;padding:3px 0;
+    font-variant-numeric:tabular-nums;overflow:hidden;white-space:nowrap}
+  .amx .ah.corner{text-align:right;padding-right:9px;text-transform:uppercase;letter-spacing:.5px}
+  .amx .anm{font-size:12px;text-align:right;padding-right:9px;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;
+    justify-content:flex-end;gap:4px;min-height:22px}
+  .amx .anm .jn{color:var(--dimmer);font-size:10.5px;font-variant-numeric:tabular-nums}
+  .amx .anm.tot{color:var(--dimmer);font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+  .amx .acell{background:#131a24;border-radius:2px;min-height:22px;display:flex;
+    align-items:center;justify-content:center;font-size:11px;
+    font-variant-numeric:tabular-nums;color:var(--dim);cursor:pointer}
+  .amx .acell:hover{outline:1.5px solid #fff;outline-offset:-1px}
+  .amx .acell.self{background:transparent;color:var(--dimmer);cursor:default}
+  .amx .acell.tot{background:transparent;color:var(--text);font-weight:500;cursor:default}
+  .amx .ah.tot{color:var(--dimmer);text-transform:uppercase;letter-spacing:.5px}
+
+  /* ---- headshots ---- */
+  .hs{position:relative;border-radius:10px;overflow:hidden;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center}
+  .hs img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    object-position:50% 12%}
+  .hs .hsi{font-weight:600;color:rgba(255,255,255,.9);letter-spacing:.5px}
+  .hs.has .hsi{display:none}
+
+  /* ---- infographic poster ----
+     Fixed 880px so it reads as a portrait graphic instead of stretching to the
+     window, which is what left a dead zone down the middle of the wide version. */
+  /* Light on purpose: the poster is a document to be shared, not part of the app
+     chrome, and black-on-white survives screenshots, printing and reposting. */
+  /* 1040 rather than 880: social platforms render at 1080 wide, so a narrower
+     graphic gets upscaled and goes soft. This posts at native resolution. */
+  .poster{width:1040px;max-width:100%;margin:6px auto 0;background:#fff;
+    border:1px solid #dfe3e9;border-radius:14px;padding:34px 36px 24px;color:#0d1117}
+  .poster .pkick{font-size:12px;letter-spacing:2.4px;text-transform:uppercase;
+    color:#9a7420;margin:0 0 7px;font-weight:700}
+  .poster .ptitle{font-size:40px;font-weight:800;color:#0d1117;letter-spacing:-1.2px;
+    margin:0;line-height:1}
+  .poster .prule{height:3px;background:#0d1117;margin:16px 0 0}
+
+  /* Four columns: rank, passer, the meter, scorer. */
+  .phead,.prow{display:grid;grid-template-columns:34px 1fr 300px 1fr;gap:16px;
+    align-items:center}
+  /* Headers sized to survive a thumbnail, not decorative small caps — but a shade
+     off black and a step under the 15px rank, so they read as labels rather than
+     competing with the data.
+     The two side labels are inset by exactly one portrait plus its gap (--pinset,
+     checked against the portrait size by the audit). Aligned flush to the column
+     edge they landed on top of the portraits, which are identical on both sides —
+     so the words appeared to caption the faces instead of the names. Inset, each
+     label's inner edge lands on the shared edge of every name in that column. */
+  .poster{--pinset:68px}
+  .phead{padding:11px 8px 11px 0;border-bottom:2px solid #0d1117}
+  /* 15px, matching the rank: uppercase reads optically smaller than a digit of the
+     same size, and 13px was literally smaller than the least important number on
+     the row. Still well under the 18px names, so the hierarchy holds. */
+  .phead div{font-size:15px;letter-spacing:1.4px;text-transform:uppercase;color:#4a525e;
+    font-weight:800}
+  .phead .h-passer{text-align:right;padding-right:var(--pinset)}
+  .phead .h-mid{text-align:center}
+  .phead .h-scorer{text-align:left;padding-left:var(--pinset)}
+
+  .prow{padding:7px 8px 7px 0;border-bottom:1px solid #eef0f4}
+  .prow.alt{background:#fafbfc}
+  .prow.lead{background:#fdf8ec}
+  .prow:last-of-type{border-bottom:none}
+  /* Deliberately quieter than the assist total: the rank is the least important
+     number on the row, and only carries real information where ranks are tied. */
+  .prank{font-size:15px;font-weight:700;color:#8b939f;font-variant-numeric:tabular-nums;
+    text-align:right;letter-spacing:-.2px}
+  .prow.lead .prank{color:#9a7420}
+  .prow.lead .pname{font-weight:800}
+  /* both sides align inward, toward the number */
+  .pside{display:flex;align-items:center;gap:12px;min-width:0;justify-content:flex-end}
+  .pside.r{justify-content:flex-start}
+  .pname{font-size:18px;font-weight:700;color:#0d1117;white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis;line-height:1.2;letter-spacing:-.2px}
+
+  /* The meter lives between the two portraits: a fixed-width track, so every row
+     shares one baseline and one maximum and the lengths are directly comparable.
+     The number rides at the end of its own bar, not centred on top of it: centred,
+     it covered exactly the endpoints a bar chart exists to let you compare, because
+     mid-range fills terminate underneath the label. */
+  .pmid{position:relative;height:46px;border-radius:9px;background:#f1f3f6;
+    overflow:hidden;display:block}
+  /* no left cap: a solid edge at the start read as an empty gauge */
+  .pband{position:absolute;left:0;top:0;bottom:0;z-index:0}
+  .pval{position:absolute;z-index:1;top:50%;transform:translateY(-50%);white-space:nowrap}
+  .pval b{display:block;font-size:31px;font-weight:800;color:#0d1117;
+    font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-1.2px}
+  .poster .hs{box-shadow:0 0 0 2px rgba(13,17,23,.10)}
+
+  /* Players who turn up more than once get a ring on the portrait rather than a
+     badge next to the name: no extra glyph, and seeing the same ringed face twice
+     is what makes the repeat register. */
+  .poster .hs.dup{box-shadow:0 0 0 3px var(--ring,#0d1117)}
+  /* The leader used to get a heavier left edge here. It never rendered — .pband
+     declares no border-style, so a width alone draws nothing — and it contradicted
+     the "no left cap" decision three rules up, so it is gone rather than repaired.
+     The leader is already marked by the cream row and the longest bar. */
+
+  /* ---- ranked cards: one poster shape, five sections ----
+     Written once because five sections wanted an infographic and five bespoke designs
+     would drift apart within a week. A row is a rank, a face or a team swatch, a name,
+     one line of context, a bar and one number: whatever the section, that is the shape. */
+  .rrow{display:grid;grid-template-columns:38px auto 1fr 210px auto;gap:14px;
+    align-items:center;padding:9px 4px;border-bottom:1px solid #eef0f4}
+  .rrow:last-of-type{border-bottom:none}
+  .rrow.alt{background:#fafbfc}
+  .rrow.lead{background:#fdf8ec}
+  .rrank{font-size:15px;font-weight:700;color:#8b939f;font-variant-numeric:tabular-nums;
+    text-align:right}
+  .rrow.lead .rrank{color:#9a7420}
+  .rmark{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;
+    justify-content:center;font-size:11.5px;font-weight:800;color:#fff;letter-spacing:.2px}
+  .rwho{min-width:0}
+  .rname{font-size:18px;font-weight:700;color:#0d1117;white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis;letter-spacing:-.2px;line-height:1.15}
+  .rrow.lead .rname{font-weight:800}
+  .rsub{font-size:12px;color:#6b7480;white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis;margin-top:1px}
+  .rtrack{position:relative;height:26px;border-radius:7px;background:#f1f3f6;overflow:hidden}
+  .rfill{position:absolute;left:0;top:0;bottom:0}
+  .rval{font-size:27px;font-weight:800;color:#0d1117;font-variant-numeric:tabular-nums;
+    letter-spacing:-1px;text-align:right;min-width:96px}
+  .rval small{display:block;font-size:11px;font-weight:600;color:#6b7480;letter-spacing:0}
+  .poster .rhead{display:grid;grid-template-columns:38px auto 1fr 210px auto;gap:14px;
+    padding:10px 4px;border-bottom:2px solid #0d1117;font-size:13px;font-weight:800;
+    letter-spacing:1.2px;text-transform:uppercase;color:#4a525e}
+  .poster .rhead .rh-val{text-align:right;min-width:96px}
+
+  /* ---- game-log cards: the format these read as, one line per game ----
+     A ranked bar chart answers "who is hottest". A game log answers "what has he actually
+     been doing", which is the question a reader of one of these actually has, so this poster
+     is a stack of logs rather than a ranking. */
+  .lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px;
+    margin-top:14px}
+  .lcard{border:1px solid #e6e9ee;border-radius:12px;padding:14px 16px 12px;background:#fff}
+  .lcard.lead{border-color:#d8c48a;background:#fffdf7}
+  .lhead{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+  .lname{font-size:19px;font-weight:800;color:#0d1117;letter-spacing:-.3px;line-height:1.1}
+  .lwhen{font-size:12px;color:#6b7480;font-weight:600}
+  .llines{margin:0;padding:0;list-style:none;font-variant-numeric:tabular-nums}
+  .llines li{font-size:15px;font-weight:600;color:#0d1117;padding:3px 0;
+    border-bottom:1px solid #f2f4f7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .llines li:last-child{border-bottom:none}
+  .llines .odd{color:#8b939f;font-weight:600}
+  .lfoot{margin-top:9px;font-size:12.5px;color:#4a525e;line-height:1.5}
+  .lfoot b{color:#0d1117}
+  /* ---- three-point range: small multiples, one half court each ---- */
+  .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(206px,1fr));
+    gap:14px;margin:12px 0 4px}
+  .ccell{border:1px solid var(--line);border-radius:10px;padding:9px 8px 7px;
+    background:var(--panel)}
+  .chead{display:flex;align-items:center;gap:7px;margin-bottom:1px}
+  .crank{font-size:12px;font-weight:700;color:var(--dim);font-variant-numeric:tabular-nums}
+  .cname{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;flex:1 1 auto}
+  .cavg{font-size:21px;font-weight:700;color:var(--text);letter-spacing:-.6px;
+    font-variant-numeric:tabular-nums;line-height:1.1}
+  .court{--cline:var(--line);display:block;margin:2px auto 0}
+  /* A miss is an outline and a make is filled: the same shape either way, so the
+     dots read as one distribution rather than two overlaid populations. */
+  .court .sh.made{fill:var(--made,#6aa9ff);fill-opacity:.85}
+  .court .sh.miss{fill:none;stroke:var(--dim);stroke-width:1;stroke-opacity:.75}
+  .cfoot{font-size:11px;color:var(--dim);margin-top:3px;font-variant-numeric:tabular-nums}
+
+  /* ---- the two range posters: on white, so they survive being screenshotted ---- */
+  .axplot,.scplot{display:block;margin:10px auto 0;max-width:100%}
+  .poster .axgrid{stroke:#e9ecf1;stroke-width:1}
+  .poster .axband{fill:#fafbfc}
+  .poster .axtick{font-size:12px;fill:#6b7480;font-variant-numeric:tabular-nums}
+  .poster .axcap{font-size:12px;fill:#4a525e;font-weight:700;letter-spacing:.4px}
+  /* the line is the reference the whole graphic is read against, so it is the one
+     dashed rule that is allowed to be darker than the grid */
+  .poster .axarc{stroke:#0d1117;stroke-width:1.6;stroke-dasharray:5 4;stroke-opacity:.55}
+  .poster .axarclab{font-size:11px;fill:#0d1117;font-weight:700;letter-spacing:.3px}
+  .poster .axref{stroke:#9a7420;stroke-width:1.4;stroke-dasharray:4 4}
+  .poster .axreflab{font-size:11px;fill:#9a7420;font-weight:700}
+  /* ---- the court: full-bleed hardwood, players laid over it ---- */
+  .poster .ctpaint{fill:#8a5f33;fill-opacity:.22}
+  .poster .ctmark{fill:none;stroke:#fff;stroke-width:2.2;stroke-opacity:.9}
+  .poster .ctmark.dash{stroke-dasharray:7 6}
+  .poster .ctarc{fill:none;stroke:#fff;stroke-width:3.4}
+  .poster .ctgauge{stroke:#fff;stroke-width:2;stroke-opacity:.55}
+  /* headshots have to be real images, so the rows are HTML over the court.
+     The wrap breaks out of the poster's padding on both sides: the floor is meant to run
+     edge to edge, with no white margin around it. */
+  .ctwrap{position:relative;width:1038px;max-width:none;margin:14px -36px 0;overflow:hidden}
+  .poster .ctplot{position:absolute;left:0;top:0}
+  .poster .ctrow{position:absolute;display:flex;align-items:center;gap:14px}
+  .poster .ctrow .hs{box-shadow:0 0 0 3px var(--ring,#fff), 0 6px 16px rgba(40,22,4,.45);
+    border-radius:50%}
+  .poster .cttext{white-space:nowrap;position:relative;padding-left:24px;
+    text-shadow:0 1px 3px rgba(40,22,4,.55)}
+  .poster .ctrank2{position:absolute;left:0;top:4px;font-size:13px;font-weight:800;
+    color:rgba(255,255,255,.8);font-variant-numeric:tabular-nums}
+  .poster .ctrname{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.4px;
+    line-height:1.1}
+  .poster .ctrdist{font-size:14px;font-weight:600;color:rgba(255,255,255,.9);
+    font-variant-numeric:tabular-nums;line-height:1.35}
+  /* the line the whole poster is read against, so it outweighs the other markings */
+  .poster .ctarc{fill:none;stroke:#8a6f45;stroke-width:2}
+  .poster .ctdot{stroke:#fff;stroke-width:2}
+
+  .poster .sctie{stroke:#9aa2ad;stroke-width:1}
+  .poster .scgloss{font-size:11px;fill:#6b7480;font-weight:600}
+  .poster .scdot.rest{fill:#c3c9d2}
+  .poster .scdot.deep{stroke:#fff;stroke-width:1.6}
+  .poster .scerr{stroke-width:2.4;stroke-opacity:.45;stroke-linecap:round}
+  .poster .sclab{font-size:12.5px;fill:#0d1117;font-weight:700}
+
+  .pfoot{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
+    margin-top:16px;padding-top:12px;border-top:1px solid #e6e9ee}
+  /* was 10px: the footer carries the scope and caveats, and when the graphic is
+     posted as an image nothing can be hovered — so it has to be readable or the
+     provenance is effectively gone */
+  .pfoot p{margin:0;font-size:12px;color:#6b7480;line-height:1.55;max-width:680px}
+  .pfoot .brand{font-size:12.5px;font-weight:750;color:#0d1117;white-space:nowrap;
+    letter-spacing:.3px}
+
+  /* ---- outliers ---- */
+  .notable{margin:14px 0 4px;border:1px solid var(--line);border-radius:9px;padding:11px 13px;
+    background:var(--panel2)}
+  .notable h4{margin:0 0 7px;font-size:11px;font-weight:500;color:var(--dimmer);
+    text-transform:uppercase;letter-spacing:.7px}
+  .notable ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px}
+  .notable li{font-size:12px;color:var(--dim);display:flex;gap:8px;align-items:baseline}
+  .notable b{color:var(--text);font-weight:500}
+  .zt{font-variant-numeric:tabular-nums;font-size:10.5px;padding:1px 5px;border-radius:3px;
+    border:1px solid var(--line);white-space:nowrap}
+  .zt.hi{border-color:#26543f;background:#13251d;color:#7fd3a8}
+  .zt.lo{border-color:#5b4a22;background:#221d10;color:#e2c078}
+  .om{font-size:9px;vertical-align:2px;margin-left:2px}
+  .om.hi{color:#7fd3a8} .om.lo{color:#e2c078}
+
+  .hlegend{display:flex;align-items:center;gap:9px;margin-top:14px;color:var(--dimmer);font-size:11px}
+  .hlegend .ramp{display:flex;gap:1.5px}
+  .hlegend .ramp i{width:17px;height:10px;border-radius:2px;display:block}
+  .prog{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:9px}
+  .prog i{display:block;height:100%;background:var(--accent);width:0;transition:width .2s}
+
+  .note{color:var(--dim);font-size:11.5px;margin-top:12px;line-height:1.55}
+  .status{padding:11px 13px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);
+    font-size:12.5px;color:var(--dim)}
+  .status.err{border-color:#5b2b2b;background:#1e1416;color:#f0b9b6}
+  .badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10.5px;
+    border:1px solid var(--line);color:var(--dim);margin-left:6px}
+  .badge.ok{border-color:#26543f;color:#7fd3a8;background:#13251d}
+  .badge.warn{border-color:#5b4a22;color:#e2c078;background:#221d10}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--dimmer);font-size:11px;margin-top:10px;align-items:center}
+  .legend i{width:22px;height:9px;border-radius:2px;display:inline-block;margin-right:5px;vertical-align:-1px}
+  .spin{display:inline-block;width:11px;height:11px;border:2px solid var(--line);border-top-color:var(--accent);
+    border-radius:50%;animation:sp .7s linear infinite;vertical-align:-1px;margin-right:7px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  /* Command Center page nav (the Game Flow page keeps GameFlow's dark look) */
+  .ccnav{display:flex;flex-wrap:wrap;row-gap:4px;gap:14px;margin:-6px 0 14px;font-size:13.5px}
+  .ccnav a{color:var(--dim);text-decoration:none;padding-bottom:2px}
+  .ccnav a.on{color:var(--text);border-bottom:2px solid var(--accent)}
