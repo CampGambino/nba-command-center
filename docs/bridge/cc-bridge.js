@@ -56,6 +56,16 @@
  *       Live's own QUARTER EXPLOSION card is up for a quarter, the season place and list are added to that card (its
  *       all-time list stays) and the separate season card is not fired; it shows only where NBA Live has no card.
  *       This is the one place the bridge adds to a card of NBA Live's: two fields, on its way through fireStory.
+ *     - (v27, 0.141.17; the user, 11/21: "flagging this stuff in real time in the nba live app", "should warn ahead of
+ *       time", "five or fewer") RARE COMBINATIONS: a player's line that, in every column of a combination (points /
+ *       rebounds / assists; points / threes / assists; rebounds / blocks / points; steals / blocks / points; assists /
+ *       steals / points), has been matched or beaten in 4 or fewer regular-season games since 1993-94, so tonight's is one
+ *       of five or fewer: "🦄 ONE OF ONE … 52 points and 24 rebounds: no one else has done that since 1993-94", with who
+ *       did it before. Only the stats that matter are named; a line rare in one stat alone is left to the single-game
+ *       lists. Points on few shots can be undone by a miss, so it waits for the final five minutes ("as it stands") and is
+ *       greyed if undone. "👀 ON THE VERGE" while live when a small step would get there (5 points, 2 rebounds or
+ *       assists, 1 three, steal or block); the card replaces it, and it is taken down if the game ends first. The counts
+ *       are linerare.json, the rules lib/situations/linerare.js (read as text). Not in the playoffs.
  *     - (v26, 0.123; on the user's go, 11/19) the odd-line card's last words say what its count rests on, per kind of
  *       line: "ESPN and pbpstats box scores, under 1% of games not on file", or, for the six lines that need a turnover
  *       or a foul, "ESPN box scores, about 3% of games not on file" as before. Nothing else about the card changes.
@@ -99,7 +109,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 26;
+  var VERSION = 27;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -132,6 +142,9 @@
   var teamMarksUrl = url.replace(/watch\.json(\?.*)?$/, "teammarks.json");
   var oddUrl = url.replace(/watch\.json(\?.*)?$/, "oddlive.json");
   var oddRulesUrl = url === DEFAULT_URL ? url.replace(/data\/watch\.json(\?.*)?$/, "lib/situations/oddlines.js") : url.replace(/watch\.json(\?.*)?$/, "oddlines.js");
+  // v27: rare combinations (linerare.json and the rules, the site's own module read as text, as the odd lines).
+  var rareUrl = url.replace(/watch\.json(\?.*)?$/, "linerare.json");
+  var rareRulesUrl = url === DEFAULT_URL ? url.replace(/data\/watch\.json(\?.*)?$/, "lib/situations/linerare.js") : url.replace(/watch\.json(\?.*)?$/, "linerare.js");
   var bestsUrl = /watch\.json(\?.*)?$/.test(url) ? url.replace(/watch\.json(\?.*)?$/, "").replace(/data\/$/, "") + "ref/nba-single-game-bests.json" : url;
 
   function has(name) { try { return typeof eval(name) !== "undefined"; } catch (e) { return false; } }
@@ -182,6 +195,11 @@
       .then(function (d) { state.odd = d && d.v === 1 && d.t ? d : null; }).catch(function (e) { state.odd = null; state.oddError = String(e && e.message || e); });
     if (oddRulesUrl !== url && !state.oddRules) fetch(oddRulesUrl, { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : null; })
       .then(function (src) { state.oddRules = src ? oddRulesFrom(src) : null; }).catch(function (e) { state.oddRules = null; state.oddError = String(e && e.message || e); });
+    // v27: rare combinations. Both optional: without either, no rare-combination cards.
+    if (rareUrl !== url) fetch(rareUrl, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { state.rare = d && d.v === 1 && d.combos ? d : null; }).catch(function (e) { state.rare = null; state.rareError = String(e && e.message || e); });
+    if (rareRulesUrl !== url && !state.rareRules) fetch(rareRulesUrl, { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : null; })
+      .then(function (src) { state.rareRules = src ? rareRulesFrom(src) : null; }).catch(function (e) { state.rareRules = null; state.rareError = String(e && e.message || e); });
     // v5: this season's Game Flow facts. Optional.
     if (flowUrl !== url) fetch(flowUrl, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) { state.flow = d && Array.isArray(d.quarters) ? d : null; }).catch(function (e) { state.flowError = String(e && e.message || e); });
@@ -342,6 +360,7 @@
       try { franchiseGameChecks(game, sides, box, tag, scr); } catch (e) { state.fgError = String(e && e.message || e); }
       try { teamMarkChecks(game, sides, box, tag, scr); } catch (e) { state.teamMarkError = String(e && e.message || e); }
       try { oddLineChecks(game, sides, box, tag, scr); } catch (e) { state.oddCheckError = String(e && e.message || e); }
+      try { rareChecks(game, sides, box, tag, scr); } catch (e) { state.rareCheckError = String(e && e.message || e); }
       try { arenaChecks(game, sides, box, tag, scr); } catch (e) { state.arenaError = String(e && e.message || e); }
       try { lastTimeChecks(game, sides, box, tag, scr); } catch (e) { state.lastTimeError = String(e && e.message || e); }
       try { zeroChecks(game, sides, box, tag, scr); } catch (e) { state.zeroError = String(e && e.message || e); }
@@ -1037,6 +1056,70 @@
           sub: "Command Center · " + (h.grade ? ODD_GRADE[h.grade] + " · " : "") + (noteText ? noteText + " · " : "") + (also.length ? "Also: " + also.join("; ") + " · " : "")
             + (standing ? "stands only if the game ends here · " : "") + oddOnFile(R, h),
           live: live, gameId: game.id, gameTag: tag, gameScore: scr });
+      });
+    });
+  }
+  // v27: rare combinations (see the header). The module has no imports; its exports become one object.
+  function rareRulesFrom(src) {
+    var names = [], body = String(src).replace(/^export (const|function) ([A-Za-z_$][\w$]*)/gm, function (_, kind, name) { names.push(name); return kind + " " + name; });
+    if (/^\s*(import|export)\b/m.test(body)) throw new Error("rare-combination rules: unexpected import or export");
+    var R = (new Function(body + "\nreturn {" + names.join(",") + "};"))();
+    return R && typeof R.liveRare === "function" && typeof R.countText === "function" ? R : null;
+  }
+  var RARE_LABEL = { pts: "PTS", reb: "REB", ast: "AST", fg3m: "3PM", stl: "STL", blk: "BLK", fga: "FGA" };
+  function rareChecks(game, sides, box, tag, scr) {
+    var D = state.rare, R = state.rareRules;
+    if (!D || !R || (game.status !== "live" && game.status !== "final")) return;
+    var post = false;
+    try { post = typeof isPlayoffSlate === "function" && !!isPlayoffSlate(); } catch (e) { post = false; }
+    if (post || game.countsForRecords === false) return;                // the counts are regular-season games
+    var live = game.status === "live", fin = game.status === "final", per = Number(game.period) || 0, left = secsLeftNow(game);
+    var closing = fin || (live && (per >= 5 || (per === 4 && left != null && left <= 300)));
+    var clock = String(game.clock || "").trim(), when = per >= 5 ? (per === 5 ? "overtime" : (per - 4) + " overtimes in") : "the 4th";
+    var from = D.from || "1993-94";
+    state.rareEnded = state.rareEnded || {}; state.rareWarn = state.rareWarn || {}; state.rareHit = state.rareHit || {};
+    ["away", "home"].forEach(function (side) {
+      var ps = (box[side] || []).filter(Boolean), team = sides[side];
+      ps.forEach(function (p) {
+        if (p.id == null) return;
+        var n = function (f) { return Number(p[f]) || 0; };
+        var l = { pts: n("pts"), reb: n("reb"), ast: n("ast"), fg3m: n("tpm"), stl: n("stl"), blk: n("blk"), fga: n("fga") };
+        var key = "cc-rare-" + game.id + "-" + p.id;
+        // A build that already holds tonight's game: it is left out of the counts, never measured against itself.
+        var res = R.liveRare(D, l, { exclude: game.id });
+        var hits = res.hits.filter(function (h) { return h.live === "grow" || closing; });
+        if (hits.length) {
+          var h = hits[0], standing = live && h.live === "late";
+          var also = hits.slice(1, 3).map(function (o) { return o.line + " (" + (o.n === 0 ? "no one else" : R.ordinal(o.n + 1)) + ")"; });
+          fire(key, { type: "streak", icon: (h.n === 0 ? "🦄 ONE OF ONE" : "🦄 RARE LINE") + (standing ? " · AS IT STANDS" : ""),
+            text: p.name + " (" + team + ") — " + h.line + ": " + R.countText(h.n, from) + (standing && clock ? ", " + clock + " left in " + when : ""),
+            statLine: typeof fmtAlertStatLine === "function" ? fmtAlertStatLine(h.keys.map(function (k) { return [l[k], RARE_LABEL[k] || k]; })) : "",
+            sub: "Command Center · " + (h.before.length ? "Before: " + h.before.join("; ") + " · " : "") + (also.length ? "Also: " + also.join("; ") + " · " : "")
+              + (standing ? "stands only if the game ends here · " : "") + "regular season, ESPN box scores since " + from,
+            live: live, gameId: game.id, gameTag: tag, gameScore: scr });
+          state.rareHit[key] = 1; delete state.rareWarn[key]; delete state.rareEnded[key];
+          return;
+        }
+        // A late line undone (more shots): greyed with the line as it is now.
+        if (state.rareHit[key] && state.keys[key] && !state.rareEnded[key]) {
+          state.rareEnded[key] = 1;
+          if (typeof endStory === "function") endStory(key, p.name + " (" + team + ") — no longer a rare line: " + l.pts + " pts on " + l.fga + " shots, " + l.reb + " reb, " + l.ast + " ast");
+          else dropCard(key);
+          return;
+        }
+        if (state.rareHit[key]) return;
+        // On the verge (the user, 11/21: "should warn ahead of time"): live only; replaced by the card if he gets there.
+        if (live && res.warn.length) {
+          var w = res.warn[0];
+          fire(key, { type: "streak", icon: "👀 ON THE VERGE", text: p.name + " (" + team + ") — " + R.warnText(w, from),
+            statLine: typeof fmtAlertStatLine === "function" ? fmtAlertStatLine(w.keys.map(function (k) { return [l[k], RARE_LABEL[k] || k]; })) : "",
+            sub: "Command Center · " + (w.n ? "done " + (w.n === 1 ? "once" : w.n + " times") + " before · " : "") + "regular season, ESPN box scores since " + from,
+            live: true, gameId: game.id, gameTag: tag, gameScore: scr });
+          state.rareWarn[key] = 1;
+          return;
+        }
+        // A warning that no longer applies (the final, or the line moved past it in a way that isn't a hit): taken down.
+        if (state.rareWarn[key]) { dropCard(key); delete state.rareWarn[key]; }
       });
     });
   }

@@ -641,6 +641,21 @@ for (const [tri, games] of Object.entries(perTeam)) {
       if (history) fs.writeFileSync(path.join(root, "docs", "data", "oddlive.json"), JSON.stringify({ v: 1, generatedAt: out.generatedAt, before: today, from: history.from, games: history.games, t, avg, pos: rosterPos }));
       console.log(`odd lines, live file: ${Object.keys(t).length} levels, averages for ${Object.keys(avg).length} players`);
     } catch (e) { console.error(`odd lines, live file: ${e.message}`); }
+    // 0.141.17: rare combinations for NBA Live (src/situations/linerare.js; the user, 11/21: "flagging this stuff in real time",
+    // "five or fewer"): the archive since 1993-94 plus this season's games before today.
+    try {
+      const { buildRare } = await import("../src/situations/linerare.js");
+      const af = path.join(root, "src", "data", "line-rarity-archive.json.gz");
+      if (fs.existsSync(af)) {
+        const zlib = await import("node:zlib"), A = JSON.parse(zlib.gunzipSync(fs.readFileSync(af)));
+        const before = rows.filter((g) => !g.cupFinal && g.d < today), pgB = playerGames(before), seasonRows = [];
+        for (const [id, gs] of Object.entries(pgB)) for (const g of gs) seasonRows.push({ pts: g.pts, reb: g.reb, ast: g.ast, fg3m: g.fg3m, stl: g.stl, blk: g.blk, fga: g.fga, name: (store.names || {})[id] || id, team: g.team, d: g.d, gid: g.gameId });
+        const R = buildRare({ hist: A.hist, top: A.top, rows: seasonRows, before: today });
+        R.generatedAt = out.generatedAt; R.archive = { first: A.first, last: A.last, games: A.games };
+        fs.writeFileSync(path.join(root, "docs", "data", "linerare.json"), JSON.stringify(R));
+        console.log(`rare combinations, live file: ${seasonRows.length} of this season's lines added to ${A.playerLines} since ${A.first}; named games ${Object.entries(R.combos).map(([k, c]) => `${k} ${c.games.length}`).join(", ")}, few ${R.few.games.length}`);
+      }
+    } catch (e) { console.error(`rare combinations, live file: ${e.message}`); }
     // 0.118: tonight's watch lists: who on the slate is a game short of a rare run or repeat, and who tends to produce which line.
     try {
       const { oddWatch } = await import("../src/situations/oddlines.js");
@@ -938,7 +953,7 @@ const slim = rows.filter((g) => g.hb && g.ab).map(({ id, d, h, a, hs, as, hb, ab
 fs.writeFileSync(path.join(root, "docs", "data", "games.json"), JSON.stringify({ generatedAt: out.generatedAt, through, games: slim }));
 // The page's copy of the ratings code (kept identical to src; a test checks).
 fs.mkdirSync(path.join(root, "docs", "lib", "situations"), { recursive: true });
-for (const f of ["ratings.js", "withwithout.js", "leaders.js", "oddlines.js"]) fs.copyFileSync(path.join(root, "src", "situations", f), path.join(root, "docs", "lib", "situations", f));
+for (const f of ["ratings.js", "withwithout.js", "leaders.js", "oddlines.js", "linerare.js"]) fs.copyFileSync(path.join(root, "src", "situations", f), path.join(root, "docs", "lib", "situations", f));
 // The record book and single-game lists (static reference data) for the Records page.
 fs.mkdirSync(path.join(root, "docs", "ref"), { recursive: true });
 for (const f of fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^nba-(record-book|single-game-bests|postseason-careers)-/.test(f))) fs.copyFileSync(path.join(root, "src", "data", f), path.join(root, "docs", "ref", f.replace(/-\d{4}-\d\d\.json$/, ".json")));

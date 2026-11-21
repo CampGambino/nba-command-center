@@ -19,6 +19,8 @@ What they read is listed below and checked against the real published files on e
 | `data/flowstats.json` | `quarters` is a list | `quarters`, `halves`, `teamQuarters` (season-best lists) |
 | `ref/nba-single-game-bests.json` | always | the all-time single-game lists |
 | `lib/situations/oddlines.js` | read as text | the odd-line rules (the site's own module) |
+| `data/linerare.json` | `v === 1` and `combos` | the rare-combination boundaries and named games (0.141.17) |
+| `lib/situations/linerare.js` | read as text | the rare-combination rules (the site's own module; no imports) |
 | `bridge/version.json` | `version` is a number | tells NBA Live a newer bridge exists |
 
 ## The Worker

@@ -2,6 +2,43 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.141.17 (2026-11-21): NBA Live flags rare combinations live, with a warning before (bridge v27)
+
+The user, 11/21: "I'm more concerned about flagging this stuff in real time in the nba live app for player lines that are occurring live", then "Should warn ahead of time" and "Five or fewer". The bridge change is on that go.
+
+**What was missing.** NBA Live already flagged a big night against the player's own average (its own cards), a number near the all-time single-game lists, odd-shaped lines (v25) and team marks. It didn't catch a line that's rare because of several numbers together. Wembanyama's 52 points and 24 rebounds (11/4) broke no single list, and no one else since 1993-94 has had both.
+
+**The check** (`src/situations/linerare.js`, no imports; the build copies it to `docs/lib/situations/` and the bridge reads it as text, as the odd lines):
+- **Combinations:** points / rebounds / assists, points / threes / assists, rebounds / blocks / points, steals / blocks / points, assists / steals / points, and points on few shots.
+- **A card** when tonight's line has been matched or beaten in every column by 4 or fewer regular-season games since 1993-94, so it's one of five or fewer (the user's "five or fewer"): "🦄 ONE OF ONE · Big Man (AAA) — 52 points and 24 rebounds: no one else has done that since 1993-94", or "🦄 RARE LINE … the 2nd time since 1993-94" with "Before: name date".
+- **Only notable stats count:** 20+ points, 10+ rebounds or assists, 5+ threes, 4+ steals or blocks. "50 points, 23 rebounds and 1 block" was rare only because of the 1 block, so it reads "50 points and 23 rebounds". Of the notable stats, only those that change the count are named. A line rare in one stat alone (Adebayo's 83) is left to the single-game lists.
+- **Points on few shots** can be undone by a miss, so it waits for the last five minutes of the 4th (any time in overtime) as "AS IT STANDS", and is greyed if undone.
+- **"👀 ON THE VERGE"** (the user's "warn ahead of time"), live only, while nothing has hit: "2 more assists would make it 34 points, 19 rebounds and 13 assists: done once since 1993-94". The card replaces it when he gets there, and it's taken down at the final if he doesn't. The steps are 5 points, 2 rebounds or assists, 1 three, steal or block.
+- **Never in the playoffs** or a game that counts toward no book. Tonight's game is never counted against itself, even when a build already holds it.
+
+**Why the count is exact.**
+- `docs/data/linerare.json` (65 KB, nightly) holds, per combination, a boundary: the smallest value of the third stat at which 4 or fewer games are at least as big in all three. It also holds every game whose own count is 5 or fewer.
+- Any game at least as big as tonight's line in every column has a count no bigger than tonight's. So when tonight's is 4 or fewer, all of them are on the list, and counting the list gives the exact number and names them.
+- A test compares the boundary with a brute-force count over the archive.
+
+**The archive** (`src/data/line-rarity-archive.json.gz`, 119 KB, from `tools/line-rarity-archive.mjs`): 39,062 regular-season games, 11/5/93 through 4/12/26, as counts per combination plus the named games. The three NBA Cup title games are left out (they count toward no regular-season total). This season's games before today are added at each build.
+
+**How often.** Replayed: about 17 cards last season (4 "one of one": Jokić's 56-16-15, Kawhi's 55 with 5 steals, and others) and 4 so far this season. That excludes the warnings. The replay counts later games too, so live there'll be a few more.
+
+**Why not before 1993-94.** ESPN's player box scores start in 1993-94 (tested: 1992-93 dates return no games, a 1985 game has no player stats). Basketball-Reference's terms rule out tools built on scraped data and prompting AI with it, and its datasets start at $5,000. NBA.com stats are excluded by the user's rule. So the cards say "since 1993-94", never "ever".
+
+**Tests.** 1,120 (seven new):
+- the module on the real archive: Wembanyama's line, Adebayo's 83 skipped, the trivial block dropped, the boundary against a brute-force count, and the copy matching
+- the bridge on a made-up live game: one of one, a warning that becomes the card, few shots as it stands then greyed, the warning removed at the final, nothing in a game that counts toward no book
+- contracts: the bridge accepts the real `linerare.json` and module
+
+The older checks that pinned the bridge at version 26 now accept 26 or later. A full local build was healthy, and its `linerare.json` equals the one in this commit.
+
+**Self-audit.**
+- The replay that estimated "about 17 a season" counted later games as well as earlier ones, so it's a slight undercount.
+- The archive has two known gaps the odd-line counts also have: games ESPN doesn't have (under 1% since 2012-13, about 3% before).
+- The first tests NBA Live itself will run are tonight's games. The bridge was tested in a stand-in NBA Live, not the real page.
+
 ## 0.141.16 (2026-11-21): the Game Flow script split by section (14 of 21), and no player photos
 
 Item 5 of the user's order (11:46 AM): split `docs/gameflow.js` (5,129 lines) by section, one at a time, with a look after each.

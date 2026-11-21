@@ -4960,6 +4960,24 @@ await bridgeChecks(ok, root);
     "prep (0.141.15): a streak the game notes were following, ended last night, counted from the box scores (no notes text copied; an older run isn't credited)", JSON.stringify({ L1: L1.map((l) => l.text), L2: L2.length, parsed }));
 }
 
+// ---------- 0.141.17: rare combinations for NBA Live (src/situations/linerare.js) ----------
+{
+  const zlib = await import("node:zlib"), LR = await import("../src/situations/linerare.js");
+  const A = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(root, "src", "data", "line-rarity-archive.json.gz"))));
+  const D = LR.buildRare({ hist: A.hist, top: A.top, rows: [] });
+  const t = (l) => LR.liveRare(D, { fg3m: 0, stl: 0, blk: 0, fga: 30, ...l });
+  const wemb = t({ pts: 52, reb: 24, ast: 2, stl: 2, blk: 2 }), bam = t({ pts: 83, reb: 9, ast: 3, fg3m: 7, stl: 2, blk: 2, fga: 43 }), trivial = t({ pts: 50, reb: 23, ast: 2, blk: 1, fga: 28 });
+  // The boundary is exact: a brute-force count over the archive's histogram for a few lines equals the list count.
+  const brute = (c, v) => A.hist[c].reduce((n, [x, y, z, k]) => n + (x >= v[0] && y >= v[1] && z >= v[2] ? k : 0), 0);
+  const probes = [["pra", [52, 24, 0]], ["pra", [50, 23, 0]], ["pra", [34, 19, 13]], ["rbp", [9, 9, 40]], ["p3a", [52, 8, 10]], ["pra", [40, 10, 10]]];
+  const exact = probes.every(([c, v]) => { const keys = LR.COMBOS.find((x) => x.id === c).keys, l = Object.fromEntries(keys.map((k, i) => [k, v[i]])); const w = LR.pastCount(D, c, l), b = brute(c, v); return b <= LR.RARE_MAX ? w && w.length === b : w === null; });
+  ok(fs.readFileSync(path.join(root, "src", "situations", "linerare.js"), "utf8") === fs.readFileSync(path.join(root, "docs", "lib", "situations", "linerare.js"), "utf8")
+    && A.games > 39000 && A.first === "1993-11-05" && A.cupTitleGamesLeftOut === 3
+    && wemb.hits[0]?.line === "52 points and 24 rebounds" && wemb.hits[0].n === 0 && !bam.hits.length && trivial.hits[0]?.line === "50 points and 23 rebounds" && exact,
+    "rare combinations (0.141.17): the bridge's copy is the build's; 39,062 games since 1993-94 (Cup title games out); 52 and 24 is no one else's; an 83-point night is the single-game lists' card, not this one; a trivial qualifier (1 block) is never what makes a line rare; the boundary equals a brute-force count",
+    JSON.stringify({ wemb: wemb.hits[0], bam: bam.hits, trivial: trivial.hits[0], exact }));
+}
+
 // ---------- 0.141.14: the Worker's saved data, backed up (tools/kv-backup.mjs, .github/workflows/kv-backup.yml) ----------
 {
   const K = await import("../tools/kv-backup.mjs");

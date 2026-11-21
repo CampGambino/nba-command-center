@@ -30,7 +30,7 @@ export async function bridgeChecks(ok, root, deps = {}) {
     { team: "SAS", items: [ item({ espnId: "20", player: "Final Reach", need: 6 }), item({ espnId: "21", player: "Final Miss", need: 30 }) ] },
   ] };
   const pl = (id, o) => ({ id, min: 20, pts: 12, tpm: 3, reb: 5, ast: 2, stl: 1, blk: 0, dreb: 4, oreb: 1, starter: true, ...o });
-  let flowData = null, versionData = null, teamMarksData = null, oddData = null, oddRulesText = null;
+  let flowData = null, versionData = null, teamMarksData = null, oddData = null, oddRulesText = null, rareData = null, rareRulesText = null;
   function run({ date = "20261109", hooks = true, games, extra = {} } = {}) {
     const cards = new Map(); let original = 0;
     const el = { style: {}, textContent: "" };
@@ -38,7 +38,7 @@ export async function bridgeChecks(ok, root, deps = {}) {
       URLSearchParams, console, Promise, Object, Number, String, Math, Array, Date, JSON,
       location: { search: "?cc=" + encodeURIComponent("https://cc.example/data/watch.json") },
       document: { readyState: "complete", getElementById: (id) => (id === "cc-bridge-note" ? el : null), createElement: () => el, body: { appendChild() {} } },
-      fetch: async (u) => ({ ok: true, json: async () => (String(u).includes("version.json") ? versionData : String(u).includes("teammarks.json") ? teamMarksData : String(u).includes("flowstats.json") ? flowData : String(u).includes("tonight.json") ? tonightData : String(u).includes("records.json") ? recordsData : String(u).includes("single-game-bests") ? bestsData : String(u).includes("oddlive.json") ? oddData : watch), text: async () => (String(u).includes("oddlines.js") ? oddRulesText : "") }),
+      fetch: async (u) => ({ ok: true, json: async () => (String(u).includes("version.json") ? versionData : String(u).includes("teammarks.json") ? teamMarksData : String(u).includes("flowstats.json") ? flowData : String(u).includes("tonight.json") ? tonightData : String(u).includes("records.json") ? recordsData : String(u).includes("single-game-bests") ? bestsData : String(u).includes("oddlive.json") ? oddData : String(u).includes("linerare.json") ? rareData : watch), text: async () => (String(u).includes("oddlines.js") ? oddRulesText : String(u).includes("linerare.js") ? rareRulesText : "") }),
       setInterval() {}, setTimeout() {}, clearTimeout() {}, addEventListener() {},
     };
     ctx.window = ctx;
@@ -299,7 +299,7 @@ export async function bridgeChecks(ok, root, deps = {}) {
       delete oddData.t["tov.8"]; delete oddData.t["tov.10"];
       ok(tv.t1?.text === "Loose Hands (AAA) — 10 turnovers" && tv.t1.sub.endsWith(" · ESPN box scores, about 3% of games not on file") && tv.g1.sub.endsWith(" · ESPN and pbpstats box scores, under 1% of games not on file")
         && oldRules.g1?.sub.endsWith(" · ESPN box scores, about 3% of games not on file") && oldRules.t1
-        && RM.TOV_PF.join(",") === "tov,tov0,foulout,nothing,zeromin,ones.6" && (bsrc.match(/of games not on file/g) || []).length === 5 && /var VERSION = 26;/.test(bsrc),
+        && RM.TOV_PF.join(",") === "tov,tov0,foulout,nothing,zeromin,ones.6" && (bsrc.match(/of games not on file/g) || []).length === 5 && +(/var VERSION = (\d+);/.exec(bsrc) || [])[1] >= 26,
         "bridge v26 (the user: \"go\"): an odd-line card ends \"ESPN and pbpstats box scores, under 1% of games not on file\", and only a line that needs a turnover or a foul (10 turnovers) keeps \"ESPN box scores, about 3%\"; a copy of the rules without the list keeps the old words",
         JSON.stringify([tv.t1 && [tv.t1.text, tv.t1.sub], tv.g1?.sub, oldRules.g1?.sub]));
     }
@@ -332,10 +332,10 @@ export async function bridgeChecks(ok, root, deps = {}) {
     const lh = M.liveHits({ ...Object.fromEntries(Object.keys(Z).map((k) => [k, 0])), min: 30, starter: 1, fg3m: 0, fg3a: 4, fga: 11, tov: 0 }, { pos: null, avg: null }, { "ofg.8": [752, 26.6, "A", "2026-03-28"], "ofg.10": [138, 4.8, "Sam Hauser", "2025-12-11"], "min0.30": [692, 17.8, "R", "2026-03-23"] });
     const srcM = fs.readFileSync(path.join(root, "src", "situations", "oddlines.js"), "utf8");
     ok(lh.length === 2 && lh[0].key === "ofg.10" && lh[1].id === "min0" && lh[0].live === "late" && lh[0].grade === "few" && lh[0].before === 138 && lh[0].say === "0-for-11 from the field"
-      && srcM === fs.readFileSync(path.join(root, "docs", "lib", "situations", "oddlines.js"), "utf8") && !/^\s*import\b|from "/m.test(srcM) && JSON.parse(fs.readFileSync(path.join(root, "docs", "bridge", "version.json"), "utf8")).version === 26,
+      && srcM === fs.readFileSync(path.join(root, "docs", "lib", "situations", "oddlines.js"), "utf8") && !/^\s*import\b|from "/m.test(srcM) && JSON.parse(fs.readFileSync(path.join(root, "docs", "bridge", "version.json"), "utf8")).version >= 26,
       "0.119.0: a live line gets one hit a template (the rarest level it passes), rarest first; the bridge's copy of the rules is the site's module and has no imports; version.json says 26 (25 when this was built)", JSON.stringify(lh.map((h) => h.key)));
     const sit = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8");
-    ok(/const before = rows\.filter\(\(g\) => !g\.cupFinal && g\.d < today\)/.test(sit) && /oddlive\.json/.test(sit) && /"oddlines\.js"\]\) fs\.copyFileSync/.test(sit),
+    ok(/const before = rows\.filter\(\(g\) => !g\.cupFinal && g\.d < today\)/.test(sit) && /oddlive\.json/.test(sit) && /"oddlines\.js"(, "[a-z]+\.js")*\]\) fs\.copyFileSync/.test(sit),
       "0.119.0: the live file counts only games before today (a game finished this afternoon does not count itself tonight), and the build publishes the rules beside it");
   }
   const fgTie = t.cards.get("cc-fg-40-pts-tied"), fgNear = t.cards.get("cc-fg-41-pts-near");
@@ -542,6 +542,48 @@ export async function bridgeChecks(ok, root, deps = {}) {
     delete tonightData.bench;
     ok(tG.cards.get("bench-gX-away")?.sub === "Command Center · GSW's bench has outscored its starters in 2 of 13 games this season; 24 of 394 team games league-wide" && tG.cards.get("bench-gX-away").text === "GS bench outscoring starters" && tG.cards.get("bench-gY-away")?.sub === "",
       "bridge v19: NBA Live's BENCH IMPACT card says how often that has been the final result, for the team and the league; a team with no count passes through unchanged", JSON.stringify([tG.cards.get("bench-gX-away")?.sub, tG.cards.get("bench-gY-away")?.sub]));
+  }
+  {
+    // v27 (0.141.17; the user, 11/21: "flagging this stuff in real time", "should warn ahead of time", "five or fewer"): rare
+    // combinations against every regular-season line since 1993-94 (the real archive), one card a player.
+    const zlib = await import("node:zlib");
+    const LR = await import(path.join(root, "src", "situations", "linerare.js"));
+    const A = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(root, "src", "data", "line-rarity-archive.json.gz"))));
+    // A build that already has tonight's game (Big Man's 52-24, game rr1) must not count it against itself.
+    rareData = LR.buildRare({ hist: A.hist, top: A.top, rows: [{ pts: 52, reb: 24, ast: 2, fg3m: 1, stl: 2, blk: 2, fga: 30, name: "Big Man", team: "AAA", d: "2026-11-21", gid: "rr1" }], before: "2026-11-22" });
+    rareRulesText = fs.readFileSync(path.join(root, "docs", "lib", "situations", "linerare.js"), "utf8");
+    const Z = { pts: 0, tpm: 0, tpa: 0, reb: 0, ast: 0, stl: 0, blk: 0, dreb: 0, oreb: 0, fgm: 0, fga: 0, ftm: 0, fta: 0, to: 0, pf: 0, min: 30, starter: true };
+    const P = (id, name, o) => ({ ...Z, id, name, ...o });
+    const team = () => [P("w1", "Big Man", { pts: 52, reb: 24, ast: 2, tpm: 1, stl: 2, blk: 2, fga: 30 }), P("v1", "Verge Man", { pts: 34, reb: 19, ast: 11, tpm: 1, fga: 20 }),
+      P("q1", "Quick One", { pts: 40, reb: 4, ast: 5, tpm: 3, fga: 13 }), P("o1", "Plain Guy", { pts: 31, reb: 9, ast: 7, tpm: 3, fga: 22 }), P("o2", "Filler", { pts: 8, reb: 3, ast: 2, fga: 7 })];
+    const gm = (o = {}) => [{ id: "rr1", status: "live", period: 3, clock: "5:00", away: { tricode: "AAA", score: 100 }, home: { tricode: "BBB", score: 96 }, boxscore: { away: team(), home: [P("h1", "Home Guy", { pts: 10 })] }, ...o }];
+    const rare = (r) => Object.fromEntries([...r.cards].filter(([k]) => k.startsWith("cc-rare-")).map(([k, c]) => [k.replace("cc-rare-rr1-", ""), c]));
+    const go = async (games) => { const r = run({ games }); await flush(); r.ctx.runAlertChecks(); await flush(); return r; };
+    const r3 = await go(gm()), q3 = rare(r3);
+    ok(Object.keys(q3).sort().join(" ") === "v1 w1" && q3.w1.icon === "🦄 ONE OF ONE" && q3.w1.text === "Big Man (AAA) — 52 points and 24 rebounds: no one else has done that since 1993-94"
+      && q3.w1.sub === "Command Center · regular season, ESPN box scores since 1993-94" && q3.w1.statLine === "52 PTS · 24 REB"
+      && q3.v1.icon === "👀 ON THE VERGE" && q3.v1.text === "Verge Man (AAA) — 2 more assists would make it 34 points, 19 rebounds and 13 assists: done once since 1993-94",
+      "bridge v27 (0.141.17): a line matched by no one since 1993-94 is carded at once, naming only the stats that matter (tonight's game, already in the file, not counted against itself); one a small step short is \"on the verge\"; 40 points on 13 shots waits; 31-9-7 says nothing",
+      JSON.stringify(Object.entries(q3).map(([k, c]) => [k, c.icon, c.text, c.sub, c.statLine])));
+    // He gets there: the card replaces the warning, with who did it before.
+    const v1 = r3.ctx.GAMES[0].boxscore.away.find((p) => p.id === "v1"); v1.ast = 13; r3.ctx.runAlertChecks(); await flush();
+    const reached = rare(r3).v1;
+    ok(reached?.icon === "🦄 RARE LINE" && reached.text === "Verge Man (AAA) — 34 points, 19 rebounds and 13 assists: the 2nd time since 1993-94" && /^Command Center · Before: [^·]+ \d+\/\d+\/\d\d · regular season/.test(reached.sub),
+      "bridge v27: reaching it turns the warning into the card, with who did it before", JSON.stringify(reached));
+    const r4 = await go(gm({ period: 4, clock: "4:00" })), q4 = rare(r4);
+    ok(q4.q1?.icon === "🦄 RARE LINE · AS IT STANDS" && q4.q1.text === "Quick One (AAA) — 40 points on 13 shots: the 3rd time since 1993-94, 4:00 left in the 4th" && q4.q1.sub.includes("stands only if the game ends here"),
+      "bridge v27: points on few shots is carded \"as it stands\" in the last five minutes", JSON.stringify(q4.q1));
+    const q1 = r4.ctx.GAMES[0].boxscore.away.find((p) => p.id === "q1"); q1.fga = 16; r4.ctx.GAMES[0].clock = "2:00"; r4.ctx.runAlertChecks(); await flush();
+    ok(rare(r4).q1?.ended === true && rare(r4).q1.text === "Quick One (AAA) — no longer a rare line: 40 pts on 16 shots, 4 reb, 5 ast",
+      "bridge v27: undone by more misses, the card is greyed with the line as it now is", JSON.stringify(rare(r4).q1));
+    // The final: the warning that never came true is taken down; the cards stay.
+    const rF = await go(gm()); r3.ctx; rF.ctx.GAMES[0].status = "final"; rF.ctx.GAMES[0].period = 4; rF.ctx.GAMES[0].clock = "0:00"; rF.ctx.runAlertChecks(); await flush();
+    const fin = rare(rF);
+    ok(!fin.v1 && fin.w1?.icon === "🦄 ONE OF ONE" && fin.w1.live === false && fin.q1?.icon === "🦄 RARE LINE" && !/AS IT STANDS/.test(fin.q1.icon),
+      "bridge v27: at the final an unreached warning comes down, the cards stay (points on few shots without \"as it stands\")", JSON.stringify(Object.entries(fin).map(([k, c]) => [k, c.icon, c.text])));
+    const po = rare(await go(gm({ countsForRecords: false })));
+    ok(!Object.keys(po).length, "bridge v27: nothing for a game that counts toward no book", Object.keys(po).join(" "));
+    rareData = null; rareRulesText = null;
   }
   flowData = null;
 }

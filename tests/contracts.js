@@ -36,6 +36,7 @@ export const CONTRACT = {
   "injuries.json": { top: ["date", "players"], player: ["team", "name", "status"] },
   "teammarks.json": { top: ["v", "teams"], v: 1 },
   "oddlive.json": { top: ["v", "t"], v: 1 },
+  "linerare.json": { top: ["v", "from", "combos", "few"], v: 1 },
   "flowstats.json": { top: ["quarters", "halves", "teamQuarters"] },
 };
 
@@ -81,6 +82,7 @@ export async function contractChecks(ok, root) {
     "watch.json": D("data", "watch.json"), "tonight.json": D("data", "tonight.json"), "records.json": D("data", "records.json"),
     "flowstats.json": D("data", "flowstats.json"), "teammarks.json": D("data", "teammarks.json"), "oddlive.json": D("data", "oddlive.json"),
     "nba-single-game-bests.json": D("ref", "nba-single-game-bests.json"), "version.json": D("bridge", "version.json"), "oddlines.js": D("lib", "situations", "oddlines.js"),
+    "linerare.json": D("data", "linerare.json"), "linerare.js": D("lib", "situations", "linerare.js"),
   };
   const asked = [];
   const fetchFn = async (u) => {
@@ -107,7 +109,7 @@ export async function contractChecks(ok, root) {
   const s = ctx.CC_BRIDGE?.state || {};
   const accepted = {
     "watch.json": !!s.data && (!hasGames || s.items.length > 0), "tonight.json": !!s.tonight, "records.json": !!s.records && s.recItems.length > 0,
-    "flowstats.json": !!s.flow, "teammarks.json": !!s.teamMarks, "oddlive.json": !!s.odd, "oddlines.js": !!s.oddRules, "nba-single-game-bests.json": !!s.bests,
+    "flowstats.json": !!s.flow, "teammarks.json": !!s.teamMarks, "oddlive.json": !!s.odd, "oddlines.js": !!s.oddRules, "linerare.json": !!s.rare, "linerare.js": !!s.rareRules, "nba-single-game-bests.json": !!s.bests,
   };
   const errors = Object.fromEntries(Object.entries(s).filter(([k, v]) => /Error$/.test(k) && v));
   ok(!crashed && Object.values(accepted).every(Boolean) && !Object.keys(errors).length && !s.error,
