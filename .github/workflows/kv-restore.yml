@@ -1,0 +1,46 @@
+# Puts the Worker's saved data back from a daily copy (kv-backup.yml, 0.141.14). By hand only, and only with RESTORE
+# typed in the confirm box. Keys in the copy are overwritten with the copy's values; keys not in it are left alone.
+name: kv restore
+
+on:
+  workflow_dispatch:
+    inputs:
+      day:
+        description: "Which day's copy (YYYY-MM-DD, Eastern)"
+        required: true
+      confirm:
+        description: "Type RESTORE to overwrite the Worker's data with that copy"
+        required: true
+
+concurrency:
+  group: kv-backup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Decrypt and write back
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BACKUP_KEY: ${{ secrets.NCC_BACKUP_KEY }}
+          DAY: ${{ inputs.day }}
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          set -euo pipefail
+          [ "$CONFIRM" = "RESTORE" ] || { echo "::error::Type RESTORE in the confirm box to restore."; exit 1; }
+          [[ "$DAY" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "::error::day must look like 2026-11-22"; exit 1; }
+          git fetch -q origin kv-backups
+          git show "FETCH_HEAD:kv-$DAY.json.gz.enc" > "$RUNNER_TEMP/kv.enc" || { echo "::error::no copy for $DAY"; exit 1; }
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:BACKUP_KEY -in "$RUNNER_TEMP/kv.enc" | gunzip > "$RUNNER_TEMP/kv.json"
+          node tools/kv-backup.mjs restore "$RUNNER_TEMP/kv.json"
+          rm -f "$RUNNER_TEMP/kv.json"

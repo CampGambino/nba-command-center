@@ -1,0 +1,58 @@
+# The Worker's saved data (KV: articles seen, review labels and rules, votes, lineup and digest state), copied daily
+# (0.141.14, the user's order 11/21: "backups"). The copy is encrypted with the NCC_BACKUP_KEY repository secret before
+# it is kept, because this repository is public; without that secret nothing is kept and the run fails saying so.
+# Kept on the kv-backups branch (not main: the site and the gate never see it), the newest 60 days.
+# Restore: .github/workflows/kv-restore.yml. Read one yourself:
+#   openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in kv-2026-11-22.json.gz.enc -pass pass:'<your NCC_BACKUP_KEY>' | gunzip
+name: kv backup
+
+on:
+  schedule:
+    - cron: "41 9 * * *"   # 4:41 AM ET (5:41 EDT): quiet, after the night's builds and scoring
+  workflow_dispatch:
+
+concurrency:
+  group: kv-backup
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Copy, encrypt and keep
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BACKUP_KEY: ${{ secrets.NCC_BACKUP_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BACKUP_KEY}" ]; then
+            echo "::error::No NCC_BACKUP_KEY repository secret, so nothing was kept (the copy is never kept unencrypted: this repository is public). Add it under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          day=$(TZ=America/New_York date +%F)
+          node tools/kv-backup.mjs dump > "$RUNNER_TEMP/kv.json"
+          gzip -9 -c "$RUNNER_TEMP/kv.json" | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:BACKUP_KEY -out "$RUNNER_TEMP/kv-$day.json.gz.enc"
+          rm -f "$RUNNER_TEMP/kv.json"
+          # check the copy opens before keeping it
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:BACKUP_KEY -in "$RUNNER_TEMP/kv-$day.json.gz.enc" | gunzip | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);if(!(j.n>0))process.exit(1);console.log(`opens: ${j.n} keys`)})'
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git fetch -q origin kv-backups; then git worktree add -q "$RUNNER_TEMP/bk" FETCH_HEAD && git -C "$RUNNER_TEMP/bk" switch -q -c kv-backups;
+          else git worktree add -q --detach "$RUNNER_TEMP/bk" && git -C "$RUNNER_TEMP/bk" switch -q --orphan kv-backups; fi
+          cd "$RUNNER_TEMP/bk"
+          cp "$RUNNER_TEMP/kv-$day.json.gz.enc" .
+          ls kv-*.json.gz.enc | sort | head -n -60 | xargs -r git rm -q --
+          printf '%s\n' "Encrypted daily copies of the articles Worker's KV data (see .github/workflows/kv-backup.yml on main)." > README.md
+          git add -A
+          git commit -q -m "kv backup: $day" || { echo "unchanged"; exit 0; }
+          git push -q origin kv-backups
+          echo "kept kv-$day.json.gz.enc"

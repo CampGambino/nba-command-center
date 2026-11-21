@@ -4880,6 +4880,53 @@ await bridgeChecks(ok, root);
   ok(/get\("series\.json"\)/.test(ix) && /t-series/.test(ix) && /both guides agree/.test(ix) && /not all-time/.test(ix) && /last season added from our results/.test(ix), "Index (0.84): the all-time series lookup, with the basis of each row");
 }
 
+// ---------- 0.141.14: the Worker's saved data, backed up (tools/kv-backup.mjs, .github/workflows/kv-backup.yml) ----------
+{
+  const K = await import("../tools/kv-backup.mjs");
+  const ns = K.namespaceId(fs.readFileSync(path.join(root, "cloudflare", "wrangler.toml"), "utf8"));
+  // A fake Cloudflare: 2,500 keys over three pages; one expires between the list and the read.
+  const store = new Map(Array.from({ length: 2500 }, (_, i) => [`k${i}`, JSON.stringify({ i })]));
+  store.set("state", JSON.stringify({ base: "https://x", seen: { a: 1 } }));
+  const listed = [...store.keys()];
+  const calls = [];
+  const fake = async (url, opt = {}) => {
+    calls.push(`${opt.method || "GET"} ${url.replace(/^.*namespaces\/[^/]+/, "")}`);
+    const u = new URL(url);
+    if (u.pathname.endsWith("/keys")) {
+      const at = +(u.searchParams.get("cursor") || 0), page = listed.slice(at, at + 1000);
+      return { ok: true, status: 200, json: async () => ({ success: true, result: page.map((name) => ({ name, ...(name === "k7" ? { expiration: 4e9 } : {}) })), result_info: { cursor: at + 1000 < listed.length ? String(at + 1000) : "" } }) };
+    }
+    if (u.pathname.includes("/values/")) {
+      const k = decodeURIComponent(u.pathname.split("/values/")[1]);
+      if (k === "k5") return { ok: false, status: 404, text: async () => "" };
+      return { ok: true, status: 200, text: async () => store.get(k) };
+    }
+    if (u.pathname.endsWith("/bulk")) return { ok: true, status: 200, json: async () => ({ success: true, rows: JSON.parse(opt.body).length }) };
+    throw new Error("unexpected " + url);
+  };
+  const d = await K.dump({ account: "acct", ns, token: "t", fetchFn: fake });
+  const pages = calls.filter((c) => c.startsWith("GET /keys")).length;
+  const wrote = []; const fake2 = async (url, opt) => { wrote.push(JSON.parse(opt.body).length); return fake(url, opt); };
+  const n = await K.restore({ account: "acct", ns, token: "t", data: { keys: [...d.keys, { key: "old", value: "x", expiration: 1000 }] }, fetchFn: fake2, now: 2e12 });
+  ok(/^[0-9a-f]{32}$/.test(ns) && pages === 3 && d.n === 2500 && !d.keys.some((k) => k.key === "k5") && d.keys.find((k) => k.key === "k7").expiration === 4e9
+    && d.keys.find((k) => k.key === "state").value === store.get("state") && n === 2500 && JSON.stringify(wrote) === "[1000,1000,500]",
+    "kv backup (0.141.14): every key over all pages, a key gone since the list skipped, expirations kept; restore writes 1,000 a request and drops a copy already expired",
+    JSON.stringify({ pages, n: d.n, restored: n, wrote }));
+  // The workflow keeps nothing without the passphrase, and the encryption it uses opens again with it (when openssl is here).
+  const wf = fs.readFileSync(path.join(root, ".github", "workflows", "kv-backup.yml"), "utf8");
+  const enc = /openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:BACKUP_KEY/.test(wf), dec = /openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:BACKUP_KEY/.test(wf);
+  let roundTrip = "skipped (no openssl)";
+  try {
+    const { execSync } = await import("node:child_process");
+    const env = { ...process.env, BACKUP_KEY: "test passphrase" };
+    const sealed = execSync("gzip -9 | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:BACKUP_KEY", { input: JSON.stringify(d), env });
+    const back = execSync("openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:BACKUP_KEY | gunzip", { input: sealed, env }).toString();
+    roundTrip = back === JSON.stringify(d) && !sealed.toString("latin1").includes("seen") ? "ok" : "differs";
+  } catch (e) { if (!/not found|ENOENT/.test(String(e))) roundTrip = "failed: " + e.message.slice(0, 80); }
+  ok(enc && dec && /if \[ -z "\$\{BACKUP_KEY\}" \]; then[\s\S]*?exit 1/.test(wf) && !/git add[^\n]*kv\.json\b/.test(wf) && /rm -f "\$RUNNER_TEMP\/kv\.json"/.test(wf) && (roundTrip === "ok" || roundTrip.startsWith("skipped")),
+    `kv backup (0.141.14): kept only encrypted, refused without NCC_BACKUP_KEY, and the copy opens with it (${roundTrip})`);
+}
+
 // ---------- 0.83: cards file in by time, bench over starters, a coach's record counted, the Index page ----------
 {
   const br = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");

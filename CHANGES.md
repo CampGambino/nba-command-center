@@ -2,6 +2,32 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.141.14 (2026-11-21): the Worker's saved data is backed up daily, encrypted
+
+Item 3 of the user's order (11:46 AM): backups for NBA Live and the Worker's KV. This is the Worker half. NBA Live's needs the PC, which wasn't connected.
+
+**What's in the KV.** Articles seen and the review log, review labels and rules, briefing votes, lineup and lineup-timing state, digest state, health-alert state. No keys: the admin and vote keys are derived from the DISCORD_WEBHOOK Worker secret, which isn't in KV. It was in no backup before this: a deleted namespace or a bad write would lose the review training and votes for good.
+
+**Where it goes.** The repository is public, and a public repository's Actions artifacts can be downloaded by anyone signed in. So the copy is encrypted before it's kept (AES-256, PBKDF2 at 200,000 rounds) with a passphrase in a new repository secret, `NCC_BACKUP_KEY`, which only the user sets. Without it, the job keeps nothing and fails saying so. $0: GitHub Actions and Cloudflare's API.
+
+**Changed.**
+- `tools/kv-backup.mjs`:
+  - `dump` reads every key through Cloudflare's API with the deploy token and account id, paging 1,000 keys at a time, with values, expirations and metadata. A key that expires between the list and the read is skipped.
+  - `restore` writes keys back 1,000 a request and drops any whose expiration has passed.
+  - The namespace id is read from `wrangler.toml`.
+- `.github/workflows/kv-backup.yml`, daily at 4:41 AM ET or by hand:
+  - copies, gzips and encrypts, and checks the copy opens before keeping it
+  - deletes the plain copy
+  - keeps the newest 60 days on a `kv-backups` branch, so main, the site and the gate never see it
+- `.github/workflows/kv-restore.yml`, by hand only: a day and the word RESTORE. Keys in the copy are overwritten, others left alone.
+
+**Tests.** 1,108 (two new):
+- With a fake Cloudflare: 2,500 keys over three pages, a vanished key skipped, an expiration kept, restore in batches of 1,000, an expired key dropped.
+- The workflow refuses without the passphrase, never adds the plain file, and the same openssl commands round-trip a copy here. The encrypted bytes don't contain the plain text.
+- The branch steps (first day makes the branch, later days add to it, older than 60 pruned) were run against a local remote over 67 simulated days: 60 kept.
+
+**Self-audit.** Not yet run for real. It needs the user's `NCC_BACKUP_KEY`. Two things are unproven: that the deploy token's permissions include reading KV (the "Edit Cloudflare Workers" template includes Workers KV Storage), and that the push to `kv-backups` works with the job's token. The first run after the secret is added shows both.
+
 ## 0.141.13 (2026-11-21): Game Flow reads the last minute of every period, and +/- follows the baskets
 
 Item 2 of the user's order (11:46 AM): why NYK @ MIN 11/19 showed "+/− 9/19" on the user's phone. Three causes turned up, two of them in our code.
