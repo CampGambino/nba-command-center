@@ -131,7 +131,7 @@ export async function buildSite({ entries, games = [], uncounted = [], espn, nba
         // simulation's own figure is kept beside it. The saved predictions (what is scored) stay the raw ones.
         pTonight: PLAY_ONLY.has(i.stat) ? i.pTonight ?? null : calibrate(i.pTonight ?? null, calibration), pTonightRaw: i.pTonight ?? null, pNext3: i.pNext3 ?? null, pNext5: i.pNext5 ?? null, eta: i.eta ?? null,
         pPlayTonight: i.pPlayTonight ?? null,
-        injury: i.injury ? { status: i.injury.status, returnDate: i.injury.returnDate, source: i.injury.source ?? null, asOf: i.injury.asOf ?? null, comment: i.injury.source === "nba" ? i.injury.comment ?? null : null } : null,
+        injury: i.injury ? { status: i.injury.status, returnDate: i.injury.returnDate, from: i.injury.from ?? null, asOf: i.injury.asOf ?? null, comment: i.injury.from === "nba" ? i.injury.comment ?? null : null } : null,
         confidence: i.confidence ?? null, games: i.form?.games ?? null, lineup: i.lineup ?? null,
         reached: !!i.reached, stale: !!i.stale, note: i.note ?? null,
         ...(i.minor ? { minor: true } : {}),   // 0.64: a pass to a place not worth saying (src/records/notable.js)

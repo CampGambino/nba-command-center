@@ -11,13 +11,18 @@ The user, 6:44 PM: "Why can't the cards read the injury report instead of espn?"
 **Changed.**
 - `src/site/build.js` reads `docs/data/injuries.json` when it is today's (the report the last build read; it can be one 15-minute slot behind the newest) and passes it to `buildWatch`.
 - `src/anticipate/watch.js`, tonight only, when the report has the team's game: listed, its grade caps him (`REPORT_CAP`: Out 0, Doubtful 25%, Questionable 60%; Probable and Available none), and it overrules ESPN for tonight, an ESPN Out with a later return date included. Left off the report: available, unless ESPN has him Out (a missed name match, or a report that left him off; Out stands). No report for his game (early in the day, or none on file): ESPN's feed, as before. Later games: ESPN's return date, as before (the league's report covers only tonight).
-- The card's tag shows the NBA's grade when the report lists him (`injury.source` "nba", with the report's time and reason on hover), else ESPN's. The page's note under the cards said "ESPN's injury list. They are not yet calibrated" (out of date since 0.140); now it says what is used.
+- The card's tag shows the NBA's grade when the report lists him (`injury.from` "nba", with the report's time and reason on hover), else ESPN's. The page's note under the cards said "ESPN's injury list. They are not yet calibrated" (out of date since 0.140); now it says what is used.
 - The record chases (0.141.1) already used the report the same way; the two now agree.
 - Checked: NBA Live and its bridge (`docs/bridge/cc-bridge.js`) don't read the card's injury tag; nothing there changes.
 
-**Tests.** 1,086 checks (two new, on the CHA notes fixture): the report caps Doubtful at 25% and Questionable at 60%, and its Questionable overrules ESPN's Out for tonight; ESPN's Out stands when the report leaves him off, and a report without the team's game changes nothing.
+- **Found on the first build (7:00 PM report), fixed:** a projected ("Expected") starting lineup lifted a Questionable player to 95% over the report's 60% (Peyton Watson, Trey Murphy III). Now only a confirmed lineup lifts the report's cap; a projection doesn't (it often lists a Questionable man by default). Ronald Holland II, Doubtful but a confirmed starter, stays at 95%.
+- Also found: the field was first published as `injury.source`, which the website check "no text copied from the notes is published" (any `"source"` key in watch.json) catches; renamed `injury.from`.
 
-**Self-audit.** Measured on the next build (below). Matching is by name within the team (`sameName`: an initial matches a full first name), so two players with one surname and initial on one team could be confused; none tonight. The report on file is the previous build's: a downgrade posted after it reaches the cards one build later.
+**Measured (7:00 PM build, report 7:00 PM).** 75 of 395 cards carry the NBA's grade. Steven Adams: Questionable (NBA), 60% to play. Changed by the report: T.J. McConnell Day-To-Day → Probable; Andrew Nembhard Day-To-Day → Available; Jalen Smith Day-To-Day 95% → Questionable 60%; Orlando Robinson and Julian Phillips no tag (90%) → Out (0%); Trey Murphy III ESPN Out (0%) → Questionable. (Other changes on that build were tonight's confirmed lineups arriving, 95%.)
+
+**Tests.** 1,087 checks (three new, on the CHA notes fixture): the report caps Doubtful at 25% and Questionable at 60%, and its Questionable overrules ESPN's Out for tonight; ESPN's Out stands when the report leaves him off, and a report without the team's game changes nothing; a confirmed starter plays despite Questionable while a projected one keeps the cap.
+
+**Self-audit.** Matching is by name within the team (`sameName`: an initial matches a full first name), so two players with one surname and initial on one team could be confused; none tonight. The report on file is the previous build's: a downgrade posted after it reaches the cards one build later.
 
 ## 0.141.1 (2026-11-20): a player back from an injury isn't scored as if the coach sat him
 

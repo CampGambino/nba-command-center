@@ -202,7 +202,7 @@ function chips(i) {
   const c = [];
   if (i.liveHit) c.push(`<span class="chip hit">✓ reached tonight</span>`);
   else if (i.liveVal != null) c.push(i.liveState === "in" ? `<span class="chip live">LIVE · ${fmt(i.liveVal)} tonight</span>` : `<span class="chip">final · ${fmt(i.liveVal)} tonight</span>`);
-  const injSrc = i.injury?.source === "nba" ? `NBA injury report${i.injury.asOf ? `, ${i.injury.asOf}` : ""}${i.injury.comment ? `: ${i.injury.comment}` : ""}` : "ESPN's injury list";
+  const injSrc = i.injury?.from === "nba" ? `NBA injury report${i.injury.asOf ? `, ${i.injury.asOf}` : ""}${i.injury.comment ? `: ${i.injury.comment}` : ""}` : "ESPN's injury list";
   if (i.injury?.status === "Out") c.push(`<span class="chip out" title="${esc(injSrc)}">Out${i.injury.returnDate ? ` · back ~${esc(nice(i.injury.returnDate))}` : ""}</span>`);
   else if (i.injury) c.push(`<span class="chip dtd" title="${esc(injSrc)}">${esc(i.injury.status)}</span>`);
   if (i.origin === "espn") c.push(`<span class="chip review">from ESPN only</span>`);

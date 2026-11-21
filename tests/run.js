@@ -434,12 +434,18 @@ for (const [team, r] of Object.entries(results)) {
       const w3 = await buildWatch({ team: "CHA", notesDate: "2026-11-09", milestones: cha, espn, today: "2026-11-09", sims: 2000, report: rep });
       const wi3 = (player, stat, target) => w3.items.find((i) => sameName(i.player, player) && i.stat === stat && i.target === target);
       const sj3 = wi3("Sion James", "pts", 500), gw3 = wi3("Grant Williams", "fg3m", 500);
-      ok(sj3 && sj3.pPlayTonight <= 0.25 && sj3.injury?.status === "Doubtful" && sj3.injury?.source === "nba" && gw3 && gw3.pPlayTonight > 0 && gw3.pPlayTonight <= 0.6 && gw3.injury?.status === "Questionable",
+      ok(sj3 && sj3.pPlayTonight <= 0.25 && sj3.injury?.status === "Doubtful" && sj3.injury?.from === "nba" && gw3 && gw3.pPlayTonight > 0 && gw3.pPlayTonight <= 0.6 && gw3.injury?.status === "Questionable",
         "watch (0.141.2): tonight's NBA report caps tonight (Doubtful 25%, Questionable 60%) and overrules ESPN's Out for tonight", JSON.stringify([sj3?.pPlayTonight, sj3?.injury, gw3?.pPlayTonight, gw3?.injury]));
       const w4 = await buildWatch({ team: "CHA", notesDate: "2026-11-09", milestones: cha, espn, today: "2026-11-09", sims: 2000, report: { asOf: null, rows: [{ team: "CHA", name: "Somebody Else", status: "Out" }] } });
       const gw4 = w4.items.find((i) => sameName(i.player, "Grant Williams") && i.stat === "fg3m" && i.target === 500);
       const w5 = await buildWatch({ team: "CHA", notesDate: "2026-11-09", milestones: cha, espn, today: "2026-11-09", sims: 2000, report: { asOf: null, rows: [{ team: "ZZZ", name: "Grant Williams", status: "Probable" }] } });
-      ok(gw4 && gw4.pPlayTonight === 0 && gw4.injury?.source === "espn" && JSON.stringify(w5.items) === JSON.stringify(w1.items),
+      const nbaLU = (st) => ({ movement: async () => ({ ok: false, error: "test" }), lineups: async () => ({ ok: true, data: { games: [{ teams: { CHA: [{ name: "Sion James", lineupStatus: "Confirmed" }, { name: "Grant Williams", lineupStatus: st }] } }] } }) });
+      const rq = { asOf: null, rows: [{ team: "CHA", name: "Sion James", status: "Questionable" }, { team: "CHA", name: "Grant Williams", status: "Questionable" }] };
+      const w6 = await buildWatch({ team: "CHA", notesDate: "2026-11-09", milestones: cha, espn, nba: nbaLU("Expected"), today: "2026-11-09", sims: 2000, report: rq });
+      const p6 = (n, st, t) => w6.items.find((i) => sameName(i.player, n) && i.stat === st && i.target === t)?.pPlayTonight;
+      ok(p6("Sion James", "pts", 500) === 0.95 && p6("Grant Williams", "fg3m", 500) <= 0.6,
+        "watch (0.141.2): a confirmed starter plays despite Questionable; a projected one keeps the report's cap", JSON.stringify([p6("Sion James", "pts", 500), p6("Grant Williams", "fg3m", 500)]));
+      ok(gw4 && gw4.pPlayTonight === 0 && gw4.injury?.from === "espn" && JSON.stringify(w5.items) === JSON.stringify(w1.items),
         "watch (0.141.2): ESPN's Out stands when the report leaves him off; a report without his team's game changes nothing", JSON.stringify([gw4?.pPlayTonight, gw4?.injury]));
       ok(requests === 0, "watch: tests made no network requests", `${requests} attempted`);
     }
