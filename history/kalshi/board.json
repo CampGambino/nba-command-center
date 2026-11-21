@@ -88,7 +88,7 @@
   "KXNBAASTPROT": {
    "title": "NBA Player Assists Protected",
    "events": 6,
-   "markets": 224
+   "markets": 225
   },
   "KXNBA2NDTEAM": {
    "title": "All-NBA 2nd Team",
@@ -98,7 +98,7 @@
   "KXNBAPTSPROT": {
    "title": "NBA Player Points Protected",
    "events": 6,
-   "markets": 253
+   "markets": 256
   },
   "KXNBASTATLEADER": {
    "title": "NBA Regular Season League Leader",
@@ -113,7 +113,7 @@
   "KXNBA2DPROT": {
    "title": "NBA Player Double Double Protected",
    "events": 6,
-   "markets": 55
+   "markets": 56
   },
   "KXNBAFRANCHISECOST": {
    "title": "NBA Franchise Cost",
@@ -127,8 +127,8 @@
   },
   "KXNBA1QSPREAD": {
    "title": "NBA 1st Quarter Spread",
-   "events": 6,
-   "markets": 78
+   "events": 5,
+   "markets": 65
   },
   "KXNBA3RDTEAM": {
    "title": "All-NBA 3rd Team",
@@ -168,12 +168,12 @@
   "KXNBAPTS": {
    "title": "NBA Player Points",
    "events": 6,
-   "markets": 253
+   "markets": 252
   },
   "KXNBAREB": {
    "title": "NBA Player Rebounds",
    "events": 6,
-   "markets": 263
+   "markets": 264
   },
   "KXNBATEAMMATE": {
    "title": "NBA Teammate of the Year",
@@ -203,7 +203,7 @@
   "KXNBA3PTPROT": {
    "title": "NBA Player Threes Protected",
    "events": 6,
-   "markets": 296
+   "markets": 300
   },
   "KXNBAROOKIE2NDTEAM": {
    "title": "NBA All-Rookie 2nd Team",
@@ -228,7 +228,7 @@
   "KXNBAREBPROT": {
    "title": "NBA Player Rebounds Protected",
    "events": 6,
-   "markets": 263
+   "markets": 266
   },
   "KXNBAROOKIE1STTEAM": {
    "title": "NBA All-Rookie 1st Team",
@@ -252,8 +252,8 @@
   },
   "KXNBA1Q": {
    "title": "NBA 1st Quarter Winner",
-   "events": 13,
-   "markets": 39
+   "events": 12,
+   "markets": 36
   },
   "KXNBASEEDCHAMP": {
    "title": "NBA Seed of Champion",
@@ -288,7 +288,7 @@
   "KXNBAPRAPROT": {
    "title": "Pts + Reb + Ast Protected",
    "events": 6,
-   "markets": 186
+   "markets": 189
   },
   "KXNBAMVP": {
    "title": "NBA MVP",
@@ -378,7 +378,7 @@
   "KXNBAAST": {
    "title": "NBA Player Assists",
    "events": 6,
-   "markets": 223
+   "markets": 224
   },
   "KXNBA1STTEAM": {
    "title": "All-NBA 1st Team",
@@ -487,8 +487,8 @@
   },
   "KXNBARACE": {
    "title": "NBA Race to Points",
-   "events": 39,
-   "markets": 78
+   "events": 36,
+   "markets": 72
   },
   "KXNBAEAST": {
    "title": "Pro Basketball Eastern Conference Champion",
@@ -553,7 +553,7 @@
   "KXNBASTLPROT": {
    "title": "NBA Player Steals Protected",
    "events": 6,
-   "markets": 114
+   "markets": 113
   },
   "KXNBA4Q": {
    "title": "NBA 4th Quarter Winner",
@@ -658,7 +658,7 @@
   "KXNBASTL": {
    "title": "NBA Player Steals",
    "events": 6,
-   "markets": 114
+   "markets": 113
   },
   "KXCOACHOUTNBADATE": {
    "title": "NBA Coach Out Date",
@@ -697,8 +697,8 @@
   },
   "KXNBA1QTOTAL": {
    "title": "NBA 1st Quarter Total",
-   "events": 6,
-   "markets": 78
+   "events": 5,
+   "markets": 65
   },
   "KXNBAPLAYERHIGHSCORE": {
    "title": "NBA Highest Scoring Performance in Regular Season",
@@ -736,10 +736,10 @@
   "KXNBAATLANTIC-26": "Boston 56%",
   "KXNBACOY-27": "Micah Nori 16%",
   "KXNBACUP-26": "San Antonio 25%",
-  "KXNBARECORD-27BEST": "San Antonio 40%",
-  "KXNBARECORD-27WORST": "Sacramento 41%",
+  "KXNBARECORD-27BEST": "San Antonio 42%",
+  "KXNBARECORD-27WORST": "Sacramento 40%",
   "KXNBAMIMP-27": "Ty Jerome 27%",
-  "KXNBADPOY-27": "Victor Wembanyama 82%",
+  "KXNBADPOY-27": "Victor Wembanyama 85%",
   "KXNBAROY-27": "Cameron Boozer 36%",
   "KXNBACUPMVP-27": "Victor Wembanyama 33%",
   "KXNBASIXTH-27": "Jrue Holiday 33%",
@@ -747,12 +747,12 @@
   "KXNBASOUTHEAST-26": "Miami 52%",
   "KXNBAMVP-27": "Victor Wembanyama 44%",
   "KXNBAFINMVP-27": "Victor Wembanyama 20%",
-  "KXNBASOUTHWEST-26": "San Antonio 75%",
   "KXNBAEXEC-27": "Sam Presti 13%",
+  "KXNBASOUTHWEST-26": "San Antonio 75%",
   "KXNBA-27": "San Antonio 22%",
   "KXNBAPACIFIC-26": "Los Angeles L 82%",
-  "KXNBACLUTCH-27": "Jamal Murray 11%",
   "KXNBAEAST-27": "Boston 21%",
+  "KXNBACLUTCH-27": "Jamal Murray 11%",
   "KXNBAWEST1SEED-26": "San Antonio 53%",
   "KXNBAWFINMVP-27": "Shai Gilgeous-Alexander 20%",
   "KXNBACENTRAL-26": "Detroit 68%",
