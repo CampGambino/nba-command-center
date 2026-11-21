@@ -88,7 +88,7 @@
   "KXNBAASTPROT": {
    "title": "NBA Player Assists Protected",
    "events": 6,
-   "markets": 222
+   "markets": 223
   },
   "KXNBA2NDTEAM": {
    "title": "All-NBA 2nd Team",
@@ -228,7 +228,7 @@
   "KXNBAREBPROT": {
    "title": "NBA Player Rebounds Protected",
    "events": 6,
-   "markets": 260
+   "markets": 263
   },
   "KXNBAROOKIE1STTEAM": {
    "title": "NBA All-Rookie 1st Team",
@@ -288,7 +288,7 @@
   "KXNBAPRAPROT": {
    "title": "Pts + Reb + Ast Protected",
    "events": 6,
-   "markets": 182
+   "markets": 183
   },
   "KXNBAMVP": {
    "title": "NBA MVP",
@@ -333,7 +333,7 @@
   "KXNBAPRA": {
    "title": "NBA Player Points + Rebounds + Assists",
    "events": 6,
-   "markets": 181
+   "markets": 183
   },
   "KXNBA4D": {
    "title": "Any Player to Record a Quadruple Double",
@@ -736,28 +736,28 @@
   "KXNBAATLANTIC-26": "Boston 56%",
   "KXNBACOY-27": "Micah Nori 16%",
   "KXNBACUP-26": "San Antonio 26%",
-  "KXNBARECORD-27BEST": "San Antonio 40%",
-  "KXNBARECORD-27WORST": "Sacramento 41%",
   "KXNBAMIMP-27": "Ty Jerome 27%",
+  "KXNBARECORD-27BEST": "San Antonio 41%",
+  "KXNBARECORD-27WORST": "Sacramento 41%",
   "KXNBADPOY-27": "Victor Wembanyama 82%",
   "KXNBAROY-27": "Cameron Boozer 36%",
   "KXNBACUPMVP-27": "Victor Wembanyama 33%",
   "KXNBASIXTH-27": "Jrue Holiday 33%",
   "KXNBAWEST-27": "San Antonio 35%",
   "KXNBASOUTHEAST-26": "Miami 52%",
-  "KXNBAFINMVP-27": "Victor Wembanyama 20%",
   "KXNBAMVP-27": "Victor Wembanyama 44%",
-  "KXNBAEXEC-27": "Sam Presti 13%",
+  "KXNBAFINMVP-27": "Victor Wembanyama 20%",
   "KXNBASOUTHWEST-26": "San Antonio 75%",
+  "KXNBAEXEC-27": "Sam Presti 13%",
   "KXNBA-27": "San Antonio 22%",
   "KXNBAPACIFIC-26": "Los Angeles L 82%",
-  "KXNBACLUTCH-27": "Jamal Murray 11%",
   "KXNBAEAST-27": "Boston 21%",
+  "KXNBACLUTCH-27": "Jamal Murray 11%",
   "KXNBAWEST1SEED-26": "San Antonio 53%",
   "KXNBAWFINMVP-27": "Shai Gilgeous-Alexander 20%",
   "KXNBACENTRAL-26": "Detroit 68%",
-  "KXNBAEFINMVP-27": "Tyrese Maxey 20%",
   "KXNBANORTHWEST-26": "Oklahoma City 43%",
+  "KXNBAEFINMVP-27": "Tyrese Maxey 20%",
   "KXNBACONF-27": "Western Conference 61%"
  }
 }
