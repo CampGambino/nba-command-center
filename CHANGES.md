@@ -2,6 +2,35 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.141.16 (2026-11-21): the Game Flow script split by section (14 of 21), and no player photos
+
+Item 5 of the user's order (11:46 AM): split `docs/gameflow.js` (5,129 lines) by section, one at a time, with a look after each.
+
+**Moved into their own files** (`docs/gameflow/`), each unchanged apart from its `import` and `export` lines:
+- headshots, rest between games, the two court posters
+- standings from the schedule, league-wide game reads, the poster shape
+- the sections on rest, holding the lead, scoring against the top defenses, the hot hand, and with / without
+- the assist leaderboard, and 3PT range
+
+The main script is now 3,217 lines.
+
+**Left in the main script, for now** (seven sections): the single-game chart, season rotation, assist network, scoring highs, the shot profile, the NBA Cup section and outliers. Each writes state the app shell also writes (`seasonAgg`, `assistAgg`, `highsAgg`, `rangeAgg`, `leagueAgg`, `LITE`, `PBP_TRIED`, `cupExtra`) or reads a main-file constant while loading. An ES module can't assign to a name it imports, so these need that state moved into one shared object first. That's a real change to the code, not a move, and it gets its own step.
+
+**How each move was made and checked.**
+- A tool (kept out of the repo) parsed the script and worked out each section's exact imports and exports. It refused any move that would change behaviour: assigning to an import, another file assigning to an export, or a load-time read in the import cycle. When a later move took names other files imported, it repointed their imports.
+- After each move, headless Chrome rendered the real page (ESPN requests fetched through Node) on all eight views and every alternate layout: 3PT range's court, scatter and shot charts, and the three infographics. 16 checks in all, each compared with the untouched code: identical text, element and chart counts, and no errors.
+- ESLint's undefined-names rule ran on every file after each move: none (and none before).
+- Two of my tool's mistakes were caught this way, and both moves were undone and redone. Once, import paths came out as disk paths; once, other files' imports weren't repointed.
+- Some moved code isn't on any view by default (past-season league reads, the debug hook `window.__rest`), so the page check doesn't reach it. ESLint and a new test cover it instead.
+
+**No player photos.** The build-status notes record the user's decision when Game Flow was ported: "no posters/headshots". Yet the infographic layouts (Assist leaderboard, Scoring highs, Hot hand) and 3PT range's "distance on court" loaded player headshots from ESPN's and the league's photo servers. Each portrait is now the initials on the team colour, the fallback the code always had, so the posters keep their layout. The posters themselves are still there; whether they go too is the user's call.
+
+**Tests.** 1,113 (one new: every import between the 15 Game Flow files is exported by its file, and no photo URL is left). Shown to fail when one export is removed.
+
+**Self-audit.**
+- Found while mapping, and left as they were: `standings from the schedule` is used by nothing, `espnShotSpot` is dead, and `window.__shot` and `window.__rest` are debugging hooks.
+- The phone is still the real check of the page. The views and charts were compared; how they look wasn't, beyond the counts.
+
 ## 0.141.15 (2026-11-21): lines from the backtest: the minutes behind a run, how rare a night really is, runs that ended
 
 Item 4 of the user's order (11:46 AM): the lines the four-season replay (`claude/backtest-2026-11-21.md`) pointed to.

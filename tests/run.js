@@ -3319,6 +3319,30 @@ await bridgeChecks(ok, root);
       ok(to > 0 && pmOf(glitch) === pmOf(F.expandFeeds(JSON.parse(JSON.stringify(c)))),
         "game flow (0.141.13): +/- follows the made baskets, not the feed's score field (3 phantom points on a turnover change nothing)");
     }
+    // 0.141.16: the script split by section (docs/gameflow/*.js). Every import between them names something its file exports
+    // (a wrong one stops the whole page loading), and no player photos come back (the user's "no posters/headshots").
+    {
+      const dir = path.join(root, "docs"), files = ["gameflow.js", ...fs.readdirSync(path.join(dir, "gameflow")).filter((f) => f.endsWith(".js")).map((f) => `gameflow/${f}`)];
+      const bad = [];
+      for (const f of files) {
+        const t = fs.readFileSync(path.join(dir, f), "utf8");
+        for (const m of t.matchAll(/^import \{([^}]+)\} from "(\.[^"]+)";/gms)) {
+          const target = path.join(dir, path.dirname(f), m[2]);
+          if (!fs.existsSync(target)) { bad.push(`${f}: ${m[2]} missing`); continue; }
+          const tt = fs.readFileSync(target, "utf8");
+          for (const raw of m[1].split(",")) {
+            const name = raw.trim().split(/\s+as\s+/)[0].trim();
+            if (!name) continue;
+            const q = name.replace(/[$]/g, "\\$"), w = "(?![\\w$])", b = "(?<![\\w$])";
+            const re = new RegExp(`^export\\s+(async\\s+)?(function\\*?|const|let|var|class)\\s+${q}${w}|^export\\s*\\{[^}]*${b}${q}${w}[^}]*\\}|^export\\s+(const|let)\\s+[^;\\n]*${b}${q}\\s*=`, "m");
+            if (!re.test(tt)) bad.push(`${f}: ${name} from ${m[2]}`);
+          }
+        }
+      }
+      const photos = files.filter((f) => /espncdn\.com\/i\/headshots|cdn\.nba\.com\/headshots/.test(fs.readFileSync(path.join(dir, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "")));
+      ok(files.length >= 10 && !bad.length && !photos.length,
+        `game flow (0.141.16): ${files.length} script files, every import between them exported by its file, and no player photos`, JSON.stringify({ bad: bad.slice(0, 8), photos }));
+    }
     // 0.141.11: on a phone the timeline column got nothing (172px names + three 52px stat columns > the screen).
     {
       const css = fs.readFileSync(path.join(root, "docs", "gameflow.css"), "utf8");

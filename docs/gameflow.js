@@ -4,6 +4,21 @@ import { espnToFeeds, expandFeeds } from "./lib/gameflow/feeds.js";
 import { REG_LEN, OT_LEN, RUN_MIN, RUN_ALLOW, SWING_CAP, plen, clockSec, minVal, mmss,
   HOOP_X, HOOP_Y, COURT_W, COURT_L, HOOP_INSET, SPOT_SX, SPOT_SY, ARC_R, CORNER_D, CORNER_Y,
   onCourt, hasSpot, spotDist, canonSpot, statedDist, shotDist, boxLine, buildStints as buildStintsModel } from "./lib/gameflow/model.js";
+import { headshot } from "./gameflow/headshots.js";
+import { REST_BUCKETS, dayNum, gameDay, restBucket, restIndex } from "./gameflow/rest.js";
+import { renderRangeCourt } from "./gameflow/poster-court.js";
+import { renderRangeScatter } from "./gameflow/poster-scatter.js";
+import "./gameflow/standings.js";
+import { DEF_TOP_N, buildLeague } from "./gameflow/league.js";
+import { RANK_POSTER_N, rankPoster } from "./gameflow/rank-poster.js";
+import { restRows, restStats } from "./gameflow/sec-rest.js";
+import { renderStreaks } from "./gameflow/sec-lead.js";
+import { ALL_STARS, ALL_STARS_SEASON, allStarRows, defDefinition, leaguePool, normName, renderPool, rosterStale, splitRow } from "./gameflow/sec-topdef.js";
+import { FORM_MIN_RUN, LOG_CARDS_N, RUN_LIST_N, avgOf, catMoves, fillFormLens, formRows, formStreaks, medOf, sdOf, setFloorOptions, slashLine, staleness, statOf } from "./gameflow/sec-hothand.js";
+import { ivAnd, ivHas, ivSec, ivSub, onOffSplit, renderSplits, splitByTeammate } from "./gameflow/sec-pairs.js";
+import { buildBoard } from "./gameflow/board.js";
+import { RANGE_MIN_3PA, RANGE_N, buildRange, courtSvg, fitText, pctile, posterFoot, posterShell, posterTools, rangeScope, svgEl, svgText } from "./gameflow/range.js";
+// Sections moved into their own files (0.141.16).
 const buildStints = (pbp, box) => buildStintsModel(pbp, box, { minTol: MIN_TOL });
 /* ============================ config ============================ */
 const CDN = "https://cdn.nba.com/static/json";
@@ -45,7 +60,7 @@ const TEAM = {
 /** The brand colour as published. Correct on the white poster, and the input to the
     dark-interface variant below — never drawn straight onto the dark chart. */
 const knownTeam = t => Object.prototype.hasOwnProperty.call(TEAM, String(t));
-const teamName  = t => (TEAM[t] || {n:String(t)}).n;
+export const teamName  = t => (TEAM[t] || {n:String(t)}).n;
 
 /* A team the table has never heard of — an expansion franchise, most likely — gets a
    generated colour rather than one shared grey, so two newcomers in the same game are still
@@ -62,7 +77,7 @@ function generatedCol(tri){
   return "#"+seg.map(v=>Math.round((v+m)*255).toString(16).padStart(2,"0"))
     .join("").toUpperCase();
 }
-const brandCol = t => knownTeam(t) ? TEAM[t].a : generatedCol(t);
+export const brandCol = t => knownTeam(t) ? TEAM[t].a : generatedCol(t);
 const brandAlt = t => knownTeam(t) ? TEAM[t].b : generatedCol(t+"~");
 
 /* Several brand colours are darker than the interface they're drawn on: Dallas and
@@ -124,7 +139,7 @@ const darkOf = hex => {
   return _darkCache.get(hex);
 };
 /** The colour to draw a team in on the dark interface. */
-const tcol    = t => darkOf(brandCol(t));
+export const tcol    = t => darkOf(brandCol(t));
 const tcolAlt = t => darkOf(brandAlt(t));
 
 /* Two teams can share a colour outright — Dallas and Washington do — and in one game that
@@ -142,7 +157,7 @@ function sideColours(awayTri, homeTri){
 }
 
 /** A team colour at low opacity, for fills that sit behind text. */
-function tint(t, alpha){
+export function tint(t, alpha){
   const h=brandCol(t).replace("#","");
   const n=parseInt(h.length===3? h.split("").map(c=>c+c).join("") : h, 16);
   return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${alpha})`;
@@ -169,7 +184,7 @@ function contrastOf(a,b){
   return (Math.max(la,lb)+0.05)/(Math.min(la,lb)+0.05);
 }
 const _alphaCache=new Map();
-function barAlpha(t){
+export function barAlpha(t){
   if(_alphaCache.has(t)) return _alphaCache.get(t);
   const h=brandCol(t).replace("#","");
   const n=parseInt(h,16), c=[(n>>16)&255,(n>>8)&255,n&255];
@@ -206,11 +221,11 @@ const ESPN_SUMMARY = "https://site.web.api.espn.com/apis/site/v2/sports/basketba
 
    The helper is preferred when present and ESPN is the fallback, so the page always
    has something to show. */
-const SOURCE = {
+export const SOURCE = {
   nba: {label:"league feed", detail:"exact to the second"},
   espn: {label:"ESPN", detail:"minutes rounded to whole numbers"},
 };
-let ACTIVE = null;
+export let ACTIVE = null;
 
 /* How far a player's running total may exceed their box-score minutes before a
    candidate is rejected when filling a period-opening lineup. The league feed is
@@ -222,15 +237,15 @@ let MIN_TOL = 0.6;           // ESPN only (whole minutes): set from the start, a
 let MIN_SLACK = 0.5;
 
 /* ============================ helpers ============================ */
-const $  = s => document.querySelector(s);
+export const $  = s => document.querySelector(s);
 /* 0.141.3 (security check, 11/20): text from the data (names, arenas, labels) is escaped before it goes into HTML. */
-const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const el = (t,c,x) => { const e=document.createElement(t); if(c)e.className=c;
+export const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+export const el = (t,c,x) => { const e=document.createElement(t); if(c)e.className=c;
                         if(x!=null)e.textContent=x; return e; };
 /* Notes carry inline markup, so they have to be set as HTML. Handing a string with tags
    to el() renders them literally — "<b>0 games</b>" on screen — which shipped in seven
    places before it was noticed. This is the only sanctioned way to build one. */
-const noteEl = h => { const d=el("div","note"); d.innerHTML=h; return d; };
+export const noteEl = h => { const d=el("div","note"); d.innerHTML=h; return d; };
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const sgn  = v => (v>0?"+":"") + v;
 const FOUL_LIMIT_UI = 6;                       // NBA disqualification
@@ -716,14 +731,14 @@ function liteFile(){
   if(!LITE) LITE=fetch(`data/flow/${FLOW.season}-lite.json`,{cache:"no-store"}).then(r=>r.ok? r.json() : null).then(j=>j && j.games || null).catch(()=>null);
   return LITE;
 }
-async function liteOrModel(g){
+export async function liteOrModel(g){
   const L=await liteFile();
   const m=L && L[String(g.gameId)];
   return m || modelFor(g);
 }
 window.__flow = { index:()=>FLOW, compactFor, liteOrModel };
 
-async function modelFor(g){
+export async function modelFor(g){
   if(modelCache.has(g.gameId)) return modelCache.get(g.gameId);
   let pbp, box;
   if(ACTIVE==="espn"){
@@ -755,7 +770,7 @@ async function modelFor(g){
    postponement away from dropping a team, and anything that walks a team's own schedule —
    rest between games, for one — would then walk nothing for that team and silently report
    no data rather than an error. */
-function franchises(){
+export function franchises(){
   const s=new Set();
   for(const g of GAMES){
     if(isFranchise(g.home)) s.add(g.home);
@@ -764,7 +779,7 @@ function franchises(){
   return [...s];
 }
 
-function teamGamesFor(tri){
+export function teamGamesFor(tri){
   return GAMES.filter(g=>g.status===3 && isRegularSeason(g) && g.pbp!==false
     && isFranchise(g.away) && isFranchise(g.home)
     && (g.away===tri || g.home===tri));
@@ -1075,7 +1090,7 @@ const RUN_LABEL = {
   near: `${RUN_MIN}+ margin, at most ${RUN_ALLOW} opposing basket`,
   swing: `${RUN_MIN}+ margin swing inside ${Math.round(SWING_CAP/60)} minutes`,
 };
-const layoutMode   = () => ($("#layout") ? $("#layout").value : "table");
+export const layoutMode   = () => ($("#layout") ? $("#layout").value : "table");
 
 /* The layout control serves two views with different presentations. Options are
    rebuilt on a view change and the previous choice is kept only if it still exists,
@@ -1091,17 +1106,17 @@ const LAYOUTS={
 };
 /* The rank control serves two views as well: it picks the unit for the assist board, and
    the size of the comparison group for records. Same rebuild-per-view treatment. */
-const FORM_LENS = [2,3,4,5];
+export const FORM_LENS = [2,3,4,5];
 /* Enough other games for a spread to mean anything. Below this a single quiet night sets the
    scale and everything looks like a heater. */
-const FORM_MIN_BASE = 5;
-const FORM_STATS = {pts:"points", reb:"rebounds", ast:"assists",
+export const FORM_MIN_BASE = 5;
+export const FORM_STATS = {pts:"points", reb:"rebounds", ast:"assists",
                     to:"turnovers", min:"minutes",
                     pra:"points + rebounds + assists"};
 /* The one-number answer to "is he up across the board". Nothing new in the machinery: it is
    a per-game number like any other, so the spread, the median gate and the runs all apply
    to it unchanged. */
-const FORM_CATS = ["pts","reb","ast"];
+export const FORM_CATS = ["pts","reb","ast"];
 /* Whether more of it is good. Nothing in the maths cares — the direction control asks for
    above or below his normal, which is unambiguous either way — but the screen should not
    call a run of nine-turnover games a hot streak. */
@@ -1125,7 +1140,7 @@ const FORM_THRESHOLDS = [].concat(
    A minutes bar, because a four-minute appearance in a blowout is not a performance. Every
    game in the stretch has to clear it, so one garbage-time cameo takes a player out of the
    list rather than dragging his averages down and putting him in it. */
-const FORM_FLOORS = {
+export const FORM_FLOORS = {
   pts:[0,5,10,15,20], reb:[0,2,4,6,8], ast:[0,2,3,5,7],
   to:[0,2,3,4], min:[0,10,15,20,25], pra:[0,10,15,20,25,30],
 };
@@ -1144,20 +1159,20 @@ const RECORD_GROUPS=[8,7,6,5,4,3,2,1];
    having played at least half his team's games — enough that the season column means
    something — and by having games on BOTH sides of the split, because a gap between a
    column and an empty column is not a gap. */
-const POOL_SHARE = 0.5;
-const POOL_MIN_SIDE = 2;
+export const POOL_SHARE = 0.5;
+export const POOL_MIN_SIDE = 2;
 /* A scoring floor as well as a games floor. A player averaging two points has nothing to
    fall off: his split is the difference between one quiet night and another, and a single
    basket swings it further than a 20-point scorer's best game swings his. Five is the line,
    applied to the season average so it doesn't move with the group size. */
-const POOL_MIN_PPG = 5;
-const POOL_N = 25;      // rows per block once there are enough players to rank
-const poolMode = () => ($("#pool") ? $("#pool").value : "stars");
-const defTopN = () => {
+export const POOL_MIN_PPG = 5;
+export const POOL_N = 25;      // rows per block once there are enough players to rank
+export const poolMode = () => ($("#pool") ? $("#pool").value : "stars");
+export const defTopN = () => {
   const m=/^def(\d+)$/.exec($("#rank")? $("#rank").value : "");
   return m? +m[1] : DEF_TOP_N;
 };
-const topDefOf = (agg,n) => agg.teams.slice(0,n).map(t=>t.tri);
+export const topDefOf = (agg,n) => agg.teams.slice(0,n).map(t=>t.tri);
 
 const RANKS={
   board:[["pair","player-to-player pairs"],["given","assists created"],
@@ -1542,451 +1557,6 @@ async function showHighs(){
   }
 }
 
-/* ==================== three-point range ====================
- * Who shoots from deepest. Ranked on mean distance over *all* three-point attempts,
- * not makes only: the average then describes shot selection rather than which of his
- * shots happened to drop, and makes-only would bias every shooter shorter because
- * longer shots miss more often.
- *
- * Two distance signals exist and they are not equally good, so they are kept apart
- * and both reported. The stated distance in the play text is the number the league
- * publishes and is used for the average; the coordinate is coarser (integers, ~1ft)
- * and is used to place the dot on the court, where a foot of error is invisible.
- * A shot with a coordinate but no stated distance still gets a dot and falls back to
- * the coordinate for the average, which the footer says out loud.
- */
-const RANGE_MIN_3PA = 40;      // below this an average is noise, not a tendency
-const RANGE_N = 12;
-
-async function buildRange(tris, limit, onProgress){
-  const perTeam=new Map(tris.map(t=>[t, teamGamesFor(t)]));
-  const slate=[];
-  for(const [tri,all] of perTeam) (limit>0? all.slice(-limit):all).forEach(g=>slate.push({tri,g}));
-
-  const rows=new Map();          // "id||tri" -> shooter
-  const seen=new Set();
-  /* The shot profile (0.59): games he played (a game with no three still counts against his rate), and every
-     team's threes by zone, taken and allowed, for tonight's matchups. */
-  const played=new Map();        // "id||tri" -> [{gameId, date}]
-  const zoneT=()=>({games:new Set(), att:0, made:0, corner:0, cornerMade:0, deep:0, deepMade:0, spotted:0});
-  const teamZ=new Map(), allowZ=new Map();
-  const zOf=(m,t)=>{ let z=m.get(t); if(!z){ z=zoneT(); m.set(t,z); } return z; };
-  let done=0, failed=0;
-  // how well the two signals agree, measured rather than assumed
-  let bothN=0, bothErr=0, bothMax=0;
-
-  const queue=slate.slice();
-  const worker=async()=>{
-    while(queue.length){
-      const {tri,g}=queue.shift();
-      try{
-        const G=await modelFor(g);
-        const side = G.box.homeTeam.teamTricode===tri ? 1
-                   : G.box.awayTeam.teamTricode===tri ? 0 : -1;
-        if(side>=0){
-          seen.add(g.gameId);
-          const byId=new Map(G.players.map(p=>[p.id,p]));
-          const oppTri=side? G.box.awayTeam.teamTricode : G.box.homeTeam.teamTricode;
-          const TZ=zOf(teamZ,tri), AZ=zOf(allowZ,oppTri);
-          TZ.games.add(g.gameId); AZ.games.add(g.gameId);
-          for(const pl of G.players){ if(pl.side!==side || !pl.played) continue;
-            const k=String(pl.id)+"||"+tri; if(!played.has(k)) played.set(k,[]); played.get(k).push({gameId:g.gameId, date:g.date}); }
-          for(const a of G.acts){
-            if(a.actionType!=="3pt") continue;
-            const pl=byId.get(a.personId);
-            if(!pl || pl.side!==side) continue;
-            { const made3=a.shotResult==="Made", d3=shotDist(a), zone=threeZone(a, d3);
-              for(const Z of [TZ,AZ]){ Z.att++; if(made3) Z.made++;
-                if(zone.spotted) Z.spotted++;
-                if(zone.corner){ Z.corner++; if(made3) Z.cornerMade++; }
-                if(zone.deep){ Z.deep++; if(made3) Z.deepMade++; } } }
-            const k=String(pl.id)+"||"+tri;
-            let r=rows.get(k);
-            if(!r){ r={id:pl.id, name:pl.name, tri, seen:g.date,
-                       shots:[], dists:[], att:0, made:0, distN:0, distSum:0,
-                       noDist:0, noSpot:0, fromField:0, fromText:0, fromSpot:0};
-                    rows.set(k,r); }
-            if(new Date(g.date)>=new Date(r.seen)){ r.name=pl.name; r.seen=g.date; }
-
-            const made=a.shotResult==="Made";
-            r.att++; if(made) r.made++;
-
-            const d=shotDist(a), st=statedDist(a), sp=spotDist(a);
-            if(st!=null && sp!=null){
-              const e=Math.abs(st-sp); bothN++; bothErr+=e;
-              if(e>bothMax) bothMax=e;
-            }
-            if(d){ r.distN++; r.distSum+=d.ft; r.dists.push(d.ft);
-                   if(d.from==="field") r.fromField++;
-                   else if(d.from==="text") r.fromText++;
-                   else r.fromSpot++; }
-            else r.noDist++;
-
-            if(hasSpot(a)) r.shots.push({sx:a.sx, sy:a.sy, made, ft:d?d.ft:null, gameId:g.gameId, date:g.date});
-            else r.noSpot++;
-            (r.zshots||(r.zshots=[])).push({made, ft:d?d.ft:null, gameId:g.gameId, date:g.date, ...threeZone(a, d)});
-          }
-        }
-      }catch(e){ failed++; }
-      done++;
-      if(onProgress) onProgress(done, slate.length);
-    }
-  };
-  await Promise.all(Array.from({length:Math.min(10,slate.length)},worker));   // 10 at a time: files on this site are small
-
-  const all=[...rows.values()].map(r=>({...r,
-    avg: r.distN? r.distSum/r.distN : null,
-    pct: r.att? 100*r.made/r.att : 0}));
-  const eligible=all.filter(r=>r.att>=RANGE_MIN_3PA && r.avg!=null)
-                    .sort((a,b)=>b.avg-a.avg || b.att-a.att);
-  for(const r of all){ const pg=played.get(String(r.id)+"||"+r.tri)||[]; r.games=pg.slice().sort((a,b)=>new Date(a.date)-new Date(b.date)); }
-  return {teams:tris, games:seen.size, failed, all, eligible, teamZ, allowZ,
-          window:{limit},
-          agree: bothN? {n:bothN, mean:bothErr/bothN, max:bothMax} : null};
-}
-
-/* ---- half court, drawn in feet and projected once ---- */
-function courtSvg(shots, w, h){
-  const PAD=6, TOP=30;                       // feet of court shown beyond the arc
-  const fx=sx=>PAD+((sx+COURT_W/2)/COURT_W)*(w-2*PAD);
-  const fy=y=>h-PAD-((y+5.25)/(TOP+5.25))*(h-2*PAD);   // baseline sits below y=0
-  const ns="http://www.w3.org/2000/svg";
-  const mk=(t,at)=>{ const e=document.createElementNS(ns,t);
-    for(const k in at) e.setAttribute(k,at[k]); return e; };
-  const svg=mk("svg",{viewBox:`0 0 ${w} ${h}`, width:w, height:h, class:"court"});
-
-  svg.appendChild(mk("rect",{x:fx(-COURT_W/2), y:fy(TOP), width:fx(COURT_W/2)-fx(-COURT_W/2),
-    height:fy(-5.25)-fy(TOP), fill:"none", stroke:"var(--cline)", "stroke-width":1}));
-  // the arc, with the straight corner segments that run to meet it
-  const ax=cx=>fx(cx);
-  svg.appendChild(mk("path",{d:
-    `M ${ax(-CORNER_D)} ${fy(-5.25)} L ${ax(-CORNER_D)} ${fy(CORNER_Y)} `+
-    `A ${fx(ARC_R-COURT_W/2)-fx(-COURT_W/2)} ${fy(0)-fy(ARC_R)} 0 0 0 ${ax(CORNER_D)} ${fy(CORNER_Y)} `+
-    `L ${ax(CORNER_D)} ${fy(-5.25)}`,
-    fill:"none", stroke:"var(--cline)", "stroke-width":1.4}));
-  svg.appendChild(mk("circle",{cx:fx(0), cy:fy(0), r:2.2, fill:"var(--cline)"}));
-
-  /* Coordinates are integers, so many attempts land on the exact same point. Rather
-     than jitter them — which invents precision the feed doesn't have — identical
-     spots stack into one dot that grows with the count. */
-  const bins=new Map();
-  for(const s of shots){
-    const k=s.sx+","+s.sy+","+(s.made?1:0);
-    const b=bins.get(k); if(b) b.n++; else bins.set(k,{...s, n:1});
-  }
-  for(const b of bins.values()){
-    svg.appendChild(mk("circle",{cx:fx(b.sx), cy:fy(b.sy),
-      r:Math.min(4.4, 1.9+0.7*Math.sqrt(b.n-1)),
-      class:b.made?"sh made":"sh miss"}));
-  }
-  return svg;
-}
-
-/* ---- shared helpers for the two range posters ---- */
-const SVGNS="http://www.w3.org/2000/svg";
-const svgEl=(t,at)=>{ const e=document.createElementNS(SVGNS,t);
-  for(const k in at) if(at[k]!=null) e.setAttribute(k,at[k]); return e; };
-const svgText=(x,y,str,at)=>{ const e=svgEl("text",{x,y,...at}); e.textContent=str; return e; };
-/* SVG offers no text metrics before layout, so a label's width is estimated from its
-   character count and font size. Anything that would spill out of its lane is squeezed
-   with textLength rather than allowed to run into the neighbour — NBA rosters carry
-   names like "Diggins-Smith", which at 13px is half again wider than a lane. */
-const TEXT_W = 0.58;
-function fitText(node, str, size, maxPx){
-  if(str.length * size * TEXT_W > maxPx){
-    node.setAttribute("textLength", Math.max(8, Math.round(maxPx)));
-    node.setAttribute("lengthAdjust", "spacingAndGlyphs");
-  }
-  return node;
-}
-/** Linear-interpolated percentile over an unsorted list. */
-function pctile(xs, q){
-  if(!xs.length) return null;
-  const a=xs.slice().sort((m,n)=>m-n);
-  const i=(a.length-1)*q, lo=Math.floor(i), hi=Math.ceil(i);
-  return lo===hi ? a[lo] : a[lo]+(a[hi]-a[lo])*(i-lo);
-}
-/** Poster shell: kicker, headline, rule. Returns the card element. */
-function posterShell(kick, title){
-  const p=el("div","poster");
-  p.appendChild(el("p","pkick",kick));
-  p.appendChild(el("h3","ptitle",title));
-  p.appendChild(el("div","prule"));
-  return p;
-}
-function posterFoot(p, lines){
-  const f=el("div","pfoot");
-  const t=el("p",""); t.innerHTML=lines.join(" ");
-  f.appendChild(t);
-  f.appendChild(el("div","brand",`NBA GameFlow · ${(SOURCE[ACTIVE]||{label:"?"}).label}`));
-  p.appendChild(f);
-}
-function posterTools(card, node, title, file){
-  const tools=el("div","legend");
-  const dl=el("button","","Download this poster");
-  dl.style.font="inherit";
-  dl.addEventListener("click",()=>downloadPoster(node,title,file));
-  tools.appendChild(dl);
-  tools.appendChild(el("span","","Saves a standalone HTML file."));
-  card.appendChild(tools);
-}
-/** Scope line shared by both posters, so the two never disagree. */
-function rangeScope(agg, shown){
-  return `${agg.window.limit>0 ? `last ${agg.window.limit} games per team`
-                              : `${seasonLabel()} regular season`} · ${agg.games} games · `+
-         `${shown} shooters with ${RANGE_MIN_3PA}+ three-point attempts · all attempts, `+
-         `makes and misses.`;
-}
-
-/* ==================== poster: the deepest shooters, on a court ====================
- * A half court, and above it the five deepest averages with a headshot, a name, the
- * distance and his three-point percentage.
- *
- * On the vertical placement, which has been the hard part of this poster. Three things are
- * wanted at once and only two are possible:
- *   - the five separated enough to read
- *   - their gaps in proportion to each other
- *   - their height above the line in proportion to how far behind it they actually are
- * The averages span 1.2 ft while the closest of them is already 4.2 ft behind the line, so
- * the ratio that matters is 0.1 to 4.2. Any single scale that puts a tenth of a foot far
- * enough apart to read pushes the group thousands of pixels off the court.
- *
- * So the stack is an ordered LIST, evenly spaced, and the poster says so: rank is the
- * position, and the numbers beside each face carry the measurement. It floats clear of the
- * arc rather than sitting on it, because even the fifth-deepest shooter averages four feet
- * behind the line and putting him on it was simply wrong.
- */
-const COURT_TOP_N = 5;
-const LANE_W = 16, LANE_L = 19, FT_R = 6, RIM_R = 0.75, RESTRICT_R = 4;
-const CENTRE_L = 47, CENTRE_R = 6;
-/* Full bleed: the court IS the poster, and the players sit on it. Cropped from just below
-   the free-throw line up, because everything nearer the basket than that is irrelevant to
-   a graphic about three-point range and only cost vertical space. */
-const HS_PX = 64, ROW_PX = 78, CROP_FT = 17, TOP_FT = 50;
-
-function renderRangeCourt(card, agg){
-  const rows=topWithTies(agg.eligible, COURT_TOP_N, r=>r.avg);
-  const ranks=denseRanks(rows.map(r=>+r.avg.toFixed(1)));
-  const counts={}; ranks.forEach(r=>{counts[r]=(counts[r]||0)+1;});
-
-  const W=1038;                                  // the poster's full width, border to border
-  const CS=W/COURT_W;
-  const H=(TOP_FT-CROP_FT)*CS;
-  const fx=ft=>W/2+ft*CS, fy=ft=>H-(ft-CROP_FT)*CS;
-  const arcTo=(r,x,y,sweep)=>`A ${r*CS} ${r*CS} 0 0 ${sweep} ${fx(x)} ${fy(y)}`;
-
-  const wrap=el("div","ctwrap"); wrap.style.height=H+"px";
-  const svg=svgEl("svg",{viewBox:`0 0 ${W} ${H}`, width:W, height:H, class:"ctplot"});
-
-  /* ---- the floor ----
-   * Boards, a lighting gradient and a few grain streaks. All deterministic: the streaks
-   * come off a fixed list rather than Math.random, so two renders of the same data produce
-   * the same poster and the tests have something stable to assert. */
-  const uid="ct"+Math.abs(Math.round(CS*1000));
-  const defs=svgEl("defs",{});
-  const grad=svgEl("linearGradient",{id:uid+"g", x1:"0", y1:"0", x2:"0.15", y2:"1"});
-  [["0","#e9c99e"],["0.42","#dcb684"],["0.78","#d0a56e"],["1","#c4965f"]]
-    .forEach(([o,c])=>grad.appendChild(svgEl("stop",{offset:o,"stop-color":c})));
-  defs.appendChild(grad);
-  const glow=svgEl("radialGradient",{id:uid+"h", cx:"0.5", cy:"0.28", r:"0.62"});
-  glow.appendChild(svgEl("stop",{offset:"0","stop-color":"#fff","stop-opacity":".30"}));
-  glow.appendChild(svgEl("stop",{offset:"1","stop-color":"#fff","stop-opacity":"0"}));
-  defs.appendChild(glow);
-  const pat=svgEl("pattern",{id:uid+"p", width:9.2, height:H,
-    patternUnits:"userSpaceOnUse"});
-  pat.appendChild(svgEl("line",{x1:0, y1:0, x2:0, y2:H, stroke:"#a87a4c",
-    "stroke-opacity":".22", "stroke-width":1}));
-  defs.appendChild(pat);
-  svg.appendChild(defs);
-
-  svg.appendChild(svgEl("rect",{x:0, y:0, width:W, height:H, fill:`url(#${uid}g)`,
-    class:"ctfloor"}));
-  [0.06,0.17,0.23,0.35,0.41,0.52,0.58,0.67,0.74,0.81,0.88,0.95].forEach((f,k)=>
-    svg.appendChild(svgEl("rect",{x:f*W, y:0, width:9.2*(k%3?1:2), height:H,
-      fill:"#a87a4c", "fill-opacity":(k%2?0.05:0.08)})));
-  svg.appendChild(svgEl("rect",{x:0, y:0, width:W, height:H, fill:`url(#${uid}p)`,
-    class:"ctboards"}));
-  svg.appendChild(svgEl("rect",{x:0, y:0, width:W, height:H, fill:`url(#${uid}h)`}));
-
-  // ---- markings ----
-  svg.appendChild(svgEl("rect",{x:fx(-LANE_W/2), y:fy(LANE_L), width:LANE_W*CS,
-    height:(LANE_L-CROP_FT)*CS, class:"ctpaint"}));
-  svg.appendChild(svgEl("line",{x1:fx(-LANE_W/2), y1:fy(LANE_L), x2:fx(LANE_W/2),
-    y2:fy(LANE_L), class:"ctmark"}));
-  [-LANE_W/2, LANE_W/2].forEach(x=>svg.appendChild(svgEl("line",
-    {x1:fx(x), y1:fy(LANE_L), x2:fx(x), y2:fy(CROP_FT), class:"ctmark"})));
-  svg.appendChild(svgEl("path",{d:`M ${fx(-FT_R)} ${fy(LANE_L)} `
-    + arcTo(FT_R,FT_R,LANE_L,1), class:"ctmark"}));
-  svg.appendChild(svgEl("path",{d:`M ${fx(-FT_R)} ${fy(LANE_L)} `
-    + arcTo(FT_R,FT_R,LANE_L,0), class:"ctmark dash"}));
-  const cyft=HOOP_INSET+CORNER_Y;
-  svg.appendChild(svgEl("path",{d:
-    `M ${fx(-CORNER_D)} ${fy(CROP_FT)} L ${fx(-CORNER_D)} ${fy(cyft)} `
-    + arcTo(ARC_R,CORNER_D,cyft,1)
-    + ` L ${fx(CORNER_D)} ${fy(CROP_FT)}`, class:"ctarc"}));
-  // half way line and the near half of the centre circle, so the crop reads as a real floor
-  svg.appendChild(svgEl("line",{x1:0, y1:fy(CENTRE_L), x2:W, y2:fy(CENTRE_L),
-    class:"ctmark"}));
-  svg.appendChild(svgEl("path",{d:`M ${fx(-CENTRE_R)} ${fy(CENTRE_L)} `
-    + arcTo(CENTRE_R,CENTRE_R,CENTRE_L,0), class:"ctmark"}));
-  [-COURT_W/2, COURT_W/2].forEach(x=>svg.appendChild(svgEl("line",
-    {x1:fx(x), y1:0, x2:fx(x), y2:H, class:"ctmark"})));
-
-  const apexY=fy(HOOP_INSET+ARC_R);
-  const stack=(rows.length-1)*ROW_PX+HS_PX;
-  const top0=Math.max(16, apexY-46-stack);
-  svg.appendChild(svgEl("line",{x1:fx(0), y1:apexY, x2:fx(0), y2:top0+stack+4,
-    class:"ctgauge"}));
-  wrap.appendChild(svg);
-
-  // ---- the players, on the floor ----
-  rows.forEach((r,i)=>{
-    const row=el("div","ctrow");
-    row.style.top=(top0+i*ROW_PX)+"px";
-    row.style.left=(W/2-HS_PX/2-14)+"px";
-    const hs=headshot(r.name, r.id, r.tri, HS_PX);
-    hs.style.setProperty("--ring", tcol(r.tri));
-    row.appendChild(hs);
-    const txt=el("div","cttext");
-    txt.appendChild(el("div","ctrank2",(counts[ranks[i]]>1?"T":"")+ranks[i]));
-    txt.appendChild(el("div","ctrname",r.name));
-    txt.appendChild(el("div","ctrdist",
-      `${r.avg.toFixed(1)} ft · ${r.pct.toFixed(1)}% from three`));
-    row.appendChild(txt);
-    wrap.appendChild(row);
-  });
-
-  const near=Math.min(...rows.map(r=>r.avg))-ARC_R;
-  const p=posterShell(`NBA ${seasonLabel()}`, "Where the deepest shooters live");
-  p.appendChild(wrap);
-  posterFoot(p, [rangeScope(agg, agg.eligible.length),
-    `Ranked on mean distance over every three-point attempt; the percentage beside each `+
-    `name is his three-point shooting on those attempts.`,
-    `<b>The list is ordered, not to scale.</b> These five averages span 1.2 ft while the `+
-    `closest of them already sits ${near.toFixed(1)} ft behind the line, so no single scale `+
-    `can separate a tenth of a foot and still fit on a court. Position is rank; the numbers `+
-    `are the measurement.`]);
-  card.appendChild(p);
-  posterTools(card, p, "Where the deepest shooters live", "nba-3pt-court.html");
-}
-
-/* ==================== poster: accuracy against distance ====================
- * Every qualified shooter, with the deepest averages picked out. The comparison group
- * is the point: "deep shooters are less accurate" is only visible if the shooters who
- * aren't deep are on the same chart.
- *
- * A three-point percentage over a few dozen attempts is a very noisy number, so each
- * highlighted shooter carries a one-standard-error bar and the note states the typical
- * width. Without that the reader will happily rank two players three points apart when
- * the interval is ten points wide. No trend line is drawn for the same reason: the
- * correlation is reported as a number with its sample size, which is a claim that can
- * be checked, rather than a line that implies more than the data holds.
- */
-function renderRangeScatter(card, agg){
-  const all=agg.eligible;
-  const deep=new Set(topWithTies(all, RANGE_N, r=>r.avg).map(r=>r.id));
-
-  const W=968, H=612, L=56, R=176, T=56, B=68;
-  const xs=all.map(r=>r.avg), ys=all.map(r=>r.pct);
-  const x0=Math.min(...xs)-0.25, x1=Math.max(...xs)+0.25;
-  const y0=Math.max(0, Math.min(...ys)-3), y1=Math.min(100, Math.max(...ys)+3);
-  const px=v=>L+((v-x0)/(x1-x0))*(W-L-R);
-  const py=v=>H-B-((v-y0)/(y1-y0))*(H-T-B);
-
-  const att=all.reduce((a,r)=>a+r.att,0), mad=all.reduce((a,r)=>a+r.made,0);
-  const lgPct=att? 100*mad/att : 0;
-  const medX=pctile(xs, 0.5);
-  const se=r=>{ const p0=r.pct/100; return 100*Math.sqrt(Math.max(p0*(1-p0),1e-9)/r.att); };
-
-  const n=all.length;
-  const mx=xs.reduce((a,b)=>a+b,0)/n, my=ys.reduce((a,b)=>a+b,0)/n;
-  let sxy=0, sxx=0, syy=0;
-  all.forEach(r=>{ const dx=r.avg-mx, dy=r.pct-my; sxy+=dx*dy; sxx+=dx*dx; syy+=dy*dy; });
-  const rr=(sxx>0&&syy>0)? sxy/Math.sqrt(sxx*syy) : 0;
-
-  const p=posterShell(`NBA ${seasonLabel()}`, "Does shooting deeper cost you?");
-  const svg=svgEl("svg",{viewBox:`0 0 ${W} ${H}`, width:W, height:H, class:"scplot"});
-
-  /* Horizontal rules only, and faint. The previous version ruled both axes every foot
-     and every five points, which put more ink into the grid than into the data. */
-  for(let v=Math.ceil(y0/5)*5; v<=y1; v+=5){
-    svg.appendChild(svgEl("line",{x1:L, y1:py(v), x2:W-R, y2:py(v), class:"axgrid"}));
-    svg.appendChild(svgText(L-9, py(v)+4, `${v}%`, {class:"axtick","text-anchor":"end"}));
-  }
-  for(let d=Math.ceil(x0); d<=x1; d++)
-    svg.appendChild(svgText(px(d), H-B+22, `${d}`, {class:"axtick","text-anchor":"middle"}));
-  svg.appendChild(svgText(L-9, T-16, "3PT%", {class:"axcap","text-anchor":"end"}));
-  svg.appendChild(svgText(W-R, H-B+42, "average distance of his threes (feet)",
-    {class:"axcap","text-anchor":"end"}));
-
-  /* Two references, so the chart reads as quadrants: deeper than most and better than
-     most is the top right. Labelled in place, the way a reference line should be. */
-  svg.appendChild(svgEl("line",{x1:L, y1:py(lgPct), x2:W-R, y2:py(lgPct), class:"axref"}));
-  svg.appendChild(svgText(L+3, py(lgPct)-8, `all ${n} combined, ${lgPct.toFixed(1)}%`,
-    {class:"axreflab"}));
-  svg.appendChild(svgEl("line",{x1:px(medX), y1:T, x2:px(medX), y2:H-B, class:"axref"}));
-  svg.appendChild(svgText(px(medX)+6, T+12, `median ${medX.toFixed(1)} ft`,
-    {class:"axreflab"}));
-
-  // one uniform size: every shooter here has at least RANGE_MIN_3PA attempts, and sizing
-  // by attempts added a third variable to a chart about two
-  all.filter(r=>!deep.has(r.id)).forEach(r=>{
-    svg.appendChild(svgEl("circle",{cx:px(r.avg), cy:py(r.pct), r:3.6, class:"scdot rest"}));
-  });
-  const marked=all.filter(r=>deep.has(r.id));
-  marked.forEach(r=>{
-    svg.appendChild(svgEl("circle",{cx:px(r.avg), cy:py(r.pct), r:6.4,
-      fill:tcol(r.tri), class:"scdot deep"}));
-  });
-
-  const LH=17;
-  const place=marked.map(r=>({r, x:px(r.avg), y:py(r.pct)})).sort((a,b)=>a.y-b.y);
-  let lastY=-1e9;
-  place.forEach(o=>{ o.ly=Math.max(o.y, lastY+LH); lastY=o.ly; });
-  const over=lastY-(H-B-2);
-  if(over>0) place.forEach(o=>{ o.ly-=over; });
-  place.forEach(o=>{
-    const right = o.x < W-R-8;
-    const lx = right ? o.x+11 : o.x-11;
-    if(Math.abs(o.ly-o.y)>3)
-      svg.appendChild(svgEl("line",{x1:o.x+(right?6:-6), y1:o.y, x2:lx-(right?2:-2),
-        y2:o.ly-4, class:"sctie"}));
-    svg.appendChild(svgText(lx, o.ly, o.r.name,
-      {class:"sclab","text-anchor":right?"start":"end"}));
-  });
-
-  /* One representative error bar in the corner instead of twelve across the plot. The
-     noise is the same either way, but drawn on every marked shooter it was the loudest
-     thing on the chart and it crossed the names. */
-  const seTyp=marked.map(se).sort((a,b)=>a-b);
-  const seMid=seTyp[Math.floor(seTyp.length/2)]||0;
-  const gx=W-R+34, gy=T+40, gh=(seMid/(y1-y0))*(H-T-B);
-  svg.appendChild(svgEl("line",{x1:gx, y1:gy-gh, x2:gx, y2:gy+gh, class:"scerr",
-    stroke:"#6b7480"}));
-  svg.appendChild(svgEl("line",{x1:gx-4, y1:gy-gh, x2:gx+4, y2:gy-gh, class:"scerr",
-    stroke:"#6b7480"}));
-  svg.appendChild(svgEl("line",{x1:gx-4, y1:gy+gh, x2:gx+4, y2:gy+gh, class:"scerr",
-    stroke:"#6b7480"}));
-  svg.appendChild(svgText(gx+9, gy-4, `typical`, {class:"scgloss"}));
-  svg.appendChild(svgText(gx+9, gy+9, `±${seMid.toFixed(1)} pts`, {class:"scgloss"}));
-
-  p.appendChild(svg);
-  posterFoot(p, [rangeScope(agg, all.length),
-    `Coloured and named are the ${deep.size} deepest averages; grey are the other `+
-    `qualified shooters, there so you can see whether the deep ones are unusual.`,
-    `Every shooter here averages at least ${Math.min(...xs).toFixed(1)} ft, so the `+
-    `three-point line sits off the left of the scale rather than wasting a third of it.`,
-    `The bar at the right is one standard error on a percentage at this sample size — `+
-    `typically ±${seMid.toFixed(1)} points, wide enough that small gaps between players `+
-    `are not real. It is drawn once rather than on every shooter.`,
-    `Across all ${n} qualified shooters the correlation between average distance and `+
-    `percentage is <b>r = ${rr.toFixed(2)}</b>. That is a description of these `+
-    `${n} players, not a law: no line is drawn because at this sample size one would `+
-    `imply more than the data holds.`]);
-  card.appendChild(p);
-  posterTools(card, p, "Does shooting deeper cost you?", "nba-3pt-accuracy.html");
-}
-
 /* ==================== the shot profile (0.59) ====================
  * Where a shooter's threes come from, and whether that is changing: corner threes (the short 22-foot ones, read
  * from the coordinate), deep ones (27+ feet, from the stated distance or the coordinate), his last five games
@@ -1994,7 +1564,7 @@ function renderRangeScatter(card, agg){
  * and how often its opponent lets teams do it.
  */
 const DEEP_FT = 27, PROFILE_MIN_3PA = 25, RECENT_N = 5;
-function threeZone(a, d){
+export function threeZone(a, d){
   const spotted=hasSpot(a);
   const corner=spotted && Math.abs(a.sx)>=CORNER_D-1 && a.sy<=CORNER_Y;
   const ft=d? d.ft : (spotted? Math.hypot(a.sx,a.sy) : null);
@@ -2222,1362 +1792,6 @@ async function showRange(){
   }
 }
 
-/* ==================== standings, from the schedule alone ====================
- * Win-loss needs no box scores: the schedule already carries both final scores, so this
- * is free and instant where every other league aggregation reads 230-odd games.
- */
-function buildStandings(){
-  const rec=new Map();
-  const get=t=>{ let r=rec.get(t);
-    if(!r){ r={tri:t, w:0, l:0, pf:0, pa:0, vs:new Map()}; rec.set(t,r); }
-    return r; };
-  const played=GAMES.filter(g=>g.status===3 && isRegularSeason(g)
-    && isFranchise(g.away) && isFranchise(g.home)
-    && g.as!=null && g.hs!=null && +g.as!==+g.hs);
-  for(const g of played){
-    const a=get(g.away), h=get(g.home);
-    const aw=+g.as>+g.hs;
-    (aw?a:h).w++; (aw?h:a).l++;
-    a.pf+=+g.as; a.pa+=+g.hs; h.pf+=+g.hs; h.pa+=+g.as;
-    const link=(x,y,won)=>{ const m=x.vs.get(y.tri)||{w:0,l:0};
-      won? m.w++ : m.l++; x.vs.set(y.tri,m); };
-    link(a,h,aw); link(h,a,!aw);
-  }
-  const rows=[...rec.values()].map(r=>({...r,
-    gp:r.w+r.l, pct:(r.w+r.l)? r.w/(r.w+r.l) : 0, diff:r.pf-r.pa}));
-  rows.sort((x,y)=>y.pct-x.pct || y.diff-x.diff || x.tri.localeCompare(y.tri));
-  return {rows, games:played.length, byTri:new Map(rows.map(r=>[r.tri,r]))};
-}
-
-/* ==================== rest between games ====================
- * Days of rest is a calendar-day question, and the two feeds disagree about what a calendar
- * day is. The league feed hands back Eastern local time with no zone marker, so its first
- * ten characters already are the league's own scheduling date. ESPN hands back a UTC
- * instant, and a 10pm Eastern tip is already tomorrow in UTC — reading the first ten
- * characters of that would move a Tuesday night game to Wednesday and turn a back-to-back
- * into a day of rest. So the UTC form is converted back to Eastern before the date is taken.
- */
-function gameDay(iso){
-  const s=String(iso||"");
-  if(!s) return null;
-  if(!/[zZ]|[+-]\d\d:?\d\d$/.test(s)) return s.slice(0,10);
-  const d=new Date(s);
-  return isNaN(d)? null : d.toLocaleDateString("en-CA",{timeZone:"America/New_York"});
-}
-const dayNum = iso => {
-  const day=gameDay(iso); if(!day) return null;
-  const [y,m,d]=day.split("-").map(Number);
-  return Math.round(Date.UTC(y,m-1,d)/86400000);
-};
-/* Rest is counted as calendar days between games minus one, so a team that played yesterday
-   is on zero days rest — the second game of a back-to-back. Three or more is one bucket:
-   past three days the schedule stops being the story. */
-const REST_BUCKETS=[0,1,2,3];
-const restBucket = r => (r==null? null : (r>=3? 3 : r));
-const REST_LABEL = {0:"0 (back-to-back)", 1:"1 day", 2:"2 days", 3:"3+ days"};
-
-/* Built from the schedule alone, so it is exact and independent of which games have been
-   read. It also deliberately looks at the team's whole season rather than the selected
-   window: the previous game happened whether or not it is on screen. */
-function restIndex(){
-  const idx=new Map();
-  for(const tri of franchises()){
-    let prev=null;
-    for(const g of teamGamesFor(tri)){       // chronological: GAMES is sorted by date
-      const d=dayNum(g.date);
-      /* The season opener has no previous game. That is not zero days rest — it is no
-         measurement at all, so it stays out of every bucket rather than being counted as
-         the most rested case. */
-      idx.set(g.gameId+"|"+tri,
-        (prev==null || d==null)? null : Math.max(0, d-prev-1));
-      if(d!=null) prev=d;
-    }
-  }
-  return idx;
-}
-
-/* ==================== league-wide game reads ====================
- * One pass over the season that every one of the three sections below draws on:
- *   - opposing players who reached 30 in a game, credited to the defense
- *   - the team totals a possession estimate needs
- *   - each player's points game by game, with the opponent attached
- * Read once, shared, and cached with every other view through modelFor.
- */
-const THIRTY_PT = 30;
-const DEF_TOP_N = 5;
-/** Possessions, estimated. Neither feed publishes them; this is the standard form. */
-const possOf = t => t.fga - t.oreb + t.tov + 0.44*t.fta;
-
-async function buildLeague(limit, onProgress){
-  const tris=franchises();
-  const slate=[];
-  const seen=new Set();
-  for(const t of tris) (limit>0? teamGamesFor(t).slice(-limit) : teamGamesFor(t))
-    .forEach(g=>{ if(!seen.has(g.gameId)){ seen.add(g.gameId); slate.push(g); } });
-
-  const team=new Map();        // tri -> defensive and offensive totals
-  const big=[];                // every 30-point game, credited to the defense
-  const player=new Map();      // id -> {name, tri, games:[{opp,pts,date,line}]}
-  const appear=new Map();      // gameId -> Set of ids who actually played, both teams
-  /* Enough per game to answer on/off questions later without re-reading anything: each
-     player's stints as intervals, and every event that can be attributed to a player.
-     Steals and blocks are deliberately absent — the league feed carries them as a field on
-     someone else's action rather than as their own, and ESPN's normalised shape does not
-     preserve them, so counting them here would be guesswork. */
-  const frames=[];
-  const teamGames=[];         // one row per team per game, for the rest splits
-  let done=0, failed=0;
-  const T=t=>{ let r=team.get(t);
-    if(!r){ r={tri:t, gp:0, pf:0, pa:0, fga:0, fta:0, tov:0, oreb:0,
-               ofga:0, ofta:0, otov:0, ooreb:0, allowed30:0, neverLed:0, neverTrailed:0, held:0, heldStrict:0,
-               blown10:0, comeback10:0, bigBlown:null, bigComeback:null}; team.set(t,r); }
-    return r; };
-
-  const queue=slate.slice();
-  const worker=async()=>{
-    while(queue.length){
-      const g=queue.shift();
-      try{
-        const G=await modelFor(g);
-        const tri=[G.box.awayTeam.teamTricode, G.box.homeTeam.teamTricode];
-        const box=[G.box.awayTeam, G.box.homeTeam];
-        // one lookup map per game, not a linear scan per action
-        const byId=new Map(G.players.map(p=>[p.id,p]));
-        const tally=[0,1].map(side=>{
-          /* Makes as well as attempts now: the rest section reports shooting per bucket, and
-             taking it from the same actions as the possession estimate keeps one row of
-             numbers from mixing two sources. */
-          const c={fga:0, fgm:0, tpa:0, tpm:0, fta:0, tov:0, oreb:0};
-          for(const a of G.acts){
-            const pl=byId.get(a.personId);
-            const sd=pl? pl.side : (String(a.teamId)===String(box[side].teamId)? side : -1);
-            if(sd!==side) continue;
-            if(a.actionType==="2pt"||a.actionType==="3pt"){
-              c.fga++;
-              if(a.shotResult==="Made") c.fgm++;
-              if(a.actionType==="3pt"){ c.tpa++; if(a.shotResult==="Made") c.tpm++; }
-            }
-            else if(a.actionType==="freethrow") c.fta++;
-            else if(a.actionType==="turnover") c.tov++;
-            else if(a.actionType==="rebound" && /off/i.test(a.subType||"")) c.oreb++;
-          }
-          return c;
-        });
-        const pts=[+box[0].score||0, +box[1].score||0];
-        /* One row per team-game, kept alongside the season totals. The rest section needs to
-           group games rather than read a season sum, and nothing else in the aggregate can
-           be re-split after the fact. */
-        [0,1].forEach(side=>{
-          const op=1-side;
-          teamGames.push({gameId:g.gameId, date:g.date, tri:tri[side], opp:tri[op],
-            home:side===1, pts:pts[side], oppPts:pts[op],
-            decided:pts[side]!==pts[op], win:pts[side]>pts[op],
-            ...tally[side], poss:possOf(tally[side])});
-        });
-        [0,1].forEach(side=>{
-          const me=T(tri[side]), op=1-side;
-          /* Never trailed means the OTHER side never led, which is why this reads the
-             opponent's flag rather than negating its own. */
-          if(G.everLed && !G.everLed[side]) me.neverLed++;
-          if(G.everLed && !G.everLed[op]) me.neverTrailed++;
-          const ls=G.leadState && G.leadState[side];
-          if(ls && ls.held) me.held++;
-          if(ls && ls.heldStrict) me.heldStrict++;
-          /* Blown leads and comebacks (the user, 11/13): the biggest lead and deficit this side had, from the
-             margin after every basket (home minus away), against how the game ended. */
-          const sign = side===1? 1 : -1;
-          const ms = (G.flow||[]).map(f=>f.d*sign);
-          const maxLead = Math.max(0, ...ms), maxDef = Math.max(0, ...ms.map(v=>-v));
-          const won = pts[side]>pts[op];
-          const vs = {opp:tri[op], date:g.date, home:side===1, score:`${pts[side]}-${pts[op]}`};
-          if(!won && maxLead>=10){ me.blown10++; if(!me.bigBlown || maxLead>me.bigBlown.n) me.bigBlown={n:maxLead, ...vs}; }
-          if(won && maxDef>=10){ me.comeback10++; if(!me.bigComeback || maxDef>me.bigComeback.n) me.bigComeback={n:maxDef, ...vs}; }
-          me.gp++; me.pf+=pts[side]; me.pa+=pts[op];
-          me.fga+=tally[side].fga; me.fta+=tally[side].fta;
-          me.tov+=tally[side].tov; me.oreb+=tally[side].oreb;
-          me.ofga+=tally[op].fga;  me.ofta+=tally[op].fta;
-          me.otov+=tally[op].tov;  me.ooreb+=tally[op].oreb;
-        });
-        /* Both rosters on purpose: every player's opponent is the other side, which is
-           derived from pl.side rather than assumed. */
-        for(const pl of G.players){
-          if(!pl.played) continue;
-          const opp=tri[1-pl.side];
-          /* Keyed by String(id): the league feed hands out numeric person ids, ESPN string
-             ones, and a <select> value is always a string. One key type or the pickers
-             silently look up nothing. */
-          const pid=String(pl.id);
-          let pr=player.get(pid);
-          if(!pr){ pr={id:pid, name:pl.name, tri:pl.tri, seen:g.date, games:[]};
-                   player.set(pid,pr); }
-          if(new Date(g.date)>=new Date(pr.seen)){ pr.name=pl.name; pr.tri=pl.tri;
-                                                   pr.seen=g.date; }
-          pr.games.push({opp, tri:pl.tri, pts:pl.boxPts||0, date:g.date, gameId:g.gameId,
-                         home:pl.side===1, line:pl.line||boxLine(null)});
-          let ap=appear.get(g.gameId);
-          if(!ap){ ap=new Set(); appear.set(g.gameId,ap); }
-          ap.add(pid);
-          if((pl.boxPts||0)>=THIRTY_PT){
-            T(opp).allowed30++;
-            big.push({name:pl.name, id:pl.id, tri:pl.tri, against:opp,
-                      pts:pl.boxPts, date:g.date, gameId:g.gameId,
-                      home:pl.side===1});
-          }
-        }
-        const iv={}, ev=[];
-        /* Who was on which roster this game, whether he played or not. This is what makes a
-           mid-season trade tractable: without it, every game before the move looks like a
-           game "without" the new teammate, when the two were never teammates at all. */
-        const team={};
-        for(const pl of G.players) team[String(pl.id)]=pl.tri;
-        // both rosters on purpose: on/off needs the opponent's stints too
-        for(const pl of G.players){
-          if(!pl.played) continue;
-          iv[String(pl.id)]=(pl.stints||[])
-            .filter(st=>st.et!=null && st.et>st.st).map(st=>[st.st, st.et]);
-        }
-        const sideById=new Map(G.players.map(pl=>[pl.id, pl.side]));  // id -> side lookup
-        for(const a of G.acts){
-          const side=sideById.has(a.personId)? sideById.get(a.personId) : null;
-          const v=a.actionType==="3pt"?3 : a.actionType==="2pt"?2
-                : a.actionType==="freethrow"?1 : 0;
-          const made=a.shotResult==="Made";
-          if(v && made) ev.push({t:a._t, pid:String(a.personId), side, k:"pts", v});
-          if(a.actionType==="2pt"||a.actionType==="3pt")
-            ev.push({t:a._t, pid:String(a.personId), side,
-                     k:made?"fgm":"fga0", v:a.actionType==="3pt"?3:2});
-          if(a.actionType==="freethrow")
-            ev.push({t:a._t, pid:String(a.personId), side, k:made?"ftm":"fta0", v:1});
-          if(made && a.assistPersonId)
-            ev.push({t:a._t, pid:String(a.assistPersonId), side, k:"ast", v:1});
-          if(a.actionType==="rebound" && a.personId)
-            ev.push({t:a._t, pid:String(a.personId), side, k:"reb", v:1});
-          if(a.actionType==="turnover" && a.personId)
-            ev.push({t:a._t, pid:String(a.personId), side, k:"to", v:1});
-        }
-        frames.push({gameId:g.gameId, date:g.date, tri, total:G.total, iv, ev, team});
-      }catch(e){ failed++; }
-      done++;
-      if(onProgress) onProgress(done, slate.length);
-    }
-  };
-  await Promise.all(Array.from({length:Math.min(10,slate.length)},worker));   // 10 at a time: files on this site are small
-
-  const teams=[...team.values()].map(r=>({...r,
-    poss:possOf({fga:r.fga, oreb:r.oreb, tov:r.tov, fta:r.fta}),
-    oposs:possOf({fga:r.ofga, oreb:r.ooreb, tov:r.otov, fta:r.ofta})}))
-    .map(r=>({...r,
-      /* Defensive efficiency: points allowed per 100 of the opponent's possessions.
-         Possessions are estimated, so this is close to but not identical with a
-         provider's published figure. */
-      dre: r.oposs>0 ? 100*r.pa/r.oposs : null,
-      ore: r.poss>0  ? 100*r.pf/r.poss  : null,
-      paPg: r.gp? r.pa/r.gp : null}));
-  teams.sort((a,b)=>(a.dre??1e9)-(b.dre??1e9));
-  return {teams, big:big.sort((a,b)=>b.pts-a.pts || new Date(a.date)-new Date(b.date)),
-          player, appear, frames, teamGames,
-          frameBy:new Map(frames.map(f=>[f.gameId,f])),
-          games:seen.size, failed, window:{limit},
-          topDef:teams.slice(0,DEF_TOP_N).map(t=>t.tri)};
-}
-
-/* ==================== one poster shape, five sections ====================
- * Five sections asked for an infographic. Five bespoke posters would have drifted apart
- * inside a week and made five places to fix a spacing bug, so there is one builder and each
- * section supplies rows: a mark (a face for a player, a team swatch for a team), a name, a
- * line of context, a value to print and a fraction to draw. Anything a section cannot fill
- * is left out rather than faked.
- */
-const RANK_POSTER_N = 10;
-function rankPoster({kick, title, cols, rows, notes}){
-  const p=posterShell(kick, title);
-  const head=el("div","rhead");
-  ["#", "", cols[0]||"", "", cols[1]||""].forEach((t,i)=>{
-    const d=el("div", i===4? "rh-val":"", t);
-    head.appendChild(d);
-  });
-  p.appendChild(head);
-  const peak=rows.reduce((m,r)=>Math.max(m, r.frac||0), 0) || 1;
-  rows.forEach((r,i)=>{
-    const row=el("div","rrow"+(i===0?" lead":(i%2?" alt":"")));
-    row.appendChild(el("div","rrank", r.rank!=null? String(r.rank) : String(i+1)));
-
-    /* A player gets his face; a team gets its tricode on its own colour. Same slot, so the
-       rows line up whichever kind of thing is being ranked. */
-    if(r.id){
-      const hs=headshot(r.name, r.id, r.tri, 34);
-      hs.style.setProperty("--ring", brandCol(r.tri));
-      row.appendChild(hs);
-    }else{
-      const m=el("div","rmark", r.tri||"");
-      m.style.background=brandCol(r.tri);
-      row.appendChild(m);
-    }
-
-    const who=el("div","rwho");
-    who.appendChild(el("div","rname", r.name));
-    if(r.sub) who.appendChild(el("div","rsub", r.sub));
-    row.appendChild(who);
-
-    const track=el("div","rtrack");
-    const fill=el("i","rfill");
-    fill.style.width=Math.max(3, 100*(r.frac||0)/peak)+"%";
-    fill.style.background=tint(r.tri, barAlpha(r.tri));
-    track.appendChild(fill);
-    row.appendChild(track);
-
-    const v=el("div","rval", r.value);
-    if(r.unit) v.appendChild(el("small","", r.unit));
-    row.appendChild(v);
-    p.appendChild(row);
-  });
-  posterFoot(p, notes);
-  return p;
-}
-
-
-
-/* ============ section: scoring against the top defenses ============
- * Two pools: the All-Star roster, or every player with the games to support the split.
- * The roster is a hand-kept list, because neither feed publishes All-Star selections and
- * deriving it from whoever played the All-Star Game would silently drop anyone who was
- * picked but sat out. Editing one array is honest about being a manual step; inferring it
- * would look automatic while being wrong.
- */
-/* Which season these selections are for. The list is hand-kept, so it cannot follow the
-   schedule on its own — but it can notice that it no longer matches and say so, which is the
-   difference between a stale list and a silently wrong one. */
-const ALL_STARS_SEASON = "2026";
-const rosterStale = () => seasonYear() !== ALL_STARS_SEASON;
-
-const ALL_STARS = [
-  // Eastern Conference — starters
-  "Giannis Antetokounmpo", // Milwaukee Bucks
-  "Jaylen Brown",          // Boston Celtics
-  "Jalen Brunson",         // New York Knicks
-  "Cade Cunningham",       // Detroit Pistons
-  "Tyrese Maxey",          // Philadelphia 76ers
-  // Eastern Conference — reserves
-  "Scottie Barnes",        // Toronto Raptors
-  "Jalen Duren",           // Detroit Pistons
-  "Jalen Johnson",         // Atlanta Hawks
-  "Donovan Mitchell",      // Cleveland Cavaliers
-  "Norman Powell",         // Miami Heat
-  "Pascal Siakam",         // Indiana Pacers
-  "Karl-Anthony Towns",    // New York Knicks
-  // Western Conference — starters
-  "Stephen Curry",         // Golden State Warriors
-  "Luka Doncic",           // Los Angeles Lakers
-  "Shai Gilgeous-Alexander", // Oklahoma City Thunder
-  "Nikola Jokic",          // Denver Nuggets
-  "Victor Wembanyama",     // San Antonio Spurs
-  // Western Conference — reserves
-  "Deni Avdija",           // Portland Trail Blazers
-  "Devin Booker",          // Phoenix Suns
-  "Kevin Durant",          // Houston Rockets
-  "Anthony Edwards",       // Minnesota Timberwolves
-  "Chet Holmgren",         // Oklahoma City Thunder
-  "LeBron James",          // LA Lakers
-  "Jamal Murray",          // Denver Nuggets
-];
-
-/* Names are matched loosely on purpose. An exact compare would drop De'Aaron Fox the moment
-   a feed writes him with a typographic apostrophe rather than a straight one, and the same
-   goes for accents and double spaces. Case, accents, apostrophe style, hyphens and spacing
-   are all flattened before comparing; anything still unmatched is reported on screen rather
-   than silently omitted. */
-function normName(s){
-  return String(s||"")
-    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")   // strip accents
-    .replace(/[\u2018\u2019\u02bc\u0060\u00b4]/g,"'")  // any apostrophe -> '
-    .replace(/[\u2010-\u2015]/g,"-")                   // any dash -> -
-    .replace(/\b(jr|sr|ii|iii|iv)\.?$/i,"")
-    .replace(/[^a-z0-9'\- ]/gi,"")
-    .replace(/\s+/g," ").trim().toLowerCase();
-}
-
-/* One row, one definition. Both the 23-name roster and the whole-league pool come through
-   here, so the two can't drift apart: a fix to the shooting split or the complement applies
-   to both by construction rather than by my remembering to edit twice. */
-function splitRow(pr, top){
-  const all=pr.games;
-  const vs=all.filter(g=>top.has(g.opp));
-  /* The complement, not the season: "vs the rest" excludes the group, so the two columns
-     partition his games and the gap between them is a like-for-like comparison. Against
-     the season average the group's own games sit on both sides of the subtraction. */
-  const rest=all.filter(g=>!top.has(g.opp));
-  const mean=a=>a.length? a.reduce((s,g)=>s+g.pts,0)/a.length : null;
-  /* Shooting is summed then divided, never an average of per-game percentages: a 1-of-1
-     night and a 2-of-12 night are not equally weighted evidence. */
-  const shot=a=>{
-    let m=0, t=0;
-    a.forEach(g=>{ const L=g.line||{}; m+=L.fgm||0; t+=L.fga||0; });
-    return {m, t, pct:t? 100*m/t : null};
-  };
-  const mv=mean(vs), mr=mean(rest);
-  const sa=shot(all), sv=shot(vs), sr=shot(rest);
-  return {...pr, gp:all.length, avg:mean(all),
-    vsGp:vs.length, vsAvg:mv, restGp:rest.length, restAvg:mr,
-    fg:sa, vsFg:sv, restFg:sr,
-    fgGap:(sv.pct!=null && sr.pct!=null)? sv.pct-sr.pct : null,
-    gap:(mv!=null && mr!=null)? mv-mr : null,
-    delta:(mv!=null && mean(all)!=null)? mv-mean(all) : null};
-}
-
-/* Every player with the games to support the comparison, not just the All-Stars. The
-   thresholds are in POOL_SHARE and POOL_MIN_SIDE; everyone dropped is counted so the
-   screen can say how many rather than quietly showing a shorter list. */
-function leaguePool(agg, topDef){
-  const top=new Set(topDef);
-  const gpOf=new Map(agg.teams.map(t=>[t.tri, t.gp||0]));
-  const stars=new Set(ALL_STARS.map(normName).filter(Boolean));
-  /* Counted in the order they are tested, so every excluded player lands in exactly one
-     bucket and the three add up to the total. */
-  const out=[]; let considered=0, quiet=0, thin=0, oneSided=0;
-  for(const pr of agg.player.values()){
-    considered++;
-    const r=splitRow(pr, top);
-    if((r.avg??0) < POOL_MIN_PPG){ quiet++; continue; }
-    /* Measured against his own team's schedule, not the league's busiest: teams have played
-       a different number of games at any point in the season, and a player on a team with
-       games in hand should not need more appearances than one whose team is caught up. */
-    r.need=Math.ceil((gpOf.get(pr.tri)||0)*POOL_SHARE);
-    r.star=stars.has(normName(pr.name));
-    if(r.gp<r.need){ thin++; continue; }
-    if(r.vsGp<POOL_MIN_SIDE || r.restGp<POOL_MIN_SIDE){ oneSided++; continue; }
-    out.push(r);
-  }
-  out.sort((a,b)=>(a.gap??1e9)-(b.gap??1e9));
-  return {rows:out, considered, quiet, thin, oneSided};
-}
-
-function allStarRows(agg, topDef, roster){
-  const list=roster||ALL_STARS;
-  const want=new Set(list.map(normName).filter(Boolean));
-  const top=new Set(topDef);
-  const out=[];
-  for(const pr of agg.player.values()){
-    if(!want.has(normName(pr.name))) continue;
-    out.push({...splitRow(pr, top), star:true});
-  }
-  out.sort((a,b)=>(a.gap??1e9)-(b.gap??1e9));
-  /* Report the spelling as it was typed, not the normalised form: telling someone
-     "de'aaron fox" was not found is a worse message than "De'Aaron Fox". */
-  const seenNames=new Set([...agg.player.values()].map(p=>normName(p.name)));
-  const missing=list.filter(n=>n.trim() && !seenNames.has(normName(n)));
-  return {rows:out, missing};
-}
-
-/* The summary table, built once and used for however many blocks the pool needs: the
-   All-Star list is one block, the league pool is a falls-off block and a holds-up block.
-   Each block numbers from 1 because each is the top of its own ranking — continuing the
-   numbering into the second would imply the two halves are one list, and the rows in
-   between are missing. */
-function splitTable(card, rows, N, teamCount){
-  const tbl=el("table","per lb"); const th=el("tr");
-  const pcOf=x=>x&&x.pct!=null? x.pct.toFixed(1)+"%":"—";
-  ["#","player","team","games","season","fg%",`vs top ${N}`,"fg%","games",
-   `vs other ${teamCount-N}`,"fg%","games","pts gap","fg% gap"]
-    .forEach(x=>th.appendChild(el("th","",x)));
-  tbl.appendChild(th);
-  rows.forEach((r,i)=>{
-    const tr=el("tr");
-    const cells=[String(i+1), r.name, r.tri, String(r.gp),
-      r.avg!=null? r.avg.toFixed(1):"—", pcOf(r.fg),
-      r.vsAvg!=null? r.vsAvg.toFixed(1):"—", pcOf(r.vsFg), String(r.vsGp),
-      r.restAvg!=null? r.restAvg.toFixed(1):"—", pcOf(r.restFg), String(r.restGp),
-      r.gap!=null? (r.gap>0?"+":"")+r.gap.toFixed(1):"—",
-      r.fgGap!=null? (r.fgGap>0?"+":"")+r.fgGap.toFixed(1):"—"];
-    cells.forEach((c,k)=>{
-      const td=el("td","",c);
-      if(k===1||k===2) td.style.textAlign="left";
-      if(k===1){ td.style.color="var(--text)";
-        /* A star marks an All-Star inside the league pool. It is a marker, not a sort key:
-           the ranking stays on the gap so the roster can't quietly reorder the table. */
-        if(r.star && poolMode()!=="stars"){
-          td.textContent="";
-          const s=el("span","",  "★ ");
-          s.style.color="var(--dim)"; s.title=`${ALL_STARS_SEASON} All-Star`;
-          td.appendChild(s); td.appendChild(el("span","",r.name));
-        }
-      }
-      if(k===4||k===6||k===9){ td.style.color="var(--text)"; }
-      const signed = k===12 ? r.gap : (k===13 ? r.fgGap : null);
-      if(signed!=null){ td.style.fontWeight="600";
-        td.style.color = signed<0 ? "var(--bad,#e0603a)" : "var(--good,#3aa76d)"; }
-      if(k===7||k===10) td.title=`${r[k===7?"vsFg":"restFg"].m}-`
-        +`${r[k===7?"vsFg":"restFg"].t} from the field`;
-      tr.appendChild(td);
-    });
-    tbl.appendChild(tr);
-  });
-  card.appendChild(tbl);
-  return tbl;
-}
-
-/* What "top defense" means, said in the section that leans on it. Points allowed per 100
-   possessions rather than per game: per game rewards a slow team for taking fewer
-   possessions, which is a pace difference dressed up as defense. The two orderings often
-   disagree, and when they do the screen says so rather than leaving the reader to assume
-   one measure. */
-function defDefinition(agg, N){
-  const byPoss=agg.teams.slice(0,N).map(t=>t.tri);
-  const byGame=agg.teams.slice()
-    .sort((a,b)=>(a.paPg??1e9)-(b.paPg??1e9)).slice(0,N).map(t=>t.tri);
-  const same=byPoss.length===byGame.length
-    && byPoss.every(t=>byGame.includes(t));
-  return `<b>"Top ${N} defense" means points allowed per 100 possessions</b>, not points `+
-    `allowed per game — per game rewards a slow team for taking fewer possessions, which is `+
-    `pace rather than defense. Possessions are estimated as FGA - OREB + TOV + 0.44 x FTA, `+
-    `the conventional formula, using the <i>opponent's</i> possessions. Hover a team code `+
-    `above for both figures.`+
-    (same
-      ? ` Here the two measures happen to pick the same ${N} teams.`
-      : ` The two measures disagree here: per game the top ${N} would be `+
-        `${byGame.join(", ")} rather than ${byPoss.join(", ")}.`)+`<br>`;
-}
-
-
-
-/* Player × team points per game. Shared by both pools for the same reason as splitTable. */
-function gridTable(card, rows, agg, topDef, N){
-  const tris=agg.teams.map(t=>t.tri).slice().sort();
-  const tbl=el("table","per lb"); const th=el("tr");
-  th.appendChild(el("th","","player"));
-  tris.forEach(t=>{
-    const c=el("th","",t);
-    if(topDef.includes(t)) c.style.color="var(--text)";
-    th.appendChild(c);
-  });
-  tbl.appendChild(th);
-  rows.forEach(r=>{
-    const tr=el("tr");
-    const nm=el("td","",(r.star && poolMode()!=="stars" ? "★ " : "")+r.name);
-    nm.style.textAlign="left"; nm.style.color="var(--text)"; tr.appendChild(nm);
-    tris.forEach(t=>{
-      const gs=r.games.filter(g=>g.opp===t);
-      const td=el("td","", gs.length
-        ? (gs.reduce((a,g)=>a+g.pts,0)/gs.length).toFixed(1) : "·");
-      if(gs.length){
-        td.title=`${r.name} vs ${t}: ${gs.length} game${gs.length>1?"s":""} — `
-          + gs.map(g=>g.pts).join(", ");
-        if(topDef.includes(t)) td.style.color="var(--text)";
-      }else td.style.color="var(--dim)";
-      tr.appendChild(td);
-    });
-    tbl.appendChild(tr);
-  });
-  card.appendChild(tbl);
-  card.appendChild(noteEl(
-    `Points per game against each team; hover a cell for the individual games behind it. `+
-    `Columns for the top ${N} defenses are brighter. Most cells rest on two or `+
-    `three games, so read the pattern rather than any one number.`));
-  return tbl;
-}
-
-/* The whole league rather than the 23 names. Two blocks instead of one long scroll: the
-   players who fall off most against the top defenses, and the ones who go the other way.
-   Both ends are interesting and neither is visible from the middle of a 120-row table. */
-function renderPool(agg, card){
-  const N=defTopN(), topDef=topDefOf(agg, N);
-  const {rows, considered, quiet, thin, oneSided}=leaguePool(agg, topDef);
-  const gpOf=new Map(agg.teams.map(t=>[t.tri, t.gp||0]));
-  const needs=[...gpOf.values()].map(g=>Math.ceil(g*POOL_SHARE));
-  const needLo=needs.length? Math.min(...needs) : 0, needHi=needs.length? Math.max(...needs):0;
-  const qualNote =
-    `<b>Who qualifies:</b> at least ${POOL_MIN_PPG} points a game for the season, at least `+
-    `half his own team's games — `+
-    (needLo===needHi? `${needLo} right now` : `${needLo}–${needHi} depending on the team, `+
-      `since teams have played different numbers of games`)+
-    ` — and at least ${POOL_MIN_SIDE} games on <i>each</i> side of the split. `+
-    `${rows.length} of ${considered} players clear it; ${quiet} average under `+
-    `${POOL_MIN_PPG} and have no scoring to fall off, ${thin} are short on games, and `+
-    `${oneSided} have too few on one side, where a "gap" would be a comparison against `+
-    `almost nothing. A star marks a ${ALL_STARS_SEASON} All-Star; it is a label, `+
-    `not a sort key.`;
-
-  if(layoutMode()==="grid"){
-    card.appendChild(el("div","rule"));
-    const h=el("div","sect nm","Every qualified player against every team");
-    h.style.textAlign="left"; h.style.paddingRight="0"; card.appendChild(h);
-    gridTable(card, rows, agg, topDef, N);
-    card.appendChild(noteEl(qualNote));
-    finishRender(); return;
-  }
-
-  /* Fewer than two blocks' worth and the two ends would overlap — the same player would
-     appear in both tables, once as a faller and once as a riser. One table then. */
-  const split = rows.length > 2*POOL_N;
-  const blocks = split
-    ? [[`Falls off most against the top ${N}`, rows.slice(0, POOL_N)],
-       [`Holds up best against the top ${N}`, rows.slice(-POOL_N).reverse()]]
-    : [[`Season, the top ${N} defenses, and everyone else`, rows]];
-
-  blocks.forEach(([title, part], bi)=>{
-    card.appendChild(el("div","rule"));
-    const h=el("div","sect nm",title);
-    h.style.textAlign="left"; h.style.paddingRight="0"; card.appendChild(h);
-    splitTable(card, part, N, agg.teams.length);
-    if(bi===0 && split) card.appendChild(noteEl(
-      `Ranked by <b>points gap</b> — his average against the top ${N} defenses minus his `+
-      `average against the other ${agg.teams.length-N} teams. The two columns partition his `+
-      `games, so the gap is like-for-like. Showing the ${POOL_N} largest drops of `+
-      `${rows.length} qualified players; the other end of the same ranking is below.`));
-    if(bi===blocks.length-1) card.appendChild(noteEl(
-      (split? `The ${POOL_N} smallest drops — the top of this block is the player whose `+
-              `average rises most against the best defenses. `
-            : `Ranked by points gap, largest drop first. With ${rows.length} qualified `+
-              `players there is no point splitting the ranking into two ends, so this is `+
-              `all of them. `)+
-      `<b>fg%</b> is made over attempted across the games in that column, not an average `+
-      `of per-game percentages. Hover a percentage for the makes and attempts.<br>`+
-      `<b>These are small samples</b> — the top-${N} column rests on `+
-      `${rows.length? Math.round(rows.reduce((a,r)=>a+r.vsGp,0)/rows.length) : 0} games on `+
-      `average, so a single big night moves it several points. The qualification below keeps `+
-      `the worst of that out, but it cannot remove it.<br>`+
-      defDefinition(agg, N)+qualNote));
-  });
-  finishRender();
-}
-
-
-
-/* ==================== section: rest and back-to-backs ====================
- * Two questions, and they are not the same one: how a team plays on no rest, and how it
- * plays against a team on no rest. The second is the more useful of the pair and the one
- * usually quoted loosely, so both are computed the same way and shown side by side.
- */
-function restRows(agg){
-  const idx=restIndex();
-  return agg.teamGames.map(r=>{
-    const own=idx.has(r.gameId+"|"+r.tri)? idx.get(r.gameId+"|"+r.tri) : null;
-    const opp=idx.has(r.gameId+"|"+r.opp)? idx.get(r.gameId+"|"+r.opp) : null;
-    return {...r, rest:own, oppRest:opp, ob:restBucket(own), pb:restBucket(opp)};
-  });
-}
-
-/* Records count decided games only, the same rule the standings use, while the rate columns
-   pool every game in the bucket. Shooting is pooled makes over pooled attempts. */
-function restStats(list){
-  const a={n:0, w:0, l:0, pf:0, pa:0, fgm:0, fga:0, tpm:0, tpa:0, tov:0, poss:0};
-  list.forEach(r=>{
-    a.n++;
-    if(r.decided){ if(r.win) a.w++; else a.l++; }
-    a.pf+=r.pts; a.pa+=r.oppPts; a.fgm+=r.fgm; a.fga+=r.fga;
-    a.tpm+=r.tpm; a.tpa+=r.tpa; a.tov+=r.tov; a.poss+=r.poss;
-  });
-  return {...a,
-    ppg:a.n? a.pf/a.n : null, oppg:a.n? a.pa/a.n : null,
-    marg:a.n? (a.pf-a.pa)/a.n : null,
-    fg:a.fga? 100*a.fgm/a.fga : null, tp:a.tpa? 100*a.tpm/a.tpa : null,
-    topg:a.n? a.tov/a.n : null, pace:a.n? a.poss/a.n : null,
-    pct:(a.w+a.l)? a.w/(a.w+a.l) : null};
-}
-
-
-
-/* ==================== section: the hot hand ====================
- * Whether a player's last few games are above his own normal, in his own units. A 20-point
- * scorer putting up 26 is not the same event as an 8-point scorer putting up 14, so the
- * comparison is against his own spread rather than against the league.
- *
- * Three decisions worth stating, because each could reasonably have gone the other way:
- *
- *   - The stretch is the last N games HE PLAYED, not the last N his team played. A player
- *     who sat two of the team's last five has a five-game stretch that reaches further back,
- *     and those five are the ones that describe his form.
- *   - His "normal" is every OTHER game, not the season. Leave the stretch in the baseline and
- *     it drags the baseline toward itself, which shrinks exactly the gap being measured - the
- *     same reason the defense splits compare against the complement rather than the season.
- *   - The spread is the standard deviation of his single games. That is the intuitive reading
- *     of "a standard deviation above normal", and the one asked for; it is not the standard
- *     error of an N-game mean, which is smaller by a factor of root N. The note says so,
- *     because the two answer different questions.
- */
-const formLen  = () => { const v=$("#form")? parseInt($("#form").value,10) : 0;
-                         return FORM_LENS.includes(v)? v : FORM_LENS[FORM_LENS.length-1]; };
-const formStat = () => { const v=$("#stat")? $("#stat").value : "pts";
-                         return FORM_STATS[v]? v : "pts"; };
-const formDir  = () => /dn$/.test($("#rank")? $("#rank").value : "") ? "down" : "up";
-const formFloor = () => { const v=$("#floor")? parseFloat($("#floor").value) : 0;
-                          return Number.isFinite(v)? v : 0; };
-const formMins  = () => { const v=$("#mins")? parseFloat($("#mins").value) : 0;
-                          return Number.isFinite(v)? v : 0; };
-/* Rebuilt per stat, because a floor of ten is a lot of assists and not many points. The
-   previous choice is kept when the new stat also offers it. */
-function setFloorOptions(){
-  const sel=$("#floor"); if(!sel) return;
-  const key=formStat(), want=FORM_FLOORS[key]||FORM_FLOORS.pts;
-  const same=sel.options.length===want.length
-    && want.every((v,i)=>sel.options[i].value===String(v));
-  if(same) return;
-  const keep=sel.value;
-  sel.innerHTML="";
-  want.forEach(v=>sel.appendChild(new Option(
-    v===0? "no floor" : `${v}+ ${key==="min"?"min":FORM_STATS[key].split(" ")[0]}`,
-    String(v))));
-  sel.value = want.some(v=>String(v)===keep)? keep : String(want[0]);
-}
-const formSd   = () => { const m=/^sd(\d+)(up|dn)$/.exec($("#rank")? $("#rank").value:"");
-                         return m? (+m[1])/10 : 1; };
-function fillFormLens(){
-  const sel=$("#form"); if(!sel || sel.options.length) return;
-  FORM_LENS.forEach(n=>sel.appendChild(new Option(`last ${n} games played`, String(n))));
-  sel.value=String(FORM_LENS[FORM_LENS.length-1]);
-}
-
-/* Points come off the box score's own total; everything else off the kept line. Minutes are
-   already a float there, so a 23:40 stint reads as 23.7 rather than 23. */
-const statOf = (g, k) => {
-  if(k==="pts") return g.pts||0;
-  const L=g.line||{};
-  if(k==="pra") return (g.pts||0)+(L.reb||0)+(L.ast||0);
-  return L[k]||0;
-};
-/* One game, written the way these read out loud: the counting stats, then the shooting, then
-   the minutes. Shooting only when he took a shot, threes only when he took one. */
-function slashLine(g){
-  const L=g.line||{};
-  const bits=[`${statOf(g,"pts")} PTS`];
-  if(L.reb) bits.push(`${L.reb} REB`);
-  if(L.ast) bits.push(`${L.ast} AST`);
-  if(L.to)  bits.push(`${L.to} TO`);
-  if(L.fga) bits.push(`${L.fgm||0}-${L.fga} FG`);
-  if(L.tpa) bits.push(`${L.tpm||0}-${L.tpa} 3PT`);
-  if(L.min) bits.push(`${Math.round(L.min)} MIN`);
-  return bits.join(", ");
-}
-const avgOf = a => a.length? a.reduce((s,v)=>s+v,0)/a.length : null;
-const medOf = a => {
-  if(!a.length) return null;
-  const v=a.slice().sort((x,y)=>x-y), h=v.length>>1;
-  return v.length%2? v[h] : (v[h-1]+v[h])/2;
-};
-/* Sample standard deviation: these are the games he happens to have played, not the
-   population of games he could play, so the denominator is n-1. */
-function sdOf(a){
-  if(a.length<2) return null;
-  const m=avgOf(a);
-  return Math.sqrt(a.reduce((s,v)=>s+(v-m)*(v-m),0)/(a.length-1));
-}
-
-/* How many of points, rebounds and assists moved the same way. The one-line answer to "is
-   he up across the board" without turning the section into three sections. */
-function catMoves(games, len, down){
-  const out=[];
-  for(const c of FORM_CATS){
-    const v=games.map(g=>statOf(g,c));
-    const rm=avgOf(v.slice(-len)), bm=avgOf(v.slice(0,-len));
-    if(rm==null || bm==null) continue;
-    out.push({cat:c, recent:rm, base:bm, moved: down? rm<bm : rm>bm});
-  }
-  return out;
-}
-
-/* When did he last play, and how much has his team played since. A stretch that ended weeks
-   ago is not current form, and the difference is invisible in the numbers themselves. */
-function staleness(agg, pr, games){
-  const last=games[games.length-1];
-  if(!last) return {};
-  const lastDay=dayNum(last.date);
-  const rows=(agg.teamGames||[]).filter(r=>r.tri===pr.tri);
-  const since=rows.filter(r=>{ const d=dayNum(r.date); return d!=null && lastDay!=null
-    && d>lastDay; }).length;
-  return {lastDate:last.date, teamGamesSince:since};
-}
-
-function formRows(agg, len, key, dir, floor, minMinutes){
-  const down = dir==="down";
-  const bar = minMinutes||0, low = floor||0;
-  const out=[];
-  for(const pr of agg.player.values()){
-    /* Sorted by date here rather than trusted: the league read runs several games at once and
-       pushes each as it finishes, so a player's games arrive in whatever order the network
-       returned them. "His last five" is meaningless without this. */
-    const games=pr.games.slice().sort((a,b)=> new Date(a.date)-new Date(b.date)
-      || String(a.gameId).localeCompare(String(b.gameId)));
-    if(games.length < len+FORM_MIN_BASE) continue;
-    const recent=games.slice(-len), base=games.slice(0,-len);
-    const rv=recent.map(g=>statOf(g,key)), bv=base.map(g=>statOf(g,key));
-    const rm=avgOf(rv), bm=avgOf(bv), sd=sdOf(bv);
-    if(rm==null || bm==null || sd==null || sd<=0) continue;
-    /* Every game of the stretch has to be a real appearance. One four-minute cameo in a
-       blowout is not a performance, and letting it into a slump is how a player who is not
-       in the rotation ends up on a list about form. */
-    const mins=recent.map(g=>(g.line||{}).min||0);
-    if(bar>0 && !mins.every(m=>m>=bar)) continue;
-    /* The floor is on the recent production when looking for a heater, and on his normal when
-       looking for a slump: what makes a slump worth reading is that he is usually better. */
-    if(low>0 && (down? bm : rm) < low) continue;
-    /* A mean is one big night away from lying. Five games of 20, 2, 4, 2, 0 average 5.6
-       against a normal of 2.5 and clear a standard deviation, while four of the five are at
-       or below normal — that is one good game wearing a five-game costume. The middle game
-       cannot be carried by an outlier, so the median is what decides whether the stretch is
-       real; the mean still does the ranking, because the size of the jump is what you want
-       to sort by. */
-    const md=medOf(rv);
-    /* Mirrored for a cold stretch: the middle game has to be on the same side of normal as
-       the average claims to be. One 0-point night cannot make three quiet games a slump any
-       more than one 40 can make three quiet games a heater. */
-    out.push({...pr, games, recent, base, rv, bv,
-              recentAvg:rm, baseAvg:bm, sd, gap:rm-bm, z:(rm-bm)/sd,
-              med:md, dir:down? "down":"up",
-              above:rv.filter(v=>v>bm).length, below:rv.filter(v=>v<bm).length,
-              real: down? md<bm : md>bm,
-              minAvg:avgOf(mins), minLow:Math.min(...mins),
-              cats:catMoves(games, len, down),
-              ...staleness(agg, pr, games),
-              seasonAvg:avgOf(games.map(g=>statOf(g,key)))});
-  }
-  out.sort((a,b)=> down? a.z-b.z : b.z-a.z);
-  return out;
-}
-
-/* The other question, and the one that answers itself earliest: how many games in a row is
- * he above his own normal, right now. A five-game average needs five games; a run shows up
- * on the second.
- *
- * "Normal" excludes the run, for the same reason the stretch is excluded above — so the
- * baseline is recomputed as the run grows. The run is therefore defined by walking outward
- * from his most recent game: length L holds if all L games beat the mean of everything
- * before them, and the run is the largest L reached before that stops being true. Taking
- * instead the largest L that happens to hold anywhere would report a run that his most
- * recent games do not support.
- */
-const FORM_MIN_RUN = 2;
-const FORM_DIR_WORD = {up:"above", down:"below"};
-/* Long enough to see the field, short enough to read. Runs are common — most of a league is
-   above its own average in any given week — so this list is a leaderboard, not a census. */
-const RUN_LIST_N = 20;
-function formStreaks(agg, key, dir){
-  const down = dir==="down";
-  const out=[];
-  for(const pr of agg.player.values()){
-    const games=pr.games.slice().sort((a,b)=> new Date(a.date)-new Date(b.date)
-      || String(a.gameId).localeCompare(String(b.gameId)));
-    const vals=games.map(g=>statOf(g,key));
-    let run=0, baseAvg=null;
-    for(let L=1; L+FORM_MIN_BASE<=vals.length; L++){
-      const base=vals.slice(0, vals.length-L), tail=vals.slice(vals.length-L);
-      const bm=avgOf(base);
-      if(bm==null || !tail.every(v=>down? v<bm : v>bm)) break;
-      run=L; baseAvg=bm;
-    }
-    if(run>=FORM_MIN_RUN)
-      out.push({...pr, games, run, baseAvg,
-                runVals:vals.slice(vals.length-run),
-                runGames:games.slice(games.length-run),
-                runAvg:avgOf(vals.slice(vals.length-run)),
-                baseN:vals.length-run});
-  }
-  out.sort((a,b)=>b.run-a.run
-    || (down? (a.runAvg-a.baseAvg)-(b.runAvg-b.baseAvg)
-            : (b.runAvg-b.baseAvg)-(a.runAvg-a.baseAvg)));
-  return out;
-}
-
-/* A poster of game logs rather than a ranking: "PLAYER, last N games", then the lines. The
-   ranked-card shape answers "who is hottest"; this answers "what has he been doing", which
-   is the question anyone reading a run of games actually has. */
-const LOG_CARDS_N = 8;
-function logPoster({kick, title, cards, notes}){
-  const p=posterShell(kick, title);
-  const grid=el("div","lgrid");
-  cards.forEach((c,i)=>{
-    const box=el("div","lcard"+(i===0?" lead":""));
-    const hd=el("div","lhead");
-    if(c.id){
-      const hs=headshot(c.name, c.id, c.tri, 38);
-      hs.style.setProperty("--ring", brandCol(c.tri));
-      hd.appendChild(hs);
-    }
-    const who=el("div","");
-    who.appendChild(el("div","lname",c.name));
-    who.appendChild(el("div","lwhen",c.when));
-    hd.appendChild(who);
-    box.appendChild(hd);
-    const ul=el("ul","llines");
-    c.lines.forEach(t=>ul.appendChild(el("li","",t)));
-    box.appendChild(ul);
-    if(c.foot){ const f=el("div","lfoot"); f.innerHTML=c.foot; box.appendChild(f); }
-    grid.appendChild(box);
-  });
-  p.appendChild(grid);
-  posterFoot(p, notes);
-  return p;
-}
-
-
-
-/* ==================== section: holding the lead ====================
- * Two counts of games, not streaks:
- *   held    — went ahead and never lost the lead again
- *   neverLed — was never in front at any point
- * Both need the play-by-play. A final score cannot tell you whether a team led, and it
- * certainly cannot tell you whether it ever gave a lead back.
- *
- * An earlier version of this section showed the longest run without losing, which is a win
- * streak. That answered a different question and has been dropped.
- */
-function renderStreaks(agg){
-  const out=$("#out"); out.innerHTML="";
-  const card=el("div","card"); out.appendChild(card);
-
-  const gh=el("div","gamehead");
-  const sc=el("div","score"); const w=el("span","tri");
-  w.appendChild(el("span","","League — leads & comebacks"));
-  sc.appendChild(w); gh.appendChild(sc);
-  const m=el("div","meta");
-  m.innerHTML=(agg.window.limit>0? `<b>last ${agg.window.limit}</b> games per team`
-                                 : `<b>full regular season</b>`)
-    + ` · ${agg.games} games read`
-    + (agg.failed? ` · ${agg.failed} unavailable`:"");
-  m.appendChild(el("span","badge ok",(SOURCE[ACTIVE]||{label:"?"}).label));
-  gh.appendChild(m); card.appendChild(gh);
-
-  const table=(title, rows, cols, note)=>{
-    card.appendChild(el("div","rule"));
-    const h=el("div","sect nm",title);
-    h.style.textAlign="left"; h.style.paddingRight="0"; card.appendChild(h);
-    const tbl=el("table","per lb"); const th=el("tr");
-    ["#"].concat(cols.map(c=>c[0])).forEach(x=>th.appendChild(el("th","",x)));
-    tbl.appendChild(th);
-    const key=cols[1][1];
-    const rk=denseRanks(rows.map(t=>-key(t)));
-    const rc={}; rk.forEach(r=>{rc[r]=(rc[r]||0)+1;});
-    rows.forEach((t,i)=>{
-      const tr=el("tr");
-      tr.appendChild(el("td","",(rc[rk[i]]>1?"T":"")+rk[i]));
-      cols.forEach(([label,val],k)=>{
-        const td=el("td","",String(val(t)));
-        if(k===0){ td.style.textAlign="left";
-          td.innerHTML=`<span style="display:inline-block;width:8px;height:8px;border-radius:2px;`+
-            `background:${tcol(t.tri)};margin-right:5px"></span>${t.tri}`; }
-        if(k===1){ td.style.color="var(--text)"; td.style.fontWeight="500"; }
-        tr.appendChild(td);
-      });
-      tbl.appendChild(tr);
-    });
-    card.appendChild(tbl);
-    const n=el("div","note"); n.innerHTML=note; card.appendChild(n);
-  };
-
-  const pc=(a,b)=>b? (100*a/b).toFixed(0)+"%" : "—";
-
-  if(layoutMode()==="poster"){
-    const byTrail=agg.teams.slice().sort((a,b)=>b.neverTrailed-a.neverTrailed
-      || a.tri.localeCompare(b.tri));
-    const rk=denseRanks(byTrail.map(t=>-t.neverTrailed));
-    const ct={}; rk.forEach(r=>{ct[r]=(ct[r]||0)+1;});
-    card.appendChild(rankPoster({
-      kick:`NBA ${seasonLabel()}`,
-      title:"Games never trailing",
-      cols:["team","games"],
-      rows:byTrail.slice(0,RANK_POSTER_N).map((t,i)=>({
-        rank:(ct[rk[i]]>1?"T":"")+rk[i],
-        name:teamName(t.tri), tri:t.tri,
-        sub:`${pc(t.neverTrailed,t.gp)} of ${t.gp} games · `+
-            `${t.held} led then never behind`,
-        value:String(t.neverTrailed), unit:pc(t.neverTrailed,t.gp),
-        frac:t.gp? t.neverTrailed/t.gp : 0,
-      })),
-      notes:[`Never behind at any point. A game opens level at 0-0, which is not a deficit.`,
-        `<b>Every one of these is a win</b>, since winning means being ahead at the final `+
-        `whistle — the tests assert that rather than assuming it.`,
-        `The bar is the share of that team's games, so teams with different game counts are `+
-        `comparable; the number is the count.`],
-    }));
-    finishRender(); return;
-  }
-
-  /* One table, plain names (the user, 11/13: the old titles were confusing). Click a column to sort. */
-  const COLS=[
-    ["gp","Games",t=>t.gp,"games read"],
-    ["wire","Wire to wire",t=>t.neverTrailed,"Never behind at any point: always a win"],
-    ["forgood","Took the lead for good",t=>t.held-t.neverTrailed,"Fell behind, then took the lead and was never behind again: always a win"],
-    ["blown","Blew a 10+ lead",t=>t.blown10,"Led by 10 or more at some point and lost"],
-    ["never","Never led",t=>t.neverLed,"Never in front at any point: always a loss"],
-    ["back","Came back from 10+ down",t=>t.comeback10,"Trailed by 10 or more at some point and won"],
-  ];
-  const sortKey = (window.__leadSort ||= {k:"wire", d:-1});
-  const col=COLS.find(c=>c[0]===sortKey.k)||COLS[1];
-  const rows=agg.teams.slice().sort((a,b)=>sortKey.d*(col[2](a)-col[2](b)) || a.tri.localeCompare(b.tri));
-  card.appendChild(el("div","rule"));
-  const tbl=el("table","per lb"); const th=el("tr");
-  th.appendChild(el("th","","team"));
-  COLS.forEach(c=>{ const h=el("th","",c[1]+(c[0]===sortKey.k?(sortKey.d<0?" ▾":" ▴"):"")); h.title=c[3]+". Click to sort.";
-    h.style.cursor="pointer"; h.addEventListener("click",()=>{ if(sortKey.k===c[0]) sortKey.d=-sortKey.d; else { sortKey.k=c[0]; sortKey.d=-1; } renderStreaks(agg); });
-    th.appendChild(h); });
-  ["Biggest lead blown","Biggest comeback"].forEach(x=>th.appendChild(el("th","",x)));
-  tbl.appendChild(th);
-  const game = b => b? `${b.n} <span style="color:var(--dim)">(${b.home?"vs":"at"} ${b.opp}, ${new Date(b.date).toLocaleDateString(undefined,{month:"short",day:"numeric"})}, ${b.score})</span>` : "—";
-  rows.forEach(t=>{
-    const tr=el("tr");
-    const td=el("td"); td.style.textAlign="left";
-    td.innerHTML=`<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${tcol(t.tri)};margin-right:5px"></span>${t.tri}`;
-    tr.appendChild(td);
-    COLS.forEach(c=>{ const v=c[2](t); const d=el("td","",String(v)+(c[0]!=="gp" && t.gp? ` <span style="color:var(--dimmer)">${pc(v,t.gp)}</span>`:""));
-      d.innerHTML=String(v)+(c[0]!=="gp" && t.gp? ` <span style="color:var(--dimmer)">${pc(v,t.gp)}</span>`:"");
-      if(c[0]===sortKey.k){ d.style.color="var(--text)"; d.style.fontWeight="500"; } tr.appendChild(d); });
-    [t.bigBlown,t.bigComeback].forEach(b=>{ const d=el("td"); d.innerHTML=game(b); d.style.textAlign="left"; tr.appendChild(d); });
-    tbl.appendChild(tr);
-  });
-  card.appendChild(tbl);
-  card.appendChild(noteEl(
-    `<b>Wire to wire</b>: never behind at any point (a game opens level at 0-0, which is not a deficit), so always a win. `+
-    `<b>Took the lead for good</b>: fell behind, then went ahead and was never behind again, also always a win. `+
-    `<b>Never led</b>: never in front, always a loss. <b>Blew a 10+ lead</b> and <b>Came back from 10+ down</b> read the `+
-    `biggest lead and deficit from the margin after every basket. Percentages are of the team's games. `+
-    `(${agg.teams.reduce((a,t)=>a+t.heldStrict,0)} of the leads taken for good league-wide were never even tied again.)`));
-  finishRender();
-}
-
-/* ==================== section: with / without a teammate ====================
- * One player's box lines, split by whether a second player appeared in that game. The
- * question "how did X do when Y sat out" needs three things the season totals cannot give:
- * per-game lines for X, the set of players who actually appeared in each game, and the
- * discipline to compare only games X himself played. That last point is the trap — the
- * denominator is X's games, not the team's, or a player who was also injured looks worse.
- *
- * "Did not play" means did not appear in the box score. A listed-but-unused player is a DNP
- * in both feeds, so this matches how a reader would count it.
- */
-function splitByTeammate(agg, aId, bId){
-  const A=agg.player.get(String(aId));
-  const bKey=String(bId);
-  if(!A) return null;
-  /* Three buckets, not two. A player traded mid-season has games from before the move where
-     the other player was on a different roster entirely — those are not "without him", they
-     are "not teammates yet", and folding them into the without side was wrong. */
-  const withB=[], withoutB=[], apart=[];
-  for(const g of A.games){
-    const f=agg.frameBy && agg.frameBy.get(g.gameId);
-    const mine=(f && f.team[A]) || g.tri;
-    const theirs=f && f.team[bKey];
-    if(!theirs || theirs!==mine){ apart.push(g); continue; }
-    const ap=agg.appear.get(g.gameId);
-    (ap && ap.has(bKey) ? withB : withoutB).push(g);
-  }
-  const sum=list=>{
-    const t={n:list.length, min:0, pts:0, reb:0, ast:0, stl:0, blk:0, to:0,
-             fgm:0, fga:0, tpm:0, tpa:0, ftm:0, fta:0, pf:0};
-    list.forEach(g=>{ const L=g.line||{};
-      ["min","pts","reb","ast","stl","blk","to","fgm","fga","tpm","tpa","ftm","fta","pf"]
-        .forEach(k=>{ t[k]+=L[k]||0; }); });
-    return t;
-  };
-  return {a:A, withB, withoutB, apart,
-          sumWith:sum(withB), sumWithout:sum(withoutB)};
-}
-
-/* ---- interval arithmetic, for on/off inside a game ----
- * Intervals are [start, end) in seconds of game clock. Plain sorted arrays: a game has a
- * handful per player, so nothing cleverer earns its keep.
- */
-const ivSec = a => a.reduce((s2,[x,y])=>s2+Math.max(0,y-x), 0);
-function ivAnd(a, b){
-  const out=[]; let i=0, j=0;
-  while(i<a.length && j<b.length){
-    const lo=Math.max(a[i][0], b[j][0]), hi=Math.min(a[i][1], b[j][1]);
-    if(hi>lo) out.push([lo,hi]);
-    if(a[i][1] < b[j][1]) i++; else j++;
-  }
-  return out;
-}
-/** a minus b: the parts of a that b does not cover. */
-function ivSub(a, b){
-  const out=[];
-  for(const [s0,e0] of a){
-    let cur=[[s0,e0]];
-    for(const [s1,e1] of b){
-      const next=[];
-      for(const [x,y] of cur){
-        if(e1<=x || s1>=y){ next.push([x,y]); continue; }
-        if(s1>x) next.push([x, Math.min(s1,y)]);
-        if(e1<y) next.push([Math.max(e1,x), y]);
-      }
-      cur=next;
-    }
-    out.push(...cur);
-  }
-  return out.filter(([x,y])=>y>x);
-}
-/* Half-open: an interval includes its start and excludes its end, so an event exactly on
-   a substitution boundary lands once rather than in both buckets. */
-const ivHas = (a, t) => a.some(([x,y])=>t>=x && t<y);
-
-/* On/off inside the game: A's own production and his team's margin over the seconds he and
- * B were both on the floor, against the seconds he was on and B was not. Only A's own
- * minutes count on either side — the point is to hold A constant and vary B.
- */
-function onOffSplit(agg, aId, bId){
-  const A=String(aId), B=String(bId);
-  const blank=()=>({sec:0, pts:0, fgm:0, fga:0, tpm:0, tpa:0, ftm:0, fta:0,
-                    ast:0, reb:0, to:0, teamFor:0, teamAgs:0, games:0});
-  const both=blank(), only=blank();
-  let apart=0;
-  for(const f of (agg.frames||[])){
-    const ai=f.iv[A]; if(!ai || !ai.length) continue;
-    /* Same roster only. Otherwise every minute from before a trade counts as "B off court",
-       which is true in the trivial sense and useless as a comparison. */
-    const mine=f.team && f.team[A], theirs=f.team && f.team[B];
-    if(!theirs || theirs!==mine){ apart++; continue; }
-    const bi=f.iv[B] || [];
-    const shared=ivAnd(ai, bi), alone=ivSub(ai, bi);
-    both.sec+=ivSec(shared); only.sec+=ivSec(alone);
-    if(ivSec(shared)>0) both.games++;
-    if(ivSec(alone)>0) only.games++;
-    const aSide=(f.ev.find(e=>e.pid===A && e.side!=null)||{}).side;
-    for(const e of f.ev){
-      const bucket = ivHas(shared, e.t) ? both : (ivHas(alone, e.t) ? only : null);
-      if(!bucket) continue;
-      if(e.pid===A){
-        if(e.k==="pts") bucket.pts+=e.v;
-        else if(e.k==="fgm"){ bucket.fgm++; bucket.fga++;
-          if(e.v===3){ bucket.tpm++; bucket.tpa++; } }
-        else if(e.k==="fga0"){ bucket.fga++; if(e.v===3) bucket.tpa++; }
-        else if(e.k==="ftm"){ bucket.ftm++; bucket.fta++; }
-        else if(e.k==="fta0") bucket.fta++;
-        else if(e.k==="ast") bucket.ast++;
-        else if(e.k==="reb") bucket.reb++;
-        else if(e.k==="to") bucket.to++;
-      }
-      if(e.k==="pts" && aSide!=null && e.side!=null){
-        if(e.side===aSide) bucket.teamFor+=e.v; else bucket.teamAgs+=e.v;
-      }
-    }
-  }
-  return {both, only, apart};
-}
-
-function renderOnOff(agg, card, aId, bId){
-  const A=agg.player.get(String(aId)), B=agg.player.get(String(bId));
-  const {both, only, apart}=onOffSplit(agg, aId, bId);
-  const aName=A?A.name:"that player", bName=B?B.name:"that player";
-
-  card.appendChild(el("div","rule"));
-  const h=el("div","sect nm",`${aName} — on court, with and without ${bName}`);
-  h.style.textAlign="left"; h.style.paddingRight="0"; card.appendChild(h);
-
-  if(apart)
-    card.appendChild(noteEl(
-      `<b>${apart} game${apart===1?"":"s"} set aside</b> where the two were not on the same `+
-      `roster. Without that check every minute from before a trade would count as `+
-      `"${bName} off court", which is true in the trivial sense and useless as a comparison.`));
-  if(both.sec<1 && only.sec<1){
-    card.appendChild(noteEl(
-      `No shared-roster floor time found for ${aName} with ${bName} in this selection.`));
-    finishRender(); return;
-  }
-  if(both.sec<1)
-    card.appendChild(noteEl(
-      `<b>${aName} and ${bName} have never been on the floor together.</b> On/off needs `+
-      `shared minutes to compare, so only one side of this split exists — which is exactly `+
-      `what you should expect if they are not teammates.`));
-
-  const per36=(t,k)=>t.sec? (t[k]*2160/t.sec) : 0;   // 36 minutes = 2160 seconds
-  const pc=(m,a2)=>a2? (100*m/a2).toFixed(1)+"%" : "—";
-  const row=(label,t)=>{
-    const tr=el("tr");
-    const net=t.teamFor-t.teamAgs;
-    [label, (t.sec/60).toFixed(1), String(t.games),
-     per36(t,"pts").toFixed(1), per36(t,"reb").toFixed(1), per36(t,"ast").toFixed(1),
-     per36(t,"to").toFixed(1), `${t.fgm}-${t.fga}`, pc(t.fgm,t.fga),
-     `${t.tpm}-${t.tpa}`, pc(t.tpm,t.tpa),
-     (net>=0?"+":"")+net,
-     t.sec? ((net*2400/t.sec>=0?"+":"")+(net*2400/t.sec).toFixed(1)) : "—"]
-      .forEach((c,k)=>{
-        const td=el("td","",c);
-        if(k===0){ td.style.textAlign="left"; td.style.color="var(--text)";
-                   td.style.fontWeight="600"; }
-        if(k===3){ td.style.color="var(--text)"; td.style.fontWeight="500"; }
-        tr.appendChild(td);
-      });
-    return tr;
-  };
-  const tbl=el("table","per lb"); const th=el("tr");
-  ["split","minutes","games","pts/36","reb/36","ast/36","to/36","fg","fg%","3pt","3p%",
-   "team +/−","per 40"].forEach(x=>th.appendChild(el("th","",x)));
-  tbl.appendChild(th);
-  tbl.appendChild(row(`${bName} on court`, both));
-  tbl.appendChild(row(`${bName} off court`, only));
-  card.appendChild(tbl);
-
-  card.appendChild(noteEl(
-    `Measured in <b>seconds of shared floor time</b>, not games. Both rows count only `+
-    `minutes ${aName} himself was on the court — ${bName} is the variable and ${aName} is `+
-    `held constant, which is what makes the two rows comparable.<br>`+
-    `Rates are per 36 minutes so the two sides compare despite different sample sizes; `+
-    `<b>team +/−</b> is his team's margin over those same seconds and <b>per 40</b> scales `+
-    `it to a full game. The samples here are <b>${(both.sec/60).toFixed(0)} and `+
-    `${(only.sec/60).toFixed(0)} minutes</b> — a per-36 rate off a couple of minutes is not `+
-    `a rate, it is one possession with a multiplier on it.<br>`+
-    `Steals and blocks are absent on purpose: the league feed records them as a field on `+
-    `another player's action rather than as their own, and the normalised ESPN shape does `+
-    `not keep them, so counting them here would be guesswork.`));
-  finishRender();
-}
-
-function renderSplits(agg){
-  const out=$("#out"); out.innerHTML="";
-  const card=el("div","card"); out.appendChild(card);
-
-  // the pickers are filled from the league read, so they only offer players who appeared
-  /* The team selector used to be live but ignored here, which is worse than disabling it:
-     it looks like it filters and does not. With a team chosen the pickers offer that roster;
-     on "All teams" they offer the league, which is what makes cross-team comparisons
-     possible at all. */
-  const tri=$("#team").value;
-  const people=[...agg.player.values()]
-    .filter(p=>p.games.length && (!tri || p.tri===tri))
-    .sort((a,b)=>a.name.localeCompare(b.name));
-  const fill=(sel, keep)=>{
-    sel.innerHTML="";
-    people.forEach(p=>{ const o=document.createElement("option");
-      o.value=String(p.id); o.textContent=`${p.name} · ${p.tri}`; sel.appendChild(o); });
-    if(keep && people.some(p=>String(p.id)===keep)) sel.value=keep;
-  };
-  const s1=$("#who1"), s2=$("#who2");
-  const stamp2=(tri||"all")+":"+people.length;
-  if(s1.dataset.filled!==stamp2){
-    fill(s1, s1.value); fill(s2, s2.value);
-    /* Opening with the same player in both slots produces "without himself: 0 games", which
-       reads like a fault in the data rather than a default. */
-    if(s2.value===s1.value && people.length>1)
-      s2.value=String(people.find(p=>String(p.id)!==s1.value).id);
-    s1.dataset.filled=s2.dataset.filled=stamp2;
-  }
-  /* After refilling, not before: bailing out first left the previous team's roster sitting in
-     the pickers, so they showed names the current filter excludes. */
-  if(!people.length){
-    card.appendChild(noteEl(
-      `No players found for ${tri||"the league"} yet. A player is listed under his most `+
-      `recent team, so a mid-season move puts him under the new one.`));
-    finishRender(); return;
-  }
-
-  const gh=el("div","gamehead");
-  const sc=el("div","score"); const w=el("span","tri");
-  w.appendChild(el("span","","League — on / off court, with and without a teammate"));
-  sc.appendChild(w); gh.appendChild(sc);
-  const m=el("div","meta");
-  m.innerHTML=(agg.window.limit>0? `<b>last ${agg.window.limit}</b> games per team`
-                                 : `<b>full regular season</b>`)
-    + ` · ${agg.games} games read · ${people.length} players`;
-  m.appendChild(el("span","badge ok",(SOURCE[ACTIVE]||{label:"?"}).label));
-  gh.appendChild(m); card.appendChild(gh);
-
-  if(s1.value===s2.value && layoutMode()==="court"){
-    card.appendChild(noteEl(
-      `<b>Both pickers are on the same player.</b> On/off against himself puts every `+
-      `second on the "on court" side and none on the other. Choose a different second `+
-      `player.`));
-    finishRender(); return;
-  }
-  if(s1.value===s2.value){
-    card.appendChild(noteEl(
-      `<b>Both pickers are on the same player.</b> Comparing someone with himself puts every `+
-      `game, and every second, on the "with" side and none on the other — that is arithmetic, `+
-      `not a split. Choose a different second player.`));
-    finishRender(); return;
-  }
-  if(layoutMode()==="court"){ renderOnOff(agg, card, s1.value, s2.value); return; }
-
-  const sp=splitByTeammate(agg, s1.value, s2.value);
-  if(!sp){ card.appendChild(noteEl("Pick a player."));
-           finishRender(); return; }
-  const B=agg.player.get(s2.value);
-  const bName=B? B.name : "that player";
-
-  if(sp.a.tri!==(B&&B.tri))
-    card.appendChild(noteEl(
-      `<b>${esc(sp.a.name)} (${sp.a.tri}) and ${esc(bName)}${B?` (${B.tri})`:""} are not teammates.</b> `+
-      `The split still computes, but "without ${esc(bName)}" then means almost every game `+
-      `${esc(sp.a.name)} played, which is rarely the question worth asking.`));
-
-  const pct=(m2,a2)=>a2? (100*m2/a2).toFixed(1)+"%" : "—";
-  const avgRow=(label, t)=>{
-    const tr=el("tr");
-    const per=k=>t.n? (t[k]/t.n) : 0;
-    [label, String(t.n), per("min").toFixed(1), per("pts").toFixed(1),
-     per("reb").toFixed(1), per("ast").toFixed(1), per("stl").toFixed(1),
-     per("blk").toFixed(1), per("to").toFixed(1),
-     `${t.fgm}-${t.fga}`, pct(t.fgm,t.fga),
-     `${t.tpm}-${t.tpa}`, pct(t.tpm,t.tpa),
-     `${t.ftm}-${t.fta}`, pct(t.ftm,t.fta)].forEach((c,k)=>{
-      const td=el("td","",c);
-      if(k===0){ td.style.textAlign="left"; td.style.color="var(--text)";
-                 td.style.fontWeight="600"; }
-      if(k===3){ td.style.color="var(--text)"; td.style.fontWeight="500"; }
-      tr.appendChild(td);
-    });
-    return tr;
-  };
-
-  card.appendChild(el("div","rule"));
-  const h=el("div","sect nm",`${sp.a.name} — per game`);
-  h.style.textAlign="left"; h.style.paddingRight="0"; card.appendChild(h);
-  const tbl=el("table","per lb"); const th=el("tr");
-  ["split","games","min","pts","reb","ast","stl","blk","to","fg","fg%","3pt","3p%","ft","ft%"]
-    .forEach(x=>th.appendChild(el("th","",x)));
-  tbl.appendChild(th);
-  tbl.appendChild(avgRow(`without ${bName}`, sp.sumWithout));
-  tbl.appendChild(avgRow(`with ${bName}`, sp.sumWith));
-  card.appendChild(tbl);
-
-  const d=(k)=>{
-    const a2=sp.sumWithout.n? sp.sumWithout[k]/sp.sumWithout.n : 0;
-    const b2=sp.sumWith.n? sp.sumWith[k]/sp.sumWith.n : 0;
-    const v=a2-b2; return (v>0?"+":"")+v.toFixed(1);
-  };
-  if(sp.apart.length){
-    const tris=[...new Set(sp.apart.map(g=>g.tri).filter(Boolean))];
-    card.appendChild(noteEl(
-      `<b>${sp.apart.length} of ${esc(sp.a.name)}'s ${sp.a.games.length} games are set aside:</b> `+
-      `in those the two were not on the same roster${tris.length? ` (he was with `+
-      `${tris.join(", ")})`:""}, so they are neither "with" nor "without" — they are before or `+
-      `after the two were teammates. Counting them as "without" is what made a traded `+
-      `player's split read as though his teammate had missed most of the season.`));
-  }
-  card.appendChild(noteEl(
-    `Averages, not totals. Without ${bName} versus with: `+
-    `<b>${d("pts")} points</b>, ${d("reb")} rebounds, ${d("ast")} assists, `+
-    `${d("min")} minutes.<br>`+
-    `The denominator is <b>${esc(sp.a.name)}'s own games</b>, not the team's — counting games he `+
-    `also missed would drag the split for a reason that has nothing to do with ${bName}. `+
-    `<b>${sp.sumWithout.n} game${sp.sumWithout.n===1?"":"s"} without</b> is a small sample; `+
-    `a single outing moves a per-game average by several points at this size.`));
-
-  const list=(title, games)=>{
-    if(!games.length) return;
-    card.appendChild(el("div","rule"));
-    const hh=el("div","sect nm",title);
-    hh.style.textAlign="left"; hh.style.paddingRight="0"; card.appendChild(hh);
-    const t=el("table","per lb"); const h2=el("tr");
-    ["date","opp","min","pts","reb","ast","stl","blk","to","fg","3pt","ft"]
-      .forEach(x=>h2.appendChild(el("th","",x)));
-    t.appendChild(h2);
-    games.slice().sort((x,y)=>new Date(x.date)-new Date(y.date)).forEach(g=>{
-      const L=g.line||{}; const tr=el("tr");
-      [new Date(g.date).toLocaleDateString(undefined,{month:"short",day:"numeric"}),
-       `${g.home?"vs":"at"} ${g.opp}`,
-       (L.min||0).toFixed(1), String(L.pts||0), String(L.reb||0), String(L.ast||0),
-       String(L.stl||0), String(L.blk||0), String(L.to||0),
-       `${L.fgm||0}-${L.fga||0}`, `${L.tpm||0}-${L.tpa||0}`, `${L.ftm||0}-${L.fta||0}`]
-        .forEach((c,k)=>{
-          const td=el("td","",c);
-          if(k===0||k===1) td.style.textAlign="left";
-          if(k===3){ td.style.color="var(--text)"; td.style.fontWeight="500"; }
-          tr.appendChild(td);
-        });
-      t.appendChild(tr);
-    });
-    card.appendChild(t);
-  };
-  list(`Games without ${bName}`, sp.withoutB);
-  finishRender();
-}
-
 /* ==================== section: the NBA Cup against the rest of the season ====================
  * Every Cup game except the final is also a regular-season game, so the league aggregate
  * already holds each player's Cup box lines; this section only has to split them off.
@@ -3775,133 +1989,6 @@ async function showLeague(which){
 
 
 
-/* ==================== assist leaderboard ==================== */
-/**
- * Ranked assist creators. With a team chosen it's that roster; with "All teams"
- * it's the whole league. Games are read once and shared with the other views, so
- * a league board is only expensive the first time.
- */
-async function buildBoard(tris, limit, onProgress){
-  const perTeam = new Map(tris.map(t=>[t, teamGamesFor(t)]));
-  const slate = [];
-  for(const [tri,all] of perTeam) (limit>0? all.slice(-limit) : all).forEach(g=>slate.push({tri,g}));
-
-  const rows=new Map();   // "id||tri" -> record, keyed by id so names can change
-  const pairs=new Map();  // "tri||passer||scorer" -> connection record
-  let done=0, failed=0;
-  const gamesPerTeam=new Map(tris.map(t=>[t,0]));
-  /* What kinds of game went into these totals. Special games — a Commissioner's Cup
-     final, say — don't count toward regular-season stats elsewhere, so if any are
-     in here the scope is stated on screen rather than left for someone to discover
-     by disagreeing with another source. */
-  const seenGames=new Set(), labels=new Map();
-  const rec=(id,name,tri,jersey,date)=>{
-    const k=String(id)+"||"+tri;
-    let r=rows.get(k);
-    if(!r){ r={id, name, tri, jersey, seen:date, given:0, given2:0, given3:0, gpts:0,
-                got:0, got2:0, got3:0, gotpts:0, games:0,
-                top:new Map(),      // who he passes to most, keyed by id
-                feed:new Map()};    // who passes to him most, keyed by id
-            rows.set(k,r); }
-    if(date && new Date(date)>=new Date(r.seen)){ r.name=name; r.seen=date;
-      if(jersey) r.jersey=jersey; }
-    if(!r.jersey && jersey) r.jersey=jersey;
-    return r;
-  };
-
-  const queue=slate.slice();
-  const worker = async () => {
-    while(queue.length){
-      const {tri,g}=queue.shift();
-      try{
-        const G=await liteOrModel(g);
-        const side = G.box.homeTeam.teamTricode===tri ? 1
-                   : G.box.awayTeam.teamTricode===tri ? 0 : -1;
-        if(side>=0){
-          gamesPerTeam.set(tri,(gamesPerTeam.get(tri)||0)+1);
-          if(!seenGames.has(g.gameId)){
-            seenGames.add(g.gameId);
-            const lb=(g.label||"").trim();
-            if(lb) labels.set(lb,(labels.get(lb)||0)+1);
-          }
-          const byId=new Map(G.players.map(p=>[p.id,p]));
-          G.players.filter(p=>p.side===side && p.played)
-            .forEach(p=>{ rec(p.id,p.name,tri,p.jersey,g.date).games++; });
-          for(const a of G.assists){
-            if(a.side!==side) continue;
-            const f=byId.get(a.from), t=byId.get(a.to);
-            if(!f||!t) continue;
-            const three=a.pts===3;
-            const rf=rec(f.id,f.name,tri,f.jersey,g.date);
-            const rt=rec(t.id,t.name,tri,t.jersey,g.date);
-            rf.given++; rf.gpts+=a.pts; if(three) rf.given3++; else rf.given2++;
-            rt.got++;   rt.gotpts+=a.pts; if(three) rt.got3++;  else rt.got2++;
-            rf.top.set(String(t.id),(rf.top.get(String(t.id))||0)+1);
-            rt.feed.set(String(f.id),(rt.feed.get(String(f.id))||0)+1);
-            const pk=tri+"||"+String(f.id)+"||"+String(t.id);
-            let pr=pairs.get(pk);
-            if(!pr){ pr={tri, from:f.name, to:t.name, fromId:f.id, toId:t.id,
-                          given:0, given2:0, given3:0, gpts:0, log:new Map()};
-                     pairs.set(pk,pr); }
-            // keep the newest spelling on the pair too
-            if(new Date(g.date)>=new Date(pr.seen||0)){
-              pr.from=f.name; pr.to=t.name; pr.seen=g.date;
-            }
-            pr.given++; pr.gpts+=a.pts; if(three) pr.given3++; else pr.given2++;
-            // per-game tally, so a disagreement with another source can be located
-            const lg=pr.log.get(g.gameId) || {date:g.date, n:0, away:g.away, home:g.home};
-            lg.n++; pr.log.set(g.gameId, lg);
-          }
-        }
-      }catch(e){ failed++; }
-      done++;
-      if(onProgress) onProgress(done, slate.length);
-    }
-  };
-  await Promise.all(Array.from({length:Math.min(10,slate.length)},worker));   // 10 at a time: files on this site are small
-
-  return {rows:[...rows.values()].filter(r=>r.given>0||r.got>0),
-          pairs:[...pairs.values()],
-          distinctGames:seenGames.size, labels,
-          teams:tris, gamesPerTeam, requested:slate.length, failed,
-          window:{limit, from:slate.length?slate[0].g.date:null,
-                  to:slate.length?slate[slate.length-1].g.date:null}};
-}
-
-/* ==================== headshots ====================
-   Both providers serve portraits keyed to the same player id the feed already
-   gives us, so no extra lookup is needed:
-     ESPN         https://a.espncdn.com/i/headshots/nba/players/full/{espnId}.png
-     league feed  https://cdn.nba.com/headshots/nba/latest/260x190/{personId}.png
-   Any miss falls back to initials on the team colour, so a changed path or a
-   player without a portrait degrades quietly instead of leaving a hole. */
-function headshotUrl(id){
-  if(!id) return null;
-  return ACTIVE==="espn"
-    ? `https://a.espncdn.com/i/headshots/nba/players/full/${id}.png`
-    : `https://cdn.nba.com/headshots/nba/latest/260x190/${id}.png`;
-}
-const initialsOf = n => String(n||"").split(/\s+/).map(w=>w[0]||"").join("").slice(0,2).toUpperCase();
-
-function headshot(name, id, tri, size){
-  const box=el("div","hs");
-  box.style.width=box.style.height=size+"px";
-  box.style.background=tcol(tri);
-  const ini=el("span","hsi",initialsOf(name));
-  ini.style.fontSize=Math.round(size*0.34)+"px";
-  box.appendChild(ini);
-  const url=headshotUrl(id);
-  if(url){
-    const img=new Image();
-    img.alt=name; img.loading="lazy"; img.decoding="async";
-    img.addEventListener("load",()=>{ box.classList.add("has"); });
-    img.addEventListener("error",()=>{ img.remove(); });
-    img.src=url;
-    box.appendChild(img);
-  }
-  return box;
-}
-
 /* ==================== outliers ====================
    Sample mean and standard deviation across qualified players, with anything at
    least 2 SD out flagged. Two honest caveats, both stated on screen: assist
@@ -4020,7 +2107,7 @@ const RING_MIN = 3;
 /* Competition ranking over a descending list: equal values share a rank and the
    next value skips (1, 2, 2, 4). Without this, tied rows get different numbers,
    which is simply wrong. */
-function denseRanks(values){
+export function denseRanks(values){
   const out=[]; let last=null, rank=0;
   values.forEach((v,i)=>{ if(v!==last){ rank=i+1; last=v; } out.push(rank); });
   return out;
@@ -4028,7 +2115,7 @@ function denseRanks(values){
 
 /** Take the top n, then keep going while the next value ties the last one, so a
     tie at the cutoff is never silently dropped. */
-function topWithTies(ranked, n, valueOf){
+export function topWithTies(ranked, n, valueOf){
   if(ranked.length<=n) return ranked.slice();
   const out=ranked.slice(0,n);
   const cut=valueOf(out[out.length-1]);
@@ -4192,7 +2279,7 @@ function renderPoster(card, agg, ranked){
 }
 
 /** Serialise the poster into a self-contained HTML file. */
-function downloadPoster(node, title, file){
+export function downloadPoster(node, title, file){
   const css=[...document.styleSheets].map(s=>{
     try{ return [...s.cssRules].map(r=>r.cssText).join("\n"); }catch(e){ return ""; }
   }).join("\n");
@@ -4490,7 +2577,7 @@ async function showBoard(){
 }
 
 /* ============================ app shell ============================ */
-let SCHED=null, GAMES=[], filtered=[], curIdx=-1;
+export let SCHED=null, GAMES=[], filtered=[], curIdx=-1;
 let seasonAgg=null, assistAgg=null, boardAgg=null, highsAgg=null, rangeAgg=null,
     leagueAgg=null;
 const viewMode = () => $("#view").value;
@@ -4583,7 +2670,7 @@ function scanFranchises(){
   }
   return NEWCOMERS;
 }
-const isFranchise = t => knownTeam(t) || NEWCOMERS.has(t);
+export const isFranchise = t => knownTeam(t) || NEWCOMERS.has(t);
 
 /* Preseason games are excluded: rotations there are experiments, not the real thing.
    Digits 2-3 of the game id encode the season type ("01" preseason, "02" regular
@@ -4628,9 +2715,9 @@ let WANT_SEASON = null;
 const URLP = (()=>{ try{ return new URLSearchParams(location.search); }catch(e){ return new URLSearchParams(); } })();
 let WANT_GAME = URLP.get("game");
 /** The season as ESPN numbers it ("2026"), for comparisons. */
-const seasonYear = () => String((SCHED && SCHED.season) || thisYear());
+export const seasonYear = () => String((SCHED && SCHED.season) || thisYear());
 /** The season as a reader writes it ("2025-26"), for anything on screen. */
-const seasonLabel = () => seasonName(seasonYear());
+export const seasonLabel = () => seasonName(seasonYear());
 
 const isPreseason = g => g.stype===1 || /preseason/i.test(g.label || "");
 
@@ -4640,7 +2727,7 @@ const isPreseason = g => g.stype===1 || /preseason/i.test(g.label || "");
    Cup *group-stage* games do count and must be kept, so this matches the final
    only. Anything matched here is excluded from season aggregations. */
 const NON_COUNTING = /championship|all[-\s]?star|exhibition|preseason|friendly/i;
-const isRegularSeason = g =>
+export const isRegularSeason = g =>
   g.stype===2 && !NON_COUNTING.test(g.label || "");
 // exposed so the test suite can check scope and ranking rules directly
 window.__season = {SEASON_FLOOR, thisYear, fillSeasonPicker, clearCaches,
@@ -4658,7 +2745,7 @@ function fillTeamFilter(){
   tris.forEach(t=>sel.appendChild(new Option(t + " — " + teamName(t), t)));
 }
 
-function label(g){
+export function label(g){
   const d=new Date(g.date);
   const ds=d.toLocaleDateString(undefined,{month:"short",day:"2-digit"});
   const sc = g.status===3 ? `  ${g.as}-${g.hs}` : g.status===2 ? "  LIVE" : "";
@@ -4766,7 +2853,7 @@ function alignHeaders(tbl){
     if(a) head[i].style.textAlign=a;
   }
 }
-function finishRender(root){
+export function finishRender(root){
   (root || $("#out")).querySelectorAll("table.per").forEach(alignHeaders);
   $("#footnote").hidden=false;
 }
