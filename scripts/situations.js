@@ -395,7 +395,13 @@ for (const [tri, games] of Object.entries(perTeam)) {
     // simulation as a milestone's, so it gets the same recalibration (src/anticipate/calibrate.js); the raw one is kept.
     try {
       const { fitCalibration, readCalls, calibrate, PLAY_ONLY } = await import("../src/anticipate/calibrate.js");
-      const cf = path.join(root, "history", "calls.jsonl"), fit = fitCalibration(readCalls(fs.existsSync(cf) ? fs.readFileSync(cf, "utf8") : ""));
+      // 0.141.9: the record chases' own fit, from their own scored calls; the milestones' fit until there are enough of them.
+      const cf = path.join(root, "history", "calls.jsonl"), callsText = fs.existsSync(cf) ? fs.readFileSync(cf, "utf8") : "";
+      // Fitted on the calls where he played: before 0.141.1 the record chases ignored the injury report, so their misses
+      // with a player out taught a flaw that's fixed (26 of 227 calls, 11/12-11/20). Held out (train through 11/16 or
+      // 11/17): Brier 0.2093 -> 0.1969 and 0.2223 -> 0.2085 (raw -> fit).
+      const recFit = fitCalibration(readCalls(callsText, { kind: "records" }).filter((c) => c.played !== false)), fit = recFit || fitCalibration(readCalls(callsText));
+      console.log(`records: calibrated with ${recFit ? `their own fit (${recFit.n} scored record calls)` : "the milestones' fit (too few scored record calls)"}`);
       let n = 0;
       const walk = (o) => { if (!o || typeof o !== "object") return; if (Array.isArray(o)) { for (const x of o) walk(x); return; }
         if (typeof o.pTonight === "number" && !("pTonightRaw" in o) && !PLAY_ONLY.has(o.stat)) { o.pTonightRaw = o.pTonight; o.pTonight = calibrate(o.pTonight, fit); n++; }
@@ -403,6 +409,16 @@ for (const [tri, games] of Object.entries(perTeam)) {
       if (fit) { walk(recordsOut); console.log(`records: ${n} chances tonight recalibrated`); }
     } catch (e) { console.error(`record chances not recalibrated: ${e.message}`); }
     fs.writeFileSync(path.join(root, "docs", "data", "records.json"), JSON.stringify(recordsOut));
+    // 0.141.9: tonight's record chances kept for scoring (scripts/score.js --records, the morning after), as the milestones'
+    // are: every item playing tonight with a chance, the raw chance (what the recalibration learns from), the chance to play.
+    // A later build the same day replaces the file, so the last build before tip-off is what gets scored.
+    try {
+      const { tonightChances } = await import("../src/records/predictions.js");
+      const keep = tonightChances(recordsOut);
+      const zlib = await import("node:zlib");
+      fs.writeFileSync(path.join(root, "history", `predictions-records-${today}.json.gz`), zlib.gzipSync(JSON.stringify({ today, items: keep }), { level: 9 }));
+      console.log(`records: ${keep.length} chances tonight kept for scoring`);
+    } catch (e) { console.error(`record chances not kept for scoring: ${e.message}`); }
     console.log(`records: ${rec.players.filter((p) => p.id).length} guide players playing this season, ${rec.items.length} within reach (${rec.items.filter((i) => i.tonight).length} playing tonight); vs notes/ESPN: ${checks.same} agree, ${checks.differ.length} differ${rec.problems.length ? `; ${rec.problems.length} problems` : ""}`);
   } else console.log(`records: no Tip-Off Guide file for ${season - 1}-${String(season).slice(2)} (src/data/)`);
 }

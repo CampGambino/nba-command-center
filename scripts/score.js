@@ -42,6 +42,29 @@ for (const rep of reports) {
       stat: i.stat || null, pPlay: i.pPlayTonight ?? null, played: line ? (line.played ?? (line.min ?? 0) > 0) : false });
   }
 }
+// 0.141.9: the record chances (records, NBA Cup lists, franchise passes, season pace), kept by the build in
+// history/predictions-records-<date>.json.gz: scored the same way, marked from "records".
+{
+  const ri = process.argv.indexOf("--records"), rf = ri > 0 ? process.argv[ri + 1] : null;
+  const rec = rf && fs.existsSync(rf) ? JSON.parse(fs.readFileSync(rf, "utf8")) : null;
+  const boxes = {};
+  for (const i of rec?.items || []) {
+    if (!(i.pTonight >= 0.05) || !teams.data.ids[i.team]) continue;
+    if (!(i.team in boxes)) {
+      const sched = await espn.schedule(teams.data.ids[i.team]);
+      const game = sched.ok && sched.data.games.find((g) => g.date === today && (g.seasonType === 2 || g.seasonType === "cup-final"));
+      const box = game ? await espn.box(game.id) : null;
+      boxes[i.team] = box?.ok && box.data.final ? box.data : null;
+    }
+    const box = boxes[i.team];
+    if (!box) continue;
+    const line = box.players.find((p) => p.id === String(i.id));
+    const v = line ? statFromLine(i.stat, line) : 0;
+    if (v === null) continue;
+    calls.push({ team: i.team, player: i.who, what: i.kind === "pass" && i.passing ? `record (${i.list}): pass ${i.passing} in ${i.label}` : `record (${i.list}): ${i.target ?? ""} ${i.label}`.replace(/\s+/g, " "),
+      need: i.need, p: i.pTonight, got: v, hit: v >= i.need, stat: i.stat, pPlay: i.pPlay, played: !!line && (line.played ?? (line.min ?? 0) > 0), from: "records" });
+  }
+}
 function sameish(a, b) {
   const k = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[’'.]/g, "").replace(/\b(jr|sr|ii|iii|iv)\b/gi, "").replace(/\s+/g, " ").trim().toLowerCase();
   return k(a) === k(b);
@@ -66,7 +89,7 @@ if (real.length) console.log(`calls given 5%+: ${real.length}, happened ${real.f
 {
   const file = "data/calls.jsonl";
   const keep = fs.existsSync(file) ? fs.readFileSync(file, "utf8").split("\n").filter((l) => l.trim() && JSON.parse(l).d !== today) : [];
-  for (const c of calls.filter((c) => c.p >= 0.05)) keep.push(JSON.stringify({ d: today, team: c.team, player: c.player, what: c.what, need: c.need, got: c.got, p: c.p, hit: c.hit, stat: c.stat, pPlay: c.pPlay, played: c.played }));
+  for (const c of calls.filter((c) => c.p >= 0.05)) keep.push(JSON.stringify({ d: today, team: c.team, player: c.player, what: c.what, need: c.need, got: c.got, p: c.p, hit: c.hit, stat: c.stat, pPlay: c.pPlay, played: c.played, ...(c.from ? { from: c.from } : {}) }));
   fs.writeFileSync(file, keep.join("\n") + "\n");
 }
 // One line per night: re-scoring the same night replaces its line.

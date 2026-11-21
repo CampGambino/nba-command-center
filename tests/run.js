@@ -5100,6 +5100,19 @@ await bridgeChecks(ok, root);
       && Math.abs(C.calibrate(0.6, fit) - C.calibrate(0.6, fitStats)) < 1e-9,
       "calibrate (0.141.1): games-played and starts calls are left out of the fit", JSON.stringify([C.calibrate(0.6, fit), C.calibrate(0.6, fitStats)]));
   }
+  // 0.141.9: record chases kept for scoring, and their own fit.
+  {
+    const { tonightChances } = await import("../src/records/predictions.js"), C = await import("../src/anticipate/calibrate.js");
+    const recOut = { items: [{ kind: "pass", id: 7, who: "A Guy", team: "BOS", stat: "pts", label: "points", need: 12, tonight: true, pTonight: 0.4, pTonightRaw: 0.5, pPlay: 0.97, passing: { name: "Old Star" } },
+        { kind: "pass", id: 8, who: "Not Tonight", team: "NYK", stat: "ast", need: 3, tonight: false, pTonight: 0.2 }],
+      cup: { boards: [{ items: [{ kind: "cup", id: "9", who: "Cup Guy", team: "LAL", stat: "reb", need: 4, tonight: true, pTonight: 0.3 }] }] },
+      franchise: [{ kind: "franchise", id: 7, who: "A Guy", team: "BOS", stat: "pts", need: 12, tonight: true, pTonight: 0.45, pTonightRaw: 0.5 }] };
+    const k = tonightChances(recOut);
+    const txt = [{ d: "x", p: 0.5, hit: true }, { d: "x", p: 0.5, hit: false, from: "records" }].map((c) => JSON.stringify(c)).join("\n");
+    ok(k.length === 3 && k[0].id === "7" && k[0].pTonight === 0.5 && k[0].passing === "Old Star" && k[0].list === "records" && k.some((x) => x.list === "cup" && x.id === "9") && k.some((x) => x.list === "franchise" && x.kind === "franchise")
+      && !k.some((x) => x.who === "Not Tonight") && C.readCalls(txt).length === 1 && C.readCalls(txt, { kind: "records" }).length === 1 && C.readCalls(txt, { kind: "all" }).length === 2,
+      "records (0.141.9): tonight's record chances kept once each with the raw chance (records, Cup, franchise); milestone and record calls read apart", JSON.stringify(k));
+  }
   // 0.141.0: luck, paradox, scarcity, defense by position (src/anticipate/detectors.js).
   {
     const D = await import("../src/anticipate/detectors.js");

@@ -2,6 +2,30 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.141.9 (2026-11-21): the record chases are scored, and get their own correction
+
+The user said "Yes" at 9:38 AM to the morning's order. This was item 6: score the record-chase chances. They had been corrected with the milestones' fit since 0.140 but never scored themselves.
+
+**Kept, then scored.**
+- `src/records/predictions.js` (`tonightChances`): every published record item playing tonight with a chance (all-time and franchise passes, NBA Cup lists, season pace, franchise single games), once each, with the raw chance and the chance to play.
+- The build saves them to `history/predictions-records-<date>.json.gz`. The last build before tip-off wins, as with the milestones.
+- The scoring job (`scripts/ci.js score` → `scripts/score.js --records`) scores them the morning after against the box score, into `history/calls.jsonl` with `from: "records"`.
+- Past nights: `tools/backfill-record-predictions.mjs` took each night's `records.json` from the last commit before 6:30 PM ET (11/12-11/20; 11/10 and 11/11 had none in this form) and the real scoring job scored all nine: **227 record calls**. Re-scoring also gave 433 of 437 milestone calls their chance to play, and dropped 11 early backfilled calls recorded at 0%, which the fit never used (it starts at 5%).
+
+**What they show.** 97.5 hits expected and 99 happened, so right in total but too extreme. Long shots happened more (13% → 23%, 35% → 41%) and near-locks less (84% → 69%, 96% → 85%). 26 of the 227 were players who didn't play, from before 0.141.1, when the record chases ignored the injury report. Among those who played: 13% → 26%, 35% → 48%, 61% → 61%, 89% → 83%.
+
+**Their own correction.** One fit for both kinds was wrong for both: milestones only a −0.367, b 0.983; record chases only a −0.108, b 0.548. So:
+- `readCalls(text, { kind })` reads milestone and record calls apart. The milestones' fit learns only from milestone calls (no change for them).
+- The record chases get a fit from their own calls where the player played (200 calls: a 0.215, b 0.653): 13% → 26%, 35% → 45%, 61% → 62%, 89% → 83%, 97% → 92%.
+- Held out (train through 11/16 or 11/17, test after, players who played): Brier 0.2093 → 0.1969 and 0.2223 → 0.2085. The milestones' fit had made record chances slightly worse (0.2186 → 0.2190).
+- It falls back to the milestones' fit below 100 record calls.
+
+**Checked:** two full local builds (in a separate copy, so the re-scored history wasn't discarded) are healthy. "records: calibrated with their own fit (200 scored record calls)"; 72 of tonight's chances kept for scoring. Tonight: Gobert 1 defensive rebound 97% → 93%, Tatum 22 points 45% → 52%.
+
+**Tests.** 1,102 checks (one new: tonight's record chances kept once each with the raw chance across the lists; milestone and record calls read apart).
+
+**Self-audit.** The record fit is applied to the whole chance tonight (playing × reaching), though it was fitted on calls where he played. With the injury report now capping the chance to play, that's close, but not exact for a Questionable player. Why record chases' long shots come in so much more often than the milestones' is unexplained. One candidate: a record's "now" total trailing a game, which would overstate what he needs. Unchecked. Only the "records" list produced calls on these nights (no Cup or franchise item had a chance of 5% or more).
+
 ## 0.141.8 (2026-11-21): "streak broken" lines: the end of a run said once, the day after (audit step 5's last piece)
 
 The user said "Yes" at 9:38 AM to the morning's order. This was item 5: "streak broken" lines, the piece of the audit's step 5 still open ("storylines that update as they grow… and end").

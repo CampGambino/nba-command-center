@@ -47,6 +47,12 @@ export function calibrate(p, fit) {
 }
 
 /** history/calls.jsonl -> [{ d, p, hit, ... }] */
-export function readCalls(text) {
-  return String(text || "").split("\n").filter((l) => l.trim()).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+/**
+ * The scored calls in history/calls.jsonl. 0.141.9: `kind` "milestones" (the default) or "records": the record chases
+ * are scored too since 0.141.9 and need their own fit (their chances run too extreme both ways: 15% happened 26%, 96%
+ * happened 84%, against the milestones' plain shift down), so each fit learns only from its own calls.
+ */
+export function readCalls(text, { kind = "milestones" } = {}) {
+  const all = String(text || "").split("\n").filter((l) => l.trim()).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+  return kind === "all" ? all : all.filter((c) => (c.from === "records") === (kind === "records"));
 }

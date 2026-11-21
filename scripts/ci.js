@@ -172,7 +172,10 @@ function score() {
   const cal = path.join(hist, "calibration.jsonl"), callsH = path.join(hist, "calls.jsonl");
   if (fs.existsSync(cal)) fs.copyFileSync(cal, path.join(data, "calibration.jsonl"));
   if (fs.existsSync(callsH)) fs.copyFileSync(callsH, path.join(data, "calls.jsonl"));   // 0.140: the scored calls the recalibration fits
-  const r = run(["scripts/score.js", pred]);
+  // 0.141.9: the night's record chances too, when the build kept them
+  const rgz = path.join(hist, `predictions-records-${date}.json.gz`), rp = path.join(data, `predictions-records-${date}.json`);
+  if (fs.existsSync(rgz)) fs.writeFileSync(rp, zlib.gunzipSync(fs.readFileSync(rgz)));
+  const r = run(["scripts/score.js", pred, ...(fs.existsSync(rgz) ? ["--records", rp] : [])]);
   process.stderr.write(r.stderr || "");
   if (r.status !== 0) { console.error(`scoring failed (exit ${r.status})`); process.exit(1); }
   process.stdout.write(r.stdout);

@@ -1,3 +1,7 @@
+HIT   77%  WAS Anthony Davis: record (records): pass Bernard King in points (needed 19, got 30)
+miss  41%  TOR Scottie Barnes: record (records): 798 offensive rebounds (needed 3, got 0)
+miss  21%  TOR Scottie Barnes: record (records): 2740 rebounds (needed 14, got 0)
+miss  10%  PHI Joel Embiid: record (records): pass Jerry Lucas and Dikembe Mutombo and Pau Gasol and Stephen Curry and Baron Davis and Blake Griffin and Andy Phillip in triple-doubles (needed 1, got 0)
 HIT    0%  PHI Jabari Walker: 1500 points (needed 9, got 9)
 HIT    0%  WAS Deandre Ayton: 7500 points (needed 2, got 2)
 HIT    0%  WAS Bilal Coulibaly: 2000 points (needed 3, got 4)
@@ -7,5 +11,9 @@ HIT    0%  DAL Max Christie: pass Harrison Barnes (needed 1, got 1)
 HIT    0%  MIN Bones Hyland: 2500 points (needed 16, got 24)
 HIT    0%  MIN Jaden McDaniels: 2000 field goals (needed 5, got 7)
 
-185 calls scored, Brier 0.043 (lower is better; always guessing 50% scores 0.250)
+189 calls scored, Brier 0.044 (lower is better; always guessing 50% scores 0.250)
   0-5%     n=185  predicted 0%  happened 4%
+  5-25%    n=  2  predicted 15%  happened 0%
+  25-50%   n=  1  predicted 41%  happened 0%
+  75-95%   n=  1  predicted 77%  happened 100%
+calls given 5%+: 4, happened 1, expected 1.5, Brier 0.069
