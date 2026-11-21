@@ -14,7 +14,10 @@ export function tonightChances(recordsOut) {
       if (!seen.has(k)) {
         seen.add(k);
         keep.push({ list, id: String(o.id), who: o.who, team: o.team, stat: o.stat, label: o.label, kind: o.kind, need: o.need, target: o.target ?? null,
-          passing: o.passing?.name ?? null, pTonight: o.pTonightRaw ?? o.pTonight, pPlay: o.pPlay ?? null });
+          passing: o.passing?.name ?? null, pTonight: o.pTonightRaw ?? o.pTonight, pPlay: o.pPlay ?? null,
+          // 0.141.12: the active players being passed who also play tonight. The chance already counts what they add, so
+          // the call is a hit only if he finishes ahead of them (scripts/score.js), not merely gets `need`.
+          ...(Array.isArray(o.rivals) && o.rivals.some((r) => r.tonight) ? { rivals: o.rivals.filter((r) => r.tonight).map((r) => ({ name: r.name, id: r.id ?? null, team: r.team ?? null })) } : {}) });
       }
       return;
     }
@@ -24,3 +27,7 @@ export function tonightChances(recordsOut) {
   walk(recordsOut?.seasonPace, "pace"); walk(recordsOut?.franchiseGame, "franchise-game");
   return keep;
 }
+
+/** Whether a record chase came in tonight (0.141.12): he needed `need` more to get past the mark, plus whatever the active
+ *  players he is passing added tonight (the most of any of them), as the simulation (src/anticipate/model.js) counts it. */
+export const recordHit = (got, need, rivalGot = 0) => got >= need + rivalGot;

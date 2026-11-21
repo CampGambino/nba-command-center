@@ -418,7 +418,8 @@ export function addChances(items, teamFiles, { makeSampler, simulate, sims = 300
         const qp = playRate(q);
         const tonightToo = !tonightTeams || tonightTeams.has(q.team);
         rivals.push({ sample: makeSampler(ql.slice(0, 20), { smooth: binary ? 0 : 0.2 }), games: Array.from({ length: n }, (_, i) => ({ pPlay: i === 0 && it.tonight ? (tonightToo ? capTonight(q.id, qp) : 0) : qp })) });
-        rivalNames.push({ name: q.name, tonight: !!it.tonight && tonightToo && !!tonightTeams });
+        // id and team (0.141.12): scoring checks the rival's own game tonight, as the simulation does.
+        rivalNames.push({ name: q.name, id: q.id ?? null, team: q.team ?? null, tonight: !!it.tonight && tonightToo && !!tonightTeams });
       }
     }
     // The bar against a rival is passing him: one more than his total, so need already holds that.

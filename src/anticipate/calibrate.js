@@ -49,8 +49,10 @@ export function calibrate(p, fit) {
 /** history/calls.jsonl -> [{ d, p, hit, ... }] */
 /**
  * The scored calls in history/calls.jsonl. 0.141.9: `kind` "milestones" (the default) or "records": the record chases
- * are scored too since 0.141.9 and need their own fit (their chances run too extreme both ways: 15% happened 26%, 96%
- * happened 84%, against the milestones' plain shift down), so each fit learns only from its own calls.
+ * are scored too since 0.141.9, each kind fitted on its own calls. 0.141.12: the "too extreme both ways" that 0.141.9 gave
+ * as the reason was mostly a scoring error (a chase against an active player who also played was scored on `need`
+ * alone). Scored right, record chases run a little high like the milestones (85.8 expected, 80 happened), and their own
+ * fit and one shared fit do equally well on held-out nights; the separate fit is kept.
  */
 export function readCalls(text, { kind = "milestones" } = {}) {
   const all = String(text || "").split("\n").filter((l) => l.trim()).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);

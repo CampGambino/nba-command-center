@@ -16,6 +16,7 @@ if ((process.env.HTTPS_PROXY || process.env.https_proxy) && !process.env.NODE_US
 }
 const { createEspn } = await import("../src/espn/client.js");
 const { statFromLine } = await import("../src/registry/track.js");
+const { recordHit } = await import("../src/records/predictions.js");
 
 const file = process.argv[2];
 if (!file) { console.error("usage: node scripts/score.js <predictions.json>"); process.exit(2); }
@@ -61,9 +62,37 @@ for (const rep of reports) {
     const line = box.players.find((p) => p.id === String(i.id));
     const v = line ? statFromLine(i.stat, line) : 0;
     if (v === null) continue;
+    // 0.141.12: when the man being passed also played tonight, the chance was for finishing ahead of him (`need` plus what he
+    // adds, as src/anticipate/model.js simulates), so that is what is scored. Before this, Sengun needing 3 rebounds to pass
+    // Jokic, who also played, was scored as a hit for any 3 rebounds: a 12% call "came in" at 3 rebounds.
+    let rivalGot = 0, rivalMissing = false;
+    for (const r of i.rivals || []) {
+      const rl = await rivalLine(r);
+      if (rl === undefined) { rivalMissing = true; continue; }
+      rivalGot = Math.max(rivalGot, rl ? (statFromLine(i.stat, rl) ?? 0) : 0);
+    }
+    if (rivalMissing) { console.log(`${i.who}: ${i.label}: a rival's box score isn't final yet, not scored`); continue; }
     calls.push({ team: i.team, player: i.who, what: i.kind === "pass" && i.passing ? `record (${i.list}): pass ${i.passing} in ${i.label}` : `record (${i.list}): ${i.target ?? ""} ${i.label}`.replace(/\s+/g, " "),
-      need: i.need, p: i.pTonight, got: v, hit: v >= i.need, stat: i.stat, pPlay: i.pPlay, played: !!line && (line.played ?? (line.min ?? 0) > 0), from: "records" });
+      need: i.need, p: i.pTonight, got: v, hit: recordHit(v, i.need, rivalGot), stat: i.stat, pPlay: i.pPlay, played: !!line && (line.played ?? (line.min ?? 0) > 0),
+      ...(i.rivals?.length ? { rivalGot } : {}), from: "records" });
   }
+}
+/** A rival's line tonight: by id, else (files saved before 0.141.12 kept names only) by name, in every final game of the
+ *  date. null = his game is final and he didn't play (adds 0); undefined = a game that night isn't final yet. */
+async function rivalLine(r) {
+  if (!rivalLine.games) {
+    const sb = await espn.scoreboard(today);
+    const games = sb.ok ? sb.data.games.filter((g) => g.date === today) : [];
+    rivalLine.games = [];
+    for (const g of games) { const b = await espn.box(g.id); rivalLine.games.push(b.ok && b.data.final ? b.data : undefined); }
+    if (!sb.ok) rivalLine.games.push(undefined);
+  }
+  for (const b of rivalLine.games) {
+    if (!b) continue;
+    const l = b.players.find((p) => (r.id ? p.id === String(r.id) : p.name && sameish(p.name, r.name)));
+    if (l) return l;
+  }
+  return rivalLine.games.some((b) => !b) ? undefined : null;
 }
 function sameish(a, b) {
   const k = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[’'.]/g, "").replace(/\b(jr|sr|ii|iii|iv)\b/gi, "").replace(/\s+/g, " ").trim().toLowerCase();
@@ -89,7 +118,7 @@ if (real.length) console.log(`calls given 5%+: ${real.length}, happened ${real.f
 {
   const file = "data/calls.jsonl";
   const keep = fs.existsSync(file) ? fs.readFileSync(file, "utf8").split("\n").filter((l) => l.trim() && JSON.parse(l).d !== today) : [];
-  for (const c of calls.filter((c) => c.p >= 0.05)) keep.push(JSON.stringify({ d: today, team: c.team, player: c.player, what: c.what, need: c.need, got: c.got, p: c.p, hit: c.hit, stat: c.stat, pPlay: c.pPlay, played: c.played, ...(c.from ? { from: c.from } : {}) }));
+  for (const c of calls.filter((c) => c.p >= 0.05)) keep.push(JSON.stringify({ d: today, team: c.team, player: c.player, what: c.what, need: c.need, got: c.got, p: c.p, hit: c.hit, stat: c.stat, pPlay: c.pPlay, played: c.played, ...(c.rivalGot != null ? { rivalGot: c.rivalGot } : {}), ...(c.from ? { from: c.from } : {}) }));
   fs.writeFileSync(file, keep.join("\n") + "\n");
 }
 // One line per night: re-scoring the same night replaces its line.

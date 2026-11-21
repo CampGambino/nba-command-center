@@ -2,6 +2,40 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.141.12 (2026-11-21): record chases against an active player are scored as passing him
+
+The user said "Use that order" at 11:46 AM. Item 1: why milestone and record chances missed in different directions. The question was whether the "now" totals were stale.
+
+**Not stale totals.** A call is scored against the same `need` it was made with (`hit = got >= need`). A day-old total would change which line is shown, not whether its chance is right.
+
+**The cause was a scoring error.** For a record chase where the man being passed is active and also plays tonight, the model (`addChances` → `simulate`) asks whether he finishes ahead: `need` plus whatever the rival adds tonight. The Records page says so ("Jokić is active too and plays tonight: his games count in the odds"). Scoring (0.141.9) checked only `got >= need`. Examples:
+- Şengün needing 3 rebounds to pass Jokić was given 12%, because Jokić also played. Any 3 rebounds counted as a hit.
+- Zubac needing 6 to pass Jalen Johnson: he got 10, Johnson got 6, so he didn't pass him. It was scored a hit.
+
+**Changed.**
+- `src/records/guide.js`: each rival keeps his id and team.
+- `src/records/predictions.js`: the saved chance keeps the rivals who play tonight. New `recordHit(got, need, rivalGot)`.
+- `scripts/score.js`: finds each rival's line that night by id. Files saved before this have only names, so it matches by name in every final game of the date. A rival who didn't play adds 0, and a game that isn't final leaves the call unscored. The call keeps `rivalGot`.
+- Past nights: 11/12-11/20 were rebuilt from the same Records commits and are identical apart from the rivals. Then all nine nights were re-scored.
+
+**What it changed.** 49 scored calls had a rival playing the same night, mostly on the Cup nights (11/13 and 11/20). 19 flip from hit to miss. Each pair agrees with the other side's own call (Zubac's 10 against Şengün's 11; Şengün's 11 still clears 3 + Jokić's 7). No other call changed, and the set of calls is the same (664).
+
+**The record chases, scored right** (players who played, 201 calls):
+- 85.8 expected and 80 happened: a little high, like the milestones.
+- Under 20%: 11% → 13%. 20-50%: 32% → 29%. 50-80%: 65% → 60%. 80%+: 92% → 83%.
+- 0.141.9's "long shots happen twice as often" was this error.
+- Their own fit becomes a −0.22, b 0.84 (was 0.215, 0.653): 61% → 54%, 89% → 82%.
+- Held out (train through 11/17 or 11/18, test after):
+  - The record chases' own fit: 0.1683 and 0.1809. The milestones' fit: 0.1688 and 0.1812. One shared fit: 0.1686 and 0.1807. Raw: 0.1713 and 0.1855.
+  - All three help, and they're within noise of each other. The separate fit is kept, and the build refits it from the corrected calls.
+
+**Tests.** 1,104 (one new: rivals who play tonight are kept with the chance, and the Zubac case is a miss).
+
+**Self-audit.**
+- 0.141.9 drew a conclusion (the record chases are "too extreme both ways") from a scoring rule I hadn't checked against what the model simulates. Its CHANGES entry and the comment in `calibrate.js` said so. The comment is corrected here; the old entry stands as history.
+- The remaining honest finding is the same for both kinds: given he plays, chances run about 5-10% high. That's the per-stat question waiting for more calls (about Dec 5).
+- Milestone "pass" lines on the Watch List don't count a rival's game tonight at all. I checked: of 36 such calls at 5%+ since 11/9, the man being passed plays this season in 5. Three are Max Christie and Harrison Barnes, a franchise line where Barnes (now SAS) is frozen. Two are real: Curry passing DeRozan in all-time points (11/9, 97%) and Sharpe passing Hartenstein (11/14, 16%). Those two are rare and small, so they're left as they are and raised with the user, since they change the cards' numbers.
+
 ## 0.141.11 (2026-11-21): the Game Flow chart fits a phone
 
 The user's phone screenshots (11:06 AM, NYK @ MIN 11/19 and SAC @ LAL 11/20) checked 0.141.10. The split itself is fine: the styles and script loaded and the page read the games. They also showed an older fault, there since 0.52.0.

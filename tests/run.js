@@ -5125,6 +5125,18 @@ await bridgeChecks(ok, root);
       && !k.some((x) => x.who === "Not Tonight") && C.readCalls(txt).length === 1 && C.readCalls(txt, { kind: "records" }).length === 1 && C.readCalls(txt, { kind: "all" }).length === 2,
       "records (0.141.9): tonight's record chances kept once each with the raw chance (records, Cup, franchise); milestone and record calls read apart", JSON.stringify(k));
   }
+  // 0.141.12: a record chase against an active player who also plays tonight is scored as finishing ahead of him.
+  {
+    const { tonightChances, recordHit } = await import("../src/records/predictions.js");
+    const k = tonightChances({ cup: [{ kind: "cup", id: "4017837", who: "Ivica Zubac", team: "IND", stat: "reb", label: "rebounds", need: 6, target: 145, tonight: true, pTonight: 0.115,
+      passing: { name: "Jalen Johnson", live: true }, rivals: [{ name: "Jalen Johnson", id: "4701230", team: "ATL", tonight: true }, { name: "Idle Guy", id: "1", team: "X", tonight: false }] },
+      { kind: "cup", id: "2", who: "Plain", team: "BOS", stat: "pts", need: 4, tonight: true, pTonight: 0.9, rivals: [{ name: "Off Tonight", tonight: false }] }] });
+    const z = k.find((x) => x.id === "4017837"), pl = k.find((x) => x.id === "2");
+    // 11/20: Zubac got 10 rebounds and needed 6, but Johnson got 6 that night: 10 < 6 + 6, a miss (scored a hit before 0.141.12).
+    ok(z && JSON.stringify(z.rivals) === JSON.stringify([{ name: "Jalen Johnson", id: "4701230", team: "ATL" }]) && pl && !("rivals" in pl)
+      && !recordHit(10, 6, 6) && recordHit(12, 6, 6) && recordHit(6, 6) && !recordHit(5, 6),
+      "records (0.141.12): a rival playing tonight is kept with the chance, and the call is a hit only if he finishes ahead of him", JSON.stringify(k));
+  }
   // 0.141.0: luck, paradox, scarcity, defense by position (src/anticipate/detectors.js).
   {
     const D = await import("../src/anticipate/detectors.js");
