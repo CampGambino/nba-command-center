@@ -268,6 +268,20 @@ function franchiseClause({ runs, pg, names, id, team, k, test, n, nick }) {
   return { ahead: ahead.length, text: `one more tonight would make him the ${ORD[ahead.length + 1]} ${scope} to do it ${n + 1} straight (${ahead.map(nm).join(", ")})` };
 }
 
+/**
+ * The minutes behind a run (0.141.15, the backtest: most of a hot streak is minutes; points per minute carry only 28% over
+ * five games, minutes far more). His minutes a game in the run against his games before it this season (3 or more):
+ * 3+ minutes more or fewer is said, otherwise "on his usual minutes". Nothing without 3 games before the run.
+ */
+export function minutesClause(games, n) {
+  const run = games.slice(-n), before = games.slice(0, -n);
+  if (before.length < 3 || !run.length || run.some((g) => !Number.isFinite(g.min))) return "";
+  const avg = (gs) => gs.reduce((a, g) => a + g.min, 0) / gs.length, f = (x) => x.toFixed(1).replace(/\.0$/, "");
+  const r = avg(run), b = avg(before);
+  if (r - b >= 3) return ` (with more minutes: ${f(r)} a game in the run, ${f(b)} before it)`;
+  if (b - r >= 3) return ` (on fewer minutes: ${f(r)} a game in the run, ${f(b)} before it)`;
+  return ` (on his usual minutes, ${f(r)} a game)`;
+}
 export function streakLines({ pg, logs, names, runs = null, nicks = null }) {
   const L = logRows(logs);
   const out = [];
@@ -310,7 +324,7 @@ export function streakLines({ pg, logs, names, runs = null, nicks = null }) {
         if (c && (r.n >= 3 || c.ahead <= FRANCHISE.fewAt2) && (!fr || c.ahead < fr.ahead || (c.ahead === fr.ahead && r.n > fr.r.n))) fr = { ...c, k, label, r };
       }
       if (!best && fr) {
-        out.push({ kind: "pstreak", team, player: name, id, key: `pstreak|${id}|${fr.k}`, text: `${name} has ${fr.label.replace(/^a /, "")}${/^a /.test(fr.label) ? "s" : ""} in ${fr.r.n} straight games: ${fr.text}`,
+        out.push({ kind: "pstreak", team, player: name, id, key: `pstreak|${id}|${fr.k}`, text: `${name} has ${fr.label.replace(/^a /, "")}${/^a /.test(fr.label) ? "s" : ""} in ${fr.r.n} straight games${minutesClause(games, fr.r.n)}: ${fr.text}`,
           score: 3 + (fr.ahead ? 0.4 : 0.8) + Math.min(0.4, fr.r.n * 0.05), rare: true, franchise: true });
         continue;
       }
@@ -319,11 +333,113 @@ export function streakLines({ pg, logs, names, runs = null, nicks = null }) {
     const { label, r, atNext, players, atN } = best;
     const nm = (x) => `${names[x.id] || x.id} ${x.season === "this season" ? "this season" : short(x.season)}`;
     const nobody = !atNext.length;
-    const text = `${name} has ${label.replace(/^a /, "")}${/^a /.test(label) ? "s" : ""} in ${r.n} straight games: ${nobody
+    const text = `${name} has ${label.replace(/^a /, "")}${/^a /.test(label) ? "s" : ""} in ${r.n} straight games${minutesClause(games, r.n)}: ${nobody
       ? `no current player has done it ${r.n + 1} straight since 2016-17${atN.length ? ` (${atN.length} did ${r.n}: ${[...new Map(atN.map((x) => [x.id, x])).values()].slice(0, 3).map(nm).join(", ")})` : ""}`
       : `one more tonight would put him with ${players.slice(0, 4).map(nm).join(", ")} as the only current players to do it ${r.n + 1} straight since 2016-17`}`;
     out.push({ kind: "pstreak", team, player: name, id, key: `pstreak|${id}|${best.k}`, text: fr ? `${text}. For the ${nick}: ${fr.text}` : text, ...(fr ? { franchise: true } : {}),
       score: 3 + (nobody ? 0.9 : 0.4) + Math.min(0.4, r.n * 0.05), rare: true });
+  }
+  return out;
+}
+
+// 4d. A team's run that ended last night (0.141.15, the user's order 11/21: "ended" lines for team runs): a winning or
+// losing streak of 5+ that the latest game ended, said once (only while that game is the latest on file), with whether it
+// was the league's longest active run of its kind going into the night.
+export function teamEndedLines({ rows, minRun = 5 }) {
+  const done = [...rows].filter((g) => g.hs != null && g.as != null && !g.cupFinal).sort((a, b) => a.d.localeCompare(b.d) || String(a.id).localeCompare(String(b.id)));
+  if (!done.length) return [];
+  const last = done[done.length - 1].d, T = {};
+  for (const g of done) {
+    (T[g.h] ??= []).push({ d: g.d, opp: g.a, home: true, win: g.hs > g.as, us: g.hs, them: g.as });
+    (T[g.a] ??= []).push({ d: g.d, opp: g.h, home: false, win: g.as > g.hs, us: g.as, them: g.hs });
+  }
+  // Each team's run going into the latest date: [won?, length].
+  const going = {};
+  for (const [t, list] of Object.entries(T)) {
+    const before = list.filter((g) => g.d < last);
+    if (!before.length) continue;
+    const w = before[before.length - 1].win;
+    let n = 0; for (let i = before.length - 1; i >= 0 && before[i].win === w; i--) n++;
+    going[t] = { w, n };
+  }
+  const out = [], [, mm, dd] = last.split("-");
+  for (const [t, list] of Object.entries(T)) {
+    const g = list[list.length - 1], r = going[t];
+    if (g.d !== last || !r || r.n < minRun || g.win === r.w) continue;   // no game last night, a short run, or the run went on
+    const longest = Object.entries(going).every(([u, x]) => u === t || x.w !== r.w || x.n < r.n);
+    const tie = Object.entries(going).some(([u, x]) => u !== t && x.w === r.w && x.n === r.n);
+    const res = `${g.home ? (g.win ? "beat" : "lost to") : (g.win ? "won at" : "lost at")} ${g.opp} ${g.us}-${g.them}`;
+    const lead = longest ? ` (${tie ? "tied for " : ""}the NBA's longest active ${r.w ? "winning" : "losing"} streak)` : "";
+    out.push({ kind: "broken", team: t, key: `tbroken|${t}|${last}`, ended: last, rare: r.n >= 8,
+      text: r.w ? `${t}'s ${r.n}-game winning streak${lead} ended ${+mm}/${+dd}: ${res}` : `${t} ended a ${r.n}-game losing streak${lead} ${+mm}/${+dd}: ${res}`,
+      score: 3 + Math.min(0.9, (r.n - minRun) * 0.15) + (longest ? 0.2 : 0) });
+  }
+  return out;
+}
+
+// 4e. A streak the team's game notes were following that ended last night (0.141.15, the user's order 11/21). The notes
+// only say which streak a player has going ("a double-double in nine straight games", "5+ assists in 13 straight", "his
+// 10th consecutive game with a block"); the run's length and its end come from the box scores, so a count is never a
+// stale notes count, and no notes text is copied. Only forms that can be checked against a box score are read; a run
+// the box scores don't fully cover (one that began last season) is left alone.
+const WORDN = { two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20,
+  second: 2, third: 3, fourth: 4, fifth: 5, sixth: 6, seventh: 7, eighth: 8, ninth: 9, tenth: 10, eleventh: 11, twelfth: 12, thirteenth: 13, fourteenth: 14, fifteenth: 15 };
+const NOTE_STAT = { point: "pts", points: "pts", rebound: "reb", rebounds: "reb", assist: "ast", assists: "ast", steal: "stl", steals: "stl", block: "blk", blocks: "blk",
+  "3-pointer": "fg3m", "3-pointers": "fg3m", "three-pointer": "fg3m", "three-pointers": "fg3m", three: "fg3m", threes: "fg3m" };
+const NOTE_WORD = { pts: "points", reb: "rebounds", ast: "assists", stl: "steals", blk: "blocks", fg3m: "threes" };
+/** A notes sentence -> { n, tests: [{ k, min } | "dd" | "td" | "start"], label } or null. */
+export function noteStreak(text) {
+  const t = String(text || "").toLowerCase();
+  // Streaks tied to a split the box rows can't tell apart are left alone (a "vs. BKN (11/8)" naming the game is fine).
+  if (/off the bench|\bagainst\b|road games|home games|\bwhen\b|\bin (wins|losses)\b/.test(t)) return null;
+  const num = (w) => (/^\d+$/.test(w) ? +w : /^\d+(st|nd|rd|th)$/.test(w) ? parseInt(w, 10) : WORDN[w] ?? null);
+  const m = /\b(\w+) (?:straight|consecutive) (?:regular[- ]season )?games?\b/.exec(t) || /\bin (\w+) (?:straight|consecutive)\b/.exec(t);
+  const n = m ? num(m[1]) : null;
+  if (!n || n < 3) return null;
+  const tests = [], words = [];
+  if (/triple-double/.test(t)) { tests.push("td"); words.push("a triple-double"); }
+  else if (/double-double/.test(t)) { tests.push("dd"); words.push("a double-double"); }
+  if (/\bstarted\b|\bstarts\b/.test(t)) { tests.push("start"); words.push("a start"); }
+  for (const x of t.matchAll(/(?:at least |)(\d+)(?:\+| or more)? ?(points?|rebounds?|assists?|steals?|blocks?|3-pointers?|three-pointers?|threes?)\b/g)) {
+    const k = NOTE_STAT[x[2]]; if (!k) continue;
+    const plus = new RegExp(`${x[1]}(\\+| or more)`).test(t) || new RegExp(`at least ${x[1]}`).test(t);
+    if (!plus) continue;                                   // "12 points" alone is a line, not a condition
+    tests.push({ k, min: +x[1] }); words.push(`${x[1]}+ ${NOTE_WORD[k]}`);
+  }
+  if (/multiple (3-pointers|three-pointers|threes)/.test(t)) { tests.push({ k: "fg3m", min: 2 }); words.push("2+ threes"); }
+  for (const [re, k, w] of [[/\ba block\b/, "blk", "a block"], [/\ba steal\b/, "stl", "a steal"], [/\ba (3-pointer|three-pointer|three)\b/, "fg3m", "a three"]]) if (re.test(t) && !tests.some((x) => x.k === k)) { tests.push({ k, min: 1 }); words.push(w); }
+  if (!tests.length) return null;
+  return { n, tests, label: words.length > 1 ? `${words.slice(0, -1).join(", ")} and ${words.at(-1)}` : words[0], ...(/to start (the|a|this) season/.test(t) ? { fromStart: true } : {}) };
+}
+const meets = (g, tests) => tests.every((x) => (x === "dd" ? dd(g) : x === "td" ? td(g) : x === "start" ? !!g.starter : (g[x.k] ?? 0) >= x.min));
+export function notesEndedLines({ pg, names, notesFacts = null }) {
+  if (!notesFacts?.teams) return [];
+  const last = Object.values(pg).reduce((m, gs) => (gs.length && gs[gs.length - 1].d > m ? gs[gs.length - 1].d : m), "");
+  if (!last) return [];
+  const out = [], seen = new Set(), [, mm, dd2] = last.split("-");
+  for (const [team, facts] of Object.entries(notesFacts.teams)) for (const f of facts || []) {
+    const id = f.playerId && String(f.playerId), gs = id && pg[id];
+    if (!gs || gs.length < 4 || gs[gs.length - 1].d !== last) continue;
+    const st = noteStreak(f.text);
+    if (!st) continue;
+    const key = `${id}|${JSON.stringify(st.tests)}`;
+    if (seen.has(key)) continue;
+    const g = gs[gs.length - 1], before = gs.slice(0, -1);
+    if (meets(g, st.tests)) continue;                      // the run went on (or there was none)
+    let n = 0; for (let i = before.length - 1; i >= 0 && meets(before[i], st.tests); i--) n++;
+    // The same run the notes meant: at least as long as they said, and no longer than that plus his games since the note first
+    // appeared (an older run of the same kind isn't credited to the notes). A run the notes count from last season is longer
+    // than his games this season and fails the first test.
+    const since = f.firstSeen ? before.filter((x) => x.d >= f.firstSeen).length : 0;
+    // A run "to start the season" that covers every game he has played is that run, however stale the notes' count
+    // (Towns, 11/21: the notes still said nine, the box scores fifteen).
+    const wholeSeason = st.fromStart && n === before.length;
+    if (n < 3 || n < st.n || (n > st.n + since + 1 && !wholeSeason)) continue;
+    seen.add(key);
+    const got = st.tests.includes("start") ? "came off the bench" : `${g.pts} points, ${g.reb} rebounds, ${g.ast} assists${st.tests.some((x) => x.k === "blk" || x.k === "stl") ? `, ${g.stl} steals, ${g.blk} blocks` : ""}${st.tests.some((x) => x.k === "fg3m") ? `, ${g.fg3m}-${g.fg3a} from three` : ""}`;
+    out.push({ kind: "broken", team: g.team, player: names[id] || f.player, id, key: `nbroken|${id}|${last}`, ended: last, fromNotes: true,
+      text: `${names[id] || f.player}'s run of ${n} straight games with ${st.label} ended ${+mm}/${+dd2} (${got}): a streak in the ${team} game notes`,
+      score: 3 + Math.min(0.6, (n - 3) * 0.06) });
   }
   return out;
 }
@@ -589,9 +705,11 @@ export function prominence(pg, names) {
 
 /** All of it, for scripts/situations.js -> docs/data/prep.json. */
 export function prepLines(args) {
-  const parts = [["season", seasonLines], ["absence", absenceLines], ["run", runLines], ["streak", streakLines], ["broken", brokenLines], ["vsopp", vsOppLines], ["pace", paceLines], ["own", ownStartLines], ["already", alreadyLines], ["slump", slumpLines]];
+  const parts = [["season", seasonLines], ["absence", absenceLines], ["run", runLines], ["streak", streakLines], ["broken", brokenLines], ["tbroken", teamEndedLines], ["nbroken", notesEndedLines], ["vsopp", vsOppLines], ["pace", paceLines], ["own", ownStartLines], ["already", alreadyLines], ["slump", slumpLines]];
   const lines = [], errors = [];
   for (const [k, f] of parts) { try { lines.push(...f(args)); } catch (e) { errors.push(`${k}: ${e.message}`); } }
-  return { lines, errors, stars: prominence(args.pg, args.names) };
+  // A run the box-score finder already said ended (brokenLines) isn't said again from the notes.
+  const boxEnded = new Set(lines.filter((l) => l.kind === "broken" && !l.fromNotes && l.id).map((l) => l.id));
+  return { lines: lines.filter((l) => !(l.fromNotes && boxEnded.has(l.id))), errors, stars: prominence(args.pg, args.names) };
 }
 export { surname };

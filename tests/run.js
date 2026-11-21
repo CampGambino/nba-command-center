@@ -4880,6 +4880,62 @@ await bridgeChecks(ok, root);
   ok(/get\("series\.json"\)/.test(ix) && /t-series/.test(ix) && /both guides agree/.test(ix) && /not all-time/.test(ix) && /last season added from our results/.test(ix), "Index (0.84): the all-time series lookup, with the basis of each row");
 }
 
+// ---------- 0.141.15: lines from the backtest (minutes behind a run, measured rarity, team runs ended) ----------
+{
+  const P = await import("../src/anticipate/prep.js"), Tr = await import("../src/situations/trends.js");
+  const G = (mins) => mins.map((min, i) => ({ d: `2026-11-${String(i + 1).padStart(2, "0")}`, min, pts: 20 }));
+  ok(P.minutesClause(G([30, 31, 29, 30, 36, 37, 35]), 3) === " (with more minutes: 36 a game in the run, 30 before it)"
+    && P.minutesClause(G([34, 35, 33, 34, 34, 35]), 2) === " (on his usual minutes, 34.5 a game)"
+    && P.minutesClause(G([36, 36, 36, 30, 31]), 2) === " (on fewer minutes: 30.5 a game in the run, 36 before it)"
+    && P.minutesClause(G([30, 36, 37]), 2) === "",
+    "prep (0.141.15): a run says whether it came with more minutes, fewer, or his usual (nothing without 3 games before it)");
+  // Team runs: BOS won 6 straight and lost last night; NYK lost 5 and won; MIA won 2 and won again (nothing).
+  const rowsE = []; let id = 0;
+  const day = (k) => `2026-11-${String(k).padStart(2, "0")}`;
+  for (let k = 1; k <= 6; k++) rowsE.push({ id: ++id, d: day(k), h: "BOS", a: `X${k}`, hs: 110, as: 100 });
+  for (let k = 1; k <= 5; k++) rowsE.push({ id: ++id, d: day(k), h: "NYK", a: `Y${k}`, hs: 90, as: 100 });
+  rowsE.push({ id: ++id, d: day(1), h: "MIA", a: "Z1", hs: 100, as: 90 }, { id: ++id, d: day(5), h: "MIA", a: "Z2", hs: 100, as: 90 });
+  rowsE.push({ id: ++id, d: day(7), h: "CHI", a: "BOS", hs: 101, as: 99 }, { id: ++id, d: day(7), h: "NYK", a: "MIA", hs: 104, as: 98 });
+  const TE = P.teamEndedLines({ rows: rowsE });
+  const bos = TE.find((l) => l.team === "BOS"), nyk = TE.find((l) => l.team === "NYK");
+  ok(TE.length === 2 && bos && bos.text === "BOS's 6-game winning streak (the NBA's longest active winning streak) ended 11/7: lost at CHI 99-101"
+    && nyk && nyk.text === "NYK ended a 5-game losing streak (the NBA's longest active losing streak) 11/7: beat MIA 104-98" && bos.kind === "broken" && !TE.some((l) => l.team === "MIA"),
+    "prep (0.141.15): a team's 5+ game run that ended last night is said, with whether it was the league's longest", JSON.stringify(TE.map((l) => l.text)));
+  // Measured rarity: a 2.5-spread points night is far commoner than a 2.5-spread blocks night, and the list leads with the rarer.
+  const tails = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "outlier-tails.json"), "utf8"));
+  const sP = Tr.noteShare({ stat: "pts", z: 2.5 }, tails), sB = Tr.noteShare({ stat: "blk", z: 2.5 }, tails), sMid = Tr.noteShare({ stat: "pts", z: 2.625 }, tails);
+  const pgR = { p: Array.from({ length: 10 }, (_, i) => ({ d: day(i + 1), team: "A", opp: "B", min: 30, pts: i === 9 ? 34 : 18 + (i % 3), reb: 5, ast: 4, fg3m: 2, stl: 1, blk: 0, fgm: 7, fga: 15, fg3a: 5 })),
+    b: Array.from({ length: 10 }, (_, i) => ({ d: day(i + 1), team: "C", opp: "D", min: 30, pts: 12, reb: 6, ast: 2, fg3m: 1, stl: 1, blk: i === 9 ? 5 : i % 2, fgm: 5, fga: 10, fg3a: 3 })) };
+  const AR = Tr.anomalies(pgR, { p: "Points Guy", b: "Block Guy" }, { dates: [day(10)], tails });
+  ok(tails.playerGames > 50000 && sP > 0.02 && sP < 0.04 && sB < sP / 2 && sMid < sP && sMid > Tr.noteShare({ stat: "pts", z: 2.75 }, tails) && Tr.oneIn(0.0285) === 35
+    && AR.length === 2 && AR.every((a) => a.oneIn > 0 && a.notes.some((n) => n.oneIn)) && AR[0].share <= AR[1].share,
+    "outliers (0.141.15): each night carries how often a night that far out happens (1 in N player-games, measured), rarest first",
+    JSON.stringify({ sP, sB, AR: AR.map((a) => [a.name, a.oneIn, a.score]) }));
+}
+
+// ---------- 0.141.15: streaks the game notes were following, ended last night ----------
+{
+  const P = await import("../src/anticipate/prep.js");
+  const day = (k) => `2026-11-${String(k).padStart(2, "0")}`;
+  const ln = (k, o) => ({ d: day(k), team: "NYK", opp: "X", min: 34, pts: 20, reb: 11, ast: 3, stl: 1, blk: 1, fg3m: 1, fg3a: 4, starter: 1, ...o });
+  // Double-doubles in games 1-11, then 12 points and 8 rebounds on 11/12. The notes (first seen 11/10) had it at nine.
+  const pgN = { t: [...Array.from({ length: 11 }, (_, i) => ln(i + 1)), ln(12, { pts: 12, reb: 8 })], o: [ln(1), ln(12)] };
+  const factsN = { teams: { NYK: [{ text: "Towns has recorded a double-double in nine straight games to start the season, tied for the second-longest such run.", player: "Karl-Anthony Towns", playerId: "t", firstSeen: day(10) }] } };
+  const L1 = P.notesEndedLines({ pg: pgN, names: { t: "Karl-Anthony Towns" }, notesFacts: factsN });
+  // A note that said seven (first seen 11/10): eleven is more than seven plus the two games since and one of slack, so a
+  // run that long isn't the one the notes meant.
+  const L2 = P.notesEndedLines({ pg: pgN, names: { t: "Karl-Anthony Towns" }, notesFacts: { teams: { NYK: [{ ...factsN.teams.NYK[0], text: "Towns has recorded a double-double in seven straight games." }] } } });
+  const parsed = [P.noteStreak("Daniel Gafford recorded a block vs. BKN (11/8/26), his 10th consecutive game with a block."), P.noteStreak("Dished out 5+ assists in 13 straight games (10/23 - 11/19)"),
+    P.noteStreak("The Mavericks have won 11 consecutive home games against Utah."), P.noteStreak("first 76er to make at least five three-pointers off the bench in three consecutive games"), P.noteStreak("Javon Small posted his first career double-double with 12 points and 12 assists")];
+  ok(L1.length === 1 && L1[0].text === "Karl-Anthony Towns's run of 11 straight games with a double-double ended 11/12 (12 points, 8 rebounds, 3 assists): a streak in the NYK game notes"
+    && !L1[0].text.includes("second-longest") && L2.length === 0
+    // "to start the season", every game he has played: credited however stale the notes' count (the note said nine, first seen 11/11).
+    && P.notesEndedLines({ pg: pgN, names: { t: "Karl-Anthony Towns" }, notesFacts: { teams: { NYK: [{ ...factsN.teams.NYK[0], firstSeen: day(11) }] } } }).length === 1
+    && P.notesEndedLines({ pg: pgN, names: { t: "Karl-Anthony Towns" }, notesFacts: { teams: { NYK: [{ ...factsN.teams.NYK[0], text: "Towns has recorded a double-double in seven straight games to start the season.", firstSeen: day(11) }] } } }).length === 1
+    && parsed[0]?.n === 10 && JSON.stringify(parsed[0].tests) === '[{"k":"blk","min":1}]' && parsed[1]?.n === 13 && parsed[1].tests[0].min === 5 && parsed.slice(2).every((x) => x === null),
+    "prep (0.141.15): a streak the game notes were following, ended last night, counted from the box scores (no notes text copied; an older run isn't credited)", JSON.stringify({ L1: L1.map((l) => l.text), L2: L2.length, parsed }));
+}
+
 // ---------- 0.141.14: the Worker's saved data, backed up (tools/kv-backup.mjs, .github/workflows/kv-backup.yml) ----------
 {
   const K = await import("../tools/kv-backup.mjs");

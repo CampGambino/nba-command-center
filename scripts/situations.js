@@ -458,7 +458,10 @@ for (const [tri, games] of Object.entries(perTeam)) {
       const zlib = await import("node:zlib");
       if (fs.existsSync(rf)) { featRuns = JSON.parse(zlib.gunzipSync(fs.readFileSync(rf))); const { TEAMS: T } = await import("../src/teams.js"); teamNicks = Object.fromEntries(Object.entries(T).map(([k, v]) => [k, v.nick])); }
     } catch (e) { console.error(`franchise runs not read: ${e.message}`); }
-    const prep = prepLines({ pg, rows, logs: logsData, seasons: seasonsData, names: store.names || {}, nameKey: keyFn, season: seasonTag, games: slate, runs: featRuns, nicks: teamNicks });
+    // 0.141.15: the game notes' facts (written by tonight.js, earlier in the build), for streaks the notes were following.
+    let notesFacts = null;
+    try { const nf = path.join(root, "docs", "data", "notes-facts.json"); if (fs.existsSync(nf)) notesFacts = JSON.parse(fs.readFileSync(nf, "utf8")); } catch (e) { console.error(`notes facts not read for prep: ${e.message}`); }
+    const prep = prepLines({ pg, rows, logs: logsData, seasons: seasonsData, names: store.names || {}, nameKey: keyFn, season: seasonTag, games: slate, runs: featRuns, nicks: teamNicks, notesFacts });
     // Season-long and morning-after lines (0.70): trades, starter/bench, vs MVP season, lineups, record turns, best
     // since Christmas, who has beaten the best teams, month ratings and totals, rookies, last night's unique lines.
     let lastNight = [], zeros = {};
@@ -612,7 +615,9 @@ for (const [tri, games] of Object.entries(perTeam)) {
       console.log(`flag checks: ${R.found} of ${R.total} seen coming${R.checks.filter((c) => c.found === false).length ? ` (missed: ${R.checks.filter((c) => c.found === false).map((c) => c.id).join(", ")})` : ""}`);
     }
   } catch (e) { console.error(`flag checks not run: ${e.message}`); }
-  const byDate = Object.fromEntries(dates.map((d) => [d, anomalies(pg, store.names || {}, { dates: [d], careers })]));
+  // 0.141.15: measured rarity (src/data/outlier-tails.json, tools/outlier-tails.mjs).
+  const tailsFile = path.join(root, "src", "data", "outlier-tails.json"), tails = fs.existsSync(tailsFile) ? JSON.parse(fs.readFileSync(tailsFile, "utf8")) : null;
+  const byDate = Object.fromEntries(dates.map((d) => [d, anomalies(pg, store.names || {}, { dates: [d], careers, tails })]));
   // Odd lines (0.117; the user, 11/19: "these are concepts worth tracking and flagging"): the shape of a line, graded by
   // how often it has happened in 33 seasons of box scores (src/data/odd-lines-history.json, tools/odd-games/build-history.mjs).
   let oddByDate = null, oddTally = null;

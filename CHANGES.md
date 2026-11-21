@@ -2,6 +2,40 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.141.15 (2026-11-21): lines from the backtest: the minutes behind a run, how rare a night really is, runs that ended
+
+Item 4 of the user's order (11:46 AM): the lines the four-season replay (`claude/backtest-2026-11-21.md`) pointed to.
+
+**1. The minutes behind a streak.** The replay: most of a hot streak is minutes. Points per minute carry only 28% over five games; minutes carry far more. A player-streak line now says which kind it is (`minutesClause`): his minutes a game in the run against his games before it this season (3 or more). 3+ more or fewer is said; otherwise "on his usual minutes". Replayed on the flag checks' mornings:
+- "Luka Doncic has 40+ points in 4 straight games (on his usual minutes, 36 a game): …"
+- "Franz Wagner has 30+ points in 3 straight games (with more minutes: 39 a game in the run, 36 before it): …"
+Both checks still match.
+
+**2. How rare an outlier night really is.** The finder flags a night by spreads from his norm, which assumes a bell curve. In four seasons of box scores (94,405 player-games, `tools/outlier-tails.mjs` → `src/data/outlier-tails.json`, measured the same way: his earlier games that season, the same floors):
+- 2.5 spreads above is 1 in 35 player-games for points, 1 in 68 for rebounds, 1 in 108 for blocks. The bell curve says 1 in 160 for all.
+- A regular's points night 2.5 spreads under: 1 in 430.
+- 0-for-6+ from three: 1 in 140.
+- 25+ points of field-goal percentage over his usual: 1 in 78.
+
+Each note now carries "1 in N" (`noteShare`, log-linear between steps). The night carries its rarest, and the list leads with the rarest. The spreads (`score`) are kept. On the Trends page each chip adds "· 1 in N", and "strength 4.1" becomes "a 1-in-N night" (with a tooltip saying what it measures). 11/20: Harden's 51 is a 1-in-2,100 night and leads, and Bane's 5 steals (1 in 700) now sits above nights with more spreads but commoner stats. Nothing was narrowed: the same nights are flagged.
+
+**3. Runs that ended** (kind `broken`, said once, the day after; 0.141.8 had box-score player runs only):
+- *Team runs* (`teamEndedLines`): a winning or losing streak of 5+ that last night ended, with whether it was the league's longest active run of its kind. 11/20: "TOR ended a 6-game losing streak 11/20: won at DET 105-102".
+- *Streaks the game notes were following* (`notesEndedLines`, `noteStreak`):
+  - The notes only say which streak a player has going: a double-double, 5+ assists, a block, a block and a steal, 20+ points and 5+ assists, starts.
+  - The run's length and its end come from the box scores, and no notes text is copied.
+  - Left alone: splits the box rows can't tell apart (off the bench, against a team, home or road), and runs the box scores don't fully cover (Camara's 101 straight starts reach back into last season).
+  - The run must fit the notes' count: at least that long, and no longer than it plus his games since the note first appeared (plus one). A run "to start the season" that covers every game he's played also counts.
+  - A run the box-score finder already said ended isn't said again.
+- Checked against today's notes: Garland's 13 straight with 5+ assists matches the box scores. Gafford's and Wembanyama's had already broken and restarted, so they won't be credited. Towns's note still says nine; the box scores say 15, every game he's played, so his counts as "to start the season".
+
+**Tests.** 1,112 (four new). A full local build (`scripts/situations.js` changed): healthy, no prep errors. 279 prep lines, the same as the live build plus the one team line.
+
+**Self-audit.**
+- The rarity is per player-game league-wide, not per player. "1 in N" says how often any player has a night that far from his own norm.
+- The minutes clause compares the run with his earlier games this season. It doesn't yet say what share of the streak usually carries, which the replay measured.
+- `noteStreak` reads the common forms only. Anything it can't read is skipped, never guessed. A form it misreads would still be checked against the box scores and the notes' count before anything is said.
+
 ## 0.141.14 (2026-11-21): the Worker's saved data is backed up daily, encrypted
 
 Item 3 of the user's order (11:46 AM): backups for NBA Live and the Worker's KV. This is the Worker half. NBA Live's needs the PC, which wasn't connected.

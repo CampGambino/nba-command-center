@@ -268,12 +268,12 @@ function renderOutliers() {
       const extra = n.careerHigh ? ` · <span class="ch">career high</span>${n.prevCareer ? ` (was ${n.prevCareer})` : ""}`
         : n.tiesCareer ? ` · <span class="ch">ties career high</span>`
         : n.seasonHigh ? ` · <span class="sh">season high</span>${n.prevHigh != null ? ` (was ${n.prevHigh})` : ""}` : "";
-      return `<span class="ochip ${cls}${n.careerHigh ? " career" : ""}"><b>${n.value}</b> ${lbl}<small>avg ${n.avg}${extra}</small></span>`;
+      return `<span class="ochip ${cls}${n.careerHigh ? " career" : ""}"><b>${n.value}</b> ${lbl}<small>avg ${n.avg}${extra}${n.oneIn ? ` · 1 in ${n.oneIn.toLocaleString()}` : ""}</small></span>`;
     }).join("");
     const shortMin = a.notes.some((n) => n.stat === "min" && n.low);
     return `<li><div class="pl"><b>${esc(a.name)}</b><span class="team">${a.team} ${a.home ? "vs" : "@"} ${a.opp} · ${a.win ? "W" : "L"}</span></div>
       <div class="notes">${chips}</div>
-      <div class="box">${l.pts} pts, ${l.reb} reb, ${l.ast} ast, ${l.fgm}-${l.fga} FG in ${a.min} min${shortMin ? " · short minutes: injury, fouls or a blowout?" : ""} · strength ${a.score.toFixed(1)} · ${a.games} games</div></li>`;
+      <div class="box">${l.pts} pts, ${l.reb} reb, ${l.ast} ast, ${l.fgm}-${l.fga} FG in ${a.min} min${shortMin ? " · short minutes: injury, fouls or a blowout?" : ""} · ${a.oneIn ? `<span title="How often a player-game is this far from the player's own norm, over the last four seasons">a 1-in-${a.oneIn.toLocaleString()} night</span>` : `strength ${a.score.toFixed(1)}`} · ${a.games} games</div></li>`;
   }).join("") : `<li class="empty">Nothing unusual for this filter.</li>`;
 }
 function renderStreaks() {

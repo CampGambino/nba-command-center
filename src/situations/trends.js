@@ -150,7 +150,31 @@ export function careerHighs({ logs = null, seasons = null, names = {}, ids = [],
 }
 const seasonOfDate = (d) => { const y = Number(d.slice(0, 4)) + (Number(d.slice(5, 7)) >= 8 && !(d >= "2020-07-01" && d <= "2020-10-31") ? 1 : 0); return `${y - 1}-${String(y).slice(2)}`; };
 
-export function anomalies(pg, names = {}, { dates = null, minOther = 5, threshold = 2.5, careers = null } = {}) {
+/**
+ * How often a night this far from his norm happens (0.141.15): the share of player-games over the last four seasons at
+ * least as far out, measured the same way (src/data/outlier-tails.json, tools/outlier-tails.mjs). The bell curve the
+ * spreads assume makes these far rarer than they are (points at 2.5 spreads: 1 in 35 player-games, not 1 in 160), and a
+ * spread means different things per stat (blocks at 2.5: 1 in 108). Log-linear between the measured steps.
+ */
+export function noteShare(n, tails) {
+  if (!tails) return null;
+  const at = (xs, ys, x) => {
+    if (!ys) return null;
+    if (x <= xs[0]) return ys[0];
+    for (let i = 1; i < xs.length; i++) if (x <= xs[i]) {
+      const a = Math.max(ys[i - 1], 1e-7), b = Math.max(ys[i], 1e-7), f = (x - xs[i - 1]) / (xs[i] - xs[i - 1]);
+      return Math.exp(Math.log(a) + f * (Math.log(b) - Math.log(a)));
+    }
+    return Math.max(ys[ys.length - 1], 1e-7);
+  };
+  if (n.stat === "fg3cold") return tails.cold3 ?? null;
+  if (n.stat === "fgp") return at(tails.fgDiff, n.low ? tails.fgLow : tails.fgHigh, Math.abs(n.value - n.avg) / 100);
+  return n.z < 0 ? at(tails.z, tails.down?.[n.stat], -n.z) : at(tails.z, tails.up?.[n.stat], n.z);
+}
+/** "1 in N", N to two significant figures. */
+export const oneIn = (share) => (share > 0 ? Number((1 / share).toPrecision(2)) : null);
+
+export function anomalies(pg, names = {}, { dates = null, minOther = 5, threshold = 2.5, careers = null, tails = null } = {}) {
   const all = Object.values(pg).flat().map((l) => l.d);
   const latest = all.length ? all.reduce((a, b) => (a > b ? a : b)) : null;
   const want = new Set(dates || (latest ? [latest] : []));
@@ -189,10 +213,15 @@ export function anomalies(pg, names = {}, { dates = null, minOther = 5, threshol
       }
       if (g.fg3a >= 6 && g.fg3m === 0) { notes.push({ stat: "fg3cold", value: 0, fg3a: g.fg3a, low: true, z: -2.5 }); best = Math.max(best, 2.5); }
       if (!notes.length) return;
-      out.push({ id, name: names[id] || id, team: g.team, opp: g.opp, home: g.home, win: g.win, d: g.d, min: g.min, line: { pts: g.pts, reb: g.reb, ast: g.ast, fgm: g.fgm, fga: g.fga, fg3m: g.fg3m, fg3a: g.fg3a }, games: games.length, score: Math.round(best * 100) / 100, notes, text: describe(g, notes) });
+      // 0.141.15: each note's measured rarity, and the night's rarest.
+      let rare = null;
+      for (const nt of notes) { const sh = noteShare(nt, tails); if (sh != null) { nt.oneIn = oneIn(sh); if (rare == null || sh < rare) rare = sh; } }
+      out.push({ id, name: names[id] || id, team: g.team, opp: g.opp, home: g.home, win: g.win, d: g.d, min: g.min, line: { pts: g.pts, reb: g.reb, ast: g.ast, fgm: g.fgm, fga: g.fga, fg3m: g.fg3m, fg3a: g.fg3a }, games: games.length, score: Math.round(best * 100) / 100,
+        ...(rare != null ? { share: Number(rare.toPrecision(3)), oneIn: oneIn(rare) } : {}), notes, text: describe(g, notes) });
     });
   }
-  return out.sort((a, b) => b.score - a.score);
+  // Rarest first when measured (0.141.15), else by spreads as before.
+  return out.sort((a, b) => (a.share != null && b.share != null ? a.share - b.share : 0) || b.score - a.score);
 }
 
 function describe(g, notes) {
