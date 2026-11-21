@@ -2,6 +2,23 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.141.4 (2026-11-21): code is tested before it reaches the live site
+
+The user, 12:17 AM: "what else is considered proper code management… what have I not asked of you to comply with standard practices?" Item 1 of the answer (nothing tested a change before it went live: every push to `main` was live at once, and the 1,090 checks ran only when run by hand), then 12:21 AM: "please".
+
+**How code reaches the site now.**
+- Code changes go to the **`dev`** branch. `.github/workflows/promote.yml` ("test and publish") puts them on top of `main` (the bot's latest data), runs both suites (`tests/articles-only.js`, `tests/run.js`), and only if every check passes moves them onto `main`, what GitHub Pages serves and the builds and the Worker run from. A failed check publishes nothing and turns the run red; GitHub emails the account on a failed run.
+- Pushes made with a job's own token start no other workflows, so after publishing it starts what a push to `main` would have: the Worker deploy when `cloudflare/` (or the digest) changed, a build when `scripts/` or `src/` did.
+- If `main` gains anything but the bot's data (`docs/data`, `docs/lib`, `docs/ref`, `history`) while the checks run, it stops instead of publishing untested combinations.
+- `.github/workflows/check-main.yml` ("check main"): code pushed straight to `main` (from github.com, say) skips the gate; this runs the same checks after the fact and turns red if any fail. The bot's data commits don't start it.
+- The bot is unchanged: data still goes straight to `main` every 15 minutes (data is checked by the build's own health check, `docs/data/health.json`).
+
+**The notes PDFs.** `tests/run.js` reads the teams' notes PDFs in `samples/` (about 140 MB), the NBA's documents, which are kept off this public repo. Where they aren't present (GitHub's servers) the two sections that read them (front pages and milestone layouts, the notes watcher, milestone tracking against saved ESPN data, lineups, Boston, the 11/10 layouts) are skipped, and the run says so; everything else runs. Measured: 794 checks without them, all passing, in 17 seconds; 1,090 with them, as before (1 min 31 s). Those 296 run before each push to `dev` on the machine that has the PDFs.
+
+**Not done (the user's call):** a rule on GitHub that blocks pushes to `main` that skip the gate (branch protection) would also block the bot's data pushes unless set up around them; "check main" flags such pushes instead.
+
+**Self-audit.** The gate is only as good as the checks: 296 of them can't run on GitHub without the PDFs. The first run of "test and publish" is this change itself; a deliberate failing push was sent after it to confirm a red check publishes nothing (below).
+
 ## 0.141.3 (2026-11-20): security fixes from the security check
 
 The user, 8:15 PM: "Run a security check. Is the information protected from online attackers? What are the holes?" Then, 8:21 PM: "Yes" (to the fixes). The check is in the project doc `claude/security-check-2026-11-20.md`.

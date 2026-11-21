@@ -1,0 +1,88 @@
+# Test, then publish (0.141.4, the user 11/21: "proper code management").
+#
+# Code changes are pushed to the `dev` branch, never straight to `main`. This job puts them on top of `main` (which
+# the bot moves every 15 minutes with data), runs both test suites, and only if every check passes moves them onto
+# `main`: what the website, the builds and the Worker run from. A failed check leaves the live site as it was and
+# turns this run red.
+#
+# The checks that read the teams' notes PDFs are skipped here: those are the NBA's documents and stay off this
+# public repo (.gitignore). They run on the machine that has them before each push to dev.
+name: test and publish
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # to move the tested commits onto main
+  actions: write    # to start the jobs a push to main starts (pushes made with this job's token start none)
+
+concurrency:
+  group: promote
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: dev
+          fetch-depth: 0
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+
+      - name: Put dev on top of main (the bot's latest data)
+        run: |
+          git config user.name "ncc-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch --quiet origin main
+          echo "BASE=$(git rev-parse origin/main)" >> "$GITHUB_ENV"
+          if ! git rebase --quiet origin/main; then
+            git rebase --abort
+            echo "::error::dev doesn't apply on top of main (a conflict). Nothing published."
+            exit 1
+          fi
+          echo "Commits to publish:"; git log --oneline origin/main..HEAD
+          if [ -z "$(git log --oneline origin/main..HEAD)" ]; then echo "nothing new on dev"; echo "NOTHING=1" >> "$GITHUB_ENV"; fi
+
+      - name: Articles watcher checks
+        if: env.NOTHING != '1'
+        run: node tests/articles-only.js
+
+      - name: Full checks (the notes-PDF checks are skipped here)
+        if: env.NOTHING != '1'
+        run: node tests/run.js
+
+      - name: Publish to main
+        if: env.NOTHING != '1'
+        run: |
+          # main may have moved while the checks ran. Only the bot's data commits are expected meanwhile; anything
+          # else means a code change that wasn't tested with these, so stop rather than publish it untested.
+          for i in 1 2 3 4 5; do
+            git fetch --quiet origin main
+            other=$(git diff --name-only "$BASE" origin/main | grep -vE '^(docs/data/|docs/lib/|docs/ref/|history/)' || true)
+            if [ -n "$other" ]; then echo "::error::main gained other changes while testing: $other. Run this again."; exit 1; fi
+            git rebase --quiet origin/main || { git rebase --abort; echo "::error::conflict with main's new data"; exit 1; }
+            if git push --quiet origin HEAD:main; then
+              git push --quiet --force origin HEAD:dev   # dev = main again, ready for the next change
+              echo "published $(git rev-parse --short HEAD)"; exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::couldn't push to main"; exit 1
+
+      - name: Start the jobs a push to main starts
+        if: env.NOTHING != '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          changed=$(git diff --name-only "$BASE" HEAD)
+          run() { gh api -X POST "repos/${{ github.repository }}/actions/workflows/$1/dispatches" -f ref=main && echo "started $1"; }
+          if echo "$changed" | grep -qE '^(cloudflare/|src/anticipate/discord-digest\.js|tests/articles-)'; then run deploy-articles.yml; fi
+          if echo "$changed" | grep -qE '^(scripts/|src/|\.github/workflows/daily\.yml)'; then run daily.yml; fi

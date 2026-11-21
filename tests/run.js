@@ -73,9 +73,13 @@ ok(nameKey("Luka Dončić") === "luka doncic", "names: accents");
 ok(looksLikeNameHeading("JARRETT ALLEN") && looksLikeNameHeading("#40 HARRISON BARNES") && !looksLikeNameHeading("REGULAR SEASON MILESTONES"), "names: headings");
 
 // ---------- sample notes ----------
+// The teams' notes PDFs are the NBA's documents and stay off the public repo (.gitignore), so on GitHub's servers
+// the checks that read them are skipped and said to be (0.141.4). Everything else runs everywhere.
+const HAVE_SAMPLES = fs.existsSync(path.join(root, "samples", "2026-11-09"));
+if (!HAVE_SAMPLES) console.log("notes PDFs (samples/) not on this machine: the checks that read them are skipped");
 const sampleDir = path.join(root, "samples", "2026-11-09");
 const results = {};
-for (const f of fs.readdirSync(sampleDir).filter((f) => f.endsWith(".pdf"))) {
+for (const f of (HAVE_SAMPLES ? fs.readdirSync(sampleDir) : []).filter((f) => f.endsWith(".pdf"))) {
   const team = teamFromSlug(path.basename(f, ".pdf"));
   results[team] = await parseNotes(fs.readFileSync(path.join(sampleDir, f)), { team });
 }
@@ -87,6 +91,7 @@ function fact(name, m, expect) {
   if (!m) return ok(false, name, "not found");
   for (const [k, v] of Object.entries(expect)) ok(m[k] === v, `${name}: ${k}`, `expected ${v}, got ${m[k]}`);
 }
+if (HAVE_SAMPLES) { // needs the notes PDFs (samples/): skipped where they are not, e.g. on GitHub
 
 // Front-page facts: which game these notes are for.
 for (const [team, opp] of [["CLE", "CHA"], ["CHA", "CLE"], ["LAL", "ATL"], ["ATL", "LAL"], ["SAS", "PHX"], ["PHX", "SAS"]]) {
@@ -457,6 +462,7 @@ for (const [team, r] of Object.entries(results)) {
     ok(nodate.milestones.every((m) => m.tracking.status === "unavailable"), "tracking: unknown notes date -> nothing rolled forward");
   }
 }
+} // end: needs the notes PDFs (samples/)
 
 // ---------- published data files: every one parses, none carries merge-conflict markers ----------
 // (11/11: a push carried "<<<<<<<" markers in 7 data files and broke the site for ~2 minutes.)
@@ -520,7 +526,9 @@ for (const [team, r] of Object.entries(results)) {
   ok(!skip.milestones.some((m) => m.stat === "pts" && m.player === "Big Scorer") && skip.milestones.some((m) => m.player === "Young Guy" && m.stat === "pts"), "discover: a milestone the notes already have isn't repeated");
 }
 
+const more = {};   // the 11/10 notes, read below (and checked against their snapshots at the end)
 // ---------- NBA.com lineups and transactions (frozen 2026-11-10) ----------
+if (HAVE_SAMPLES) { // needs the notes PDFs (samples/): skipped where they are not, e.g. on GitHub
 {
   const dir = path.join(root, "samples", "2026-11-10", "nba");
   if (!fs.existsSync(dir)) ok(false, "NBA.com fixtures missing (samples/2026-11-10/nba)");
@@ -603,7 +611,6 @@ for (const [team, r] of Object.entries(results)) {
 
 // ---------- 2026-11-10 layouts: MIL, ORL, PHI, IND, BKN, MIN, DAL, HOU ----------
 // Every fact below was read by hand off the PDF page named with it.
-const more = {};
 {
   const dir = path.join(root, "samples", "2026-11-10-more");
   if (!fs.existsSync(dir)) ok(false, "2026-11-10 layout samples missing (samples/2026-11-10-more)");
@@ -699,6 +706,7 @@ const more = {};
     ok(tr2.milestones[0].tracking.status === "disagrees", "tracking: one row matching a missed game is a coincidence, not a stale page (fewer than 3)", JSON.stringify(tr2.milestones.map((x) => x.tracking.status)));
   }
 }
+} // end: needs the notes PDFs (samples/)
 
 // ---------- 0.72.2: a build after today's game is final still counts from "entering today" (the user, 11/15) ----------
 // IND @ PHI was a matinee; the 5 PM build added it to every PHI total, and NBA Live then added tonight's box score again:
