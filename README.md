@@ -1,103 +1,82 @@
 # NBA Command Center
 
-A standalone program that anticipates NBA milestones and storylines before they happen. It reads every team's game notes, works out which marks are within reach, and (in later stages) ranks them by how likely they are and how much they matter.
+A personal tool that anticipates NBA milestones, records and storylines before they happen, and checks them. It reads every team's game notes, the league's injury report and ESPN's box scores, works out what could happen tonight and how likely it is, and publishes it as a website, Discord alerts and cards inside NBA Live.
 
-Design docs live in the claude.ai project "NBA Command Center": `anticipation-engine.md` (principle #1), `command-center-architecture.md`, `storyline-detector-catalog.md`.
+- **Website:** https://campgambino.github.io/nba-command-center/ (GitHub Pages, from `docs/`)
+- **Changes:** [`CHANGES.md`](CHANGES.md), newest first, one entry per version with a self-audit. Each version is tagged (`v0.141.5`).
+- **Design and status docs:** the claude.ai project "NBA Command Center" (`command-center-architecture.md`, `anticipation-engine.md`, `standing-rules.md`, `build-status-update.md`, `security-check-2026-11-20.md`…).
 
-## What works today (v0.15.0)
+Personal use. Runs for $0 on free tiers (GitHub Actions and Pages, Cloudflare Workers).
 
-**Website:** https://campgambino.github.io/nba-command-center/ (GitHub Pages, from `docs/`). Rebuild it for tonight's whole slate with `npm run tonight` (downloads every playing team's notes), or from local PDFs with `npm run publish -- samples/<date>/*.pdf`.
+## The pages
 
-- **Game notes parser** (`src/notes/`): reads a team's notes PDF and returns
-  - `meta`: the game date and opponent printed in the notes
-  - `milestones`: every upcoming mark found, each with the exact text it came from and a status: **ok** (all checks passed) or **review** (something didn't add up; never treated as publishable)
-  - `leaderboards`: every ranked list found, with its title, its scope (NBA / franchise / single-season / streak) and any ordering errors in the notes themselves
-  - `notes`: forward-looking sentences ("is closing in on 30,000...") quoted word for word, read column by column
-- **Milestone tracking** (`src/registry/track.js`, `src/espn/`):
-  - adds every game played since the notes were written, from ESPN box scores;
-  - checks each total against ESPN's career numbers;
-  - marks any disagreement as review, with both numbers shown;
-  - marks franchise chases by players who have left as no longer live.
+| Page | What it shows |
+|---|---|
+| Watch List (`index.html`) | The briefing (top lines tonight), milestone chances tonight and over the next games, storylines and matchups per game, history from the notes |
+| Records (`records.html`) | NBA and franchise record chases with chances; NBA Cup lists |
+| Streaks & outliers (`trends.html`) | Current streaks and shifts from recent games |
+| Team situations (`situations.html`), Standings (`standings.html`) | Records by game situation; standings |
+| vs top teams (`defenses.html`) | Players and teams against the best and worst records and defenses |
+| Clutch & 4th quarter (`clutch.html`), With / without (`players.html`), Team leaders (`leaders.html`), National TV (`national.html`) | Splits and leaders |
+| Game Flow (`gameflow.html`) | Play-by-play charts of a game |
+| Index (`find.html`) | Search across the series, last-time and arena files |
 
-  Run `npm run track -- samples/2026-11-09/hornets.pdf`.
-- **Watch List engine** (`src/anticipate/`): for every live milestone,
-  - the chance it happens tonight and within 3 or 5 games;
-  - the expected game and date;
-  - an importance score with its reasons;
-  - whether it is publishable.
+## How it runs
 
-  It uses recent box scores, last season's games and ESPN's injury feed. `npm run watch -- samples/2026-11-09/*.pdf --json data/predictions-<date>.json`, and the next day `npm run score -- data/predictions-<date>.json` to see how the predictions did.
-- **NBA Live bridge** (`docs/bridge/cc-bridge.js`). NBA Live stays on the PC (in the git-ignored `live/` folder) and is never published. Add this line just before its `</body>`:
-  `<script src="https://campgambino.github.io/nba-command-center/bridge/cc-bridge.js"></script>`
-  NBA Live then shows the Command Center's notes chases and passes as its own League Alerts cards, and (v2) each game's top 3 storylines before tip-off: gated, at most 6 per game, never duplicating its own ladders. Bring the newest NBA Live / GameFlow from Downloads with `python3 tools/latest-live.py <Downloads folder>` (picks by save time, since the numbering restarts). Check every page renders cleanly at desktop and phone widths with `python3 tools/check-pages.py`. Test a new NBA Live version with `python3 tools/check-nba-live.py live/<file>.html docs/data/watch.json <YYYYMMDD> [<game id to replay live>]`.
-- **Team situations** (`docs/situations.html`, `src/situations/`): every team's record overall, home and road, vs teams over .500, vs the teams with the top 3, 4 and 5 records, in clutch games (with clutch +/-), in games decided by 3 or fewer, in overtime, and by score at half and after three quarters. Each comes with the league rate and what a team that good would usually do there. Tonight's matchups are shown side by side, and the most unusual records are ranked. `npm run situations`; the daily build runs it.
-- **Clutch** (`docs/clutch.html`, `src/espn/pbp.js`, `src/situations/clutch.js`): team and player clutch stats (the last 5 minutes of the 4th or OT, within 5), from ESPN play-by-play; team W-L and +/- match NBA.com.
-- **4th quarter** (Clutch page switch): team and player 4th-quarter stats from the same play-by-play pass.
-- **With / without** (`docs/players.html`, `src/situations/withwithout.js`): a team's record and each teammate's averages in games a chosen player played vs missed.
-- **Streaks & outliers** (`docs/trends.html`, `src/situations/trends.js`): unusual games vs each player's own season, active player streaks, team streaks.
-- **vs top teams** (`docs/defenses.html`, `src/situations/ratings.js`): each team against the top 3-10 teams by record (W-L, margin, net rating) or by defense (offense vs the best defensive ratings), compared with everyone else.
-- **Injury report** (`src/injuries/`): every build reads the NBA's latest official injury report PDF and, for regulars listed out/doubtful/questionable, adds the team's record and teammates' numbers without them to tonight's storylines (`docs/data/injuries.json`).
-- **Articles watcher** (`cloudflare/articles-worker.js`): a Cloudflare Worker that checks ESPN's NBA news and The Athletic every 2 minutes and posts new reporting and analysis (not recaps, previews, videos, fantasy or betting) to a Discord channel, with publish times. Setup steps are at the top of the file.
-- **Discord digest** (`scripts/notify.js`, `src/anticipate/tonight.js`): once per game day (first build after 2 PM ET), tonight's storylines per game go to the Discord channel whose webhook is in the repo secret `DISCORD_WEBHOOK`. Preview without sending: `node scripts/notify.js --dry`.
-- **Team leaders** (`docs/leaders.html`, `src/situations/leaders.js`): who leads his team in the most categories (season totals), each team's leader per stat, who led his team game by game (every game / most games), and shooters near 50% FG / 40% 3P / 90% FT with how many shots from the line they are.
-- **Notes watcher** (`src/notes/watcher.js`): downloads a team's notes from its fixed URL, keeps every version, and says whether the file there is *tonight's* notes or a stale one.
+**Builds (GitHub Actions, `.github/workflows/daily.yml`).** `scripts/ci.js build` runs `scripts/tonight.js` (milestones and the Watch List), `scripts/situations.js` (records, situations, injuries, storylines), `scripts/flow.js`, then writes `docs/data/health.json`, the build's own check of its output. The bot commits the data to `main` and Pages publishes it. Times (Eastern, winter; an hour later in summer): builds at 8:00 AM, 10:30 AM, 1:00 PM, 3:00 PM, 5:30 PM, 12:15 AM, 1:30 AM and 2:45 AM; scoring (how last night's calls came out, `scripts/score.js`) at 3:30 AM and 7:00 AM. A code change also starts a build.
 
-Formats recognized so far (from the 2026-11-09 samples): Cleveland's "Needs N" lists, Boston's milestone grid (Target · Needs · Date acquired; its PDFs' broken font maps are repaired first), the Lakers' wide tracker table, San Antonio's "STAT: target current" blocks, Phoenix's inline tracker, Charlotte's "X is 93 rebounds away from 1,500 career rebounds... 36 games away from..." bullets, and ranked lists in several styles (`1. Name (total)`, `1. Name   total`, `1  Name  total`, `701  Name  1988-98`), including side-by-side and stacked lists. Atlanta has no tracker and still yields its ranked lists and forward-looking sentences.
+**Kalshi** (`kalshi.yml`): hourly at :17, odds from Kalshi's API only, posted to Discord.
 
-What makes a milestone **review** instead of **ok**: a list whose scope (NBA or franchise) isn't printed clearly enough to prove; a qualified list (centers, bench, a draft class, rookies, "since 2000", per game, home games...); an average rather than a count; an unresolved tie; a duplicate rank; a stat the notes print inconsistently; or two sources in the notes that disagree. Review items are never published as fact.
+**Discord alerts (Cloudflare Worker `ncc-articles`, `cloudflare/`).** Every 5 minutes: new articles (ESPN, The Athletic, Front Office Sports, NBA.com's power rankings and ladders on their publishing days) to #articles. Every minute: lineups (#lineups), the storyline digests and health alerts (#alerts). Deployed by `deploy-articles.yml` after its own checks. Admin pages need the review key, votes need the separate vote key; neither is in the repo.
 
-## Daily updates (automatic)
+**NBA Live** stays on the PC only and is never published. It loads `docs/bridge/cc-bridge.js` from the site to add the Command Center's cards to its League Alerts.
 
-`.github/workflows/daily.yml` runs on GitHub's servers, so the site stays current with the PC off. Times are Eastern in winter:
-- **Builds:** 10:30 AM, 3:00 PM and 5:30 PM.
-- **Scoring of the previous night:** 3:30 AM, then again at 7:00 AM in case a late game hadn't finished.
+## Data sources
 
-Each run commits `docs/data`, `docs/lib` and `history/` (season results in `history/results/`, one file per date):
-- `history/predictions-<date>.json.gz` holds that night's predictions;
-- `history/calibration.jsonl` holds one scoring line per night;
-- `history/score-<date>.txt` holds the full hit/miss list.
+ESPN (box scores, play-by-play, schedules, injuries feed, rosters), each team's game notes PDFs, the NBA's official injury report PDF (every 15 minutes on game days), the NBA Guide and team media guides (saved in `src/data/`), Kalshi's API. No NBA.com stats. Team notes PDFs are the NBA's documents: kept on the PC (`samples/`, git-ignored), not published.
 
-A build that reads fewer teams' notes than the published one is never published.
+## How code is published
 
-To run it by hand: the repository's **Actions** tab → **daily** → **Run workflow** (job `build` or `score`, optional date). The same logic runs locally: `node scripts/ci.js build` / `node scripts/ci.js score --date YYYY-MM-DD`.
+1. Code goes to the **`dev`** branch, never straight to `main`.
+2. **"test and publish"** (`.github/workflows/promote.yml`) puts it on top of `main`, runs `tests/articles-only.js` and `tests/run.js`, and only if every check passes moves it onto `main` (the live site, the builds and the Worker run from `main`). A failed check publishes nothing. After publishing it tags any new version and starts the Worker deploy or a build when the change needs one.
+3. **"check main"** (`check-main.yml`) tests code that reached `main` some other way and turns red if it fails.
+4. **Dependabot** (`.github/dependabot.yml`) opens a weekly request, to `dev`, when a pinned GitHub Action or npm dependency has an update.
 
-Before changing anything locally, run `git pull`, since the bot commits several times a day.
+Rolling back: `git revert` the change on `dev` (it goes through the same checks), or compare against a tag (`git diff v0.141.3 v0.141.4`).
 
-## Setup (once, on Windows)
-
-1. Node.js 20.19 or newer (check with `node -v`).
-2. In this folder: `npm install`
-
-## Use
+## Tests
 
 ```
-npm test                                   # full test suite (offline, uses samples/)
-npm run parse -- samples/2026-11-09/cavaliers.pdf
-npm run parse -- samples/2026-11-09/lakers.pdf --json
-npm run track -- samples/2026-11-09/hornets.pdf          # needs internet (ESPN); add --all to list everything
+node tests/run.js           # 1,091 checks; the 296 that read the notes PDFs are skipped where samples/ isn't present
+node tests/articles-only.js # the Worker's 98 checks
+node tests/run.js --update  # after reviewing a deliberate change to the parsed milestones (snapshots in tests/expected/)
 ```
 
-## Tests and the audit rule
+Both run offline. On GitHub's servers `tests/run.js` runs 795 checks (no notes PDFs there); the full 1,091 run before each push to `dev` (counts as of v0.141.5).
 
-`npm test` runs two kinds of test on the saved sample notes (`samples/<date>/*.pdf`; these stay on the PC and are not in the GitHub repository, so a fresh clone needs them copied in before the tests can run):
+## Secrets (names only; values never in the repo or in chat)
 
-- **Facts**: checked by hand against the PDFs (e.g. Jarrett Allen 3,997 defensive rebounds, needs 3 for 4,000). A failure means the parser is wrong.
-- **Snapshot**: everything the parser finds is saved in `tests/expected/`. If any change to the code changes the output, the test lists exactly what appeared or disappeared. Accept a change only after reviewing it: `node tests/run.js --update`.
+| Where | Name | For |
+|---|---|---|
+| GitHub Actions secrets | `CLOUDFLARE_API_TOKEN` | deploying the Worker (Workers + KV, this account only) |
+| | `CLOUDFLARE_ACCOUNT_ID` | the same |
+| | `DISCORD_WEBHOOK_KALSHI` | Kalshi posts |
+| Cloudflare Worker secrets | `DISCORD_WEBHOOK`, `ALERTS_WEBHOOK`, `LINEUPS_WEBHOOK` | #articles, #alerts, #lineups (the review and vote keys are derived from `DISCORD_WEBHOOK`) |
+| Cloudflare KV | `STATE` | the Worker's memory: seen articles, review rules, votes |
 
-Every change ships with an entry in `CHANGES.md`: what changed, what was tested, what is still unproven.
+## Folders
 
-## Folder layout
-
-```
-src/notes/            game notes: layout, readers per format, checks, watcher
-src/espn/             ESPN readers + cached client (rosters, schedules, box scores, career stats)
-src/nba/              NBA.com static files: starting lineups and the transaction log
-src/registry/         milestone tracking: roll forward since the notes, cross-check with ESPN
-src/anticipate/       P(tonight)/ETA model, importance score, Watch List assembly
-docs/                 the website: index.html, data/watch.json, lib/ (copy of src/ used for live countdowns)
-src/teams.js          team names, codes, notes URLs
-scripts/              command-line tools (parse-notes, dump-page for debugging)
-samples/<date>/       real notes PDFs used by the tests
-tests/                test suite and saved snapshots
-data/                 downloaded notes versions and other stored data (not in git)
-```
+| Folder | What's in it |
+|---|---|
+| `src/notes/` | the game notes parser (milestones, leaderboards, notes sentences, facts) |
+| `src/espn/`, `src/nba/`, `src/injuries/`, `src/rosters/` | readers for ESPN, NBA.com lineups and transactions, the injury report, rosters |
+| `src/registry/` | milestone tracking: totals brought up to date from box scores and checked against ESPN |
+| `src/anticipate/` | the Watch List engine: chances, importance, storylines, the briefing, the claim ledger, calibration, detectors |
+| `src/records/`, `src/situations/`, `src/gameflow/`, `src/site/` | record books and chases; team situations, ratings, the results store; Game Flow; page building |
+| `src/data/` | saved reference data (career seasons, record books, guides) |
+| `scripts/` | the build steps (`ci.js` runs them) |
+| `docs/` | the website; `docs/data/` is the published data, `docs/lib/` the copies of `src/` modules the pages load (kept identical by a test) |
+| `history/` | the build's memory between runs (what was seen and shown, scored calls, injury reports) |
+| `cloudflare/` | the Worker |
+| `tests/` | the checks, fixtures and parsed-milestone snapshots |
+| `tools/` | one-off utilities and diagnostics (`tools/diagnose.mjs`, `tools/tag-versions.mjs`…) |

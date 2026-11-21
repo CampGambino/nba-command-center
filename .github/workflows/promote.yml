@@ -1,7 +1,7 @@
 # Test, then publish (0.141.4, the user 11/21: "proper code management").
 #
 # Code changes are pushed to the `dev` branch, never straight to `main`. This job puts them on top of `main` (which
-# the bot moves every 15 minutes with data), runs both test suites, and only if every check passes moves them onto
+# the bot moves with data: about 10 builds and scoring runs a day, and the hourly Kalshi job), runs both test suites, and only if every check passes moves them onto
 # `main`: what the website, the builds and the Worker run from. A failed check leaves the live site as it was and
 # turns this run red.
 #
@@ -76,6 +76,13 @@ jobs:
             sleep 10
           done
           echo "::error::couldn't push to main"; exit 1
+
+      - name: Tag new versions (v0.141.4 and so on, for rollback)
+        if: env.NOTHING != '1'
+        run: |
+          git fetch --quiet --tags origin
+          node tools/tag-versions.mjs
+          git push --quiet origin --tags
 
       - name: Start the jobs a push to main starts
         if: env.NOTHING != '1'

@@ -52,14 +52,21 @@ export function moveTraded(teams, roster, rosterNames = {}) {
   return teams;
 }
 
-export async function buildSite({ entries, games = [], uncounted = [], espn, nba = null, today, root, calibration = null }) {
+export async function buildSite({ entries, games = [], uncounted = [], espn, nba = null, today, root, calibration = null, injuryFetch = null }) {
   // Outside confirmations (Basketball Reference pages the user checked) settle a notes-vs-ESPN difference (0.72.4).
   let verified = null;
   try { verified = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "verified-totals.json"), "utf8")); } catch { /* none: nothing is settled */ }
   // 0.141.2: tonight's NBA injury report (the last one read by situations.js, docs/data/injuries.json) when it is
   // today's: it sets each card's chance to play tonight; ESPN's feed is kept for return dates and as the fallback.
+  // 0.141.5: the newest posted report, read here (this step runs before situations.js saves one); the last saved
+  // copy only if none can be read (before, always the saved copy: the previous build's, hours old in the evening).
   let report = null;
   try {
+    const { latestReport, reportClock, tonightRowsOf } = await import("../injuries/report.js");
+    const c = reportClock(today), r = injuryFetch ? await latestReport(today, c.h, c.m, { fetchFn: injuryFetch }) : null;
+    if (r && !r.none) report = { asOf: r.asOf || null, rows: tonightRowsOf(r, today), fresh: true };
+  } catch { /* fall back to the saved copy */ }
+  if (!report) try {
     const ij = JSON.parse(fs.readFileSync(path.join(root, "docs", "data", "injuries.json"), "utf8"));
     if (ij?.date === today && Array.isArray(ij.players)) report = { asOf: ij.report?.asOf || null, rows: ij.players };
   } catch { /* no report on file: ESPN's feed only */ }

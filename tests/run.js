@@ -1785,6 +1785,23 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   ok(R[2].name === "Ernest Udeh Jr." && R[2].status === "Questionable" && R[2].reason === "G League - Two-Way", "injuries: suffix name; G League reason", JSON.stringify(R[2]));
   ok(R[3].name === "Trayce Jackson-Davis" && R[3].team === "IND" && R[3].date === "11/11/2026" && R[3].status === "Doubtful", "injuries: page 2 has no header; columns and team carry over", JSON.stringify(R[3]));
   ok(R[4].team === "WAS" && R[4].date === "11/12/2026" && R[4].status === "Not yet submitted" && R[4].name === null, "injuries: a team that hasn't submitted yet", JSON.stringify(R[4]));
+  {
+    // 0.141.5: one reader of the newest posted report for every step (the cards and the record chances used the previous
+    // build's copy). Two slots not posted, then this report: read it, count the two, keep tonight's rows.
+    const { latestReport, reportClock, tonightRowsOf } = await import("../src/injuries/report.js");
+    const asItems = (pg) => ({ items: pg.map((it) => ({ str: it.str, transform: [1, 0, 0, 1, it.x, it.y] })) });
+    const fakePdf = { getDocument: () => ({ promise: Promise.resolve({ numPages: 2, getPage: async (n) => ({ getTextContent: async () => asItems(n === 1 ? page1 : page2) }) }) }) };
+    let asked = [];
+    const fetchFn = async (url) => { asked.push(url); return asked.length <= 2 ? { ok: false } : { ok: true, arrayBuffer: async () => new ArrayBuffer(4) }; };
+    const lr = await latestReport("2026-11-11", 20, 40, { fetchFn, pdfjs: fakePdf });
+    const tr = tonightRowsOf(lr, "2026-11-11");
+    const none = await latestReport("2026-11-11", 20, 40, { fetchFn: async () => ({ ok: false }), pdfjs: fakePdf, maxSlots: 3 });
+    const clk = reportClock("2026-01-01", new Date("2026-11-21T05:30:00Z"));
+    ok(lr.asOf === "11/11/26 08:30 PM" && lr.behind.missing === 2 && lr.behind.minutes === 30 && asked[0].endsWith("_08_30PM.pdf") && asked[2].endsWith("_08_00PM.pdf")
+      && tr.length === 4 && tr.every((r) => r.team === "IND") && tr[0].name === "Tyrese Haliburton" && Object.keys(tr[0]).join() === "team,name,status,reason,matchup,time"
+      && none.none === true && none.slotsTried === 3 && clk.h === 23 && clk.m === 45 && !clk.live,
+      "injuries (0.141.5): the newest posted report, slots not posted passed over and counted; tonight's rows in the saved shape; none found says so", JSON.stringify({ behind: lr.behind, n: tr.length, none, clk }));
+  }
   // Impact on a made-up team: H (the injured regular) misses games 4-5; T picks up his shots.
   const line = (min, pts, ast = 2, reb = 4) => [1, min, pts, 0, 0, 0, 0, 0, 0, reb, ast, 0, 0, 0, 0, 0, 0, 0];
   const g = (d, pf, pa, hMin, tPts, tMin = 25) => ({ d, pf, pa, pl: { h1: line(hMin, hMin ? 20 : 0), t1: line(tMin, tPts), z1: line(10, 2) } });

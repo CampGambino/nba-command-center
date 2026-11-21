@@ -2,6 +2,24 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.141.5 (2026-11-21): version tags, update notices, a current README; the injury report read fresh where it's used
+
+The user, 12:35 AM: "yes" (to items 5-7 of the code-management list: tags for rollback, the stale README, update notices).
+
+**Version tags.** `tools/tag-versions.mjs` tags every version in CHANGES.md (`v0.141.5` …) at the commit where it finished: the newest commit naming it that is older than the next version's first commit, so a later commit that only mentions an old version doesn't move its tag; the bot's data commits are skipped; existing tags are never moved. Dry run on main: 219 versions, all named by a commit, every placement the same as a separate first pass (4 of them moved from the naive "newest commit naming it" by the rule: 0.125.0, 0.106.0, 0.105.0, 0.72.4). This session can't push tags to GitHub (refused), so "test and publish" runs the script after each publish and pushes the new tags: the first run backfills all 219.
+
+**Update notices.** `.github/dependabot.yml`: weekly (Monday 9 AM ET) pull requests when a pinned GitHub Action or pdfjs-dist has a newer release, one grouped request each, aimed at `dev` so a merge goes through "test and publish". The wrangler version in deploy-articles.yml (`npx wrangler@3.114.17`) isn't covered: updated by hand.
+
+**README.** It still said "What works today (v0.15.0)". Rewritten from the files: the twelve pages, the schedule (read from daily.yml's crons and its job picker: builds at 8:00 AM, 10:30 AM, 1:00 PM, 3:00 PM, 5:30 PM, 12:15, 1:30 and 2:45 AM ET in winter; scoring at 3:30 and 7:00 AM; Kalshi hourly at :17; the Worker every minute and every 5 minutes, from wrangler.toml), data sources, how code is published and rolled back, tests (counts run, not added up), secret names and where they live, folders.
+
+**Fixed: the injury report read fresh where it's used** (found while checking the schedule for the README). The cards (0.141.2) and the record chances (0.141.1) took tonight's report from `docs/data/injuries.json`, the copy saved by the previous build; I wrote it "can be one 15-minute slot behind". Wrong: builds run at the times above, so it was one build behind, and between the 5:30 PM and 12:15 AM builds the 5:30 PM cards carried the 3:00 PM build's report. Now `src/injuries/report.js` has one reader (`latestReport`: the newest posted slot with players on it, slots not posted passed over and counted, `reportClock`, `tonightRowsOf`); `src/site/build.js` (the cards) and `scripts/situations.js` (read once at the top, used by the record chances and by the injuries step, whose own loop it replaces) call it, and fall back to the saved copy only if none can be read. Checked live: the 11/20 10:30 PM report read on its first slot (152 rows, 99 for 11/20). Full local build (11/21, 12:4x AM): every step ok; the cards' tags came from the 12:30 AM report, read in the same build (27 cards; 12 ESPN-only).
+
+**Also corrected:** 0.141.4 and the publish job's comment said the bot commits data "every 15 minutes"; it is the builds, scoring runs and the hourly Kalshi job above (the comment now says so).
+
+**Tests.** 1,091 checks (one new: two slots not posted then a report; the newest read, the two counted, tonight's rows in the saved shape, "none" when nothing can be read). Without the notes PDFs: 795, all passing.
+
+**Self-audit.** The site is still only as fresh as its last build: with no build between 5:30 PM and 12:15 AM ET, a report posted at 6:30 PM doesn't reach the cards before tip-off (NBA Live reads the report itself). That is the schedule, not this fix; a build at about 6:45 PM would close it (a decision for the user). The tag rule depends on commit messages naming their version, which every version so far does.
+
 ## 0.141.4 (2026-11-21): code is tested before it reaches the live site
 
 The user, 12:17 AM: "what else is considered proper code management… what have I not asked of you to comply with standard practices?" Item 1 of the answer (nothing tested a change before it went live: every push to `main` was live at once, and the 1,090 checks ran only when run by hand), then 12:21 AM: "please".

@@ -1,0 +1,35 @@
+# Update notices (0.141.5). The deploy tools are pinned to exact commits (0.141.3), so nothing updates on its own;
+# Dependabot opens one pull request a week when a pinned GitHub Action or the npm dependency (pdfjs-dist) has a newer
+# release, sooner for a security fix. The requests target `dev`, so merging one goes through "test and publish"
+# like any other change. Not covered: the wrangler version in deploy-articles.yml (`npx wrangler@…`), updated by hand.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "deps(actions)"
+    open-pull-requests-limit: 2
+
+  - package-ecosystem: npm
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    groups:
+      npm:
+        patterns: ["*"]
+    commit-message:
+      prefix: "deps(npm)"
+    open-pull-requests-limit: 2

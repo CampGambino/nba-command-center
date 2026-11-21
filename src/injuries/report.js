@@ -134,3 +134,43 @@ export function shortReason(reason) {
   if (/^G League/i.test(r)) return r.replace(/^G League\s*-\s*/i, "G League: ").toLowerCase();
   return r.replace(/^Injury\/Illness\s*-\s*/i, "").replace(/\s*;\s*/g, "; ").toLowerCase();
 }
+
+/**
+ * The newest posted report with players on it, read back from the slot at (hour, minute) ET (0.141.5). One function
+ * for the three places that need tonight's report (the cards' build, the record chances, the injuries step), so each
+ * reads the newest one itself instead of the copy the previous build saved (which, between the 5:30 PM and 12:15 AM
+ * builds, was hours old). A slot never posted, unreadable or empty is passed over and counted.
+ * Returns { url, asOf, rows, behind: { slots, missing, empty, minutes }, slotsTried } or null with slotsTried.
+ */
+export async function latestReport(dateYmd, hour24, minute, { fetchFn = globalThis.fetch, pdfjs = null, maxSlots = 64, timeoutMs = 20000 } = {}) {
+  const lib = pdfjs || (await import("pdfjs-dist/legacy/build/pdf.mjs"));
+  const slots = slotsBackFrom(dateYmd, hour24, minute).slice(0, maxSlots);
+  let missing = 0, empty = 0;
+  for (const url of slots) {
+    const res = await fetchFn(url, { signal: AbortSignal.timeout(timeoutMs) }).catch(() => null);
+    if (!res || !res.ok) { missing++; continue; }
+    let parsed = null;
+    try {
+      const doc = await lib.getDocument({ data: new Uint8Array(await res.arrayBuffer()), verbosity: 0 }).promise;
+      const pages = [];
+      for (let p = 1; p <= doc.numPages; p++) pages.push((await (await doc.getPage(p)).getTextContent()).items.map((it) => ({ x: it.transform[4], y: it.transform[5], str: it.str })));
+      parsed = parseReport(pages);
+    } catch { parsed = null; }
+    if (!parsed || !parsed.rows.length) { empty++; continue; }
+    return { url, ...parsed, behind: { slots: missing + empty, missing, empty, minutes: (missing + empty) * 15 }, slotsTried: slots.length };
+  }
+  return { url: null, rows: [], asOf: null, behind: null, slotsTried: slots.length, none: true };
+}
+
+/** The ET clock for a build of `today`: now if today is today in New York, else the day's last slot. */
+export function reportClock(today, now = new Date()) {
+  const etToday = now.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  if (today !== etToday) return { h: 23, m: 45, live: false };
+  const et = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+  return { h: et.getHours(), m: et.getMinutes(), live: true };
+}
+
+/** Tonight's rows in the shape docs/data/injuries.json keeps (the report writes "11/02/2026": compared as dates). */
+export const tonightRowsOf = (report, today) => (report?.rows || []).filter((r) => isoDate(r.date) === today)
+  .map(({ team, name, status, reason, matchup, time }) => ({ team, name, status, reason, matchup, time }));
+

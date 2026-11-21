@@ -56,6 +56,15 @@ const storeDir = path.join(root, "history", "results");
 const oldFile = path.join(root, "history", "results.json"); // single-file store before v0.14
 let store = loadStore(storeDir, fs) ?? (fs.existsSync(oldFile) ? JSON.parse(fs.readFileSync(oldFile, "utf8")) : null);
 const warnings = [];
+// 0.141.5: tonight's NBA injury report, the newest posted one, read once here and used by the record chances and the
+// injuries step below. Before, the record chances (which run first) used the copy the previous build saved: between
+// the 5:30 PM and 12:15 AM builds, hours old.
+let latestInj = null;
+try {
+  const { latestReport, reportClock } = await import("../src/injuries/report.js");
+  const c = reportClock(today);
+  latestInj = await latestReport(today, c.h, c.m);
+} catch (e) { warnings.push(`injury report: ${e.message}`); }
 const before = store ? Object.values(store.dates).filter((d) => d.complete).length : 0;
 const seasonBefore = store?.season ?? null;
 store = await collectResults({ espn, store, through, warnings });
@@ -242,11 +251,13 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const franchiseStreaks = fs.existsSync(streaksFile) ? JSON.parse(fs.readFileSync(streaksFile, "utf8")) : null;
     const rec = currentRecords({ guide, teamFiles, today, tonight, scorers, coachList, coachTeams: coachList ? coachTeams : null, current, franchiseStreaks });
     const tonightTeams = new Set((tonight || []).flatMap((g) => [g.home, g.away]));
-    // 0.141.1: tonight's injury report (the last one read, docs/data/injuries.json, if it is today's) caps the chance
-    // to play tonight: Out 0, Doubtful 25%, Questionable 60%. This step runs before this build reads the report again.
+    // 0.141.1: tonight's injury report caps the chance to play tonight: Out 0, Doubtful 25%, Questionable 60%. 0.141.5:
+    // the newest report (latestInj, read at the top); the last saved one only if none could be read.
     const tonightStatus = {};
     try {
-      const ij = path.join(root, "docs", "data", "injuries.json"), rep = fs.existsSync(ij) ? JSON.parse(fs.readFileSync(ij, "utf8")) : null;
+      const { tonightRowsOf } = await import("../src/injuries/report.js");
+      const ij = path.join(root, "docs", "data", "injuries.json"), saved = fs.existsSync(ij) ? JSON.parse(fs.readFileSync(ij, "utf8")) : null;
+      const rep = latestInj && !latestInj.none ? { date: today, players: tonightRowsOf(latestInj, today) } : saved;
       if (rep?.date === today && Array.isArray(rep.players)) {
         const { listedIds } = await import("../src/injuries/history.js");
         const teamIds = Object.fromEntries(Object.entries(teamFiles).map(([tri, f]) => [tri, new Set(Object.keys(f.names || {}))]));
@@ -686,29 +697,10 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
   const etNow = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
   const etToday = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
   const [h, m] = today === etToday ? [etNow.getHours(), etNow.getMinutes()] : [23, 45];
-  let report = null;
+  // 0.141.5: read once at the start of this script (latestInj, the newest posted report), shared with the record chances.
+  let report = latestInj && !latestInj.none ? latestInj : null;
+  const slots = { length: latestInj?.slotsTried ?? 0 };
   try {
-    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-    // 0.80 (the user, 11/16: "there may be times where the most recent injury report is never uploaded. in that case,
-    // it's best to check the version prior to that is populated"): the newest report that has players on it. A slot
-    // that was never posted, can't be read, or has no rows is passed over, and the count of those is kept so the
-    // page and the build log say how far behind the report in use is.
-    const slots = slotsBackFrom(today, h, m).slice(0, 64);
-    let missing = 0, empty = 0;
-    for (const url of slots) {
-      const res = await fetch(url, { signal: AbortSignal.timeout(20000) }).catch(() => null);
-      if (!res || !res.ok) { missing++; continue; }
-      let parsed = null;
-      try {
-        const doc = await pdfjs.getDocument({ data: new Uint8Array(await res.arrayBuffer()), verbosity: 0 }).promise;
-        const pages = [];
-        for (let p = 1; p <= doc.numPages; p++) pages.push((await (await doc.getPage(p)).getTextContent()).items.map((it) => ({ x: it.transform[4], y: it.transform[5], str: it.str })));
-        parsed = parseReport(pages);
-      } catch { parsed = null; }
-      if (!parsed || !parsed.rows.length) { empty++; continue; }
-      report = { url, ...parsed, behind: { slots: missing + empty, missing, empty, minutes: (missing + empty) * 15 } };
-      break;
-    }
     if (report && today === etToday && report.behind.minutes >= INJURY_LATE_MIN && h >= 13)
       warnings.push(`injury report: the newest one with players on it is ${report.asOf || report.url.split("/").pop()} (${report.behind.minutes} minutes back; ${report.behind.missing} slots not posted, ${report.behind.empty} empty or unreadable)`);
     if (!report && today === etToday && h >= 13) warnings.push(`injury report: none could be read in the last ${slots.length} slots; the last one written for today stays`);

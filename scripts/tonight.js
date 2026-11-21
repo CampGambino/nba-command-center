@@ -53,7 +53,7 @@ const callsFile = path.join(root, "history", "calls.jsonl");
 const calibration = fitCalibration(readCalls(fs.existsSync(callsFile) ? fs.readFileSync(callsFile, "utf8") : ""));
 fs.writeFileSync(path.join(root, "docs", "data", "calibration.json"), JSON.stringify({ generatedAt: new Date().toISOString(), today, fit: calibration }));
 console.log(calibration ? `calibration: a=${calibration.a} b=${calibration.b} from ${calibration.n} scored calls (50% -> ${Math.round(100 / (1 + Math.exp(-calibration.a)))}%)` : "calibration: too few scored calls yet, chances left as simulated");
-const { site } = await buildSite({ entries, games, uncounted, espn, nba, today, root, calibration });
+const { site } = await buildSite({ entries, games, uncounted, espn, nba, today, root, calibration, injuryFetch: globalThis.fetch });
 const n = site.teams.reduce((a, t) => a + t.items.length, 0);
 console.log(`built: ${site.teams.length} teams, ${n} milestones -> docs/data/watch.json`);
 const off = site.teams.flatMap((t) => t.offCadence || []);
