@@ -367,11 +367,17 @@ async function discord(env, payload) {
 // ---------- state (KV) ----------
 async function load(env, name, fallback) { return (await env.STATE.get(name, "json")) ?? fallback; }
 async function save(env, name, value) { await env.STATE.put(name, JSON.stringify(value)); }
-export async function adminKey(env) {
-  const data = new TextEncoder().encode(`ncc-articles:${env.DISCORD_WEBHOOK || ""}`);
+async function derivedKey(env, label) {
+  const data = new TextEncoder().encode(`${label}:${env.DISCORD_WEBHOOK || ""}`);
   const hash = await crypto.subtle.digest("SHA-256", data);
   return [...new Uint8Array(hash)].slice(0, 12).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
+/** The review page's key: every private address. */
+export const adminKey = (env) => derivedKey(env, "ncc-articles");
+/** 0.141.3 (security check, 11/20): a vote-only key for the Watch List's 👍/👎/📋, kept in the browser. It can add
+ *  votes and nothing else, so a browser, a shared link or a page script that gets it can't reach the review page,
+ *  its rules or the test posts (before, the browser held the admin key itself). */
+export const voteKey = (env) => derivedKey(env, "ncc-votes");
 
 // ---------- one check ----------
 export async function check(env, now = Date.now(), { feeds = FEEDS } = {}) {
@@ -464,7 +470,7 @@ export async function check(env, now = Date.now(), { feeds = FEEDS } = {}) {
 
 // ---------- review page ----------
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-function page(st, log, rules, key, labels) {
+function page(st, log, rules, key, labels, vkey) {
   const a = (doIt, v, label, extra = "") => `<a class="b" href="/act?k=${key}&do=${doIt}&${extra}v=${encodeURIComponent(v)}">${label}</a>`;
   const ago = (t) => (t ? mins(Date.now() - t) + " ago" : "never");
   const teamOk = TEAM_FEEDS.filter((f) => st.ok?.[f.id] && !st.errors?.[f.id]).length, teamBad = TEAM_FEEDS.filter((f) => st.errors?.[f.id]).map((f) => `${f.team}: ${st.errors[f.id].msg}`);
@@ -485,7 +491,7 @@ function page(st, log, rules, key, labels) {
 tr.skip td{color:#777}.m{color:#888;font-size:12px}.b{display:inline-block;margin:2px 4px 2px 0;padding:2px 7px;border:1px solid #ccc;border-radius:6px;text-decoration:none;font-size:12px;white-space:nowrap}.bad{color:#c00}
 input{padding:5px;font-size:14px}</style>
 <h2>NBA Command Center · Articles watcher</h2>
-<p><a class="b" href="${SITE}/nba-command-center/#vote=${key}" target=_blank>👍👎 Vote on the briefing</a> <span class=m>opens the Watch List with voting turned on in that browser (bookmark this review page, not the Watch List link)</span></p>
+<p><a class="b" href="${SITE}/nba-command-center/#vote=${vkey}" target=_blank>👍👎 Vote on the briefing</a> <span class=m>opens the Watch List with voting turned on in that browser (bookmark this review page, not the Watch List link)</span></p>
 <ul>${src}</ul><p class=m>Checks on its Cloudflare schedule (every 5 minutes); saves only when something new arrives, or every 30 minutes to show it's alive. Last saved ${ago(st.lastWrite)}${st.lastWrite && Date.now() - st.lastWrite > 40 * 60e3 ? ` <span class=bad>(over 40 minutes: the 2-minute schedule may not be running)</span>` : ""}.</p>
 ${list("Muted writers", rules.muteBylines, "unmute-writer")}${list("Always-allowed writers", rules.allowBylines, "unallow-writer")}${list("Muted phrases", rules.muteWords, "unmute-word")}
 <form action="/act"><input type=hidden name=k value="${key}"><input type=hidden name=do value="mute-word"><input name=v placeholder="mute a phrase in titles"> <button>Mute</button></form>
@@ -519,7 +525,7 @@ async function act(env, url, key) {
   } else return new Response("Unknown action", { status: 400 });
   await save(env, "rules", rules);
   await save(env, "labels", labels.slice(0, 500));
-  return new Response(`<!doctype html><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=refresh content="2;url=/review?k=${key}"><p style="font:16px sans-serif;margin:20px">${esc(note)} Back to the review page…</p>`, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+  return new Response(`<!doctype html><meta name=viewport content="width=device-width,initial-scale=1"><meta http-equiv=refresh content="2;url=/review?k=${key}"><p style="font:16px sans-serif;margin:20px">${esc(note)} Back to the review page…</p>`, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" } });
 }
 
 export default {
@@ -540,24 +546,27 @@ export default {
   async fetch(req, env) {
     const url = new URL(req.url);
     const key = await adminKey(env);
-    const html = (body, status = 200) => new Response(body, { status, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Robots-Tag": "noindex" } });
+    const html = (body, status = 200) => new Response(body, { status, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Robots-Tag": "noindex", "Referrer-Policy": "no-referrer" } });
     if (url.pathname === "/setup") {
       if (!env.DISCORD_WEBHOOK || !env.STATE) return html("<p>Not ready: add the DISCORD_WEBHOOK secret and the STATE KV binding, then reload.</p>", 503);
       // The private review address goes to the Discord channel, never to this browser: whoever
-      // opens /setup learns nothing. Opening it again just re-sends the link to the channel.
-      const st = await load(env, "state", null) || { seen: {}, errors: {}, lastWrite: 0 };
+      // opens /setup learns nothing. 0.141.3 (security check, 11/20): once set up, it needs the key, so a stranger who
+      // finds this address can't make it post to the channel (before: every visit posted the message again).
+      const st0 = await load(env, "state", null);
+      if (st0 && st0.base && url.searchParams.get("k") !== key) return new Response("Not found", { status: 404 });
+      const st = st0 || { seen: {}, errors: {}, lastWrite: 0 };
       if (st.base !== url.origin) { st.base = url.origin; await save(env, "state", st); }
       const ok = await discord(env, { content: `✅ Articles watcher connected. New ESPN and Athletic NBA articles will post here within a few minutes of going up (every Athletic NBA story; from ESPN, recaps, previews, videos, fantasy and betting are skipped).\nYour private review page, to train what gets posted: ${url.origin}/review?k=${key}` });
       return html(ok ? "<p style='font:16px sans-serif'>Done. Check the Discord channel: a test message with your private review link is there.</p>" : "<p>Discord didn't accept the message. Check the DISCORD_WEBHOOK secret.</p>", ok ? 200 : 502);
     }
     // Briefing votes (0.67): /votes is public; /vote needs the key (checked inside).
-    const voted = await handleVotes(req, env, url, key);
+    const voted = await handleVotes(req, env, url, await voteKey(env));
     if (voted) return voted;
     // Headlines (0.70): the last 72 hours of headlines, public, for the briefing's "in the news" boost.
     const heads = await handleHeadlines(req, env, url);
     if (heads) return heads;
     if (url.searchParams.get("k") !== key) return new Response("Not found", { status: 404 });
-    if (url.pathname === "/review") return html(page(await load(env, "state", {}), await load(env, "log", []), await load(env, "rules", { muteBylines: [], muteWords: [], allowBylines: [] }), key, await load(env, "labels", [])));
+    if (url.pathname === "/review") return html(page(await load(env, "state", {}), await load(env, "log", []), await load(env, "rules", { muteBylines: [], muteWords: [], allowBylines: [] }), key, await load(env, "labels", []), await voteKey(env)));
     if (url.pathname === "/act") return act(env, url, key);
     if (url.pathname === "/check") return Response.json(await check(env));
     // Build check (0.73), private: what it would say right now, without posting (?send=1 runs it for real).

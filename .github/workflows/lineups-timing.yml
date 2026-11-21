@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
       - name: Read the Worker's lineup state (times only)
         working-directory: cloudflare
         env:
@@ -27,11 +27,11 @@ jobs:
         run: |
           if [ -n "${{ github.event.inputs.date }}" ]; then
             # A past night's saved timing (team codes and minutes before tip only).
-            npx --yes wrangler@3 kv key get --binding STATE "lineups-timing:${{ github.event.inputs.date }}" > /tmp/tm.json 2>/dev/null || npx --yes wrangler@3 kv:key get --binding STATE "lineups-timing:${{ github.event.inputs.date }}" > /tmp/tm.json
+            npx --yes wrangler@3.114.17 kv key get --binding STATE "lineups-timing:${{ github.event.inputs.date }}" > /tmp/tm.json 2>/dev/null || npx --yes wrangler@3.114.17 kv:key get --binding STATE "lineups-timing:${{ github.event.inputs.date }}" > /tmp/tm.json
             node -e 'const t = JSON.parse(require("fs").readFileSync("/tmp/tm.json", "utf8")); console.log("timing", t.date); for (const r of t.teams || []) console.log(JSON.stringify({ team: r.team, tip: new Date(r.tip).toLocaleTimeString("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" }), feedMin: r.feedMin, seenMin: r.seenMin, postedMin: r.postedMin, lagSec: r.lagSec, lateSec: r.lateSec, changes: (r.changes || []).length, tipResult: r.tipResult }));'
             exit 0
           fi
-          npx --yes wrangler@3 kv key get --remote --binding STATE lineups > /tmp/st.json 2>/dev/null || npx --yes wrangler@3 kv:key get --binding STATE lineups > /tmp/st.json
+          npx --yes wrangler@3.114.17 kv key get --remote --binding STATE lineups > /tmp/st.json 2>/dev/null || npx --yes wrangler@3.114.17 kv:key get --binding STATE lineups > /tmp/st.json
           node -e '
             const st = JSON.parse(require("fs").readFileSync("/tmp/st.json", "utf8"));
             const et = (ms) => ms ? new Date(ms).toLocaleTimeString("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit", second: "2-digit" }) : null;

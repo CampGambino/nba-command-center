@@ -13,6 +13,12 @@
 export const SITE = "https://campgambino.github.io";
 const CORS = { "Access-Control-Allow-Origin": SITE, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type", "Vary": "Origin" };
 const MAX = 3000;
+// 0.141.3 (security check, 11/20): /votes is public, so a flood of reads could use up the free plan's 100,000 KV reads a
+// day and stop the alerts. Each Worker copy keeps the answer 60 seconds (a vote clears it), so a flood costs about one
+// read a minute per copy. The page and the build read it a few times a day: a minute old is fine.
+export const PUBLIC_TTL_MS = 60e3;
+let cached = null;   // { at, votes }
+export const _resetVotesCache = () => { cached = null; };
 const clip = (s, n) => (s == null ? null : String(s).slice(0, n));
 
 export async function handleVotes(req, env, url, key) {
@@ -20,7 +26,10 @@ export async function handleVotes(req, env, url, key) {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   const json = (body, status = 200) => Response.json(body, { status, headers: { ...CORS, "Cache-Control": "no-store" } });
   if (!env.STATE) return json({ error: "no STATE store" }, 503);
-  if (url.pathname === "/votes" && req.method === "GET") return json({ votes: (await env.STATE.get("votes", "json")) || [] });
+  if (url.pathname === "/votes" && req.method === "GET") {
+    if (!cached || Date.now() - cached.at > PUBLIC_TTL_MS) cached = { at: Date.now(), votes: (await env.STATE.get("votes", "json")) || [] };
+    return json({ votes: cached.votes });
+  }
   if (url.pathname === "/vote" && req.method === "POST") {
     if (url.searchParams.get("k") !== key) return json({ error: "not allowed" }, 403);
     let b;
@@ -32,6 +41,7 @@ export async function handleVotes(req, env, url, key) {
     if (v) votes.push({ key: k, kind: clip(b.kind, 20), team: clip(b.team, 4), player: clip(b.player, 60), text: clip(b.text, 300), d: clip(b.d, 10), v, at: Date.now(), ...(b.claim ? { claim: clip(b.claim, 16) } : {}) });
     const kept = votes.slice(-MAX);
     await env.STATE.put("votes", JSON.stringify(kept));
+    cached = null;
     return json({ ok: true, n: kept.length });
   }
   return json({ error: "not found" }, 404);

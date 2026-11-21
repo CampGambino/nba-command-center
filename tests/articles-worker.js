@@ -7,10 +7,10 @@ import fs from "node:fs";
 import { parseLineups, diff as lineupDiff, lastStarters, lineupEmbed, lineupCheck, feedTime, espnStarters, feedDue, suspicion, timingEmbed, lineupContext, parseBoxStarters } from "../cloudflare/lineups.js";
 import { dueAt, dueNow, digestCheck } from "../cloudflare/digest.js";
 import { TEAM_FEEDS, teamFeedGroup, findLiveBlog, parseLiveBlog, LIVE_FEED } from "../cloudflare/articles-worker.js";
-import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey, tagOf as articleTag, embedFor } from "../cloudflare/articles-worker.js";
+import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey, voteKey, tagOf as articleTag, embedFor } from "../cloudflare/articles-worker.js";
 
-import { handleVotes } from "../cloudflare/votes.js";
-import { handleHeadlines } from "../cloudflare/headlines.js";
+import { handleVotes, _resetVotesCache } from "../cloudflare/votes.js";
+import { handleHeadlines, _resetHeadlinesCache } from "../cloudflare/headlines.js";
 import { healthProblem, healthCheck } from "../cloudflare/health.js";
 import { tfetch } from "../cloudflare/net.js";
 import { pdfText, statusIn, slotUrls, latestReport, statusOnReport } from "../cloudflare/injurypdf.js";
@@ -91,6 +91,29 @@ export async function articlesChecks(ok) {
     const resOk = await articlesWorker.fetch(new Request(`https://w.example/review?k=${key}`), env);
     const body = await resOk.text();
     ok(res404.status === 404 && resOk.status === 200 && body.includes("Why the Heat are stuck") && body.includes("game recap"), "articles: review page needs the key; lists posted and skipped with reasons");
+    {
+      // 0.141.3 (security check, 11/20): a vote-only key; /setup closed once set up; public reads kept a minute.
+      const vkey = await voteKey(env), W = (u, o) => articlesWorker.fetch(new Request(`https://w.example${u}`, o), env);
+      const vote = (k) => W(`/vote?k=${k}`, { method: "POST", body: JSON.stringify({ key: "t|1", v: 1, kind: "t", text: "x" }) });
+      const [byAdmin, byVote, reviewByVote] = [(await vote(key)).status, (await vote(vkey)).status, (await W(`/review?k=${vkey}`)).status];
+      ok(vkey !== key && /^[0-9a-f]{24}$/.test(vkey) && byAdmin === 403 && byVote === 200 && reviewByVote === 404 && body.includes(`#vote=${vkey}`) && !body.includes(`#vote=${key}`),
+        "security (0.141.3): votes take their own key; the admin key can't vote and the vote key can't open the review page; the review page's vote link carries the vote key", JSON.stringify([byAdmin, byVote, reviewByVote]));
+      const n0 = posts.length, st = JSON.parse(kv.get("state") || "{}");
+      const first = (await W("/setup")).status, n1 = posts.length;
+      const again = (await W("/setup")).status, n2 = posts.length, withKey = (await W(`/setup?k=${key}`)).status, n3 = posts.length;
+      ok((st.base ? first === 404 && n1 === n0 : first === 200 && n1 === n0 + 1) && again === 404 && n2 === n1 && withKey === 200 && n3 === n2 + 1,
+        "security (0.141.3): once set up, /setup needs the key (a stranger's visit posts nothing)", JSON.stringify({ hadBase: !!st.base, first, again, withKey, posts: [n0, n1, n2, n3] }));
+      _resetVotesCache(); _resetHeadlinesCache();
+      let gets = 0; const counting = { ...env, STATE: { get: async (k, t) => { gets++; return env.STATE.get(k, t); }, put: env.STATE.put } };
+      for (let i = 0; i < 50; i++) await articlesWorker.fetch(new Request("https://w.example/votes"), counting);
+      const gVotes = gets; gets = 0;
+      const t0 = Date.now();
+      for (let i = 0; i < 50; i++) await handleHeadlines(new Request("https://w.example/headlines"), counting, new URL("https://w.example/headlines"), t0 + i * 100);
+      const gHeads = gets; gets = 0;
+      await handleHeadlines(new Request("https://w.example/headlines"), counting, new URL("https://w.example/headlines"), t0 + 61e3);
+      ok(gVotes === 1 && gHeads === 2 && gets === 2, "security (0.141.3): 50 reads of /votes and /headlines in a minute cost one KV read each (headlines: 2), and it refreshes after a minute", JSON.stringify([gVotes, gHeads, gets]));
+      _resetVotesCache(); _resetHeadlinesCache();
+    }
     ok(/seen \d{1,2}:\d\d [AP]M · \+\d+ min/.test(body), "articles: review page shows when each item was seen and how long after publishing", body.match(/seen[^<]{0,40}/)?.[0]);
     await articlesWorker.fetch(new Request(`https://w.example/act?k=${key}&do=mute-writer&v=Bobby%20Marks`), env);
     espn = [...espn, espnArt(6, "Story", "Second Marks column", "Bobby Marks", "/nba/story", 1510)];
@@ -100,9 +123,9 @@ export async function articlesChecks(ok) {
     // 7. "Post it" from the review page sends a skipped one and records the miss.
     await articlesWorker.fetch(new Request(`https://w.example/act?k=${key}&do=post&key=${encodeURIComponent(JSON.parse(kv.get("log"))[0].key)}`), env);
     ok(titles().join("|") === "Second Marks column" && JSON.parse(kv.get("labels"))[0].v === "should have posted", "articles: posting a skipped item from the review page works and is labeled", titles().join("|"));
-    // 8. /setup puts the private link in Discord, not in the browser.
+    // 8. /setup puts the private link in Discord, not in the browser (0.141.3: once set up, only with the key).
     posts.length = 0;
-    const setup = await (await articlesWorker.fetch(new Request("https://w.example/setup"), env)).text();
+    const setup = await (await articlesWorker.fetch(new Request(`https://w.example/setup?k=${key}`), env)).text();
     ok(!setup.includes(key) && posts[0].content.includes(`https://w.example/review?k=${key}`), "articles: /setup sends the private review link to Discord only");
     // 8b. The 11/11 bug: /setup opened before the first check made the first check post older articles.
     {

@@ -155,6 +155,8 @@
 </main>
 <footer id="foot"></footer>
 <script type="module">
+// 0.141.3 (security check, 11/20): text from the data (names, lines) is escaped before it goes into HTML.
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 import { teamGameLines, vsTop, ratings as teamRatings, topSet } from "./lib/situations/ratings.js";
 import { playerGames, vsDefenses, thirtyAllowed, POOL_MIN_PPG, POOL_SHARE, POOL_MIN_SIDE } from "./lib/situations/vsplayers.js";
 const $ = (id) => document.getElementById(id);
@@ -297,7 +299,7 @@ async function renderPlayers() {
     `Each player's average against them, against the other ${Object.keys(r).length - top.size} teams (the two partition his games), and the gap. ${pside === "fall" ? "Biggest drop first" : "Biggest rise first"}${team ? "" : `, ${shown.length} of ${res.rows.length} qualified players`}. ` +
     `Qualified: ${POOL_MIN_PPG}+ points a game, half his team's games, ${POOL_MIN_SIDE}+ games on each side (${res.quiet} score less, ${res.thin} are short on games, ${res.oneSided} have too few on one side). FG% is makes over attempts. Small samples: a player meets each team 2-4 times a season.`;
   $("ptab").innerHTML = `<tr><th>Player</th><th>Team</th><th class="num">GP</th><th class="num">Season</th><th class="num">FG%</th><th class="num">vs ${pb ? "worst" : "top"} ${N}${rec ? " rec" : ""}</th><th class="num">FG%</th><th class="num">GP</th><th class="num">vs rest</th><th class="num">FG%</th><th class="num">GP</th><th class="num">Pts gap</th><th class="num">FG% gap</th></tr>` +
-    (shown.map((x) => `<tr><td><b>${x.name}</b></td><td>${x.tri}</td><td class="num">${x.gp}</td><td class="num">${x.avg.toFixed(1)}</td><td class="num" title="${x.fg.m}-${x.fg.t}">${fgp(x.fg)}</td><td class="num"><b>${x.vsAvg.toFixed(1)}</b></td><td class="num" title="${x.vsFg.m}-${x.vsFg.t}">${fgp(x.vsFg)}</td><td class="num">${x.vsGp}</td><td class="num">${x.restAvg.toFixed(1)}</td><td class="num" title="${x.restFg.m}-${x.restFg.t}">${fgp(x.restFg)}</td><td class="num">${x.restGp}</td><td class="num ${x.gap <= -3 ? "lo" : x.gap >= 3 ? "hi" : ""}"><b>${sg(x.gap)}</b></td><td class="num ${x.fgGap != null && x.fgGap <= -5 ? "lo" : x.fgGap >= 5 ? "hi" : ""}">${sg(x.fgGap)}</td></tr>`).join("") || `<tr><td class="empty" colspan="13">No qualified players.</td></tr>`);
+    (shown.map((x) => `<tr><td><b>${esc(x.name)}</b></td><td>${x.tri}</td><td class="num">${x.gp}</td><td class="num">${x.avg.toFixed(1)}</td><td class="num" title="${x.fg.m}-${x.fg.t}">${fgp(x.fg)}</td><td class="num"><b>${x.vsAvg.toFixed(1)}</b></td><td class="num" title="${x.vsFg.m}-${x.vsFg.t}">${fgp(x.vsFg)}</td><td class="num">${x.vsGp}</td><td class="num">${x.restAvg.toFixed(1)}</td><td class="num" title="${x.restFg.m}-${x.restFg.t}">${fgp(x.restFg)}</td><td class="num">${x.restGp}</td><td class="num ${x.gap <= -3 ? "lo" : x.gap >= 3 ? "hi" : ""}"><b>${sg(x.gap)}</b></td><td class="num ${x.fgGap != null && x.fgGap <= -5 ? "lo" : x.fgGap >= 5 ? "hi" : ""}">${sg(x.fgGap)}</td></tr>`).join("") || `<tr><td class="empty" colspan="13">No qualified players.</td></tr>`);
 }
 async function renderThirty() {
   const pg = await teamFiles(), r = teamRatings(lines), t = thirtyAllowed(pg, r);
@@ -308,7 +310,7 @@ async function renderThirty() {
   $("ttab").innerHTML = `<tr><th>Team</th><th class="num">Allowed</th><th class="num">Per game</th><th class="num">Def rtg</th><th>Who did it</th></tr>` +
     [...t.teams.filter((x) => x.gp && !x.allowed), ...t.teams.filter((x) => !(x.gp && !x.allowed))].map((x) => `<tr${x.gp && !x.allowed ? ' class="top"' : ""}><td><b>${x.tri}</b>${x.gp && !x.allowed ? " 🛡️" : ""}</td><td class="num"><b>${x.allowed}</b></td><td class="num">${x.perGame == null ? "–" : x.perGame.toFixed(2)}</td><td class="num">${x.drtg == null ? "–" : x.drtg.toFixed(1)}</td><td class="team" style="white-space:normal">${x.who.map((w) => (w.n > 1 ? `<b title="${w.pts.join(", ")} points">${w.name} ×${w.n}</b>` : w.name)).join(", ")}</td></tr>`).join("");
   $("tgames").innerHTML = `<tr><th class="num">Pts</th><th>Player</th><th>Team</th><th>Against</th><th>Date</th></tr>` +
-    t.games.filter((g) => g.pts >= 40).map((g) => `<tr><td class="num"><b>${g.pts}</b></td><td>${g.name}</td><td>${g.team}</td><td>${g.home ? "vs" : "at"} ${g.against}</td><td>${md(g.d)}</td></tr>`).join("");
+    t.games.filter((g) => g.pts >= 40).map((g) => `<tr><td class="num"><b>${g.pts}</b></td><td>${esc(g.name)}</td><td>${g.team}</td><td>${g.home ? "vs" : "at"} ${g.against}</td><td>${md(g.d)}</td></tr>`).join("");
 }
 // 0.65 (the user, 11/14): which teams have let opponents score career highs this season; rookies apart.
 async function renderHighs() {
@@ -322,14 +324,14 @@ async function renderHighs() {
   const max = T.length ? T[0][1].length : 0;
   $("hkey").innerHTML = `${G.length} career-high scoring games this season ${hwho === "rookies" ? "by rookies" : hwho === "vets" ? "by players past their rookie season" : ""}, credited to the defense that allowed them. A game counts when it beats everything he had scored before it (his career high entering the season, then this season's games), so one player can set more than one. ${hwho !== "vets" ? "A rookie's debut isn't counted (any total is a career high); his new bests after it are. " : ""}Points only, 10 or more; players whose career before 2016-17 isn't on file in full are left out.`;
   $("htab").innerHTML = `<tr><th>Team</th><th class="num">Allowed</th><th>Who (points, previous high)</th></tr>` +
-    (T.length ? T.map(([tri, L]) => `<tr${L.length === max && max >= 2 ? ' class="top"' : ""}><td><b>${tri}</b></td><td class="num"><b>${L.length}</b></td><td class="team" style="white-space:normal">${L.map((g) => `${g.name}${g.rookie && hwho === "all" ? " (R)" : ""} ${g.pts}${g.prev != null ? ` <span class="small">(${g.prev})</span>` : ""}`).join(", ")}</td></tr>`).join("") : `<tr><td class="empty" colspan="3">None yet.</td></tr>`);
+    (T.length ? T.map(([tri, L]) => `<tr${L.length === max && max >= 2 ? ' class="top"' : ""}><td><b>${tri}</b></td><td class="num"><b>${L.length}</b></td><td class="team" style="white-space:normal">${L.map((g) => `${esc(g.name)}${g.rookie && hwho === "all" ? " (R)" : ""} ${g.pts}${g.prev != null ? ` <span class="small">(${g.prev})</span>` : ""}`).join(", ")}</td></tr>`).join("") : `<tr><td class="empty" colspan="3">None yet.</td></tr>`);
   // 0.78 (the user, 11/16): who has raised his career high more than once this season, the whole league.
   const RP = (HA.repeat || []).filter((r) => hwho === "all" || (hwho === "rookies" ? r.rookie : !r.rookie));
-  $("hrepeat").innerHTML = RP.length ? `<b>More than once this season:</b> ` + RP.map((r) => `${r.name} <span class="small">(${r.team}${r.rookie && hwho === "all" ? ", rookie" : ""})</span> ${r.steps.filter((v) => v != null).join(" → ")}`).join(" · ") + `. On the Watch List when ${hwho === "rookies" ? "a non-rookie does it" : "he plays"}.` : `Nobody ${hwho === "rookies" ? "among rookies" : hwho === "vets" ? "past his rookie season" : ""} has raised his career high more than once this season.`;
+  $("hrepeat").innerHTML = RP.length ? `<b>More than once this season:</b> ` + RP.map((r) => `${esc(r.name)} <span class="small">(${r.team}${r.rookie && hwho === "all" ? ", rookie" : ""})</span> ${r.steps.filter((v) => v != null).join(" → ")}`).join(" · ") + `. On the Watch List when ${hwho === "rookies" ? "a non-rookie does it" : "he plays"}.` : `Nobody ${hwho === "rookies" ? "among rookies" : hwho === "vets" ? "past his rookie season" : ""} has raised his career high more than once this season.`;
   const nth = {};
   for (const g of G.slice().reverse()) g.nth = nth[g.id] = (nth[g.id] || 0) + 1;
   $("hgames").innerHTML = `<tr><th class="num">Pts</th><th class="num">Prev. high</th><th>Player</th><th>Team</th><th>Against</th><th>Date</th></tr>` +
-    (G.length ? G.map((g) => `<tr><td class="num"><b>${g.pts}</b></td><td class="num">${g.prev ?? "–"}</td><td>${g.name}${g.rookie ? ` <span class="small">rookie</span>` : ""}${nth[g.id] > 1 ? ` <span class="small" title="His ${g.nth === 1 ? "first" : g.nth === 2 ? "second" : g.nth === 3 ? "third" : g.nth + "th"} new career high of the season">#${g.nth} of ${nth[g.id]}</span>` : ""}</td><td>${g.team}</td><td>${g.home ? "vs" : "at"} ${g.against}</td><td>${md(g.d)}</td></tr>`).join("") : `<tr><td class="empty" colspan="6">None yet.</td></tr>`);
+    (G.length ? G.map((g) => `<tr><td class="num"><b>${g.pts}</b></td><td class="num">${g.prev ?? "–"}</td><td>${esc(g.name)}${g.rookie ? ` <span class="small">rookie</span>` : ""}${nth[g.id] > 1 ? ` <span class="small" title="His ${g.nth === 1 ? "first" : g.nth === 2 ? "second" : g.nth === 3 ? "third" : g.nth + "th"} new career high of the season">#${g.nth} of ${nth[g.id]}</span>` : ""}</td><td>${g.team}</td><td>${g.home ? "vs" : "at"} ${g.against}</td><td>${md(g.d)}</td></tr>`).join("") : `<tr><td class="empty" colspan="6">None yet.</td></tr>`);
 }
 document.querySelectorAll("#hwho button").forEach((b) => b.onclick = () => { hwho = b.dataset.w; document.querySelectorAll("#hwho button").forEach((x) => x.classList.toggle("on", x === b)); renderHighs(); });
 function showView() {
@@ -369,11 +371,11 @@ async function renderTypes() {
     rows.map((t) => `<tr><td><b>${t.team}</b></td><td class="num">${t.gp}</td>${TYCOLS.map((c, i) => { const r = t[tyside + "r"][i]; return `<td class="num"><span class="${cls(r, tyside)}">${t[tyside][i].toFixed(1)}</span> <span class="team">${r}</span></td>`; }).join("")}</tr>`).join("");
   document.querySelectorAll("#tytab th.sortable").forEach((th) => th.onclick = () => { tykey = Number(th.dataset.i); renderTypes(); });
   const L = TY.leaders || {}, n = 12, col = (k) => (L[k] || []).slice(0, n);
-  const cell = (p) => (p ? `<td>${p.rank}. <b>${p.name}</b> <span class="team">${p.team}</span></td><td class="num">${p.v.toFixed(1)}</td>` : "<td></td><td></td>");
+  const cell = (p) => (p ? `<td>${p.rank}. <b>${esc(p.name)}</b> <span class="team">${p.team}</span></td><td class="num">${p.v.toFixed(1)}</td>` : "<td></td><td></td>");
   $("typl").innerHTML = `<tr><th>Paint</th><th class="num">a game</th><th>Second chance</th><th class="num">a game</th><th>Off turnovers</th><th class="num">a game</th></tr>` +
     Array.from({ length: n }, (_, i) => `<tr>${cell(col("paint")[i])}${cell(col("sc")[i])}${cell(col("pot")[i])}</tr>`).join("");
   const G = (TY.games || []).filter((g) => g.items.length);
-  $("tyedges").innerHTML = TY.today && G.length ? `<div class="key"><b>Lopsided tonight</b> (top ${TY.topDefenses?.length || 5} defenses: ${(TY.topDefenses || []).join(", ")}):<br>${G.map((g) => `<b>${g.away} @ ${g.home}</b>: ${g.items.map((i) => i.text).join(" ")}`).join("<br>")}</div>` : "";
+  $("tyedges").innerHTML = TY.today && G.length ? `<div class="key"><b>Lopsided tonight</b> (top ${TY.topDefenses?.length || 5} defenses: ${(TY.topDefenses || []).join(", ")}):<br>${G.map((g) => `<b>${g.away} @ ${g.home}</b>: ${g.items.map((i) => esc(i.text)).join(" ")}`).join("<br>")}</div>` : "";
 }
 document.querySelectorAll("#tyside button").forEach((b) => b.onclick = () => { tyside = b.dataset.s; document.querySelectorAll("#tyside button").forEach((x) => x.classList.toggle("on", x === b)); renderTypes(); });
 document.querySelectorAll("#view button").forEach((b) => b.onclick = () => { view = b.dataset.v; showView(); });

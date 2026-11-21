@@ -2,6 +2,23 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.141.3 (2026-11-20): security fixes from the security check
+
+The user, 8:15 PM: "Run a security check. Is the information protected from online attackers? What are the holes?" Then, 8:21 PM: "Yes" (to the fixes). The check is in the project doc `claude/security-check-2026-11-20.md`.
+
+**Fixed.**
+1. **/setup closed once set up** (`cloudflare/articles-worker.js`). It needed no key, and every visit posted the setup message (with the review link) to #articles: anyone who found the Worker's address could flood the channel and get the webhook throttled. Confirmed before the fix against the Worker's code: 3 visits, 3 posts. Now, once the Worker is set up, /setup without the key answers "Not found" and posts nothing; the first-ever setup still works without it (the key isn't known before).
+2. **Public reads kept a minute** (`cloudflare/votes.js`, `cloudflare/headlines.js`). /votes (1 KV read) and /headlines (2) read storage on every request, with no limit: about 50,000 requests in a day would use up the free plan's 100,000 KV reads and stop every alert until 7 PM ET. Each Worker copy now keeps the answer 60 seconds (a vote clears the votes copy), so a flood costs about one read a minute per copy. Not covered: the free plan's 100,000 requests a day to the Worker itself (rate limiting needs a custom domain; on workers.dev there is none to set).
+3. **A vote-only key.** The key the Watch List keeps in the browser for 👍/👎/📋 was the admin key (review page, rules, test posts to #alerts and #lineups). Votes now take their own key (`voteKey`: SHA-256 of a different label and the webhook secret, 96 bits); the admin key can't vote and the vote key opens nothing else. The review page's "Vote on the briefing" link carries the new key. **The old link stops working for votes: open "Vote on the briefing" from the review page once.** (0 votes had been cast, so nothing is lost.) Pages the Worker serves with the key in the address also send `Referrer-Policy: no-referrer`.
+4. **Deploy tools pinned** (`.github/workflows/*.yml`). actions/checkout v5.1.0, actions/setup-node v5.0.0, actions/cache v4.3.0 and cloudflare/wrangler-action v3.15.0 by commit (read with `git ls-remote` from github.com; the tags pointed at these commits on 11/20), and `npx wrangler@3.114.17` instead of `wrangler@3`: a moved tag or a new release upstream can no longer run with the Cloudflare token. Updates are now by hand.
+5. **Four pages escape text from the data** (defenses, gameflow, situations, standings): player names, arenas, game labels and the lopsided-tonight lines went into HTML as is. The data is ESPN's and the NBA's, written by the build, so the risk was low; but these pages share an origin with the stored key. Hover titles and drop-down options were already plain text and are unchanged.
+
+**Not changeable from here (the user's side):** two-factor sign-in on GitHub, Cloudflare and Discord; the Cloudflare API token limited to Workers and KV for this account; who is in the Discord server where the review link was posted (anyone there can open the review page; replacing the DISCORD_WEBHOOK secret changes both keys).
+
+**Tests.** 1,090 checks, 98 for the articles watcher (three new): the vote key votes and opens nothing else, the admin key can't vote, the review page's link carries the vote key; once set up, /setup without the key posts nothing; 50 reads of /votes and /headlines in a minute cost one read each (headlines two) and refresh after a minute. The older /setup test now calls it with the key, as the owner would.
+
+**Self-audit.** The pinned commits were read from github.com's tags, not checked against a release signature. The escaping was added where text goes into HTML on those four pages; a page added later needs the same. The admin key is unchanged (still derived from the webhook secret), and it sits in the Discord message and in the browser history of the review page.
+
 ## 0.141.2 (2026-11-20): the milestone cards take tonight's chance to play from the NBA injury report
 
 The user, 6:44 PM: "Why can't the cards read the injury report instead of espn?" Then: "yes".

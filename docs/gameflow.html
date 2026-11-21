@@ -772,6 +772,8 @@ let MIN_SLACK = 0.5;
 
 /* ============================ helpers ============================ */
 const $  = s => document.querySelector(s);
+/* 0.141.3 (security check, 11/20): text from the data (names, arenas, labels) is escaped before it goes into HTML. */
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const el = (t,c,x) => { const e=document.createElement(t); if(c)e.className=c;
                         if(x!=null)e.textContent=x; return e; };
 /* Notes carry inline markup, so they have to be set as HTML. Handing a string with tags
@@ -899,9 +901,9 @@ function render(G, gameInfo){
   const dt=new Date(G.box.gameTimeLocal||gameInfo.gameDateTimeEst);
   const m=el("div","meta");
   m.innerHTML = `<b>${dt.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</b>`
-    + ` · ${G.box.arena.arenaName}, ${G.box.arena.arenaCity}`
+    + ` · ${esc(G.box.arena.arenaName)}, ${esc(G.box.arena.arenaCity)}`
     + (G.box.attendance? ` · ${(+G.box.attendance).toLocaleString()} att` : "")
-    + ` · ${G.box.gameStatusText}` + (gameInfo.gameLabel? ` · ${gameInfo.gameLabel}`:"")
+    + ` · ${esc(G.box.gameStatusText)}` + (gameInfo.gameLabel? ` · ${esc(gameInfo.gameLabel)}`:"")
     + (G.live? ` · <b>in progress</b> — charted to the last play (${stamp(G.total,G.maxP)})`:"");
   m.appendChild(b);
   gh.appendChild(m);
@@ -977,7 +979,7 @@ function render(G, gameInfo){
           foulLine += `<div class="kv"><span>left with</span><b>${carried} foul${carried>1?"s":""}`+
             (carried>=FOUL_LIMIT_UI? " — fouled out" : troubled? " — in foul trouble":"")+`</b></div>`;
         d.addEventListener("mousemove",ev=>showTip(
-          `<div class="th">${pl.name}</div>`+
+          `<div class="th">${esc(pl.name)}</div>`+
           `<div class="kv"><span>on floor</span><b>${stamp(s.st,G.maxP)} → ${stamp(s.et,G.maxP)}</b></div>`+
           `<div class="kv"><span>stint length</span><b>${((s.et-s.st)/60).toFixed(1)} min</b></div>`+
           `<div class="kv"><span>his points</span><b>${s.pts}</b></div>`+
@@ -1015,7 +1017,7 @@ function render(G, gameInfo){
       d.addEventListener("mousemove",ev=>showTip(
         `<div class="th">Lineup ${sgn(L.pm)} in ${((L.t1-L.t0)/60).toFixed(1)} min</div>`+
         `<div class="kv"><span>span</span><b>${stamp(L.t0,G.maxP)} → ${stamp(L.t1,G.maxP)}</b></div>`+
-        `<div class="mates">${L.on.map(x=>x.name).join("<br>")}</div>`,ev));
+        `<div class="mates">${L.on.map(x=>esc(x.name)).join("<br>")}</div>`,ev));
       d.addEventListener("mouseleave",hideTip);
       tr.appendChild(d);
     }
@@ -1456,7 +1458,7 @@ function renderSeason(agg){
       c.style.background=heatColor(v);
       if(i%Q_MIN===0 && i>0) c.classList.add("qsep");
       c.addEventListener("mousemove",ev=>showTip(
-        `<div class="th">${r.name}</div>`+
+        `<div class="th">${esc(r.name)}</div>`+
         `<div class="kv"><span>minute</span><b>Q${Math.floor(i/Q_MIN)+1}, ${i%Q_MIN}:00–${i%Q_MIN+1}:00 elapsed</b></div>`+
         `<div class="kv"><span>on floor</span><b>${Math.round(v*100)}% of this minute</b></div>`+
         `<div class="kv"><span>out of</span><b>${played? r.games+" appearances" : agg.teamGames+" team games"}</b></div>`+
@@ -1836,7 +1838,7 @@ function renderAssists(agg){
       }
       c.addEventListener("mousemove",ev=>{
         const cc=agg.pair.get(String(f.id)+"||"+String(t.id))||{n:0,pts:0,n2:0,n3:0};
-        showTip(`<div class="th">${f.name} → ${t.name}</div>`+
+        showTip(`<div class="th">${esc(f.name)} → ${esc(t.name)}</div>`+
           `<div class="kv"><span>assists</span><b>${cc.n}</b></div>`+
           `<div class="kv"><span>on 2-pointers</span><b>${cc.n2}</b></div>`+
           `<div class="kv"><span>on 3-pointers</span><b>${cc.n3}</b></div>`+
@@ -2639,7 +2641,7 @@ function renderRangeProfile(card, agg){
   rows.slice(0,60).forEach((r,i)=>{
     const tr=el("tr"); tr.appendChild(el("td","",String(i+1)));
     const td=el("td"); td.style.textAlign="left";
-    td.innerHTML=`<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${tcol(r.tri)};margin-right:5px"></span>${r.name} <span style="color:var(--dim)">${r.tri}${tonight.has(r.tri)? " · vs "+tonight.get(r.tri) : ""}</span>`;
+    td.innerHTML=`<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${tcol(r.tri)};margin-right:5px"></span>${esc(r.name)} <span style="color:var(--dim)">${r.tri}${tonight.has(r.tri)? " · vs "+tonight.get(r.tri) : ""}</span>`;
     tr.appendChild(td);
     COLS.forEach(c=>{ const d=el("td"); d.innerHTML=c[3](r); if(c[0]===sortKey.k){ d.style.color="var(--text)"; d.style.fontWeight="500"; } tr.appendChild(d); });
     tbl.appendChild(tr);
@@ -4032,9 +4034,9 @@ function renderSplits(agg){
 
   if(sp.a.tri!==(B&&B.tri))
     card.appendChild(noteEl(
-      `<b>${sp.a.name} (${sp.a.tri}) and ${bName}${B?` (${B.tri})`:""} are not teammates.</b> `+
-      `The split still computes, but "without ${bName}" then means almost every game `+
-      `${sp.a.name} played, which is rarely the question worth asking.`));
+      `<b>${esc(sp.a.name)} (${sp.a.tri}) and ${esc(bName)}${B?` (${B.tri})`:""} are not teammates.</b> `+
+      `The split still computes, but "without ${esc(bName)}" then means almost every game `+
+      `${esc(sp.a.name)} played, which is rarely the question worth asking.`));
 
   const pct=(m2,a2)=>a2? (100*m2/a2).toFixed(1)+"%" : "—";
   const avgRow=(label, t)=>{
@@ -4074,7 +4076,7 @@ function renderSplits(agg){
   if(sp.apart.length){
     const tris=[...new Set(sp.apart.map(g=>g.tri).filter(Boolean))];
     card.appendChild(noteEl(
-      `<b>${sp.apart.length} of ${sp.a.name}'s ${sp.a.games.length} games are set aside:</b> `+
+      `<b>${sp.apart.length} of ${esc(sp.a.name)}'s ${sp.a.games.length} games are set aside:</b> `+
       `in those the two were not on the same roster${tris.length? ` (he was with `+
       `${tris.join(", ")})`:""}, so they are neither "with" nor "without" — they are before or `+
       `after the two were teammates. Counting them as "without" is what made a traded `+
@@ -4084,7 +4086,7 @@ function renderSplits(agg){
     `Averages, not totals. Without ${bName} versus with: `+
     `<b>${d("pts")} points</b>, ${d("reb")} rebounds, ${d("ast")} assists, `+
     `${d("min")} minutes.<br>`+
-    `The denominator is <b>${sp.a.name}'s own games</b>, not the team's — counting games he `+
+    `The denominator is <b>${esc(sp.a.name)}'s own games</b>, not the team's — counting games he `+
     `also missed would drag the split for a reason that has nothing to do with ${bName}. `+
     `<b>${sp.sumWithout.n} game${sp.sumWithout.n===1?"":"s"} without</b> is a small sample; `+
     `a single outing moves a per-game average by several points at this size.`));
@@ -4522,8 +4524,8 @@ function renderNotable(card, rows, keys){
       const li=el("li");
       li.appendChild(zChip(it.z));
       const txt=el("span");
-      txt.innerHTML=`<b>${it.row.name}</b> <span style="color:var(--dimmer)">${it.row.tri}</span>`+
-        ` — ${it.metric.label} <b>${it.metric.fmt(it.value)}</b>`+
+      txt.innerHTML=`<b>${esc(it.row.name)}</b> <span style="color:var(--dimmer)">${esc(it.row.tri)}</span>`+
+        ` — ${esc(it.metric.label)} <b>${it.metric.fmt(it.value)}</b>`+
         ` vs a league mean of ${it.metric.fmt(it.mean)}`+
         ` <span style="color:var(--dimmer)">(SD ${it.metric.fmt(it.sd)}, n=${it.n})</span>`;
       li.appendChild(txt);
