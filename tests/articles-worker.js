@@ -7,7 +7,7 @@ import fs from "node:fs";
 import { parseLineups, diff as lineupDiff, lastStarters, lineupEmbed, lineupCheck, feedTime, espnStarters, feedDue, suspicion, timingEmbed, lineupContext, parseBoxStarters } from "../cloudflare/lineups.js";
 import { dueAt, dueNow, digestCheck } from "../cloudflare/digest.js";
 import { TEAM_FEEDS, teamFeedGroup, findLiveBlog, parseLiveBlog, LIVE_FEED } from "../cloudflare/articles-worker.js";
-import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey, voteKey, tagOf as articleTag, embedFor } from "../cloudflare/articles-worker.js";
+import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey, voteKey, tagOf as articleTag, embedFor, titleKey } from "../cloudflare/articles-worker.js";
 
 import { handleVotes, _resetVotesCache } from "../cloudflare/votes.js";
 import { handleHeadlines, _resetHeadlinesCache } from "../cloudflare/headlines.js";
@@ -58,6 +58,28 @@ export async function articlesChecks(ok) {
     ok(/The Athletic · Jay King/.test(ath.author.name) && /^Deep dive & more/.test(ath.description), "articles: RSS fields decoded (CDATA, entities, HTML stripped)", JSON.stringify(ath));
     const st = { log: JSON.parse(kv.get("log")) };
     ok(st.log.find((x) => x.title.startsWith("Player scores")).reason === "game recap" && st.log.find((x) => x.title.startsWith("Old feature")).reason === "published over 6h ago", "articles: skipped items are logged with the reason", JSON.stringify(st.log.map((x) => x.reason)));
+    // 1b (0.142.2; the user, 11/22: one Athletic story posted at 10:33 and again at 10:35). A run that read the state
+    // stale wrote it back without the story; the title marker still stops a second post, and the same title under
+    // another address doesn't post either. A run that read the state before another run marked something keeps it.
+    {
+      const before = kv.get("state"), stale = JSON.parse(before);
+      for (const k of Object.keys(stale.seen)) if (k.includes("athletic/111")) delete stale.seen[k];
+      kv.set("state", JSON.stringify(stale));
+      athletic.push(rssItem("Inside the Celtics' rebuild", "https://www.nytimes.com/athletic/999/2026/11/12/celtics-copy/", "Jay King", -1));
+      posts.length = 0;
+      await articlesCheck(env, T0 + 60e3);
+      const lg = JSON.parse(kv.get("log"));
+      ok(posts.length === 0 && kv.has(titleKey("Inside the Celtics' rebuild")) && lg[0].reason === "already posted (same title)" && lg[1].reason === "already posted (same title)"
+        && titleKey("Hi") === null && titleKey("Inside the Celtics’ rebuild!") === titleKey("Inside the Celtics' rebuild"),
+        "articles (0.142.2): a story already posted isn't posted again when a stale state forgot it, or when it turns up under another address", `${titles()} ${JSON.stringify(lg.slice(0, 2).map((x) => x.reason))}`);
+      athletic.pop();
+      const now0 = JSON.parse(kv.get("state")); now0.seen["example.com/marked-by-another-run"] = T0 + 60e3; kv.set("state", JSON.stringify(now0));
+      let first = true;
+      const racing = { ...env, STATE: { get: async (k, t) => { if (k === "state" && first) { first = false; return { ...JSON.parse(before), lastWrite: 0 }; } return env.STATE.get(k, t); }, put: env.STATE.put } };
+      await articlesCheck(racing, T0 + 90e3);
+      ok(!!JSON.parse(kv.get("state")).seen["example.com/marked-by-another-run"], "articles (0.142.2): a run writing the state keeps what another run marked seen after it read it");
+      kv.set("state", before);
+    }
     // 2. Nothing new: nothing posted, and no KV write (the heartbeat is every 30 min).
     posts.length = 0; puts = 0;
     await articlesCheck(env, T0 + 2 * 60e3);

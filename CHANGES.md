@@ -2,6 +2,32 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.142.2 (2026-11-22): #articles: one story, one post
+
+The user, 11/22, with a screenshot: "Did I get sent the same article twice in discord". Yes. The Athletic's "Why Walter Clayton Jr. spurned other West teams and joined his college roommate on the Mavs" (published 10:31 AM) posted at 10:33 ("seen 2 min later") and again at 10:35 ("seen 4 min later").
+
+**Why.**
+- 10:33 is when the Mavericks team feed is read. 10:35 is the main NBA feed's 5-minute run.
+- Both feeds carry the story at the same address, so the second post means the 10:35 run didn't find it in "seen".
+- The watcher keeps "seen" in one KV record. Every run reads it whole, changes it and writes it back whole. Cloudflare KV is eventually consistent: a run elsewhere can read a copy up to a minute or more old.
+- So a run that read the record before 10:33's write could write it back without the story, or the 10:35 run read such a copy itself. Either way the next run saw the story as new.
+- I can't read the Worker's log from here (workers.dev isn't reachable from my side), so this is the cause the code allows, not one read off the log. A changed address is ruled out: both feeds give the same one, and query strings are ignored.
+
+**The fix** (`cloudflare/articles-worker.js`):
+- A posted story also gets its own small KV key named by its title (`t:<title>`, kept 3 days). It's written once and never rewritten, so no stale write can erase it.
+- Before posting, the run checks for it. A story already posted is logged "already posted (same title)" and skipped. That also catches the same story under a second address.
+- Live-blog posts are left out (short titles can repeat).
+- Before writing the state, a run re-reads it and keeps anything another run marked seen in between.
+- Cost: one write per story posted and one read per state write, inside the free plan.
+
+**Tests.** Articles 100 (2 new, both failing without the fix):
+- a stale state that forgot the story, plus the same title at another address: no second post
+- a run that read the state before another run marked something: the mark survives its write
+
+**Self-audit.**
+- The 11/11 design said one record per run was enough. It is for budget; it isn't safe for KV's consistency. The two together needed a record that is never rewritten.
+- A marker written in one place can still take up to about a minute to show up elsewhere, so two runs within the same minute could in principle both post. The schedule puts the team feeds and the main feed two or more minutes apart.
+
 ## 0.142.1 (2026-11-22): a feat board from our own box scores: 25 points, 5 threes and 3 blocks (bridge v30)
 
 The user, 11/22: "Sure", to building the 25-point, 5-three, 3-block board without a screenshot.

@@ -22,7 +22,7 @@
  * is derived from the webhook, so replacing the webhook also replaces the key.
  *
  * Free-plan budgets: 288 runs a day at every 5 minutes (720 at every 2); KV writes only when something new happens (plus one every
- * 30 minutes as a heartbeat), well under the 1,000 a day allowed. CPU (10 ms a run on the free
+ * 30 minutes as a heartbeat, and since 0.142.2 one small title marker per story posted), well under the 1,000 a day allowed. CPU (10 ms a run on the free
  * plan): a quiet run reads only the small "seen" record; the decision log is read and written
  * only when there is something new to log.
  */
@@ -197,6 +197,13 @@ const unescape = (s) => s
 const decode = (s) => unescape(unescape(String(s ?? "").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")).replace(/<[^>]+>/g, " "))
   .replace(/<[^>]+>/g, " ")
   .replace(/\s+/g, " ").trim();
+// 0.142.2 (the user, 11/22: the same Athletic story posted twice, 10:33 and 10:35): one small KV key per posted story,
+// named by its title, written once and never rewritten. The "state" record is read, changed and written whole by every
+// run, and KV is eventually consistent, so a run that read it a little stale could write it back without a story another
+// run had just posted, and the next run posted it again. A marker can't be lost that way, and a title also catches the
+// same story under two addresses. Kept 3 days. Live-blog posts are left out (short titles can repeat).
+export const titleKey = (t) => { const x = String(t || "").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim(); return x.length >= 12 ? `t:${x.slice(0, 200)}` : null; };
+const MARK_TTL = 3 * 86400;
 export const normUrl = (u) => {
   try { const x = new URL(u); return (x.host.replace(/^www\./, "") + x.pathname).replace(/\/+$/, "").toLowerCase(); } catch { return String(u || ""); }
 };
@@ -444,6 +451,8 @@ export async function check(env, now = Date.now(), { feeds = FEEDS } = {}) {
     if (first && d.post && it.published && now - it.published > FRESH_MIN * 60e3) d = { post: false, reason: "already out when the watcher started" };
     if (d.post && posted >= MAX_POSTS_PER_RUN) continue; // next run
     let sent = false;
+    const tk = it.src === "athletic-live" ? null : titleKey(it.title);
+    if (d.post && tk && (await env.STATE.get(tk))) d = { post: false, reason: "already posted (same title)" };
     if (d.post) {
       sent = await discord(env, { embeds: [embedFor(it, { now, base: st.base, key })] });
       if (!sent) continue; // try again next run
@@ -451,6 +460,7 @@ export async function check(env, now = Date.now(), { feeds = FEEDS } = {}) {
       await new Promise((r) => setTimeout(r, 350));
     }
     st.seen[it.key] = now;
+    if (sent && tk) await env.STATE.put(tk, String(now), { expirationTtl: MARK_TTL });
     if (sent) for (const k of it.articleKeys || []) st.seen[k] ??= now; // the article it links to won't post again
     if (sent && it.feedId) (st.done ||= {})[it.feedId] = etDay(now);     // 0.136.2: that column is in for the day
     log = log || (await load(env, "log", []));
@@ -461,6 +471,8 @@ export async function check(env, now = Date.now(), { feeds = FEEDS } = {}) {
   if (first) st.started = now;
   if (changed || first || now - (st.lastWrite || 0) > HEARTBEAT_MIN * 60e3) {
     const cut = now - SEEN_DAYS * 864e5;
+    // 0.142.2: what another run marked seen since this one read the state is kept (one more read, only when writing).
+    if (state) { const cur = await load(env, "state", null); for (const [k, t] of Object.entries(cur?.seen || {})) if (!(st.seen[k] >= t)) st.seen[k] = t; }
     for (const [k, t] of Object.entries(st.seen)) if (t < cut) delete st.seen[k];
     st.lastWrite = now;
     await save(env, "state", st);
