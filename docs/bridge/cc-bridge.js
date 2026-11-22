@@ -56,6 +56,9 @@
  *       Live's own QUARTER EXPLOSION card is up for a quarter, the season place and list are added to that card (its
  *       all-time list stays) and the separate season card is not fired; it shows only where NBA Live has no card.
  *       This is the one place the bridge adds to a card of NBA Live's: two fields, on its way through fireStory.
+ *     - (v30, 0.142.1; the user, 11/22: "Sure") A board from our own box scores: 25 points, 5 threes and 3 blocks since
+ *       1993-94 (Wembanyama 15). Its counts can be short where our box scores miss games ("8+" on the card's back); the
+ *       rules never pass, tie or place a player against such a count. The card names its source per board.
  *     - (v29, 0.142.0; the user, 11/21: "proceed with your suggestions") CAREER FEATS: the all-time boards the user sent
  *       (30-10-5, 25-10-5, 30-10 both ways, 40-point games, 30-point triple-doubles, 35 points with 5 threes, 5-block
  *       games, 15-15-15 and four more; Basketball-Reference through 11/19 plus our box scores since, featlive.json). A card
@@ -123,7 +126,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 29;
+  var VERSION = 30;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -733,9 +736,10 @@ function warnText(w, from = "1993-94") {
  * tools/bundle-bridge-rules.mjs, and used by the build for the site's lines). The user, 11/21: "proceed with your
  * suggestions" (combination-feat boards with an active player near the top; live streak cards from the game notes).
  *
- * A board: { label, one (one game: "30-10-5 game"), short, min: { stat: n }, max?: { stat: n }, td?: true, rows: [{ name, id?, now, live? }] }. Its counts
- * are Basketball-Reference's career game-finder results as the user sent them (all of NBA history, regular season) plus
- * the qualifying games in our box scores since. A card only when a game moves a player on the board: passing or tying a
+ * A board: { label, one (one game: "30-10-5 game"), short, min: { stat: n }, max?: { stat: n }, td?: true, since?,
+ * rows: [{ name, id?, now, live?, atLeast? }] }. Its counts are Basketball-Reference's career game-finder results as the
+ * user sent them (all of NBA history, regular season) plus the qualifying games in our box scores since; or (since:
+ * "1993-94", 0.142.1) our own box scores, where a count marked atLeast may be short and is never passed, tied or placed. A card only when a game moves a player on the board: passing or tying a
  * name, or adding to a record he holds. A board with a ceiling (single-digit points) can be undone by more scoring, so
  * it is said only late, "as it stands", like the rare lines.
  *
@@ -772,14 +776,22 @@ function shortOf(board, l) {
 
 /** Where a count puts a player on a board (others only): his place, who he passes going from `before` to `after`, who he
  *  ties, the leader. Rows are { name, now }. */
+// A count marked atLeast is taken to be up to this much short (the archive misses about 13% of games in its worst seasons,
+// and these feats come once in dozens of games): a lead or a place is said only when that couldn't change it.
+const LEAD_SLACK = 2;
 function standing(rows, me, before, after) {
   const others = rows.filter((r) => r.name !== me);
+  // A count marked atLeast (games missing from our box scores) may be higher: never passed or tied, and if it is at or
+  // below his, his place isn't known.
+  const sure = others.filter((r) => !r.atLeast), unsure = others.filter((r) => r.atLeast);
   const place = 1 + others.filter((r) => r.now > after).length;
-  const passed = others.filter((r) => r.now >= before && r.now < after).sort((a, b) => b.now - a.now);
-  const tied = others.filter((r) => r.now === after);
+  const placeKnown = !unsure.some((r) => r.now <= after && r.now + LEAD_SLACK >= after);
+  const passed = sure.filter((r) => r.now >= before && r.now < after).sort((a, b) => b.now - a.now);
+  const tied = sure.filter((r) => r.now === after);
   const top = others.reduce((a, r) => (!a || r.now > a.now ? r : a), null);
   const next = others.filter((r) => r.now > after).sort((a, b) => a.now - b.now)[0] || null;
-  return { place, passed, tied, top, next, leading: place === 1 && !tied.length, wasLeading: !!top && before > top.now };
+  const clear = (n) => !unsure.some((r) => r.now + LEAD_SLACK >= n);
+  return { place, placeKnown, passed, tied, top, next, leading: place === 1 && !tied.length && clear(after), wasLeading: !!top && before > top.now && clear(before) };
 }
 
 const WORDS = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
@@ -791,13 +803,16 @@ const names = (L) => (L.length === 1 ? L[0].name : L.length === 2 ? `${L[0].name
 function featMove(board, me, before) {
   const after = before + 1, s = standing(board.rows || [], me, before, after);
   if (!s.passed.length && !s.tied.length && !s.wasLeading) return null;
+  // A board from our own box scores says "since 1993-94"; Basketball-Reference's boards are all of NBA history.
+  const where = board.since ? `since ${board.since}` : "all-time", rec = board.since ? `the most since ${board.since}` : "the NBA record";
+  const at = (p) => (p === 1 ? rec : s.placeKnown ? `${featOrd(p)} ${where}` : null);
   const nth = featOrd(after);
   let what;
-  if (s.wasLeading) what = `adding to his NBA record${s.top ? ` (${s.top.name} is next with ${s.top.now})` : ""}`;
-  else if (s.leading) what = `passing ${names(s.passed)} (${s.passed[0].now}) for the NBA record`;
-  else if (s.tied.length && !s.passed.length) what = `tying ${names(s.tied)} for ${s.place === 1 ? "the NBA record" : `${featOrd(s.place)} all-time`}`;
-  else what = `passing ${names(s.passed)} (${s.passed[0].now}) for ${s.tied.length ? `a share of ${featOrd(s.place)} with ${names(s.tied)}` : `${featOrd(s.place)} all-time`}`;
-  return { after, place: s.place, record: s.place === 1, passed: s.passed.map((r) => r.name), tied: s.tied.map((r) => r.name), top: s.top,
+  if (s.wasLeading) what = `adding to ${board.since ? `his lead since ${board.since}` : "his NBA record"}${s.top ? ` (${s.top.name} is next with ${s.top.now}${s.top.atLeast ? " or more" : ""})` : ""}`;
+  else if (s.leading) what = `passing ${names(s.passed)} (${s.passed[0].now}) for ${rec}`;
+  else if (s.tied.length && !s.passed.length) what = `tying ${names(s.tied)}${at(s.place) ? ` for ${at(s.place)}` : ""}`;
+  else what = `passing ${names(s.passed)} (${s.passed[0].now})${s.tied.length ? `, level with ${names(s.tied)}` : ""}${at(s.place) ? ` for ${s.tied.length ? "a share of " : ""}${at(s.place)}` : ""}`;
+  return { after, place: s.placeKnown ? s.place : null, record: s.place === 1 && s.placeKnown, passed: s.passed.map((r) => r.name), tied: s.tied.map((r) => r.name), top: s.top,
     what, text: `his ${nth} ${board.one || board.label}, ${what}`, s };
 }
 
@@ -851,7 +866,7 @@ function teamStake(t, g) {
   }
   return { atStake: false };
 }
-    return { FEAT_STEP, FEAT_WORD, featOrd, qualifies, shortOf, standing, featMove, featNext, featLive, featWarnText, streakMet, streakShort, shortText, teamStake };
+    return { FEAT_STEP, FEAT_WORD, featOrd, qualifies, shortOf, LEAD_SLACK, standing, featMove, featNext, featLive, featWarnText, streakMet, streakShort, shortText, teamStake };
   })();
   // ===== END BUNDLED RULES =====
   state.oddRules = ODD_RULES && typeof ODD_RULES.liveHits === "function" && typeof ODD_RULES.liveKind === "function" ? ODD_RULES : null;
@@ -1162,12 +1177,12 @@ function teamStake(t, g) {
     if (!Array.isArray(rows) || !rows.length) return null;
     var me = surname(who);
     var L = rows.filter(function (r) { return !(surname(r.name) === me && String(r.name).split(" ")[0] === String(who).split(" ")[0]); })
-      .map(function (r) { return { name: r.name, v: Number(r.now != null ? r.now : r.value) || 0 }; });
+      .map(function (r) { return { name: r.name, v: Number(r.now != null ? r.now : r.value) || 0, al: !!r.atLeast }; });
     L.push({ name: who, v: total, me: true });
     L.sort(function (a, b) { return b.v - a.v || (a.me ? -1 : 0); });
     var mine = L.findIndex(function (r) { return r.me; });
     var place = function (k) { return L.filter(function (r) { return r.v > L[k].v; }).length + 1; };
-    var line = function (k) { var r = L[k]; return '<div class="alert-back-play"' + (r.me ? ' style="font-weight:700"' : "") + '><span class="abp-time">' + place(k) + ".</span> " + escH(r.name) + " · <strong>" + r.v.toLocaleString() + "</strong></div>"; };
+    var line = function (k) { var r = L[k]; return '<div class="alert-back-play"' + (r.me ? ' style="font-weight:700"' : "") + '><span class="abp-time">' + place(k) + ".</span> " + escH(r.name) + " · <strong>" + r.v.toLocaleString() + (r.al ? "+" : "") + "</strong></div>"; };   // v29.1: "8+" = at least (games missing from our box scores)
     var html = '<div class="alert-back-title">' + escH(title) + "</div>";
     for (var k = 0; k < Math.min(5, L.length); k++) html += line(k);
     if (mine >= 5) html += '<div class="alert-back-play" style="opacity:.6">…</div>' + line(mine);
@@ -1893,19 +1908,21 @@ function teamStake(t, g) {
           // Everyone else on the list at tonight's count: another one of them may do it tonight too (any game NBA Live shows).
           var rows = b.rows.filter(function (r) { return r !== row; }).map(function (r) {
             var q = r.live ? idx[normName(r.name)] : null, c = r.live ? before(r) : r.now;
-            return { name: r.name, now: c + (q && R.qualifies(b, boxLine(q)) ? 1 : 0) };
+            return { name: r.name, now: c + (q && R.qualifies(b, boxLine(q)) ? 1 : 0), atLeast: !!r.atLeast };
           });
-          var res = R.featLive({ label: b.label, one: b.one, min: b.min, max: b.max, td: b.td, rows: rows }, row.name, before(row), l);
+          var res = R.featLive({ label: b.label, one: b.one, min: b.min, max: b.max, td: b.td, since: b.since, rows: rows }, row.name, before(row), l);
           var k = "cc-feat-" + key + "-" + p.id + "-" + gid;
           var stat = Object.keys(b.min || {}).concat(Object.keys(b.max || {})).filter(function (x, i, a) { return a.indexOf(x) === i; });
           var statLine = typeof fmtAlertStatLine === "function" ? fmtAlertStatLine(stat.map(function (x) { return [l[x], FEAT_LABEL[x] || x]; })) : "";
-          var src = "regular season, Basketball-Reference through " + D.asOf + " plus box scores since" + (b.caveat ? " · " + b.caveat : "");
+          // v29.1: each board says where its counts come from (Basketball-Reference's all-time lists, or our box scores since 1993-94).
+          var src = b.from === "ours" ? "regular season since " + (b.since || "1993-94") + ", our box scores" : "regular season, Basketball-Reference through " + (b.asOf || D.asOf) + " plus box scores since";
+          if (b.caveat) src += " · " + b.caveat;
           if (res && res.hit && (!b.max || closing)) {
             var standing = !!b.max && live;
             var h = res.hit;
             fire(k, { type: "milestone", icon: (h.record ? "🏆 CAREER FEAT · RECORD" : "📊 CAREER FEAT") + (standing ? " · AS IT STANDS" : ""),
               text: row.name + " (" + team + ") — " + h.text + (standing && clock ? ", " + clock + " left" : ""), statLine: statLine,
-              backHtml: boardBack("📊 All-time · " + b.label, rows, row.name, h.after),
+              backHtml: boardBack("📊 " + (b.since ? "Since " + b.since : "All-time") + " · " + b.label, rows, row.name, h.after),
               sub: "Command Center · " + (standing ? "stands only if the game ends here · " : "") + src, live: live, gameId: game.id, gameTag: tag, gameScore: scr });
             state.featHit[k] = 1; delete state.featWarn[k]; delete state.featEnded[k];
             return;
@@ -1919,7 +1936,7 @@ function teamStake(t, g) {
           if (state.featHit[k]) return;
           if (live && per >= 3 && res && res.warn) {
             fire(k, { type: "milestone", icon: "👀 ON THE VERGE", text: row.name + " (" + team + ") — " + R.featWarnText(b, res.warn), statLine: statLine,
-              backHtml: boardBack("📊 All-time · " + b.label, rows, row.name, res.warn.move.after),
+              backHtml: boardBack("📊 " + (b.since ? "Since " + b.since : "All-time") + " · " + b.label, rows, row.name, res.warn.move.after),
               sub: "Command Center · career feat board · " + src, live: true, gameId: game.id, gameTag: tag, gameScore: scr });
             state.featWarn[k] = 1;
             return;

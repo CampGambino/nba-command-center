@@ -2,6 +2,40 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.142.1 (2026-11-22): a feat board from our own box scores: 25 points, 5 threes and 3 blocks (bridge v30)
+
+The user, 11/22: "Sure", to building the 25-point, 5-three, 3-block board without a screenshot.
+
+**What I said wasn't quite right.** I said our box scores "cover essentially all of history" for this board. Counting it showed otherwise: the archive is missing about 13% of games in 2012-13 through 2017-18, about 10% in 1993-95 and about 4% in 1995-2004. Those games are files with no box. The count of games per season, taken from games with a box, shows where.
+
+**The board** (`src/data/feat-boards-2026-11-22.json`, made by the new `tools/feat-board-ours.mjs`):
+- Wembanyama 14 entering 11/21. His count is complete: his seasons match the Guide's games played. Then 15 after his 50-19-5-5 on 11/21.
+- Then Durant 8+, McCollum, White and Harden 7+, Lopez and Porziņģis 6+, Carter 5+, and Edwards and Cunningham 4 (both complete).
+- 39 players with 2 or more.
+- A count is marked "at least" (5th column 1) when one of the player's seasons has fewer games here than he played (Guide year-by-year), or, for a retired player, when his career touches a short season.
+- It says "since 1993-94", not all-time. Cup title games are left out.
+
+**The rules** (`src/records/featlive.js`):
+- A board with `since` says "2nd since 1993-94" and "adding to his lead since 1993-94".
+- A count marked at least is never passed or tied.
+- A place is left unsaid when such a count sits within 2 below the new count (`LEAD_SLACK`).
+- A lead over one needs a margin of more than 2.
+
+**Plumbing:**
+- The build merges every `feat-boards-*.json`, each board with its own date.
+- The bridge's card says where each board's counts come from, and its back shows "8+".
+
+**Tests.** 1,138: the at-least rules, the real board's shape, and the bridge's wording and back. Full local build: 13 boards, no problems, Wembanyama at 15.
+
+**From the build** (Garland's run and Wembanyama's line, not part of this change):
+- Garland's 5+ assist run ended 11/21 at 13 (2 assists vs Dallas).
+- Wembanyama's 50 points, 19 rebounds, 5 threes and 5 blocks on 11/21 also moved him on the 5-block board (62, past Josh Smith and Rudy Gobert) and the 5-blocks-and-5-threes board (7, adding to his record).
+
+**Self-audit.**
+- The claim about full coverage was made from memory of the 3-point era, not from counting. Counting first would have caught it; this entry corrects it.
+- The margin of 2 for "at least" counts is a judgment. A player missing about 30 games at a rate near 1 in 40 expects under 1 missing feat. It is not proof: a Basketball-Reference screenshot of this board would make every count exact.
+- The archive used in earlier analyses (`/tmp/so/load.mjs`) includes the three Cup title games in 2023-24 through 2025-26. The rarity archive already leaves them out; the scratch loader doesn't. Noted, not fixed; it's scratch.
+
 ## 0.142.0 (2026-11-21): all-time points to the top 100, career feat boards and live streaks (bridge v29)
 
 The user, 11/21: "proceed with your suggestions", with 15 screenshots of Basketball-Reference career game-finder boards (the feats I listed plus their own), and "consider other combination feats worth tracking with active players close to reaching the top". The bridge changes are on that go.

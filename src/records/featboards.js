@@ -4,7 +4,8 @@
  *
  *   buildFeatLive({ file, pg, names, tonightTeams, notesFacts }) -> { v, asOf, through, boards, pre, streaks, teamStreaks, teamEnded, problems }
  *
- * file: src/data/feat-boards-<date>.json (the user's screenshots, counts through file.asOf). pg: this season's games per
+ * file: src/data/feat-boards-<date>.json (the user's screenshots, counts through file.asOf), merged by the build with any
+ * later such file (0.142.1: a board from our own box scores, `since` 1993-94, `from` "ours", its own `asOf`). pg: this season's games per
  * player (src/situations/trends.js playerGames, Cup final left out). A board row's count now = the screenshot's + his
  * qualifying games since file.asOf; `games` names those games so NBA Live never counts tonight's twice.
  */
@@ -27,29 +28,31 @@ export function buildFeatLive({ file, pg, names = {}, tonightTeams = null, notes
 
   const boards = {}, pre = [];
   for (const [key, b] of Object.entries(file.boards || {})) {
-    const rows = (b.rows || []).map(([name, from, to, count]) => {
-      const id = idOf(name), gs = id ? pg[id] : null;
-      if (!gs) return { name, now: count, base: count };
+    const asOf = b.asOf || file.asOf;   // 0.142.1: boards from more than one file, each through its own date
+    const rows = (b.rows || []).map(([name, from, to, count, atLeast]) => {
+      const id = idOf(name), gs = id ? pg[id] : null, al = atLeast ? { atLeast: true } : {};
+      if (!gs) return { name, now: count, base: count, ...al };
       const q = gs.filter((g) => qualifies(b, g));
-      const since = q.filter((g) => g.d > file.asOf);
-      // The screenshot's last season with such a game against our box scores: a misread count or filter shows here.
-      const upTo = q.filter((g) => g.d <= file.asOf);
-      if (upTo.length && to !== season) problems.push(`${key}: ${name} has ${upTo.length} such game${upTo.length > 1 ? "s" : ""} this season by ${file.asOf} but the list says his last was ${to}`);
-      if (!upTo.length && to === season) problems.push(`${key}: ${name}'s last such game is this season on the list, none in our box scores by ${file.asOf}`);
-      return { name, id, team: teamOf(id), live: true, base: count, now: count + since.length, games: since.map((g) => g.gameId), season: q.length, gp: gs.length };
+      const since = q.filter((g) => g.d > asOf);
+      // The list's last season with such a game against our box scores: a misread count or filter shows here.
+      const upTo = q.filter((g) => g.d <= asOf);
+      if (upTo.length && to !== season) problems.push(`${key}: ${name} has ${upTo.length} such game${upTo.length > 1 ? "s" : ""} this season by ${asOf} but the list says his last was ${to}`);
+      if (!upTo.length && to === season) problems.push(`${key}: ${name}'s last such game is this season on the list, none in our box scores by ${asOf}`);
+      return { name, id, team: teamOf(id), live: true, base: count, now: count + since.length, games: since.map((g) => g.gameId), season: q.length, gp: gs.length, ...al };
     });
     boards[key] = { label: b.label, one: b.one, short: b.short, min: b.min, ...(b.max ? { max: b.max } : {}), ...(b.td ? { td: true } : {}), ...(b.caveat ? { caveat: b.caveat } : {}),
+      asOf, ...(b.since ? { since: b.since } : {}), ...(b.from ? { from: b.from } : {}),
       complete: !!b.complete, floor: rows.length ? Math.min(...rows.map((r) => r.base)) : null, rows };
     // Pre-game: what his next one would do, for a player whose team plays tonight.
     for (const r of rows) {
       if (!r.live || (tonightTeams && !tonightTeams.has(r.team))) continue;
       const n = featNext(boards[key], r);
       // Worth a line: a count of 3 or more, and something he does now (a game like it this season), or a record, or the top 10.
-      if (!n || n.after < 3 || !(r.season > 0 || n.record || n.place <= 10)) continue;
+      if (!n || n.after < 3 || !(r.season > 0 || n.record || (n.place != null && n.place <= 10))) continue;
       pre.push({ board: key, id: r.id, name: r.name, team: r.team, now: r.now, place: n.place, record: n.record, line: `${n.line} (${r.season ? `${r.season} of his ${r.gp} games this season` : `none in his ${r.gp} games this season`})`,
         // Scored with the storylines' other lines (a night's eighth is about 4.8): a record he holds and does often makes it;
         // a long shot (none this season) doesn't.
-        score: 3 + (n.record ? (r.season ? 1.2 : 0.4) : n.place <= 5 ? 0.6 : n.place <= 10 ? 0.3 : 0) + Math.min(1, r.gp ? (r.season / r.gp) * 3 : 0) });
+        score: 3 + (n.record ? (r.season ? 1.2 : 0.4) : n.place == null ? 0 : n.place <= 5 ? 0.6 : n.place <= 10 ? 0.3 : 0) + Math.min(1, r.gp ? (r.season / r.gp) * 3 : 0) });
     }
   }
 

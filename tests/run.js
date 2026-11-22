@@ -5027,6 +5027,26 @@ await bridgeChecks(ok, root);
     "feat boards (0.142): the transcribed boards are sorted, complete rows, each with a one-game name; counts through 11/19 (Basketball-Reference hadn't added 11/20)");
 }
 
+// ---------- 0.142.1: a feat board from our own box scores (25 points, 5 threes, 3 blocks since 1993-94) ----------
+{
+  const F = await import("../src/records/featlive.js");
+  const b = { label: "x", one: "25-5-3 game", since: "1993-94", min: { pts: 25, fg3m: 5, blk: 3 },
+    rows: [{ name: "Wemby", now: 14 }, { name: "Gap Star", now: 8, atLeast: true }, { name: "Sure Four", now: 4 }, { name: "Gap Four", now: 4, atLeast: true }, { name: "Me", now: 3 }, { name: "Low", now: 2 }] };
+  const n = (who) => F.featNext(b, b.rows.find((r) => r.name === who));
+  ok(n("Wemby")?.what === "adding to his lead since 1993-94 (Gap Star is next with 8 or more)"
+    && n("Me")?.what === "tying Sure Four" && n("Me").place === null
+    && F.featNext({ ...b, rows: b.rows.map((r) => (r.name === "Gap Star" ? { ...r, now: 13 } : r)) }, b.rows[0]) === null
+    && F.featNext({ ...b, rows: [{ name: "Me", now: 9 }, { name: "Far Gap", now: 5, atLeast: true }, { name: "Eleven", now: 11 }, { name: "Nine", now: 9 }] }, { name: "Me", now: 9 })?.what === "passing Nine (9) for 2nd since 1993-94",
+    "feat boards (0.142.1): a count that may be short (\"8 or more\") is never passed or tied, a place near it isn't said, and a lead over it needs room (2); far below, it doesn't matter");
+  const real = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "feat-boards-2026-11-22.json"), "utf8")).boards.p25t5b3;
+  ok(real.since === "1993-94" && real.from === "ours" && real.rows[0][0] === "Victor Wembanyama" && real.rows[0][3] === 14 && real.rows[0].length === 4 && real.rows[1].length === 5
+    && real.rows.every((r, i, a) => !i || a[i - 1][3] >= r[3]) && /tools\/feat-board-ours\.mjs/.test(fs.readFileSync(path.join(root, "src", "data", "feat-boards-2026-11-22.json"), "utf8")),
+    "feat boards (0.142.1): the 25-5-3 board is ours, since 1993-94, Wembanyama 14 with a complete count; Durant's 8 is marked at least");
+  const B = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");
+  ok(/b\.from === "ours" \? "regular season since "/.test(B) && /atLeast: !!r\.atLeast/.test(B) && /\(r\.al \? "\+" : ""\)/.test(B) && /since: b\.since, rows: rows/.test(B),
+    "bridge v29.1: an \"ours\" board's card names our box scores since 1993-94, its back shows \"8+\", and the rules see which counts may be short");
+}
+
 // ---------- 0.141.14: the Worker's saved data, backed up (tools/kv-backup.mjs, .github/workflows/kv-backup.yml) ----------
 {
   const K = await import("../tools/kv-backup.mjs");

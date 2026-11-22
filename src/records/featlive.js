@@ -3,9 +3,10 @@
  * tools/bundle-bridge-rules.mjs, and used by the build for the site's lines). The user, 11/21: "proceed with your
  * suggestions" (combination-feat boards with an active player near the top; live streak cards from the game notes).
  *
- * A board: { label, one (one game: "30-10-5 game"), short, min: { stat: n }, max?: { stat: n }, td?: true, rows: [{ name, id?, now, live? }] }. Its counts
- * are Basketball-Reference's career game-finder results as the user sent them (all of NBA history, regular season) plus
- * the qualifying games in our box scores since. A card only when a game moves a player on the board: passing or tying a
+ * A board: { label, one (one game: "30-10-5 game"), short, min: { stat: n }, max?: { stat: n }, td?: true, since?,
+ * rows: [{ name, id?, now, live?, atLeast? }] }. Its counts are Basketball-Reference's career game-finder results as the
+ * user sent them (all of NBA history, regular season) plus the qualifying games in our box scores since; or (since:
+ * "1993-94", 0.142.1) our own box scores, where a count marked atLeast may be short and is never passed, tied or placed. A card only when a game moves a player on the board: passing or tying a
  * name, or adding to a record he holds. A board with a ceiling (single-digit points) can be undone by more scoring, so
  * it is said only late, "as it stands", like the rare lines.
  *
@@ -42,14 +43,22 @@ export function shortOf(board, l) {
 
 /** Where a count puts a player on a board (others only): his place, who he passes going from `before` to `after`, who he
  *  ties, the leader. Rows are { name, now }. */
+// A count marked atLeast is taken to be up to this much short (the archive misses about 13% of games in its worst seasons,
+// and these feats come once in dozens of games): a lead or a place is said only when that couldn't change it.
+export const LEAD_SLACK = 2;
 export function standing(rows, me, before, after) {
   const others = rows.filter((r) => r.name !== me);
+  // A count marked atLeast (games missing from our box scores) may be higher: never passed or tied, and if it is at or
+  // below his, his place isn't known.
+  const sure = others.filter((r) => !r.atLeast), unsure = others.filter((r) => r.atLeast);
   const place = 1 + others.filter((r) => r.now > after).length;
-  const passed = others.filter((r) => r.now >= before && r.now < after).sort((a, b) => b.now - a.now);
-  const tied = others.filter((r) => r.now === after);
+  const placeKnown = !unsure.some((r) => r.now <= after && r.now + LEAD_SLACK >= after);
+  const passed = sure.filter((r) => r.now >= before && r.now < after).sort((a, b) => b.now - a.now);
+  const tied = sure.filter((r) => r.now === after);
   const top = others.reduce((a, r) => (!a || r.now > a.now ? r : a), null);
   const next = others.filter((r) => r.now > after).sort((a, b) => a.now - b.now)[0] || null;
-  return { place, passed, tied, top, next, leading: place === 1 && !tied.length, wasLeading: !!top && before > top.now };
+  const clear = (n) => !unsure.some((r) => r.now + LEAD_SLACK >= n);
+  return { place, placeKnown, passed, tied, top, next, leading: place === 1 && !tied.length && clear(after), wasLeading: !!top && before > top.now && clear(before) };
 }
 
 const WORDS = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
@@ -61,13 +70,16 @@ const names = (L) => (L.length === 1 ? L[0].name : L.length === 2 ? `${L[0].name
 export function featMove(board, me, before) {
   const after = before + 1, s = standing(board.rows || [], me, before, after);
   if (!s.passed.length && !s.tied.length && !s.wasLeading) return null;
+  // A board from our own box scores says "since 1993-94"; Basketball-Reference's boards are all of NBA history.
+  const where = board.since ? `since ${board.since}` : "all-time", rec = board.since ? `the most since ${board.since}` : "the NBA record";
+  const at = (p) => (p === 1 ? rec : s.placeKnown ? `${featOrd(p)} ${where}` : null);
   const nth = featOrd(after);
   let what;
-  if (s.wasLeading) what = `adding to his NBA record${s.top ? ` (${s.top.name} is next with ${s.top.now})` : ""}`;
-  else if (s.leading) what = `passing ${names(s.passed)} (${s.passed[0].now}) for the NBA record`;
-  else if (s.tied.length && !s.passed.length) what = `tying ${names(s.tied)} for ${s.place === 1 ? "the NBA record" : `${featOrd(s.place)} all-time`}`;
-  else what = `passing ${names(s.passed)} (${s.passed[0].now}) for ${s.tied.length ? `a share of ${featOrd(s.place)} with ${names(s.tied)}` : `${featOrd(s.place)} all-time`}`;
-  return { after, place: s.place, record: s.place === 1, passed: s.passed.map((r) => r.name), tied: s.tied.map((r) => r.name), top: s.top,
+  if (s.wasLeading) what = `adding to ${board.since ? `his lead since ${board.since}` : "his NBA record"}${s.top ? ` (${s.top.name} is next with ${s.top.now}${s.top.atLeast ? " or more" : ""})` : ""}`;
+  else if (s.leading) what = `passing ${names(s.passed)} (${s.passed[0].now}) for ${rec}`;
+  else if (s.tied.length && !s.passed.length) what = `tying ${names(s.tied)}${at(s.place) ? ` for ${at(s.place)}` : ""}`;
+  else what = `passing ${names(s.passed)} (${s.passed[0].now})${s.tied.length ? `, level with ${names(s.tied)}` : ""}${at(s.place) ? ` for ${s.tied.length ? "a share of " : ""}${at(s.place)}` : ""}`;
+  return { after, place: s.placeKnown ? s.place : null, record: s.place === 1 && s.placeKnown, passed: s.passed.map((r) => r.name), tied: s.tied.map((r) => r.name), top: s.top,
     what, text: `his ${nth} ${board.one || board.label}, ${what}`, s };
 }
 

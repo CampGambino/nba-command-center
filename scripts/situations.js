@@ -441,13 +441,17 @@ for (const [tri, games] of Object.entries(perTeam)) {
 // 0.142: career feat boards (the user's screenshots, plus our box scores since) and the streaks NBA Live follows live
 // (src/records/featboards.js, rules in src/records/featlive.js) -> docs/data/featlive.json.
 {
-  const ff = fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^feat-boards-\d{4}-\d\d-\d\d\.json$/.test(f)).sort().pop();
-  if (ff) {
+  // Every boards file, oldest first; a later file's board replaces one of the same key (0.142.1: our own 25-5-3 board).
+  const ffs = fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^feat-boards-\d{4}-\d\d-\d\d\.json$/.test(f)).sort(), ff = ffs.join(" + ");
+  if (ffs.length) {
     try {
       const { buildFeatLive } = await import("../src/records/featboards.js");
       const nf = path.join(root, "docs", "data", "notes-facts.json");
       const notesFacts = fs.existsSync(nf) ? JSON.parse(fs.readFileSync(nf, "utf8")) : null;
-      const F = buildFeatLive({ file: JSON.parse(fs.readFileSync(path.join(root, "src", "data", ff), "utf8")), pg: playerGames(rows.filter((g) => !g.cupFinal)), names: store.names || {},
+      const files = ffs.map((f) => JSON.parse(fs.readFileSync(path.join(root, "src", "data", f), "utf8")));
+      const file = { ...files[0], boards: {}, streaks: {} };
+      for (const x of files) { for (const [k, b] of Object.entries(x.boards || {})) file.boards[k] = { asOf: x.asOf, ...b }; Object.assign(file.streaks, x.streaks || {}); }
+      const F = buildFeatLive({ file, pg: playerGames(rows.filter((g) => !g.cupFinal)), names: store.names || {},
         tonightTeams: new Set((tonight || []).flatMap((g) => [g.home, g.away])), notesFacts });
       fs.writeFileSync(path.join(root, "docs", "data", "featlive.json"), JSON.stringify({ generatedAt: out.generatedAt, today, ...F }));
       for (const p of F.problems) warnings.push(`feat boards: ${p}`);
