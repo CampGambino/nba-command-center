@@ -1,15 +1,15 @@
 {
- "at": "2026-11-22T06:05:16.173Z",
+ "at": "2026-11-22T07:21:13.770Z",
  "api": "https://external-api.kalshi.com/trade-api/v2",
- "calls": 213,
+ "calls": 220,
  "series": 307,
  "seriesOpen": 146,
- "events": 499,
- "markets": 12528,
- "game": 6151,
- "priced": 12528,
- "moves": 97,
- "alerts": 0,
+ "events": 600,
+ "markets": 14382,
+ "game": 8005,
+ "priced": 14382,
+ "moves": 72,
+ "alerts": 3,
  "firstLook": false,
  "webhook": true
 }
