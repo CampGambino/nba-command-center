@@ -7,8 +7,8 @@
   },
   "KXNBABLK": {
    "title": "NBA Player Blocks",
-   "events": 5,
-   "markets": 46
+   "events": 1,
+   "markets": 7
   },
   "KXNBADPOTM": {
    "title": "NBA Defensive Player of the Month",
@@ -17,13 +17,13 @@
   },
   "KXNBA2H": {
    "title": "NBA 2nd Half Winner",
-   "events": 19,
-   "markets": 57
+   "events": 18,
+   "markets": 54
   },
   "KXNBASPREAD": {
    "title": "NBA Spread",
-   "events": 9,
-   "markets": 297
+   "events": 7,
+   "markets": 231
   },
   "KXNBAEAST1SEED": {
    "title": "NBA Eastern Conference 1 Seed",
@@ -32,8 +32,8 @@
   },
   "KXNBAESCALATOR3PT": {
    "title": "NBA Player Threes Escalator",
-   "events": 5,
-   "markets": 22
+   "events": 1,
+   "markets": 6
   },
   "KXNBAECFQUAL": {
    "title": "NBA Eastern Conference Finals Qualifiers",
@@ -77,8 +77,8 @@
   },
   "KXNBATOTAL": {
    "title": "NBA Total",
-   "events": 9,
-   "markets": 268
+   "events": 7,
+   "markets": 203
   },
   "KXNBACUP": {
    "title": "Pro Basketball Cup Champion",
@@ -87,8 +87,8 @@
   },
   "KXNBAASTPROT": {
    "title": "NBA Player Assists Protected",
-   "events": 6,
-   "markets": 254
+   "events": 2,
+   "markets": 74
   },
   "KXNBA2NDTEAM": {
    "title": "All-NBA 2nd Team",
@@ -97,8 +97,8 @@
   },
   "KXNBAPTSPROT": {
    "title": "NBA Player Points Protected",
-   "events": 6,
-   "markets": 290
+   "events": 2,
+   "markets": 93
   },
   "KXNBASTATLEADER": {
    "title": "NBA Regular Season League Leader",
@@ -112,8 +112,8 @@
   },
   "KXNBA2DPROT": {
    "title": "NBA Player Double Double Protected",
-   "events": 6,
-   "markets": 73
+   "events": 2,
+   "markets": 24
   },
   "KXNBAFRANCHISECOST": {
    "title": "NBA Franchise Cost",
@@ -125,11 +125,6 @@
    "events": 1,
    "markets": 1
   },
-  "KXNBA1QSPREAD": {
-   "title": "NBA 1st Quarter Spread",
-   "events": 1,
-   "markets": 13
-  },
   "KXNBA3RDTEAM": {
    "title": "All-NBA 3rd Team",
    "events": 1,
@@ -137,8 +132,8 @@
   },
   "KXNBATOTALPRECISE": {
    "title": "NBA Total Points Range",
-   "events": 19,
-   "markets": 4978
+   "events": 18,
+   "markets": 4716
   },
   "KXCITYNBAEXPAND": {
    "title": "Cities NBA expand",
@@ -167,13 +162,13 @@
   },
   "KXNBAPTS": {
    "title": "NBA Player Points",
-   "events": 6,
-   "markets": 283
+   "events": 2,
+   "markets": 94
   },
   "KXNBAREB": {
    "title": "NBA Player Rebounds",
-   "events": 6,
-   "markets": 331
+   "events": 2,
+   "markets": 113
   },
   "KXNBATEAMMATE": {
    "title": "NBA Teammate of the Year",
@@ -202,8 +197,8 @@
   },
   "KXNBA3PTPROT": {
    "title": "NBA Player Threes Protected",
-   "events": 6,
-   "markets": 316
+   "events": 2,
+   "markets": 101
   },
   "KXNBAROOKIE2NDTEAM": {
    "title": "NBA All-Rookie 2nd Team",
@@ -227,8 +222,8 @@
   },
   "KXNBAREBPROT": {
    "title": "NBA Player Rebounds Protected",
-   "events": 6,
-   "markets": 315
+   "events": 2,
+   "markets": 110
   },
   "KXNBAROOKIE1STTEAM": {
    "title": "NBA All-Rookie 1st Team",
@@ -252,8 +247,8 @@
   },
   "KXNBA1Q": {
    "title": "NBA 1st Quarter Winner",
-   "events": 16,
-   "markets": 48
+   "events": 17,
+   "markets": 51
   },
   "KXNBASEEDCHAMP": {
    "title": "NBA Seed of Champion",
@@ -262,8 +257,8 @@
   },
   "KXNBASTOCKPROT": {
    "title": "NBA Player Steals + Blocks Protected",
-   "events": 3,
-   "markets": 13
+   "events": 1,
+   "markets": 7
   },
   "KXNBASIXTH": {
    "title": "NBA Sixth Man of the Year",
@@ -287,8 +282,8 @@
   },
   "KXNBAPRAPROT": {
    "title": "Pts + Reb + Ast Protected",
-   "events": 6,
-   "markets": 230
+   "events": 2,
+   "markets": 72
   },
   "KXNBAMVP": {
    "title": "NBA MVP",
@@ -302,8 +297,8 @@
   },
   "KXNBA3QSPREAD": {
    "title": "NBA 3rd Quarter Spread",
-   "events": 3,
-   "markets": 39
+   "events": 1,
+   "markets": 13
   },
   "KXNBASEATTLE": {
    "title": "Seattle NBA team",
@@ -332,8 +327,8 @@
   },
   "KXNBAPRA": {
    "title": "NBA Player Points + Rebounds + Assists",
-   "events": 6,
-   "markets": 230
+   "events": 2,
+   "markets": 72
   },
   "KXNBA4D": {
    "title": "Any Player to Record a Quadruple Double",
@@ -342,8 +337,8 @@
   },
   "KXNBAPTSLEADER": {
    "title": "NBA Game Points Leader",
-   "events": 5,
-   "markets": 70
+   "events": 1,
+   "markets": 14
   },
   "KXNBASJC": {
    "title": "NBA Social Justice Champion",
@@ -377,8 +372,8 @@
   },
   "KXNBAAST": {
    "title": "NBA Player Assists",
-   "events": 6,
-   "markets": 241
+   "events": 2,
+   "markets": 76
   },
   "KXNBA1STTEAM": {
    "title": "All-NBA 1st Team",
@@ -397,8 +392,8 @@
   },
   "KXNBAGAME": {
    "title": "NBA Game",
-   "events": 37,
-   "markets": 74
+   "events": 36,
+   "markets": 72
   },
   "KXNBACUP1STTEAM": {
    "title": "NBA Cup All-Tournament Team",
@@ -412,8 +407,8 @@
   },
   "KXNBAOT": {
    "title": "NBA Overtime",
-   "events": 19,
-   "markets": 19
+   "events": 18,
+   "markets": 18
   },
   "KXNBAEUROPEANNOUNCE": {
    "title": "NBA Europe Inaugural Season Being Announced",
@@ -432,8 +427,8 @@
   },
   "KXNBA2Q": {
    "title": "NBA 2nd Quarter Winner",
-   "events": 16,
-   "markets": 48
+   "events": 18,
+   "markets": 54
   },
   "KXNBAPLAYOFFHOST": {
    "title": "NBA Team Home Playoff Games",
@@ -442,8 +437,8 @@
   },
   "KXNBA1H": {
    "title": "NBA 1st Half Winner",
-   "events": 16,
-   "markets": 48
+   "events": 18,
+   "markets": 54
   },
   "KXNBA1STTEAMDEF": {
    "title": "NBA All-Defensive 1st Team",
@@ -457,13 +452,13 @@
   },
   "KXNBA3DPROT": {
    "title": "NBA Player Triple Double Protected",
-   "events": 6,
-   "markets": 21
+   "events": 2,
+   "markets": 8
   },
   "KXNBA3QTOTAL": {
    "title": "NBA 3rd Quarter Total",
-   "events": 3,
-   "markets": 39
+   "events": 1,
+   "markets": 13
   },
   "KXNBA2QTOTAL": {
    "title": "NBA 2nd Quarter Total",
@@ -477,8 +472,8 @@
   },
   "KXNBAESCALATORPTS": {
    "title": "NBA Player Points Escalator",
-   "events": 5,
-   "markets": 22
+   "events": 1,
+   "markets": 7
   },
   "KXNBAPACIFIC": {
    "title": "Pro Basketball Pacific Division Winner",
@@ -487,8 +482,8 @@
   },
   "KXNBARACE": {
    "title": "NBA Race to Points",
-   "events": 48,
-   "markets": 96
+   "events": 51,
+   "markets": 102
   },
   "KXNBAEAST": {
    "title": "Pro Basketball Eastern Conference Champion",
@@ -507,8 +502,8 @@
   },
   "KXNBA2HTOTAL": {
    "title": "NBA 2nd Half Total",
-   "events": 4,
-   "markets": 76
+   "events": 1,
+   "markets": 19
   },
   "KXNBA1HTEAMTOTAL": {
    "title": "NBA 1st Half Team Total",
@@ -522,8 +517,8 @@
   },
   "KXNBA3PT": {
    "title": "NBA Player Threes",
-   "events": 6,
-   "markets": 302
+   "events": 2,
+   "markets": 102
   },
   "KXNBANEXTGOVERNOR": {
    "title": "Pro Basketball Next Governor",
@@ -552,13 +547,13 @@
   },
   "KXNBASTLPROT": {
    "title": "NBA Player Steals Protected",
-   "events": 5,
-   "markets": 111
+   "events": 1,
+   "markets": 23
   },
   "KXNBA4Q": {
    "title": "NBA 4th Quarter Winner",
-   "events": 19,
-   "markets": 57
+   "events": 18,
+   "markets": 54
   },
   "KXNBADRAFTPICK": {
    "title": "Pro Basketball Draft Pick",
@@ -582,13 +577,13 @@
   },
   "KXNBAWINMARGIN": {
    "title": "NBA Win Margin",
-   "events": 9,
-   "markets": 72
+   "events": 7,
+   "markets": 56
   },
   "KXNBATEAMTOTAL": {
    "title": "NBA Team Total",
-   "events": 8,
-   "markets": 311
+   "events": 6,
+   "markets": 228
   },
   "KXNBAPLAYIN": {
    "title": "Which Team Will Make the Play-In Tournament",
@@ -622,13 +617,13 @@
   },
   "KXNBA4QSPREAD": {
    "title": "NBA 4th Quarter Spread",
-   "events": 4,
-   "markets": 52
+   "events": 1,
+   "markets": 13
   },
   "KXNBA2HSPREAD": {
    "title": "NBA 2nd Half Spread",
-   "events": 4,
-   "markets": 76
+   "events": 1,
+   "markets": 19
   },
   "KXNBAMATCHUP": {
    "title": "NBA Matchup",
@@ -652,13 +647,13 @@
   },
   "KXNBA2D": {
    "title": "NBA Player Double Double",
-   "events": 6,
-   "markets": 73
+   "events": 2,
+   "markets": 24
   },
   "KXNBASTL": {
    "title": "NBA Player Steals",
-   "events": 5,
-   "markets": 111
+   "events": 1,
+   "markets": 23
   },
   "KXCOACHOUTNBADATE": {
    "title": "NBA Coach Out Date",
@@ -687,18 +682,13 @@
   },
   "KXNBA4QTOTAL": {
    "title": "NBA 4th Quarter Total",
-   "events": 4,
-   "markets": 52
+   "events": 1,
+   "markets": 13
   },
   "KXNBAFIRSTTIMECHAMP": {
    "title": "NBA First Time Champion",
    "events": 1,
    "markets": 1
-  },
-  "KXNBA1QTOTAL": {
-   "title": "NBA 1st Quarter Total",
-   "events": 1,
-   "markets": 13
   },
   "KXNBAPLAYERHIGHSCORE": {
    "title": "NBA Highest Scoring Performance in Regular Season",
@@ -707,13 +697,13 @@
   },
   "KXNBABLKPROT": {
    "title": "NBA Player Blocks Protected",
-   "events": 5,
-   "markets": 46
+   "events": 1,
+   "markets": 7
   },
   "KXNBA3D": {
    "title": "NBA Player Triple Double",
-   "events": 6,
-   "markets": 21
+   "events": 2,
+   "markets": 8
   },
   "KXNBACUPGROUPWIN": {
    "title": "NBA Cup Group to Win",
@@ -722,8 +712,8 @@
   },
   "KXNBASTOCK": {
    "title": "NBA Player Steals + Blocks",
-   "events": 3,
-   "markets": 13
+   "events": 1,
+   "markets": 7
   },
   "KXNBACONF": {
    "title": "NBA Conference to Win the Championship",
@@ -736,28 +726,28 @@
   "KXNBAATLANTIC-26": "Boston 56%",
   "KXNBACOY-27": "Micah Nori 16%",
   "KXNBACUP-26": "San Antonio 25%",
-  "KXNBAMIMP-27": "Ty Jerome 28%",
   "KXNBARECORD-27BEST": "San Antonio 39%",
   "KXNBARECORD-27WORST": "Sacramento 41%",
+  "KXNBAMIMP-27": "Ty Jerome 28%",
   "KXNBADPOY-27": "Victor Wembanyama 80%",
-  "KXNBAROY-27": "Cameron Boozer 33%",
+  "KXNBAROY-27": "Cameron Boozer 34%",
+  "KXNBACUPMVP-27": "Victor Wembanyama 33%",
   "KXNBASIXTH-27": "Jrue Holiday 33%",
   "KXNBAWEST-27": "San Antonio 36%",
   "KXNBASOUTHEAST-26": "Miami 53%",
-  "KXNBAMVP-27": "Victor Wembanyama 46%",
-  "KXNBACUPMVP-27": "Victor Wembanyama 33%",
   "KXNBAFINMVP-27": "Victor Wembanyama 20%",
+  "KXNBAMVP-27": "Victor Wembanyama 51%",
   "KXNBASOUTHWEST-26": "San Antonio 75%",
   "KXNBAEXEC-27": "Sam Presti 13%",
   "KXNBA-27": "San Antonio 22%",
-  "KXNBAEAST-27": "Boston 20%",
   "KXNBAPACIFIC-26": "Los Angeles L 82%",
+  "KXNBAEAST-27": "Boston 20%",
   "KXNBACLUTCH-27": "Stephen Curry 10%",
+  "KXNBAWEST1SEED-26": "San Antonio 54%",
   "KXNBAWFINMVP-27": "Shai Gilgeous-Alexander 20%",
   "KXNBACENTRAL-26": "Detroit 68%",
-  "KXNBAWEST1SEED-26": "San Antonio 53%",
-  "KXNBANORTHWEST-26": "Oklahoma City 43%",
   "KXNBAEFINMVP-27": "Tyrese Maxey 20%",
+  "KXNBANORTHWEST-26": "Oklahoma City 43%",
   "KXNBACONF-27": "Western Conference 61%"
  }
 }
