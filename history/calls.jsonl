@@ -662,3 +662,61 @@
 {"d":"2026-11-20","team":"UTA","player":"Svi Mykhailiuk","what":"750 rebounds","need":5,"got":7,"p":0.054,"hit":true,"stat":"reb","pPlay":0.97,"played":true}
 {"d":"2026-11-20","team":"HOU","player":"Jabari Smith Jr.","what":"record (records): 577 3-pointers","need":6,"got":3,"p":0.053,"hit":false,"stat":"fg3m","pPlay":0.97,"played":true,"from":"records"}
 {"d":"2026-11-20","team":"HOU","player":"Alperen Şengün","what":"record (records): pass Lenny Wilkens and Kevin Johnson and Alvin Robertson in triple-doubles","need":1,"got":1,"p":0.052,"hit":true,"stat":"td","pPlay":0.6,"played":true,"from":"records"}
+{"d":"2026-11-21","team":"SAC","player":"Malik Monk","what":"600 games","need":1,"got":1,"p":0.975,"hit":true,"stat":"gp","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"MIN","player":"Rudy Gobert","what":"record (records): pass Bill Laimbeer in defensive rebounds","need":1,"got":8,"p":0.972,"hit":true,"stat":"dreb","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-21","team":"MIN","player":"Jaden McDaniels","what":"record (records): 1933 rebounds","need":1,"got":5,"p":0.971,"hit":true,"stat":"reb","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-21","team":"SAS","player":"Victor Wembanyama","what":"record (records): 2191 rebounds","need":3,"got":19,"p":0.97,"hit":true,"stat":"reb","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-21","team":"NOP","player":"Jeremiah Fears","what":"100 games","need":1,"got":1,"p":0.967,"hit":true,"stat":"gp","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"BOS","player":"Paul George","what":"19600 points","need":3,"got":19,"p":0.961,"hit":true,"stat":"pts","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"BOS","player":"Neemias Queta","what":"600 field goals","need":1,"got":5,"p":0.959,"hit":true,"stat":"fgm","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"NOP","player":"Jeremiah Fears","what":"1250 field goal attempts","need":9,"got":17,"p":0.947,"hit":true,"stat":"fga","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"SAC","player":"Domantas Sabonis","what":"10900 points","need":1,"got":15,"p":0.916,"hit":true,"stat":"pts","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"SAS","player":"Keldon Johnson","what":"record (records): 2524 rebounds","need":3,"got":4,"p":0.889,"hit":true,"stat":"reb","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-21","team":"DAL","player":"Naji Marshall","what":"500 assists","need":2,"got":1,"p":0.885,"hit":false,"stat":"ast","pPlay":0.95,"played":true}
+{"d":"2026-11-21","team":"BOS","player":"Paul George","what":"record (records): pass Trevor Ariza in steals","need":1,"got":4,"p":0.84,"hit":true,"stat":"stl","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-21","team":"NYK","player":"Jalen Brunson","what":"2000 free throws","need":2,"got":2,"p":0.825,"hit":true,"stat":"ftm","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"BOS","player":"Jordan Walsh","what":"200 field goals","need":1,"got":0,"p":0.792,"hit":false,"stat":"fgm","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"NOP","player":"Yves Missi","what":"record (records): 1039 rebounds","need":4,"got":13,"p":0.792,"hit":true,"stat":"reb","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-21","team":"NOP","player":"Karlo Matkovic","what":"500 rebounds","need":3,"got":3,"p":0.754,"hit":true,"stat":"reb","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"POR","player":"Jrue Holiday","what":"1750 3-pointers","need":2,"got":1,"p":0.727,"hit":false,"stat":"fg3m","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"SAC","player":"Keegan Murray","what":"3500 points","need":7,"got":15,"p":0.726,"hit":true,"stat":"pts","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"NOP","player":"Zion Williamson","what":"record (records): 309 steals","need":1,"got":0,"p":0.694,"hit":false,"stat":"stl","pPlay":0.97,"played":false,"from":"records"}
+{"d":"2026-11-21","team":"NOP","player":"Derik Queen","what":"100 steals","need":1,"got":1,"p":0.643,"hit":true,"stat":"stl","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"MEM","player":"Cam Spencer","what":"200 3-pointers","need":2,"got":0,"p":0.601,"hit":false,"stat":"fg3m","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"MIN","player":"Joan Beringer","what":"200 rebounds","need":6,"got":4,"p":0.582,"hit":false,"stat":"reb","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"LAC","player":"Brook Lopez","what":"7000 field goals","need":5,"got":8,"p":0.58,"hit":true,"stat":"fgm","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"MIL","player":"Kel'el Ware","what":"900 defensive rebounds","need":4,"got":5,"p":0.55,"hit":true,"stat":"dreb","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"MEM","player":"Cam Spencer","what":"200 defensive rebounds","need":2,"got":4,"p":0.55,"hit":true,"stat":"dreb","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"BOS","player":"Baylor Scheierman","what":"300 defensive rebounds","need":3,"got":1,"p":0.516,"hit":false,"stat":"dreb","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"NOP","player":"Zion Williamson","what":"4500 field goal attempts","need":13,"got":0,"p":0.496,"hit":false,"stat":"fga","pPlay":0.97,"played":false}
+{"d":"2026-11-21","team":"DAL","player":"Zaccharie Risacher","what":"600 rebounds","need":5,"got":7,"p":0.494,"hit":true,"stat":"reb","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"LAC","player":"Brook Lopez","what":"record (records): pass Tracy McGrady in points","need":16,"got":21,"p":0.482,"hit":true,"stat":"pts","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-21","team":"DAL","player":"Cooper Flagg","what":"pass Andrew Bynum","need":7,"got":6,"p":0.46,"hit":false,"stat":"reb","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"BOS","player":"Payton Pritchard","what":"record (records): 912 3-pointers","need":3,"got":0,"p":0.435,"hit":false,"stat":"fg3m","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-21","team":"NYK","player":"Andre Drummond","what":"record (records): pass Dennis Rodman in defensive rebounds","need":6,"got":8,"p":0.432,"hit":true,"stat":"dreb","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-21","team":"DAL","player":"Max Christie","what":"pass Harrison Barnes","need":2,"got":3,"p":0.41,"hit":true,"stat":"fg3m","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"NOP","player":"Zion Williamson","what":"record (records): 182 blocks","need":1,"got":0,"p":0.41,"hit":false,"stat":"blk","pPlay":0.97,"played":false,"from":"records"}
+{"d":"2026-11-21","team":"SAS","player":"Devin Vassell","what":"1000 assists","need":3,"got":2,"p":0.396,"hit":false,"stat":"ast","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"MIN","player":"Cody Williams","what":"200 assists","need":4,"got":0,"p":0.376,"hit":false,"stat":"ast","pPlay":0.95,"played":false}
+{"d":"2026-11-21","team":"PHI","player":"Justin Edwards","what":"100 steals","need":1,"got":0,"p":0.362,"hit":false,"stat":"stl","pPlay":0.95,"played":false}
+{"d":"2026-11-21","team":"SAC","player":"Zach LaVine","what":"200 blocks","need":1,"got":1,"p":0.305,"hit":true,"stat":"blk","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"MIN","player":"Rudy Gobert","what":"record (records): pass Nikola Vučević in rebounds","need":15,"got":11,"p":0.244,"hit":false,"stat":"reb","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-21","team":"SAC","player":"Malik Monk","what":"1900 assists","need":6,"got":1,"p":0.243,"hit":false,"stat":"ast","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"NYK","player":"Dalton Knecht","what":"300 rebounds","need":2,"got":0,"p":0.241,"hit":false,"stat":"reb","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"POR","player":"Damian Lillard","what":"record (records): pass Scottie Pippen in assists","need":6,"got":3,"p":0.235,"hit":false,"stat":"ast","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-21","team":"NOP","player":"DeAndre Jordan","what":"record (records): pass Benoit Benjamin in blocks","need":1,"got":0,"p":0.185,"hit":false,"stat":"blk","pPlay":0.3,"played":false,"from":"records"}
+{"d":"2026-11-21","team":"SAS","player":"Victor Wembanyama","what":"700 assists","need":6,"got":1,"p":0.153,"hit":false,"stat":"ast","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"MIN","player":"Jaden McDaniels","what":"record (records): 437 steals","need":3,"got":1,"p":0.122,"hit":false,"stat":"stl","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-21","team":"NOP","player":"Zion Williamson","what":"1600 free throws","need":9,"got":0,"p":0.104,"hit":false,"stat":"ftm","pPlay":0.97,"played":false}
+{"d":"2026-11-21","team":"MIN","player":"Jonathan Kuminga","what":"7000 minutes","need":36,"got":37,"p":0.101,"hit":true,"stat":"min","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"BOS","player":"Devin Carter","what":"500 points","need":23,"got":0,"p":0.089,"hit":false,"stat":"pts","pPlay":0.9,"played":true}
+{"d":"2026-11-21","team":"PHI","player":"Joel Embiid","what":"record (records): 1116 offensive rebounds","need":5,"got":2,"p":0.087,"hit":false,"stat":"oreb","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-21","team":"NOP","player":"AJ Johnson","what":"400 points","need":13,"got":0,"p":0.08,"hit":false,"stat":"pts","pPlay":0.95,"played":true}
+{"d":"2026-11-21","team":"BOS","player":"Paul George","what":"record (records): 2500 3-pointers","need":7,"got":2,"p":0.074,"hit":false,"stat":"fg3m","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-21","team":"POR","player":"Damian Lillard","what":"record (records): pass Elvin Hayes in free throws","need":10,"got":4,"p":0.07,"hit":false,"stat":"ftm","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-21","team":"PHI","player":"Joel Embiid","what":"record (records): pass Jerry Lucas and Dikembe Mutombo and Pau Gasol and Stephen Curry and Baron Davis and Blake Griffin and Andy Phillip in triple-doubles","need":1,"got":0,"p":0.067,"hit":false,"stat":"td","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-21","team":"SAS","player":"Stephon Castle","what":"2600 points","need":26,"got":19,"p":0.061,"hit":false,"stat":"pts","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"PHI","player":"Joel Embiid","what":"pass null","need":5,"got":2,"p":0.058,"hit":false,"stat":"oreb","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"SAS","player":"Keldon Johnson","what":"7000 points","need":19,"got":10,"p":0.055,"hit":false,"stat":"pts","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"SAS","player":"Victor Wembanyama","what":"1700 field goals","need":17,"got":20,"p":0.054,"hit":true,"stat":"fgm","pPlay":0.97,"played":true}
+{"d":"2026-11-21","team":"NOP","player":"Jordan Poole","what":"7600 points","need":23,"got":25,"p":0.052,"hit":true,"stat":"pts","pPlay":0.95,"played":true}
