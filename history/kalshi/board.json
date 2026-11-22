@@ -48,12 +48,12 @@
   "KXNBA3DPROT": {
    "title": "NBA Player Triple Double Protected",
    "events": 7,
-   "markets": 25
+   "markets": 26
   },
   "KXNBAPTS": {
    "title": "NBA Player Points",
    "events": 7,
-   "markets": 296
+   "markets": 301
   },
   "KXNBAPLAYERHIGHSCORE": {
    "title": "NBA Highest Scoring Performance in Regular Season",
@@ -153,7 +153,7 @@
   "KXNBA2DPROT": {
    "title": "NBA Player Double Double Protected",
    "events": 7,
-   "markets": 66
+   "markets": 69
   },
   "KXNBA1Q": {
    "title": "NBA 1st Quarter Winner",
@@ -258,7 +258,7 @@
   "KXNBAPRAPROT": {
    "title": "Pts + Reb + Ast Protected",
    "events": 7,
-   "markets": 212
+   "markets": 213
   },
   "KXNBADPOTM": {
    "title": "NBA Defensive Player of the Month",
@@ -323,7 +323,7 @@
   "KXNBAREBPROT": {
    "title": "NBA Player Rebounds Protected",
    "events": 7,
-   "markets": 332
+   "markets": 340
   },
   "KXNBAWINS": {
    "title": "Pro Basketball Win Totals",
@@ -483,7 +483,7 @@
   "KXNBA3D": {
    "title": "NBA Player Triple Double",
    "events": 7,
-   "markets": 25
+   "markets": 26
   },
   "KXNBASEEDOU": {
    "title": "NBA Playoff Seed Over/Unders",
@@ -583,12 +583,12 @@
   "KXNBAPTSPROT": {
    "title": "NBA Player Points Protected",
    "events": 7,
-   "markets": 297
+   "markets": 305
   },
   "KXNBASTL": {
    "title": "NBA Player Steals",
    "events": 7,
-   "markets": 114
+   "markets": 129
   },
   "KXNBAHALLOFFAME": {
    "title": "Pro Basketball Hall of Fame",
@@ -703,7 +703,7 @@
   "KXNBA2D": {
    "title": "NBA Player Double Double",
    "events": 7,
-   "markets": 66
+   "markets": 69
   },
   "KXNBATEAMTOTAL": {
    "title": "NBA Team Total",
@@ -728,16 +728,16 @@
   "KXNBASIXTH-27": "Payton Pritchard 33%",
   "KXNBAWEST1SEED-26": "San Antonio 54%",
   "KXNBAROY-27": "Cameron Boozer 35%",
-  "KXNBARECORD-27BEST": "San Antonio 39%",
+  "KXNBARECORD-27BEST": "San Antonio 45%",
   "KXNBARECORD-27WORST": "Sacramento 41%",
-  "KXNBACUP-26": "San Antonio 19%",
   "KXNBAWEST-27": "San Antonio 36%",
-  "KXNBAEAST1SEED-26": "Boston 29%",
   "KXNBAPACIFIC-26": "Los Angeles L 82%",
+  "KXNBACUP-26": "San Antonio 20%",
+  "KXNBAEAST1SEED-26": "Boston 29%",
   "KXNBAATLANTIC-26": "Boston 53%",
   "KXNBASOUTHEAST-26": "Miami 53%",
   "KXNBA-27": "San Antonio 22%",
   "KXNBAMVP-27": "Victor Wembanyama 56%",
-  "KXNBACUPMVP-27": "Victor Wembanyama 26%"
+  "KXNBACUPMVP-27": "Victor Wembanyama 29%"
  }
 }
