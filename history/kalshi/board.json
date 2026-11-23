@@ -143,7 +143,7 @@
   "KXNBAPTS": {
    "title": "NBA Player Points",
    "events": 10,
-   "markets": 448
+   "markets": 454
   },
   "KXNBA1HTOTAL": {
    "title": "NBA 1st Half Total",
@@ -248,7 +248,7 @@
   "KXNBAREB": {
    "title": "NBA Player Rebounds",
    "events": 10,
-   "markets": 491
+   "markets": 497
   },
   "KXNBAFRANCHISECOST": {
    "title": "NBA Franchise Cost",
@@ -258,7 +258,7 @@
   "KXNBAAST": {
    "title": "NBA Player Assists",
    "events": 10,
-   "markets": 375
+   "markets": 377
   },
   "KXNBACONF": {
    "title": "NBA Conference to Win the Championship",
@@ -293,7 +293,7 @@
   "KXNBAPRA": {
    "title": "NBA Player Points + Rebounds + Assists",
    "events": 10,
-   "markets": 322
+   "markets": 325
   },
   "KXNBASEED": {
    "title": "NBA Playoff Seed",
@@ -353,7 +353,7 @@
   "KXNBAPRAPROT": {
    "title": "Pts + Reb + Ast Protected",
    "events": 10,
-   "markets": 322
+   "markets": 327
   },
   "KXNBA2NDTEAM": {
    "title": "All-NBA 2nd Team",
@@ -423,7 +423,7 @@
   "KXNBAPTSPROT": {
    "title": "NBA Player Points Protected",
    "events": 10,
-   "markets": 448
+   "markets": 454
   },
   "KXNBAFRANCHISEOWNER": {
    "title": "NBA Franchise Owner",
@@ -623,7 +623,7 @@
   "KXNBAASTPROT": {
    "title": "NBA Player Assists Protected",
    "events": 10,
-   "markets": 375
+   "markets": 377
   },
   "KXNBATEAMSALE": {
    "title": "Pro Basketball Team to be Sold",
@@ -678,7 +678,7 @@
   "KXNBAREBPROT": {
    "title": "NBA Player Rebounds Protected",
    "events": 10,
-   "markets": 491
+   "markets": 499
   },
   "KXNBACUPGROUP": {
    "title": "NBA Cup Group Winner",
@@ -712,11 +712,11 @@
   }
  },
  "favorites": {
-  "KXNBACUPMVP-27": "Victor Wembanyama 25%",
+  "KXNBACUPMVP-27": "Victor Wembanyama 26%",
   "KXNBAEAST-27": "Boston 20%",
   "KXNBACOY-27": "Micah Nori 16%",
-  "KXNBACUP-26": "San Antonio 23%",
   "KXNBAWEST1SEED-26": "San Antonio 55%",
+  "KXNBACUP-26": "San Antonio 23%",
   "KXNBASOUTHEAST-26": "Miami 51%",
   "KXNBAATLANTIC-26": "Boston 46%",
   "KXNBAWFINMVP-27": "Shai Gilgeous-Alexander 20%",
@@ -725,14 +725,14 @@
   "KXNBACONF-27": "Western Conference 61%",
   "KXNBAWEST-27": "San Antonio 36%",
   "KXNBA-27": "San Antonio 22%",
+  "KXNBASIXTH-27": "Jrue Holiday 29%",
   "KXNBAFINMVP-27": "Victor Wembanyama 21%",
-  "KXNBASIXTH-27": "Jrue Holiday 30%",
   "KXNBASOUTHWEST-26": "San Antonio 75%",
-  "KXNBAROY-27": "Cameron Boozer 33%",
   "KXNBACLUTCH-27": "Stephen Curry 10%",
-  "KXNBAMIMP-27": "Ty Jerome 26%",
   "KXNBACENTRAL-26": "Detroit 68%",
+  "KXNBAMIMP-27": "Ty Jerome 26%",
   "KXNBADPOY-27": "Victor Wembanyama 79%",
+  "KXNBAROY-27": "Cameron Boozer 33%",
   "KXNBANORTHWEST-26": "Oklahoma City 36%",
   "KXNBAEFINMVP-27": "Tyrese Maxey 20%",
   "KXNBAEAST1SEED-26": "Philadelphia 29%",
