@@ -186,6 +186,7 @@ export async function buildWatch({ team, notesDate, milestones, espn, today, sim
       team: m.team, player: t.espnName || m.player, notesName: m.player, espnId: t.espnId || null, nbaId: t.nbaId || null, origin: m.origin || "notes", stat: m.stat, label: m.label, kind: m.kind, scope: m.scope,
       target: t.target ?? m.target, current: t.current ?? m.current, need: t.need ?? m.need,
       passing: m.passing ? { player: m.passing.player, total: m.passing.total, rank: m.passing.rank, forWhat: m.passing.forWhat } : null,
+      ...(m.qualifier ? { qualifier: m.qualifier } : {}),   // 0.142.3: a subset list ("by a teen"); its label says so
       importance: imp.score, why: imp.reasons,
       status: m.status, checks: m.checks || [], tracking: t.status || null,
       publishable: live && m.status === "ok" && t.status !== "disagrees",

@@ -56,6 +56,9 @@
  *       Live's own QUARTER EXPLOSION card is up for a quarter, the season place and list are added to that card (its
  *       all-time list stays) and the separate season card is not fired; it shows only where NBA Live has no card.
  *       This is the one place the bridge adds to a card of NBA Live's: two fields, on its way through fireStory.
+ *     - (v31, 0.142.3; the user, 11/22: "cooper flagg is in his second year") A list limited to a kind of player ("MOST
+ *       REBOUNDS BY A TEEN, NBA HISTORY") says so on its card ("rebounds by a teen") and never shows the all-time board on
+ *       its back. NBA Live had said Flagg "passes Andrew Bynum (#5) in NBA history (rebounds)".
  *     - (v30, 0.142.1; the user, 11/22: "Sure") A board from our own box scores: 25 points, 5 threes and 3 blocks since
  *       1993-94 (Wembanyama 15). Its counts can be short where our box scores miss games ("8+" on the card's back); the
  *       rules never pass, tie or place a player against such a count. The card names its source per board.
@@ -126,7 +129,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 30;
+  var VERSION = 31;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -2424,7 +2427,9 @@ function teamStake(t, g) {
     var who = i.kind === "pass"
       ? (i.passing && i.passing.player) + (i.passing && i.passing.rank ? " (#" + i.passing.rank + ")" : "") + " " + (SCOPE[i.scope] || "")
       : goal + " " + label + " " + (SCOPE[i.scope] || "");
-    var board = i.kind === "pass" && i.scope === "franchise" ? recBoard({ kind: "franchise", team: i.team, stat: i.stat })
+    // v31 (the user, 11/22: Flagg "passes Andrew Bynum (#5) in NBA history" was a list of teenagers): a subset list
+    // (i.qualifier) never gets the all-time or franchise board on its back, and its label carries the subset.
+    var board = i.qualifier ? null : i.kind === "pass" && i.scope === "franchise" ? recBoard({ kind: "franchise", team: i.team, stat: i.stat })
       : i.kind === "pass" && i.scope === "nba" ? recBoard({ kind: "pass", stat: i.stat }) : null;
     return {
       i: i, v: v, need: need, label: label, reached: need <= 0,

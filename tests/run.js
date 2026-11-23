@@ -5027,6 +5027,20 @@ await bridgeChecks(ok, root);
     "feat boards (0.142): the transcribed boards are sorted, complete rows, each with a one-game name; counts through 11/19 (Basketball-Reference hadn't added 11/20)");
 }
 
+// ---------- 0.142.3: a list limited to a kind of player is a subset (the user, 11/22: "cooper flagg is in his second year") ----------
+{
+  const { qualifierOf } = await import("../src/notes/stats.js"), { subsetLabel } = await import("../src/notes/parse.js");
+  ok(qualifierOf("MOST REBOUNDS BY A TEEN, NBA HISTORY") === "BY A TEEN" && qualifierOf("MOST POINTS BY A SOPHOMORE") === "BY A SOPHOMORE" && qualifierOf("MOST BLOCKS BY A 7-FOOTER, NBA HISTORY") === "BY A 7-FOOTER"
+    && qualifierOf("MOST 3PM BY A MAVERICK") === null && qualifierOf("MOST POINTS BY A SIXER") === null && qualifierOf("MOST REBOUNDS IN NBA HISTORY") === null && qualifierOf("CAREER REBOUNDS") === null
+    && qualifierOf("MOST STEALS BY A ROOKIE, MAVS HISTORY") === "BY A ROOKIE"
+    && subsetLabel("MOST REBOUNDS BY A TEEN, NBA HISTORY REBOUNDS", "rebounds") === "rebounds by a teen"
+    && subsetLabel("teenager in NBA history (1,762+). MOST POINTS BY A TEEN, NBA HISTORY TOT POINTS", "points") === "points by a teen",
+    "notes (0.142.3): \"by a teen\", \"by a sophomore\" and the like make a list a subset (never \"by a Maverick\"), and its chase is labeled with the list's own words");
+  const B = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8"), W = fs.readFileSync(path.join(root, "src", "anticipate", "watch.js"), "utf8");
+  ok(/var board = i\.qualifier \? null :/.test(B) && /m\.qualifier \? \{ qualifier: m\.qualifier \}/.test(W),
+    "bridge v31: a subset list's card never gets the all-time or franchise board on its back; the watch list carries the subset");
+}
+
 // ---------- 0.142.1: a feat board from our own box scores (25 points, 5 threes, 3 blocks since 1993-94) ----------
 {
   const F = await import("../src/records/featlive.js");

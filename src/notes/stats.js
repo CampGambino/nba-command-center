@@ -1,3 +1,5 @@
+import { TEAMS } from "../teams.js";
+
 /**
  * Stat names as the teams print them -> one canonical key.
  * Teams write the same stat many ways ("3FG", "3FGM", "3PT", "3- POINTERS MADE",
@@ -52,10 +54,21 @@ export function normStat(raw) {
  * such a list is real but must be worded with the qualifier, so it is never
  * published automatically.
  */
-const QUALIFIER = /\b(centers?|guards?|forwards?|point guards?|bench|reserves?|off the bench|sixth man|draft(ed)?|class of|rookies?|undrafted|active|international|foreign|teenagers?|age \d+|\d+ or younger|before (turning )?\d+|through (the first )?\d+ games|first \d+ games|since (19|20)\d\d|per game|\/ ?(game|gm)|per 36|per 100|playoffs?|postseason|home|road|vs\.? |against|when|with (him|her)|under|month)\b/i;
+// 0.142.3 (the user, 11/22: "cooper flagg is in his second year"): Dallas's "MOST REBOUNDS BY A TEEN, NBA HISTORY" read as
+// the all-time list, so NBA Live said Flagg passed Andrew Bynum for 5th in NBA history. "teen", "sophomore", "second-year"
+// and any "by a/an <kind of player>" are subsets too.
+const QUALIFIER = /\b(centers?|guards?|forwards?|point guards?|bench|reserves?|off the bench|sixth man|draft(ed)?|class of|rookies?|undrafted|active|international|foreign|teen(ager)?s?|sophomores?|(?:first|second|third)[- ]years?|by an? (?!team\b|franchise\b)[a-z0-9-]+(?: [a-z0-9-]+)?(?=,|\s+(?:in|nba|since|\(|$)|$)|age \d+|\d+ or younger|before (turning )?\d+|through (the first )?\d+ games|first \d+ games|since (19|20)\d\d|per game|\/ ?(game|gm)|per 36|per 100|playoffs?|postseason|home|road|vs\.? |against|when|with (him|her)|under|month)\b/i;
+// "BY A MAVERICK" names the franchise, not a kind of player: that list is the team's own, not a subset.
+const NICKS = new Set([...Object.values(TEAMS).flatMap((T) => [T.nick.toLowerCase(), T.nick.toLowerCase().replace(/s$/, ""), T.city.toLowerCase()]),
+  "sixer", "sixers", "cav", "cavs", "mav", "mavs", "wolf", "wolves", "t-wolf", "blazer", "blazers", "trail blazer", "pel", "pels", "nug", "nugs", "knick", "celt"]);
 export function qualifierOf(title) {
-  const m = String(title || "").match(QUALIFIER);
-  return m ? m[0].trim() : null;
+  const s = String(title || "");
+  for (const m of s.matchAll(new RegExp(QUALIFIER.source, "gi"))) {
+    const by = /^by an? (.+)$/i.exec(m[0].trim());
+    if (by && NICKS.has(by[1].toLowerCase())) continue;
+    return m[0].trim();
+  }
+  return null;
 }
 
 /**

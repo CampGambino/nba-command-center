@@ -241,6 +241,15 @@ function buildRoster(doc, raw, leaderboards) {
 
 const onRoster = (roster, name) => [...roster.values()].some((r) => sameName(r.name, name));
 
+/** "MOST REBOUNDS BY A TEEN, NBA HISTORY" -> "rebounds by a teen": the list's own words without "most" and the scope. */
+export function subsetLabel(title, fallback) {
+  // A title that took in some prose before it ("…teenager in NBA history (1,762+). MOST POINTS BY A TEEN, NBA HISTORY"): from its last "MOST".
+  const raw = String(title || ""), at = raw.search(/\bMOST\s+(?!.*\bMOST\s)/i);
+  const t = (at > 0 ? raw.slice(at) : raw).replace(/\([^)]*\)/g, " ").replace(/^\s*(?:most|career|all[- ]time)\s+/i, "").replace(/,?\s*(?:in\s+)?(?:nba|league|franchise|team)\s+history\b.*$/i, "")
+    .replace(/\s+/g, " ").trim().toLowerCase();
+  return t && t.length <= 60 ? t : fallback;
+}
+
 function chasesFrom(lb, roster, team) {
   if (!lb.stat) return [];
   // Another franchise's list on a player's page ("MOST 3-POINTERS BY FRONT COURT, GRIZZLIES HISTORY" under Santi
@@ -267,7 +276,9 @@ function chasesFrom(lb, roster, team) {
       team,
       player: chaser.player,
       stat: lb.stat,
-      label: lb.stat === "list" ? lb.title.toLowerCase() : statLabel(lb.stat),
+      // 0.142.3: a subset list says what it is ("rebounds by a teen"), never just "rebounds".
+      label: lb.stat === "list" ? lb.title.toLowerCase() : lb.qualifier ? subsetLabel(lb.title, statLabel(lb.stat)) : statLabel(lb.stat),
+      ...(lb.qualifier ? { qualifier: lb.qualifier } : {}),
       kind: lb.average ? "average-gap" : "pass",
       scope: lb.scope,
       current: chaser.total,

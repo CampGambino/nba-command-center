@@ -2,6 +2,29 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.142.3 (2026-11-22): a "by a teen" list is a subset (bridge v31)
+
+The user, 11/22, with a screenshot of NBA Live after DAL @ UTA: "I don't think this is right. cooper flagg is in his second year." The card read "🎉 PASSED · Cooper Flagg (DAL) — passes Andrew Bynum (#5) in NBA history (rebounds)", with the all-time rebounds list on its back (Flagg 41st at 567).
+
+**What it was.**
+- Dallas's notes (page 14) have three lists: "MOST POINTS BY A TEEN, NBA HISTORY", "MOST ASSISTS BY A TEEN…" and "MOST REBOUNDS BY A TEEN…". Flagg was tied with Andrew Bynum for 5th in rebounds as a teenager, at 564.
+- The words that mark a subset list (`src/notes/stats.js`, QUALIFIER) had "teenager" but not "teen". So the list counted as the all-time list: no review flag, labeled "rebounds", and the card's back showed the all-time board.
+- The points list had a second problem: its title took in the sentence printed above it, so it would have been labeled "points" too.
+- His count was right: his career total is his teenage total until his 20th birthday. Only the wording was wrong.
+
+**The fix:**
+- **Subsets:** "teen(s)", "sophomore(s)", "first/second/third-year" and any "by a/an <kind of player>" ("by a 7-footer") now mark a subset. "By a Maverick", "by a Sixer" and the like don't; those are a franchise's own list.
+- **Labels:** a subset chase is labeled with the list's own words, "rebounds by a teen", taken from the title's last "MOST" (`subsetLabel`, `src/notes/parse.js`). It also carries `qualifier` through the watch list, and it's a review item as before ("the wording must say so").
+- **Bridge v31:** a subset card never gets the all-time or franchise board on its back. Its line reads "passes Andrew Bynum (#5) in NBA history (rebounds by a teen)".
+- **Across the 42 saved notes PDFs,** the new rule changes three titles, all real subsets: "Most 3FGM by a Center in Franchise History", "THREE-POINT LEADERS NBA, SOPHOMORES", and "THIRD-YEAR PLAYERS, NBA, SINCE 2024-25" (that last one was already a subset, by its "since").
+
+**Tests.** 1,142 (2 new): the subset words and labels, and the bridge and watch-list wiring.
+
+**Self-audit.**
+- The subset words were a hand list, and "teen" was one spelling short. The general "by a/an …" pattern now covers kinds of player no list has used yet.
+- The card's back showing Flagg 41st all-time should itself have looked wrong. The back now never mixes a subset with the all-time board.
+- Flagg's teen lists end on his 20th birthday (12/21/26 by his listed birth date). Nothing retires a teen chase on that date yet; the notes stop printing those lists, so they fall away. Noted, not built.
+
 ## 0.142.2 (2026-11-22): #articles: one story, one post
 
 The user, 11/22, with a screenshot: "Did I get sent the same article twice in discord". Yes. The Athletic's "Why Walter Clayton Jr. spurned other West teams and joined his college roommate on the Mavs" (published 10:31 AM) posted at 10:33 ("seen 2 min later") and again at 10:35 ("seen 4 min later").
