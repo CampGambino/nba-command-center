@@ -5027,6 +5027,27 @@ await bridgeChecks(ok, root);
     "feat boards (0.142): the transcribed boards are sorted, complete rows, each with a one-game name; counts through 11/19 (Basketball-Reference hadn't added 11/20)");
 }
 
+// ---------- 0.142.6: consecutive games played, from the box scores (the user, 11/23, San Antonio's table) ----------
+{
+  const { walkStreak, appeared } = await import("../src/records/gpstreak.js"), { gamesPlayedRuns } = await import("../src/records/featboards.js");
+  const tg = { "AAA|s1": [{ d: "1", gid: "a1" }, { d: "2", gid: "a2" }, { d: "3", gid: "a3" }, { d: "4", gid: "a4" }], "BBB|s1": [{ d: "2", gid: "b2" }, { d: "3", gid: "b3" }, { d: "5", gid: "b5" }, { d: "6", gid: "b6" }],
+    "BBB|s2": [{ d: "7", gid: "b7" }, { d: "8", gid: "b8" }] };
+  const traded = [{ d: "1", gid: "a1", team: "AAA", season: "s1" }, { d: "2", gid: "a2", team: "AAA", season: "s1" }, { d: "5", gid: "b5", team: "BBB", season: "s1" }, { d: "6", gid: "b6", team: "BBB", season: "s1" }, { d: "7", gid: "b7", team: "BBB", season: "s2" }, { d: "8", gid: "b8", team: "BBB", season: "s2" }];
+  const sat = [{ d: "1", gid: "a1", team: "AAA", season: "s1" }, { d: "3", gid: "a3", team: "AAA", season: "s1" }, { d: "4", gid: "a4", team: "AAA", season: "s1" }];
+  const summer = [{ d: "1", gid: "a1", team: "AAA", season: "s1" }, { d: "2", gid: "a2", team: "AAA", season: "s1" }, { d: "7", gid: "b7", team: "BBB", season: "s2" }, { d: "8", gid: "b8", team: "BBB", season: "s2" }];
+  ok(walkStreak(traded, tg).n === 6 && walkStreak(sat, tg).n === 2 && walkStreak(sat, tg).broke === "2" && walkStreak(summer, tg).n === 2 && walkStreak(summer, tg, { start: 50 }).n === 2
+    && walkStreak([{ d: "7", gid: "b7", team: "BBB", season: "s2" }, { d: "8", gid: "b8", team: "BBB", season: "s2" }], tg, { start: 600 }).n === 602
+    && appeared(1, 0, [0, 0, 1]) && appeared(0, 3, []) && !appeared(0, 0, [0, 0, 0]),
+    "games played (0.142.6): a trade in the season doesn't break a run, a missed game does, his team's last games of a season count (a summer move after sitting them out ends it), a run carries into the next season; a start with 0 minutes counts");
+  const base = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "games-played-streaks-2025-26.json"), "utf8"));
+  const top = Object.fromEntries(base.rows.slice(0, 20).map((r) => [r[1], r[2]]));
+  ok(top["Mikal Bridges"] === 637 && top["Julian Champagnie"] === 185 && top["Kris Dunn"] === 96 && base.through === "2025-26",
+    "games played (0.142.6): at the end of 2025-26, Bridges 637, Champagnie 185, Dunn 96 (with this season's games: 654, 202, 111, as San Antonio's notes print them)");
+  const games = [{ id: "g1", d: "2026-10-21", h: "NYK", a: "BOS", hs: 100, as: 90, pl: { "3147657": [0, 1, 30, 10], "x": [1, 0, 0, 0] } }, { id: "g2", d: "2026-10-23", h: "NYK", a: "MIA", hs: 100, as: 90, pl: { "3147657": [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1] } }];
+  const runs = gamesPlayedRuns(games, base, "2026-27");
+  ok(runs[0]?.id === "3147657" && runs[0].n === 639 && runs[0].rank === 1, "games played (0.142.6): last season's run carried through this season's games", JSON.stringify(runs.slice(0, 2)));
+}
+
 // ---------- 0.142.5: last season's facts read as this season's (the user, 11/23: "the number of games played this season does not allow for what is listed") ----------
 {
   const { tooBigForSeason } = await import("../src/notes/narrative.js");

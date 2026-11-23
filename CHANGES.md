@@ -2,6 +2,46 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.142.6 (2026-11-23): consecutive games played, counted from the box scores (bridge v33)
+
+The user, 11/23, with San Antonio's "ACTIVE, MOST CONSECUTIVE GAMES PLAYED" table on Julian Champagnie's page: "is this something tracked in the command center? … maybe it can be tested against the box scores to confirm the length."
+
+**Before:** not tracked. The notes reader took the sentence beside the table ("Julian has not missed a game since March of 2024, giving him the second-longest active streak") as a garbled line ("Games longest active streak in the NBA. 1."), marked it out of date, and never counted anything.
+
+**The count** (`src/records/gpstreak.js`):
+- A game counts as played when he started or had any minutes or any stat. Mikal Bridges kept his run on the last day of 2024-25 and of 2025-26 by starting and leaving with 0 minutes and a foul; a minutes-only rule broke it there.
+- A miss is a game his team played while he was theirs:
+  - a season's first team counts from its first game;
+  - a team he joins in a mid-season trade counts from his first game for it;
+  - a team he leaves counts to his last game for it;
+  - his last team of a season counts to its last game, so sitting out the end of a season and moving in the summer ends a run (Julius Randle missed Minnesota's last games of 2025-26).
+- Everything is matched by game, with ESPN's codes (NY, SA…) read as ours. The bubble's summer 2020 games stay in 2019-20, and Cup title games are left out.
+
+**Last season's runs** (`src/data/games-played-streaks-2025-26.json`, by the new `tools/games-played-streaks.mjs`):
+- Counted from ESPN's box scores, 2018-19 through 2025-26 (every game of those seasons has its box): 311 runs alive at season's end, led by Bridges 637 and Champagnie 185.
+- The build carries them through this season's games, inactive players included (`gamesPlayedRuns`, `src/records/featboards.js`), and writes the 25 longest to `featlive.json` (`ironman`).
+
+**Checked against San Antonio's table, all eight agree** (our count through 11/22): Bridges 654, Champagnie 202, Dunn 111, Camara 102, Green 101 before Detroit's 11/22 game (102 after), Shead 100, Keldon Johnson 100, Fears 100. Next is Sion James at 97, below the table. Bub Carrington, whose 176 an earlier notes line called the third-longest, missed Washington's game on 11/18.
+
+**NBA Live** (bridge v33; the 12 longest of 50+ follow):
+- A card when he plays his 50th, 100th… game or passes a name on the active list: "Javonte Green (DET) — 103 straight games played, the 4th-longest active run, passing Toumani Camara (102)".
+- "🧊 STREAK ENDS" at the final when his team's box has him not playing.
+- An ordinary night's game gets no card (12 cards a night otherwise).
+
+**Tests.** 1,149 (5 new):
+- the run rules: trade, miss, a season's last games, summer, a start with 0 minutes
+- last season's runs as counted
+- a run carried through this season's games
+- the bridge's milestone, pass, plain-night and end cards
+
+**Self-audit.**
+- My first count gave Bridges 97 and Randle 115, against the table's 654 and none. Two rules were wrong:
+  - a start with 0 minutes wasn't counted as played;
+  - a summer move let a run skip the old team's last games.
+- Reading the raw box rows found both; the table is now matched to the game.
+- A player traded after the morning's build who sits his old team's game would get a false "ends" card that night. Trades are announced; it is rare and visible.
+- The notes' own games-played lines still carry the notes' count. They aren't yet checked against ours.
+
 ## 0.142.5 (2026-11-23): last season's notes stay out of this season's lines
 
 The user, 11/23, with Detroit's "LAST MEETING" box and the Deep Cuts line it became ("DET notes: T-4th in NBA · Over his last eight games, Thompson is tied for fourth in the NBA with 18 steals. Jalen Johnson continued his breakout season with his 43 double-double…"): "information pulled from the game notes is inferred as this season but is not this season. there is a tell for a lot of these in that the number of games played this season does not allow for what is listed in the notes. At most, teams have played 18 games this season."

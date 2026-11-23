@@ -56,6 +56,10 @@
  *       Live's own QUARTER EXPLOSION card is up for a quarter, the season place and list are added to that card (its
  *       all-time list stays) and the separate season card is not fired; it shows only where NBA Live has no card.
  *       This is the one place the bridge adds to a card of NBA Live's: two fields, on its way through fireStory.
+ *     - (v33, 0.142.6; the user, 11/23, with San Antonio's consecutive-games table: "maybe it can be tested against the box
+ *       scores to confirm the length") Games played: the longest active runs (our count, which matches the Spurs' table:
+ *       Bridges 654, Champagnie 202, Dunn 111 …). A card on every 50th game or a pass on the active list, and "ends" at
+ *       the final when he didn't play.
  *     - (v32, 0.142.4; the user, 11/22: "the explanation has way too much text … make them clickable and provide list of
  *       names or dates on the reverse side for the odd line alerts") Odd lines: the front says how often in a few words
  *       ("About 23 a season", "The 10th since 1993-94"; the grade words are gone); the back has the count, the five
@@ -133,7 +137,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 32;
+  var VERSION = 33;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -1993,6 +1997,7 @@ function teamStake(t, g) {
       if (s.team !== sides.away && s.team !== sides.home) return;
       var side = s.team === sides.away ? "away" : "home", team = s.team;
       var p = (box[side] || []).find(function (x) { return x && String(x.id) === String(s.id); });
+      if (s.tests.length === 1 && s.tests[0] === "play") { playRun(s, p, side, team); return; }
       if (!p || ((p.min || 0) < 1 && !(p.starter && s.tests.indexOf("start") >= 0))) return;   // a game he doesn't play leaves a run alone
       var l = boxLine(p), k = "cc-streak-" + s.id + "-" + game.id, n1 = s.n + 1;
       var met = R.streakMet(s.tests, l), startOnly = s.tests.length === 1 && s.tests[0] === "start";
@@ -2018,6 +2023,27 @@ function teamStake(t, g) {
           sub: "Command Center · " + ON_FILE(s), live: true, gameId: game.id, gameTag: tag, gameScore: scr });
       }
     });
+    // v33 (the user, 11/23: San Antonio's "ACTIVE, MOST CONSECUTIVE GAMES PLAYED"): the longest runs of games played. A
+    // card when he plays a round game (every 50th) or passes a name on the active list; "ends" at the final when his
+    // team's box has him not playing. Not every night's game: that would be a card per player per night.
+    function playRun(s, p, side, team) {
+      var k = "cc-streak-" + s.id + "-" + game.id, n1 = s.n + 1;
+      var on = p && ((p.min || 0) > 0 || p.starter || ["pts", "reb", "ast", "stl", "blk", "pf", "tpa", "fga", "fta", "to"].some(function (f) { return (Number(p[f]) || 0) > 0; }));
+      var others = Array.isArray(s.list) ? s.list : [];
+      var place = function (n) { return 1 + others.filter(function (x) { return x.n > n; }).length; };
+      if (on) {
+        var passed = others.filter(function (x) { return x.n === s.n; });
+        if (n1 % 50 !== 0 && !passed.length) return;
+        var pl = place(n1);
+        fire(k, { type: "streak", icon: "🔥 STREAK EXTENDED", text: p.name + " (" + team + ") — " + n1 + " straight games played, " + (pl === 1 ? "the longest active run in the NBA" : "the " + R.featOrd(pl) + "-longest active run")
+            + (passed.length ? ", passing " + passed.map(function (x) { return x.name; }).join(" and ") + " (" + s.n + ")" : ""),
+          sub: "Command Center · our count from the box scores (a start or any minutes counts)", live: live, gameId: game.id, gameTag: tag, gameScore: scr });
+        return;
+      }
+      if (!fin || !(box[side] || []).length) return;      // his team's box only: a game without one says nothing
+      fire(k, { type: "streak", icon: "🧊 STREAK ENDS", text: s.name + " (" + team + ") — his run of " + s.n + " straight games played ends" + (place(s.n) <= 3 ? " (" + (place(s.n) === 1 ? "the longest" : "the " + R.featOrd(place(s.n)) + "-longest") + " active run in the NBA)" : ""),
+        sub: "Command Center · our count from the box scores (a start or any minutes counts)", live: false, gameId: game.id, gameTag: tag, gameScore: scr });
+    }
     (D.teamStreaks || []).forEach(function (t) {
       if (t.team !== sides.away && t.team !== sides.home) return;
       var home = t.team === sides.home, us = Number((home ? game.home : game.away).score) || 0, them = Number((home ? game.away : game.home).score) || 0;

@@ -452,10 +452,12 @@ for (const [tri, games] of Object.entries(perTeam)) {
       const file = { ...files[0], boards: {}, streaks: {} };
       for (const x of files) { for (const [k, b] of Object.entries(x.boards || {})) file.boards[k] = { asOf: x.asOf, ...b }; Object.assign(file.streaks, x.streaks || {}); }
       const F = buildFeatLive({ file, pg: playerGames(rows.filter((g) => !g.cupFinal)), names: store.names || {},
-        tonightTeams: new Set((tonight || []).flatMap((g) => [g.home, g.away])), notesFacts });
+        tonightTeams: new Set((tonight || []).flatMap((g) => [g.home, g.away])), notesFacts,
+        // 0.142.6: consecutive games played, last season's runs carried through this season's games (DNPs included)
+        games: rows, gpBase: (() => { const f = fs.readdirSync(path.join(root, "src", "data")).filter((x) => /^games-played-streaks-\d{4}-\d\d\.json$/.test(x)).sort().pop(); return f ? JSON.parse(fs.readFileSync(path.join(root, "src", "data", f), "utf8")) : null; })() });
       fs.writeFileSync(path.join(root, "docs", "data", "featlive.json"), JSON.stringify({ generatedAt: out.generatedAt, today, ...F }));
       for (const p of F.problems) warnings.push(`feat boards: ${p}`);
-      console.log(`feat boards: ${Object.keys(F.boards).length} boards from ${ff} (through ${F.asOf}, plus our games to ${F.through}); ${F.pre.length} lines for tonight; streaks live: ${F.streaks.map((x) => `${x.name} ${x.n} (${x.label})`).join(", ") || "none"}; team: ${F.teamStreaks.map((x) => `${x.team} ${x.n} ${x.label}`).join(", ") || "none"}${F.teamEnded.length ? ` (over since the notes: ${F.teamEnded.map((x) => `${x.team} ${x.label} at ${x.n}, ${x.d}`).join("; ")})` : ""}${F.problems.length ? `; ${F.problems.length} problems` : ""}`);
+      console.log(`feat boards: ${Object.keys(F.boards).length} boards from ${ff} (through ${F.asOf}, plus our games to ${F.through}); ${F.pre.length} lines for tonight; streaks live: ${F.streaks.map((x) => `${x.name} ${x.n} (${x.label})`).join(", ") || "none"}; team: ${F.teamStreaks.map((x) => `${x.team} ${x.n} ${x.label}`).join(", ") || "none"}; games played: ${F.ironman.slice(0, 5).map((x) => `${x.name} ${x.n}`).join(", ")}${F.teamEnded.length ? ` (over since the notes: ${F.teamEnded.map((x) => `${x.team} ${x.label} at ${x.n}, ${x.d}`).join("; ")})` : ""}${F.problems.length ? `; ${F.problems.length} problems` : ""}`);
     } catch (e) { console.error(`feat boards not written: ${e.message}`); }
   }
 }

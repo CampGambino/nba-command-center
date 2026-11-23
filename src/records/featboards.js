@@ -13,10 +13,11 @@ import { qualifies, featNext, streakMet } from "./featlive.js";
 import { strictKey } from "./guide.js";
 import { noteStreak } from "../anticipate/prep.js";
 import { TEAMS } from "../teams.js";
+import { walkStreak, appeared } from "./gpstreak.js";
 
 const SEASON_NOW = (d) => { const y = +d.slice(0, 4), m = +d.slice(5, 7), s = m >= 8 ? y : y - 1; return `${s}-${String((s + 1) % 100).padStart(2, "0")}`; };
 
-export function buildFeatLive({ file, pg, names = {}, tonightTeams = null, notesFacts = null }) {
+export function buildFeatLive({ file, pg, names = {}, tonightTeams = null, notesFacts = null, games = null, gpBase = null }) {
   const problems = [];
   const through = Object.values(pg).reduce((m, gs) => (gs.length && gs[gs.length - 1].d > m ? gs[gs.length - 1].d : m), "");
   const season = through ? SEASON_NOW(through) : null;
@@ -113,7 +114,36 @@ export function buildFeatLive({ file, pg, names = {}, tonightTeams = null, notes
     if (ended) { teamEnded.push({ team, label: t.label, n, ...ended }); continue; }   // over since the notes' count
     teamStreaks.push({ ...t, team, n, asOf, note: f.text });
   }
-  return { v: 1, asOf: file.asOf, through, source: file.source, boards, pre: pre.sort((a, b) => b.score - a.score), streaks, teamStreaks, teamEnded, problems };
+  // (d) 0.142.6: consecutive games played, every active player (the user, 11/23, with San Antonio's table: "maybe it can
+  // be tested against the box scores to confirm the length"). Last season's runs (src/data/games-played-streaks-*.json)
+  // carried through this season's games, DNPs included (`games`: the results store's rows).
+  const ironman = games && gpBase ? gamesPlayedRuns(games, gpBase, season) : [];
+  for (const r of ironman.slice(0, 12)) if (r.n >= 50 && !streaks.some((x) => x.id === r.id && x.tests.includes("play")))
+    streaks.push({ id: r.id, name: names[r.id] || r.name, team: r.team, tests: ["play"], label: "a game played", n: r.n, source: "gp", rank: r.rank,
+      list: ironman.slice(0, 12).filter((x) => x.id !== r.id).map((x) => ({ name: names[x.id] || x.name, n: x.n })), last: r.last });
+  return { v: 1, asOf: file.asOf, through, source: file.source, boards, pre: pre.sort((a, b) => b.score - a.score), streaks, teamStreaks, teamEnded, ironman: ironman.slice(0, 25), problems };
+}
+
+/** Every player's current consecutive-games-played run: [{ id, name, team, n, rank, last, broke }], longest first. */
+export function gamesPlayedRuns(games, gpBase, season) {
+  const base = new Map((gpBase.rows || []).map(([id, name, n, team]) => [String(id), { name, n, team }]));
+  const teamGames = {}, apps = {};
+  for (const g of [...games].filter((g) => g.hs != null && !g.cupFinal).sort((a, b) => a.d.localeCompare(b.d) || String(a.id).localeCompare(String(b.id)))) {
+    for (const t of [g.h, g.a]) (teamGames[`${t}|${season}`] ??= []).push({ d: g.d, gid: String(g.id) });
+    for (const [id, v] of Object.entries(g.pl || {})) {
+      if (!appeared(v[1], v[2], v.slice(3, 18))) continue;
+      (apps[id] ??= []).push({ d: g.d, gid: String(g.id), team: v[0] === 0 ? g.h : g.a, season });
+    }
+  }
+  const out = [];
+  for (const [id, A] of Object.entries(apps)) {
+    const b = base.get(id);
+    const { n, broke } = walkStreak(A, teamGames, { start: b ? b.n : 0 });
+    if (n > 0) out.push({ id, name: b?.name || id, team: A[A.length - 1].team, n, last: A[A.length - 1].d, broke });
+  }
+  out.sort((a, b) => b.n - a.n);
+  out.forEach((r, i) => { r.rank = 1 + out.filter((x) => x.n > r.n).length; });
+  return out;
 }
 
 function prevDay(d) { const t = new Date(`${d}T12:00:00Z`); t.setUTCDate(t.getUTCDate() - 1); return t.toISOString().slice(0, 10); }

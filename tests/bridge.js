@@ -673,6 +673,22 @@ export async function bridgeChecks(ok, root, deps = {}) {
       "bridge v29: late, trailing while holding the opponent under the bar puts the team run in danger", JSON.stringify(tl));
     const old = pick(await go(gm(), "20261108"), "cc-streak-");
     ok(!Object.keys(old).length, "bridge v29: a night the file already counts gets no streak cards", Object.keys(old).join(" "));
+    // v33 (0.142.6): games-played runs. Every 50th game or a pass on the active list gets a card; a plain game doesn't;
+    // a final without him in his team's box ends it.
+    featData = { v: 1, today: "2026-11-09", asOf: "2026-11-07", through: "2026-11-08", boards: {}, teamStreaks: [], streaks: [
+      { id: "i1", name: "Iron One", team: "AAA", tests: ["play"], label: "a game played", n: 199, source: "gp", list: [{ name: "Long Man", n: 653 }, { name: "Third Guy", n: 111 }] },
+      { id: "i2", name: "Iron Two", team: "AAA", tests: ["play"], label: "a game played", n: 111, source: "gp", list: [{ name: "Long Man", n: 653 }, { name: "Iron One", n: 199 }, { name: "Third Guy", n: 111 }] },
+      { id: "i3", name: "Iron Three", team: "AAA", tests: ["play"], label: "a game played", n: 120, source: "gp", list: [{ name: "Long Man", n: 653 }, { name: "Iron One", n: 199 }] },
+      { id: "i4", name: "Iron Four", team: "AAA", tests: ["play"], label: "a game played", n: 150, source: "gp", list: [{ name: "Long Man", n: 653 }, { name: "Iron One", n: 199 }] }] };
+    const ir = (o = {}) => [{ id: "iz1", status: "live", period: 1, clock: "9:00", away: { tricode: "AAA", score: 10 }, home: { tricode: "BBB", score: 8 },
+      boxscore: { away: [P("i1", "Iron One", { min: 2, starter: true }), P("i2", "Iron Two", { min: 3, starter: false }), P("i3", "Iron Three", { min: 4 }), P("i4", "Iron Four", { min: 0, starter: false })], home: [P("h1", "Home One", {})] }, ...o }];
+    const g1 = pick(await go(ir()), "cc-streak-");
+    ok(g1["i1-iz1"]?.text === "Iron One (AAA) — 200 straight games played, the 2nd-longest active run" && g1["i2-iz1"]?.text === "Iron Two (AAA) — 112 straight games played, the 3rd-longest active run, passing Third Guy (111)"
+      && !g1["i3-iz1"] && !g1["i4-iz1"],
+      "bridge v33 (0.142.6): a games-played run gets a card on its 50th, 100th… game or when it passes a name on the active list, nothing on an ordinary night", JSON.stringify(g1));
+    const gf = pick(await go(ir({ status: "final", period: 4, clock: "0:00" })), "cc-streak-");
+    ok(gf["i4-iz1"]?.icon === "🧊 STREAK ENDS" && gf["i4-iz1"].text === "Iron Four (AAA) — his run of 150 straight games played ends (the 3rd-longest active run in the NBA)" && !gf["i3-iz1"],
+      "bridge v33: at the final, a run whose man is in his team's box without playing ends", JSON.stringify(gf));
     featData = null;
   }
   flowData = null;
