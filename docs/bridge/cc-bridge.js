@@ -56,6 +56,10 @@
  *       Live's own QUARTER EXPLOSION card is up for a quarter, the season place and list are added to that card (its
  *       all-time list stays) and the separate season card is not fired; it shows only where NBA Live has no card.
  *       This is the one place the bridge adds to a card of NBA Live's: two fields, on its way through fireStory.
+ *     - (v32, 0.142.4; the user, 11/22: "the explanation has way too much text … make them clickable and provide list of
+ *       names or dates on the reverse side for the odd line alerts") Odd lines: the front says how often in a few words
+ *       ("About 23 a season", "The 10th since 1993-94"; the grade words are gone); the back has the count, the five
+ *       latest (date, name, what he did) and what the count rests on.
  *     - (v31, 0.142.3; the user, 11/22: "cooper flagg is in his second year") A list limited to a kind of player ("MOST
  *       REBOUNDS BY A TEEN, NBA HISTORY") says so on its card ("rebounds by a teen") and never shows the all-time board on
  *       its back. NBA Live had said Flagg "passes Andrew Bynum (#5) in NBA history (rebounds)".
@@ -129,7 +133,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 31;
+  var VERSION = 32;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -396,7 +400,7 @@ function oddNights({ rows = [], history = null, names = {}, pos = {}, dates = []
     }
     for (const { id, g, home, hits } of tonight) for (const h of hits) (seen[h.key] ??= []).push([names[id] || id, d, home ? g.h : g.a, h.say]);
   }
-  if (tally) for (const [k, v] of Object.entries(seen)) tally[k] = { n: v.length, last: v[v.length - 1] };
+  if (tally) for (const [k, v] of Object.entries(seen)) tally[k] = { n: v.length, last: v[v.length - 1], recent: v.slice(-5).reverse() };   // 0.142.4: for the card's back
   return out;
 }
 
@@ -414,6 +418,14 @@ function note(h, history) {
   return `${cls}: about ${h.rate >= 10 ? Math.round(h.rate) : h.rate} a season over the last five seasons${last}.`;
 }
 const sentence = (h, history) => `${h.say}. ${note(h, history)}`.trim();
+/** 0.142.4 (the user, 11/22: "the explanation has way too much text"): the card's few words; the rest is on its back.
+ *  "about 23 a season" · "the 10th since 1993-94" · "the first since 1993-94" */
+function shortNote(h, from = "1993-94") {
+  if (h.grade == null) return "";
+  if (h.before === 0) return `the first since ${from}`;
+  if (h.before <= ODD.nth) return `the ${ord(h.before + 1)} since ${from}`;
+  return `about ${h.rate >= 10 ? Math.round(h.rate) : h.rate} a season`;
+}
 
 /* ---------------------------------------------------------------------------------------------------------------
  * 0.118.0: tonight's watch lists (step 2 of the study's order; the user, 11/19 1:00 PM: "keep going").
@@ -555,13 +567,13 @@ const liveKind = (id) => (GROW.includes(id) ? "grow" : "late");
 function liveHits(l, x, table, from = "1993-94") {
   const best = {};
   for (const h of matchLine(l, x)) {
-    const e = table?.[h.key] || null, cand = { ...h, rate: e ? e[1] : 0, before: e ? e[0] : 0, grade: e ? gradeOf(e[1]) : null, last: e && e[2] ? [e[2], e[3]] : null };
+    const e = table?.[h.key] || null, cand = { ...h, rate: e ? e[1] : 0, before: e ? e[0] : 0, grade: e ? gradeOf(e[1]) : null, last: e && e[2] ? [e[2], e[3]] : null, recent: e && Array.isArray(e[4]) ? e[4] : [] };
     if (!best[h.id] || rarer(cand, best[h.id])) best[h.id] = cand;
   }
   return Object.values(best).map((h) => ({ ...h, live: liveKind(h.id), note: note(h, { from }) }))
     .sort((a, b) => GRADES.indexOf(a.grade ?? "common") - GRADES.indexOf(b.grade ?? "common") || a.rate - b.rate || a.before - b.before);
 }
-    return { ODD, GRADES, FAMILY, TEMPLATES, TOV_PF, NO_TOV_PF, LATE_NAMES, posGroup, matchLine, rateOf, gradeOf, STARTERS, oddNights, note, sentence, RUN_MIN, RUN_MAX, RUNS, runLengths, OWN, oddWatch, GROW, LATE, LATE_SECS, liveKind, liveHits };
+    return { ODD, GRADES, FAMILY, TEMPLATES, TOV_PF, NO_TOV_PF, LATE_NAMES, posGroup, matchLine, rateOf, gradeOf, STARTERS, oddNights, note, sentence, shortNote, RUN_MIN, RUN_MAX, RUNS, runLengths, OWN, oddWatch, GROW, LATE, LATE_SECS, liveKind, liveHits };
   })();
   var RARE_RULES = (function () {
 /**
@@ -1768,7 +1780,6 @@ function teamStake(t, g) {
   // Left to NBA Live's own season-high and career-high cards: a number far above his own average is a big night, not an
   // odd line. They stay on the website's list. (Remove an id here to card it.)
   var ODD_SKIP = { erupt: 1, reb3x: 1, ast3x: 1 };
-  var ODD_GRADE = { rare: "Rare (once a season or less)", few: "A few a season", monthly: "About monthly", common: "Common" };
   // v26: what the count behind the card rests on. The Bulls' and Pelicans' games of 2012-13 to 2017-18 are in the counts
   // from pbpstats (no turnovers or fouls), so only a line that needs a turnover or a foul is still short of about 3% of
   // games; every other line is short of under 1%. The module says which (TOV_PF: a template's id, or one level's key).
@@ -1776,6 +1787,20 @@ function teamStake(t, g) {
     var short = R && R.TOV_PF;
     if (!short || !short.length) return "ESPN box scores, about 3% of games not on file";   // an older copy of the rules: the old wording
     return short.indexOf(h.id) >= 0 || short.indexOf(h.key) >= 0 ? "ESPN box scores, about 3% of games not on file" : "ESPN and pbpstats box scores, under 1% of games not on file";
+  }
+  // v32: the back of an odd-line card: the class, how often, the latest ones (name and date), and what the count rests on.
+  function oddBack(R, h, O) {
+    var row = function (t, dim) { return '<div class="alert-back-play"' + (dim ? ' style="opacity:.75"' : "") + ">" + t + "</div>"; };
+    var what = String(h.what || "");
+    var html = '<div class="alert-back-title">🧩 ' + escH(what.charAt(0).toUpperCase() + what.slice(1)) + "</div>";
+    var from = O.from || "1993-94", n = Number(h.before) || 0;
+    html += row(n === 0 ? "None before tonight since " + escH(from) : "<strong>" + n.toLocaleString() + "</strong> since " + escH(from) + (h.rate ? " · about " + (h.rate >= 10 ? Math.round(h.rate) : h.rate) + " a season lately" : ""));
+    var recent = Array.isArray(h.recent) && h.recent.length ? h.recent : h.last ? [[h.last[0], h.last[1], ""]] : [];
+    recent.forEach(function (r) {
+      var d = String(r[1] || ""), mdy = d ? Number(d.slice(5, 7)) + "/" + Number(d.slice(8, 10)) + "/" + d.slice(2, 4) : "";
+      html += row('<span class="abp-time">' + escH(mdy) + "</span> " + escH(r[0]) + (r[2] && r[2] !== h.say ? " · " + escH(r[2]) : ""));
+    });
+    return html + row(escH(oddOnFile(R, h)), true);
   }
   function oddLineChecks(game, sides, box, tag, scr) {
     var O = state.odd, R = state.oddRules;
@@ -1816,12 +1841,15 @@ function teamStake(t, g) {
         delete state.oddEnded[key];
         var h = hits[0], standing = live && h.live === "late";
         var also = hits.slice(1).map(function (o) { return o.say + (live && o.live === "late" && !standing ? " (as it stands)" : ""); });
-        var noteText = String(h.note || "").replace(/\.$/, "");
+        // v32 (the user, 11/22: "the explanation has way too much text … provide list of names or dates on the reverse
+        // side"): the front says how often in a few words; the back has the full count, the latest ones and the source.
+        var noteText = typeof R.shortNote === "function" ? R.shortNote(h, O.from) : String(h.note || "").replace(/\.$/, "");
         fire(key, { type: "streak", icon: standing ? "🧩 ODD LINE · AS IT STANDS" : "🧩 ODD LINE",
           text: p.name + " (" + team + ") — " + h.say + (standing && clock ? ", " + clock + " left in " + when : ""),
           statLine: typeof fmtAlertStatLine === "function" ? fmtAlertStatLine([[l.pts, "PTS"], [l.reb, "REB"], [l.ast, "AST"]]) : "",
-          sub: "Command Center · " + (h.grade ? ODD_GRADE[h.grade] + " · " : "") + (noteText ? noteText + " · " : "") + (also.length ? "Also: " + also.join("; ") + " · " : "")
-            + (standing ? "stands only if the game ends here · " : "") + oddOnFile(R, h),
+          sub: "Command Center" + (noteText ? " · " + noteText.charAt(0).toUpperCase() + noteText.slice(1) : "") + (also.length ? " · Also: " + also.join("; ") : "")
+            + (standing ? " · stands only if the game ends here" : ""),
+          backHtml: oddBack(R, h, O),
           live: live, gameId: game.id, gameTag: tag, gameScore: scr });
       });
     });

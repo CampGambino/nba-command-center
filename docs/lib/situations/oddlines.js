@@ -238,7 +238,7 @@ export function oddNights({ rows = [], history = null, names = {}, pos = {}, dat
     }
     for (const { id, g, home, hits } of tonight) for (const h of hits) (seen[h.key] ??= []).push([names[id] || id, d, home ? g.h : g.a, h.say]);
   }
-  if (tally) for (const [k, v] of Object.entries(seen)) tally[k] = { n: v.length, last: v[v.length - 1] };
+  if (tally) for (const [k, v] of Object.entries(seen)) tally[k] = { n: v.length, last: v[v.length - 1], recent: v.slice(-5).reverse() };   // 0.142.4: for the card's back
   return out;
 }
 
@@ -256,6 +256,14 @@ export function note(h, history) {
   return `${cls}: about ${h.rate >= 10 ? Math.round(h.rate) : h.rate} a season over the last five seasons${last}.`;
 }
 export const sentence = (h, history) => `${h.say}. ${note(h, history)}`.trim();
+/** 0.142.4 (the user, 11/22: "the explanation has way too much text"): the card's few words; the rest is on its back.
+ *  "about 23 a season" · "the 10th since 1993-94" · "the first since 1993-94" */
+export function shortNote(h, from = "1993-94") {
+  if (h.grade == null) return "";
+  if (h.before === 0) return `the first since ${from}`;
+  if (h.before <= ODD.nth) return `the ${ord(h.before + 1)} since ${from}`;
+  return `about ${h.rate >= 10 ? Math.round(h.rate) : h.rate} a season`;
+}
 
 /* ---------------------------------------------------------------------------------------------------------------
  * 0.118.0: tonight's watch lists (step 2 of the study's order; the user, 11/19 1:00 PM: "keep going").
@@ -397,7 +405,7 @@ export const liveKind = (id) => (GROW.includes(id) ? "grow" : "late");
 export function liveHits(l, x, table, from = "1993-94") {
   const best = {};
   for (const h of matchLine(l, x)) {
-    const e = table?.[h.key] || null, cand = { ...h, rate: e ? e[1] : 0, before: e ? e[0] : 0, grade: e ? gradeOf(e[1]) : null, last: e && e[2] ? [e[2], e[3]] : null };
+    const e = table?.[h.key] || null, cand = { ...h, rate: e ? e[1] : 0, before: e ? e[0] : 0, grade: e ? gradeOf(e[1]) : null, last: e && e[2] ? [e[2], e[3]] : null, recent: e && Array.isArray(e[4]) ? e[4] : [] };
     if (!best[h.id] || rarer(cand, best[h.id])) best[h.id] = cand;
   }
   return Object.values(best).map((h) => ({ ...h, live: liveKind(h.id), note: note(h, { from }) }))

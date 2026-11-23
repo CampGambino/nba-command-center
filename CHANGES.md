@@ -2,6 +2,33 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.142.4 (2026-11-22): odd-line cards: a short front, names and dates on the back (bridge v32)
+
+The user, 11/22, with a screenshot of "🧩 ODD LINE · Buddy Hield (CHI) — 33 points without a free throw attempt": "the explanation has way too much text. About monthly can be scrubbed. Maybe another way to condense the pertinent details. same with the other odds lines. maybe there is a way to make them clickable and provide list of names or dates on the reverse side for the odd line alerts."
+
+**The card:**
+- **Front:** the small print was "Command Center · Common · 30+ points without a free throw attempt: about 23 a season over the last five seasons (last: Klay Thompson, 11/4/26) · ESPN and pbpstats box scores, under 1% of games not on file". It's now "Command Center · About 23 a season". A rare line says "The 6th since 1993-94" or "The first since 1993-94". "Also: …" and "stands only if the game ends here" stay when they apply.
+- **The grade words** ("Common", "About monthly", "A few a season", "Rare (once a season or less)") are gone.
+- **Back** (tap to flip, as on the other Command Center cards):
+  - the class, e.g. "🧩 30+ points without a free throw attempt"
+  - the count since 1993-94 and how many a season lately
+  - the latest ones, date then name, with what he did when it differs from tonight's wording
+  - what the count rests on (the box-score sources line)
+
+**Data:**
+- `docs/data/oddlive.json` now carries each level's five latest as a fifth column, newest first: this season's from our box scores, then the history's last three. The file goes from 22 KB to 49 KB.
+- The rules gained `shortNote` (`src/situations/oddlines.js`, compiled into the bridge).
+
+**Not done here: the other three screenshots are NBA Live's own cards.** The 40-point card and "Record Pace" are made by NBA Live, not the bridge (the bridge has neither). NBA Live's file isn't reachable from here (the computer isn't connected), so the requests are written up for NBA Live's own chat:
+- "40-PT GAME": the small print repeats "34 PREV BEST VS CHI", and "tap for all-time" doesn't flip.
+- "Record Pace": the names belong on the back only; the front keeps "needs 2 to tie 24".
+
+**Tests.** 1,142: the odd-line bridge checks rewritten for the short front, the back's count, dates, names and source line, and the rules copy. Full local build: 112 levels with their latest.
+
+**Self-audit.**
+- The small print had grown one clause per iteration (grade, class, rate, last, source); nothing ever checked its length on a phone. The source line now lives on the back, where there's room.
+- The history keeps only three "last" names per level, so the back usually shows four (this season's plus three), not five. Rebuilding the history with five is possible later.
+
 ## 0.142.3 (2026-11-22): a "by a teen" list is a subset (bridge v31)
 
 The user, 11/22, with a screenshot of NBA Live after DAL @ UTA: "I don't think this is right. cooper flagg is in his second year." The card read "🎉 PASSED · Cooper Flagg (DAL) — passes Andrew Bynum (#5) in NBA history (rebounds)", with the all-time rebounds list on its back (Flagg 41st at 567).

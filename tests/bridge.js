@@ -253,7 +253,7 @@ export async function bridgeChecks(ok, root, deps = {}) {
     const P = (id, name, o, starter = false) => ({ ...Z, id, name, starter, ...o });
     const filler = (pre) => [0, 1, 2, 3, 4].map((i) => P(pre + i, "Filler " + pre + i, { pts: 10, fgm: 4, fga: 9, ftm: 2, fta: 2, reb: 4, ast: 2 }, true));
     oddRulesText = fs.readFileSync(path.join(root, "docs", "lib", "situations", "oddlines.js"), "utf8");
-    oddData = { v: 1, from: "1993-94", t: { "greb.15": [346, 16, "Jahmai Mashack", "2026-04-10"], "noft.30": [311, 22.8, "Buddy Hield", "2026-04-12"], "ofg.8": [752, 26.6, "A", "2026-03-28"], "ofg.10": [138, 4.8, "Sam Hauser", "2025-12-11"],
+    oddData = { v: 1, from: "1993-94", t: { "greb.15": [346, 16, "Jahmai Mashack", "2026-04-10", [["Jahmai Mashack", "2026-04-10", "16 rebounds by a guard"], ["Dyson Daniels", "2026-01-03", "15 rebounds by a guard"]]], "noft.30": [311, 22.8, "Buddy Hield", "2026-04-12"], "ofg.8": [752, 26.6, "A", "2026-03-28"], "ofg.10": [138, 4.8, "Sam Hauser", "2025-12-11"],
       "min0.30": [692, 17.8, "Rayan Rupert", "2026-03-23"], "blk0reb.4": [37, 1.2, "OG Anunoby", "2026-02-19"], "blk0reb.5": [5, 0.2, "Brook Lopez", "2023-04-04"], "bench.35": [142, 6.8, "B", "2026-03-27"], "erupt.25": [543, 32.4, "C", "2026-04-10"], "erupt.3x": [1255, 67, "D", "2026-04-12"] }, avg: {}, pos: { g1: "G" } };
     const away = () => [...filler("a"), P("g1", "Guard One", { pts: 8, fgm: 3, fga: 8, reb: 16, dreb: 14, oreb: 2 }), P("s1", "No Trips", { pts: 31, fgm: 13, fga: 22, tpm: 5, tpa: 9, reb: 4, ast: 3 }),
       P("z1", "Cold One", { fga: 10, tpa: 4, reb: 3 }), P("b1", "Swat Man", { pts: 6, fgm: 3, fga: 5, blk: 5 }), P("x1", "Sixth Man", { pts: 36, fgm: 13, fga: 20, ftm: 8, fta: 9, tpm: 2, tpa: 5, reb: 4, ast: 4 })];
@@ -262,15 +262,19 @@ export async function bridgeChecks(ok, root, deps = {}) {
     const go = async (games, extra, seed) => { const r = run({ games, extra }); await flush(); if (seed) seed(r); r.ctx.runAlertChecks(); await flush(); return r; };
     const early = odd(await go(gm())), rLate = await go(gm({ clock: "4:30" })), late = odd(rLate), fin = odd(await go(gm({ status: "final", clock: "0:00" }))), ot = odd(await go(gm({ period: 5, clock: "4:55" })));
     ok(Object.keys(early).sort().join(" ") === "g1 x1" && early.g1.icon === "🧩 ODD LINE" && early.g1.text === "Guard One (AAA) — 16 rebounds by a guard"
-      && early.g1.sub === "Command Center · Common · A guard with 15+ rebounds: about 16 a season over the last five seasons (last: Jahmai Mashack, 4/10/26) · ESPN and pbpstats box scores, under 1% of games not on file"
+      && early.g1.sub === "Command Center · About 16 a season"
+      && /🧩 A guard with 15\+ rebounds/.test(early.g1.backHtml) && /<strong>346<\/strong> since 1993-94 · about 16 a season lately/.test(early.g1.backHtml)
+      && /4\/10\/26<\/span> Jahmai Mashack</.test(early.g1.backHtml) && /1\/3\/26<\/span> Dyson Daniels · 15 rebounds by a guard/.test(early.g1.backHtml) && /ESPN and pbpstats box scores, under 1% of games not on file/.test(early.g1.backHtml)
+      && /1\/1\/|<strong>142<\/strong>/.test(early.x1.backHtml)
       && early.x1.text === "Sixth Man (AAA) — 36 points off the bench",
       "bridge v25 (0.119.0; the user: \"The others seem fine to me\"): a line that can only grow (a guard's 16 rebounds, 36 off the bench) is carded the moment it is true, with how often it happens; a line one play can undo waits",
       JSON.stringify(Object.entries(early).map(([k, c]) => [k, c.icon, c.text, c.sub])));
     ok(Object.keys(late).sort().join(" ") === "b1 g1 s1 x1 z1" && late.s1.icon === "🧩 ODD LINE · AS IT STANDS" && late.s1.text === "No Trips (AAA) — 31 points without a free throw attempt, 4:30 left in the 4th"
-      && late.s1.sub.endsWith(" · stands only if the game ends here · ESPN and pbpstats box scores, under 1% of games not on file") && late.s1.live === true
-      && late.b1.text === "Swat Man (AAA) — 5 blocks without a rebound, 4:30 left in the 4th" && late.b1.sub.includes("Rare (once a season or less) · 5+ blocks and no rebound: the 6th on file since 1993-94 (last: Brook Lopez, 4/4/23) · stands only")
+      && late.s1.sub === "Command Center · About 23 a season · stands only if the game ends here" && late.s1.live === true
+      && late.b1.text === "Swat Man (AAA) — 5 blocks without a rebound, 4:30 left in the 4th" && late.b1.sub === "Command Center · The 6th since 1993-94 · stands only if the game ends here"
+      && /4\/4\/23<\/span> Brook Lopez/.test(late.b1.backHtml)
       && late.z1.text === "Cold One (AAA) — 0-for-10 from the field, 4:30 left in the 4th"
-      && late.z1.sub.includes("No field goal on 10+ attempts: about 4.8 a season over the last five seasons (last: Sam Hauser, 12/11/25) · Also: 30 minutes without a point (0-for-10) · stands only")
+      && late.z1.sub === "Command Center · About 4.8 a season · Also: 30 minutes without a point (0-for-10) · stands only if the game ends here"
       && ot.s1?.text === "No Trips (AAA) — 31 points without a free throw attempt, 4:55 left in overtime",
       "bridge v25 (the user: \"the depending on zero is a good one to flag in the final five minutes\"): 31 points with no free throw attempt, 5 blocks and no rebound and 0-for-10 are carded \"as it stands\" inside the last five minutes of the 4th and any time in overtime, one card a player with his rarest line leading",
       JSON.stringify(Object.entries(late).map(([k, c]) => [k, c.icon, c.text, c.sub])));
@@ -298,10 +302,12 @@ export async function bridgeChecks(ok, root, deps = {}) {
       const oldRules = odd(await go(tovGame(), undefined, (r) => { const st = r.ctx.CC_BRIDGE.state; st.oddRules = Object.assign({}, st.oddRules, { TOV_PF: [] }); }));
       const RM = await import("../src/situations/oddlines.js"), bsrc = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");
       delete oddData.t["tov.8"]; delete oddData.t["tov.10"];
-      ok(tv.t1?.text === "Loose Hands (AAA) — 10 turnovers" && tv.t1.sub.endsWith(" · ESPN box scores, about 3% of games not on file") && tv.g1.sub.endsWith(" · ESPN and pbpstats box scores, under 1% of games not on file")
-        && oldRules.g1?.sub.endsWith(" · ESPN box scores, about 3% of games not on file") && oldRules.t1
+      // v32: what the count rests on moved to the card's back (its last line).
+      const lastLine = (c) => (/<div class="alert-back-play" style="opacity:\.75">([^<]*)<\/div>$/.exec(c?.backHtml || "") || [])[1];
+      ok(tv.t1?.text === "Loose Hands (AAA) — 10 turnovers" && lastLine(tv.t1) === "ESPN box scores, about 3% of games not on file" && lastLine(tv.g1) === "ESPN and pbpstats box scores, under 1% of games not on file"
+        && lastLine(oldRules.g1) === "ESPN box scores, about 3% of games not on file" && oldRules.t1 && !/not on file/.test(tv.t1.sub)
         && RM.TOV_PF.join(",") === "tov,tov0,foulout,nothing,zeromin,ones.6" && (bsrc.match(/of games not on file/g) || []).length === 5 && +(/var VERSION = (\d+);/.exec(bsrc) || [])[1] >= 26,
-        "bridge v26 (the user: \"go\"): an odd-line card ends \"ESPN and pbpstats box scores, under 1% of games not on file\", and only a line that needs a turnover or a foul (10 turnovers) keeps \"ESPN box scores, about 3%\"; a copy of the rules without the list keeps the old words",
+        "bridge v26 (the user: \"go\"; v32: on the card's back): an odd-line card ends \"ESPN and pbpstats box scores, under 1% of games not on file\", and only a line that needs a turnover or a foul (10 turnovers) keeps \"ESPN box scores, about 3%\"; a copy of the rules without the list keeps the old words",
         JSON.stringify([tv.t1 && [tv.t1.text, tv.t1.sub], tv.g1?.sub, oldRules.g1?.sub]));
     }
     oddData.avg = { x1: [8, 3, 2, 14] };

@@ -672,7 +672,10 @@ for (const [tri, games] of Object.entries(perTeam)) {
       oddTally = {}; oddNights({ rows: before, history, names: store.names || {}, pos: rosterPos, dates: [], IX: LINE_IX, tally: oddTally });
       for (const [k, e] of Object.entries(history?.t || {})) {
         const mine = oddTally[k] || null, last = mine?.last || e.last?.[0] || null;
-        t[k] = [e.n + (mine?.n || 0), Math.round((e.l5 / ODD.recent) * 10) / 10, last ? last[0] : null, last ? last[1] : null];
+        // 0.142.4 (the user, 11/22: "make them clickable and provide list of names or dates on the reverse side"): the five
+        // most recent, newest first (this season's, then the history's): [name, date, what he did].
+        const recent = [...(mine?.recent || []), ...(e.last || [])].slice(0, 5).map((r) => [r[0], r[1], r[3]]);
+        t[k] = [e.n + (mine?.n || 0), Math.round((e.l5 / ODD.recent) * 10) / 10, last ? last[0] : null, last ? last[1] : null, recent];
       }
       for (const [id, gs] of Object.entries(pgBefore)) { const n = gs.length; if (n >= ODD.games) avg[id] = [r2(gs.reduce((a, g) => a + g.pts, 0) / n), r2(gs.reduce((a, g) => a + g.reb, 0) / n), r2(gs.reduce((a, g) => a + g.ast, 0) / n), n]; }
       if (history) fs.writeFileSync(path.join(root, "docs", "data", "oddlive.json"), JSON.stringify({ v: 1, generatedAt: out.generatedAt, before: today, from: history.from, games: history.games, t, avg, pos: rosterPos }));
