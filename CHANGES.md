@@ -2,6 +2,37 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.142.5 (2026-11-23): last season's notes stay out of this season's lines
+
+The user, 11/23, with Detroit's "LAST MEETING" box and the Deep Cuts line it became ("DET notes: T-4th in NBA · Over his last eight games, Thompson is tied for fourth in the NBA with 18 steals. Jalen Johnson continued his breakout season with his 43 double-double…"): "information pulled from the game notes is inferred as this season but is not this season. there is a tell for a lot of these in that the number of games played this season does not allow for what is listed in the notes. At most, teams have played 18 games this season."
+
+**What happened.**
+- Detroit's page 4 ends with "LAST MEETING — HAWKS 130, PISTONS 129 – MARCH 25, 2026" and its Key Notes.
+- The reader checks each sentence's own dates, but the date was only in the box's heading, in capitals ("MARCH 25, 2026"). So none of the box's sentences had a date, and "his ninth game of the season", "tied for fourth in the NBA" and "breakout season" read as current.
+- Two bullets also ran together (the superscript "rd" broke the line), so Jalen Johnson's line was credited to Ausar Thompson.
+
+**Two fixes** (`src/notes/narrative.js`):
+- **A last-meeting box dated before this season is last season's game.** This covers "LAST MEETING", "PREVIOUS MEETING", "PRIOR MEETING" and "MOST RECENT MEETING", with the date in capitals or as m/d/yy.
+  - Every sentence after the heading is dropped ("last-meeting-old"), up to the next box ("RECENT GAMES", "SEASON SERIES", "CONNECTIONS:" and the like) or the end of the block.
+  - A last-meeting box from this season is kept.
+- **The games-played tell, as the user put it:**
+  - A count of games larger than the team has played (plus 2) can't be this season's: "his 43rd double-double", "21 games with 20+ turnovers", "Recorded 37 double-doubles" with 15 played.
+  - The same goes for a season total over 45 points, 20 rebounds or 15 assists a game with "this season" ("1,013 points this season").
+  - Such a line is dropped ("count-past-season").
+  - Left alone: careers, records, franchise lines, streaks and straight/consecutive runs (Washington's "active streak … at 174 games"), stretches ("over his last 25 games"), runs "since the start of last season", "fastest to", coaches' minimums, and scores ("130-93 win").
+
+**What it changes across the 42 saved notes PDFs plus today's Dallas and Detroit:**
+- Last-meeting boxes: Dallas twice (Minnesota 3/30/26, Denver 3/25/26) and Detroit's.
+- Games-played drops, all last season's lines read as this season's: Portland's "37 double-doubles, seventh-most", Phoenix's "36 games of multiple swipes, sixth in the NBA", Philadelphia's "20-plus points in 63 games … fourth most", Minnesota's Gobert "37th game with 10+ rebounds through three quarters", the Lakers' "53 victories", Detroit's "146 steals across 73 games", Boston's "all 31 games".
+- One loss: Phoenix's sentence that ran this season ("multiple steals in three of four games") into last season ("36 games … in 2025-26") goes whole.
+
+**Tests.** 1,144 (2 new): the count rule on 13 sentences, and Detroit's notes (local sample) with none of the box's Key Notes read as current.
+
+**Self-audit.**
+- Each sentence was judged by its own dates, so a heading's date never reached the sentences under it.
+- The games-played tell is a check the user does at a glance, and it was never written down. It is now, as a second net under the date rules.
+- Still open: Detroit's "Defensive Player of the Month … last season" line survives, because a game-log row spliced into it ("WAS 11/12/26") reads as a date this season. That needs the splice cut, not this rule.
+
 ## 0.142.4 (2026-11-22): odd-line cards: a short front, names and dates on the back (bridge v32)
 
 The user, 11/22, with a screenshot of "🧩 ODD LINE · Buddy Hield (CHI) — 33 points without a free throw attempt": "the explanation has way too much text. About monthly can be scrubbed. Maybe another way to condense the pertinent details. same with the other odds lines. maybe there is a way to make them clickable and provide list of names or dates on the reverse side for the odd line alerts."

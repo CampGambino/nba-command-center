@@ -5027,6 +5027,27 @@ await bridgeChecks(ok, root);
     "feat boards (0.142): the transcribed boards are sorted, complete rows, each with a one-game name; counts through 11/19 (Basketball-Reference hadn't added 11/20)");
 }
 
+// ---------- 0.142.5: last season's facts read as this season's (the user, 11/23: "the number of games played this season does not allow for what is listed") ----------
+{
+  const { tooBigForSeason } = await import("../src/notes/narrative.js");
+  const yes = ["Jalen Johnson continued his breakout season with his 43 double-double, scoring 27 points.", "They’ve notched 21 games with 20+ turnovers.", "Recorded 37 double-doubles, seventh-most in the NBA.",
+    "Has 1,013 points this season, fourth in the NBA."];
+  const no = ["Has scored 20+ points in an NBA-record 1,286 games.", "Currently holds the third-longest active streak of games played among all players at 174 games.", "The Mavericks secured a 130-93 win.",
+    "The Knicks recorded their 14th win by at least 30 points since the start of last season, the most in the NBA.", "He became the fastest Spur to reach 1,500 points, doing so in 105 games.", "Over his last 25 games, he is averaging 30.1 points.",
+    "His 12th double-double of the season ties for the team lead.", "Has 640 points this season.", "Has won 33 consecutive games when holding opponents to 105 or fewer."];
+  ok(yes.every((s) => tooBigForSeason(s, 15)) && no.every((s) => !tooBigForSeason(s, 15)),
+    "notes (0.142.5): a count of games no team has played yet (43 double-doubles, 21 games, 37 double-doubles, 1,013 points with 15 played) isn't this season's; a career, a record, a streak, a stretch, a score, a run since last season are left alone",
+    JSON.stringify({ missed: yes.filter((s) => !tooBigForSeason(s, 15)), wrong: no.filter((s) => tooBigForSeason(s, 15)) }));
+  const pdf = path.join(root, "samples", "2026-11-23", "pistons.pdf");
+  if (fs.existsSync(pdf)) {
+    const { readPdf } = await import("../src/notes/pdf-layout.js"), { readHistory } = await import("../src/notes/narrative.js");
+    const box = { games: Array.from({ length: 15 }, (_, i) => ({ d: `2026-10-${String(i + 10).padStart(2, "0")}`, pl: {} })), names: {} };
+    const dropped = [], h = readHistory(await readPdf(fs.readFileSync(pdf)), [{ id: "4684742", name: "Ausar Thompson" }, { id: "1", name: "Jalen Duren" }], { seasonStart: "2026-10-01", today: "2026-11-23", teamWords: ["Detroit", "Pistons"], oppWords: ["Atlanta", "Hawks"], box, dropped });
+    ok(!h.some((x) => /Jalen Johnson|43 double-double|ninth game of the season with at least four-plus steals|21 games with 20\+ turnovers/.test(x.text)) && dropped.filter((d) => d.reason === "last-meeting-old").length >= 10,
+      "notes (0.142.5): Detroit's \"LAST MEETING — HAWKS 130, PISTONS 129 – MARCH 25, 2026\" box is last season's game, and none of its Key Notes is read as this season's", JSON.stringify(h.map((x) => x.text.slice(0, 80))));
+  }
+}
+
 // ---------- 0.142.3: a list limited to a kind of player is a subset (the user, 11/22: "cooper flagg is in his second year") ----------
 {
   const { qualifierOf } = await import("../src/notes/stats.js"), { subsetLabel } = await import("../src/notes/parse.js");

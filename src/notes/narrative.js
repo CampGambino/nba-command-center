@@ -431,6 +431,27 @@ export function summarizeTable(s, teamTris = []) {
   return `${intro}: ${rows.slice(0, 6).join("; ")}.`;
 }
 
+// Words that make a count a career's or a franchise's, not a season's.
+// A run ("active streak … at 174 games", "since the start of last season") can span seasons and still be current.
+const NOT_SEASON = /\b(?:career|franchises?|all-time|history|records?|since (?:19|20)\d\d|since the start of|(?:his|their|its) (?:\w+ )?(?:NBA )?seasons\b|seasons? (?:with|in|for) the\b|playoffs?|postseason|all-star|streaks?|consecutive|straight|fastest|quickest|needed|min\.|minimum|winning percentage)\b|\bNBA-record\b/i;
+/** True when a sentence counts more games (or a bigger season total) than `gp`, the team's games so far, allows. */
+export function tooBigForSeason(s, gp) {
+  if (!gp || NOT_SEASON.test(s)) return false;
+  // "his 43rd double-double", "21 games with 20+ turnovers", "his 30th win": not after "last/past/first …" (a stretch
+  // that can run back into last season) and not "N straight/consecutive games" (a run can too).
+  for (const m of s.matchAll(/(\b(?:last|past|previous|prior|first|final|recent|over|of)\s+)?(?<![\d,\-–])\b(\d{1,4})(?:st|nd|rd|th)?\s+(?:double-doubles?|triple-doubles?|games?|starts?|wins?|victories|contests|outings|appearances)\b/gi)) {
+    if (m[1]) continue;
+    if (+m[2] > gp + 2) return true;
+  }
+  // "1,013 points this season": more than 45 a game (points), 20 (rebounds) or 15 (assists).
+  if (/\b(?:this season|so far this season|on the season|this year)\b/i.test(s))
+    for (const m of s.matchAll(/\b(\d{1,2},\d{3}|\d{3,4})\s+(points|rebounds|assists)\b/gi)) {
+      const n = +m[1].replace(/,/g, ""), per = { points: 45, rebounds: 20, assists: 15 }[m[2].toLowerCase()];
+      if (n > per * gp) return true;
+    }
+  return false;
+}
+
 export function readHistory(doc, players = [], { seasonStart = null, today = null, teamWords = [], oppWords = [], box = null, dropped = null, tris = [] } = {}) {
   const drop = (reason, text) => { if (dropped) dropped.push({ reason, text }); };
   // STRICT (11/12, after the user's review): a line is kept only if it says WHO (a player on the team as
@@ -521,6 +542,20 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
     }
     const blockBio = bios.length ? bios[bios.length - 1].p : null; // the last player header in this block
     let cursor = 0, bioWho = null;
+    // 0.142.5 (the user, 11/23: Detroit's "LAST MEETING — HAWKS 130, PISTONS 129 – MARCH 25, 2026" box, whose Key Notes
+    // gave "Jalen Johnson continued his breakout season with his 43rd double-double" as this season's): a last-meeting box
+    // dated before this season is last season's game; everything in it, to the next box or the end of the block, is too.
+    const oldMeet = [];
+    if (seasonStart) for (const m of b.text.matchAll(/\b(?:LAST|PREVIOUS|PRIOR|MOST RECENT) MEETING\b|\b(?:Last|Previous|Prior|Most Recent) Meeting\b(?=\s*[:\-–—]?\s*[\p{Lu}0-9])/gu)) {
+      const head = b.text.slice(m.index, m.index + 260);
+      const dm = /\b(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)[A-Z]*\.?\s+(\d{1,2}),?\s+((?:19|20)\d\d)\b/i.exec(head), sm = /\b(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})\b/.exec(head);
+      const d = dm ? `${dm[3]}-${String(MONTHS.indexOf(dm[1].toLowerCase()) / 3 + 1).padStart(2, "0")}-${dm[2].padStart(2, "0")}`
+        : sm ? `${sm[3].length === 2 ? 2000 + +sm[3] : +sm[3]}-${sm[1].padStart(2, "0")}-${sm[2].padStart(2, "0")}` : null;
+      if (!d || d >= seasonStart) continue;
+      // It ends at the next box ("RECENT GAMES", "CONNECTIONS:", …) or the end of the block.
+      const rest = b.text.slice(m.index + 20), next = rest.search(/\b(?:RECENT GAMES|SEASON SERIES|LAST MEETING|PREVIOUS MEETING|SERIES NOTES|PLAYER NOTES|TEAM NOTES)\b|\b(?!DNP\b)[A-Z]{4,}(?: [A-Z]{2,}){0,2}:/);
+      oldMeet.push({ at: m.index, end: next >= 0 ? m.index + 20 + next : Infinity, d });
+    }
     // A bio's season headers ("2023-24 (Minnesota): …", "2024-25 (Phoenix) – …"): what follows, up to the next one, is
     // that season, whatever it says ("made a total of 169 threes this season" was 2023-24; the user, 11/15).
     // 0.77: the header also covers the bullets under it when each bullet is its own block (Cleveland: "2025-26 Notes:
@@ -538,6 +573,7 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
     for (let s of (sentences(b.text.replace(/\b((?:19|20)\d\d-\d\d)\s+(SEASON HIGHLIGHTS|SEASON|NOTABLES|Season Highlights|NOTES|Notes)(?=\b|:)/g, "$1\u2060$2").replace(/(^|\s)((?:19|20)\d\d-\d\d):(?=\s)/g, "$1$2\u2060:")).flatMap((x) => x.split(/\s+(?=(?:19|20)\d\d-\d\d\u2060)|\s+(?=(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s+\p{Lu}|#\s?\d{1,2}\s+\p{Lu})/u).flatMap((y) => y.split(/\s*(?:…|\.{3}|[▪●•\u0000-\u0008\u000b\u000c\u000e-\u001f]|\s[o◦▫+]\s(?=[A-Z]))\s*/u).map((z, k, all) => { let w = k > 0 && /^[a-z]/.test(z) ? z[0].toUpperCase() + z.slice(1) : z; if (k < all.length - 1 && /[\p{L}\d%)]$/u.test(w) && !/\b(?:to|the|a|an|of|and|at|in|with|as|by|for|or|his|their|from|on|was|were|who|that|is|are|which)$/i.test(w)) w += "."; return w; }))).map((x) => x.replace(/\s*\*{2,}.*$/, "").trim())).flatMap((x) => splitBullets(x, full))) {
       sinceWho += s.length + 1;
       { const at = b.text.indexOf(s.slice(0, 25).replace(/\u2060/g, " "), cursor); if (at >= 0) cursor = at; }
+      if (oldMeet.some((m) => cursor >= m.at && cursor < m.end)) { drop("last-meeting-old", s); continue; }
       while (bios.length && bios[0].at <= cursor + 5) { bioWho = paraWho = sectionWho = bios.shift().p; sinceWho = 0; lastWhen = null; seasonHdr = null; }
       if (/#\s?\d{1,2}\s+\p{Lu}/u.test(s)) seasonHdr = null; // another player's box starts in this text
       // 0.71: also "2024-25 SEASON:" and "PROFESSIONAL CAREER: 2024-25 SEASON:" (Boston, Dallas), "2026-27 NOTABLES:" (Atlanta).
@@ -703,6 +739,10 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       // "(12.8 per overall; 25th w/11.5 in 2025-26)": last season as the comparison for a stretch this season, not the line's date.
       const datedOld = dates.length && seasonStart && !thisSeason && !(trendHit && /\b(?:past|last|first) \d+ (?:games|GP)\b|\bthis season\b/i.test(s));
       if (datedOld) { drop("dated-old", s); continue; }
+      // 0.142.5 (the user, 11/23: "the number of games played this season does not allow for what is listed in the
+      // notes"): a count of games no team has played yet ("his 43rd double-double", "21 games with 20+ turnovers" with 15
+      // played) or a season total no one could have ("1,000 points this season" in November) isn't this season's.
+      if (box?.games?.length && tooBigForSeason(s, box.games.length)) { drop("count-past-season", s); continue; }
       // "On Dec. 23, 2025… He is now the first rookie…": an undated follow-on sentence belongs to the date before it.
       if (!dates.length && how && how !== "named" && how !== "heading" && prevWhen === "old" && !/\b(?:this season|active streak|longest active)\b/i.test(s)) { drop("follows-old", s); continue; }
       // 0.71: "Harper Jr.'s six 3-pointers marked a career high" right after "…at SAS March 10": that game's, named or not.
