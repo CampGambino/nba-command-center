@@ -2,6 +2,29 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.142.7 (2026-11-23): games played: Bridges's debut counted, no pass cards (bridge v34)
+
+The user, 11/23, with Mikal Bridges's Basketball-Reference page (655 games: every game the Suns, Nets and Knicks have played since his debut, the Knicks' 11/22 game included): "image 1 is mikal bridges. knicks had a game yesterday." And: "i dont need a javonte green alert for passing active list. or for anyone since they all move up one game at a time."
+
+**What was wrong:** we had Bridges at 654 through 11/22. The missing game is his debut, 10/17/2018 at Dallas. ESPN lists him in that box with 0 minutes and nothing else (a few seconds of garbage time); the rule "started, or any minutes, or any stat" read that as a miss. The same box lists Isaiah Canaan twice, which is why the Suns' minutes add to 274 there. 0.142.6 said our count matched San Antonio's table "through 11/22". It didn't: their 654 was before the Knicks' 11/22 game, and ours was one short of theirs by then.
+
+**The fix:**
+- A player ESPN gives a stat line, without marking him did-not-play, played, at 0 minutes too. The archive keeps only such players (a DNP's line is empty), so every row in it counts. Last season's runs: Bridges 637 → 638, Jared McCain 36 → 37; nobody else moves.
+- This season's store wrote a 0-minute appearance and a DNP the same way (0 minutes, all zeros). Each game now keeps `z`, the players in that case (`setZero`, `src/situations/results.js`; `readPlayerBox` marks them `zero`). For the 248 games read before this, `src/data/zero-minute-games-2026-27.json` lists the 17 such appearances, read from ESPN's summaries for every game in the store.
+- A minus plus-minus is a stat (Josh Minott, 11/2: 0 minutes, −1); "any stat" only counted positive numbers.
+- Local build: Bridges 655, McCain 54; the rest of the 25 unchanged. San Antonio's table (as of 11/21) still agrees with ours on that date.
+
+**NBA Live (bridge v34):**
+- No card for passing a name on the active list. A card on every 50th game, and "ends", only.
+- "Ends" checks the play-by-play first: a substitution or a play of his means he played, whatever the box line says.
+
+**Tested:** 1,152 checks plus the bridge's own; new: a 0-minute line that isn't a DNP is kept and counted (from the store or the backfill file), a −1 plus-minus counts, the archive count matches Basketball-Reference for Bridges, no pass card, no "ends" when the play-by-play shows him.
+
+**Self-audit:**
+- I called 0.142.6 "verified against the Spurs' table" without checking that the table and our count were as of the same day. Their table was dated before the Knicks' 11/22 game; ours included it. A one-game gap was hidden by a one-day gap. The rule for these checks: line up the as-of dates first.
+- A 0-minute appearance in a live game shows in NBA Live's box the same way as a DNP. The play-by-play check covers it when ESPN logs the substitution. A player who checks in during a stoppage and leaves before any play is logged may still be missed; I haven't seen one.
+- The backfill file covers games through 11/22; games read since carry `z` themselves. A game re-read in its three-day correction window gets `z` too.
+
 ## 0.142.6 (2026-11-23): consecutive games played, counted from the box scores (bridge v33)
 
 The user, 11/23, with San Antonio's "ACTIVE, MOST CONSECUTIVE GAMES PLAYED" table on Julian Champagnie's page: "is this something tracked in the command center? … maybe it can be tested against the box scores to confirm the length."

@@ -54,6 +54,7 @@ const through = opt("--through") || new Date(Date.parse(today) - 864e5).toISOStr
 
 const espn = createEspn({ dataDir: path.join(root, "data") });
 const storeDir = path.join(root, "history", "results");
+const latestData = (re) => { const f = fs.readdirSync(path.join(root, "src", "data")).filter((x) => re.test(x)).sort().pop(); return f ? JSON.parse(fs.readFileSync(path.join(root, "src", "data", f), "utf8")) : null; };
 const oldFile = path.join(root, "history", "results.json"); // single-file store before v0.14
 let store = loadStore(storeDir, fs) ?? (fs.existsSync(oldFile) ? JSON.parse(fs.readFileSync(oldFile, "utf8")) : null);
 const warnings = [];
@@ -454,7 +455,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
       const F = buildFeatLive({ file, pg: playerGames(rows.filter((g) => !g.cupFinal)), names: store.names || {},
         tonightTeams: new Set((tonight || []).flatMap((g) => [g.home, g.away])), notesFacts,
         // 0.142.6: consecutive games played, last season's runs carried through this season's games (DNPs included)
-        games: rows, gpBase: (() => { const f = fs.readdirSync(path.join(root, "src", "data")).filter((x) => /^games-played-streaks-\d{4}-\d\d\.json$/.test(x)).sort().pop(); return f ? JSON.parse(fs.readFileSync(path.join(root, "src", "data", f), "utf8")) : null; })() });
+        games: rows, gpBase: latestData(/^games-played-streaks-\d{4}-\d\d\.json$/), gpZero: latestData(/^zero-minute-games-\d{4}-\d\d\.json$/) });
       fs.writeFileSync(path.join(root, "docs", "data", "featlive.json"), JSON.stringify({ generatedAt: out.generatedAt, today, ...F }));
       for (const p of F.problems) warnings.push(`feat boards: ${p}`);
       console.log(`feat boards: ${Object.keys(F.boards).length} boards from ${ff} (through ${F.asOf}, plus our games to ${F.through}); ${F.pre.length} lines for tonight; streaks live: ${F.streaks.map((x) => `${x.name} ${x.n} (${x.label})`).join(", ") || "none"}; team: ${F.teamStreaks.map((x) => `${x.team} ${x.n} ${x.label}`).join(", ") || "none"}; games played: ${F.ironman.slice(0, 5).map((x) => `${x.name} ${x.n}`).join(", ")}${F.teamEnded.length ? ` (over since the notes: ${F.teamEnded.map((x) => `${x.team} ${x.label} at ${x.n}, ${x.d}`).join("; ")})` : ""}${F.problems.length ? `; ${F.problems.length} problems` : ""}`);

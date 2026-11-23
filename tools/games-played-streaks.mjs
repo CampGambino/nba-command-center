@@ -27,7 +27,8 @@ export function baseline(dir, { from = "2018-19", through = "2025-26" } = {}) {
       const team = CODE[t.t] || t.t;
       (teamGames[`${team}|${season}`] ??= []).push({ d: g.d, gid });
       for (const p of t.p) {
-        if (!appeared(p[3], p[4], p.slice(5))) continue;
+        // The archive keeps only players ESPN gave a stat line (a DNP has none), so every row is a game played.
+        if (!appeared(p[3], p[4], p.slice(5), true)) continue;
         names[p[0]] = p[1];
         (apps[p[0]] ??= []).push({ d: g.d, gid, team, season });
       }
@@ -42,7 +43,7 @@ export function baseline(dir, { from = "2018-19", through = "2025-26" } = {}) {
     if (n > 0) rows.push([id, names[id], n, A[A.length - 1].team]);
   }
   rows.sort((a, b) => b[2] - a[2] || a[1].localeCompare(b[1]));
-  return { source: `ESPN box scores ${from} through ${through} (every game's box on file), counted by tools/games-played-streaks.mjs; a game counts when he started or had any minutes or stat. Runs alive at his team's last game of ${through}.`, through, keys: ["id", "name", "n", "team"], rows };
+  return { source: `ESPN box scores ${from} through ${through} (every game's box on file), counted by tools/games-played-streaks.mjs; a game counts when ESPN lists him with a stat line (a DNP has none), 0 minutes included. Runs alive at his team's last game of ${through}.`, through, keys: ["id", "name", "n", "team"], rows };
 }
 
 if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1]))) {

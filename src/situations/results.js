@@ -11,6 +11,7 @@
  *        cl = [home, away] points in clutch time, or 0 if it had none,
  *        cp = clutch-time player lines (see espn/pbp.js; names in store.names),
  *        q4 = 4th-quarter player lines (same shape), pl = every player's box line.
+ *        z = (0.142.7) players in the game with 0 minutes who weren't DNPs (a few seconds on the floor); none → no z.
  *        A summary whose box doesn't add up to the final score is not used.
  *        0.95, scoring by type (espn/misc.js): m = [home, away], each [paint, fast break, off turnovers, second
  *        chance]; mp = { espnId: [0 home | 1 away, paint, second chance, off turnovers] } when the play-by-play
@@ -25,6 +26,11 @@
  * re-read keeps what we had. Changed games are listed in store.corrected (this run only).
  */
 export const RECHECK_DAYS = 3;
+/** 0.142.7: row.z = players who got in but logged 0 minutes (ESPN gave them a stat line, not a DNP); none → no z. */
+export function setZero(row, players) {
+  const z = Object.entries(players || {}).filter(([, x]) => x.zero).map(([id]) => id);
+  if (z.length) row.z = z; else delete row.z;
+}
 export const QUARTER_DAYS = 10;
 // 0.111: the NBA Cup's title game counts in no record or statistic. ESPN files it under the regular season; the reader
 // (src/espn/parse.js isCupFinal) recognises it by ESPN's own label and gives it another season type, so it never gets
@@ -103,7 +109,7 @@ export async function collectResults({ espn, store, through, warnings = [] }) {
       if (!g.scoreOk) {
         warnings.push(`game ${row.id}: play-by-play doesn't add up to the final score; box score kept, clutch and 4th-quarter lines not counted yet`);
         row.hb = g.home; row.ab = g.away;
-        if (g.players) { row.pl = {}; for (const [id, x] of Object.entries(g.players)) { row.pl[id] = [x.side === "home" ? 0 : 1, x.starter ? 1 : 0, x.min, ...x.s]; if (x.name) (out.names ??= {})[id] = x.name; } }
+        if (g.players) { row.pl = {}; for (const [id, x] of Object.entries(g.players)) { row.pl[id] = [x.side === "home" ? 0 : 1, x.starter ? 1 : 0, x.min, ...x.s]; if (x.name) (out.names ??= {})[id] = x.name; } setZero(row, g.players); }
         if (g.misc) setMisc(row, g.misc);
         continue;
       }
@@ -118,7 +124,8 @@ export async function collectResults({ espn, store, through, warnings = [] }) {
         }
       }
       // 4th-quarter player lines (same shape as cp) and every player's box line:
-      // pl = { espnId: [0 home | 1 away, starter 0/1, minutes, ...PLAYER_BOX_KEYS] }; minutes 0 = listed, didn't play.
+      // pl = { espnId: [0 home | 1 away, starter 0/1, minutes, ...PLAYER_BOX_KEYS] }; minutes 0 = listed, didn't play,
+      // except the ids in z (0.142.7): in the game for a few seconds, 0 minutes, ESPN didn't mark them DNP.
       if (g.q4Players) {
         row.q4 = { ok: g.q4Players.lineupOk ? 1 : 0, p: {} };
         for (const [id, x] of Object.entries(g.q4Players.players)) {
@@ -132,6 +139,7 @@ export async function collectResults({ espn, store, through, warnings = [] }) {
           row.pl[id] = [x.side === "home" ? 0 : 1, x.starter ? 1 : 0, x.min, ...x.s];
           if (x.name) (out.names ??= {})[id] = x.name;
         }
+        setZero(row, g.players);
       }
       if (g.misc) setMisc(row, g.misc);
       row.x = 1;

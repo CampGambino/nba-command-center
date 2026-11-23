@@ -5041,11 +5041,25 @@ await bridgeChecks(ok, root);
     "games played (0.142.6): a trade in the season doesn't break a run, a missed game does, his team's last games of a season count (a summer move after sitting them out ends it), a run carries into the next season; a start with 0 minutes counts");
   const base = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "games-played-streaks-2025-26.json"), "utf8"));
   const top = Object.fromEntries(base.rows.slice(0, 20).map((r) => [r[1], r[2]]));
-  ok(top["Mikal Bridges"] === 637 && top["Julian Champagnie"] === 185 && top["Kris Dunn"] === 96 && base.through === "2025-26",
-    "games played (0.142.6): at the end of 2025-26, Bridges 637, Champagnie 185, Dunn 96 (with this season's games: 654, 202, 111, as San Antonio's notes print them)");
+  ok(top["Mikal Bridges"] === 638 && top["Julian Champagnie"] === 185 && top["Kris Dunn"] === 96 && base.rows.find((r) => r[1] === "Jared McCain")?.[2] === 37 && base.through === "2025-26",
+    "games played (0.142.7): at the end of 2025-26, Bridges 638 (every game since his debut, which he played at 0 minutes: Basketball-Reference's 655 through 11/22), Champagnie 185, Dunn 96");
   const games = [{ id: "g1", d: "2026-10-21", h: "NYK", a: "BOS", hs: 100, as: 90, pl: { "3147657": [0, 1, 30, 10], "x": [1, 0, 0, 0] } }, { id: "g2", d: "2026-10-23", h: "NYK", a: "MIA", hs: 100, as: 90, pl: { "3147657": [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1] } }];
   const runs = gamesPlayedRuns(games, base, "2026-27");
-  ok(runs[0]?.id === "3147657" && runs[0].n === 639 && runs[0].rank === 1, "games played (0.142.6): last season's run carried through this season's games", JSON.stringify(runs.slice(0, 2)));
+  ok(runs[0]?.id === "3147657" && runs[0].n === 640 && runs[0].rank === 1, "games played (0.142.6): last season's run carried through this season's games", JSON.stringify(runs.slice(0, 2)));
+  // 0.142.7: in for a few seconds, 0 minutes, nothing in the box (ESPN gives him a line, not a DNP) is a game played.
+  const { setZero } = await import("../src/situations/results.js"), { readPlayerBox } = await import("../src/espn/parse.js");
+  const pb = readPlayerBox({ boxscore: { players: [{ team: { id: "1" }, statistics: [{ keys: ["minutes", "points", "plusMinus"], athletes: [
+    { athlete: { id: "z1", displayName: "Zero" }, starter: false, stats: ["0", "0", "0"] }, { athlete: { id: "d1", displayName: "Dnp" }, didNotPlay: true, stats: [] },
+    { athlete: { id: "p1", displayName: "Played" }, stats: ["12", "4", "+2"] }] }] }] } }, "1");
+  const row = {}; setZero(row, pb);
+  const late = [{ id: "g3", d: "2026-10-25", h: "NYK", a: "ORL", hs: 100, as: 90, pl: { "3147657": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] } }];
+  const noZ = gamesPlayedRuns([...games, ...late], base, "2026-27"), withZ = gamesPlayedRuns([...games, { ...late[0], z: ["3147657"] }], base, "2026-27"),
+    fromFile = gamesPlayedRuns([...games, ...late], base, "2026-27", { rows: [["g3", "2026-10-25", "NYK", "3147657", "Mikal Bridges"]] });
+  ok(pb.z1.zero && !pb.d1.zero && !pb.p1.zero && JSON.stringify(row.z) === '["z1"]' && appeared(0, 0, [0, 0, -1]) && appeared(0, 0, [], true)
+    && !noZ.some((r) => r.id === "3147657") && withZ[0].n === 641 && fromFile[0].n === 641,
+    "games played (0.142.7): a 0-minute line that isn't a DNP is kept in the store (z) and counts, from the store or the backfill file; a minus plus-minus is a stat");
+  const zf = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "zero-minute-games-2026-27.json"), "utf8"));
+  ok(zf.rows.length === 17 && zf.rows.some((r) => r[4] === "Josh Minott" && r[1] === "2026-11-02"), "games played (0.142.7): this season's 0-minute games through 11/22, read from ESPN's summaries");
 }
 
 // ---------- 0.142.5: last season's facts read as this season's (the user, 11/23: "the number of games played this season does not allow for what is listed") ----------

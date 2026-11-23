@@ -17,7 +17,7 @@ import { walkStreak, appeared } from "./gpstreak.js";
 
 const SEASON_NOW = (d) => { const y = +d.slice(0, 4), m = +d.slice(5, 7), s = m >= 8 ? y : y - 1; return `${s}-${String((s + 1) % 100).padStart(2, "0")}`; };
 
-export function buildFeatLive({ file, pg, names = {}, tonightTeams = null, notesFacts = null, games = null, gpBase = null }) {
+export function buildFeatLive({ file, pg, names = {}, tonightTeams = null, notesFacts = null, games = null, gpBase = null, gpZero = null }) {
   const problems = [];
   const through = Object.values(pg).reduce((m, gs) => (gs.length && gs[gs.length - 1].d > m ? gs[gs.length - 1].d : m), "");
   const season = through ? SEASON_NOW(through) : null;
@@ -117,7 +117,7 @@ export function buildFeatLive({ file, pg, names = {}, tonightTeams = null, notes
   // (d) 0.142.6: consecutive games played, every active player (the user, 11/23, with San Antonio's table: "maybe it can
   // be tested against the box scores to confirm the length"). Last season's runs (src/data/games-played-streaks-*.json)
   // carried through this season's games, DNPs included (`games`: the results store's rows).
-  const ironman = games && gpBase ? gamesPlayedRuns(games, gpBase, season) : [];
+  const ironman = games && gpBase ? gamesPlayedRuns(games, gpBase, season, gpZero) : [];
   for (const r of ironman.slice(0, 12)) if (r.n >= 50 && !streaks.some((x) => x.id === r.id && x.tests.includes("play")))
     streaks.push({ id: r.id, name: names[r.id] || r.name, team: r.team, tests: ["play"], label: "a game played", n: r.n, source: "gp", rank: r.rank,
       list: ironman.slice(0, 12).filter((x) => x.id !== r.id).map((x) => ({ name: names[x.id] || x.name, n: x.n })), last: r.last });
@@ -125,13 +125,16 @@ export function buildFeatLive({ file, pg, names = {}, tonightTeams = null, notes
 }
 
 /** Every player's current consecutive-games-played run: [{ id, name, team, n, rank, last, broke }], longest first. */
-export function gamesPlayedRuns(games, gpBase, season) {
+export function gamesPlayedRuns(games, gpBase, season, gpZero = null) {
+  // 0.142.7: in for a few seconds with 0 minutes and nothing in the box still counts: the store's z, and for games read
+  // before z existed, src/data/zero-minute-games-*.json ([gameId, date, team, id, name]).
+  const zero = new Set((gpZero?.rows || []).map((r) => `${r[0]}|${r[3]}`));
   const base = new Map((gpBase.rows || []).map(([id, name, n, team]) => [String(id), { name, n, team }]));
   const teamGames = {}, apps = {};
   for (const g of [...games].filter((g) => g.hs != null && !g.cupFinal).sort((a, b) => a.d.localeCompare(b.d) || String(a.id).localeCompare(String(b.id)))) {
     for (const t of [g.h, g.a]) (teamGames[`${t}|${season}`] ??= []).push({ d: g.d, gid: String(g.id) });
     for (const [id, v] of Object.entries(g.pl || {})) {
-      if (!appeared(v[1], v[2], v.slice(3, 18))) continue;
+      if (!appeared(v[1], v[2], v.slice(3, 18), (g.z || []).includes(id) || zero.has(`${g.id}|${id}`))) continue;
       (apps[id] ??= []).push({ d: g.d, gid: String(g.id), team: v[0] === 0 ? g.h : g.a, season });
     }
   }

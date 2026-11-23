@@ -21,7 +21,7 @@ What they read is listed below and checked against the real published files on e
 | (none since v28) | | the odd-line rules (`src/situations/oddlines.js`) are compiled into the bridge by `tools/bundle-bridge-rules.mjs`; the bridge downloads data only |
 | `data/linerare.json` | `v === 1` and `combos` | the rare-combination boundaries and named games (0.141.17) |
 | (none since v28) | | the rare-combination rules (`src/situations/linerare.js`), compiled in the same way |
-| `data/featlive.json` | `v === 1` and `boards` | (v29, 0.142) `asOf`, `through`; `boards[key]`: `label`, `one`, `min`, `max`, `td`, `caveat`, `rows[]` (`name`, `id`, `team`, `live`, `now`, `games`); `streaks[]`: `id`, `name`, `team`, `tests`, `label`, `n`, `source`, `since`, `list`; `teamStreaks[]`: `team`, `kind`, `n`, `opp`, `home`, `min`, `max`, `label`; (v33) a `streaks[]` entry with `tests: ["play"]` is a games-played run, and `ironman[]` (`id`, `name`, `team`, `n`, `rank`) is the 25 longest |
+| `data/featlive.json` | `v === 1` and `boards` | (v29, 0.142) `asOf`, `through`; `boards[key]`: `label`, `one`, `min`, `max`, `td`, `caveat`, `rows[]` (`name`, `id`, `team`, `live`, `now`, `games`); `streaks[]`: `id`, `name`, `team`, `tests`, `label`, `n`, `source`, `since`, `list`; `teamStreaks[]`: `team`, `kind`, `n`, `opp`, `home`, `min`, `max`, `label`; (v33) a `streaks[]` entry with `tests: ["play"]` is a games-played run, and `ironman[]` (`id`, `name`, `team`, `n`, `rank`) is the 25 longest; (v34) NBA Live cards those runs on every 50th game only |
 | (none) | | the feat and streak rules (`src/records/featlive.js`), compiled in the same way (FEAT_RULES) |
 | `bridge/version.json` | `version` is a number | tells NBA Live a newer bridge exists |
 

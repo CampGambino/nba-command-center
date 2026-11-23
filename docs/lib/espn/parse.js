@@ -396,7 +396,7 @@ export function readPlayerBox(json, homeId) {
         const dnp = a.didNotPlay === true || !(a.stats || []).length;
         out[id] = {
           side: home ? "home" : "away", name: a?.athlete?.displayName || null, starter: a.starter === true,
-          min: dnp ? 0 : min, dnp, s: PLAYER_BOX_KEYS.map((k) => (dnp ? 0 : Number.isFinite(v[k]) ? v[k] : 0)),
+          min: dnp ? 0 : min, dnp, zero: !dnp && !(min > 0), s: PLAYER_BOX_KEYS.map((k) => (dnp ? 0 : Number.isFinite(v[k]) ? v[k] : 0)),
         };
       }
     }
