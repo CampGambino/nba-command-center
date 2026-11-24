@@ -925,7 +925,7 @@ function teamStake(t, g) {
   var featUrl = url.replace(/watch\.json(\?.*)?$/, "featlive.json");
   var bestsUrl = /watch\.json(\?.*)?$/.test(url) ? url.replace(/watch\.json(\?.*)?$/, "").replace(/data\/$/, "") + "ref/nba-single-game-bests.json" : url;
 
-  function has(name) { try { return typeof eval(name) !== "undefined"; } catch (e) { return false; } }
+  function has(name) { try { return typeof window(name) !== "undefined"; } catch (e) { return false; } }
   function games() { try { return GAMES; } catch (e) { return null; } } // NBA Live's top-level `let GAMES`
 
   function note(text, bad) {
