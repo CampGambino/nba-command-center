@@ -1,5 +1,6 @@
 /* Moved out of docs/gameflow.js unchanged (0.141.16: the Game Flow script split by section). */
-import { denseRanks, el, seasonLabel, tcol, topWithTies } from "../gameflow.js";
+import { el, seasonLabel, tcol } from "../gameflow.js";
+import { denseRanks, topWithTies } from "./sec-outliers.js";
 import { posterFoot, posterShell, posterTools, rangeScope, svgEl } from "./range.js";
 import { ARC_R, CORNER_D, CORNER_Y, COURT_W, HOOP_INSET } from "../lib/gameflow/model.js";
 import { headshot } from "./headshots.js";

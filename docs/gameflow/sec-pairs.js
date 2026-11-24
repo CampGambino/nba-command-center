@@ -1,5 +1,6 @@
 /* Moved out of docs/gameflow.js unchanged (0.141.16: the Game Flow script split by section). */
-import { $, ACTIVE, SOURCE, el, esc, finishRender, layoutMode, noteEl } from "../gameflow.js";
+import { $, ACTIVE, SOURCE, el, esc, finishRender, noteEl } from "../gameflow.js";
+import { layoutMode } from "./controls.js";
 
 /* ==================== section: with / without a teammate ====================
  * One player's box lines, split by whether a second player appeared in that game. The

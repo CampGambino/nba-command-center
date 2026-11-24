@@ -1,5 +1,7 @@
 /* Moved out of docs/gameflow.js unchanged (0.141.16: the Game Flow script split by section). */
-import { $, ACTIVE, SOURCE, denseRanks, el, finishRender, label, layoutMode, noteEl, seasonLabel, tcol, teamName } from "../gameflow.js";
+import { $, ACTIVE, SOURCE, el, finishRender, label, noteEl, seasonLabel, tcol, teamName } from "../gameflow.js";
+import { denseRanks } from "./sec-outliers.js";
+import { layoutMode } from "./controls.js";
 import { RANK_POSTER_N, rankPoster } from "./rank-poster.js";
 
 /* ==================== section: holding the lead ====================

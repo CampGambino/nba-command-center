@@ -1,5 +1,6 @@
 /* Moved out of docs/gameflow.js unchanged (0.141.16: the Game Flow script split by section). */
-import { $, FORM_CATS, FORM_FLOORS, FORM_LENS, FORM_MIN_BASE, FORM_STATS, brandCol, el } from "../gameflow.js";
+import { $, brandCol, el } from "../gameflow.js";
+import { FORM_CATS, FORM_FLOORS, FORM_LENS, FORM_MIN_BASE, FORM_STATS } from "./controls.js";
 import { posterFoot, posterShell } from "./range.js";
 import { dayNum } from "./rest.js";
 import { headshot } from "./headshots.js";

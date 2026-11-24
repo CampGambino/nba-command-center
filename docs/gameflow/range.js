@@ -1,5 +1,8 @@
 /* Moved out of docs/gameflow.js unchanged (0.141.16: the Game Flow script split by section). */
-import { ACTIVE, SOURCE, downloadPoster, el, modelFor, seasonLabel, teamGamesFor, threeZone } from "../gameflow.js";
+import { ACTIVE, SOURCE, el, seasonLabel } from "../gameflow.js";
+import { downloadPoster } from "./sec-outliers.js";
+import { modelFor, teamGamesFor } from "./models.js";
+import { threeZone } from "./sec-profile.js";
 import { ARC_R, CORNER_D, CORNER_Y, COURT_W, hasSpot, shotDist, spotDist, statedDist } from "../lib/gameflow/model.js";
 
 /* ==================== three-point range ====================

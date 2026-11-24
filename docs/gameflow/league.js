@@ -1,5 +1,5 @@
 /* Moved out of docs/gameflow.js unchanged (0.141.16: the Game Flow script split by section). */
-import { franchises, modelFor, teamGamesFor } from "../gameflow.js";
+import { franchises, modelFor, teamGamesFor } from "./models.js";
 import { boxLine } from "../lib/gameflow/model.js";
 
 /* ==================== league-wide game reads ====================

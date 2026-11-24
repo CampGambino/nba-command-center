@@ -1,5 +1,5 @@
 /* Moved out of docs/gameflow.js unchanged (0.141.16: the Game Flow script split by section). */
-import { liteOrModel, teamGamesFor } from "../gameflow.js";
+import { liteOrModel, teamGamesFor } from "./models.js";
 
 /* ==================== assist leaderboard ==================== */
 /**

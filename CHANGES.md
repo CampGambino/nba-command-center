@@ -2,6 +2,30 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.153.0 (2026-11-24): Game Flow's script split, part 2 — the last sections in their own files
+
+The user, 11/24: "go for 2, 3, and 4" (4 being this). No change to what the page shows.
+
+**What moved** (`docs/gameflow.js`, 3,189 lines → 1,305):
+- `gameflow/models.js`: reading games (the model cache, the nightly flow files, the play-by-play check, a team's games).
+- `gameflow/controls.js`: the shared pickers and settings (metric, shot, rank, runs, layouts, hot-hand and pool settings).
+- One file per section: `sec-rotation.js` (season rotation heatmap), `sec-assists.js` (assist network), `sec-highs.js` (scoring highs), `sec-profile.js` (3PT range), `sec-cup.js` (Cup and the league views' loader), `sec-outliers.js` (outliers, the leaderboard and records boards, posters).
+- What stays in `gameflow.js`: team colours, ESPN reading, the single-game chart, the app shell.
+
+**The one real change:** variables several files set (each view's built result, the play-by-play counters, the season's per-game slices) are now fields of one object, `S` in `gameflow/state.js`. A file can't reassign a variable it imports, so this had to come first. `cupExtra` was declared and reset but never set or read; removed.
+
+**How it was done:** by a parser, not by hand. It assigned every top-level statement to its file, worked out each file's imports and exports from what each name refers to, refused to go on if any file would set another file's variable or use one while still loading, and repointed the ten files split off in 0.141.16 at names that moved.
+
+**Checked:**
+- Every line of the old script is in exactly one new file (comparing the lines, ignoring import lines and the added `export` words): none missing, none extra.
+- Each view drawn in a headless browser from the old and the new code side by side, comparing the text on the page: 24 cases (every view, every layout, a team picked, the assist metric, rank and shot pickers, a span), all identical, no page errors.
+- Tests 886 passed (including the 0.141.16 check that every import names something its file exports); all pages OK.
+
+**Self-audit:**
+- The window.__ test hooks sat inside the outliers section and ran at load. Moved into a separate file, they would have run before the colour functions they list existed; they stay in `gameflow.js`.
+- The Cup and hot-hand views were merged into other pages earlier; their code (`sec-cup.js` thresholds, `controls.js` form settings) is still referenced by the pickers, so it was moved, not deleted. Whether to delete it is a separate decision.
+- Not done: Game Flow still rebuilds stints from ESPN's play-by-play rather than reading NBA.com's (0.151.0). That is a change to what the page shows and waits for a go.
+
 ## 0.152.0 (2026-11-24): Game Flow posters cleaned up — legible names, shorter footers, no empty layout choice
 
 The user, 11/24, on the Game Flow posters: they "could be relevant later, especially if they are spruced up, legible, and easily digestible"; then "go for 2, 3, and 4".

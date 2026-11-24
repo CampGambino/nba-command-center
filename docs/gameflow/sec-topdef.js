@@ -1,5 +1,6 @@
 /* Moved out of docs/gameflow.js unchanged (0.141.16: the Game Flow script split by section). */
-import { POOL_MIN_PPG, POOL_MIN_SIDE, POOL_N, POOL_SHARE, defTopN, el, finishRender, layoutMode, noteEl, poolMode, seasonYear, topDefOf } from "../gameflow.js";
+import { el, finishRender, noteEl, seasonYear } from "../gameflow.js";
+import { POOL_MIN_PPG, POOL_MIN_SIDE, POOL_N, POOL_SHARE, defTopN, layoutMode, poolMode, topDefOf } from "./controls.js";
 
 /* ============ section: scoring against the top defenses ============
  * Two pools: the All-Star roster, or every player with the games to support the split.

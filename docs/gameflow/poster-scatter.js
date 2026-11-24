@@ -1,5 +1,6 @@
 /* Moved out of docs/gameflow.js unchanged (0.141.16: the Game Flow script split by section). */
-import { seasonLabel, tcol, topWithTies } from "../gameflow.js";
+import { seasonLabel, tcol } from "../gameflow.js";
+import { topWithTies } from "./sec-outliers.js";
 import { RANGE_N, pctile, posterFoot, posterShell, posterTools, rangeScope, svgEl, svgText } from "./range.js";
 
 /* ==================== poster: accuracy against distance ====================

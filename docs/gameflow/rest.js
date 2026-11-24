@@ -1,5 +1,5 @@
 /* Moved out of docs/gameflow.js unchanged (0.141.16: the Game Flow script split by section). */
-import { franchises, teamGamesFor } from "../gameflow.js";
+import { franchises, teamGamesFor } from "./models.js";
 
 /* ==================== rest between games ====================
  * Days of rest is a calendar-day question, and the two feeds disagree about what a calendar
