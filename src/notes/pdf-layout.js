@@ -58,6 +58,7 @@ export async function readPdf(buf) {
       items.push({ x: e, y: f, w: it.width || it.str.length * h * 0.5, h, str: it.str });
     }
     const shadow = dropShadowLayer(items);
+    dropDoubled(items);
     // Text drawn as pictures (Milwaukee): decided by the first two text-heavy
     // pages, so every other team's notes pay for at most two extra page reads.
     let pic = 0;
@@ -179,6 +180,23 @@ export function dropShadowLayer(items) {
   return 0;
 }
 
+/**
+ * 0.145.2: the same words drawn twice in the same spot (an outline over a fill) are read once. Detroit's notes, 11/24:
+ * the stat call-outs ("5.8", "32.5", "NOTABLE", "t-2nd", "Blocks per game") were each drawn twice, and read as "5.85.8"
+ * in the middle of a sentence on NBA Live. Different from dropShadowLayer (a whole page printed twice). Mutates; -> count.
+ */
+export function dropDoubled(items) {
+  const seen = new Set();
+  let n = 0;
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    if (it.space || it.str.trim().length < 2 && !/\d/.test(it.str)) continue;
+    const k = `${it.str}|${Math.round(it.x * 2)}|${Math.round(it.y * 2)}|${Math.round(it.h)}`;
+    if (seen.has(k)) { items.splice(i--, 1); n++; } else seen.add(k);
+  }
+  return n;
+}
+
 /** Group runs into visual rows (top of page first) and build text, charX, cells. */
 export function buildLines(items) {
   const sorted = [...items].sort((a, b) => b.y - a.y || a.x - b.x);
@@ -193,7 +211,29 @@ export function buildLines(items) {
       rows.push({ y: it.y, h: it.h, items: [it] });
     }
   }
-  return rows.filter((r) => r.items.some((it) => !it.space)).map((r) => assembleRow(r));
+  // The call-outs pulled out of sentences are left out: kept as lines of their own (or at the end of the page) they were
+  // read into the paragraph around them ("…close to a block a game. 32.5 52 31 8.6 5.8.").
+  return rows.map((r) => splitCallouts(r)[0]).filter((r) => r.items.some((it) => !it.space)).map((r) => assembleRow(r));
+}
+
+/**
+ * 0.145.2: a number called out in big type beside a sentence is not part of the sentence. Detroit's notes, 11/24: "5.8"
+ * (30pt) and "52" (37pt) sit on the baseline of 12pt prose and read "with 5.8 Kevin Huerter tying…" on NBA Live;
+ * Chicago's "19" (52pt), Brooklyn's "64.5%". A number 2.2 times taller or more than the tallest other text on a row whose
+ * other text is a sentence (6+ lower-case words) is taken off the row (the caption beside it says what it is). Stat tables
+ * (numbers at most twice their labels, few lower-case words) and names or headings are never touched. -> [row, removed row or null]
+ */
+function splitCallouts(row) {
+  const callout = (it) => !it.space && /\d/.test(it.str) && /^[\d.,%+\-–]+$/.test(it.str.trim());
+  const others = row.items.filter((it) => !it.space && !callout(it));
+  if (!others.length) return [row, null];
+  const hMax = Math.max(...others.map((it) => it.h));
+  const big = row.items.filter((it) => callout(it) && it.h >= 2.2 * hMax);
+  if (!big.length) return [row, null];
+  const words = others.map((it) => it.str).join(" ").match(/\b[a-z]{2,}\b/g) || [];
+  if (words.length < 6) return [row, null];
+  const rest = row.items.filter((it) => !big.includes(it));
+  return [{ ...row, h: Math.max(...rest.map((it) => it.h)), items: rest }, { y: row.y, h: Math.max(...big.map((it) => it.h)), items: big }];
 }
 
 function assembleRow(row) {

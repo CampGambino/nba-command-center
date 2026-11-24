@@ -5626,6 +5626,20 @@ await bridgeChecks(ok, root);
       "0.145.0: a neutral-site game is one meeting (listed home team kept), neither home nor road, and still matched to its national broadcast for both teams",
       JSON.stringify({ m, ind: tr.IND, ns: ns.teams }));
   }
+  // 0.145.2: Detroit's notes, 11/24, on NBA Live: "…rim protectiona cross the lineup, with 5.85.8 Kevin Huerter tying…".
+  {
+    const { buildLines, dropDoubled } = await import("../src/notes/pdf-layout.js");
+    const T = (str, x, y, h, w) => ({ str, x, y, h, w: w ?? str.length * h * 0.5 });
+    const items = [T("in the NBA behind San Antonio. Detroit gets rim protectiona cross the lineup, with", 190, 112.5, 12, 372),
+      T("5.8", 82.3, 97.5, 30, 38), T("5.8", 82.3, 97.5, 30, 38), T("Kevin Huerter tying his career high with five blocks on Nov. 8 against the Lakers, and", 174.7, 98.1, 12, 388),
+      T("NOTABLE", 40, 300, 10), T("NOTABLE", 40, 300, 10), T("ASTS", 120, 300, 10),
+      T("16/16", 40, 400, 8), T("9.6", 80, 400, 8), T("GP/GS", 120, 400, 4.2), T("PPG", 150, 400, 4.2)];
+    const dropped = dropDoubled(items);
+    const lines = buildLines(items).map((l) => l.text);
+    ok(dropped === 2 && lines.includes("Kevin Huerter tying his career high with five blocks on Nov. 8 against the Lakers, and") && !lines.some((l) => /5\.8/.test(l))
+      && lines.some((l) => /^NOTABLE\s+ASTS$/.test(l)) && lines.some((l) => /16\/16\s+9\.6/.test(l)),
+      "0.145.2: a word drawn twice in one spot is read once; a big call-out number beside a sentence is taken off it; table numbers beside small labels stay", JSON.stringify({ dropped, lines }));
+  }
   // 0.145.1: ESPN files the All-Star games under "Regular Season" (Curry's two on 2/16/25): left out of the game logs, so his
   // made-three run is Basketball-Reference's 102, not 104 (the user's screenshots, 11/24).
   {

@@ -2,6 +2,27 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.145.2 (2026-11-24): words drawn twice and big call-out numbers in the notes
+
+The user, 11/24, with an NBA Live card: "DET notes: Detroit gets rim protectiona cross the lineup, with 5.85.8 Kevin Huerter tying his career high…". Two faults in how we read the PDF, plus one in Detroit's own file:
+
+- **"5.85.8":** the call-out numbers on Detroit's page 6 ("5.8" blocks per game, 30pt) are drawn twice in the same spot, and sit on the baseline of the 12pt sentence beside them, so they were read into it.
+  - `dropDoubled` (src/notes/pdf-layout.js) reads a word drawn twice in one spot once.
+  - `splitCallouts` takes a number 2.2 times taller or more than the other text on its row off the row, when that row is a sentence (6+ lower-case words). The caption beside it says what the number is.
+  - Kept as lines of their own, the numbers were read into the paragraph ("…a block a game. 32.5 52 31 8.6 5.8."), so they are left out.
+- **The same doubling** was all through Detroit's tables ("NOTABLENOTABLE", "Cade CunninghamCade Cunningham 5252", "Blocks per gameBlocks per game 5.85.8 t-2ndt-2nd"). It was also in Brooklyn's, Sacramento's and others'. Those now read once.
+- **"protectiona cross"** is how Detroit's file spells it: one text string, as written. Left as printed (the user's rule, 11/16).
+
+**Tested:**
+- All 30 teams' notes from 11/24, read with the old and new code. 7 teams changed (BKN, CHI, DET, LAL, MIN, PHX, SAC), 107 lines in all.
+  - Every change is a doubled word read once, or a call-out number taken off a sentence (Chicago's "19" and "45", Brooklyn's "64.5%" and "244", Detroit's "5.8", "32.5", "52").
+  - No table changed except to lose its doubling.
+- A first try that gave every big number a row of its own split stat tables in 6 teams' notes (Atlanta's 8pt stats beside 4pt headers, the Knicks' roster, Philadelphia's and Sacramento's standings). Hence the 2.2× and sentence conditions; checked against the same 30 files.
+- A full local build: Detroit's line now reads "…with Kevin Huerter tying his career high with five blocks on Nov. 8 against the Lakers, and John Collins, Paul Reed and Huerter are all averaging close to a block a game."
+- 879 checks here (1 new). The notes-PDF sample checks are skipped (samples/ not here); the 30 live files stood in for them.
+
+**Self-audit:** the line goes out as "new today" once more: its text changed, so its key did. It was new today anyway. The ORL line in the 0.145.0 audit ("Franz Wagner (tw") was my cut for the screen, not the parser.
+
 ## 0.145.1 (2026-11-24): the All-Star games are not regular-season games
 
 The user, 11/24, with Basketball-Reference's 102-game list for Curry's made-three run (screenshots), asking whether ESPN's two extra games were play-in games. They aren't: the play-in was already left out. They are the **2025 All-Star games** (2/16/25, "NBA All-Star - Semifinals" and "- Championship", Team Shaq vs Team Candace and Team Chuck). ESPN files them under "2024-25 Regular Season".
