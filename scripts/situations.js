@@ -852,7 +852,8 @@ try {
   const rdOpt = (f) => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch { return null; } };
   const awards = rdOpt(path.join(root, "history", "kalshi", "awards.json"));
   const cal = sb.ok ? sb.data.calendar : [];
-  const E = eligibility({ rows, names: store.names || {}, current: rosterChanges, seconds, listings, tonight: rdOpt(path.join(root, "docs", "data", "injuries.json")), awards, today, through,
+  const checked = rdOpt(path.join(root, "src", "data", "minutes-checked.json")) || {};
+  const E = eligibility({ rows, names: store.names || {}, current: rosterChanges, seconds, checked, listings, tonight: rdOpt(path.join(root, "docs", "data", "injuries.json")), awards, today, through,
     seasonEnd: cal.length ? cal[cal.length - 1] : null, tonightTeams: new Set(tonight.flatMap((g) => [g.home, g.away])),
     reports: Object.fromEntries(Object.entries(injByDate).map(([d, r]) => [d, r.rows || []])) });
   // the Watch List's lines (src/anticipate/tonight.js reads `lines`; it imports nothing from here, so the page's copy works alone)

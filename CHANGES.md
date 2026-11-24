@@ -2,6 +2,17 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.144.2 (2026-11-24): minutes checked against Basketball-Reference are recorded and used first
+
+The user sent Basketball-Reference's box score for MIN 131 at MIA 106 (10/21): **Terrence Shannon Jr. played 19:43**. That was the one game our rebuild couldn't settle: ESPN shows 20, and our play-by-play rebuild gave 17:27, so it wasn't used. The new file `src/data/minutes-checked.json` holds minutes checked this way (game id, player id, seconds, source). `src/situations/eligibility.js` uses it before the rebuilt seconds. It also holds the two games the user confirmed earlier: Mitchell Robinson 19:48 and Goga Bitadze 19:32.
+- Shannon's 10/21 game is a 15-19 game, one of his two that count: he has 12 counted games, not 13, and can miss 12 more. Nothing is left "to check", so the page's warning goes away. The page names the source on each borderline game ("by Basketball-Reference" or "by play-by-play").
+
+**Checked:** the screenshot's Minnesota minutes add up to 240:00 and its points to 131, the final score. Shannon's line (10 points, 3-9, 2-7 from three, 2-4 FT, +9) matches ESPN's box score in our store.
+
+**Tested:** 867 checks here (new: a checked minute wins over the rebuild and settles a game the rebuild couldn't; Shannon's entry is 19:43).
+
+**Self-audit:** the rebuild was off by 2:16 for one player in this game, and the 0.55-minute guard kept it out, as designed. I haven't found why it missed (likely a substitution the play-by-play doesn't log). Every other borderline game this season landed within the guard.
+
 ## 0.144.1 (2026-11-24): award eligibility counts priced players who haven't played
 
 Kalshi's award prices arrived overnight (`history/kalshi/awards.json`, 7:30 AM build): 112 of 114 names matched a player. The two that didn't: Kalshi's "Tie/Co-Winners" option, which isn't a player, and **Jimmy Butler III**, who hasn't played this season and so had no row. Not playing is itself the eligibility story, so a priced player with no game now gets a row:

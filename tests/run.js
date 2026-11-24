@@ -5102,6 +5102,11 @@ await bridgeChecks(ok, root);
   ok(JB && JB.name === "Jimmy Butler III" && JB.q === 0 && JB.teamGames === 20 && JB.left === 62 && JB.status === "out" && JB.outSince === day(18) && JB.alt === true && JB.missed.injury === 15 && JB.missed.unlisted === 5
     && NL && NL.status === "unsigned" && NL.team === null && !EB.players.some((p) => /Tie/.test(p.name)),
     "award eligibility (0.144.1): a player Kalshi prices who hasn't played a game is on the board: his team from the latest injury report listing him, every team game missed, out of reach the night his team played its 18th; Kalshi's tie option isn't a player", JSON.stringify([JB, NL]));
+  // 0.144.2: a minute checked against an outside box score wins over our rebuild (Terrence Shannon Jr. 10/21: 19:43, ours 17:27)
+  const EC = eligibility({ rows, names: { X: "Ex Player" }, seconds: { g7: { X: null }, g8: { X: 1210 } }, checked: { g7: { X: { sec: 1183 } }, g8: { X: { sec: 1195 } } }, today: "2026-11-21", through: "2026-11-20" });
+  const XC = EC.players.find((p) => p.id === "X"), mc = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "minutes-checked.json"), "utf8"));
+  ok(XC.check === 0 && XC.border.every((b) => b.how === "ref") && XC.full === 3 && XC.short === 5 && XC.q === 5 && mc["401909091"]["4432847"].sec === 19 * 60 + 43,
+    "award eligibility (0.144.2): minutes checked against Basketball-Reference (src/data/minutes-checked.json) are used before the rebuilt seconds and settle a game the rebuild couldn't (Shannon 10/21, 19:43)", JSON.stringify(XC));
   const st = awardStakes(awards);
   ok(st["ex player"].allnba === 35 && !st["ex player"].roy && st["wy player"].mvp === 5 && E.challengeWindow.to === "2027-04-12 11:59 PM ET" && reasonKind("G League - Two-Way") === "gleague" && reasonKind("Not With Team") === "personal",
     "award eligibility (0.144.0): Kalshi's All-NBA teams add up (a player makes one), names match without accents, Rookie of the Year isn't a covered award; the challenge window runs to 11:59 PM ET the day after the season ends");

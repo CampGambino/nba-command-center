@@ -83,10 +83,12 @@ export function awardStakes(awardsFile) {
  * tonight:  { players: [{ team, name, status, reason }], date } today's injury report (docs/data/injuries.json)
  * awards:   history/kalshi/awards.json (or null)
  * tonightTeams: teams playing today
+ * checked:  { gameId: { espnId: { sec, source } } } minutes checked against an outside box score (src/data/minutes-checked.json),
+ *           used before the rebuilt seconds (0.144.2: Terrence Shannon Jr. 10/21, 19:43 by Basketball-Reference; ours missed by 2:16)
  * reports:  { date: [{ team, name, status, reason }] } each night's injury report rows, for a priced player with no game
  *           this season (0.144.1: Jimmy Butler III, out all season, had a Kalshi price and no row): his team and reasons
  */
-export function eligibility({ rows, names = {}, current = {}, seconds = {}, listings = {}, tonight = null, awards = null, today, through, seasonEnd = null, tonightTeams = new Set(), reports = {} }) {
+export function eligibility({ rows, names = {}, current = {}, seconds = {}, checked = {}, listings = {}, tonight = null, awards = null, today, through, seasonEnd = null, tonightTeams = new Set(), reports = {} }) {
   const games = rows.filter((g) => g.pl && g.d <= through).sort((a, b) => a.d.localeCompare(b.d) || String(a.id).localeCompare(String(b.id)));
   const teamDates = {};            // tri -> [date of each game played]
   for (const g of games) for (const t of [g.h, g.a]) (teamDates[t] ??= []).push(g.d);
@@ -98,7 +100,8 @@ export function eligibility({ rows, names = {}, current = {}, seconds = {}, list
       const min = v[2], zero = z.has(id);
       if (!(min > 0) && !zero) continue;                                  // DNP: listed, didn't play
       const team = v[0] === 0 ? g.h : g.a;
-      const c = zero ? { kind: "under", how: "box" } : classify(min, seconds[g.id]?.[id]);
+      const ref = checked[g.id]?.[id]?.sec;
+      const c = zero ? { kind: "under", how: "box" } : Number.isFinite(ref) ? { kind: ref >= FULL_MIN * 60 ? "full" : ref >= SHORT_MIN * 60 ? "short" : "under", how: "ref", sec: ref } : classify(min, seconds[g.id]?.[id]);
       (P[id] ??= []).push({ d: g.d, id: g.id, team, opp: v[0] === 0 ? g.a : g.h, min, ...c });
     }
   }
