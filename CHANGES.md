@@ -2,6 +2,16 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.153.1 (2026-11-24): the NBA.com probe answered and removed
+
+The probe (0.150.1), run by hand at 23:06 UTC: from GitHub's runners all three stats.nba.com requests (`leaguegamelog`, `gamerotation`, `boxscorehustlev2`) got no answer within 40 seconds. NBA.com doesn't answer GitHub's servers, so the nightly build can't pull rotations or hustle stats.
+
+What that means today:
+- The daily build's rotations step already handles it: one request times out, it says "NBA.com's game list can't be read from here; nothing fetched", and the build goes on (about 50 seconds). Lineups are rebuilt from the games on file.
+- The file is current through the last finished game (258 of 258, checked from this workspace, which can reach NBA.com). From tonight it falls behind until someone pulls from a machine NBA.com answers.
+
+The probe workflow is deleted. Tests and the page check unchanged.
+
 ## 0.153.0 (2026-11-24): Game Flow's script split, part 2 — the last sections in their own files
 
 The user, 11/24: "go for 2, 3, and 4" (4 being this). No change to what the page shows.
