@@ -38,7 +38,7 @@
   "KXNBASTOCK": {
    "title": "NBA Player Steals + Blocks",
    "events": 3,
-   "markets": 18
+   "markets": 19
   },
   "KXNBAROY": {
    "title": "NBA Rookie of the Year",
@@ -228,7 +228,7 @@
   "KXNBAPTSPROT": {
    "title": "NBA Player Points Protected",
    "events": 3,
-   "markets": 137
+   "markets": 147
   },
   "KXNBA4QSPREAD": {
    "title": "NBA 4th Quarter Spread",
@@ -248,7 +248,7 @@
   "KXNBAPTSLEADER": {
    "title": "NBA Game Points Leader",
    "events": 3,
-   "markets": 29
+   "markets": 30
   },
   "KXNBAPOTM": {
    "title": "NBA Player of the Month",
@@ -303,7 +303,7 @@
   "KXNBAPTS": {
    "title": "NBA Player Points",
    "events": 3,
-   "markets": 137
+   "markets": 147
   },
   "KXCOACHOUTNBADATE": {
    "title": "NBA Coach Out Date",
@@ -403,7 +403,7 @@
   "KXNBASTOCKPROT": {
    "title": "NBA Player Steals + Blocks Protected",
    "events": 3,
-   "markets": 18
+   "markets": 19
   },
   "KXNBACUP1STTEAM": {
    "title": "NBA Cup All-Tournament Team",
@@ -733,28 +733,28 @@
  },
  "favorites": {
   "KXNBACLUTCH-27": "Stephen Curry 10%",
-  "KXNBAROY-27": "Darius Acuff Jr. 34%",
+  "KXNBAROY-27": "Darius Acuff Jr. 35%",
   "KXNBACENTRAL-26": "Detroit 68%",
-  "KXNBAEXEC-27": "Zach Kleiman 41%",
-  "KXNBAMIMP-27": "Ty Jerome 28%",
+  "KXNBAMIMP-27": "Ty Jerome 31%",
   "KXNBARECORD-27BEST": "San Antonio 45%",
   "KXNBARECORD-27WORST": "Sacramento 39%",
+  "KXNBAEXEC-27": "Zach Kleiman 41%",
   "KXNBACUPMVP-27": "Victor Wembanyama 26%",
-  "KXNBAWEST-27": "San Antonio 35%",
   "KXNBAEAST-27": "Boston 21%",
+  "KXNBAWEST-27": "San Antonio 35%",
   "KXNBADPOY-27": "Victor Wembanyama 79%",
-  "KXNBAATLANTIC-26": "Boston 46%",
   "KXNBASOUTHWEST-26": "San Antonio 75%",
+  "KXNBAATLANTIC-26": "Boston 46%",
   "KXNBASOUTHEAST-26": "Miami 51%",
   "KXNBAFINMVP-27": "Victor Wembanyama 24%",
   "KXNBAEFINMVP-27": "Tyrese Maxey 20%",
+  "KXNBACUP-26": "San Antonio 23%",
   "KXNBACOY-27": "Micah Nori 22%",
   "KXNBAMVP-27": "Victor Wembanyama 55%",
   "KXNBANORTHWEST-26": "Oklahoma City 33%",
   "KXNBACONF-27": "Western Conference 61%",
-  "KXNBACUP-26": "San Antonio 23%",
-  "KXNBASIXTH-27": "Jrue Holiday 37%",
   "KXNBAWFINMVP-27": "Shai Gilgeous-Alexander 20%",
+  "KXNBASIXTH-27": "Jrue Holiday 36%",
   "KXNBAPACIFIC-26": "Los Angeles L 82%",
   "KXNBAEAST1SEED-26": "Philadelphia 29%",
   "KXNBA-27": "San Antonio 22%",
