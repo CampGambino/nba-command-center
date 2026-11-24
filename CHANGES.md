@@ -2,6 +2,17 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.148.1 (2026-11-24): Game Flow's unused pieces removed
+
+The user, 11/24: "proceed with game flow code".
+- Removed `docs/gameflow/standings.js`, imported but never used (its `buildStandings` was called nowhere).
+- Removed `espnShotSpot`, called nowhere.
+- Removed two test hooks, `window.__shot` and `window.__rest`, that only the old scratch harness (now gone) read.
+
+**Tested.** 885 checks. The page check (every Game Flow view among them) found no script errors.
+
+**Still to do (part 2 of the split):** move the shared state (`seasonAgg`, `assistAgg`, `highsAgg`, `rangeAgg`, `leagueAgg`, `boardAgg`, `LITE`, the play-by-play counters, `cupExtra`, `MIN_TOL`, `MIN_SLACK`) into one object, then move the last sections out (season rotation, assist network, scoring highs, shot profile, Cup, outliers).
+
 ## 0.148.0 (2026-11-24): the Bulls' and Pelicans' filled games checked against NBA.com's own box scores
 
 The user, 11/24: "continue with the bulls/pelicans. maybe you can use nba.com to verify those box scores".

@@ -8,7 +8,6 @@ import { headshot } from "./gameflow/headshots.js";
 import { REST_BUCKETS, dayNum, gameDay, restBucket, restIndex } from "./gameflow/rest.js";
 import { renderRangeCourt } from "./gameflow/poster-court.js";
 import { renderRangeScatter } from "./gameflow/poster-scatter.js";
-import "./gameflow/standings.js";
 import { DEF_TOP_N, buildLeague } from "./gameflow/league.js";
 import { RANK_POSTER_N, rankPoster } from "./gameflow/rank-poster.js";
 import { restRows, restStats } from "./gameflow/sec-rest.js";
@@ -292,16 +291,6 @@ async function feed(path){
  * both players ("A enters the game for B") with their ids attached, which is
  * split back into the league feed's separate "out" then "in" pair.
  */
-function espnShotSpot(p){
-  const c=p.coordinate;
-  if(!c || !Number.isFinite(+c.x) || !Number.isFinite(+c.y)) return {};
-  // ESPN's own convention, already folded onto one end; canonSpot documents why
-  const sx=+c.x - HOOP_X, sy=+c.y - HOOP_Y;
-  return onCourt(sx,sy) ? {x:+c.x, y:+c.y, sx, sy} : {};
-}
-window.__shot={hasSpot, spotDist, statedDist, shotDist, onCourt, canonSpot,
-               HOOP_X, HOOP_Y, ARC_R, CORNER_D, CORNER_Y,
-               COURT_W, COURT_L, HOOP_INSET, SPOT_SX, SPOT_SY};
 
 /* One box line, read from whichever feed supplied it. Both now use the league feed's key
    names, so this needs no source flag. */
@@ -2124,8 +2113,6 @@ export function topWithTies(ranked, n, valueOf){
 }
 window.__rank = {denseRanks, topWithTies};
 window.__poster = {fitText, pctile};
-window.__rest = {restIndex, restRows, restStats, gameDay, dayNum, restBucket,
-                REST_BUCKETS};
 window.__as = {ALL_STARS, normName, allStarRows, leaguePool, splitRow, renderPool,
                defDefinition,
                POOL_SHARE, POOL_MIN_SIDE, POOL_MIN_PPG, POOL_N};
