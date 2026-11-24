@@ -2,6 +2,39 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.144.0 (2026-11-23): award eligibility, the 65-game rule: a new tab, a countdown, and Watch List lines
+
+The user, 11/23, with CBA Article XXIX, Section 6 (games played requirement for league honors): "we'll need a countdown for players who are tracking for awards who may not be eligible because of the games played rule. It might require a different tab".
+
+**The rule, as coded** (`src/situations/eligibility.js`):
+- MVP, DPOY, Most Improved, All-NBA and All-Defensive need 65 games. A game counts at 20 minutes; up to two a season count at 15 to 19:59. A 0-minute appearance counts for nothing.
+- Or 62 games plus a season-ending injury and 85% of the team's games before it: shown as "62-game path open" once 65 is out of reach and 62 isn't.
+- "Can miss" = the team's games left (82 minus games played) minus the games he still needs. A traded player's count runs across his teams; what's left is his current team's.
+- The day 65 went out of reach, and the 2-day grievance window after it; the season's last day (ESPN's calendar: 4/11/2027, checked against the league's schedule release) and the challenge window (noon ET 4/11 to 11:59 PM ET 4/12).
+- Every team game he didn't count in has a reason: the night's injury report (injury, rest, personal, suspension, G League), "played too few minutes", or not on the report.
+
+**ESPN rounds minutes.** Measured on 5,529 player-games against Game Flow's play-by-play seconds: ESPN's whole minute is the nearest one (the difference sits between −0.5 and +0.5). So an ESPN "20" can be 19:30. ESPN's 20s and 15s are settled from the seconds Game Flow rebuilds from the substitutions: of 181 ESPN-20 games so far, **82 were under 20:00** (19:30-19:59) and count only as one of the two 15-minute games. A rebuilt total more than 0.55 minute off ESPN's isn't used (1 game: Terrence Shannon Jr., 10/21); a game without its Game Flow file yet waits for the next build. Both are said on the page.
+
+**Who is "tracking for awards":** Kalshi's prices. `scripts/kalshi.js` now saves the eight covered markets (MVP, DPOY, Most Improved, All-NBA 1st/2nd/3rd, All-Defensive 1st/2nd) to `history/kalshi/awards.json` when a price changes. All-NBA and All-Defensive add up their teams (a player makes one). A candidate is 3%+ for MVP or 10%+ for any of the others. Nobody is cut: the table has Award candidates, Rotation players and Everyone.
+
+**Where it shows:**
+- **New tab, Award eligibility** (`awards.html`, in every page's nav and the Index): the rule in plain terms; "Closest to the line" cards (a big "games he can miss" number, a bar of counted / not counted / still needed / can still miss, Kalshi odds, tonight's injury listing and what sitting tonight leaves); a sortable table; the dates.
+- **Watch List:** a line for a candidate whose margin is 8 games or fewer, or in the 10 days after 65 went out of reach, with tonight's injury listing ("out tonight (Right Hand Fracture); 5 after tonight"). The line stays when he's listed out (sitting is the story), and the best one in a game keeps a place among its eight, as club and TV lines do. **Site-only:** the Watch List and the #alerts storyline digest get it; NBA Live gets no card (bridge changes only on the user's go).
+
+**Checked:**
+- Every player's count against separate code with only ESPN's minutes (bounds with and without the 20s and 15s): 474 of 474 inside.
+- Stephen Curry, Dejounte Murray, Lauri Markkanen and Nikola Jokić against ESPN's player game logs (another ESPN endpoint): games and minutes agree (Curry 9 games of 20+, plus a 6-minute game when he was hurt on 11/11).
+- A full local build with sample Kalshi prices: lines for Markkanen and Murray reached `tonight.json` as site-only and kept their places. The sample file was removed; the real one arrives with the first Kalshi read after this is published.
+- The page by screenshot, desktop and phone (the rule folds away on a phone so the cards come first).
+
+**Tested:** 865 checks here (the notes-PDF checks need `samples/`, not on this machine); new: ESPN's 20s and 15s settled by seconds, the two 15-minute games, a 0-minute appearance, the reasons for missed games, the out-of-reach date and grievance window, a traded player's count, Kalshi's teams added up and names matched without accents, which players get a line, the line keeping its place on a crowded night, site-only, the new tab on every page. The Index and page-count checks updated for the 13th page.
+
+**Self-audit:**
+- My first tally of the borderline games said 33 of 181 ESPN-20 games were under 20:00. That counted "not counted" games, and a game under 20:00 still counts when it is one of the first two 15-minute games. Recounted by seconds: 82. The code was right; my summary of it wasn't.
+- My first test said a 5% MVP price out of reach gets no line. By the rule I wrote (3%+ for MVP) it does, and should; the test was wrong and now checks a 2% MVP and a 9% DPOY price instead.
+- The award lines were candidates but fell outside every game's eight on the first build (scores 2.95 and 3.31 against 4+). The user asked for this, so the best one keeps a place, the same way club and TV lines do.
+- Not verified: the seconds behind the 20s and 15s come from our rebuilt play-by-play, not an official box with seconds; Basketball-Reference shows minutes and seconds (two to check: Mitchell Robinson 11/4 vs MIL, 19:48 by ours; Goga Bitadze 11/18 vs PHI, 19:32). Kalshi's award file is written by code that hasn't run against the live API yet (Kalshi isn't reachable from this session); the page says when no prices are on file. The league's own count decides, and a grievance or challenge can change who's eligible.
+
 ## 0.143.0 (2026-11-23): a database of NBA fines and suspensions, from pr.nba.com
 
 The user, 11/23: "Are you able to scan all the articles from these pages to have a database of fines and career totals for each player? https://pr.nba.com/tag/nba-fines/", then "pc is connected. no need to send to discord".

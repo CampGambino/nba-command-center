@@ -12,7 +12,8 @@
  * Read only: nothing here trades or signs in. Kalshi's website is never read (its terms bar that); only the API.
  */
 import fs from "node:fs"; import path from "node:path"; import { fileURLToPath } from "node:url";
-import { look, line } from "../src/kalshi.js";
+import { look, line, priceOf } from "../src/kalshi.js";
+import { KALSHI_SERIES } from "../src/situations/eligibility.js";
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), ".."), args = process.argv.slice(2), arg = (k, d) => (args.includes(k) ? args[args.indexOf(k) + 1] : d);
 const stateFile = arg("--state", path.join(root, ".cache", "kalshi-state.json")), dry = args.includes("--dry"), out = path.join(root, "history", "kalshi");
 const BASES = ["https://external-api.kalshi.com/trade-api/v2", "https://api.elections.kalshi.com/trade-api/v2"];
@@ -54,6 +55,15 @@ const board = { series: Object.fromEntries(series.filter((s) => bySeries[s.t]).m
 const boardFile = path.join(out, "board.json"), boardText = JSON.stringify(board, null, 1);
 if (!fs.existsSync(boardFile) || fs.readFileSync(boardFile, "utf8") !== boardText) fs.writeFileSync(boardFile, boardText);
 fs.writeFileSync(path.join(out, "status.json"), JSON.stringify(status, null, 1));
+// 0.144.0: the award markets the games-played rule covers (MVP, DPOY, Most Improved, All-NBA, All-Defensive), each
+// player's price, for the award eligibility page (src/situations/eligibility.js). Rewritten only when a price changes.
+{
+  const awards = {};
+  for (const e of events) if (KALSHI_SERIES[e.series_ticker]) (awards[e.series_ticker] ||= []).push(...e.markets.map((m) => ({ name: m.yes_sub_title || m.subtitle || m.title, p: priceOf(m).p })).filter((m) => m.name && m.p > 0));
+  for (const k of Object.keys(awards)) awards[k].sort((a, b) => b.p - a.p || a.name.localeCompare(b.name));
+  const aFile = path.join(out, "awards.json"), was = fs.existsSync(aFile) ? JSON.parse(fs.readFileSync(aFile, "utf8")) : null;
+  if (Object.keys(awards).length && JSON.stringify(was?.series) !== JSON.stringify(awards)) fs.writeFileSync(aFile, JSON.stringify({ at: now, series: awards }));
+}
 // Discord: the first time the secret is seen, one line to say the channel is connected
 const url = (process.env.DISCORD_WEBHOOK_KALSHI || "").trim();
 if (url) {

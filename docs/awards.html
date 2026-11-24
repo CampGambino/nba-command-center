@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NBA Command Center · Award eligibility</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a;
+    --text: #e8eaef; --muted: #9aa3b2; --faint: #6b7383;
+    --accent: #4f9cf7; --good: #3fbf7f; --warn: #e5a93b; --bad: #e5604f; --live: #ff4d6d;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg: #f5f6f8; --panel: #fff; --panel2: #f0f2f5; --line: #e1e4ea; --text: #161a22; --muted: #5b6474; --faint: #8a93a3; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header, main, footer { max-width: 1180px; margin: 0 auto; }
+  header { padding: 18px 16px 8px; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  main { padding: 0 12px 40px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 22px 4px 10px; }
+  nav { display: flex; flex-wrap: wrap; row-gap: 4px; gap: 14px; margin-top: 6px; font-size: 13.5px; }
+  nav a { color: var(--muted); text-decoration: none; padding-bottom: 2px; }
+  nav a.on { color: var(--text); border-bottom: 2px solid var(--accent); }
+  .rule { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: var(--radius); padding: 10px 14px; font-size: 13.5px; margin-top: 12px; }
+  .rule b { color: var(--text); } .rule summary { cursor: pointer; }
+  .rule ul { margin: 6px 0 0 18px; padding: 0; } .rule li { margin: 2px 0; }
+  .warn-banner { background: color-mix(in srgb, var(--warn) 12%, var(--panel)); border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); border-radius: var(--radius); padding: 10px 12px; font-size: 13px; margin: 10px 0; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); gap: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: grid; grid-template-columns: 74px 1fr; gap: 12px; }
+  .card.out { border-color: color-mix(in srgb, var(--bad) 55%, var(--line)); }
+  .card.thin { border-color: color-mix(in srgb, var(--warn) 55%, var(--line)); }
+  .big { text-align: center; }
+  .big .n { font-size: 30px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+  .big .w { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.2; }
+  .card.out .big .n { color: var(--bad); font-size: 22px; }
+  .card.thin .big .n { color: var(--warn); }
+  .card.ok .big .n { color: var(--good); }
+  .who { font-weight: 650; }
+  .team { color: var(--faint); font-weight: 500; font-size: 12px; margin-left: 4px; }
+  .meta { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .chip { font-size: 11.5px; padding: 2px 7px; border-radius: 999px; background: var(--panel2); color: var(--muted); border: 1px solid var(--line); white-space: nowrap; }
+  .chip.aw { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+  .chip.out { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); font-weight: 600; }
+  .chip.dtd { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+  .chip.tn { color: var(--text); }
+  .bar { display: flex; height: 10px; border-radius: 6px; overflow: hidden; background: var(--panel2); margin-top: 8px; border: 1px solid var(--line); }
+  .bar i { display: block; height: 100%; }
+  .bar .q { background: var(--good); } .bar .m { background: color-mix(in srgb, var(--bad) 55%, var(--panel2)); }
+  .bar .need { background: color-mix(in srgb, var(--accent) 60%, var(--panel2)); } .bar .slack { background: repeating-linear-gradient(45deg, var(--panel2), var(--panel2) 3px, var(--line) 3px, var(--line) 6px); }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); margin: 0 4px 10px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; background: var(--c); }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 2px 10px; }
+  select, input[type=search] { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 14px; }
+  label { color: var(--muted); font-size: 13px; }
+  .toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .toggle button { background: var(--panel); border: 0; border-radius: 0; padding: 6px 10px; font-size: 13px; color: var(--muted); cursor: pointer; }
+  .toggle button.on { background: var(--accent); color: #fff; }
+  .scroll { overflow-x: auto; border-radius: var(--radius); }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; min-width: 980px; }
+  th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--line); font-size: 13px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; background: var(--panel2); cursor: pointer; white-space: nowrap; }
+  th.on { color: var(--accent); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  tr.prow { cursor: pointer; } tr.prow:hover td { background: rgba(127,127,127,.08); }
+  tr.detail > td { background: rgba(127,127,127,.06); font-size: 12.5px; color: var(--muted); padding: 8px 14px 12px; }
+  .st-out { color: var(--bad); font-weight: 650; } .st-thin { color: var(--warn); font-weight: 650; } .st-in { color: var(--good); font-weight: 650; }
+  .empty { color: var(--faint); padding: 12px 4px; }
+  .small { color: var(--faint); font-size: 12px; }
+  footer { color: var(--faint); font-size: 12px; padding: 0 16px 30px; }
+  ul.dates { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); margin: 0; padding: 8px 12px 8px 28px; font-size: 13px; }
+  ul.dates li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>NBA Command Center</h1>
+  <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a href="standings.html">Standings</a><a href="clutch.html">Clutch</a><a href="players.html">With / without</a><a href="trends.html">Streaks &amp; outliers</a><a href="leaders.html">Team leaders</a><a href="defenses.html">vs top teams</a><a href="national.html">National TV</a><a href="gameflow.html">Game Flow</a><a href="records.html">Records</a><a class="on" href="awards.html">Award eligibility</a><a href="find.html">Index</a></nav>
+  <div class="sub" id="sub">Loading…</div>
+</header>
+<main>
+  <details class="rule" id="rule" open>
+    <summary><b>The 65-game rule</b> (CBA Article XXIX, Section 6)</summary> MVP, Defensive Player of the Year, Most Improved, All-NBA and All-Defensive need:
+    <ul>
+      <li><b>65 games</b>, where a game counts at <b>20 minutes</b>. Only <b>two</b> games a season count at 15 to 19:59. Anything under that doesn't count.</li>
+      <li>Or <b>62 games</b> plus a season-ending injury (a doctor picked by the league and the union says he likely can't play through May 31) and <b>85%</b> of his team's games before it.</li>
+      <li>Once 65 is out of reach: a <b>grievance</b> (his team held him down on purpose; only when an award would raise his max salary or allow a supermax; filed within 2 days) or an <b>extraordinary circumstances challenge</b> (filed at the end of the season). Never both.</li>
+    </ul>
+    <div class="small" style="margin-top:6px">Not covered: Rookie of the Year, Sixth Man, Clutch Player, Coach of the Year. "Can miss" = games left for his team minus games he still needs; a game under 20 minutes (after his two 15-minute games are used) is a missed game too.</div>
+  </details>
+  <div id="banner"></div>
+
+  <h2 id="close">Closest to the line</h2>
+  <div class="legend"><span style="--c:var(--good)">counted</span><span style="--c:color-mix(in srgb, var(--bad) 55%, var(--panel2))">team games he didn't count in</span><span style="--c:color-mix(in srgb, var(--accent) 60%, var(--panel2))">games he still needs</span><span style="--c:var(--line)">games he can still miss</span></div>
+  <div class="cards" id="cards"></div>
+
+  <h2 id="all">Every player</h2>
+  <div class="controls">
+    <div class="toggle" id="view"><button data-v="cand">Award candidates</button><button data-v="rot">Rotation players</button><button data-v="all">Everyone</button></div>
+    <select id="team"><option value="">All teams</option></select>
+    <input type="search" id="q" placeholder="Player">
+    <label><input type="checkbox" id="tn"> playing tonight</label>
+  </div>
+  <div class="scroll"><table id="tbl"></table></div>
+  <div class="small" style="margin:6px 4px" id="tblNote"></div>
+
+  <h2 id="dates">Dates</h2>
+  <ul class="dates" id="dateList"></ul>
+</main>
+<footer id="foot"></footer>
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const md = (d) => d ? `${+d.slice(5, 7)}/${+d.slice(8, 10)}` : "";
+const AW = { mvp: "MVP", dpoy: "DPOY", mip: "MIP", allnba: "All-NBA", alldef: "All-Def" };
+const AWS = ["mvp", "dpoy", "mip", "allnba", "alldef"];
+const MISSED = { injury: "injury", rest: "rest", personal: "personal / not with team", suspension: "suspension", gleague: "G League", other: "other", unlisted: "not on the injury report", short: "played too few minutes" };
+const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+let D = null, VIEW = null, SORT = { k: "canMiss", dir: 1 }, OPEN = new Set();
+
+const stakeMax = (p) => p.stake ? Math.max(...AWS.map((k) => p.stake[k] || 0)) : 0;
+const isCand = (p) => !!p.stake && ((p.stake.mvp || 0) >= 3 || AWS.some((k) => (p.stake[k] || 0) >= 10));
+const isRot = (p) => p.teamGames >= 5 && p.full >= p.teamGames * 0.5;
+const awardChips = (p) => p.stake ? AWS.filter((k) => p.stake[k]).sort((a, b) => p.stake[b] - p.stake[a]).map((k) => `<span class="chip aw" title="Kalshi's price: the market's chance in points">${AW[k]} ${p.stake[k]}%</span>`).join("") : "";
+const tnChip = (p) => p.tonight ? `<span class="chip ${/Out|Doubtful/i.test(p.tonight.status) ? "out" : "dtd"}" title="${esc(p.tonight.reason || "")}">${esc(p.tonight.status)} tonight</span>` : p.plays ? `<span class="chip tn">plays tonight</span>` : "";
+const thin = (p) => p.status === "alive" && p.canMiss <= 8;
+function bigNum(p) {
+  if (p.status === "in") return `<div class="n">✓</div><div class="w">reached 65</div>`;
+  if (p.status === "out") return `<div class="n">OUT</div><div class="w">${p.outSince ? `since ${md(p.outSince)}` : "of reach of 65"}</div>`;
+  if (p.status === "unsigned") return `<div class="n">–</div><div class="w">not on a team</div>`;
+  return `<div class="n">${p.canMiss}</div><div class="w">${p.canMiss === 1 ? "game he can miss" : "games he can miss"}</div>`;
+}
+function bar(p) {
+  const T = 82, missed = Math.max(0, p.teamGames - p.q), left = p.left ?? 0, need = Math.min(left, p.need), slack = Math.max(0, left - need);
+  const w = (n) => `${(100 * n / T).toFixed(2)}%`;
+  return `<div class="bar" title="${p.q} counted, ${missed} not counted, ${need} still needed, ${slack} he can miss"><i class="q" style="width:${w(p.q)}"></i><i class="m" style="width:${w(missed)}"></i><i class="need" style="width:${w(need)}"></i><i class="slack" style="width:${w(slack)}"></i></div>`;
+}
+const missedText = (p) => Object.entries(p.missed || {}).filter(([, n]) => n).map(([k, n]) => `${n} ${MISSED[k] || k}`).join(", ");
+function borderText(p) {
+  if (!p.border?.length) return "";
+  return p.border.map((b) => `${md(b.d)} vs ${b.opp}: ESPN ${b.min} min${b.sec != null ? `, ${mmss(b.sec)} by play-by-play` : ""} → ${b.how === "check" ? "to check" : b.counted ? "counted" : "not counted"}`).join("; ");
+}
+function card(p) {
+  const cls = p.status === "out" ? "out" : thin(p) ? "thin" : p.status === "in" ? "ok" : "";
+  const sitAfter = p.tonight && /Out|Doubtful/i.test(p.tonight.status) && p.status === "alive" ? ` If he sits tonight: ${p.canMiss - 1 < 0 ? "out of reach" : p.canMiss - 1}.` : "";
+  const alt = p.status === "out" ? (p.alt ? ` 62-game path still open (needs a season-ending injury after his 62nd game; he has played ${Math.round((p.share || 0) * 100)}% of his team's games, 85% needed).` : " Can't reach 62 either.") : "";
+  return `<div class="card ${cls}"><div class="big">${bigNum(p)}</div><div>
+    <div><span class="who">${esc(p.name)}</span><span class="team">${esc(p.team || "")}${p.was ? ` (from ${esc(p.was)})` : ""}</span></div>
+    <div class="chips">${awardChips(p)}${tnChip(p)}</div>
+    ${bar(p)}
+    <div class="meta">${p.q} counted of ${p.teamGames} team games · ${p.left ?? "?"} left · needs ${p.need}${p.status === "alive" ? ` · on pace for ${p.pace}` : ""}.${sitAfter}${alt}${p.status === "out" && p.grievanceBy ? ` Grievance window closed ${md(p.grievanceBy)}.` : ""}</div>
+    ${missedText(p) ? `<div class="meta">Not counted: ${esc(missedText(p))}.${p.shortUsed ? ` 15-19 minute games used: ${p.shortUsed} of 2.` : ""}</div>` : ""}
+    ${p.check ? `<div class="meta" style="color:var(--warn)">${p.check} game${p.check === 1 ? "" : "s"} at ESPN's 20 or 15 still to check against the play-by-play.</div>` : ""}
+  </div></div>`;
+}
+const COLS = [
+  ["name", "Player"], ["team", "Team"], ["stake", "Award odds (Kalshi)"], ["q", "Counted", 1], ["teamGames", "Team games", 1], ["left", "Left", 1], ["need", "Needs", 1],
+  ["canMiss", "Can miss", 1], ["shortUsed", "15-19 used", 1], ["pace", "On pace for", 1], ["missedN", "Not counted", 1], ["status", "Status"],
+];
+const val = (p, k) => k === "stake" ? stakeMax(p) : k === "missedN" ? p.teamGames - p.q : k === "canMiss" ? (p.status === "out" ? -100 + (p.canMiss ?? 0) : p.status === "in" ? 999 : p.canMiss ?? 998) : p[k];
+function statusCell(p) {
+  if (p.status === "out") return `<span class="st-out">out since ${md(p.outSince)}</span>${p.alt ? ` <span class="small">62 path open</span>` : ""}`;
+  if (p.status === "in") return `<span class="st-in">eligible</span>`;
+  if (p.status === "unsigned") return `<span class="small">not on a team</span>`;
+  return thin(p) ? `<span class="st-thin">${p.canMiss === 0 ? "no games to spare" : "on the edge"}</span>` : "alive";
+}
+function rows() {
+  const team = $("team").value, q = $("q").value.trim().toLowerCase(), tn = $("tn").checked;
+  let L = D.players.filter((p) => VIEW === "cand" ? isCand(p) : VIEW === "rot" ? isRot(p) : true)
+    .filter((p) => (!team || p.team === team) && (!q || p.name.toLowerCase().includes(q)) && (!tn || p.plays));
+  return L.sort((a, b) => { const x = val(a, SORT.k), y = val(b, SORT.k); return (typeof x === "string" ? String(x).localeCompare(String(y)) : (x ?? 0) - (y ?? 0)) * SORT.dir || stakeMax(b) - stakeMax(a); });
+}
+function renderTable() {
+  const L = rows();
+  $("tbl").innerHTML = `<thead><tr>${COLS.map(([k, t, n]) => `<th data-k="${k}" class="${n ? "num" : ""} ${SORT.k === k ? "on" : ""}">${t}${SORT.k === k ? (SORT.dir > 0 ? " ▲" : " ▼") : ""}</th>`).join("")}</tr></thead><tbody>${L.map((p) => `
+    <tr class="prow" data-id="${p.id}"><td>${esc(p.name)}</td><td>${esc(p.team || "–")}</td><td>${awardChips(p) || '<span class="small">–</span>'}</td><td class="num">${p.q}</td><td class="num">${p.teamGames}</td><td class="num">${p.left ?? "–"}</td><td class="num">${p.need}</td>
+    <td class="num">${p.status === "alive" ? p.canMiss : "–"}</td><td class="num">${p.shortUsed}/2</td><td class="num">${p.status === "alive" ? p.pace : "–"}</td><td class="num">${p.teamGames - p.q}</td><td>${statusCell(p)} ${tnChip(p)}</td></tr>
+    ${OPEN.has(p.id) ? `<tr class="detail"><td colspan="${COLS.length}">${esc(missedText(p) ? `Not counted: ${missedText(p)}.` : "Counted in every team game.")} ${p.under || p.short ? esc(`Games he played: ${p.full} at 20+ minutes, ${p.short} at 15-19 (${p.shortUsed} of them counted), ${p.under} under 15.`) : ""}${p.border.length ? `<br>Close calls on minutes: ${esc(borderText(p))}` : ""}${p.status === "out" && p.grievanceBy ? `<br>Out of reach since ${md(p.outSince)}; a grievance had to be filed by ${md(p.grievanceBy)}.` : ""}</td></tr>` : ""}`).join("")}</tbody>`;
+  $("tblNote").textContent = `${L.length} player${L.length === 1 ? "" : "s"}. ${VIEW === "cand" ? "Award candidates: Kalshi gives him 3% or more for MVP, or 10% or more for DPOY, Most Improved, All-NBA (1st + 2nd + 3rd team) or All-Defensive (1st + 2nd)." : VIEW === "rot" ? "Rotation players: 20+ minutes in at least half his team's games." : ""} Click a row for the games he didn't count in.`;
+  document.querySelectorAll("#tbl th").forEach((th) => th.onclick = () => { const k = th.dataset.k; SORT = SORT.k === k ? { k, dir: -SORT.dir } : { k, dir: ["stake", "q", "pace"].includes(k) ? -1 : 1 }; renderTable(); });
+  document.querySelectorAll("#tbl tr.prow").forEach((tr) => tr.onclick = () => { const id = tr.dataset.id; OPEN.has(id) ? OPEN.delete(id) : OPEN.add(id); renderTable(); });
+}
+function setView(v) { VIEW = v; document.querySelectorAll("#view button").forEach((b) => b.classList.toggle("on", b.dataset.v === v)); renderTable(); }
+
+async function main() {
+  if (window.matchMedia("(max-width: 600px)").matches) $("rule").open = false;   // on a phone the cards come first
+  D = await fetch("data/eligibility.json", { cache: "no-store" }).then((r) => r.ok ? r.json() : null).catch(() => null);
+  if (!D?.players) { $("sub").textContent = "No eligibility data yet: it appears with the next build."; return; }
+  const hasOdds = D.players.some((p) => p.stake);
+  $("sub").textContent = `Through ${md(D.through)} · ${D.players.length} players · ${hasOdds ? `Kalshi award prices as of ${new Date(D.awardsAt).toLocaleString([], { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" })}` : "no Kalshi award prices on file yet"} · built ${new Date(D.generatedAt).toLocaleString([], { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" })}`;
+  const notes = [];
+  if (!hasOdds) notes.push("Kalshi's award prices aren't on file yet (they're saved by the hourly Kalshi read). Until then the cards show rotation players and the table starts on them.");
+  const later = D.counts?.toCheckLater || 0, stuck = (D.counts?.toCheck || 0) - later;
+  if (later) notes.push(`${later} player-game${later === 1 ? "" : "s"} at ESPN's 20 or 15 minutes ${later === 1 ? "hasn't" : "haven't"} been checked against the play-by-play yet (ESPN rounds to the nearest minute, so a "20" can be 19:30): ${later === 1 ? "its" : "their"} Game Flow file comes with the next build. Counted as ESPN shows until then.`);
+  if (stuck) { const who = D.players.filter((p) => p.border.some((b) => b.why === "miss")).map((p) => `${p.name} ${p.border.filter((b) => b.why === "miss").map((b) => md(b.d)).join(", ")}`); notes.push(`${stuck} player-game${stuck === 1 ? "" : "s"} at ESPN's 20 or 15 minutes couldn't be settled from the play-by-play (the rebuilt minutes don't match ESPN's): counted as ESPN shows, which may be 30 seconds generous. ${who.slice(0, 6).join("; ")}.`); }
+  $("banner").innerHTML = notes.map((n) => `<div class="warn-banner">${esc(n)}</div>`).join("");
+  // the cards: candidates (or rotation players before the prices arrive), out of reach first, then the thinnest margins
+  const pool = D.players.filter((p) => hasOdds ? isCand(p) : isRot(p) && p.status !== "in");
+  const top = pool.filter((p) => p.status === "out" || p.status === "alive").sort((a, b) => (a.status === "out" ? -1 : 0) - (b.status === "out" ? -1 : 0) || a.canMiss - b.canMiss || stakeMax(b) - stakeMax(a)).slice(0, 12);
+  $("cards").innerHTML = top.length ? top.map(card).join("") : `<div class="empty">Nobody tracking for an award is near the line.</div>`;
+  const teams = [...new Set(D.players.map((p) => p.team).filter(Boolean))].sort();
+  $("team").innerHTML += teams.map((t) => `<option>${t}</option>`).join("");
+  ["team", "q", "tn"].forEach((id) => $(id).addEventListener("input", renderTable));
+  document.querySelectorAll("#view button").forEach((b) => b.onclick = () => setView(b.dataset.v));
+  setView(hasOdds ? "cand" : "rot");
+  const cw = D.challengeWindow, dl = [];
+  if (D.seasonEnd) dl.push(`<li>Last day of the regular season: ${md(D.seasonEnd)}. Grievances must be filed by 11:59 PM ET the next day.</li>`);
+  if (cw) dl.push(`<li>Extraordinary circumstances challenges: from noon ET on ${md(D.seasonEnd)} to 11:59 PM ET on ${md(cw.to.slice(0, 10))}.</li>`);
+  const recent = D.players.filter((p) => p.status === "out" && p.outSince && isCand(p)).sort((a, b) => b.outSince.localeCompare(a.outSince));
+  for (const p of recent) dl.push(`<li>${esc(p.name)} (${esc(p.team)}): 65 out of reach since ${md(p.outSince)}; grievance window to ${md(p.grievanceBy)}.</li>`);
+  $("dateList").innerHTML = dl.join("") || `<li class="small">No dates yet.</li>`;
+  $("foot").innerHTML = `Minutes from ESPN's box scores. ESPN rounds to the nearest minute, so its 20s and 15s are settled from the play-by-play (Game Flow rebuilds each player's seconds from the substitutions). Team games left = 82 minus games played; a traded player's count runs across his teams. Award odds are Kalshi's prices (its API), not a forecast of ours. The league's own count decides.`;
+}
+main();
+</script>
+</body>
+</html>

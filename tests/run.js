@@ -4805,7 +4805,7 @@ await bridgeChecks(ok, root);
       .replace('<a href="situations.html">Team situations</a><a class="on" href="standings.html">Standings</a>', '<a class="on" href="situations.html">Team situations</a><a href="standings.html">Standings</a>') === sit;
     const pagesH = fs.readdirSync(path.join(root, "docs")).filter((f) => f.endsWith(".html")), navOk = pagesH.every((f) => /href="standings\.html"[^>]*>Standings<\/a>/.test(fs.readFileSync(path.join(root, "docs", f), "utf8")));
     const tr2 = fs.readFileSync(path.join(root, "docs", "trends.html"), "utf8"), nat = fs.readFileSync(path.join(root, "docs", "national.html"), "utf8"), ldr = fs.readFileSync(path.join(root, "docs", "leaders.html"), "utf8"), idx = fs.readFileSync(path.join(root, "docs", "index.html"), "utf8");
-    ok(mB.v === 147 && mB.d === "2025-11-14" && mB.behind === 146 && mB.doubt.v === 155 && same && navOk && pagesH.length === 12
+    ok(mB.v === 147 && mB.d === "2025-11-14" && mB.behind === 146 && mB.doubt.v === 155 && same && navOk && pagesH.length === 13
       && /body\[data-view="situations"\] \.v-standings, body\[data-view="standings"\] \.v-situations \{ display: none; \}/.test(sit) && sit.indexOf('<div class="v-standings">') < sit.indexOf("<h2>All teams</h2>") && sit.indexOf("Most unusual records") < sit.indexOf('<div class="v-standings">')
       && /id="sgroup"/.test(tr2) && /sgroup !== "off" && !cat/.test(tr2) && /data-g="player"/.test(tr2) && /const PER = 25/.test(nat) && /id="ppager"/.test(nat) && ldr.indexOf("<h2>50-40-90 watch</h2>") < ldr.indexOf('<details id="shootbox"') && !/<h2>Shooting lines/.test(ldr)
       && /"standings\.html#rest"/.test(idx) && /"standings\.html#standings"/.test(idx),
@@ -5062,6 +5062,62 @@ await bridgeChecks(ok, root);
   ok(zf.rows.length === 17 && zf.rows.some((r) => r[4] === "Josh Minott" && r[1] === "2026-11-02"), "games played (0.142.7): this season's 0-minute games through 11/22, read from ESPN's summaries");
 }
 
+// ---------- 0.144.0: award eligibility, the 65-game rule (the user, 11/23: "we'll need a countdown for players who are tracking for awards who may not be eligible because of the games played rule") ----------
+{
+  const { classify, eligibility, eligibilityLines, awardStakes, reasonKind } = await import("../src/situations/eligibility.js");
+  const c = (m, s) => { const r = classify(m, s); return `${r.kind}/${r.how}`; };
+  ok(c(21) === "full/box" && c(19) === "short/box" && c(16) === "short/box" && c(14) === "under/box" && c(20, 1185) === "short/pbp" && c(20, 1200) === "full/pbp" && c(20) === "full/check"
+    && c(20, null) === "full/check" && c(20, 1300) === "full/check" && c(15, 890) === "under/pbp" && c(15, 905) === "short/pbp" && c(15) === "short/check",
+    "award eligibility (0.144.0): ESPN rounds minutes, so its 20s and 15s are settled by play-by-play seconds (19:45 is not 20 minutes); a rebuilt total more than half a minute off ESPN's isn't used, and the game stays to check");
+  // AAA and BBB play each other 20 times; CCC plays DDD 15 times. X: 3 full, 17-18-16 (two count), an ESPN 20 that was 19:50 (a fourth short game),
+  // an ESPN 20 that was 20:10, a 0-minute appearance, then out (injury report: 5 nights listed, the rest not). Y: 2 games then gone. Z: traded AAA -> CCC.
+  const day = (i) => `2026-11-${String(i).padStart(2, "0")}`;
+  const rows = [];
+  const mins = { X: [25, 25, 25, 17, 18, 16, 20, 20, 0], Y: [30, 30] };
+  for (let i = 1; i <= 20; i++) {
+    const pl = { B1: [1, 1, 30] };
+    if (mins.X[i - 1] != null) pl.X = [0, 1, mins.X[i - 1]];
+    if (mins.Y[i - 1] != null) pl.Y = [0, 1, mins.Y[i - 1]];
+    if (i <= 10) pl.Z = [0, 1, 30];
+    rows.push({ id: `g${i}`, d: day(i), h: "AAA", a: "BBB", pl, ...(i === 9 ? { z: ["X"] } : {}) });
+    if (i >= 6) rows.push({ id: `c${i}`, d: day(i), h: "CCC", a: "DDD", pl: { D1: [1, 1, 30], ...(i >= 12 && i <= 16 ? { Z: [0, 1, 28] } : {}) } });
+  }
+  const seconds = { g7: { X: 1190 }, g8: { X: 1210 } };
+  const listings = Object.fromEntries([10, 11, 12, 13, 14].map((i) => [day(i), { AAA: [{ id: "X", status: "Out", reason: "Injury/Illness - Left Ankle Sprain" }] }]));
+  const awards = { series: { KXNBA1STTEAM: [{ name: "Ex Player", p: 20 }], KXNBA2NDTEAM: [{ name: "Ex Player", p: 15 }], KXNBAMVP: [{ name: "Wy Playér", p: 5 }], KXNBAROY: [{ name: "Ex Player", p: 50 }] } };
+  const E = eligibility({ rows, names: { X: "Ex Player", Y: "Wy Player", Z: "Zed Player" }, current: { Z: { team: "CCC", was: "AAA", since: "2026-11-11" } }, seconds, listings,
+    tonight: { date: "2026-11-21", players: [{ team: "AAA", name: "Ex Player", status: "Out", reason: "Injury/Illness - Left Ankle Sprain" }] }, awards, today: "2026-11-21", through: "2026-11-20", seasonEnd: "2027-04-11", tonightTeams: new Set(["AAA"]) });
+  const X = E.players.find((p) => p.id === "X"), Y = E.players.find((p) => p.id === "Y"), Z = E.players.find((p) => p.id === "Z");
+  ok(X.q === 6 && X.full === 4 && X.short === 4 && X.shortUsed === 2 && X.under === 1 && X.left === 62 && X.need === 59 && X.canMiss === 3 && X.status === "alive" && X.teamGames === 20
+    && X.missed.short === 3 && X.missed.injury === 5 && X.missed.unlisted === 6 && X.border.length === 2 && X.border[0].counted === false && X.border[1].counted === true && X.check === 0,
+    "award eligibility (0.144.0): 20+ minutes counts, only two games at 15-19 count, an ESPN 20 at 19:50 is a 15-19 game, a 0-minute appearance counts for nothing; 65 needed of 82, so 3 more he can miss; every team game he didn't count in has its reason", JSON.stringify(X));
+  ok(Y.status === "out" && Y.outSince === "2026-11-20" && Y.grievanceBy === "2026-11-22" && Y.alt === true && Y.q === 2 && Y.missed.unlisted === 18,
+    "award eligibility (0.144.0): 65 goes out of reach the night his team plays its 18th game without him (2 counted + 62 left = 64); the grievance window is the next two days; 62 is still reachable", JSON.stringify(Y));
+  ok(Z.team === "CCC" && Z.q === 15 && Z.left === 82 - 15 && Z.canMiss === 67 - 50 && Z.was === "AAA",
+    "award eligibility (0.144.0): a traded player's games count across his teams, and what's left is his new team's schedule", JSON.stringify(Z));
+  const st = awardStakes(awards);
+  ok(st["ex player"].allnba === 35 && !st["ex player"].roy && st["wy player"].mvp === 5 && E.challengeWindow.to === "2027-04-12 11:59 PM ET" && reasonKind("G League - Two-Way") === "gleague" && reasonKind("Not With Team") === "personal",
+    "award eligibility (0.144.0): Kalshi's All-NBA teams add up (a player makes one), names match without accents, Rookie of the Year isn't a covered award; the challenge window runs to 11:59 PM ET the day after the season ends");
+  const L = eligibilityLines({ ...E, today: "2026-11-21" }, new Set(["AAA"]), "2026-11-21");
+  const LX = L.find((l) => l.player === "Ex Player"), LY = L.find((l) => l.player === "Wy Player");
+  const E2 = eligibility({ rows, names: { X: "Ex Player", Y: "Wy Player" }, seconds, listings, awards: { series: { KXNBADPOY: [{ name: "Ex Player", p: 9 }], KXNBAMVP: [{ name: "Wy Player", p: 2 }] } }, today: "2026-11-21", through: "2026-11-20" });
+  ok(L.length === 2 && /can miss 3 more games and stay award-eligible under the 65-game rule \(6 of his team's 20 games counted, 62 left\) · out tonight \(Left Ankle Sprain\); 2 after tonight/.test(LX.text) && /All-NBA 35% on Kalshi/.test(LX.text)
+    && /Wy Player \(MVP 5% on Kalshi\) can no longer reach 65 games: out of award eligibility since 11\/20 \(2 games counted, 62 left\); the 62-game season-ending-injury path is still open/.test(LY.text) && LY.score > LX.score - 1
+    && eligibilityLines({ ...E2, today: "2026-11-21" }, new Set(["AAA"]), "2026-11-21").length === 0 && eligibilityLines({ ...E, today: "2026-11-21" }, new Set(["CCC"]), "2026-11-21").length === 0,
+    "award eligibility (0.144.0): the Watch List gets a line for a player the market gives a real chance (MVP 3%+, or 10%+ elsewhere) once his margin is 8 games or fewer (with tonight's injury listing), or in the 10 days after 65 went out of reach; a 9% DPOY or 2% MVP price gets none, and nor does a team not playing", JSON.stringify(L));
+  const { tonightStorylines } = await import("../src/anticipate/tonight.js");
+  const crowd = { watch: { today: "2026-11-21", games: [{ awayTri: "BBB", homeTri: "AAA" }], teams: [] }, trends: { watch: Array.from({ length: 10 }, (_, i) => ({ team: "AAA", text: `AAA line ${i}`, score: 4.5 })) },
+    elig: { today: "2026-11-21", lines: [{ ...LX }] }, maxLines: 8 };
+  const SL = tonightStorylines(crowd)[0].lines;
+  ok(SL.length === 8 && SL.filter((l) => l.kind === "awards").length === 1 && SL.find((l) => l.kind === "awards").siteOnly === true && tonightStorylines({ ...crowd, elig: { today: "2026-11-20", lines: [LX] } })[0].lines.every((l) => l.kind !== "awards"),
+    "award eligibility (0.144.0): on a crowded night a game's best award-eligibility line keeps a place among its eight (as club and TV lines do), as a site-only line; a file from another day gives none", JSON.stringify(SL.map((l) => l.kind)));
+  const tn = fs.readFileSync(path.join(root, "src", "anticipate", "tonight.js"), "utf8"), kal = fs.readFileSync(path.join(root, "scripts", "kalshi.js"), "utf8"), sj = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8");
+  const pages = fs.readdirSync(path.join(root, "docs")).filter((f) => f.endsWith(".html") && f !== "awards.html");
+  ok(/\.\.\.awardLines\(elig, teams, watch\.today\)\] \};/.test(tn) && /siteOnly: true \}\)\);/.test(tn.slice(tn.indexOf("function awardLines"), tn.indexOf("function awardLines") + 400)) && !/^import .*eligibility/m.test(tn)
+    && /history", "kalshi", "awards\.json"/.test(sj) && /eligibility\.json/.test(sj) && /awards\.json/.test(kal) && /KALSHI_SERIES\[e\.series_ticker\]/.test(kal)
+    && pages.every((f) => fs.readFileSync(path.join(root, "docs", f), "utf8").includes('href="awards.html"')),
+    "award eligibility (0.144.0): the lines are site-only (Watch List and the Discord digest, never an NBA Live card) and survive an Out listing; Kalshi's award prices are saved by the hourly read; every page links the new tab", pages.filter((f) => !fs.readFileSync(path.join(root, "docs", f), "utf8").includes('href="awards.html"')).join(","));
+}
 // ---------- 0.143.0: NBA fines and suspensions from pr.nba.com (the user, 11/23: "a database of fines and career totals for each player") ----------
 {
   const { parseRelease } = await import("../tools/pr-fines/parse.mjs");

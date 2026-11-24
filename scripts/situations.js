@@ -824,6 +824,42 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
     console.log(`injury report: none found for ${today}${old?.date === today ? " (kept the last one)" : ""}`);
   }
 }
+// Award eligibility (0.144.0; the user, 11/23, with CBA Article XXIX, Section 6): every player's count toward the 65
+// games MVP, DPOY, Most Improved, All-NBA and All-Defensive need, how many more he can miss, and Kalshi's price for him
+// in those awards (history/kalshi/awards.json). ESPN rounds minutes, so its 20s and 15s are settled from Game Flow's
+// play-by-play seconds (a game without its Game Flow file yet is "to check" until the next build).
+try {
+  const { eligibility, eligibilityLines } = await import("../src/situations/eligibility.js");
+  const { listedIds } = await import("../src/injuries/history.js");
+  const { expandFeeds } = await import("../src/gameflow/feeds.js");
+  const { buildStints } = await import("../src/gameflow/model.js");
+  const flowDir = path.join(root, "docs", "data", "flow", String(store.season || ""));
+  const seconds = {}; let rebuilt = 0, noFile = 0;
+  for (const g of rows) {
+    const ids = Object.entries(g.pl || {}).filter(([, v]) => v[2] === 20 || v[2] === 15).map(([id]) => id);
+    if (!ids.length) continue;
+    const f = path.join(flowDir, `${g.id}.json`);
+    if (!fs.existsSync(f)) { noFile++; continue; }
+    try {
+      const { pbp, box } = expandFeeds(JSON.parse(fs.readFileSync(f, "utf8"))), G = buildStints(pbp, box);
+      const by = new Map(G.players.map((p) => [String(p.id), p]));
+      seconds[g.id] = Object.fromEntries(ids.map((id) => { const p = by.get(id); return [id, p && p.played ? Math.round(p.calcMin * 60) : null]; }));
+      rebuilt++;
+    } catch (e) { seconds[g.id] = Object.fromEntries(ids.map((id) => [id, null])); }
+  }
+  const teamIds = Object.fromEntries(Object.entries(perTeam).map(([tri, games]) => [tri, new Set(games.flatMap((x) => Object.keys(x.pl)))]));
+  const listings = Object.fromEntries(Object.entries(injByDate).map(([d, r]) => [d, listedIds(r, store.names || {}, teamIds)]));
+  const rdOpt = (f) => { try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch { return null; } };
+  const awards = rdOpt(path.join(root, "history", "kalshi", "awards.json"));
+  const cal = sb.ok ? sb.data.calendar : [];
+  const E = eligibility({ rows, names: store.names || {}, current: rosterChanges, seconds, listings, tonight: rdOpt(path.join(root, "docs", "data", "injuries.json")), awards, today, through,
+    seasonEnd: cal.length ? cal[cal.length - 1] : null, tonightTeams: new Set(tonight.flatMap((g) => [g.home, g.away])) });
+  // the Watch List's lines (src/anticipate/tonight.js reads `lines`; it imports nothing from here, so the page's copy works alone)
+  const lines = eligibilityLines({ ...E, today }, new Set(tonight.flatMap((g) => [g.home, g.away])), today);
+  fs.writeFileSync(path.join(root, "docs", "data", "eligibility.json"), JSON.stringify({ generatedAt: out.generatedAt, today, through, awardsAt: awards?.at || null, ...E, lines }));
+  const cand = E.players.filter((p) => p.stake);
+  console.log(`award eligibility: ${E.players.length} players; ${cand.length} priced in a covered award on Kalshi${awards ? "" : " (no Kalshi award prices on file yet)"}, ${E.counts.candidatesOut} of them out of reach of 65; borderline minutes: ${rebuilt} games rebuilt from play-by-play, ${noFile} without a Game Flow file yet, ${E.counts.toCheck} player-games still to check`);
+} catch (e) { warnings.push(`award eligibility: ${e.message}`); console.error(`award eligibility: ${e.stack || e.message}`); }
 // Tonight's matchups (src/records/matchup.js, 0.48): what's active or lopsided between the two teams and for each regular
 // against tonight's opponent, from the 2016-17 to 2025-26 back-fill plus this season's box scores.
 {
@@ -903,7 +939,7 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
     const records = fs.existsSync(path.join(root, "docs", "data", "records.json")) ? rd("records.json") : null;
     const matchupData = fs.existsSync(path.join(root, "docs", "data", "matchups.json")) ? rd("matchups.json") : null;
     const opt = (f) => { try { return rd(f); } catch { return null; } };
-    const args = { watch, trends: rd("trends.json"), leaders: rd("leaders.json"), injuries, facts, records, matchups: matchupData, national: opt("national.json"), rest: opt("rest.json"), form: opt("form.json"), fouls: opt("flowstats.json"), prep: opt("prep.json"), featlive: opt("featlive.json"), maxLines: 8 };
+    const args = { watch, trends: rd("trends.json"), leaders: rd("leaders.json"), injuries, facts, records, matchups: matchupData, national: opt("national.json"), rest: opt("rest.json"), form: opt("form.json"), fouls: opt("flowstats.json"), prep: opt("prep.json"), featlive: opt("featlive.json"), elig: opt("eligibility.json"), maxLines: 8 };
     const games = tonightStorylines(args)
       .map((g) => ({ ...g, lines: g.lines.map(({ kind, team, text, score, standing, siteOnly }) => ({ kind, team, text, score: Math.round(score * 100) / 100, ...(standing ? { bg: 1 } : {}), ...(siteOnly ? { siteOnly: 1 } : {}) })) }));
     // 0.71: 30- and 40-point games each defense has allowed, for NBA Live's "first one allowed" card (the user, 11/15: the Celtics).

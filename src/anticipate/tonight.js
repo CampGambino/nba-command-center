@@ -662,8 +662,15 @@ function cupLines(records, teams, today) {
   return out;
 }
 
+// 0.144.0: award eligibility under the 65-game rule (docs/data/eligibility.json `lines`, made by src/situations/eligibility.js).
+// These stay when the player is listed out tonight: sitting is the story.
+function awardLines(elig, teams, today) {
+  if (!elig || (elig.today && today && elig.today !== today)) return [];
+  return (elig.lines || []).filter((l) => teams.has(l.team)).map((l) => ({ ...l, siteOnly: true }));
+}
+
 /** Every candidate line for tonight, after the injury report (shared by the per-game storylines and the briefing). */
-export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries = null, facts = null, records = null, matchups = null, national = null, rest = null, form = null, fouls = null, prep = null, featlive = null }) {
+export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries = null, facts = null, records = null, matchups = null, national = null, rest = null, form = null, fouls = null, prep = null, featlive = null, elig = null }) {
   const games = (watch.games || []).map((g) => ({ id: g.id, away: g.awayTri, home: g.homeTri, start: g.start }));
   const teams = new Set(games.flatMap((g) => [g.away, g.home]));
   // The injury report overrules the rest: a player listed Out or Doubtful loses his other lines
@@ -682,11 +689,12 @@ export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries =
       if (st === "Out" || st === "Doubtful") return [];
       return [st === "Questionable" ? { ...l, text: `${l.text} · questionable tonight`, score: l.score * 0.8 } : l];
     });
-  return { games, all: [...injuryLines(injuries, teams, watch.today), ...others] };
+  return { games, all: [...injuryLines(injuries, teams, watch.today), ...others, ...awardLines(elig, teams, watch.today)] };
 }
 
 // At most this many of a kind in one game's card.
-const PER_GAME = { feat: 2, broken: 1,  luck: 1, paradox: 1, scarce: 1, defpos: 1,  injury: 2, history: 2, context: 1, matchup: 2, tv: 2, rest: 2, form: 2, foul: 2, season: 2, span: 2, pstreak: 2, vsopp: 1, pace: 1, trade: 1, role: 1, lineup: 1, turn: 1, beaten: 1, month: 1, monthp: 1, rookie: 1, defense: 1, cup: 1, era: 1, fourth: 2, qtr: 1, clinch: 2, find: 1 };
+const PER_GAME = { awards: 2, feat: 2, broken: 1,  luck: 1, paradox: 1, scarce: 1, defpos: 1,  injury: 2, history: 2, context: 1, matchup: 2, tv: 2, rest: 2, form: 2, foul: 2, season: 2, span: 2, pstreak: 2, vsopp: 1, pace: 1, trade: 1, role: 1, lineup: 1, turn: 1, beaten: 1, month: 1, monthp: 1, rookie: 1, defense: 1, cup: 1, era: 1, fourth: 2, qtr: 1, clinch: 2, find: 1 };
+const KEEP_KINDS = ["club", "tv", "awards"];
 export function tonightStorylines(args) {
   const maxLines = args.maxLines ?? MAX_LINES;
   const { games, all } = tonightCandidates(args);
@@ -694,11 +702,14 @@ export function tonightStorylines(args) {
     const n = {};
     const ranked = all.filter((l) => (l.team === g.away || l.team === g.home) && (l.kind !== "matchup" || l.game === `${g.away}@${g.home}`)).sort((a, b) => b.score - a.score)
       .filter((l) => !PER_GAME[l.kind] || (n[l.kind] = (n[l.kind] || 0) + 1) <= PER_GAME[l.kind]);
-    // The user asked for these two on the Watch List: the best of each keeps a place even on a crowded night.
+    // The user asked for these on the Watch List: the best of each keeps a place even on a crowded night, taking the place
+    // of the lowest line that isn't one of them (0.144.0: award eligibility, the user's countdown, joins club and TV).
     const lines = ranked.slice(0, maxLines);
-    for (const k of ["club", "tv"]) {
+    for (const k of KEEP_KINDS) {
       const best = ranked.find((l) => l.kind === k);
-      if (best && !lines.includes(best) && lines.length) lines[lines.length - 1 - (k === "tv" && lines[lines.length - 1].kind === "club" ? 1 : 0)] = best;
+      if (!best || lines.includes(best) || !lines.length) continue;
+      let i = lines.length - 1; while (i >= 0 && KEEP_KINDS.includes(lines[i].kind)) i--;
+      if (i >= 0) lines[i] = best;
     }
     return { ...g, lines };
   });
