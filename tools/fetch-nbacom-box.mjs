@@ -26,6 +26,12 @@ const HEAD = { Referer: "https://www.nba.com/", Origin: "https://www.nba.com", A
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const TRI = { NOH: "NOH", NOP: "NOP", BKN: "BKN", PHX: "PHX", GSW: "GSW", SAS: "SAS", NYK: "NYK" };
 
+async function one3(id) {
+  try {
+    const r = await fetch(`https://stats.nba.com/stats/boxscoretraditionalv3?GameID=${id}&StartPeriod=0&EndPeriod=10&StartRange=0&EndRange=28800&RangeType=0`, { headers: HEAD, signal: AbortSignal.timeout(30000) });
+    return r.ok ? (await r.json()).boxScoreTraditional : null;
+  } catch { return null; }
+}
 async function one(id) {
   for (let tryNo = 1; tryNo <= 3; tryNo++) {
     try {
@@ -38,9 +44,14 @@ async function one(id) {
   return null;
 }
 
-for (const season of seasons) {
-  const src = fs.readFileSync(path.join(inDir, `box-${season}.jsonl`), "utf8").trim().split("\n").map((l) => JSON.parse(l));
-  const outFile = path.join(outDir, `box-${season}.jsonl`);
+// 0.149.0: --list <file> [--out <name>]: any other games, as a JSON array of { id, d, ... } (NBA.com game ids), written to
+// tools/outside/nbacom/<name>.jsonl. The archive's other gaps (games whose ESPN box score doesn't add up to the score).
+const LIST = process.argv.indexOf("--list") > 0 ? process.argv[process.argv.indexOf("--list") + 1] : null;
+const OUTNAME = process.argv.indexOf("--out") > 0 ? process.argv[process.argv.indexOf("--out") + 1] : "box-extra";
+const jobs = LIST ? [[OUTNAME, JSON.parse(fs.readFileSync(LIST, "utf8"))]] : seasons.map((season) => [`box-${season}`, fs.readFileSync(path.join(inDir, `box-${season}.jsonl`), "utf8").trim().split("\n").map((l) => JSON.parse(l))]);
+for (const [name, src] of jobs) {
+  const season = name;
+  const outFile = path.join(outDir, `${name}.jsonl`);
   const have = new Set(fs.existsSync(outFile) ? fs.readFileSync(outFile, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l).id) : []);
   let n = 0;
   for (const g of src) {
@@ -55,7 +66,25 @@ for (const season of seasons) {
       const tri = TRI[row[ix.TEAM_ABBREVIATION]] || row[ix.TEAM_ABBREVIATION];
       (p[tri] ??= []).push([String(row[ix.PLAYER_ID]), row[ix.PLAYER_NAME], row[ix.START_POSITION] ? 1 : 0, row[ix.MIN] || null, row[ix.COMMENT] || "", ...SRC.map((k) => row[ix[k]])]);
     }
-    fs.appendFileSync(outFile, JSON.stringify({ id: g.id, d: g.d, h: g.h, a: g.a, hs: g.hs, as: g.as, cols: COLS, p }) + "\n");
+    // 0.149.0: the v2 box score is empty for 2025-26 games; NBA.com's v3 box score has them (same numbers, new shape)
+    let v3 = null;
+    if (!ps.rowSet.length) {
+      v3 = await one3(g.id); await sleep(1500);
+      for (const side of v3 ? ["homeTeam", "awayTeam"] : []) {
+        const T = v3[side], tri = TRI[T.teamTricode] || T.teamTricode;
+        for (const pl of T.players || []) { const x = pl.statistics || {};
+          (p[tri] ??= []).push([String(pl.personId), `${pl.firstName} ${pl.familyName}`.trim(), pl.position ? 1 : 0, x.minutes && x.minutes !== "0:00" && x.minutes !== "00:00" ? x.minutes : null, pl.comment || "",
+            ...["fieldGoalsMade", "fieldGoalsAttempted", "threePointersMade", "threePointersAttempted", "freeThrowsMade", "freeThrowsAttempted", "reboundsOffensive", "reboundsDefensive", "reboundsTotal", "assists", "steals", "blocks", "turnovers", "foulsPersonal", "points", "plusMinusPoints"].map((k) => x[k] ?? 0)]); }
+      }
+    }
+    let { h, a, hs, as } = g;
+    if (h == null && v3) { h = TRI[v3.homeTeam.teamTricode] || v3.homeTeam.teamTricode; a = TRI[v3.awayTeam.teamTricode] || v3.awayTeam.teamTricode;
+      hs = (p[h] || []).reduce((n, r) => n + (r[19] || 0), 0); as = (p[a] || []).reduce((n, r) => n + (r[19] || 0), 0); }
+    if (h == null) {   // a listed game: the teams and points from NBA.com's own team rows (the first row is the away team)
+      const ts = j.resultSets.find((x) => x.name === "TeamStats"), ti = Object.fromEntries(ts.headers.map((x, i) => [x, i]));
+      [a, h] = ts.rowSet.map((r) => TRI[r[ti.TEAM_ABBREVIATION]] || r[ti.TEAM_ABBREVIATION]); [as, hs] = ts.rowSet.map((r) => r[ti.PTS]);
+    }
+    fs.appendFileSync(outFile, JSON.stringify({ id: g.id, d: g.d, h, a, hs, as, ...(g.espnD ? { espnD: g.espnD } : {}), cols: COLS, p }) + "\n");
     if (++n % 25 === 0) console.log(`${season}: ${n} read`);
   }
   console.log(`${season}: done (${n} new)`);

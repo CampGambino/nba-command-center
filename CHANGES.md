@@ -2,6 +2,49 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.149.0 (2026-11-24): every regular-season game since 1993-94 on file, from NBA.com where ESPN falls short
+
+The user, 11/24: "I am comfortable getting the bulls pelicans lines from nba.com for closure."
+
+**The archive, rebuilt and completed.** The box-score archive behind the odd-lines history, the rare-combination cards and the "since 1993-94" feat board was scratch and gone. Rebuilt from ESPN:
+- 8,089 scoreboards (`tools/odd-games/fetch-boards.mjs`, new), then 39,099 box scores (`fetch-full.mjs`).
+- Checked against NBA.com's season game lists (stats.nba.com leaguegamelog, one per season):
+  - 1,108 games have no usable ESPN box: 972 Bulls and Pelicans games of 2012-13 to 2017-18 with no player numbers, 136 others (mostly the 1990s-2000s) whose box doesn't add up to the score.
+  - 28 games aren't on ESPN's scoreboards at all: the last two nights of 1999-2000 (4/18-19/2000, 23 games) and five more.
+  - All 1,136 are matched to NBA.com's game ids by date (a day either side), teams and, where ESPN's score is right, the score; ESPN has 13 scores wrong among them. NBA.com's box score for each (`tools/fetch-nbacom-box.mjs --list`; the v3 box score for six 2025-26 games the old one returns empty) is in `tools/outside/nbacom`, with `espn-map.json` saying which is which.
+- `tools/odd-games/patch-nbacom.mjs` (new) writes those games into the archive in its own shape, every column:
+  - Players get their ESPN id by name from ESPN's box or his other games that season (23,470 of 23,484; the 14 left are old spellings).
+  - Starters come from ESPN's flags where it marks five.
+  - Minutes are rounded the way ESPN does in each era (before 2012-13 a few seconds is 1 minute; ESPN never shows 0 there).
+  - Two ESPN copies with mistyped team codes (DAL-"DEV" 12/5/93, DEN-"DEF" 12/9/97) already sit beside a good copy, so they're left alone.
+- **Result: 38,949 games, every regular-season game from 1993-94 through 2025-26.** The exceptions are BOS-IND 4/16/13 (cancelled) and the three Cup title games (not regular season).
+
+**Things the rebuild found:**
+- ESPN files the All-Star and Rising Stars games as regular season (43 in the archive; Team Shaq, USA-World, East-West…). The 2024 All-Star game would have added 5 "30 points without a free throw attempt" lines. `tools/odd-games/counted.mjs` (new) is the one rule all three archive readers now share: no All-Star games, no empty or broken copies, no Cup title games, each game once.
+- The rare-combination archive had been counting all of those: 39,062 "games", now 38,949.
+- The odd-lines history kept the first copy of a date and teams even when it was ESPN's empty one, shutting out the real game. Now only a counted game claims its date.
+
+**ESPN's own numbers, checked.** Every team's totals in ESPN's box scores against NBA.com's: 77,060 team-games, 263 (0.3%) differ in some column. Turnovers are left out, because NBA.com's team total includes team turnovers that no player is charged with.
+
+**What changed on the site** (`src/data/odd-lines-history.json`, `odd-lines-players.json`, `line-rarity-archive.json.gz`, `feat-boards-2026-11-22.json`):
+- **Odd-lines history:** 38,949 games (was 37,816). 40 of 112 levels moved. The big ones come from the filled games now counting turnovers and fouls:
+  - 8+ turnovers: 1,341 → 1,382
+  - a stat in 0 minutes: 207 → 232
+  - Smaller moves: 30 points without a free throw attempt 322 → 323; 0-for-10 146 → 148.
+- **The 25 points + 5 threes + 3 blocks board** is exact now ("at least" on no one; Durant 8, McCollum 7, Harden 7). Its as-of date is 11/23 (Wembanyama 15).
+- **The Streaks page** now says every regular-season game since 1993-94 is counted, where it used to say about 3% of games were left out.
+
+**Not changed (needs the user's go):** NBA Live's odd-line cards still print "ESPN box scores, about 3% of games not on file" or "under 1%". That wording is in the bridge code.
+
+**Tests.** 885: the history, board and rarity checks now hold the complete counts.
+
+**Self-audit.**
+- **The first rebuild found 18 more "30 points, no free throw" lines than the old history.** I traced them to the 2024 All-Star game and others ESPN files as regular season, which is why counted.mjs exists.
+- **My first "already on file" check skipped 26 games**, and the next skipped a real CHI-MIL game (1/12/16), because another game nearby had the same score. It now needs the same teams, or a team code seen in under 50 games. Both mistakes were caught by recounting each season against NBA.com.
+- **The first patch gave filled games of 2005-07 a stat in 0 minutes 10 times as often as ESPN's own games of those years.** That was ESPN's rounding; fixed as above.
+- **Starters:** NBA.com's older box scores can mark more than five. 107 filled team-games are "starters unknown" (as 482 of ESPN's own are), so bench lines are never said for them.
+- **Not proven:** the archive itself is scratch again (about 180 MB, not in the repo). The steps to rebuild it are in `tools/odd-games/README.md`.
+
 ## 0.148.1 (2026-11-24): Game Flow's unused pieces removed
 
 The user, 11/24: "proceed with game flow code".

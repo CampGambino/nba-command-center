@@ -13,6 +13,7 @@ import path from "node:path";
 import zlib from "node:zlib";
 import { COMBOS, FEW, RARE_MAX } from "../src/situations/linerare.js";
 import { CUP_TITLE_DATES } from "../src/situations/results.js";
+import { countedGame } from "./odd-games/counted.mjs";
 
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
 const DIR = arg("--dir"), THROUGH = arg("--through", "2026-07-31");
@@ -20,12 +21,13 @@ if (!DIR) { console.error("usage: node tools/line-rarity-archive.mjs --dir <fold
 const COLS = ["min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "oreb", "dreb", "reb", "ast", "stl", "blk", "tov", "pf", "pm"];
 const cup = new Set(CUP_TITLE_DATES || []);
 const lines = [];
-let games = 0, skipped = 0, first = null, last = null;
+let games = 0, skipped = 0, notGames = 0, first = null, last = null; const seenGames = new Set();
 for (const f of fs.readdirSync(DIR)) {
   if (!f.startsWith("f-")) continue;
   const g = JSON.parse(fs.readFileSync(path.join(DIR, f), "utf8"));
   if (g.d > THROUGH) continue;
   if (cup.has(g.d)) { skipped++; continue; }
+  if (!countedGame(g, seenGames, cup)) { notGames++; continue; }   // 0.149.0: All-Star games, empty or broken copies
   games++; if (!first || g.d < first) first = g.d; if (!last || g.d > last) last = g.d;
   for (const t of g.t) for (const p of t.p) {
     if (!(p[4] > 0)) continue;
@@ -62,7 +64,7 @@ for (const c of COMBOS) {
   for (let p = P; p >= 0; p--) for (let f = 0; f <= F; f++) { let v = S[ix(p, f)]; if (p < P) v += S[ix(p + 1, f)]; if (f > 0) v += S[ix(p, f - 1)]; if (p < P && f > 0) v -= S[ix(p + 1, f - 1)]; S[ix(p, f)] = v; }
   top.few = lines.filter((r) => r.pts >= FEW.minPts && S[ix(Math.min(P, r.pts), Math.min(F, r.fga))] <= RARE_MAX + 1).map((r) => [Math.min(P, r.pts), Math.min(F, r.fga), r.name, r.team, r.d, r.gid]);
 }
-const out = { made: new Date().toISOString().slice(0, 10), first, last, games, playerLines: lines.length, cupTitleGamesLeftOut: skipped, hist, top };
+const out = { made: new Date().toISOString().slice(0, 10), first, last, games, playerLines: lines.length, cupTitleGamesLeftOut: skipped, notGamesLeftOut: notGames, hist, top };
 const file = new URL("../src/data/line-rarity-archive.json.gz", import.meta.url).pathname;
 fs.writeFileSync(file, zlib.gzipSync(JSON.stringify(out), { level: 9 }));
-console.error(`line rarity archive: ${games} games ${first} → ${last} (${skipped} Cup title games left out), ${lines.length} player lines; top games ${Object.entries(top).map(([k, v]) => `${k} ${v.length}`).join(", ")}; ${(fs.statSync(file).size / 1024).toFixed(0)} KB`);
+console.error(`line rarity archive: ${games} games ${first} → ${last} (${skipped} Cup title games and ${notGames} All-Star games or empty or broken copies left out), ${lines.length} player lines; top games ${Object.entries(top).map(([k, v]) => `${k} ${v.length}`).join(", ")}; ${(fs.statSync(file).size / 1024).toFixed(0)} KB`);

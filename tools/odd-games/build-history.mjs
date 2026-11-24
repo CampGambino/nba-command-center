@@ -10,15 +10,21 @@ const POUT = arg("--players", OUT.replace(/history\.json$/, "players.json")), WI
 const CUP = new Set(["2023-12-09", "2024-12-17", "2025-12-16"]);
 const seasonOf = (d) => (+d.slice(5, 7) >= 8 ? +d.slice(0, 4) : +d.slice(0, 4) - 1);
 const K = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "oreb", "dreb", "reb", "ast", "stl", "blk", "tov", "pf"]; // p[3..19]
-const lines = [], sum = new Map(); let games = 0, zeroed = 0, bad = 0, later = 0, noStarters = 0; const seen = new Set();
+const nb = { games: 0, lines: 0, unnamed: 0 };   // games in the archive written from NBA.com's box score (patch-nbacom.mjs)
+const EXHIBITION = new Set(["EAST", "WEST", "USA", "WORLD", "LEB", "GIA", "DUR", "STE", "KEN", "CAN", "CHK", "SHQ", "STARS", "STRIPES", "VANCOUVER", "undefined"]);
+const lines = [], sum = new Map(); let games = 0, zeroed = 0, bad = 0, later = 0, noStarters = 0, allStar = 0; const seen = new Set();
 for (const f of fs.readdirSync(DIR)) {
   const g = JSON.parse(fs.readFileSync(path.join(DIR, f), "utf8"));
   if (seasonOf(g.d) > THROUGH) { later++; continue; }
   if (CUP.has(g.d) || g.t.length !== 2) { bad++; continue; }
-  const key = `${g.d}|${g.t.map((t) => t.t).sort().join("|")}`; if (seen.has(key)) { bad++; continue; } seen.add(key);
+  // 0.149.0: ESPN's scoreboards file the All-Star games (East-West, Team LeBron, Team Shaq, USA-World…) as regular season
+  if (g.t.some((t) => !t.t || EXHIBITION.has(t.t))) { allStar++; continue; }
+  const key = `${g.d}|${g.t.map((t) => t.t).sort().join("|")}`; if (seen.has(key)) { bad++; continue; }
   if (g.t.every((t) => t.p.every((p) => !p[5] && !p[14] && !p[15]))) { zeroed++; continue; }
   if (!g.t.every((t) => t.s != null && t.p.reduce((a, p) => a + (p[5] || 0), 0) === t.s)) { bad++; continue; }
+  seen.add(key);   // 0.149.0: only a game that counts claims its date and teams (an empty copy read first used to shut out the real one)
   games++;
+  if (g.src) { nb.games++; for (const t of g.t) for (const p of t.p) { nb.lines++; if (String(p[0]).startsWith("nba:")) nb.unnamed++; } }   // 0.149.0
   const season = seasonOf(g.d);
   g.t.forEach((t, i) => {
     const known = t.p.filter((p) => p[3]).length === STARTERS; if (!known) noStarters++;   // ESPN lists no starters for some old games
@@ -39,7 +45,8 @@ for (const f of fs.readdirSync(DIR)) {
 // for the game, by name, so his season average, his runs and the bench and position rules see these games too. pbpstats
 // has no turnovers or fouls: they are 0 here, the turnover and foul rules cannot fire, and the two rules a missing
 // turnover or foul could make true by mistake (NO_TOV_PF) are not counted for these lines.
-const FILL_DIR = arg("--fill", "tools/outside/pbpstats"), ALIAS = { GS: "GSW", NO: "NOP", NY: "NYK", SA: "SAS", UTAH: "UTA", WSH: "WAS", PHO: "PHX", NOH: "NOP", NOK: "NOP" }, tri = (a) => ALIAS[a] || a;
+// 0.149.0: the archive itself now holds NBA.com's box score for these games (patch-nbacom.mjs); --fill tools/outside/pbpstats is the old way
+const FILL_DIR = arg("--fill", "none"), ALIAS = { GS: "GSW", NO: "NOP", NY: "NYK", SA: "SAS", UTAH: "UTA", WSH: "WAS", PHO: "PHX", NOH: "NOP", NOK: "NOP" }, tri = (a) => ALIAS[a] || a;
 const fill = { games: 0, lines: 0, named: 0, unnamed: 0, skippedEspnHasIt: 0, skippedNoMatch: 0, skippedPoints: 0 };
 const norm = (x) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\b(jr|sr|ii|iii|iv)\.?$/g, "").replace(/[^a-z]/g, "");
 // names pbpstats and ESPN spell differently (tools/merge-pbpstats-logs.mjs has the same list)
@@ -131,10 +138,13 @@ for (const k of Object.keys(againT)) { for (const n of Object.keys(againT[k])) i
 for (const id of Object.keys(P)) if (!Object.keys(P[id].k).length) delete P[id];
 const tag = (y) => `${y}-${String(y + 1).slice(2)}`;
 const out = { v: 1, from: tag(from), through: tag(THROUGH), seasons: seasons.length, recent: ODD.recent, eras: ERAS.map(([a, b]) => `${tag(a)} to ${tag(b)}`), eraSeasons: ERAS.map(([a, b]) => seasons.filter((y) => y >= a && y <= b).length),
-  games, lines: lines.filter((x) => !x.filled).length, left: { noPlayerNumbers: zeroed, other: bad }, noStarters,
-  fill: { ...fill, source: "pbpstats (tools/outside/pbpstats): the Bulls' and Pelicans' games ESPN has no player numbers for; no turnovers or fouls", notCounted: TOV_PF, left: zeroed - fill.games + bad, checked: "five Basketball Reference box scores (tools/outside/bref-screens/box-2026-11-19.json): 102 players, every column the same" },
+  games, lines: lines.filter((x) => !x.filled).length, left: { noPlayerNumbers: zeroed, other: bad, note: "0.149.0: these are ESPN's empty or duplicate copies of games counted under another id; every regular-season game from 1993-94 to 2025-26 is counted (NBA.com's season game lists) except BOS-IND 4/16/13, which was cancelled" }, noStarters,
+  fill: fill.games ? { ...fill, source: "pbpstats (tools/outside/pbpstats): the Bulls' and Pelicans' games ESPN has no player numbers for; no turnovers or fouls", notCounted: TOV_PF, left: zeroed - fill.games + bad, checked: "five Basketball Reference box scores (tools/outside/bref-screens/box-2026-11-19.json): 102 players, every column the same" }
+    : { source: "NBA.com's own box scores (tools/outside/nbacom, written into the archive by tools/odd-games/patch-nbacom.mjs): every game ESPN has without player numbers, whose box doesn't add up to the score, or doesn't list; every column, turnovers and fouls included", games: nb.games, lines: nb.lines, unnamed: nb.unnamed, notCounted: [],
+        checked: "pbpstats for 972 of them (20,113 of 20,117 player lines the same) and the user's five Basketball Reference box scores; every ESPN team total against NBA.com's, turnovers aside (team turnovers), 99.9% the same" },
+  allStar,
   source: "ESPN box scores (site.api.espn.com summary), regular season; only games where the players' points add up to the score. Averages: his other games that season, 10 or more. Position: ESPN's label for the player.",
   t: T, runMin: 20, runs: runsT, again: againT };
 fs.writeFileSync(OUT, JSON.stringify(out));
 fs.writeFileSync(POUT, JSON.stringify({ v: 1, since: tag(firstP), through: tag(THROUGH), seasons: WINDOW, note: "Each player's count of every odd-line level over these seasons (ESPN ids): p[id] = { g: games played, k: { level: [times, last date] } }; league[level] = everyone's.", league: leagueP, p: P }));
-console.log({ games, zeroed, bad, later, noStarters, fill, unnamed: Object.entries(unnamed).sort((a, b) => b[1] - a[1]).slice(0, 12), lines: lines.length, seasons: seasons.length, levels: Object.keys(T).length, bytes: fs.statSync(OUT).size, players: Object.keys(P).length, playersBytes: fs.statSync(POUT).size });
+console.log({ games, zeroed, bad, allStar, later, noStarters, fill, unnamed: Object.entries(unnamed).sort((a, b) => b[1] - a[1]).slice(0, 12), lines: lines.length, seasons: seasons.length, levels: Object.keys(T).length, bytes: fs.statSync(OUT).size, players: Object.keys(P).length, playersBytes: fs.statSync(POUT).size });

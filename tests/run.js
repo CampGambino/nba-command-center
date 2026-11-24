@@ -2187,10 +2187,10 @@ await bridgeChecks(ok, root);
       "0.117.0: grades are per season over the last five seasons: at most 1 rare, at most 5 a few a season, at most 15 monthly, more common");
     // the committed table: built with these rules, and it holds the study's numbers
     const HT = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "odd-lines-history.json"), "utf8")), all = TEMPLATES.flatMap((t) => t.levels.map((l) => `${t.id}.${l.k}`));
-    ok(HT.games === 37816 && HT.seasons === 33 && all.length === new Set(all).size && all.every((k) => HT.t[k]) && Object.keys(HT.t).length === all.length
-      && HT.t["noft.40"].n === 9 && HT.t["noft.30"].n === 322 && HT.t["ofg.10"].n === 146 && HT.t["lowpts.td"].n === 1 && /Draymond Green/.test(HT.t["lowpts.td"].last[0][0]) && HT.t["ones.6"].last.some((x) => x[0] === "Pervis Ellison")
+    ok(HT.games === 38949 && HT.seasons === 33 && all.length === new Set(all).size && all.every((k) => HT.t[k]) && Object.keys(HT.t).length === all.length
+      && HT.t["noft.40"].n === 9 && HT.t["noft.30"].n === 323 && HT.t["ofg.10"].n === 148 && HT.t["lowpts.td"].n === 1 && /Draymond Green/.test(HT.t["lowpts.td"].last[0][0]) && HT.t["ones.6"].last.some((x) => x[0] === "Pervis Ellison")
       && HT.t["pair.3oreb8"].n === 0 && HT.t["nothing.20"].n === 0 && Object.values(HT.t).every((e) => e.l5 <= e.n && e.era.reduce((a, b) => a + b, 0) === e.n && e.last.length <= 3),
-      "0.117.0: the history table has every level of every template, built from 37,816 games, and holds the study's counts (40 points without a free throw 9 times; a triple-double under 10 points once)");
+      "0.117.0 (0.149.0: every regular-season game since 1993-94, 38,949): the history table has every level of every template, and holds the study's counts (40 points without a free throw 9 times; a triple-double under 10 points once)");
     const pageT = fs.readFileSync(path.join(root, "docs", "trends.html"), "utf8"), sitJs = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8");
     ok(/id="oddlines"/.test(pageT) && /function renderOdd\(\)/.test(pageT) && /On file/.test(pageT) && /odd: oddByDate/.test(sitJs) && /rows\.filter\(\(g\) => !g\.cupFinal\)/.test(sitJs),
       "0.117.0: the Streaks & outliers page lists the odd lines with what \"on file\" leaves out; the build writes them beside the outliers, without the Cup's title game");
@@ -2232,7 +2232,7 @@ await bridgeChecks(ok, root);
     ok(NS.some((o) => o.name === "Sixth Man" && o.hits.some((h) => h.key === "bench.40")) && !NS.some((o) => o.name === "No Flags"),
       "0.118.0: \"off the bench\" is said only when that side's box score marks five starters (ESPN marks none for 482 old team-games, which had counted Dwyane Wade's 40 on 3/8/06 as a reserve's)", JSON.stringify(NS.map((o) => [o.name, o.hits.map((h) => h.key)])));
     const HT = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "odd-lines-history.json"), "utf8")), PT = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "odd-lines-players.json"), "utf8"));
-    ok(HT.t["bench.40"].n === 37 && HT.t["bench.35"].n === 147 && HT.noStarters === 482 && HT.runs.half[3].n === 22 && HT.runs.st0[3].n === 7 && HT.runs.seventy[5].n === 5 && HT.runs.cold[4].n === 10 && HT.again["cast.12"][2].n === 20 && !HT.again["zeromin.1"]
+    ok(HT.t["bench.40"].n === 37 && HT.t["bench.35"].n === 147 && HT.noStarters === 589 && HT.runs.half[3].n === 23 && HT.runs.st0[3].n === 7 && HT.runs.seventy[5].n === 5 && HT.runs.cold[4].n === 10 && HT.again["cast.12"][2].n === 20 && !HT.again["zeromin.1"]
       && PT.since === "2023-24" && Object.keys(PT.p).length > 300 && Object.values(PT.p).every((e) => e.g > 0 && Object.values(e.k).every(([n, d]) => n >= 1 && /^\d{4}-\d\d-\d\d$/.test(d))),
       "0.118.0: the history holds how often each run reached each length (under half his average three straight: 21 times) and each repeat; 40 points off the bench is 37 on file, not 55; the players' table covers 2023-24 on");
     const pageT = fs.readFileSync(path.join(root, "docs", "trends.html"), "utf8");
@@ -2299,9 +2299,9 @@ await bridgeChecks(ok, root);
     const B = JSON.parse(fs.readFileSync(path.join(root, "tools", "outside", "bref-screens", "box-2026-11-19.json"), "utf8"));
     const adds = B.games.every((g) => { const rows = Object.values(g.p); return [["away", rows.slice(0, g.awayPlayers)], ["home", rows.slice(g.awayPlayers)]].every(([side, rs]) => g.totals[side].every((t, i) => rs.reduce((a, r) => a + r[i + 1], 0) + (i === 12 ? g.teamTurnovers[side] : 0) === t)); });
     ok(!leak && M.NO_TOV_PF.every((id) => M.TOV_PF.includes(id)) && M.TOV_PF.filter((k) => !k.includes(".")).every((id) => ids.includes(id))
-      && HT.fill?.games === 971 && HT.fill.named === HT.fill.lines && HT.fill.unnamed === 0 && HT.fill.skippedEspnHasIt === 1 && HT.fill.left === 1016 - 971 + 233 && HT.fill.withTovPf === 78 && HT.games === 37816
-      && filledKeys.length >= 50 && !filledKeys.some((k) => ["tov", "tov0", "foulout", "nothing", "zeromin"].includes(k.split(".")[0]))
-      && HT.t["ofg.10"].n === 146 && HT.t["noft.30"].n === 322 && HT.t["ones.5"].n === 8 && HT.t["ones.6"].n === 2 && HT.t["ones.6"].last[0][0] === "C.J. Watson" && HT.t["ones.6"].last[0][1] === "2013-04-04"
+      // 0.149.0: the games ESPN can't give are in the archive itself from NBA.com's box score (every column), so nothing is set aside
+      && HT.fill?.games === 1134 && /NBA\.com/.test(HT.fill.source) && HT.fill.unnamed <= 20 && HT.fill.notCounted.length === 0 && HT.games === 38949 && HT.allStar === 43 && filledKeys.length === 0
+      && HT.t["ofg.10"].n === 148 && HT.t["noft.30"].n === 323 && HT.t["ones.5"].n === 8 && HT.t["ones.6"].n === 2 && HT.t["ones.6"].last[0][0] === "C.J. Watson" && HT.t["ones.6"].last[0][1] === "2013-04-04"
       && HT.t["x5.5"].n === 14 && HT.t["empty.20"].n === 39 && HT.t["blk0reb.5"].n === 5 && B.games.length === 5 && Object.values(B.games).reduce((a, g) => a + Object.keys(g.p).length, 0) === 102 && adds,
       "0.122.0 (the user's five box scores, 11/19): the 971 filled games count as whole lines for every rule that does not need a turnover or a foul (3,000 random lines: turnovers and fouls never change any other rule), every player named to his ESPN id; C.J. Watson's one of everything, turnover included, is the second on file; the five box scores as read add up to their team totals",
       String(leak || JSON.stringify([HT.fill, HT.t["ones.6"].last[0], adds])));
@@ -5077,9 +5077,9 @@ await bridgeChecks(ok, root);
   const probes = [["pra", [52, 24, 0]], ["pra", [50, 23, 0]], ["pra", [34, 19, 13]], ["rbp", [9, 9, 40]], ["p3a", [52, 8, 10]], ["pra", [40, 10, 10]]];
   const exact = probes.every(([c, v]) => { const keys = LR.COMBOS.find((x) => x.id === c).keys, l = Object.fromEntries(keys.map((k, i) => [k, v[i]])); const w = LR.pastCount(D, c, l), b = brute(c, v); return b <= LR.RARE_MAX ? w && w.length === b : w === null; });
   ok(fs.readFileSync(path.join(root, "src", "situations", "linerare.js"), "utf8") === fs.readFileSync(path.join(root, "docs", "lib", "situations", "linerare.js"), "utf8")
-    && A.games > 39000 && A.first === "1993-11-05" && A.cupTitleGamesLeftOut === 3
+    && A.games === 38949 && A.first === "1993-11-05" && A.cupTitleGamesLeftOut === 3
     && wemb.hits[0]?.line === "52 points and 24 rebounds" && wemb.hits[0].n === 0 && !bam.hits.length && trivial.hits[0]?.line === "50 points and 23 rebounds" && exact,
-    "rare combinations (0.141.17): the bridge's copy is the build's; 39,062 games since 1993-94 (Cup title games out); 52 and 24 is no one else's; an 83-point night is the single-game lists' card, not this one; a trivial qualifier (1 block) is never what makes a line rare; the boundary equals a brute-force count",
+    "rare combinations (0.141.17): the bridge's copy is the build's; 38,949 games since 1993-94 (0.149.0: every regular-season game, All-Star games and Cup title games out); 52 and 24 is no one else's; an 83-point night is the single-game lists' card, not this one; a trivial qualifier (1 block) is never what makes a line rare; the boundary equals a brute-force count",
     JSON.stringify({ wemb: wemb.hits[0], bam: bam.hits, trivial: trivial.hits[0], exact }));
 }
 
@@ -5317,9 +5317,10 @@ await bridgeChecks(ok, root);
     && F.featNext({ ...b, rows: [{ name: "Me", now: 9 }, { name: "Far Gap", now: 5, atLeast: true }, { name: "Eleven", now: 11 }, { name: "Nine", now: 9 }] }, { name: "Me", now: 9 })?.what === "passing Nine (9) for 2nd since 1993-94",
     "feat boards (0.142.1): a count that may be short (\"8 or more\") is never passed or tied, a place near it isn't said, and a lead over it needs room (2); far below, it doesn't matter");
   const real = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "feat-boards-2026-11-22.json"), "utf8")).boards.p25t5b3;
-  ok(real.since === "1993-94" && real.from === "ours" && real.rows[0][0] === "Victor Wembanyama" && real.rows[0][3] === 14 && real.rows[0].length === 4 && real.rows[1].length === 5
+  ok(real.since === "1993-94" && real.from === "ours" && real.rows[0][0] === "Victor Wembanyama" && real.rows[0][3] === 15 && real.asOf === "2026-11-23" && real.complete && real.rows.every((r) => r.length === 4)
+    && real.rows[1][0] === "Kevin Durant" && real.rows[1][3] === 8
     && real.rows.every((r, i, a) => !i || a[i - 1][3] >= r[3]) && /tools\/feat-board-ours\.mjs/.test(fs.readFileSync(path.join(root, "src", "data", "feat-boards-2026-11-22.json"), "utf8")),
-    "feat boards (0.142.1): the 25-5-3 board is ours, since 1993-94, Wembanyama 14 with a complete count; Durant's 8 is marked at least");
+    "feat boards (0.142.1; 0.149.0: every game on file): the 25-5-3 board is ours, since 1993-94, Wembanyama 15 through 11/23; Durant's 8 is no longer \"at least\"");
   const B = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");
   ok(/b\.from === "ours" \? "regular season since "/.test(B) && /atLeast: !!r\.atLeast/.test(B) && /\(r\.al \? "\+" : ""\)/.test(B) && /since: b\.since, rows: rows/.test(B),
     "bridge v29.1: an \"ours\" board's card names our box scores since 1993-94, its back shows \"8+\", and the rules see which counts may be short");

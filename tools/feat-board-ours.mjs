@@ -4,7 +4,8 @@
  * oreb, dreb, reb, ast, stl, blk, tov, pf, pm]] }] }) plus this season's results store. Regular season only; the Cup
  * title games are left out (they don't count in a player's stats).
  *
- * The archive is missing games: about 10% in 1993-95, 4% in 1995-2004, 13% in 2012-13 through 2017-18. So a player's
+ * (0.149.0: the archive now has every regular-season game since 1993-94, so no count is "at least" unless a season is
+ * short again.) Before, the archive was missing games: about 10% in 1993-95, 4% in 1995-2004, 13% in 2012-13 through 2017-18. So a player's
  * count is marked "atLeast" when a season of his has fewer games here than he played (active players: the Guide's
  * year-by-year pages) or, for a retired player, when his career touches a season the archive is short. The rules
  * (src/records/featlive.js) never pass, tie or place anyone against such a count.
@@ -17,23 +18,27 @@ import path from "node:path";
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const seasonOf = (d) => { const y = +d.slice(0, 4), m = +d.slice(5, 7), s = m >= 8 ? y : y - 1; return `${s}-${String((s + 1) % 100).padStart(2, "0")}`; };
 const CUP_FINALS = new Set(["2023-12-09", "2024-12-17", "2025-12-16"]);
+import { countedGame } from "./odd-games/counted.mjs";
 const COLS = ["min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "oreb", "dreb", "reb", "ast", "stl", "blk", "tov", "pf", "pm"];
 export const BOARDS = {
   p25t5b3: { label: "25-point games with 5+ threes and 3+ blocks", one: "25-point game with 5+ threes and 3+ blocks", short: "25 points + 5 threes + 3 blocks", min: { pts: 25, fg3m: 5, blk: 3 } },
 };
-const EXPECT = { "1998-99": 725, "2011-12": 990 };
+// Each season's regular-season games (NBA.com's season game lists, 0.149.0; 1230 otherwise; 2012-13 had one cancelled)
+const EXPECT = { "1993-94": 1107, "1994-95": 1107, "1995-96": 1189, "1996-97": 1189, "1997-98": 1189, "1998-99": 725, "1999-00": 1189, "2000-01": 1189,
+  "2001-02": 1189, "2002-03": 1189, "2003-04": 1189, "2011-12": 990, "2012-13": 1229 };
 
 export async function boardRows(dir, key) {
   const B = BOARDS[key], q = (r) => Object.entries(B.min).every(([k, v]) => (r[k] || 0) >= v);
-  const count = {}, first = {}, last = {}, names = {}, seasonGames = {}, gp = {}, qFirst = {}, qLast = {};
+  const count = {}, first = {}, last = {}, names = {}, seasonGames = {}, gp = {}, qFirst = {}, qLast = {}, seenGames = new Set();
   const qs = (id, s) => { if (!qFirst[id] || s < qFirst[id]) qFirst[id] = s; if (!qLast[id] || s > qLast[id]) qLast[id] = s; };   // seasons with such a game, as the screenshots give them
   for (const f of fs.readdirSync(dir)) {
     if (!f.startsWith("f-")) continue;
     const g = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
-    if (CUP_FINALS.has(g.d)) continue;
+    if (!countedGame(g, seenGames, CUP_FINALS)) continue;   // 0.149.0: All-Star games, empty or broken copies, Cup titles
     const s = seasonOf(g.d);
     for (const t of g.t) for (const p of t.p) {
-      if (!(p[4] > 0)) continue;
+      // 0.149.0: in the game with 0 minutes but a stat or a start (ESPN rounds a few seconds down to 0 from 2012-13) is a game played
+      if (!(p[4] > 0) && !p[3] && !p.slice(5, 20).some((x) => x > 0)) continue;
       (seasonGames[s] ??= new Set()).add(f);   // a game counts as here only with its box (some files have none)
       const r = {}; COLS.forEach((c, i) => (r[c] = p[i + 4]));
       const id = String(p[0]); names[id] = p[1];
@@ -70,8 +75,11 @@ export async function boardRows(dir, key) {
     if (y) {
       // 2019-20's bubble games sit under 2020-21 here (dated August): those two seasons are compared together.
       const g = (s) => gp[`${id}|${s}`] || 0, want = Object.fromEntries(y.map((r) => [r[ki.season], r[ki.g]]));
-      atLeast = y.some((r) => { const s = r[ki.season]; if (s < "1993-94" || s === "2019-20" || s === "2020-21") return false; return g(s) < r[ki.g]; })
-        || g("2019-20") + g("2020-21") < (want["2019-20"] || 0) + (want["2020-21"] || 0);
+      // 0.149.0: a season with every game on file can still have fewer of his games than the Guide when he got in for a few
+      // seconds and ESPN's box doesn't list him; such a game can't hold the feat, so only a short season makes it "at least".
+      const shortSeason = (s) => short.has(s);
+      atLeast = y.some((r) => { const s = r[ki.season]; if (s < "1993-94" || s === "2019-20" || s === "2020-21") return false; return shortSeason(s) && g(s) < r[ki.g]; })
+        || ((shortSeason("2019-20") || shortSeason("2020-21")) && g("2019-20") + g("2020-21") < (want["2019-20"] || 0) + (want["2020-21"] || 0));
     } else atLeast = [...short].some((s) => s >= first[id] && s <= last[id]);
     return [names[id], qFirst[id], qLast[id], c, ...(atLeast ? [1] : [])];
   });
