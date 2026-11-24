@@ -2,6 +2,18 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.150.0 (2026-11-24): NBA Live's odd-line cards drop the "not on file" note (bridge v35)
+
+The user, 11/24: "you can remove the odd-line card disclaimer if there isn't any concern".
+
+There isn't one. Since 0.149.0 every regular-season game from 1993-94 to 2025-26 is in the counts.
+
+**The change:** the back of an odd-line card no longer ends with "ESPN and pbpstats box scores, under 1% of games not on file", or "about 3%" for the turnover and foul lines. `oddOnFile` is removed. Nothing else on the card changes.
+
+**Tests.** 885. The v26 check now checks the opposite: no "not on file" on any kind of line.
+
+**Self-audit.** `TOV_PF` stays in `src/situations/oddlines.js`. The history tool reads it when run the old way, and the bridge no longer uses it. Card counts have come from the complete archive since 0.149.0, so nothing else needed to change with the wording.
+
 ## 0.149.0 (2026-11-24): every regular-season game since 1993-94 on file, from NBA.com where ESPN falls short
 
 The user, 11/24: "I am comfortable getting the bulls pelicans lines from nba.com for closure."

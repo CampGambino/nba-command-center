@@ -56,6 +56,8 @@
  *       Live's own QUARTER EXPLOSION card is up for a quarter, the season place and list are added to that card (its
  *       all-time list stays) and the separate season card is not fired; it shows only where NBA Live has no card.
  *       This is the one place the bridge adds to a card of NBA Live's: two fields, on its way through fireStory.
+ *     - (v35, 0.150.0; the user, 11/24: "you can remove the odd-line card disclaimer if there isn't any concern") the
+ *       odd-line card's back no longer ends "… of games not on file": every regular-season game since 1993-94 is on file.
  *     - (v34, 0.142.7; the user, 11/23: "i dont need a javonte green alert for passing active list … they all move up one
  *       game at a time") Games played: no pass cards, a card on every 50th game only. A few seconds on the floor with 0
  *       minutes and an empty line counts as a game when the play-by-play shows him, so "ends" doesn't fire on it.
@@ -139,7 +141,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 34;
+  var VERSION = 35;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -1786,15 +1788,8 @@ function teamStake(t, g) {
   // Left to NBA Live's own season-high and career-high cards: a number far above his own average is a big night, not an
   // odd line. They stay on the website's list. (Remove an id here to card it.)
   var ODD_SKIP = { erupt: 1, reb3x: 1, ast3x: 1 };
-  // v26: what the count behind the card rests on. The Bulls' and Pelicans' games of 2012-13 to 2017-18 are in the counts
-  // from pbpstats (no turnovers or fouls), so only a line that needs a turnover or a foul is still short of about 3% of
-  // games; every other line is short of under 1%. The module says which (TOV_PF: a template's id, or one level's key).
-  function oddOnFile(R, h) {
-    var short = R && R.TOV_PF;
-    if (!short || !short.length) return "ESPN box scores, about 3% of games not on file";   // an older copy of the rules: the old wording
-    return short.indexOf(h.id) >= 0 || short.indexOf(h.key) >= 0 ? "ESPN box scores, about 3% of games not on file" : "ESPN and pbpstats box scores, under 1% of games not on file";
-  }
-  // v32: the back of an odd-line card: the class, how often, the latest ones (name and date), and what the count rests on.
+  // v35 (0.150.0, the user's go 11/24: "you can remove the odd-line card disclaimer"): every regular-season game since
+  // 1993-94 is on file (0.149.0), so the card no longer ends with what share of games its count is short of.
   function oddBack(R, h, O) {
     var row = function (t, dim) { return '<div class="alert-back-play"' + (dim ? ' style="opacity:.75"' : "") + ">" + t + "</div>"; };
     var what = String(h.what || "");
@@ -1806,7 +1801,7 @@ function teamStake(t, g) {
       var d = String(r[1] || ""), mdy = d ? Number(d.slice(5, 7)) + "/" + Number(d.slice(8, 10)) + "/" + d.slice(2, 4) : "";
       html += row('<span class="abp-time">' + escH(mdy) + "</span> " + escH(r[0]) + (r[2] && r[2] !== h.say ? " · " + escH(r[2]) : ""));
     });
-    return html + row(escH(oddOnFile(R, h)), true);
+    return html;
   }
   function oddLineChecks(game, sides, box, tag, scr) {
     var O = state.odd, R = state.oddRules;

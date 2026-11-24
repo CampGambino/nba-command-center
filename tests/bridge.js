@@ -264,7 +264,7 @@ export async function bridgeChecks(ok, root, deps = {}) {
     ok(Object.keys(early).sort().join(" ") === "g1 x1" && early.g1.icon === "🧩 ODD LINE" && early.g1.text === "Guard One (AAA) — 16 rebounds by a guard"
       && early.g1.sub === "Command Center · About 16 a season"
       && /🧩 A guard with 15\+ rebounds/.test(early.g1.backHtml) && /<strong>346<\/strong> since 1993-94 · about 16 a season lately/.test(early.g1.backHtml)
-      && /4\/10\/26<\/span> Jahmai Mashack</.test(early.g1.backHtml) && /1\/3\/26<\/span> Dyson Daniels · 15 rebounds by a guard/.test(early.g1.backHtml) && /ESPN and pbpstats box scores, under 1% of games not on file/.test(early.g1.backHtml)
+      && /4\/10\/26<\/span> Jahmai Mashack</.test(early.g1.backHtml) && /1\/3\/26<\/span> Dyson Daniels · 15 rebounds by a guard/.test(early.g1.backHtml) && !/not on file/.test(early.g1.backHtml)
       && /1\/1\/|<strong>142<\/strong>/.test(early.x1.backHtml)
       && early.x1.text === "Sixth Man (AAA) — 36 points off the bench",
       "bridge v25 (0.119.0; the user: \"The others seem fine to me\"): a line that can only grow (a guard's 16 rebounds, 36 off the bench) is carded the moment it is true, with how often it happens; a line one play can undo waits",
@@ -304,11 +304,10 @@ export async function bridgeChecks(ok, root, deps = {}) {
       delete oddData.t["tov.8"]; delete oddData.t["tov.10"];
       // v32: what the count rests on moved to the card's back (its last line).
       const lastLine = (c) => (/<div class="alert-back-play" style="opacity:\.75">([^<]*)<\/div>$/.exec(c?.backHtml || "") || [])[1];
-      ok(tv.t1?.text === "Loose Hands (AAA) — 10 turnovers" && lastLine(tv.t1) === "ESPN box scores, about 3% of games not on file" && lastLine(tv.g1) === "ESPN and pbpstats box scores, under 1% of games not on file"
-        && lastLine(oldRules.g1) === "ESPN box scores, about 3% of games not on file" && oldRules.t1 && !/not on file/.test(tv.t1.sub)
-        && RM.TOV_PF.join(",") === "tov,tov0,foulout,nothing,zeromin,ones.6" && (bsrc.match(/of games not on file/g) || []).length === 5 && +(/var VERSION = (\d+);/.exec(bsrc) || [])[1] >= 26,
-        "bridge v26 (the user: \"go\"; v32: on the card's back): an odd-line card ends \"ESPN and pbpstats box scores, under 1% of games not on file\", and only a line that needs a turnover or a foul (10 turnovers) keeps \"ESPN box scores, about 3%\"; a copy of the rules without the list keeps the old words",
-        JSON.stringify([tv.t1 && [tv.t1.text, tv.t1.sub], tv.g1?.sub, oldRules.g1?.sub]));
+      ok(tv.t1?.text === "Loose Hands (AAA) — 10 turnovers" && !/not on file/.test(tv.t1.backHtml + tv.g1.backHtml + oldRules.g1.backHtml + tv.t1.sub) && !lastLine(tv.t1)
+        && /<strong>121<\/strong> since 1993-94/.test(tv.t1.backHtml) && (bsrc.match(/of games not on file/g) || []).length <= 3 && +(/var VERSION = (\d+);/.exec(bsrc) || [])[1] >= 35,
+        "bridge v35 (the user's go, 11/24; was v26): an odd-line card no longer ends with what share of games its count is short of, for any kind of line (every game since 1993-94 is on file)",
+        JSON.stringify([tv.t1?.backHtml, lastLine(tv.t1)]));
     }
     oddData.avg = { x1: [8, 3, 2, 14] };
     const big = odd(await go(gm())).x1;
