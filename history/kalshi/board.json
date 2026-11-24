@@ -23,7 +23,7 @@
   "KXNBASTL": {
    "title": "NBA Player Steals",
    "events": 3,
-   "markets": 52
+   "markets": 53
   },
   "KXNBA4QSPREAD": {
    "title": "NBA 4th Quarter Spread",
@@ -33,7 +33,7 @@
   "KXNBAASTPROT": {
    "title": "NBA Player Assists Protected",
    "events": 3,
-   "markets": 124
+   "markets": 125
   },
   "KXNBATOTALPRECISE": {
    "title": "NBA Total Points Range",
@@ -53,7 +53,7 @@
   "KXNBABLK": {
    "title": "NBA Player Blocks",
    "events": 3,
-   "markets": 26
+   "markets": 27
   },
   "KXNBACONF": {
    "title": "NBA Conference to Win the Championship",
@@ -128,7 +128,7 @@
   "KXNBA2D": {
    "title": "NBA Player Double Double",
    "events": 3,
-   "markets": 33
+   "markets": 34
   },
   "KXNBAALLSTARS": {
    "title": "NBA All-Stars",
@@ -178,7 +178,7 @@
   "KXNBABLKPROT": {
    "title": "NBA Player Blocks Protected",
    "events": 3,
-   "markets": 26
+   "markets": 27
   },
   "KXNBA2NDTEAM": {
    "title": "All-NBA 2nd Team",
@@ -293,7 +293,7 @@
   "KXNBA3PTPROT": {
    "title": "NBA Player Threes Protected",
    "events": 3,
-   "markets": 167
+   "markets": 171
   },
   "KXNBASEEDCHAMP": {
    "title": "NBA Seed of Champion",
@@ -323,7 +323,7 @@
   "KXNBAAST": {
    "title": "NBA Player Assists",
    "events": 3,
-   "markets": 124
+   "markets": 125
   },
   "KXNBA1Q": {
    "title": "NBA 1st Quarter Winner",
@@ -368,7 +368,7 @@
   "KXNBAREBPROT": {
    "title": "NBA Player Rebounds Protected",
    "events": 3,
-   "markets": 160
+   "markets": 161
   },
   "KXNBAMIMP": {
    "title": "NBA Most Improved Player",
@@ -418,7 +418,7 @@
   "KXNBAPRAPROT": {
    "title": "Pts + Reb + Ast Protected",
    "events": 3,
-   "markets": 106
+   "markets": 107
   },
   "KXNBACLUTCH": {
    "title": "NBA Clutch Player of the Year",
@@ -428,7 +428,7 @@
   "KXNBAPRA": {
    "title": "NBA Player Points + Rebounds + Assists",
    "events": 3,
-   "markets": 106
+   "markets": 107
   },
   "KXNBAMVP": {
    "title": "NBA MVP",
@@ -598,7 +598,7 @@
   "KXNBASTLPROT": {
    "title": "NBA Player Steals Protected",
    "events": 3,
-   "markets": 52
+   "markets": 53
   },
   "KXNBA1QSPREAD": {
    "title": "NBA 1st Quarter Spread",
@@ -618,7 +618,7 @@
   "KXNBASTOCKPROT": {
    "title": "NBA Player Steals + Blocks Protected",
    "events": 3,
-   "markets": 31
+   "markets": 32
   },
   "KXNBAESCALATOR3PT": {
    "title": "NBA Player Threes Escalator",
@@ -643,7 +643,7 @@
   "KXNBA2DPROT": {
    "title": "NBA Player Double Double Protected",
    "events": 3,
-   "markets": 33
+   "markets": 34
   },
   "KXNBAPLAYOFFHOST": {
    "title": "NBA Team Home Playoff Games",
@@ -653,7 +653,7 @@
   "KXNBAREB": {
    "title": "NBA Player Rebounds",
    "events": 3,
-   "markets": 160
+   "markets": 161
   },
   "KXNBA3QTOTAL": {
    "title": "NBA 3rd Quarter Total",
@@ -734,7 +734,7 @@
  "favorites": {
   "KXNBASOUTHEAST-26": "Miami 51%",
   "KXNBACONF-27": "Western Conference 61%",
-  "KXNBACOY-27": "Micah Nori 22%",
+  "KXNBACOY-27": "Micah Nori 17%",
   "KXNBAATLANTIC-26": "Boston 46%",
   "KXNBAWEST1SEED-26": "San Antonio 54%",
   "KXNBACUP-26": "San Antonio 24%",
