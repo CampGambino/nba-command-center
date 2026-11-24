@@ -77,7 +77,7 @@ export function activeStreaks(pg, names = {}, { carry = null, featlive = null } 
       const total = n + carried;
       if (total >= Math.max(min, 2) && n >= 1) {
         out.push({ id, name: names[id] || id, team: games[games.length - 1].team, key, label, length: total, ofGames: games.length, since: carried ? (before?.[1] || games[0].d) : games[games.length - n].d, last: games[games.length - 1].d, seasonBest: best,
-          ...(carried ? { thisSeason: n, carried, carriedFrom: fromList ? "list" : "logs" } : {}) });
+          ...(carried ? { thisSeason: n, carried, carriedFrom: fromList ? "list" : "logs", ...(!fromList && before?.[2] ? { atLeast: true } : {}) } : {}) });
       }
     }
   }

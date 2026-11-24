@@ -36,7 +36,7 @@ let bytes = 0;
 for (const k of keep) {
   const j = read(k);
   if (k.startsWith("box-")) j.data = SHRINK.box(j.data);
-  if (k.startsWith("log-")) j.data = SHRINK.gameLog(j.data);
+  if (k.startsWith("log-") || k.startsWith("log2-")) j.data = SHRINK.gameLog(j.data);
   if (k === "injuries") j.data = SHRINK.injuries(j.data);
   const out = JSON.stringify(j);
   bytes += out.length;

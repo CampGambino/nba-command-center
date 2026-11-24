@@ -215,6 +215,9 @@ export function readGameLog(json) {
     const games = [];
     for (const c of st.categories || []) {
       for (const e of c.events || []) {
+        // 0.145.1: ESPN files the All-Star games under "Regular Season" (Curry's two on 2/16/25, "NBA All-Star - Semifinals"
+        // and "- Championship"): they made his made-three run 104 here, 102 on Basketball-Reference. Not NBA games: left out.
+        if (/all-star|rising stars/i.test(events[e.eventId]?.eventNote || "")) continue;
         const s = {};
         names.forEach((k, i) => {
           const ours = LOG_KEYS[k];

@@ -5626,6 +5626,17 @@ await bridgeChecks(ok, root);
       "0.145.0: a neutral-site game is one meeting (listed home team kept), neither home nor road, and still matched to its national broadcast for both teams",
       JSON.stringify({ m, ind: tr.IND, ns: ns.teams }));
   }
+  // 0.145.1: ESPN files the All-Star games under "Regular Season" (Curry's two on 2/16/25): left out of the game logs, so his
+  // made-three run is Basketball-Reference's 102, not 104 (the user's screenshots, 11/24).
+  {
+    const { readGameLog } = await import("../src/espn/parse.js");
+    const { SHRINK } = await import("../src/espn/client.js");
+    const raw = { names: ["3PT"], events: { 1: { gameDate: "2025-02-14T00:30:00Z" }, 2: { gameDate: "2025-02-17T02:10:00Z", eventNote: "NBA All-Star - Semifinals First team to 40 points wins - Untimed" }, 3: { gameDate: "2025-02-17T03:00:00Z", eventNote: "NBA All-Star - Championship" }, 4: { gameDate: "2025-02-21T03:00:00Z" } },
+      seasonTypes: [{ displayName: "2024-25 Regular Season", categories: [{ events: [{ eventId: "1", stats: ["4-10"] }, { eventId: "2", stats: ["2-5"] }, { eventId: "3", stats: ["0-3"] }, { eventId: "4", stats: ["4-9"] }] }] }] };
+    const a = readGameLog(raw).types[0].games, b = readGameLog(SHRINK.gameLog(raw)).types[0].games;
+    ok(a.length === 2 && b.length === 2 && a.map((g) => g.date).join() === "2025-02-13,2025-02-20",
+      "0.145.1: the All-Star games are not in a player's game log, also after the cache shrinks it", JSON.stringify({ a, b }));
+  }
   // 0.145.0: one spelling per player (the audit: "Jokić" at #2 in the briefing, "Nikola Jokic" at #6).
   {
     const { accentMap, withAccents } = await import("../src/site/accents.js");

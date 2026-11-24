@@ -11,6 +11,8 @@
  * (src/situations/trends.js STREAKS) had run at his last game of last season, and the date it started.
  *   NODE_USE_ENV_PROXY=1 node tools/streak-carry.mjs            -> src/data/streak-carry-<last season>.json
  * Kept only where the run is 2+ games. A game log lists only games he played, so injuries don't break a run (as on the page).
+ * 0.145.1: the All-Star games, which ESPN files under "Regular Season", are left out (src/espn/parse.js readGameLog): they
+ * made Curry's made-three run 104 against Basketball-Reference's 102, and broke 10+ point runs (Durant's, SGA's…).
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -20,7 +22,7 @@ import { STREAKS } from "../src/situations/trends.js";
 import { SEASON } from "../src/season.js";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const MAX_BACK = 4;                       // seasons before last season, at most
+const MAX_BACK = 25;                      // seasons before last season, at most (a run still going there is "at least")
 const last = Number(SEASON.slice(0, 4));   // ESPN numbers a season by its end year: 2026 = 2025-26, the season before SEASON
 const label = (y) => `${y - 1}-${String(y).slice(2)}`;
 const tests = STREAKS.filter(([k]) => k !== "start");
@@ -67,7 +69,8 @@ await Promise.all(Array.from({ length: 6 }, async () => {
       }
       open = still; y--;
     }
-    for (const [k] of tests) if (n[k] >= 2) runs[k] = [n[k], from[k]];
+    // [games, first game, 1 when the run was still going at the oldest season read (a count of at least)]
+    for (const [k] of tests) if (n[k] >= 2) runs[k] = open.includes(k) ? [n[k], from[k], 1] : [n[k], from[k]];
     if (Object.keys(runs).length) out[id] = runs;
     if (++done % 50 === 0) console.log(`${done} of ${ids.size} players`);
   }
@@ -75,5 +78,5 @@ await Promise.all(Array.from({ length: 6 }, async () => {
 const file = path.join(root, "src", "data", `streak-carry-${label(last)}.json`);
 fs.writeFileSync(file, JSON.stringify({
   source: `ESPN game logs, regular season (play-in left out), ${label(last)} and as far back as ${label(last - MAX_BACK)} while a run covers every game; read ${new Date().toISOString().slice(0, 10)} by tools/streak-carry.mjs`,
-  through: label(last), keys: ["n", "from"], streaks: tests.map(([k, l]) => [k, l]), players: out }));
+  through: label(last), keys: ["n", "from", "atLeast"], streaks: tests.map(([k, l]) => [k, l]), players: out }));
 console.log(`${Object.keys(out).length} of ${ids.size} players with a run of 2+ alive at the end of ${label(last)}; ${failed} logs unreadable -> ${path.relative(root, file)}`);

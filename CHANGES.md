@@ -2,6 +2,23 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.145.1 (2026-11-24): the All-Star games are not regular-season games
+
+The user, 11/24, with Basketball-Reference's 102-game list for Curry's made-three run (screenshots), asking whether ESPN's two extra games were play-in games. They aren't: the play-in was already left out. They are the **2025 All-Star games** (2/16/25, "NBA All-Star - Semifinals" and "- Championship", Team Shaq vs Team Candace and Team Chuck). ESPN files them under "2024-25 Regular Season".
+
+Checked game by game: once those two are left out, ESPN's 2024-25 games from 12/21/24 are the same 49 as Basketball-Reference's. 49 + 43 (2025-26) + 10 (this season) = 102.
+
+- **`readGameLog` (src/espn/parse.js) leaves out All-Star and Rising Stars games** (ESPN's `eventNote`). The cache keeps `eventNote` now, and the key is `log2-`, so week-old cached logs are read again.
+- **src/data/streak-carry-2025-26.json made again.** The All-Star games had added to some runs and broken others (a 6-point All-Star game ended a 10+ point run). 18 runs changed:
+  - Curry's made threes: 92 carried (102 in all, as on the Records page).
+  - Kevin Durant's 10+ points: 28 → 328 carried, since 4/25/21.
+  - Gilgeous-Alexander's 10+ points: 92 → 217 since 10/30/23; his 20+ points 91 → 141 since 11/1/24.
+- **tools/streak-carry.mjs reads back as far as a run goes** (up to 25 seasons, was 4), and marks a run still going at the oldest season read as "at least" (shown "N+"; none today). Before, Durant's run stopped at the 4-season limit.
+
+**Tested:** 878 checks here (1 new: the All-Star games are left out, also after the cache shrinks a log). Curry's 2024-25 log from ESPN, read and also cached, matches Basketball-Reference's 49 games. Notes-PDF checks skipped (samples/ not here).
+
+**Self-audit:** in 0.145.0 I had only checked the play-in. The Records page and NBA Live were never wrong (they use the list). The Streaks page's other carried runs were wrong by up to 2 games, or cut short, for about 5 hours. Also, the milestones' last-season fill (src/anticipate/watch.js) read the same logs: a player whose last 20 games reached back to February 2026 could have had an All-Star game in his sample. Fixed by the same change, not measured.
+
 ## 0.145.0 (2026-11-24): one fact, one value on every page (the consistency audit)
 
 The user, 11/24, after Paul George's chance at 2,500 threes read 19% on the Watch List and 32% on the Records page: "run a full diagnostic on such matters and see where any incongruencies exist". The audit (`claude/consistency-audit-2026-11-24.md`) found eight. The user, 11:10 AM: "That's good with me", and the Mexico City game "can be counted as a neutral court so we can still check the Pacers' last 10 road games".
