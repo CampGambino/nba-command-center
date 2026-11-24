@@ -153,7 +153,7 @@ function card(p) {
     <div><span class="who">${esc(p.name)}</span><span class="team">${esc(p.team || "")}${p.was ? ` (from ${esc(p.was)})` : ""}</span></div>
     <div class="chips">${awardChips(p)}${tnChip(p)}</div>
     ${bar(p)}
-    <div class="meta">${p.q} counted of ${p.teamGames} team games · ${p.left ?? "?"} left · needs ${p.need}${p.status === "alive" ? ` · on pace for ${p.pace}` : ""}.${sitAfter}${alt}${p.status === "out" && p.grievanceBy ? ` Grievance window closed ${md(p.grievanceBy)}.` : ""}</div>
+    <div class="meta">${p.q} counted of ${p.teamGames} team games · ${p.left ?? "?"} left · needs ${p.need}${p.noGames ? " · hasn't played this season" : p.status === "alive" ? ` · on pace for ${p.pace}` : ""}.${sitAfter}${alt}${p.status === "out" && p.grievanceBy ? ` Grievance window closed ${md(p.grievanceBy)}.` : ""}</div>
     ${missedText(p) ? `<div class="meta">Not counted: ${esc(missedText(p))}.${p.shortUsed ? ` 15-19 minute games used: ${p.shortUsed} of 2.` : ""}</div>` : ""}
     ${p.check ? `<div class="meta" style="color:var(--warn)">${p.check} game${p.check === 1 ? "" : "s"} at ESPN's 20 or 15 still to check against the play-by-play.</div>` : ""}
   </div></div>`;
@@ -179,7 +179,7 @@ function renderTable() {
   const L = rows();
   $("tbl").innerHTML = `<thead><tr>${COLS.map(([k, t, n]) => `<th data-k="${k}" class="${n ? "num" : ""} ${SORT.k === k ? "on" : ""}">${t}${SORT.k === k ? (SORT.dir > 0 ? " ▲" : " ▼") : ""}</th>`).join("")}</tr></thead><tbody>${L.map((p) => `
     <tr class="prow" data-id="${p.id}"><td>${esc(p.name)}</td><td>${esc(p.team || "–")}</td><td>${awardChips(p) || '<span class="small">–</span>'}</td><td class="num">${p.q}</td><td class="num">${p.teamGames}</td><td class="num">${p.left ?? "–"}</td><td class="num">${p.need}</td>
-    <td class="num">${p.status === "alive" ? p.canMiss : "–"}</td><td class="num">${p.shortUsed}/2</td><td class="num">${p.status === "alive" ? p.pace : "–"}</td><td class="num">${p.teamGames - p.q}</td><td>${statusCell(p)} ${tnChip(p)}</td></tr>
+    <td class="num">${p.status === "alive" ? p.canMiss : "–"}</td><td class="num">${p.shortUsed}/2</td><td class="num">${p.status === "alive" && !p.noGames ? p.pace : "–"}</td><td class="num">${p.teamGames - p.q}</td><td>${statusCell(p)} ${tnChip(p)}</td></tr>
     ${OPEN.has(p.id) ? `<tr class="detail"><td colspan="${COLS.length}">${esc(missedText(p) ? `Not counted: ${missedText(p)}.` : "Counted in every team game.")} ${p.under || p.short ? esc(`Games he played: ${p.full} at 20+ minutes, ${p.short} at 15-19 (${p.shortUsed} of them counted), ${p.under} under 15.`) : ""}${p.border.length ? `<br>Close calls on minutes: ${esc(borderText(p))}` : ""}${p.status === "out" && p.grievanceBy ? `<br>Out of reach since ${md(p.outSince)}; a grievance had to be filed by ${md(p.grievanceBy)}.` : ""}</td></tr>` : ""}`).join("")}</tbody>`;
   $("tblNote").textContent = `${L.length} player${L.length === 1 ? "" : "s"}. ${VIEW === "cand" ? "Award candidates: Kalshi gives him 3% or more for MVP, or 10% or more for DPOY, Most Improved, All-NBA (1st + 2nd + 3rd team) or All-Defensive (1st + 2nd)." : VIEW === "rot" ? "Rotation players: 20+ minutes in at least half his team's games." : ""} Click a row for the games he didn't count in.`;
   document.querySelectorAll("#tbl th").forEach((th) => th.onclick = () => { const k = th.dataset.k; SORT = SORT.k === k ? { k, dir: -SORT.dir } : { k, dir: ["stake", "q", "pace"].includes(k) ? -1 : 1 }; renderTable(); });

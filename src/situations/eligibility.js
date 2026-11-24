@@ -83,8 +83,10 @@ export function awardStakes(awardsFile) {
  * tonight:  { players: [{ team, name, status, reason }], date } today's injury report (docs/data/injuries.json)
  * awards:   history/kalshi/awards.json (or null)
  * tonightTeams: teams playing today
+ * reports:  { date: [{ team, name, status, reason }] } each night's injury report rows, for a priced player with no game
+ *           this season (0.144.1: Jimmy Butler III, out all season, had a Kalshi price and no row): his team and reasons
  */
-export function eligibility({ rows, names = {}, current = {}, seconds = {}, listings = {}, tonight = null, awards = null, today, through, seasonEnd = null, tonightTeams = new Set() }) {
+export function eligibility({ rows, names = {}, current = {}, seconds = {}, listings = {}, tonight = null, awards = null, today, through, seasonEnd = null, tonightTeams = new Set(), reports = {} }) {
   const games = rows.filter((g) => g.pl && g.d <= through).sort((a, b) => a.d.localeCompare(b.d) || String(a.id).localeCompare(String(b.id)));
   const teamDates = {};            // tri -> [date of each game played]
   for (const g of games) for (const t of [g.h, g.a]) (teamDates[t] ??= []).push(g.d);
@@ -177,6 +179,29 @@ export function eligibility({ rows, names = {}, current = {}, seconds = {}, list
       border,
     };
     players.push(row);
+  }
+  // A player Kalshi prices who hasn't played this season: his team from the latest injury report that lists him; every one of
+  // its games is a game he missed. Not on any report: still listed, with no team.
+  const seen = new Set(players.map((p) => nameKey(p.name)));
+  const dates = Object.keys(reports).filter((d) => d <= through).sort();
+  const prettyName = {}; for (const list of Object.values(awards?.series || {})) for (const m of list || []) if (m?.name) prettyName[nameKey(m.name)] ??= m.name;
+  for (const [k, stake] of Object.entries(stakes)) {
+    if (seen.has(k) || !prettyName[k] || /^tie\b|co-?winners/i.test(prettyName[k])) continue;
+    let team = null, name = prettyName[k];
+    for (let i = dates.length - 1; i >= 0 && !team; i--) { const r = (reports[dates[i]] || []).find((x) => nameKey(x.name) === k); if (r) { team = r.team; name = r.name; } }
+    const L = team ? teamDates[team] || [] : [];
+    const missed = { short: 0, injury: 0, rest: 0, personal: 0, suspension: 0, gleague: 0, other: 0, unlisted: 0 };
+    for (const d of L) { const r = (reports[d] || []).find((x) => x.team === team && nameKey(x.name) === k); if (r && !/Available/i.test(r.status)) missed[reasonKind(r.reason)]++; else missed.unlisted++; }
+    const left = team ? SEASON_GAMES - L.length : null, canMiss = left == null ? null : left - NEED;
+    const status = left == null ? "unsigned" : canMiss < 0 ? "out" : "alive";
+    const outSince = status === "out" ? L[SEASON_GAMES - NEED] : null;   // the night his team played game 18 without him
+    const best = AWARDS.filter((a) => stake[a]).sort((x, y) => stake[y] - stake[x])[0];
+    const inj = team ? tonightBy[`${team}|${k}`] || null : null;
+    players.push({ id: `kalshi:${k}`, name, team, q: 0, full: 0, short: 0, shortUsed: 0, under: 0, check: 0, checkLater: 0, apps: 0, teamGames: L.length,
+      left, need: NEED, canMiss, status, pace: left == null ? null : 0, rate: 0, missed, noGames: 1,
+      ...(outSince ? { outSince, grievanceBy: addDays(outSince, GRIEVANCE_DAYS) } : {}),
+      ...(status === "out" ? { alt: left >= ALT, share: L.length ? 0 : null } : {}),
+      stake, best, ...(inj && !/Available/i.test(inj.status) ? { tonight: inj } : {}), ...(team && tonightTeams.has(team) ? { plays: 1 } : {}), border: [] });
   }
   const tier = (p) => (p.status === "out" ? 0 : p.status === "alive" ? 1 : 2);
   players.sort((a, b) => tier(a) - tier(b) || (a.canMiss ?? 99) - (b.canMiss ?? 99) || b.q - a.q);

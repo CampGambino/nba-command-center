@@ -2,6 +2,22 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.144.1 (2026-11-24): award eligibility counts priced players who haven't played
+
+Kalshi's award prices arrived overnight (`history/kalshi/awards.json`, 7:30 AM build): 112 of 114 names matched a player. The two that didn't: Kalshi's "Tie/Co-Winners" option, which isn't a player, and **Jimmy Butler III**, who hasn't played this season and so had no row. Not playing is itself the eligibility story, so a priced player with no game now gets a row:
+- his team comes from the latest injury report that lists him (GSW)
+- every one of his team's games counts as missed, with the report's reason (17 injury)
+- the out-of-reach date is the night his team plays its 18th game without him
+- a priced name on no injury report is listed with no team
+
+On the page he shows "hasn't played this season" instead of a pace.
+
+The user checked two of the borderline games on Basketball-Reference (11/24 screenshots): Mitchell Robinson 19:48 (11/4 vs MIL) and Goga Bitadze 19:32 (11/18 vs PHI), both to the second what our play-by-play rebuild gave. The user also said no NBA Live cards for award eligibility.
+
+**Tested:** 866 checks here (new: a priced player with no games, from the injury report; Kalshi's tie option skipped). The real Kalshi file run against the store: 475 players, 112 priced, Butler GSW 0 of 17, can miss 0.
+
+**Self-audit:** I said "112 of 114 match" in chat, before this fix. Counted against the published file at the time, 112 of the 114 names matched, and the unmatched two were the tie option and Butler. That was right. The gap was mine: 0.144.0 had no row for a player with no games, and I hadn't tested a priced name absent from the box scores.
+
 ## 0.144.0 (2026-11-23): award eligibility, the 65-game rule: a new tab, a countdown, and Watch List lines
 
 The user, 11/23, with CBA Article XXIX, Section 6 (games played requirement for league honors): "we'll need a countdown for players who are tracking for awards who may not be eligible because of the games played rule. It might require a different tab".

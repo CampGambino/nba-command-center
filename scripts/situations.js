@@ -853,7 +853,8 @@ try {
   const awards = rdOpt(path.join(root, "history", "kalshi", "awards.json"));
   const cal = sb.ok ? sb.data.calendar : [];
   const E = eligibility({ rows, names: store.names || {}, current: rosterChanges, seconds, listings, tonight: rdOpt(path.join(root, "docs", "data", "injuries.json")), awards, today, through,
-    seasonEnd: cal.length ? cal[cal.length - 1] : null, tonightTeams: new Set(tonight.flatMap((g) => [g.home, g.away])) });
+    seasonEnd: cal.length ? cal[cal.length - 1] : null, tonightTeams: new Set(tonight.flatMap((g) => [g.home, g.away])),
+    reports: Object.fromEntries(Object.entries(injByDate).map(([d, r]) => [d, r.rows || []])) });
   // the Watch List's lines (src/anticipate/tonight.js reads `lines`; it imports nothing from here, so the page's copy works alone)
   const lines = eligibilityLines({ ...E, today }, new Set(tonight.flatMap((g) => [g.home, g.away])), today);
   fs.writeFileSync(path.join(root, "docs", "data", "eligibility.json"), JSON.stringify({ generatedAt: out.generatedAt, today, through, awardsAt: awards?.at || null, ...E, lines }));

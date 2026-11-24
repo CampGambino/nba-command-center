@@ -5095,6 +5095,13 @@ await bridgeChecks(ok, root);
     "award eligibility (0.144.0): 65 goes out of reach the night his team plays its 18th game without him (2 counted + 62 left = 64); the grievance window is the next two days; 62 is still reachable", JSON.stringify(Y));
   ok(Z.team === "CCC" && Z.q === 15 && Z.left === 82 - 15 && Z.canMiss === 67 - 50 && Z.was === "AAA",
     "award eligibility (0.144.0): a traded player's games count across his teams, and what's left is his new team's schedule", JSON.stringify(Z));
+  // 0.144.1: a priced player who hasn't played (Jimmy Butler III, out all season) is on the board, from the injury report
+  const reports = Object.fromEntries(Array.from({ length: 20 }, (_, i) => [day(i + 1), i < 15 ? [{ team: "AAA", name: "Jimmy Butler III", status: "Out", reason: "Injury/Illness - Right ACL Repair / Surgery" }] : []]));
+  const EB = eligibility({ rows, names: {}, reports, awards: { series: { KXNBA3RDTEAM: [{ name: "Jimmy Butler", p: 4 }, { name: "Tie/Co-Winners", p: 1 }], KXNBAMVP: [{ name: "Nobody Listed", p: 2 }] } }, today: "2026-11-21", through: "2026-11-20" });
+  const JB = EB.players.find((p) => p.noGames && p.team === "AAA"), NL = EB.players.find((p) => p.name === "Nobody Listed");
+  ok(JB && JB.name === "Jimmy Butler III" && JB.q === 0 && JB.teamGames === 20 && JB.left === 62 && JB.status === "out" && JB.outSince === day(18) && JB.alt === true && JB.missed.injury === 15 && JB.missed.unlisted === 5
+    && NL && NL.status === "unsigned" && NL.team === null && !EB.players.some((p) => /Tie/.test(p.name)),
+    "award eligibility (0.144.1): a player Kalshi prices who hasn't played a game is on the board: his team from the latest injury report listing him, every team game missed, out of reach the night his team played its 18th; Kalshi's tie option isn't a player", JSON.stringify([JB, NL]));
   const st = awardStakes(awards);
   ok(st["ex player"].allnba === 35 && !st["ex player"].roy && st["wy player"].mvp === 5 && E.challengeWindow.to === "2027-04-12 11:59 PM ET" && reasonKind("G League - Two-Way") === "gleague" && reasonKind("Not With Team") === "personal",
     "award eligibility (0.144.0): Kalshi's All-NBA teams add up (a player makes one), names match without accents, Rookie of the Year isn't a covered award; the challenge window runs to 11:59 PM ET the day after the season ends");
