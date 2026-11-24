@@ -2,6 +2,45 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.151.0 (2026-11-24): Lineups (2- to 5-man units) and hustle stats from NBA.com's rotations; exact seconds for award eligibility
+
+The user, 11/24, on the rotations and lineups idea parked earlier that day: "go for 2" (with the poster clean-up and the Game Flow split).
+
+**The data** (`tools/fetch-rotations.mjs` → `history/nbacom/2026-27/g-<NBA game id>.json`, 258 games, 2 MB):
+- stats.nba.com `gamerotation`: every stint, each check-in and check-out to the tenth of a second, with the player's points and the margin over it.
+- `boxscorehustlev2`: shots contested (2 and 3), deflections, charges drawn, screen assists and their points, loose balls, box-outs. ESPN has none of these.
+- Read with 1.5 seconds between requests. The neutral-site game (Mexico City, 11/7) has no home team on NBA.com's list and is matched either way round.
+
+**The engine** (`src/situations/lineups.js`, built by `scripts/lineups.js` into `docs/data/lineups.json`, 670 KB):
+- Between any two check-ins the same five are on the floor. Each such stretch is also cut at each period and at 5:00 of the 4th (clutch).
+- The points for and against in each stretch come from the play-by-play's score (the Game Flow files), with the margin it began at.
+- A point at the very moment of a substitution counts for the five before it. I tried two other rules, giving free throws, or plays the play-by-play lists after the substitution, to the five after. They matched ESPN's plus-minus for 27% and 81% of player-games; this rule matches 97.6%.
+
+**Checked:**
+- Minutes within a minute of ESPN's box for 5,731 of 5,732 player-games.
+- 514 of 516 team-games have five on the floor for every second, and their stretches add up to the final score.
+- The two left out are MIA and MIL on 11/18. NBA.com's stints there are broken: one stint of 46:39 for Antetokounmpo, who played 32:15 by NBA.com's own box score. Such a player gets no exact seconds.
+- One plus-minus difference read against NBA.com's own box (BOS 10/30, Tatum 4 vs 5): the official number is ESPN's, so the 2.4% left over is a free throw at a substitution, as said on the page.
+
+**The page** (`docs/lineups.html`, "Lineups" in the Players and Teams menus, the tab row, the Index):
+- Any team's 2-, 3-, 4- or 5-man units: games, minutes, points for and against, +/-, and per 48 (for, against, net).
+- Cuts: whole games, each quarter, overtime or clutch; an opponent; dates; a minutes floor (every step from 0 to 300); a player the unit must include. Sortable.
+- A Hustle stats view: every player's totals or per game, by team, with a games floor.
+- The page states the checks.
+
+**Award eligibility:** a game ESPN rounds to 20 or 15 minutes now takes NBA.com's exact seconds (`nbaSeconds`, how "nba", "by NBA.com" on the page), after a Basketball-Reference check and before the play-by-play rebuild. 324 borderline games now use it. All 324 agree with the rebuild within 20 seconds, and nobody's count changed.
+
+**Nightly:**
+- The build reads any new game's rotations after Game Flow (`--quick`: one try at the game list, at most 40 games), then rebuilds the lineups. Neither step can fail the build.
+- Whether GitHub's runners can reach stats.nba.com is being tested by `nbacom-probe` (0.150.1, hourly at :50). If they can't, the step says so quietly and the lineups wait for a run from here or the user's PC.
+
+**Tests.** 886 (1 new: the five on the floor between check-ins, cuts at periods and clutch, the score at those moments, a buzzer three for the five before the break, 2-man groups adding up). The page check now covers Lineups (14 tabs).
+
+**Self-audit.**
+- **The first coverage check said 514 of 514.** It counted only team-games that had any stretch, and missed the two with none. It now counts all 516 and names the two.
+- **The first build gave Antetokounmpo 46:39 on 11/18.** His exact seconds are now kept only when they agree with ESPN within a minute.
+- **Not done:** hustle stats aren't yet in storylines or odd lines, and Game Flow still builds its stints from ESPN's play-by-play.
+
 ## 0.150.0 (2026-11-24): NBA Live's odd-line cards drop the "not on file" note (bridge v35)
 
 The user, 11/24: "you can remove the odd-line card disclaimer if there isn't any concern".

@@ -40,7 +40,7 @@ const [mode, ...rest] = process.argv.slice(2);
 const opt = (name) => (rest.includes(name) ? rest[rest.indexOf(name) + 1] : null);
 const etDay = (offsetDays = 0) => new Date(Date.now() + offsetDays * 864e5).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 // Each step has its own time limit (0.72), so one that hangs can't use up the job's 30 minutes and take the others with it.
-const LIMIT_MIN = { "scripts/tonight.js": 14, "scripts/situations.js": 8, "scripts/flow.js": 4, "scripts/score.js": 8 };
+const LIMIT_MIN = { "scripts/tonight.js": 14, "scripts/situations.js": 8, "scripts/flow.js": 4, "scripts/score.js": 8, "tools/fetch-rotations.mjs": 6, "scripts/lineups.js": 2 };
 const steps = [];
 let heldNote = null;      // 0.105: set when a build after midnight stays on yesterday's slate (pickDay)
 function run(args) {
@@ -52,7 +52,7 @@ function run(args) {
   // 0.125: every line a step prints as a complaint (stderr), not only the ones worded a certain way: "odd lines not
   // run", "bench counts not made" and six more never matched the old word list, and a normal build prints none at all.
   const notes = String(r.stderr || "").split("\n").map((l) => l.trim()).filter((l) => l && !/DeprecationWarning|ExperimentalWarning|--trace-(?:deprecation|warnings)|UNDICI-EHPA/.test(l)).slice(0, 8).map((l) => l.slice(0, 220));
-  steps.push({ step: args[0].replace(/^scripts\/|\.js$/g, ""), ok: r.status === 0, sec: Math.round((Date.now() - t0) / 1000), ...(timedOut ? { error: `stopped after ${LIMIT_MIN[args[0]] || 10} minutes` } : r.status !== 0 ? { error: `exit ${r.status}` } : {}), ...(notes.length ? { notes } : {}) });
+  steps.push({ step: args[0].replace(/^(?:scripts|tools)\/|\.m?js$/g, ""), ok: r.status === 0, sec: Math.round((Date.now() - t0) / 1000), ...(timedOut ? { error: `stopped after ${LIMIT_MIN[args[0]] || 10} minutes` } : r.status !== 0 ? { error: `exit ${r.status}` } : {}), ...(notes.length ? { notes } : {}) });
   return r;
 }
 /** docs/data/health.json: when the build ran and how each step went, for the Watch List's health note (0.72). */
@@ -161,6 +161,15 @@ function situations(today) {
   process.stdout.write(f.stdout || "");
   process.stderr.write(f.stderr || "");
   if (f.status !== 0) console.error(`game flow not updated (exit ${f.status})`);
+  // 0.151.0: NBA.com's rotations and hustle stats for any new game (history/nbacom), then the lineups. Never fatal; if
+  // NBA.com can't be reached from here the last lineups stay.
+  if (fs.existsSync(path.join(root, "scripts", "lineups.js"))) {
+    const rr = run(["tools/fetch-rotations.mjs", "--quick", "--max", "40"]);
+    process.stdout.write(rr.stdout || ""); process.stderr.write(rr.stderr || "");
+    const lu = run(["scripts/lineups.js"]);
+    process.stdout.write(lu.stdout || ""); process.stderr.write(lu.stderr || "");
+    if (lu.status !== 0) console.error(`lineups not updated (exit ${lu.status})`);
+  }
 }
 
 function score() {

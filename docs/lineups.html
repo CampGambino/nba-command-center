@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NBA Command Center · Lineups</title>
+<style>
+  :root { --bg: #f5f6f8; --panel: #fff; --panel2: #f0f2f5; --line: #e1e4ea; --text: #161a22; --muted: #5b6474; --faint: #8a93a3;
+    --accent: #1d5fd1; --good: #1f7a4d; --warn: #8a5a00; --bad: #b42318; --radius: 12px; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 18px 16px 8px; max-width: 1180px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  main { max-width: 1180px; margin: 0 auto; padding: 0 12px 40px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 22px 4px 10px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 2px 10px; }
+  select, input { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; font-size: 14px; min-height: 38px; }
+  label { color: var(--muted); font-size: 13px; display: inline-flex; gap: 6px; align-items: center; }
+  .toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .toggle button { border: 0; background: var(--panel); padding: 7px 12px; font-size: 13.5px; color: var(--muted); cursor: pointer; min-height: 38px; }
+  .toggle button.on { background: var(--accent); color: #fff; }
+  .key { color: var(--muted); font-size: 12.5px; margin: 0 4px 10px; max-width: 900px; }
+  .scroll { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--line); background: var(--panel); }
+  table { width: 100%; border-collapse: collapse; min-width: 760px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; background: var(--panel2); position: sticky; top: 0; }
+  th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  th.sort { cursor: pointer; } th.sort.on { color: var(--accent); }
+  tr:last-child td { border-bottom: 0; }
+  td.who { font-weight: 600; }
+  td.who small { display: block; font-weight: 400; color: var(--faint); font-size: 11.5px; }
+  .hi { color: var(--good); font-weight: 650; } .lo { color: var(--bad); font-weight: 650; }
+  .empty { color: var(--faint); padding: 14px 10px; }
+  .checks { font-size: 12.5px; color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; margin-top: 16px; }
+  footer { color: var(--faint); font-size: 12px; max-width: 1180px; margin: 0 auto; padding: 0 16px 30px; }
+  nav { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 6px; font-size: 13.5px; }
+  nav a { color: var(--muted); text-decoration: none; }
+</style>
+<link rel="stylesheet" href="site/chrome.css">
+<script src="site/nav.js" defer></script>
+</head>
+<body>
+<header>
+  <h1>NBA Command Center</h1>
+  <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a href="standings.html">Standings</a><a href="clutch.html">Clutch</a><a href="players.html">With / without</a><a href="lineups.html">Lineups</a><a href="trends.html">Streaks &amp; outliers</a><a href="leaders.html">Team leaders</a><a href="defenses.html">vs top teams</a><a href="national.html">National TV</a><a href="gameflow.html">Game Flow</a><a href="records.html">Records</a><a href="awards.html">Award eligibility</a><a href="find.html">Index</a></nav>
+  <div class="sub" id="sub">Loading…</div>
+</header>
+<main>
+  <div class="controls">
+    <span class="toggle" id="view"><button data-v="units" class="on">Lineups</button><button data-v="hustle">Hustle stats</button></span>
+  </div>
+  <section id="v-units">
+    <div class="controls">
+      <select id="team" aria-label="Team"></select>
+      <span class="toggle" id="size" aria-label="Players together"><button data-k="2">2-man</button><button data-k="3">3-man</button><button data-k="4">4-man</button><button data-k="5" class="on">5-man</button></span>
+      <select id="cut" aria-label="When">
+        <option value="all">Whole games</option><option value="q1">1st quarter</option><option value="q2">2nd quarter</option><option value="q3">3rd quarter</option>
+        <option value="q4">4th quarter</option><option value="ot">Overtime</option><option value="clutch">Clutch (last 5 min, within 5)</option>
+      </select>
+      <select id="opp" aria-label="Opponent"><option value="">Every opponent</option></select>
+      <label>From <input type="date" id="from"></label><label>to <input type="date" id="to"></label>
+      <label>At least <select id="minMin"></select> min</label>
+      <input type="search" id="who" placeholder="Must include a player" list="plist" aria-label="Player"><datalist id="plist"></datalist>
+    </div>
+    <div class="key" id="key"></div>
+    <div class="scroll"><table id="t"></table></div>
+  </section>
+  <section id="v-hustle" hidden>
+    <div class="controls">
+      <select id="hteam" aria-label="Team"><option value="">Every team</option></select>
+      <span class="toggle" id="hper"><button data-p="tot" class="on">Totals</button><button data-p="pg">Per game</button></span>
+      <label>At least <select id="hgp"></select> games</label>
+    </div>
+    <div class="key">NBA.com's hustle stats, which ESPN doesn't carry: shots contested (inside and outside the arc), deflections, charges drawn, screen assists (a screen that leads straight to a basket, and the points from them), loose balls recovered and box-outs.</div>
+    <div class="scroll"><table id="h"></table></div>
+  </section>
+  <div class="checks" id="checks"></div>
+</main>
+<footer>From NBA.com's rotation data: every check-in and check-out to the tenth of a second, so minutes are exact. Points for and against come from the play-by-play's score at those moments; a point scored at the very moment of a substitution counts for the five who were on before it, which can put a free throw on the wrong side of a substitution (plus-minus matches ESPN's box score for 97% of player-games, off by 1 point in the rest). "Per 48" scales a lineup's margin to a full game; a small number of minutes says little.</footer>
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const md = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}`;
+const REG = 7200, OT = 3000, CLUTCH_FROM = 4 * REG - 3000;
+let D = null, K = 5, sortKey = "min", sortDir = -1, hSort = 2, hDir = -1;
+const groups = (ids, k) => { const out = [], pick = (s, acc) => { if (acc.length === k) { out.push(acc); return; } for (let i = s; i < ids.length; i++) pick(i + 1, [...acc, ids[i]]); }; pick(0, []); return out; };
+const sg = (x) => (x > 0 ? "+" : "") + x;
+const f1 = (x) => (Number.isFinite(x) ? x.toFixed(1) : "–");
+function cutOk(t0, t1, before, cut) {
+  if (cut === "all") return true;
+  if (cut === "clutch") return t0 >= CLUTCH_FROM && Math.abs(before) <= 5;
+  if (cut === "ot") return t0 >= 4 * REG;
+  const q = +cut.slice(1); return t0 >= (q - 1) * REG && t1 <= q * REG;
+}
+function rows() {
+  const team = $("team").value, cut = $("cut").value, opp = $("opp").value, from = $("from").value, to = $("to").value;
+  const who = $("who").value.trim().toLowerCase();
+  const U = new Map();
+  for (const r of D.iv) {
+    const g = D.games[r[0]], home = r[1] === 1, mine = home ? g[2] : g[3], them = home ? g[3] : g[2];
+    if (mine !== team || (opp && them !== opp) || (from && g[1] < from) || (to && g[1] > to) || !cutOk(r[2], r[3], r[11], cut)) continue;
+    const on = r.slice(4, 9), sec = (r[3] - r[2]) / 10;
+    for (const ids of K === 5 ? [on.slice().sort((a, b) => a - b)] : groups(on.slice().sort((a, b) => a - b), K)) {
+      const key = ids.join("|"), u = U.get(key) || { ids, sec: 0, pf: 0, pa: 0, g: new Set() };
+      u.sec += sec; u.pf += r[9]; u.pa += r[10]; u.g.add(r[0]); U.set(key, u);
+    }
+  }
+  const min = +$("minMin").value || 0;
+  let list = [...U.values()].map((u) => ({ ...u, min: u.sec / 60, pm: u.pf - u.pa, gp: u.g.size })).filter((u) => u.min >= min);
+  if (who) list = list.filter((u) => u.ids.some((i) => D.players[i][0].toLowerCase().includes(who)));
+  for (const u of list) { u.net48 = u.min ? (u.pm * 48) / u.min : 0; u.off48 = u.min ? (u.pf * 48) / u.min : 0; u.def48 = u.min ? (u.pa * 48) / u.min : 0; }
+  list.sort((a, b) => sortDir * ((a[sortKey] ?? 0) - (b[sortKey] ?? 0)) || b.min - a.min);
+  return list;
+}
+const COLS = [["gp", "Games"], ["min", "Min"], ["pf", "Pts for"], ["pa", "Pts against"], ["pm", "+/-"], ["off48", "For per 48"], ["def48", "Against per 48"], ["net48", "Net per 48"]];
+function render() {
+  const list = rows(), team = $("team").value;
+  const name = (i) => esc(D.players[i][0]);
+  $("t").innerHTML = `<tr><th>${K === 5 ? "Five on the floor" : `${K} together`}</th>${COLS.map(([k, l]) => `<th class="num sort${sortKey === k ? " on" : ""}" data-k="${k}">${l}${sortKey === k ? (sortDir < 0 ? " ▾" : " ▴") : ""}</th>`).join("")}</tr>`
+    + (list.length ? list.slice(0, 300).map((u) => `<tr><td class="who">${u.ids.map(name).join(" · ")}</td><td class="num">${u.gp}</td><td class="num">${f1(u.min)}</td><td class="num">${u.pf}</td><td class="num">${u.pa}</td>`
+      + `<td class="num ${u.pm > 0 ? "hi" : u.pm < 0 ? "lo" : ""}">${sg(u.pm)}</td><td class="num">${f1(u.off48)}</td><td class="num">${f1(u.def48)}</td><td class="num ${u.net48 >= 10 ? "hi" : u.net48 <= -10 ? "lo" : ""}">${u.net48 > 0 ? "+" : ""}${f1(u.net48)}</td></tr>`).join("")
+      : `<tr><td colspan="9" class="empty">No ${K}-man group with that many minutes in this cut.</td></tr>`);
+  $("key").textContent = `${list.length} ${K}-man group${list.length === 1 ? "" : "s"} for ${team}${list.length > 300 ? " (the first 300 shown; raise the minutes to narrow)" : ""}. Click a column to sort.`;
+  document.querySelectorAll("#t th.sort").forEach((th) => th.onclick = () => { if (sortKey === th.dataset.k) sortDir = -sortDir; else { sortKey = th.dataset.k; sortDir = -1; } render(); });
+}
+const HC = ["Games", "Contested 2s", "Contested 3s", "Deflections", "Charges drawn", "Screen assists", "Screen-assist pts", "Loose balls", "Box-outs"];
+function renderHustle() {
+  const team = $("hteam").value, per = document.querySelector("#hper .on").dataset.p, gpMin = +$("hgp").value || 1;
+  let L = Object.entries(D.hustle).map(([i, h]) => ({ i: +i, h })).filter((x) => x.h[0] >= gpMin && (!team || D.players[x.i][1] === team));
+  const v = (x, c) => (c === 0 || per === "tot" ? x.h[c] : x.h[c] / x.h[0]);
+  L.sort((a, b) => hDir * (v(a, hSort) - v(b, hSort)));
+  $("h").innerHTML = `<tr><th>Player</th>${HC.map((l, c) => `<th class="num sort${hSort === c ? " on" : ""}" data-c="${c}">${l}</th>`).join("")}</tr>`
+    + L.slice(0, 200).map((x) => `<tr><td class="who">${esc(D.players[x.i][0])}<small>${esc(D.players[x.i][1])}</small></td>${HC.map((_, c) => `<td class="num">${c === 0 || per === "tot" ? x.h[c] : v(x, c).toFixed(1)}</td>`).join("")}</tr>`).join("");
+  document.querySelectorAll("#h th.sort").forEach((th) => th.onclick = () => { const c = +th.dataset.c; if (hSort === c) hDir = -hDir; else { hSort = c; hDir = -1; } renderHustle(); });
+}
+(async () => {
+  try { D = await fetch("data/lineups.json", { cache: "no-store" }).then((r) => r.json()); }
+  catch (e) { $("sub").textContent = "Couldn't load the lineups: " + e.message; return; }
+  const teams = [...new Set(D.games.flatMap((g) => [g[2], g[3]]))].sort();
+  $("team").innerHTML = teams.map((t) => `<option>${t}</option>`).join("");
+  $("hteam").innerHTML += teams.map((t) => `<option>${t}</option>`).join("");
+  $("opp").innerHTML += teams.map((t) => `<option>${t}</option>`).join("");
+  $("minMin").innerHTML = [0, 1, 5, 10, 20, 30, 50, 75, 100, 150, 200, 300].map((m) => `<option${m === 10 ? " selected" : ""}>${m}</option>`).join("");
+  $("hgp").innerHTML = Array.from({ length: 20 }, (_, i) => i + 1).map((n) => `<option${n === 5 ? " selected" : ""}>${n}</option>`).join("");
+  $("plist").innerHTML = [...new Set(Object.values(D.players).map((p) => p[0]))].sort().map((n) => `<option value="${esc(n)}">`).join("");
+  const q = new URLSearchParams(location.search); if (q.get("team") && teams.includes(q.get("team"))) $("team").value = q.get("team");
+  const last = D.games.reduce((a, g) => (g[1] > a ? g[1] : a), "");
+  $("sub").textContent = `${D.games.length} games through ${md(last)} · ${D.season} · every stretch with the same five on the floor, from NBA.com's rotations`;
+  const C = D.checks, pct = (a, b) => (b ? `${Math.round((1000 * a) / b) / 10}%` : "–");
+  $("checks").innerHTML = `<b>Checked against ESPN's box scores:</b> minutes within a minute for ${pct(C.minutes.within1, C.minutes.n)} of ${C.minutes.n.toLocaleString()} player-games; plus-minus the same for ${pct(C.pm.same, C.pm.n)}; the score from the play-by-play adds up to the final in ${C.scoreOk} of ${C.games} games; ${C.wholeGame ?? "–"} of ${C.teamGames ?? "–"} team-games have five on the floor for every second, and their stretches add up to the final score in ${C.pointsAddUp ?? "–"}.${C.leftOut?.length ? ` Left out because NBA.com's stints for them are broken: ${esc(C.leftOut.join(", "))}.` : ""}`;
+  for (const id of ["team", "cut", "opp", "from", "to", "minMin"]) $(id).onchange = render;
+  $("who").oninput = render;
+  document.querySelectorAll("#size button").forEach((b) => b.onclick = () => { K = +b.dataset.k; document.querySelectorAll("#size button").forEach((x) => x.classList.toggle("on", x === b)); render(); });
+  document.querySelectorAll("#view button").forEach((b) => b.onclick = () => { document.querySelectorAll("#view button").forEach((x) => x.classList.toggle("on", x === b)); $("v-units").hidden = b.dataset.v !== "units"; $("v-hustle").hidden = b.dataset.v !== "hustle"; if (b.dataset.v === "hustle") renderHustle(); });
+  document.querySelectorAll("#hper button").forEach((b) => b.onclick = () => { document.querySelectorAll("#hper button").forEach((x) => x.classList.toggle("on", x === b)); renderHustle(); });
+  $("hteam").onchange = renderHustle; $("hgp").onchange = renderHustle;
+  render();
+  if (location.hash === "#hustle") document.querySelector('#view button[data-v="hustle"]').click();
+})();
+</script>
+</body>
+</html>

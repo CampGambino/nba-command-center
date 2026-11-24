@@ -887,7 +887,12 @@ try {
   const awards = rdOpt(path.join(root, "history", "kalshi", "awards.json"));
   const cal = sb.ok ? sb.data.calendar : [];
   const checked = rdOpt(path.join(root, "src", "data", "minutes-checked.json")) || {};
-  const E = eligibility({ rows, names: NAMES, current: rosterChanges, seconds, checked, listings, tonight: rdOpt(path.join(root, "docs", "data", "injuries.json")), awards, today, through,
+  // 0.151.0: each player's exact seconds by game from NBA.com's rotations (docs/data/lineups.json, the last build's),
+  // keyed like the rest: ESPN game id, then ESPN player id
+  const nbaSeconds = {};
+  { const LU = rdOpt(path.join(root, "docs", "data", "lineups.json"));
+    if (LU?.secs) for (const [pi, list] of Object.entries(LU.secs)) { const espn = LU.players[pi]?.[2]; if (!espn) continue; for (const [gi, sec] of list) { const gid = LU.games[gi]?.[0]; if (gid) (nbaSeconds[gid] ??= {})[String(espn)] = sec; } } }
+  const E = eligibility({ rows, names: NAMES, current: rosterChanges, seconds, checked, nbaSeconds, listings, tonight: rdOpt(path.join(root, "docs", "data", "injuries.json")), awards, today, through,
     seasonEnd: cal.length ? cal[cal.length - 1] : null, tonightTeams: new Set(tonight.flatMap((g) => [g.home, g.away])),
     reports: Object.fromEntries(Object.entries(injByDate).map(([d, r]) => [d, r.rows || []])) });
   // the Watch List's lines (src/anticipate/tonight.js reads `lines`; it imports nothing from here, so the page's copy works alone)

@@ -3660,6 +3660,22 @@ await bridgeChecks(ok, root);
       "0.146.0: a games-played run that differs from our count gets a games check (ours with its date, or no run at all); a matching one or a guessed player is left alone", JSON.stringify(gpl.map((l) => l.hook?.text || null)));
   }
   {
+    // 0.151.0: lineups from NBA.com's rotations (src/situations/lineups.js)
+    const LU = await import("../src/situations/lineups.js");
+    const st = [["a", "A", 0, 28800], ["b", "B", 0, 28800], ["c", "C", 0, 28800], ["d", "D", 0, 14400], ["e", "E", 0, 28800], ["f", "F", 14400, 28800]];
+    const ev = LU.scoringEvents([{ period: 1, clock: "PT11M00.00S", scoreHome: "2", scoreAway: "0" }, { period: 2, clock: "PT00M00.00S", scoreHome: "2", scoreAway: "3", actionType: "3pt" },
+      { period: 3, clock: "PT12M00.00S", scoreHome: "2", scoreAway: "3" }, { period: 4, clock: "PT04M00.00S", scoreHome: "4", scoreAway: "3" }]);
+    const T = LU.teamIntervals(st, ev.events, true);
+    const sum = T.iv.reduce((a, r) => [a[0] + r[1] - r[0], a[1] + r[3], a[2] + r[4]], [0, 0, 0]);
+    const second = T.iv.find((r) => r[0] === 14400), clutch = T.iv.find((r) => r[0] === LU.CLUTCH_FROM);
+    const agg = LU.aggregate(T.iv.map((r) => ({ t0: r[0], t1: r[1], on: r[2], pf: r[3], pa: r[4], g: 0 })), 2);
+    ok(ev.events.length === 3 && ev.events[0][0] === 600 && sum[0] === 28800 && sum[1] === 4 && sum[2] === 3 && T.short === 0
+      && second && second[2].includes("f") && !second[2].includes("d") && second[5] === -1 && clutch && LU.isClutch(clutch[0], clutch[5])
+      && agg.get("a|b").sec === 2880 && agg.get("a|d").sec === 1440 && agg.get("a|d").pa === 3 && !agg.has("d|f") && LU.groups(["a", "b", "c", "d", "e"], 3).length === 10,
+      "0.151.0: lineups: the five on the floor between check-ins, cut at periods and at clutch time; the score from the play-by-play at those moments; a 3 at the buzzer counts for the five on before the break; 2-man groups add up across stretches",
+      JSON.stringify([ev.events, sum, T.iv.map((r) => [r[0], r[1], r[2].join(""), r[3], r[4], r[5]])]));
+  }
+  {
     // 0.146.0: the man a Watch List pass is against still adds to his total (src/anticipate/rivals.js).
     const { rivalLookup } = await import("../src/anticipate/rivals.js");
     const keys = ["side", "min", "pts", "reb", "ast", "stl", "blk", "fga", "fta", "tov", "pf", "fgm", "fg3m"];
@@ -4910,7 +4926,7 @@ await bridgeChecks(ok, root);
       .replace('<a href="situations.html">Team situations</a><a class="on" href="standings.html">Standings</a>', '<a class="on" href="situations.html">Team situations</a><a href="standings.html">Standings</a>') === sit;
     const pagesH = fs.readdirSync(path.join(root, "docs")).filter((f) => f.endsWith(".html")), navOk = pagesH.every((f) => /href="standings\.html"[^>]*>Standings<\/a>/.test(fs.readFileSync(path.join(root, "docs", f), "utf8")));
     const tr2 = fs.readFileSync(path.join(root, "docs", "trends.html"), "utf8"), nat = fs.readFileSync(path.join(root, "docs", "national.html"), "utf8"), ldr = fs.readFileSync(path.join(root, "docs", "leaders.html"), "utf8"), idx = fs.readFileSync(path.join(root, "docs", "index.html"), "utf8");
-    ok(mB.v === 147 && mB.d === "2025-11-14" && mB.behind === 146 && mB.doubt.v === 155 && same && navOk && pagesH.length === 13
+    ok(mB.v === 147 && mB.d === "2025-11-14" && mB.behind === 146 && mB.doubt.v === 155 && same && navOk && pagesH.length === 14
       && /body\[data-view="situations"\] \.v-standings, body\[data-view="standings"\] \.v-situations \{ display: none; \}/.test(sit) && sit.indexOf('<div class="v-standings">') < sit.indexOf("<h2>All teams</h2>") && sit.indexOf("Most unusual records") < sit.indexOf('<div class="v-standings">')
       && /id="sgroup"/.test(tr2) && /sgroup !== "off" && !cat/.test(tr2) && /data-g="player"/.test(tr2) && /const PER = 25/.test(nat) && /id="ppager"/.test(nat) && ldr.indexOf("<h2>50-40-90 watch</h2>") < ldr.indexOf('<details id="shootbox"') && !/<h2>Shooting lines/.test(ldr)
       && /"standings\.html#rest"/.test(idx) && /"standings\.html#standings"/.test(idx),
