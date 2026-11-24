@@ -2743,11 +2743,31 @@ await bridgeChecks(ok, root);
   const empty = run((d) => { d.tonight.games[0].lines = []; d.briefing.top = []; });
   const conflict = run((d) => { d.watch.teams[1].notesStatus = "conflict"; d.watch.teams[1].notesWhy = "notes are dated 2026-11-19 but name POR as the opponent"; });
   const other = run(null, { copies: [{ name: "situations/oddlines.js", same: false }, { name: "anticipate/tonight.js", same: true }], bridge: { running: 26, published: 25 }, said: ["situations: odd lines not run: boom"] });
-  ok(CHECK_NAMES.length === 10 && clean.length === 0 && kinds(stale) === "stale" && /oddlive\.json was not rebuilt by this build: it is from 11\/19, 3:00 PM ET/.test(stale[0].text) && staleKept.length === 0
+  ok(CHECK_NAMES.length === 11 && clean.length === 0 && kinds(stale) === "stale" && /oddlive\.json was not rebuilt by this build: it is from 11\/19, 3:00 PM ET/.test(stale[0].text) && staleKept.length === 0
     && kinds(day) === "day,day" && kinds(out) === "out,out" && /#1 in the briefing is about Stephen Curry, who is listed out tonight/.test(out[0].text) && /line 1 of GSW at MEM \(a pre-game card in NBA Live\) is about Jimmy Butler, who is listed doubtful/.test(out[1].text)
     && quest.length === 0 && kinds(ended) === "ended" && kinds(junk) === "junk" && /MEM averages NaN/.test(junk[0].text) && kinds(empty) === "empty,empty" && kinds(conflict) === "conflict" && kinds(other) === "copies,bridge,said",
     "self-check (0.125): a clean build finds nothing; a file the build did not rewrite, a file for another day, a top line about a player who is out, a streak that is over, a broken value, a game with no lines, notes set aside, a stale copy, a bridge version apart and a step's complaint are each named in a sentence (a file the guard kept and a questionable player are not)",
     JSON.stringify({ clean, stale, day: kinds(day), out: out.map((c) => c.text.slice(0, 70)), quest, ended: kinds(ended), junk: kinds(junk), empty: kinds(empty), conflict: kinds(conflict), other: kinds(other) }));
+  // 0.145.0 (the consistency audit, 11/24): one fact, two values on two pages.
+  {
+    const { agreement } = await import("../src/site/selfcheck.js");
+    const base = () => ({
+      watch: { teams: [{ team: "BOS", items: [{ espnId: "4251", player: "Paul George", stat: "fg3m", target: 2500, current: 2495, pTonight: 0.194 }] }] },
+      records: { items: [{ id: "4251", who: "Paul George", stat: "fg3m", label: "3-pointers", target: 2500, now: 2495, pTonight: 0.194 }, { id: "3112335", who: "Nikola Jokić", stat: "ast", target: 129, now: 118, pTonight: 0.27 }] },
+      standings: { East: [{ tri: "IND", w: 6, l: 12, home: "3-5", road: "3-6", last10: "3-7", streak: "L2" }], West: [] },
+      situations: { teams: { IND: { splits: { all: { w: 6, l: 12 }, home: { w: 3, l: 5 }, road: { w: 3, l: 6 } }, last10: { w: 3, l: 7 }, streak: "L2" } } },
+      form: { players: { 4397475: { name: "AJ Green", g: Array(17).fill([]) }, 3112335: { name: "Nikola Jokić", g: [] } } },
+      eligibility: { players: [{ id: "4397475", name: "AJ Green", apps: 17 }] }, national: { players: [{ id: "4397475", name: "AJ Green", nat: { gp: 2 }, other: { gp: 15 } }] },
+      games: { games: Array(258).fill({}) }, "q4-players": { games: 258 }, flowstats: { games: 258 },
+      briefing: { top: [{ player: "Nikola Jokić" }], deep: [], finds: [] }, trends: { streaks: [{ name: "Nikola Jokić" }] } });
+    const clean = agreement(base());
+    const d = base();
+    d.watch.teams[0].items[0].pTonight = 0.32; d.situations.teams.IND.splits.road = { w: 3, l: 7 }; d.eligibility.players[0].apps = 18; d["q4-players"].games = 257; d.trends.streaks[0].name = "Nikola Jokic";
+    const dirty = agreement(d);
+    ok(clean.length === 0 && dirty.length === 5 && /Paul George 2,500 3-pointers: 19% on the Records page, 32% on the Watch List/.test(dirty[0]) && /IND road 3-6 in the standings, 3-7 in Team situations/.test(dirty[1])
+      && /AJ Green \(17 hot hand, 18 award eligibility, 17 national TV\)/.test(dirty[2]) && /4th-quarter tables count 257 of the season's 258 games/.test(dirty[3]) && /"Nikola Jokić" \(the briefing\) and "Nikola Jokic" \(the Streaks page\)/.test(dirty[4]),
+      "0.145.0: the build's agreement check: pages that agree find nothing; two chances, two road records, two games-played counts, a game missing from a table and two spellings are each named", JSON.stringify({ clean, dirty }));
+  }
   // the briefing: a notes streak that is over cannot be a top line; an old sentence with a new tag in front is not "new today"
   const games = [{ away: "LAC", home: "SAS" }], H = (o) => ({ kind: "history", team: "SAS", score: 4.8, ...o });
   const B = briefing({ games, today: "2026-11-19", stars: { "Victor Wembanyama": 1 }, seen: {}, all: [
@@ -3296,6 +3316,30 @@ await bridgeChecks(ok, root);
     ok(box(orig.box.game) === box(back.box.game), "game flow: and the whole box score");
     ok(JSON.stringify(c).length < JSON.stringify(sum).length / 8, "game flow: the compact file is under an eighth of ESPN's summary", `${JSON.stringify(c).length} vs ${JSON.stringify(sum).length}`);
     ok(fs.readFileSync(path.join(root, "src", "gameflow", "feeds.js"), "utf8") === fs.readFileSync(path.join(root, "docs", "lib", "gameflow", "feeds.js"), "utf8"), "game flow: the page's copy of the reader is the build's");
+    // 0.145.0: the running score. Rebuilt from the scoring plays it ends on the final; with a 1st-quarter basket taken out of
+    // the plays (as ESPN's NYK at MIN 11/19 was), it is set back on the line score at the 2nd quarter and ends on the final,
+    // and the clutch reader still counts the game (the 4th quarter adds up) instead of dropping it.
+    {
+      const P = await import("../src/espn/parse.js");
+      const comp = sum.header.competitions[0], fin = (s) => Number(comp.competitors.find((x) => x.homeAway === s).score);
+      const lastOf = (f) => f.pbp.game.actions[f.pbp.game.actions.length - 1];
+      const e0 = lastOf(orig);
+      const cut = JSON.parse(JSON.stringify(sum));
+      const ix = cut.plays.findIndex((p) => p.period?.number === 1 && p.scoringPlay && Number(p.scoreValue) === 2);
+      const lost = cut.plays[ix], lostHome = String(lost.team?.id) === String(comp.competitors.find((x) => x.homeAway === "home").team.id);
+      cut.plays.splice(ix, 1);
+      for (const p of cut.plays) { if (lostHome) p.homeScore = Math.max(0, Number(p.homeScore) - (cut.plays.indexOf(p) >= ix ? 2 : 0)); else p.awayScore = Math.max(0, Number(p.awayScore) - (cut.plays.indexOf(p) >= ix ? 2 : 0)); }
+      const f2 = F.espnToFeeds(cut), e2 = lastOf(f2);
+      const q2 = f2.pbp.game.actions.find((a) => a.period === 2);
+      const lh = comp.competitors.find((x) => x.homeAway === "home").linescores.map((l) => Number(l.displayValue ?? l.value));
+      const la = comp.competitors.find((x) => x.homeAway === "away").linescores.map((l) => Number(l.displayValue ?? l.value));
+      const g0 = P.readGameDetail(sum), g2 = P.readGameDetail(cut);
+      ok(+e0.scoreHome === fin("home") && +e0.scoreAway === fin("away") && +e2.scoreHome === fin("home") && +e2.scoreAway === fin("away")
+        && +q2.scoreHome >= lh[0] && +q2.scoreAway >= la[0]
+        && g0.scoreOk && !g0.tailOk && !g2.scoreOk && g2.tailOk && JSON.stringify(g2.badPeriods) === "[1]" && g2.q4Players && JSON.stringify(g2.clutch) === JSON.stringify(g0.clutch),
+        "0.145.0: Game Flow's score ends on the final; a basket missing from the 1st quarter's plays is set right at the 2nd quarter, and the clutch and 4th-quarter lines still count (the same clutch points as the whole game)",
+        JSON.stringify({ e0: [e0.scoreAway, e0.scoreHome], e2: [e2.scoreAway, e2.scoreHome], fin: [fin("away"), fin("home")], q2: [q2.scoreAway, q2.scoreHome], g2: [g2.scoreOk, g2.tailOk, g2.badPeriods], c: [g0.clutch, g2.clutch] }));
+    }
     // 0.59: the model moved out of the page, and the season facts built on it (src/gameflow/model.js, stats.js).
     ok(fs.readFileSync(path.join(root, "src", "gameflow", "model.js"), "utf8") === fs.readFileSync(path.join(root, "docs", "lib", "gameflow", "model.js"), "utf8")
       // 0.141.10: the page's script is docs/gameflow.js (moved out of the page unchanged); the page loads it.
@@ -3577,6 +3621,30 @@ await bridgeChecks(ok, root);
     { text: "Clarkson has now scored 8,699 points off the bench in his career.", player: "Jordan Clarkson", playerId: "8", score: 3 },
   ], box);
   ok(lines[1].tag === "Now 12 straight" && /box scores have it at 12 straight double-doubles through 11\/12 \(every game he has played this season\), so where this line ranks it is out of date\. 13 if he does it again tonight\./.test(lines[1].hook.text) && !lines[2].streakNow, "streak check: a line behind the box scores says so, with the count and what tonight makes it", lines[1].hook?.text);
+  {
+    // 0.145.0 (the consistency audit, 11/24): Kyshawn George's "Made three three-pointers for the third straight game,
+    // tying the longest streak of his career" had no "has" and no date: it was not checked and ranked #4 in the briefing.
+    const g3 = F.statedStreak("Made three three-pointers for the third straight game, tying the longest streak of his career.");
+    const dd5 = F.statedStreak("Recorded a double-double for the fifth consecutive game.");
+    const r4 = F.statedStreak("Grabbed 10 rebounds in his fourth game in a row.");
+    ok(g3?.n === 3 && g3.key === "fg3m3" && dd5?.n === 5 && dd5.key === "dd" && r4?.n === 4 && r4.key === "reb10"
+      && F.statedStreak("Dybantsa logged a 20-point, 10-rebound double-double for the second game in a row on 11/20 at Chicago.") === null
+      && F.statedStreak("Made three three-pointers for the third straight game on Nov. 4 vs. PHI.") === null
+      && F.statedStreak("Had a double-double for the third straight game last season.") === null,
+      "0.145.0: \"did X for the Nth straight game\" with no date is a streak to check; a dated recap and last season's are left as written");
+    const gk = ["min", "fg3m"], gg = (d, m) => ({ d, opp: "XXX", pl: { 9: [30, m] } });
+    const wiz = { keys: gk, games: [gg("2026-10-30", 4), gg("2026-11-02", 4), gg("2026-11-04", 3), gg("2026-11-06", 5), gg("2026-11-18", 4), gg("2026-11-20", 1), gg("2026-11-22", 6)] };
+    const kg = F.checkStreaks([{ text: "Made three three-pointers for the third straight game, tying the longest streak of his career.", player: "Kyshawn George", playerId: "9", type: "other", tag: "Notes" }], wiz)[0];
+    ok(kg.tag === "Streak over" && kg.hook.text === "Not active: the notes say 3 straight with 3+ threes; the box scores have 1 through 11/22.",
+      "0.145.0: George's line is over in the box scores, so it is tagged \"Streak over\" (ranked down, never a top line)", JSON.stringify([kg.tag, kg.hook?.text]));
+    // Two dates for one game (WAS notes, 11/24: Sarr's 25 vs Houston "on 11/16" in one line and "on 11/15" in the next).
+    const wk = { keys: ["min"], games: [{ d: "2026-10-21", opp: "MIL", pl: {} }, { d: "2026-11-15", opp: "HOU", pl: {} }, { d: "2026-11-16", opp: "MEM", pl: {} }, { d: "2026-11-20", opp: "CHI", pl: {} }] };
+    const dl = F.checkDates([{ text: "Put up 25 points … on 11/16 vs. HOU, scoring 25+ points in consecutive games." }, { text: "25 points on .692 shooting on 11/15 vs. Houston." },
+      { text: "A double-double on 11/20 at Chicago." }, { text: "His 10th straight vs. BKN (11/8/25)." }, { text: "Had 30 vs. HOU on 3/2." }], wk);
+    ok(dl[0].hook?.text === "Date check: the box scores have the Rockets game on 11/15, not 11/16." && dl[0].dateCheck?.actual === "2026-11-15"
+      && !dl[1].hook && !dl[2].hook && !dl[3].hook && !dl[4].hook,
+      "0.145.0: a date next to an opponent the team didn't play that day, but did within 3 days, is flagged with the box scores' date; right dates, other seasons and far-off dates are left alone", JSON.stringify(dl.map((l) => l.hook?.text)));
+  }
   {
     // 0.113 (the user, 11/19: "taken as factual without fact checking"): a team's winning or losing streak is set
     // against its results; a count nothing can check is not called active and promises no next number.
@@ -5060,6 +5128,21 @@ await bridgeChecks(ok, root);
     "games played (0.142.7): a 0-minute line that isn't a DNP is kept in the store (z) and counts, from the store or the backfill file; a minus plus-minus is a stat");
   const zf = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "zero-minute-games-2026-27.json"), "utf8"));
   ok(zf.rows.length === 17 && zf.rows.some((r) => r[4] === "Josh Minott" && r[1] === "2026-11-02"), "games played (0.142.7): this season's 0-minute games through 11/22, read from ESPN's summaries");
+  // 0.145.0 (the consistency audit, 11/24: AJ Green 17 games on the award page, 16 everywhere else): the few-seconds game counts
+  // on every page: the per-player games (streaks, form, finds), the team files' readers (with/without, national TV, rest).
+  {
+    const { roster } = await import("../src/situations/withwithout.js");
+    const zrows = [{ id: "a", d: "2026-11-21", h: "MIL", a: "PHI", hs: 100, as: 90, pl: { "4397475": [0, 0, 12, 9, 3, 6, 3, 5, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 2] } },
+      { id: "b", d: "2026-11-23", h: "TOR", a: "MIL", hs: 111, as: 116, z: ["4397475"], pl: { "4397475": [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] } },
+      { id: "c", d: "2026-11-24", h: "MIL", a: "BOS", hs: 100, as: 90, pl: { "4397475": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] } }];
+    const pgz = playerGames(zrows)["4397475"];
+    const file = { names: { "4397475": "AJ Green" }, games: [{ d: "2026-11-21", pl: { "4397475": [0, 12] } }, { d: "2026-11-23", z: ["4397475"], pl: { "4397475": [0, 0] } }, { d: "2026-11-24", pl: { "4397475": [0, 0] } }] };
+    const ro = Object.fromEntries(roster({ ...file, keys: ["starter", "min"] }).map((p) => [p.id, p]));
+    const streak = activeStreaks({ "4397475": pgz }, { "4397475": "AJ Green" }).find((s) => s.key === "three");
+    ok(pgz.length === 2 && pgz[1].cameo === 1 && pgz[1].min === 0 && ro["4397475"].gp === 2 && !streak,
+      "0.145.0: a few-seconds game (z) is a game played in the per-player games and the team files; a DNP (no z) isn't; a cameo with no three ends a made-three run",
+      JSON.stringify({ pgz, gp: ro["4397475"]?.gp, streak }));
+  }
 }
 
 // ---------- 0.144.0: award eligibility, the 65-game rule (the user, 11/23: "we'll need a countdown for players who are tracking for awards who may not be eligible because of the games played rule") ----------
@@ -5524,6 +5607,69 @@ await bridgeChecks(ok, root);
     ok(z && JSON.stringify(z.rivals) === JSON.stringify([{ name: "Jalen Johnson", id: "4701230", team: "ATL" }]) && pl && !("rivals" in pl)
       && !recordHit(10, 6, 6) && recordHit(12, 6, 6) && recordHit(6, 6) && !recordHit(5, 6),
       "records (0.141.12): a rival playing tonight is kept with the chance, and the call is a hit only if he finishes ahead of him", JSON.stringify(k));
+  }
+  // 0.145.0: the Mexico City game (DEN-IND 11/7, neutral site): one meeting, not two; home and road for neither team; the
+  // national-TV schedule still matched by the listed home team (dh). The user: "counted as a neutral court so we can still
+  // check the Pacers' last 10 road games".
+  {
+    const { meetings } = await import("../src/records/matchup.js"), { teamResults } = await import("../src/records/guide.js"), { nationalSplits, nationalIndex } = await import("../src/situations/national.js");
+    const files = {
+      IND: { team: "IND", keys: ["starter", "min", "pts"], names: { 1: "Pacer" }, games: [{ d: "2026-11-05", opp: "BOS", home: false, pf: 99, pa: 101, pl: { 1: [1, 30, 10] } }, { d: "2026-11-07", opp: "DEN", home: false, n: 1, dh: 1, pf: 102, pa: 114, pl: { 1: [1, 30, 12] } }] },
+      DEN: { team: "DEN", keys: ["starter", "min", "pts"], names: { 2: "Nugget" }, games: [{ d: "2026-11-07", opp: "IND", home: false, n: 1, pf: 114, pa: 102, pl: { 2: [1, 30, 20] } }] } };
+    const m = meetings({ games: [] }, files, "DEN", "IND");
+    const tr = teamResults(files);
+    const idx = nationalIndex({ games: [{ d: "2026-11-07", away: "DEN", home: "IND", networks: ["NBA TV"] }] });
+    const ns = nationalSplits(files, idx);
+    ok(m.length === 1 && m[0].home === "IND" && m[0].away === "DEN" && m[0].neutral === true && m[0].winner === "DEN"
+      && tr.IND.filter((r) => r.road).length === 1 && tr.IND.find((r) => r.d === "2026-11-07").road === false && !tr.IND.find((r) => r.d === "2026-11-07").home
+      && ns.teams.IND.nat.w + ns.teams.IND.nat.l === 1 && ns.teams.DEN.nat.w + ns.teams.DEN.nat.l === 1,
+      "0.145.0: a neutral-site game is one meeting (listed home team kept), neither home nor road, and still matched to its national broadcast for both teams",
+      JSON.stringify({ m, ind: tr.IND, ns: ns.teams }));
+  }
+  // 0.145.0: one spelling per player (the audit: "Jokić" at #2 in the briefing, "Nikola Jokic" at #6).
+  {
+    const { accentMap, withAccents } = await import("../src/site/accents.js");
+    const m = accentMap(['{"who":"Nikola Jokić","x":"Luka Dončić","team":"DEN","note":"Mile High","y":"Kristaps Porziņģis"}', '{"a":"Nikola Jokić"}']);
+    const n = withAccents({ 1: "Nikola Jokic", 2: "Luka Doncic", 3: "Jamal Murray" }, m);
+    ok(m.size === 3 && n[1] === "Nikola Jokić" && n[2] === "Luka Dončić" && n[3] === "Jamal Murray" && m.get("Kristaps Porzingis") === "Kristaps Porziņģis",
+      "0.145.0: ESPN's unaccented names take the accented spelling our reference files use; other names are left as they are", JSON.stringify([...m, n]));
+  }
+  // 0.145.0: the Streaks page's runs go back into last season (the audit: Curry "10, every game" there, 102 on the Records page).
+  {
+    const g = (d, fg3m, pts = 20) => ({ d, team: "GSW", fg3m, pts, reb: 5, ast: 5, stl: 1, blk: 0, starter: 1, min: 30 });
+    const pgc = { "3975": [g("2026-10-21", 4), g("2026-10-23", 2), g("2026-10-25", 5)], "9": [g("2026-10-21", 0), g("2026-10-23", 2), g("2026-10-25", 1)] };
+    const carry = { players: { "3975": { three: [94, "2024-12-21"], pts10: [12, "2026-01-15"] }, "9": { three: [40, "2025-01-01"] } } };
+    const featlive = { streaks: [{ id: "3975", tests: [{ k: "fg3m", min: 1 }], n: 95, source: "list" }] };
+    const st = activeStreaks(pgc, { "3975": "Stephen Curry", "9": "Broke It" }, { carry, featlive });
+    const c3 = st.find((s) => s.id === "3975" && s.key === "three"), c10 = st.find((s) => s.id === "3975" && s.key === "pts10"), b3 = st.find((s) => s.id === "9" && s.key === "three");
+    const plain = activeStreaks(pgc, { "3975": "Stephen Curry" }).find((s) => s.id === "3975" && s.key === "three");   // 3 < the page's 8: not listed without the carry
+    ok(c3.length === 95 && c3.thisSeason === 3 && c3.carried === 92 && c3.carriedFrom === "list" && c3.since === "2024-12-21"
+      && c10.length === 15 && c10.carriedFrom === "logs" && c10.since === "2026-01-15"
+      && !b3 && plain === undefined,
+      "0.145.0: a run that covers every game this season goes on from last season (the Records page's count where it has one); one broken this season carries nothing and stays under the page's minimum",
+      JSON.stringify({ c3, c10, b3 }));
+  }
+  // 0.145.0: one chance per chase (the consistency audit, 11/24: Paul George's 2,500 threes read 19% and 32%).
+  {
+    const { oneChance } = await import("../src/anticipate/onechance.js");
+    const { tonightChances } = await import("../src/records/predictions.js");
+    const watch = { teams: [{ team: "BOS", items: [
+      { espnId: "4251", player: "Paul George", stat: "fg3m", target: 2500, current: 2495, pTonight: 0.194, pTonightRaw: 0.235, pNext5: 0.996, pPlayTonight: 0.97 },
+      { espnId: "7", player: "Rival Chaser", stat: "pts", target: 1001, current: 990, pTonight: 0.5, pTonightRaw: 0.5 },
+      { espnId: "8", player: "Two Marks", stat: "pts", target: 5000, current: 4990, pTonight: 0.6, pTonightRaw: 0.6 }] }] };
+    const rec = { items: [
+      { kind: "round", id: "4251", who: "Paul George", team: "BOS", stat: "fg3m", now: 2495, target: 2500, need: 5, tonight: true, pTonight: 0.319, pTonightRaw: 0.336, pNext5: 0.998, pPlay: 0.97 },
+      { kind: "pass", id: "7", who: "Rival Chaser", team: "BOS", stat: "pts", now: 990, target: 1001, need: 11, tonight: true, pTonight: 0.3, pTonightRaw: 0.32, rivals: [{ name: "R", tonight: true }] },
+      { kind: "franchise", id: "8", who: "Two Marks", team: "BOS", stat: "pts", now: 4400, target: 5000, need: 600, tonight: true, pTonight: 0, pTonightRaw: 0 }] };
+    const r = oneChance(rec, watch);
+    const [pg, rc, tm] = rec.items, w = watch.teams[0].items;
+    const kept = tonightChances(rec).find((x) => x.id === "4251");
+    ok(r.matched === 2 && r.fromMilestones === 1 && r.fromRecords === 1
+      && pg.pTonight === 0.194 && pg.pNext5 === 0.996 && pg.chanceFrom === "milestones" && pg.own.pTonight === 0.319 && kept.pTonight === 0.336
+      && w[1].pTonight === 0.3 && w[1].chanceFrom === "records" && w[1].own.pTonight === 0.5 && rc.pTonight === 0.3
+      && tm.pTonight === 0 && !tm.chanceFrom && w[2].pTonight === 0.6,
+      "0.145.0: the same chase publishes one chance: the milestones' unless the records simulate a rival who also plays; the records still score their own raw chance; a franchise mark with the same target number as a career one is a different chase",
+      JSON.stringify({ r, pg, rc: rc.pTonight, w1: w[1], kept }));
   }
   // 0.141.0: luck, paradox, scarcity, defense by position (src/anticipate/detectors.js).
   {

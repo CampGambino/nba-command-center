@@ -18,7 +18,7 @@ function gamesOf(teamFiles, id) {
     const ix = Object.fromEntries((f.keys || []).map((k, i) => [k, i]));
     for (const g of f.games || []) {
       const row = g.pl?.[id];
-      if (row && row[ix.min] > 0) out.push({ tri, g, line: Object.fromEntries(LINE.map((k) => [k, row[ix[k]] || 0])) });
+      if (row && (row[ix.min] > 0 || (g.z || []).includes(id))) out.push({ tri, g, line: Object.fromEntries(LINE.map((k) => [k, row[ix[k]] || 0])) });
     }
   }
   return out.sort((a, b) => a.g.d.localeCompare(b.g.d));

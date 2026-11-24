@@ -43,9 +43,12 @@ export function meetings(history, teamFiles, a, b) {
   for (const t of [a, b]) {
     for (const g of teamFiles?.[t]?.games || []) {
       if (g.opp !== (t === a ? b : a) || g.pf == null || g.pa == null) continue;
-      const home = g.home ? t : g.opp, away = g.home ? g.opp : t;
-      const hs = g.home ? g.pf : g.pa, as = g.home ? g.pa : g.pf;
-      out.set(`${g.d}|${home}|${away}`, { d: g.d, home, away, hs, as, type: 2, winner: hs > as ? home : away });
+      // 0.145.0: at a neutral site neither team file is home; dh marks the listed home team (before, the Mexico City game
+      // was entered twice, once each way round).
+      const h = g.home || g.dh;
+      const home = h ? t : g.opp, away = h ? g.opp : t;
+      const hs = h ? g.pf : g.pa, as = h ? g.pa : g.pf;
+      out.set(`${g.d}|${home}|${away}`, { d: g.d, home, away, hs, as, type: 2, winner: hs > as ? home : away, ...(g.n ? { neutral: true } : {}) });
     }
   }
   return [...out.values()].sort((x, y) => (x.d < y.d ? -1 : 1));
@@ -164,7 +167,7 @@ export function playerGames(id, logs, teamFiles) {
     const k = Object.fromEntries((f.keys || []).map((x, i) => [x, i]));
     for (const g of f.games || []) {
       const l = g.pl?.[id];
-      if (!l || !(l[k.min] > 0)) continue;
+      if (!l || (!(l[k.min] > 0) && !(g.z || []).includes(id))) continue;   // 0.145.0: z = in for a few seconds
       out.set(g.d, [g.d, g.opp, g.home ? 1 : 0, g.pf > g.pa ? "W" : "L", 2, l[k.min], l[k.pts], l[k.reb], l[k.ast], l[k.stl], l[k.blk], l[k.fg3m], t]);
     }
   }

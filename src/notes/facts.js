@@ -17,6 +17,7 @@ import { SEASON, SEASON_RE } from "../season.js";
 // 0.141.6: "this season" by the season constant, not a typed "2026-27" (src/season.js; docs/SEASON.md).
 const THIS_SEASON_RE = new RegExp(`\\bthis (?:season|year|campaign)\\b|\\bso far\\b|\\bcurrently\\b|\\b${SEASON_RE}\\b|\\bover the first \\d+ games of the season\\b|\\bwhich leads the league\\b`, "i");
 import { blocks } from "./narrative.js";
+import { TEAMS } from "../teams.js";
 
 const WORDNUM = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12 };
 const ORD = { first: 1, second: 2, third: 3, fourth: 4, fifth: 5, sixth: 6, seventh: 7, eighth: 8, ninth: 9, tenth: 10 };
@@ -338,7 +339,7 @@ const WORD = { pts: "points", reb: "rebounds", ast: "assists", stl: "steals", bl
 export function stayInClub(thresholdsList, box, playerId) {
   if (!box || !playerId || !thresholdsList?.length) return null;
   const k = Object.fromEntries((box.keys || []).map((x, i) => [x, i]));
-  const g = (box.games || []).filter((x) => x.pl?.[playerId]?.[k.min] > 0);
+  const g = (box.games || []).filter((x) => x.pl?.[playerId]?.[k.min] > 0 || (x.z || []).includes(String(playerId)));
   if (g.length < 3) return null;
   const need = thresholdsList.filter((t) => k[t.stat] != null).map((t) => {
     const tot = g.reduce((a, x) => a + x.pl[playerId][k[t.stat]], 0);
@@ -424,7 +425,7 @@ export function annotate(lines, { doc = null, tables = null, box = null, model =
     const hit = scoped.find((x) => x[1] === m[1] && x[3] === m[2] && [...words(x[4])].filter((w) => mine.has(w)).length >= 2);
     if (hit) { l.text = l.text.replace(new RegExp(`\\bone of ${m[1]} ${m[2]}\\b`), `one of ${m[1]} ${hit[2]} ${m[2]}`); l.facts = describe(l.text, l); }
   }
-  return notCalledActive(checkStreaks(dedupe(lines).map((l) => {
+  return checkDates(notCalledActive(checkStreaks(dedupe(lines).map((l) => {
     const d = l.facts;
     const names = l.player ? [l.player, l.player.split(" ").slice(-1)[0]] : teamNames;
     l.facts = d;
@@ -434,8 +435,50 @@ export function annotate(lines, { doc = null, tables = null, box = null, model =
     const f = { ...d.features, live: hook?.live ? 1 : 0 };
     const p = model ? score(f, model) : null;
     return { ...l, features: f, type: d.type, tag: d.tag, why: d.why, race: race || undefined, stay: stay || undefined, hook: hook || undefined, model: p == null ? undefined : Math.round(p * 1000) / 1000 };
-  }), box));
+  }), box)), box);
 }
+// ---------- A game's date against the schedule (0.145.0) ----------
+// The Wizards' notes, 11/24: "25 points … on 11/16 vs. HOU" and, two lines on, "25 points … on 11/15 vs. Houston". The
+// game was 11/15. The text stays as printed (the user's rule, 11/16); the user wants every notes-vs-ESPN difference
+// flagged, so the line says what the box scores have.
+const TEAM_WORDS = Object.entries(TEAMS).flatMap(([tri, t]) => [[tri, tri], [tri, t.nick], ...(t.alt || []).map((a) => [tri, a]), ...(t.city === "LA" || t.city === "Los Angeles" ? [] : [[tri, t.city]])]);
+const OPP_AT = new RegExp(`\\b(?:vs\\.?|versus|at|@|against)\\s+(?:the\\s+)?(${TEAM_WORDS.map(([, w]) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).sort((a, b) => b.length - a.length).join("|")})\\b`, "g");
+const triOf = (w) => [...new Set(TEAM_WORDS.filter(([, x]) => x === w).map(([t]) => t))];
+/** -> [{ said: "YYYY-MM-DD", opp }] for each date printed next to an opponent ("on 11/16 vs. HOU", "vs. BKN (11/8/26)"). */
+export function datedGames(text, startYear) {
+  const t = plain(text), out = [];
+  const opps = [...t.matchAll(OPP_AT)].map((m) => ({ at: m.index, end: m.index + m[0].length, tri: triOf(m[1]) })).filter((o) => o.tri.length === 1);
+  for (const m of t.matchAll(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/g)) {
+    const mo = +m[1], d = +m[2];
+    if (mo < 1 || mo > 12 || d < 1 || d > 31) continue;
+    const yr = mo >= 8 ? startYear : startYear + 1;
+    if (m[3] && +m[3].slice(-2) !== yr % 100) continue;   // another season
+    // the nearest opponent within a few words either side
+    const near = opps.map((o) => ({ o, gap: o.at >= m.index ? o.at - (m.index + m[0].length) : m.index - o.end })).filter((x) => x.gap <= 12).sort((a, b) => a.gap - b.gap)[0];
+    if (near) out.push({ said: `${yr}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`, opp: near.o.tri[0] });
+  }
+  return out;
+}
+/** Lines naming a game on a date the box scores don't have against that opponent, when the team did play them a few days off. Mutates. */
+export function checkDates(lines, box) {
+  const games = (box?.games || []).filter((g) => g.d && g.opp);
+  if (!games.length) return lines;
+  const startYear = Number([...games].sort((a, b) => (a.d < b.d ? -1 : 1))[0].d.slice(0, 4));
+  const md = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}`, days = (a, b) => Math.abs(Date.parse(a) - Date.parse(b)) / 864e5;
+  for (const l of lines || []) {
+    for (const { said, opp } of datedGames(l.text, startYear)) {
+      if (games.some((g) => g.d === said && g.opp === opp)) continue;
+      const real = games.filter((g) => g.opp === opp && days(g.d, said) <= 3).sort((a, b) => days(a.d, said) - days(b.d, said))[0];
+      if (!real) continue;
+      const note = `Date check: the box scores have the ${TEAMS[opp]?.nick || opp} game on ${md(real.d)}, not ${md(said)}.`;
+      l.dateCheck = { said, actual: real.d, opp };
+      l.hook = l.hook ? { ...l.hook, text: `${l.hook.text} ${note}` } : { text: note, live: false };
+      break;
+    }
+  }
+  return lines;
+}
+
 /**
  * 0.113: "Active streak" is said only of a count the box scores or the results agree with tonight. Every other
  * streak line keeps its number and is marked as the notes' own: "Streak · 176 (notes)".
@@ -461,6 +504,12 @@ const RUN = "(?:consecutive|straight)";
 const SPAN = `(?:each of )?(?:his |her |the )?(?:first |last |past )?${CNT} ${RUN} (?:games|contests|outings)`;
 const STREAK_STAT = "(points?|rebounds?|assists?|steals?|blocks?|three-pointers|3-pointers|threes)";
 const DOUBLES = [["dd", "double-doubles?", 2], ["td", "triple-doubles?", 3]];
+// 0.145.0: "made three three-pointers for the third straight game", "recorded a double-double for the fifth consecutive
+// game", "grabbed 10 rebounds in his fourth straight game", "… for the fourth game in a row".
+const DID = "(?:made|hit|knocked down|drained|scored|recorded|posted|had|grabbed|pulled down|dished out|dished|handed out|tallied|logged|notched|registered|collected)";
+const NTH_GAME = new RegExp(`\\b${DID}\\s+(?:at least\\s+|an?\\s+)?${CNT}?(?:\\+|-plus| or more)?\\s*(${STREAK_STAT.slice(1, -1)}|double-doubles?|triple-doubles?)\\s+(?:for|in)\\s+(?:the|a|his|her)\\s+${CNT}\\s+(?:${RUN}\\s+(?:game|contest|outing)|(?:game|contest|outing) in a row)\\b`, "i");
+// A date, a weekday or "last night" in the line: it is about that night.
+const DATED = /\b\d{1,2}\/\d{1,2}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)[a-z]*\.? \d{1,2}\b|\b(?:Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day\b|\blast night\b/i;
 
 /**
  * The streak a line counts, when it is one the box scores can count too: a double-double or triple-double streak,
@@ -470,6 +519,21 @@ const DOUBLES = [["dd", "double-doubles?", 2], ["td", "triple-doubles?", 3]];
 export function statedStreak(text) {
   const t = plain(text);
   if (/\b(?:snapped|ended|came to an end|was halted|last season|in 20(?:0\d|1\d|2[0-5])-\d\d)\b/i.test(t)) return null;
+  // 0.145.0: "Made three three-pointers for the third straight game, tying the longest streak of his career." (WAS notes,
+  // 11/24): no "has", no date, so it read as nothing to check and sat at #4 in the briefing a week after the run had
+  // ended. A line with no date that says what he did "for the Nth straight game" is a claim about now. A dated one
+  // ("… for the second game in a row on 11/20 at Chicago") is a recap of that night and is left as written.
+  if (!DATED.test(t)) {
+    const m = t.match(NTH_GAME);
+    if (m) {
+      const n = countOf(m[3]), word = m[2].toLowerCase();
+      const dbl = DOUBLES.find(([, w]) => new RegExp(`^${w}$`, "i").test(word));
+      if (n >= 2 && dbl) return { n, key: dbl[0], label: dbl[0] === "dd" ? "double-doubles" : "triple-doubles", test: (row, k) => ["pts", "reb", "ast", "stl", "blk"].filter((x) => row[k[x]] >= 10).length >= dbl[2] };
+      const min = m[1] ? countOf(m[1]) : null;
+      const stat = !dbl && statKey(/^3|three/i.test(word) ? "threes" : word.replace(/s$/, "") + "s");
+      if (n >= 2 && min && stat) return { n, key: `${stat}${min}`, label: `games with ${min}+ ${WORD[stat]}`, test: (row, k) => row[k[stat]] >= min };
+    }
+  }
   if (!/\bto (?:start|open|begin) (?:the|this|his|a) (?:season|campaign|year)\b|\b(?:has|have) (?:now |also )?(?:recorded|posted|scored|registered|tallied|had|notched|logged|grabbed|made|hit|dished)\b|\bactive\b|\bthis season\b|\bcurrent\b|\b(?:recorded|posted|notched|registered|logged|tallied) (?:his|her)\b|\bextend(?:ed|s|ing)?\b|\bin (?:each of )?(?:his|the) (?:last|past)\b/i.test(t)) return null;
   for (const [key, word, need] of DOUBLES) {
     if (key === "dd" && /triple-double/i.test(t)) continue;
@@ -495,7 +559,7 @@ export function statedStreak(text) {
 export function streakInBox(box, playerId, stated) {
   if (!box || !playerId || !stated) return null;
   const k = Object.fromEntries((box.keys || []).map((x, i) => [x, i]));
-  const played = (box.games || []).filter((g) => g.pl?.[playerId]?.[k.min] > 0).sort((a, b) => (a.d < b.d ? -1 : 1));
+  const played = (box.games || []).filter((g) => g.pl?.[playerId]?.[k.min] > 0 || (g.z || []).includes(String(playerId))).sort((a, b) => (a.d < b.d ? -1 : 1));   // 0.145.0: z
   if (!played.length) return null;
   let now = 0;
   for (let i = played.length - 1; i >= 0 && stated.test(played[i].pl[playerId], k); i--) now++;
@@ -597,7 +661,7 @@ export function staleCount(l, firstSeen, box) {
   const t = plain(l.text);
   if (SOME_GAMES.test(t)) return l;
   const k = Object.fromEntries((box.keys || []).map((x, i) => [x, i]));
-  const since = (box.games || []).filter((g) => g.d >= firstSeen && (l.playerId ? g.pl?.[String(l.playerId)]?.[k.min] > 0 : g.pf != null)).length;
+  const since = (box.games || []).filter((g) => g.d >= firstSeen && (l.playerId ? g.pl?.[String(l.playerId)]?.[k.min] > 0 || (g.z || []).includes(String(l.playerId)) : g.pf != null)).length;
   if (!since) return l;
   const who = l.playerId ? "he has" : "the team has", n = (l.tag.match(/\d+/) || [])[0];
   l.tag = n ? `Streak · ${n} (old count)` : "Streak (old count)";

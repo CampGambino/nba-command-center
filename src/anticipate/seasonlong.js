@@ -52,7 +52,7 @@ export function tradeLines({ pg, names }) {
 export function roleLines({ pg, names }) {
   const out = [];
   for (const [id, gs] of Object.entries(pg)) {
-    const st = gs.filter((g) => g.starter), bn = gs.filter((g) => !g.starter && g.min > 0);
+    const st = gs.filter((g) => g.starter), bn = gs.filter((g) => !g.starter && (g.min > 0 || g.cameo));
     if (st.length < 5 || bn.length < 3 || !names[id]) continue;
     const a = sum(st), b = sum(bn);
     const diff = a.pts / a.g - b.pts / b.g;
@@ -636,7 +636,7 @@ export function brotherLines({ pg, names = {}, brothers = null, today = null }) 
   const out = [], avg = (gs, k) => gs.reduce((s, g) => s + (g[k] || 0), 0) / gs.length, f1 = (x) => x.toFixed(1), nm = (id) => names[id] || id;
   const pct = (gs, m, a) => { const A = gs.reduce((s, g) => s + (g[a] || 0), 0); return A ? Math.round((100 * gs.reduce((s, g) => s + (g[m] || 0), 0)) / A) : null; };
   for (const pair of brothers?.pairs || []) {
-    const [a, b] = pair.ids.map(String), A = (pg?.[a] || []).filter((g) => g.min > 0), B = (pg?.[b] || []).filter((g) => g.min > 0);
+    const [a, b] = pair.ids.map(String), A = (pg?.[a] || []).filter((g) => g.min > 0 || g.cameo), B = (pg?.[b] || []).filter((g) => g.min > 0 || g.cameo);
     if (A.length < BRO.windows[0] || B.length < BRO.windows[0]) continue;
     const kin = pair.twins ? "twin" : "brother";
     // the same night: whichever of these is the least common says it (one line a pair a night)

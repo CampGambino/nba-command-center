@@ -84,7 +84,8 @@ function streakLines(trends, teams) {
     if (!teams.has(s.team) || s.length < 5) continue;
     const w = STREAK_WEIGHT[s.key] ?? 1;
     if (s.length * w < 6) continue; // notable enough: e.g. 10+ points needs 15 straight, 20+ points 5
-    const every = s.length === s.ofGames ? ", every game this season" : "";
+    // 0.145.0: a run carried over from last season says so (trends.js activeStreaks: thisSeason, carried).
+    const every = s.carried ? `, going back to last season (every game this season, ${s.thisSeason})` : s.length === s.ofGames ? ", every game this season" : "";
     out.push({ team: s.team, player: s.name, kind: "streak", text: `${s.name}: ${s.label.toLowerCase()} in ${s.length} straight games${every}`, score: (s.length * w) / 5 });
   }
   return out;

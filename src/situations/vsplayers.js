@@ -20,7 +20,7 @@ export function playerGames(teamFiles) {
     teamGp[tri] = games.length;
     for (const g of games) {
       for (const [id, row] of Object.entries(g.pl || {})) {
-        if (!(row[ix.min] > 0)) continue;
+        if (!(row[ix.min] > 0) && !(g.z || []).includes(id)) continue;   // 0.145.0: z = in for a few seconds
         const p = (players[id] ??= { id, name: f.names?.[id] || id, tri, last: "", games: [] });
         if (g.d >= p.last) { p.last = g.d; p.tri = tri; p.name = f.names?.[id] || p.name; }
         p.games.push({ d: g.d, opp: g.opp, home: !!g.home, team: tri, pts: row[ix.pts] || 0, fgm: row[ix.fgm] || 0, fga: row[ix.fga] || 0, fg3m: row[ix.fg3m] || 0, fg3a: row[ix.fg3a] || 0, min: row[ix.min] || 0 });

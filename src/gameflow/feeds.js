@@ -90,6 +90,33 @@ export function espnToFeeds(sum){
     return ath[1] || undefined;      // fall back to ESPN's ordering
   };
 
+  /* 0.145.0: the running score. ESPN's plays carry a score on each play, but it can run ahead of the final (POR at LAL
+     10/27: Portland 138 on a 136 final) or fall short of it (NYK at MIN 11/19: a Minnesota 2 missing in the 1st
+     quarter, 102-97 on a 102-99 final): 12 of 258 game files ended on a wrong score. In order:
+       1. the score rebuilt from the scoring plays (team and points), as the clutch reader does (src/espn/parse.js),
+          when it ends on the final;
+       2. else ESPN's own score on each play, when that ends on the final;
+       3. else the rebuilt score, set back on the line score at the start of each period (when the line score adds up),
+          so only the period with the gap is off. */
+  const homeId=String(home.id), awayId=String(away.id), finH=Number(home.score), finA=Number(away.score);
+  const built=new Map(); { let h=0,a=0; for(const p of plays){ const pts=p.scoringPlay?(Number(p.scoreValue)||0):0, t=p.team?String(p.team.id):"";
+    if(pts>0){ if(t===homeId) h+=pts; else if(t===awayId) a+=pts; } built.set(p,[h,a]); } }
+  const lastOf = f => { const x=plays.length? f(plays[plays.length-1]) : [0,0]; return x; };
+  const espnAt = p => [p.homeScore==null?0:Number(p.homeScore), p.awayScore==null?0:Number(p.awayScore)];
+  const builtAt = p => built.get(p) || [0,0];
+  const ends = f => { const e=lastOf(f); return e[0]===finH && e[1]===finA; };
+  const lineOf = c => (c.linescores||[]).map(l=>Number(l.displayValue!=null? l.displayValue : l.value));
+  const lh=lineOf(home), la=lineOf(away);
+  const sumOf = xs => xs.reduce((s,x)=>s+x,0);
+  const lineOk = lh.length>=4 && lh.length===la.length && lh.every(Number.isFinite) && la.every(Number.isFinite) && sumOf(lh)===finH && sumOf(la)===finA;
+  const shift={};                                   // period -> [home, away] added to the rebuilt score (case 3)
+  const useBuilt = ends(builtAt) || !ends(espnAt);
+  if(useBuilt && !ends(builtAt) && lineOk){
+    const endOf={}; for(const p of plays){ const n=p.period&&p.period.number; if(n) endOf[n]=builtAt(p); }
+    for(let n=2;n<=lh.length;n++){ const prev=endOf[n-1]; if(prev) shift[n]=[sumOf(lh.slice(0,n-1))-prev[0], sumOf(la.slice(0,n-1))-prev[1]]; }
+  }
+  const scoreAt=(p,side)=>{ const v=(useBuilt?builtAt:espnAt)(p)[side==="h"?0:1]; const sh=shift[p.period&&p.period.number]; return v+(sh?sh[side==="h"?0:1]:0); };
+
   const actions=[];
   let order=0;
   const push=(p,extra)=>{
@@ -98,8 +125,8 @@ export function espnToFeeds(sum){
       orderNumber:order, actionNumber:order/100,
       period:p.period.number, clock:clockOf(p),
       teamId:p.team? String(p.team.id) : undefined,
-      scoreHome:String(p.homeScore==null?0:p.homeScore),
-      scoreAway:String(p.awayScore==null?0:p.awayScore),
+      scoreHome:String(scoreAt(p,"h")),
+      scoreAway:String(scoreAt(p,"a")),
       description:p.text||"", qualifiers:[], ...extra,
     });
   };
@@ -194,7 +221,9 @@ export function espnToFeeds(sum){
 
 /* ==================== compact game files ==================== */
 // 2 (0.141.13): last-minute clocks read ("58.8" was 0:00); files of an older version are read again by scripts/flow.js.
-export const FLOW_VERSION = 2;
+// 3 (0.145.0): the running score rebuilt from the scoring plays (12 of 258 files ended on a wrong score; 3 of 8 others
+// sampled were off the line score at a period's end).
+export const FLOW_VERSION = 3;
 const STAT_KEYS = ["points", "plusMinusPoints", "foulsPersonal", "assists", "reboundsTotal", "steals", "blocks", "turnovers",
   "fieldGoalsMade", "fieldGoalsAttempted", "threePointersMade", "threePointersAttempted", "freeThrowsMade", "freeThrowsAttempted"];
 const clockNum = (c) => { const m = /PT(\d+)M([\d.]+)S/.exec(c || ""); return m ? Number(m[1]) * 60 + Number(m[2]) : 0; };

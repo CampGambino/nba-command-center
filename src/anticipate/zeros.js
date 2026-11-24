@@ -31,7 +31,7 @@ export function zeroCareers({ pg, logs, seasons, names = {}, nameKey = (x) => x,
   const guide = new Map(Object.entries(seasons?.players || {}).map(([n, rows]) => [nameKey(n), rows]));
   const out = {};
   for (const [id, all] of Object.entries(pg || {})) {
-    const games = all.filter((g) => g.min > 0 && (!before || g.d < before));
+    const games = all.filter((g) => (g.min > 0 || g.cameo) && (!before || g.d < before));
     const name = names[id], rows = guide.get(nameKey(name || ""));
     if (!name || !rows || !rows.length) continue;                       // a rookie, or no career on file
     const past = rows.reduce((a, r) => a + (r[K.g] || 0), 0), career = past + games.length;
@@ -63,7 +63,7 @@ export function zeroWatch(careers, teams) {
 export function zeroLines({ pg, careersBefore, since, allStar = null, plainName = (x) => x }) {
   const out = [];
   for (const [id, p] of Object.entries(careersBefore || {})) {
-    for (const g of (pg[id] || []).filter((x) => x.d >= since && x.min > 0)) {
+    for (const g of (pg[id] || []).filter((x) => x.d >= since && (x.min > 0 || x.cameo))) {
       for (const k of Object.keys(p.stats)) {
         if ((g[k] || 0) !== 0 || p.stats[k].zeros !== 0) continue;
         const n = (p.full ? p.games : p.logGames) + 1, sel = allStar ? allStar[plainName(p.name)] || 0 : 0;

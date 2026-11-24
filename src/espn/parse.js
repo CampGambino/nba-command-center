@@ -311,6 +311,16 @@ export function clockSeconds(s) {
   const n = Number(t);
   return Number.isFinite(n) ? n : null;
 }
+/** The score at the start of each period from the line score, when it adds up to the final: { [period]: [home, away], lines }. */
+export function periodStarts(home, away, finalH, finalA) {
+  const lineOf = (c) => (c?.linescores || []).map((l) => Number(l.displayValue ?? l.value));
+  const lh = lineOf(home), la = lineOf(away);
+  const sum = (xs) => xs.reduce((s, x) => s + x, 0);
+  if (lh.length < 4 || lh.length !== la.length || !lh.every(Number.isFinite) || !la.every(Number.isFinite) || sum(lh) !== finalH || sum(la) !== finalA) return null;
+  const out = { lines: { h: lh, a: la } };
+  for (let n = 1; n <= lh.length; n++) out[n] = [sum(lh.slice(0, n - 1)), sum(la.slice(0, n - 1))];
+  return out;
+}
 export function readGameDetail(json) {
   const header = json?.header?.competitions?.[0];
   const sideOf = (homeAway) => header?.competitors?.find((c) => c.homeAway === homeAway);
@@ -331,9 +341,24 @@ export function readGameDetail(json) {
   // which made 55 "clutch points" out of nothing. The rebuilt score must end at
   // the final score, or the game's clutch numbers are not used (scoreOk false).
   const homeId = String(sideOf("home")?.team?.id ?? ""), awayId = String(sideOf("away")?.team?.id ?? "");
-  let clutch = null, h = 0, a = 0, seen = 0;
+  const finalH = Number(sideOf("home")?.score), finalA = Number(sideOf("away")?.score);
+  // 0.145.0: the line score, when it adds up to the final, sets the score at the start of each period. ESPN's plays can be
+  // short a basket (NYK at MIN, 11/19: a Minnesota 2 missing in the 1st quarter); then only that period is off, and a
+  // game whose 4th quarter and overtimes add up still has its clutch and 4th-quarter lines (tailOk).
+  // Only when the plays never reach the final: a basket the plays log a period late (POR at LAL, 11/6: a Portland 2 in the 1st
+  // quarter's line score that the plays only reach by the end of the 3rd) catches up by itself, and resetting there would count it twice.
+  let rawH = 0, rawA = 0;
+  for (const p of json?.plays || []) {
+    const pts = p?.scoringPlay ? Number(p.scoreValue) || 0 : 0, team = String(p?.team?.id ?? "");
+    if (pts > 0) { if (team === homeId) rawH += pts; else if (team === awayId) rawA += pts; }
+  }
+  const reaches = rawH === finalH && rawA === finalA;
+  const starts = reaches ? null : periodStarts(sideOf("home"), sideOf("away"), finalH, finalA);
+  let clutch = null, h = 0, a = 0, seen = 0, per0 = 0;
+  const byPer = {};
   for (const p of json?.plays || []) {
     const per = p?.period?.number ?? 0;
+    if (per !== per0) { per0 = per; if (starts?.[per]) [h, a] = starts[per]; }
     const sec = clockSeconds(p?.clock?.displayValue);
     const pts = p?.scoringPlay ? Number(p.scoreValue) || 0 : 0;
     const team = String(p?.team?.id ?? "");
@@ -341,20 +366,25 @@ export function readGameDetail(json) {
     if (inClutch) clutch ??= { home: 0, away: 0 };
     if (pts > 0 && (team === homeId || team === awayId)) {
       if (inClutch) clutch[team === homeId ? "home" : "away"] += pts;
-      if (team === homeId) h += pts; else a += pts;
+      const b = (byPer[per] ??= [0, 0]);
+      if (team === homeId) { h += pts; b[0] += pts; } else { a += pts; b[1] += pts; }
     }
     seen++;
   }
-  const finalH = Number(sideOf("home")?.score), finalA = Number(sideOf("away")?.score);
-  const scoreOk = seen > 0 && h === finalH && a === finalA;
+  const scoreOk = seen > 0 && reaches;
+  // Periods whose plays add up to the line score; the game's tail (4th quarter on) is usable when every one of them does.
+  const lines = starts ? starts.lines : null;
+  const badPeriods = lines ? lines.h.map((_, i) => i + 1).filter((n) => (byPer[n]?.[0] ?? 0) !== lines.h[n - 1] || (byPer[n]?.[1] ?? 0) !== lines.a[n - 1]) : null;
+  const tailOk = !scoreOk && seen > 0 && !!badPeriods && badPeriods.length > 0 && badPeriods.every((n) => n < 4);
+  const usable = scoreOk || tailOk;
   return {
     id: json?.header?.id ? String(json.header.id) : null,
     final: header?.status?.type?.completed === true,
     home: box.home || null, away: box.away || null,
-    plays: seen, clutch: scoreOk ? clutch : null, scoreOk,
+    plays: seen, clutch: usable ? clutch : null, scoreOk, tailOk, badPeriods: badPeriods && badPeriods.length ? badPeriods : null,
     // Player lines in clutch time (see pbp.js); only when the game had clutch time.
-    clutchPlayers: scoreOk && clutch ? clutchPlayers(json, { homeId, awayId }) : null,
-    q4Players: scoreOk ? windowPlayers(json, { homeId, awayId }, WINDOWS.q4) : null,
+    clutchPlayers: usable && clutch ? clutchPlayers(json, { homeId, awayId }, { starts }) : null,
+    q4Players: usable ? windowPlayers(json, { homeId, awayId }, WINDOWS.q4, { starts }) : null,
     players: readPlayerBox(json, homeId),
     // 0.95: scoring by type (misc.js): paint, fast break, off turnovers, second chance.
     misc: readGameMisc(json),

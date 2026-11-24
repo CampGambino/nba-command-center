@@ -26,10 +26,13 @@ export function playerGames(rows) {
   for (const g of [...rows].sort((a, b) => a.d.localeCompare(b.d) || a.id.localeCompare(b.id))) {
     if (!g.pl) continue;
     for (const [id, v] of Object.entries(g.pl)) {
-      if (!(v[IX.min] > 0)) continue;
+      // 0.145.0: a few seconds on the floor (0 minutes, not a DNP: the store's z) is a game played, as the NBA counts it.
+      const cameo = !(v[IX.min] > 0) && (g.z || []).includes(id);
+      if (!(v[IX.min] > 0) && !cameo) continue;
       const home = v[IX.side] === 0;
       const line = { d: g.d, gameId: g.id, team: home ? g.h : g.a, opp: home ? g.a : g.h, home: home && !g.n, win: home ? g.hs > g.as : g.as > g.hs };
       for (const [k, i] of Object.entries(IX)) if (i >= 1) line[k] = v[i];
+      if (cameo) line.cameo = 1;
       (out[id] ??= []).push(line);
     }
   }
@@ -50,8 +53,17 @@ export const STREAKS = [
 ];
 
 /** Active streaks at or above each category's minimum, longest first. */
-export function activeStreaks(pg, names = {}) {
+/**
+ * 0.145.0: a run that covers every game he has played this season goes on from last season (carry: src/data/streak-carry-*.json,
+ * made by tools/streak-carry.mjs from ESPN's game logs: { players: { id: { key: [n, from] } } }). Where the Records page and NBA
+ * Live hold the same run from Basketball-Reference's list (featlive.json streaks: Curry's made threes), that count is used, so
+ * every page says one number. length = the whole run; thisSeason = its games this season; carried = from before; since = its start.
+ */
+const FEAT_KEY = (tests) => (tests?.length === 1 && tests[0].k === "fg3m" ? (tests[0].min === 1 ? "three" : tests[0].min === 3 ? "threes3" : null) : null);
+export function activeStreaks(pg, names = {}, { carry = null, featlive = null } = {}) {
   const out = [];
+  const listed = new Map();
+  for (const s of featlive?.streaks || []) { const k = FEAT_KEY(s.tests); if (k && s.source === "list") listed.set(`${s.id}|${k}`, s); }
   for (const [id, games] of Object.entries(pg)) {
     for (const [key, label, test, min] of STREAKS) {
       if (key === "start") continue;
@@ -59,8 +71,13 @@ export function activeStreaks(pg, names = {}) {
       for (let i = games.length - 1; i >= 0 && test(games[i]); i--) n++;
       let best = 0, run = 0;
       for (const g of games) { run = test(g) ? run + 1 : 0; best = Math.max(best, run); }
-      if (n >= Math.max(min, 2)) {
-        out.push({ id, name: names[id] || id, team: games[games.length - 1].team, key, label, length: n, ofGames: games.length, since: games[games.length - n].d, last: games[games.length - 1].d, seasonBest: best });
+      const before = n === games.length ? carry?.players?.[id]?.[key] || null : null;
+      const fromList = n === games.length ? listed.get(`${id}|${key}`) : null;
+      const carried = fromList ? Math.max(0, fromList.n - n) : before ? before[0] : 0;
+      const total = n + carried;
+      if (total >= Math.max(min, 2) && n >= 1) {
+        out.push({ id, name: names[id] || id, team: games[games.length - 1].team, key, label, length: total, ofGames: games.length, since: carried ? (before?.[1] || games[0].d) : games[games.length - n].d, last: games[games.length - 1].d, seasonBest: best,
+          ...(carried ? { thisSeason: n, carried, carriedFrom: fromList ? "list" : "logs" } : {}) });
       }
     }
   }

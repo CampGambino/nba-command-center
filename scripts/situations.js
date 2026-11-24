@@ -87,6 +87,22 @@ if (store.corrected?.length) console.log(`stat corrections: ${store.corrected.le
 if (store.requartered?.length) console.log(`quarter scores: ${store.requartered.length} game(s) changed on a re-read: ${store.requartered.map((x) => `${x.d} ${x.a}@${x.h}`).join(", ")}`);
 const rows = allGames(store);
 if (!rows.length) { console.error(`no results collected${warnings.length ? `: ${warnings[0]}` : ""}`); process.exit(1); }
+// 0.145.0: one spelling per player. ESPN's box scores write "Nikola Jokic"; the Guide and the records built from it "Nikola
+// Jokić". Every line built here from the box scores uses the accented spelling where a reference file (src/data) has one
+// (src/site/accents.js). The store keeps ESPN's; matching across sources ignores accents.
+const { accentMap, withAccents } = await import("../src/site/accents.js");
+const ACCENTS = accentMap(fs.readdirSync(path.join(root, "src", "data")).filter((f) => f.endsWith(".json")).map((f) => fs.readFileSync(path.join(root, "src", "data", f), "utf8")));
+const NAMES = withAccents(store.names || {}, ACCENTS);
+// 0.145.0: the few-seconds appearances (0 minutes, not a DNP) of games read before the store kept them (row.z, 0.142.7) come
+// from the file read by hand then (src/data/zero-minute-games-*.json), so every page counts them as games played. Until now
+// only the games-played streaks read that file: AJ Green had 17 games on the award page and 16 everywhere else.
+{
+  const zf = latestData(/^zero-minute-games-\d{4}-\d\d\.json$/), byId = new Map(rows.map((g) => [String(g.id), g]));
+  let added = 0;
+  for (const [gid, , , pid] of zf?.rows || []) { const g = byId.get(String(gid)); if (g?.pl?.[pid] && !(g.pl[pid][2] > 0) && !(g.z || []).includes(String(pid))) { (g.z ??= []).push(String(pid)); added++; } }
+  const total = rows.reduce((n, g) => n + (g.z?.length || 0), 0);
+  console.log(`few-seconds appearances: ${total} this season (${added} from ${zf ? "the hand-read file" : "no file"})`);
+}
 
 const sit = computeSituations(rows, { through });
 const sb = await espn.scoreboard(today);
@@ -114,7 +130,7 @@ const rosterChanges = await (async () => {
   const ESPN_CODE = { GSW: "GS", NYK: "NY", SAS: "SA", NOP: "NO", UTA: "UTAH", WAS: "WSH" };
   const last = {};
   for (const g of [...rows].filter((x) => x.pl).sort((x, y) => x.d.localeCompare(y.d))) {
-    for (const [id, v] of Object.entries(g.pl)) last[id] = { name: (store.names || {})[id] || id, team: v[0] === 0 ? g.h : g.a, d: g.d };
+    for (const [id, v] of Object.entries(g.pl)) last[id] = { name: NAMES[id] || id, team: v[0] === 0 ? g.h : g.a, d: g.d };
   }
   const espn = {}, problems = [];
   await Promise.all(Object.keys(TEAMS).map(async (tri) => {
@@ -139,10 +155,10 @@ const rosterChanges = await (async () => {
 /** A league-wide player line with his current team (and where he was, if moved). */
 const nowTeam = (p) => { const c = rosterChanges[p.id]; return c ? { ...p, team: c.team || "FA", was: c.was, moved: c.since || null } : p; };
 // Clutch-time player totals for the Clutch page.
-const players = clutchPlayerTotals(rows, store.names || {}).map(nowTeam);
+const players = clutchPlayerTotals(rows, NAMES).map(nowTeam);
 fs.writeFileSync(path.join(root, "docs", "data", "clutch-players.json"), JSON.stringify({ generatedAt: out.generatedAt, through, games: rows.filter((g) => g.cl).length, players, teams: clutchTeamTotals(rows, "cp") }));
 // 4th-quarter player totals (same shape as clutch).
-const q4 = clutchPlayerTotals(rows, store.names || {}, "q4").map(nowTeam);
+const q4 = clutchPlayerTotals(rows, NAMES, "q4").map(nowTeam);
 fs.writeFileSync(path.join(root, "docs", "data", "q4-players.json"), JSON.stringify({ generatedAt: out.generatedAt, through, games: rows.filter((g) => g.q4).length, players: q4, teams: clutchTeamTotals(rows, "q4") }));
 // Every player's game lines, one file per team, for "with / without a teammate"
 // (computed in the browser). A file is rewritten only when that team has played.
@@ -185,7 +201,11 @@ for (const g of rows) {
   if (!g.pl) continue;
   for (const [side, tri] of [[0, g.h], [1, g.a]]) {
     const pl = Object.fromEntries(Object.entries(g.pl).filter(([, v]) => v[0] === side).map(([id, v]) => [id, v.slice(1)]));
-    (perTeam[tri] ??= []).push({ id: g.id, d: g.d, opp: side === 0 ? g.a : g.h, home: side === 0 && !g.n, pf: side === 0 ? g.hs : g.as, pa: side === 0 ? g.as : g.hs, pl });
+    // 0.145.0: z = his players in the game for a few seconds (0 minutes, not a DNP), so every page counts that game played.
+    const z = (g.z || []).filter((id) => g.pl[id]?.[0] === side);
+    // 0.145.0: a neutral-site game (DEN-IND in Mexico City, 11/7) is n: 1 for both teams, home for neither; dh: 1 marks the
+    // listed home team, so a game can still be matched to the schedule ("DEN @ IND"). Home and road splits leave it out.
+    (perTeam[tri] ??= []).push({ id: g.id, d: g.d, opp: side === 0 ? g.a : g.h, home: side === 0 && !g.n, pf: side === 0 ? g.hs : g.as, pa: side === 0 ? g.as : g.hs, pl, ...(z.length ? { z } : {}), ...(g.n ? { n: 1, ...(side === 0 ? { dh: 1 } : {}) } : {}) });
   }
 }
 // Attach each game's injury-report listings for the team: inj: { id: "Out" | "Doubtful" | … }.
@@ -202,7 +222,7 @@ for (const g of rows) {
 const teamFiles = {};
 for (const [tri, games] of Object.entries(perTeam)) {
   const ids = new Set(games.flatMap((x) => Object.keys(x.pl)));
-  const names = Object.fromEntries([...ids].map((id) => [id, store.names?.[id] || id]));
+  const names = Object.fromEntries([...ids].map((id) => [id, NAMES[id] || id]));
   const text = JSON.stringify({ team: tri, through: games[games.length - 1].d, keys: ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"], names, games });
   const file = path.join(teamDir, `${tri}.json`);
   if (!fs.existsSync(file) || fs.readFileSync(file, "utf8") !== text) fs.writeFileSync(file, text);
@@ -425,6 +445,20 @@ for (const [tri, games] of Object.entries(perTeam)) {
         for (const v of Object.values(o)) walk(v); };
       if (fit) { walk(recordsOut); console.log(`records: ${n} chances tonight recalibrated`); }
     } catch (e) { console.error(`record chances not recalibrated: ${e.message}`); }
+    // 0.145.0: one chance per chase. A records item that is also a milestone (same player, stat, target, total) publishes
+    // the same number on both pages (src/anticipate/onechance.js); the one that gave way is kept as `own` for scoring.
+    try {
+      const { oneChance } = await import("../src/anticipate/onechance.js");
+      const wf = path.join(root, "docs", "data", "watch.json");
+      const w = fs.existsSync(wf) ? JSON.parse(fs.readFileSync(wf, "utf8")) : null;
+      if (w && (!w.today || w.today === today)) {
+        const r = oneChance(recordsOut, w);
+        if (r.fromRecords) fs.writeFileSync(wf, JSON.stringify(w));
+        console.log(`records: one chance per chase: ${r.matched} shared with the milestones (${r.fromMilestones} take the milestones' number, ${r.fromRecords} the records')`);
+      }
+    } catch (e) { console.error(`records: chances not shared with the milestones: ${e.message}`); }
+    // 0.145.0: one spelling per player: the franchise and Cup lists spell "Nikola Jokic", the all-time lists "Nikola Jokić".
+    try { const { accentRecords, withSurnames, canonNames } = await import("../src/site/accents.js"); const canon = canonNames(NAMES), map = withSurnames(ACCENTS); for (const k of ["items", "cup", "franchise", "seasonPace", "franchiseGame", "boards", "context"]) accentRecords(recordsOut[k], map, canon); } catch (e) { console.error(`records: names not unified: ${e.message}`); }
     fs.writeFileSync(path.join(root, "docs", "data", "records.json"), JSON.stringify(recordsOut));
     // 0.141.9: tonight's record chances kept for scoring (scripts/score.js --records, the morning after), as the milestones'
     // are: every item playing tonight with a chance, the raw chance (what the recalibration learns from), the chance to play.
@@ -452,7 +486,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
       const files = ffs.map((f) => JSON.parse(fs.readFileSync(path.join(root, "src", "data", f), "utf8")));
       const file = { ...files[0], boards: {}, streaks: {} };
       for (const x of files) { for (const [k, b] of Object.entries(x.boards || {})) file.boards[k] = { asOf: x.asOf, ...b }; Object.assign(file.streaks, x.streaks || {}); }
-      const F = buildFeatLive({ file, pg: playerGames(rows.filter((g) => !g.cupFinal)), names: store.names || {},
+      const F = buildFeatLive({ file, pg: playerGames(rows.filter((g) => !g.cupFinal)), names: NAMES,
         tonightTeams: new Set((tonight || []).flatMap((g) => [g.home, g.away])), notesFacts,
         // 0.142.6: consecutive games played, last season's runs carried through this season's games (DNPs included)
         games: rows, gpBase: latestData(/^games-played-streaks-\d{4}-\d\d\.json$/), gpZero: latestData(/^zero-minute-games-\d{4}-\d\d\.json$/) });
@@ -483,7 +517,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const fillFile = path.join(root, "src", "data", "player-logs-fill.json.gz"), { withFill } = await import("../src/situations/logfill.js");
     logsFull = logsData && fs.existsSync(fillFile) ? withFill(logsData, JSON.parse(zlib.gunzipSync(fs.readFileSync(fillFile)))) : logsData;
     seasonsData = fs.existsSync(csFile) ? JSON.parse(fs.readFileSync(csFile, "utf8")) : null;
-    careers = careerHighs({ logs: logsFull, seasons: seasonsData, names: store.names || {}, ids: Object.keys(pg), season: tag, nameKey: strictKey });
+    careers = careerHighs({ logs: logsFull, seasons: seasonsData, names: NAMES, ids: Object.keys(pg), season: tag, nameKey: strictKey });
   } catch (e) { console.error(`career highs not read: ${e.message}`); }
   // Prep stats (0.66): season vs career, spans, player streak watch, vs tonight's opponent, through N games.
   let featRuns = null, teamNicks = null;
@@ -501,7 +535,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     // 0.141.15: the game notes' facts (written by tonight.js, earlier in the build), for streaks the notes were following.
     let notesFacts = null;
     try { const nf = path.join(root, "docs", "data", "notes-facts.json"); if (fs.existsSync(nf)) notesFacts = JSON.parse(fs.readFileSync(nf, "utf8")); } catch (e) { console.error(`notes facts not read for prep: ${e.message}`); }
-    const prep = prepLines({ pg, rows, logs: logsData, seasons: seasonsData, names: store.names || {}, nameKey: keyFn, season: seasonTag, games: slate, runs: featRuns, nicks: teamNicks, notesFacts });
+    const prep = prepLines({ pg, rows, logs: logsData, seasons: seasonsData, names: NAMES, nameKey: keyFn, season: seasonTag, games: slate, runs: featRuns, nicks: teamNicks, notesFacts });
     // Season-long and morning-after lines (0.70): trades, starter/bench, vs MVP season, lineups, record turns, best
     // since Christmas, who has beaten the best teams, month ratings and totals, rookies, last night's unique lines.
     let lastNight = [], zeros = {};
@@ -511,7 +545,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
       const hf2 = path.join(root, "src", "data", `nba-history-${seasonTag}.json`);
       awardsData = fs.existsSync(hf2) ? JSON.parse(fs.readFileSync(hf2, "utf8")).awards : null;
       const brf = path.join(root, "src", "data", "brothers.json"), brothers = fs.existsSync(brf) ? JSON.parse(fs.readFileSync(brf, "utf8")) : null;
-      const sl = seasonLongLines({ pg, rows, logs: logsData, seasons: seasonsData, awards: awardsData, names: store.names || {}, nameKey: keyFn, season: seasonTag, slate, today, brothers, fullLogs: logsFull });
+      const sl = seasonLongLines({ pg, rows, logs: logsData, seasons: seasonsData, awards: awardsData, names: NAMES, nameKey: keyFn, season: seasonTag, slate, today, brothers, fullLogs: logsFull });
       const yday = new Date(Date.parse(`${today}T12:00:00Z`) - 864e5).toISOString().slice(0, 10);
       lastNight = sl.lines.filter((l) => l.kind === "unique" && l.date >= yday).sort((a, b) => b.score - a.score);
       // 0.82: a first career game without a point, a rebound or an assist (the user, 11/16: Trae Young's first scoreless
@@ -521,7 +555,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
         const { plainName } = await import("../src/anticipate/finder.js");
         const pcf = path.join(root, "src", "data", `nba-postseason-careers-${seasonTag}.json`);
         const allStar = fs.existsSync(pcf) ? Object.fromEntries((JSON.parse(fs.readFileSync(pcf, "utf8")).allStarSelections || []).map((x) => [plainName(x.name), x.selections])) : null;
-        const zargs = { pg, logs: logsFull || logsData, seasons: seasonsData, names: store.names || {}, nameKey: keyFn };
+        const zargs = { pg, logs: logsFull || logsData, seasons: seasonsData, names: NAMES, nameKey: keyFn };
         const zl = zeroLines({ pg, careersBefore: zeroCareers({ ...zargs, before: yday }), since: yday, allStar, plainName });
         lastNight = [...zl, ...lastNight].sort((a, b) => b.score - a.score);
         zeros = zeroWatch(zeroCareers(zargs), new Set(slate.flatMap((g) => [g.away, g.home])));
@@ -532,7 +566,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
       try {
         const { advance, scoreFeats, firstSince, watchList } = await import("../src/records/lasttime.js");
         const ltf = path.join(root, "src", "data", `last-time-${seasonTag}.json`), rhf = path.join(root, "src", "data", "nba-results-history.json");
-        const feats = [...(fs.existsSync(ltf) ? advance(JSON.parse(fs.readFileSync(ltf, "utf8")), rows, store.names || {}) : []),
+        const feats = [...(fs.existsSync(ltf) ? advance(JSON.parse(fs.readFileSync(ltf, "utf8")), rows, NAMES) : []),
           ...scoreFeats({ deep: await loadDeep(), history: fs.existsSync(rhf) ? JSON.parse(fs.readFileSync(rhf, "utf8")) : null, rows })];
         // 0.90: each team's single-game marks from the same games (most and fewest points, largest win and loss).
         // 0.93: where a guide prints the mark (19 guides), the print is the mark through last season; the box-score marks
@@ -567,7 +601,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     // team loses), scarcity ("one of 2 teams unbeaten on the road"), what a defense gives up to one position.
     try {
       const { detectorLines } = await import("../src/anticipate/detectors.js"), { posGroup } = await import("../src/situations/oddlines.js");
-      const dl = detectorLines({ rows, pg, names: store.names || {}, seasons: seasonsData, nameKey: keyFn, positions: rosterPos, posGroup, slate, errors: prep.errors });
+      const dl = detectorLines({ rows, pg, names: NAMES, seasons: seasonsData, nameKey: keyFn, positions: rosterPos, posGroup, slate, errors: prep.errors });
       prep.lines.push(...dl);
       const c = {}; for (const l of dl) c[l.kind] = (c[l.kind] || 0) + 1;
       console.log(`detectors: ${dl.length} lines (${Object.entries(c).map(([k, n]) => `${n} ${k}`).join(", ")})`);
@@ -615,13 +649,13 @@ for (const [tri, games] of Object.entries(perTeam)) {
       // season and no career line in the guide): a leader's line says what is new about him, and a rookie is never "not an All-Star".
       let leaders = null, rookies = null;
       try { const hf2 = path.join(root, "src", "data", `nba-history-${seasonTag}.json`); if (fs.existsSync(hf2)) leaders = JSON.parse(fs.readFileSync(hf2, "utf8")).leaders || null; } catch { /* the leader line is skipped */ }
-      try { const careers = new Set(Object.keys(seasonsData?.players || {}).map(keyFn)); rookies = new Set(Object.keys(pg).filter((id) => store.names?.[id] && !(logsData?.players?.[id] || []).length && !careers.has(keyFn(store.names[id])))); } catch { /* no rookie list: nobody is treated as one */ }
-      const F = finderLines({ pg, names: store.names || {}, qsum, teamGp, allStars, leaders, rookies, rows: rows.filter((g) => !g.cupFinal) }, new Set(slate.flatMap((g) => [g.away, g.home])), { top: 24 });
+      try { const careers = new Set(Object.keys(seasonsData?.players || {}).map(keyFn)); rookies = new Set(Object.keys(pg).filter((id) => NAMES[id] && !(logsData?.players?.[id] || []).length && !careers.has(keyFn(NAMES[id])))); } catch { /* no rookie list: nobody is treated as one */ }
+      const F = finderLines({ pg, names: NAMES, qsum, teamGp, allStars, leaders, rookies, rows: rows.filter((g) => !g.cupFinal) }, new Set(slate.flatMap((g) => [g.away, g.home])), { top: 24 });
       prep.lines.push(...F.lines);
       // 0.121: the strongest shifts on tonight's teams (src/situations/shifts.js), so the Watch List carries them.
       try {
         const { allShifts, shiftStoryLines } = await import("../src/situations/shifts.js");
-        shiftAll = allShifts(pg, store.names || {}, (id, last) => nowTeam({ id, team: last }).team);
+        shiftAll = allShifts(pg, NAMES, (id, last) => nowTeam({ id, team: last }).team);
         const SL = shiftStoryLines(shiftAll, new Set(slate.flatMap((g) => [g.away, g.home])));
         prep.lines.push(...SL);
         console.log(`shifts for the Watch List: ${SL.length} line(s) on tonight's teams`);
@@ -641,7 +675,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const hf = path.join(root, "src", "data", "nba-results-history.json");
     if (fs.existsSync(cf)) {
       const { flowStats } = await import("../src/gameflow/stats.js");
-      const R = runChecks(JSON.parse(fs.readFileSync(cf, "utf8")).checks, { rows, logs: logsData, seasons: seasonsData, history: fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null, names: store.names || {}, nameKey: keyFn, season: seasonTag, awards: awardsData, runs: featRuns, nicks: teamNicks,
+      const R = runChecks(JSON.parse(fs.readFileSync(cf, "utf8")).checks, { rows, logs: logsData, seasons: seasonsData, history: fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null, names: NAMES, nameKey: keyFn, season: seasonTag, awards: awardsData, runs: featRuns, nicks: teamNicks,
         // 0.79: checks on lines made from the Game Flow files: this season's files as they stood before that morning.
         flowAt: (morning) => {
           const dir = path.join(root, "docs", "data", "flow", String(store.season));
@@ -657,7 +691,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
   } catch (e) { console.error(`flag checks not run: ${e.message}`); }
   // 0.141.15: measured rarity (src/data/outlier-tails.json, tools/outlier-tails.mjs).
   const tailsFile = path.join(root, "src", "data", "outlier-tails.json"), tails = fs.existsSync(tailsFile) ? JSON.parse(fs.readFileSync(tailsFile, "utf8")) : null;
-  const byDate = Object.fromEntries(dates.map((d) => [d, anomalies(pg, store.names || {}, { dates: [d], careers, tails })]));
+  const byDate = Object.fromEntries(dates.map((d) => [d, anomalies(pg, NAMES, { dates: [d], careers, tails })]));
   // Odd lines (0.117; the user, 11/19: "these are concepts worth tracking and flagging"): the shape of a line, graded by
   // how often it has happened in 33 seasons of box scores (src/data/odd-lines-history.json, tools/odd-games/build-history.mjs).
   let oddByDate = null, oddTally = null;
@@ -665,14 +699,14 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const { oddNights } = await import("../src/situations/oddlines.js"), { LINE_IX } = await import("../src/situations/trends.js");
     const hf = path.join(root, "src", "data", "odd-lines-history.json"), history = fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null;
     oddByDate = { from: history?.from || null, through: history?.through || null, games: history?.games || null, positions: Object.keys(rosterPos).length,
-      nights: oddNights({ rows: rows.filter((g) => !g.cupFinal), history, names: store.names || {}, pos: rosterPos, dates, IX: LINE_IX }) };
+      nights: oddNights({ rows: rows.filter((g) => !g.cupFinal), history, names: NAMES, pos: rosterPos, dates, IX: LINE_IX }) };
     // 0.119: what the NBA Live bridge needs to judge a live line: each level's count (history plus this season), each
     // player's averages over his games so far (ODD.games or more), and ESPN's position labels. Rules: docs/lib/situations/oddlines.js.
     try {
       const { ODD } = await import("../src/situations/oddlines.js"), r2 = (v) => Math.round(v * 100) / 100, t = {}, avg = {};
       // Everything in this file is "before today": a game finished this afternoon must not count itself tonight.
       const before = rows.filter((g) => !g.cupFinal && g.d < today), pgBefore = playerGames(before);
-      oddTally = {}; oddNights({ rows: before, history, names: store.names || {}, pos: rosterPos, dates: [], IX: LINE_IX, tally: oddTally });
+      oddTally = {}; oddNights({ rows: before, history, names: NAMES, pos: rosterPos, dates: [], IX: LINE_IX, tally: oddTally });
       for (const [k, e] of Object.entries(history?.t || {})) {
         const mine = oddTally[k] || null, last = mine?.last || e.last?.[0] || null;
         // 0.142.4 (the user, 11/22: "make them clickable and provide list of names or dates on the reverse side"): the five
@@ -692,7 +726,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
       if (fs.existsSync(af)) {
         const zlib = await import("node:zlib"), A = JSON.parse(zlib.gunzipSync(fs.readFileSync(af)));
         const before = rows.filter((g) => !g.cupFinal && g.d < today), pgB = playerGames(before), seasonRows = [];
-        for (const [id, gs] of Object.entries(pgB)) for (const g of gs) seasonRows.push({ pts: g.pts, reb: g.reb, ast: g.ast, fg3m: g.fg3m, stl: g.stl, blk: g.blk, fga: g.fga, name: (store.names || {})[id] || id, team: g.team, d: g.d, gid: g.gameId });
+        for (const [id, gs] of Object.entries(pgB)) for (const g of gs) seasonRows.push({ pts: g.pts, reb: g.reb, ast: g.ast, fg3m: g.fg3m, stl: g.stl, blk: g.blk, fga: g.fga, name: NAMES[id] || id, team: g.team, d: g.d, gid: g.gameId });
         const R = buildRare({ hist: A.hist, top: A.top, rows: seasonRows, before: today });
         R.generatedAt = out.generatedAt; R.archive = { first: A.first, last: A.last, games: A.games };
         fs.writeFileSync(path.join(root, "docs", "data", "linerare.json"), JSON.stringify(R));
@@ -707,7 +741,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
       for (const g of games) { vs[g.homeTri] = `vs ${g.awayTri}`; vs[g.awayTri] = `@ ${g.homeTri}`; }
       const pf = path.join(root, "src", "data", "odd-lines-players.json"), players = fs.existsSync(pf) ? JSON.parse(fs.readFileSync(pf, "utf8")) : null;
       if (games.length) {
-        const W = oddWatch({ rows: rows.filter((g) => !g.cupFinal), history, players, names: store.names || {}, pos: rosterPos, teams: new Set(Object.keys(vs)), vs, IX: LINE_IX,
+        const W = oddWatch({ rows: rows.filter((g) => !g.cupFinal), history, players, names: NAMES, pos: rosterPos, teams: new Set(Object.keys(vs)), vs, IX: LINE_IX,
           teamNow: (id, t) => (rosterChanges[id] ? rosterChanges[id].team || "FA" : t) });
         oddByDate.tonight = { date: today, since: players?.since || null, runMin: history?.runMin || null, ...W };
         console.log(`odd lines to watch tonight: ${W.runs.length} run(s) or repeat(s) a game short, ${W.owners.length} player habit(s) on ${games.length} game(s)`);
@@ -728,11 +762,11 @@ for (const [tri, games] of Object.entries(perTeam)) {
     watchLines = streakWatch({ history: fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null, rows, today, deep });
     console.log(`team streak watch: ${watchLines.length} lines`);
   } catch (e) { console.error(`team streak watch: ${e.message}`); }
-  fs.writeFileSync(path.join(root, "docs", "data", "trends.json"), JSON.stringify({ generatedAt: out.generatedAt, through, streaks: activeStreaks(pg, store.names || {}).map(nowTeam), teams: teamStreaks(rows), watch: watchLines, highsAllowed: careers ? careerHighsAllowed(pg, careers, store.names || {}) : null, anomalies: byDate, odd: oddByDate }));
+  fs.writeFileSync(path.join(root, "docs", "data", "trends.json"), JSON.stringify({ generatedAt: out.generatedAt, through, streaks: activeStreaks(pg, NAMES, { carry: latestData(/^streak-carry-\d{4}-\d\d\.json$/), featlive: (() => { try { return JSON.parse(fs.readFileSync(path.join(root, "docs", "data", "featlive.json"), "utf8")); } catch { return null; } })() }).map(nowTeam), teams: teamStreaks(rows), watch: watchLines, highsAllowed: careers ? careerHighsAllowed(pg, careers, NAMES) : null, anomalies: byDate, odd: oddByDate }));
   // Hot hand (src/situations/form.js, moved from GameFlow in 0.56): each player's game lines for the form section.
   try {
     const { formData } = await import("../src/situations/form.js");
-    const F = formData(pg, store.names || {}, (id, last) => nowTeam({ id, team: last }).team);
+    const F = formData(pg, NAMES, (id, last) => nowTeam({ id, team: last }).team);
     fs.writeFileSync(path.join(root, "docs", "data", "form.json"), JSON.stringify({ generatedAt: out.generatedAt, through, ...F }));
     console.log(`form: ${Object.keys(F.players).length} players with 8+ games`);
   } catch (e) { console.error(`form not written: ${e.message}`); }
@@ -744,7 +778,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const wf = path.join(root, "docs", "data", "watch.json"), w = fs.existsSync(wf) ? JSON.parse(fs.readFileSync(wf, "utf8")) : { games: [] };
     const tonight = w.today === today ? [...new Set((w.games || []).flatMap((g) => [g.homeTri, g.awayTri]))] : [];
     const r1 = (v) => (v == null ? null : Math.round(v * 10) / 10), slim = (x) => ({ ...x, v: r1(x.v), min: r1(x.min) });
-    const all = shiftAll || allShifts(pg, store.names || {}, (id, last) => nowTeam({ id, team: last }).team);
+    const all = shiftAll || allShifts(pg, NAMES, (id, last) => nowTeam({ id, team: last }).team);
     const rowsS = all.filter((s) => s.odds >= SHIFT.keep).map((s) => ({ ...s, season: r1(s.season), now: slim(s.now), was: slim(s.was) }));
     fs.writeFileSync(path.join(root, "docs", "data", "shifts.json"), JSON.stringify({ generatedAt: out.generatedAt, through, today, tonight, pairs: pairsSearched(pg), shuffles: SHIFT.shuffles, found: all.length, chance: chanceCounts(pg),
       stats: SHIFT_STATS.map((t) => ({ k: t.k, label: t.label, kind: t.kind })), rows: rowsS }));
@@ -753,7 +787,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
 }
 // Team leaders: game-by-game leads, season-total leaders, and shooting lines (50 / 40 / 90).
 {
-  const names = store.names || {};
+  const names = NAMES;
   const tg = teamGames(rows);
   const used = new Set();
   const nm = (id) => { used.add(id); return id; };
@@ -796,7 +830,7 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
   if (report && report.rows.length) {
     const files = Object.fromEntries(Object.entries(perTeam).map(([tri, games]) => {
       const ids = new Set(games.flatMap((x) => Object.keys(x.pl)));
-      return [tri, { team: tri, names: Object.fromEntries([...ids].map((id) => [id, store.names?.[id] || id])), games }];
+      return [tri, { team: tri, names: Object.fromEntries([...ids].map((id) => [id, NAMES[id] || id])), games }];
     }));
     // The report writes "11/02/2026" (zero-padded): compare as dates, not strings.
     const tonightRows = report.rows.filter((r) => isoDate(r.date) === today);
@@ -853,7 +887,7 @@ try {
   const awards = rdOpt(path.join(root, "history", "kalshi", "awards.json"));
   const cal = sb.ok ? sb.data.calendar : [];
   const checked = rdOpt(path.join(root, "src", "data", "minutes-checked.json")) || {};
-  const E = eligibility({ rows, names: store.names || {}, current: rosterChanges, seconds, checked, listings, tonight: rdOpt(path.join(root, "docs", "data", "injuries.json")), awards, today, through,
+  const E = eligibility({ rows, names: NAMES, current: rosterChanges, seconds, checked, listings, tonight: rdOpt(path.join(root, "docs", "data", "injuries.json")), awards, today, through,
     seasonEnd: cal.length ? cal[cal.length - 1] : null, tonightTeams: new Set(tonight.flatMap((g) => [g.home, g.away])),
     reports: Object.fromEntries(Object.entries(injByDate).map(([d, r]) => [d, r.rows || []])) });
   // the Watch List's lines (src/anticipate/tonight.js reads `lines`; it imports nothing from here, so the page's copy works alone)
@@ -907,7 +941,7 @@ try {
     // matchup items (EDGE.perGame of them, the page shows them first); the whole table goes to docs/data/edges.json.
     try {
       const { edges, EDGE } = await import("../src/situations/edges.js");
-      const E = edges({ rows, names: store.names || {}, tonight, teamFiles });
+      const E = edges({ rows, names: NAMES, tonight, teamFiles });
       for (const g of m) {
         const mine = (E.games.find((x) => x.away === g.away && x.home === g.home)?.items || []).slice(0, EDGE.perGame);
         g.items = [...g.items, ...mine].sort((a, b) => b.score - a.score);
@@ -960,7 +994,7 @@ try {
     try {
       const { arenaRecords, arenasTonight } = await import("../src/records/arena.js");
       const arenaData = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "arena-records.json"), "utf8"));
-      const all = arenaRecords(arenaData, rows, store.names || {});
+      const all = arenaRecords(arenaData, rows, NAMES);
       const neutral = new Set((sb.ok ? sb.data.games : []).filter((g) => g.neutral).map((g) => g.homeTri));
       arenas = arenasTonight(all, (watch.games || []).map((g) => g.homeTri).filter((t) => !neutral.has(t)));
       fs.writeFileSync(path.join(root, "docs", "data", "arenas.json"), JSON.stringify({ generatedAt: out.generatedAt, through, asOf: arenaData.asOf, arenas: all }));   // 0.83: for the Index page
@@ -977,6 +1011,7 @@ try {
       const { tonightCandidates } = await import("../src/anticipate/tonight.js");
       const { briefing } = await import("../src/anticipate/briefing.js");
       const cand = tonightCandidates(args);
+      for (const l of cand.all) if (l.player) l.player = ACCENTS.get(l.player) || l.player;   // 0.145.0: one spelling per player (the line's text stays as built)
       const seenFile = path.join(root, "history", "briefing-seen.json");
       const seen = fs.existsSync(seenFile) ? JSON.parse(fs.readFileSync(seenFile, "utf8")) : {};
       const nat = new Set((args.national?.upcoming || []).filter((g) => g.d === watch.today && g.status !== "dropped").map((g) => `${g.away}@${g.home}`));
@@ -994,7 +1029,7 @@ try {
       try {
         const { buzzCounts } = await import("../src/anticipate/buzz.js");
         const r = await fetch("https://ncc-articles.dukie0813.workers.dev/headlines", { signal: AbortSignal.timeout(15000) });
-        if (r.ok) buzz = buzzCounts((await r.json()).headlines || [], { players: cand.all.map((l) => l.player).filter(Boolean), teams: cand.games.flatMap((g) => [g.away, g.home]), league: Object.values(store.names || {}) });
+        if (r.ok) buzz = buzzCounts((await r.json()).headlines || [], { players: cand.all.map((l) => l.player).filter(Boolean), teams: cand.games.flatMap((g) => [g.away, g.home]), league: Object.values(NAMES) });
       } catch (e) { console.error(`headlines not read: ${e.message}`); }
       // 0.138: the ledger: one record per claim across every detector, with what was seen and shown on earlier days.
       const { buildLedger, markShown, pageKey, hashKey } = await import("../src/anticipate/ledger.js");
@@ -1030,7 +1065,7 @@ try {
   } catch (e) { console.error(`tonight's storylines not written: ${e.message}`); }
 }
 // Per-game box totals for the "vs top teams" page, which computes in the browser.
-const slim = rows.filter((g) => g.hb && g.ab).map(({ id, d, h, a, hs, as, hb, ab }) => ({ id, d, h, a, hs, as, hb, ab }));
+const slim = rows.filter((g) => g.hb && g.ab).map(({ id, d, h, a, hs, as, hb, ab, n }) => ({ id, d, h, a, hs, as, hb, ab, ...(n ? { n: 1 } : {}) }));   // 0.145.0: n = neutral site
 fs.writeFileSync(path.join(root, "docs", "data", "games.json"), JSON.stringify({ generatedAt: out.generatedAt, through, games: slim }));
 // The page's copy of the ratings code (kept identical to src; a test checks).
 fs.mkdirSync(path.join(root, "docs", "lib", "situations"), { recursive: true });

@@ -50,7 +50,7 @@ export function roster(file) {
   for (const g of sorted) {
     for (const [id, l] of Object.entries(g.pl)) {
       const p = (out[id] ??= { id, name: file.names[id] || id, gp: 0, min: 0 });
-      if (l[IX.min] > 0) { p.gp++; p.min += l[IX.min]; }
+      if (l[IX.min] > 0 || (g.z || []).includes(id)) { p.gp++; p.min += l[IX.min] || 0; }   // 0.145.0: z = in for a few seconds
     }
   }
   const games = file.games.length;

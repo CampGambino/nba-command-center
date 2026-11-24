@@ -21,10 +21,13 @@
  *   copies    a module the pages or NBA Live read (docs/lib) that differs from its source
  *   bridge    the bridge's version and the published version number apart
  *   said      anything a step printed as a complaint
+ *   agree     (0.145.0, the consistency audit 11/24) one fact, two values on two pages: a chase's chance tonight (records vs
+ *             milestones), a team's record (standings vs situations), a player's games played (hot hand, award eligibility,
+ *             national TV), games missing from the 4th-quarter or Game Flow tables, a player spelled two ways
  *
  * No imports: scripts/ci.js runs in a bare folder in the tests.
  */
-export const CHECK_NAMES = ["stale", "day", "out", "ended", "junk", "empty", "conflict", "copies", "bridge", "said"];
+export const CHECK_NAMES = ["stale", "day", "out", "ended", "junk", "empty", "conflict", "copies", "bridge", "said", "agree"];
 const SAME_DAY = ["briefing", "tonight", "notes-facts", "prep", "shifts", "matchups", "edges"];
 const JUNK = /\bundefined\b|\bNaN\b|\[object Object\]/;
 const nkey = (x) => String(x || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\b(jr|sr|ii|iii|iv)\.?$/, "").replace(/[^a-z]/g, "");
@@ -91,5 +94,50 @@ export function selfCheck({ data = {}, buildStart = null, keptFiles = [], copies
   for (const c of copies || []) if (!c.same) add("copies", `docs/lib/${c.name} is not the same as its source: the pages and NBA Live are reading an older copy`);
   if (bridge && bridge.running !== bridge.published) add("bridge", `the bridge is version ${bridge.running} and bridge/version.json says ${bridge.published}`);
   for (const s of said || []) add("said", String(s).slice(0, 220));
+  for (const t of agreement(data)) add("agree", t);
   return out;
 }
+
+/** 0.145.0: the same fact published twice must say the same thing (see "agree" above). -> sentences, at most a few of each kind. */
+export function agreement(data) {
+  const out = [], few = (list, n = 3) => list.slice(0, n).join("; ") + (list.length > n ? `; and ${list.length - n} more` : "");
+  const pct = (p) => `${Math.round(p * 100)}%`;
+  // a chase's chance tonight
+  const W = new Map();
+  for (const t of data.watch?.teams || []) for (const i of t.items || []) if (i.espnId && i.target != null && i.current != null && typeof i.pTonight === "number") W.set(`${i.espnId}|${i.stat}|${i.target}|${i.current}`, i);
+  const chances = [];
+  const walk = (o) => { if (!o || typeof o !== "object") return; if (Array.isArray(o)) { o.forEach(walk); return; }
+    if (o.id && o.stat && o.target != null && o.now != null && typeof o.pTonight === "number") { const w = W.get(`${o.id}|${o.stat}|${o.target}|${o.now}`); if (w && Math.abs(w.pTonight - o.pTonight) >= 0.01) chances.push(`${o.who} ${Number(o.target).toLocaleString("en-US")} ${o.label || o.stat}: ${pct(o.pTonight)} on the Records page, ${pct(w.pTonight)} on the Watch List`); return; }
+    for (const v of Object.values(o)) walk(v); };
+  walk(data.records?.items);
+  if (chances.length) out.push(`${chances.length} chase${chances.length === 1 ? "" : "s"} with two chances tonight: ${few(chances)}`);
+  // a team's record
+  const sit = data.situations?.teams || {}, wl = (x) => (x ? `${x.w}-${x.l}` : null), teams = [];
+  for (const conf of ["East", "West"]) for (const t of data.standings?.[conf] || []) {
+    const s = sit[t.tri]; if (!s?.splits) continue;
+    for (const [k, a, b] of [["record", `${t.w}-${t.l}`, wl(s.splits.all)], ["home", t.home, wl(s.splits.home)], ["road", t.road, wl(s.splits.road)], ["last 10", t.last10, wl(s.last10)], ["streak", t.streak, s.streak]])
+      if (a != null && b != null && a !== b) teams.push(`${t.tri} ${k} ${a} in the standings, ${b} in Team situations`);
+  }
+  if (teams.length) out.push(`${teams.length} team number${teams.length === 1 ? "" : "s"} differ between pages: ${few(teams)}`);
+  // a player's games played
+  const gp = new Map(), name = new Map(), note = (id, where, n, nm) => { if (!Number.isFinite(n)) return; (gp.get(id) || gp.set(id, {}).get(id))[where] = n; if (nm) name.set(id, nm); };
+  for (const [id, p] of Object.entries(data.form?.players || {})) note(id, "hot hand", (p.g || []).length, p.name);
+  for (const p of data.eligibility?.players || []) if (Number.isFinite(p.apps)) note(String(p.id), "award eligibility", p.apps, p.name);
+  for (const p of data.national?.players || []) note(String(p.id), "national TV", (p.nat?.gp || 0) + (p.other?.gp || 0), p.name);
+  const games = [];
+  for (const [id, v] of gp) { const vals = Object.values(v); if (vals.length > 1 && Math.max(...vals) !== Math.min(...vals)) games.push(`${name.get(id) || id} (${Object.entries(v).map(([w, n]) => `${n} ${w}`).join(", ")})`); }
+  if (games.length) out.push(`${games.length} player${games.length === 1 ? "" : "s"} with different games played on different pages: ${few(games)}`);
+  // games missing from the per-game tables
+  const all = (data.games?.games || []).length;
+  for (const [f, label] of [["q4-players", "4th-quarter"], ["flowstats", "Game Flow"]]) { const n = data[f]?.games; if (all && Number.isFinite(n) && n < all) out.push(`the ${label} tables count ${n} of the season's ${all} games`); }
+  // a player spelled two ways
+  const spell = new Map(), seen = (n, where) => { if (!n || typeof n !== "string") return; const k = nkey(n); if (!k) return; const m = spell.get(k) || spell.set(k, new Map()).get(k); if (!m.has(n)) m.set(n, where); };
+  for (const l of [...(data.briefing?.top || []), ...(data.briefing?.deep || []), ...(data.briefing?.finds || [])]) seen(l.player, "the briefing");
+  for (const i of data.records?.items || []) seen(i.who, "the Records page");
+  for (const s of data.trends?.streaks || []) seen(s.name, "the Streaks page");
+  for (const p of Object.values(data.form?.players || {})) seen(p.name, "hot hand");
+  const two = [...spell.values()].filter((m) => m.size > 1).map((m) => [...m].map(([n, w]) => `"${n}" (${w})`).join(" and "));
+  if (two.length) out.push(`${two.length} player${two.length === 1 ? "" : "s"} spelled two ways: ${few(two)}`);
+  return out;
+}
+

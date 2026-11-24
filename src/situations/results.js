@@ -12,6 +12,7 @@
  *        cp = clutch-time player lines (see espn/pbp.js; names in store.names),
  *        q4 = 4th-quarter player lines (same shape), pl = every player's box line.
  *        z = (0.142.7) players in the game with 0 minutes who weren't DNPs (a few seconds on the floor); none → no z.
+ *        pq = (0.145.0) periods before the 4th whose plays don't add up to the line score (the game is still counted).
  *        A summary whose box doesn't add up to the final score is not used.
  *        0.95, scoring by type (espn/misc.js): m = [home, away], each [paint, fast break, off turnovers, second
  *        chance]; mp = { espnId: [0 home | 1 away, paint, second chance, off turnovers] } when the play-by-play
@@ -106,13 +107,17 @@ export async function collectResults({ espn, store, through, warnings = [] }) {
       // with no player lines for a day, so every season total and rank was one game short for 19 players). The box score
       // checks against the final on its own (above), so it is kept; only what the plays feed (clutch, 4th-quarter lines)
       // waits. row.x stays 0, so the game is read again on every build until the plays add up.
-      if (!g.scoreOk) {
+      if (!g.scoreOk && !g.tailOk) {
         warnings.push(`game ${row.id}: play-by-play doesn't add up to the final score; box score kept, clutch and 4th-quarter lines not counted yet`);
         row.hb = g.home; row.ab = g.away;
         if (g.players) { row.pl = {}; for (const [id, x] of Object.entries(g.players)) { row.pl[id] = [x.side === "home" ? 0 : 1, x.starter ? 1 : 0, x.min, ...x.s]; if (x.name) (out.names ??= {})[id] = x.name; } setZero(row, g.players); }
         if (g.misc) setMisc(row, g.misc);
         continue;
       }
+      // 0.145.0: plays short a basket before the 4th quarter (NYK@MIN 11/19 sat out of every 4th-quarter and clutch table
+      // for five days): the score is set back on the line score at each period, and the 4th quarter on is counted.
+      if (!g.scoreOk && g.tailOk) { row.pq = g.badPeriods; warnings.push(`game ${row.id}: play-by-play is short in period ${g.badPeriods.join(", ")} (not the 4th or overtime); counted, the score set back on the line score at each period`); }
+      else delete row.pq;
       row.hb = g.home; row.ab = g.away;
       row.cl = g.clutch ? [g.clutch.home, g.clutch.away] : 0;
       // Clutch-time player lines: { ok: lineups were complete, p: { espnId: [0 home | 1 away, ...CLUTCH_KEYS] } }

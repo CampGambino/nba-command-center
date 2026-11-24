@@ -2,6 +2,45 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.145.0 (2026-11-24): one fact, one value on every page (the consistency audit)
+
+The user, 11/24, after Paul George's chance at 2,500 threes read 19% on the Watch List and 32% on the Records page: "run a full diagnostic on such matters and see where any incongruencies exist". The audit (`claude/consistency-audit-2026-11-24.md`) found eight. The user, 11:10 AM: "That's good with me", and the Mexico City game "can be counted as a neutral court so we can still check the Pacers' last 10 road games".
+
+1. **A dead streak at #4 in the briefing.** WAS notes, "Kyshawn George: Made three three-pointers for the third straight game, tying the longest streak of his career": no "has", no date, so nothing checked it. `statedStreak` (src/notes/facts.js) now reads "did X for the Nth straight game" (and "… game in a row") when the line has no date. George's line is "Streak over" (box scores: 1 on 11/20), ranked down and out of the top ten. A dated recap ("… on 11/20 at Chicago") is left as written.
+2. **Two chances for one chase.** src/anticipate/onechance.js: where a records item and a milestone are the same chase (player, stat, target, total now), both publish one number: the milestones' (they read the injury report, lineups and return dates), unless the records simulate a rival who also plays tonight. The number that gave way is kept as `own`; each model is still scored on its own raw chances (src/records/predictions.js). Tonight: George 19%, Conley 3%, Franz Wagner's two franchise passes 0%, on both pages. NBA Live reads records.json's `pTonight`: the user's go was 11/24.
+3. **NYK at MIN (11/19) out of the 4th-quarter and clutch tables for five days.** ESPN's plays are missing a Minnesota 2 in the 1st quarter. readGameDetail (src/espn/parse.js) now sets the score back on the line score at each period when the plays never reach the final, and counts a game whose 4th quarter and overtimes add up (`tailOk`; the store keeps the short periods as `pq`). **Game Flow** now builds its score from the scoring plays as the clutch reader does (src/gameflow/feeds.js). 12 of 258 game files ended on a wrong score (NYK at MIN 102-97 on a 102-99 final; POR at LAL 10/27, 138-129 on a 136-129 final…). Fallbacks: ESPN's own score when that reaches the final, then the line-score reset. Every file was re-read (`FLOW_VERSION` 3); scripts/flow.js also re-reads any file ending off the final.
+4. **A few seconds on the floor is a game played.** 18 this season (AJ Green 9.3 seconds at TOR 11/23; Kobe Brown, LJ Cryer, Josh Minott twice…). Before, award eligibility counted AJ Green's and no other page did. The store's `z` (0.142.7) is filled in for older games from src/data/zero-minute-games-2026-27.json, goes into the team files as `z`, and counts in the per-player games (streaks, hot hand, finds, zeros), team leaders, with/without, national TV, rest, Cup form, matchups, pair splits and the notes' streak checks. A cameo with no three ends a made-three run, as the NBA counts it.
+5. **The Mexico City game (DEN at IND, 11/7, neutral site)** was counted three ways. Team files now carry `n: 1` (and `dh: 1` for the listed home team); games.json carries `n`. It is home for neither and road for neither: Indiana's road record is 3-6 everywhere, and its last-10 road games are real road games. It is still matched to the schedule (national TV, Cup), and it is one meeting, not two (src/records/matchup.js entered it once each way round). The guide's road-streak records leave it out too.
+6. **The Streaks page counted this season only** (Curry "10, every game" vs 102 on the Records page). tools/streak-carry.mjs read ESPN's game logs for this season's 501 players → src/data/streak-carry-2025-26.json: each run alive at the end of 2025-26, back through as many seasons as it covered every game. A run covering every game this season goes on from it. Where the Records page holds the same run from Basketball-Reference's list (Curry), that count is used. The page shows "102 (10 this season)", with the year in "Since". Storylines say "going back to last season". SGA's 10+ points: 109; Wembanyama 78; Reaves 82.
+7. **Two dates for one game in the notes.** `checkDates` (src/notes/facts.js): a date beside an opponent the team didn't play that day, but did within 3 days, gets "Date check: the box scores have the Rockets game on 11/15, not 11/16." The text stays as printed. Two WAS lines say "11/16 vs. HOU"; ESPN has it 11/15, 7:00 PM ET (11/16 00:00 UTC, likely where the 16th came from).
+8. **One spelling per player.** src/site/accents.js: where a reference file (src/data) spells a name with accents (14: Jokić, Dončić, Vučević, Şengün, Porziņģis…), every line built from the box scores uses it. Records items take the box scores' spelling where the Guide's differs only in punctuation ("A.J. Green" → "AJ Green", "De’Aaron Fox" → "De'Aaron Fox"). Matching across sources already ignored accents; the notes' text stays as printed.
+9. **A new build check, `agree`** (src/site/selfcheck.js), so the next disagreement shows in the warning box. It covers:
+   - a chase with two chances
+   - a team number that differs between the standings and Team situations
+   - a player's games played that differ between hot hand, award eligibility and national TV
+   - games missing from the 4th-quarter or Game Flow tables
+   - a player spelled two ways
+
+   Run on this morning's published data, it named George and Conley, AJ Green, the 257-of-258 game count and six spellings. After this version's build: nothing.
+
+**Tested:** 877 checks here (10 new). The notes-PDF checks are skipped, as on GitHub: samples/ is not on this machine. Then a full local build for 11/24 (three runs, each checked):
+- **Chances:** records and watch agree, 4 chases shared.
+- **Teams and games played:** all 30 teams agree across standings, situations and the team files. Games played agree across hot hand, eligibility and national TV for all 18 cameo players.
+- **Tables:** the 4th-quarter table counts 258 of 258; 258 Game Flow files end on the final.
+- **Notes:** George is "Streak over" and gone from the top ten; both WAS "11/16 vs. HOU" lines carry the date check.
+- **Names:** no player spelled two ways.
+- **Pages:** the Streaks page renders with the carried runs, and eight pages load with no script errors.
+- **Regressions:**
+  - The clutch reader is unchanged on 64 of 65 sampled games; the 65th is NYK-MIN, now counted.
+  - Game Flow is unchanged on 31 of 39 sampled games. The other 8 moved by 1-4 points mid-game, and in all 8 the new score matches the line score at every period's end. ESPN's own score missed it in 3.
+
+**Self-audit:**
+- **The first line-score reset was wrong.** It reset every game at each period. On POR at LAL (11/6), a Portland basket the plays reach only in the 3rd quarter was then counted twice (Q3 ended 77, line 75). Now the reset happens only when the plays never reach the final. Found by the regression run, before anything was published.
+- **The first cameo fix fetched every game summary again,** 130 a build. Then I found the hand-read file 0.142.7 had already made (17 rows) and used it instead: no network.
+- **The first two builds still printed two spellings.** The franchise and Cup lists use the Guide's names, and two names differed only in punctuation. Fixed by item 8's second half; the third build found none.
+- **Still open: Curry's made-three run.** ESPN's game logs count 104 (94 through 2025-26 + 10). Basketball-Reference's list, which the Records page and NBA Live use, says 102 with the same start (12/21/24). Both pages say 102. The two missing games aren't found. The user offers Basketball-Reference screenshots: Curry's streak game list would settle it.
+- **Not seen live:** NBA Live. Its bundled odd-line rules changed only in `oddNights` (season averages now count cameo games), which the site uses; the bridge version is unchanged.
+
 ## 0.144.2 (2026-11-24): minutes checked against Basketball-Reference are recorded and used first
 
 The user sent Basketball-Reference's box score for MIN 131 at MIA 106 (10/21): **Terrence Shannon Jr. played 19:43**. That was the one game our rebuild couldn't settle: ESPN shows 20, and our play-by-play rebuild gave 17:27, so it wasn't used. The new file `src/data/minutes-checked.json` holds minutes checked this way (game id, player id, seconds, source). `src/situations/eligibility.js` uses it before the rebuilt seconds. It also holds the two games the user confirmed earlier: Mitchell Robinson 19:48 and Goga Bitadze 19:32.

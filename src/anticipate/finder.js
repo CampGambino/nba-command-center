@@ -98,7 +98,7 @@ const COUNTS = [
 export function findings({ pg, names = {}, qsum = {}, teamGp = {}, allStars = null, leaders = null, rookies = null }) {
   const P = [];
   for (const [id, gs] of Object.entries(pg || {})) {
-    const games = gs.filter((g) => g.min > 0);
+    const games = gs.filter((g) => g.min > 0 || g.cameo);
     if (!games.length) continue;
     const team = games[games.length - 1].team, gp = games.length;
     P.push({ id, name: names[id] || id, team, gp, games, ppg: games.reduce((a, g) => a + g.pts, 0) / gp, ok: gp >= QUALIFY.games && gp >= QUALIFY.share * (teamGp[team] || gp) });

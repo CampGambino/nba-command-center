@@ -46,10 +46,13 @@ const checked = prevIdx.checked || {};
 const recent = (r) => (Date.parse(today) - Date.parse(r.d)) / 864e5 <= RECHECK_DAYS;
 const recheck = rows.filter((r) => have.has(String(r.id)) && recent(r) && checked[r.id] !== today);
 // 0.141.13: a file written by an older reader (FLOW_VERSION) is read again, oldest games first.
-const fileV = (id) => { try { return JSON.parse(fs.readFileSync(path.join(dir, `${id}.json`), "utf8")).v || 0; } catch { return 0; } };
-const stale = rows.filter((r) => have.has(String(r.id)) && !recheck.includes(r) && fileV(r.id) < FLOW_VERSION);
+// 0.145.0: so is one whose plays end short of the final score (NYK at MIN 11/19 ended 102-97 on a 102-99 final): the
+// reader now sets the score back on the line score at each period (src/gameflow/feeds.js).
+const fileOld = (r) => { try { const c = JSON.parse(fs.readFileSync(path.join(dir, `${r.id}.json`), "utf8")), end = c.a?.[c.a.length - 1];
+  return (c.v || 0) < FLOW_VERSION || (end && (end[7] !== r.hs || end[8] !== r.as)); } catch { return true; } };
+const stale = rows.filter((r) => have.has(String(r.id)) && !recheck.includes(r) && fileOld(r));
 const todo = [...rows.filter((r) => !have.has(String(r.id))), ...recheck, ...stale].slice(0, max);
-if (stale.length) console.log(`game flow: ${stale.length} game file(s) from an older reader, read again`);
+if (stale.length) console.log(`game flow: ${stale.length} game file(s) from an older reader or ending short of the final, read again`);
 const corrected = [];
 const missing = [];
 let wrote = 0, last = 0;

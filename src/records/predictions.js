@@ -3,6 +3,8 @@
  * passes, NBA Cup lists, season pace, franchise single games) that plays tonight with a chance, once each, with the raw
  * chance (what the recalibration learns from) and the chance to play. Used by the build (scripts/situations.js, into
  * history/predictions-records-<date>.json.gz) and by tools/backfill-record-predictions.mjs for past nights.
+ * 0.145.0: where the published number is the milestones' (src/anticipate/onechance.js), the records' own raw chance is
+ * what is kept: each model is scored on its own calls.
  */
 export function tonightChances(recordsOut) {
   const keep = [], seen = new Set();
@@ -14,7 +16,7 @@ export function tonightChances(recordsOut) {
       if (!seen.has(k)) {
         seen.add(k);
         keep.push({ list, id: String(o.id), who: o.who, team: o.team, stat: o.stat, label: o.label, kind: o.kind, need: o.need, target: o.target ?? null,
-          passing: o.passing?.name ?? null, pTonight: o.pTonightRaw ?? o.pTonight, pPlay: o.pPlay ?? null,
+          passing: o.passing?.name ?? null, pTonight: o.own ? o.own.pTonightRaw ?? o.own.pTonight : o.pTonightRaw ?? o.pTonight, pPlay: o.pPlay ?? null,
           // 0.141.12: the active players being passed who also play tonight. The chance already counts what they add, so
           // the call is a hit only if he finishes ahead of them (scripts/score.js), not merely gets `need`.
           ...(Array.isArray(o.rivals) && o.rivals.some((r) => r.tonight) ? { rivals: o.rivals.filter((r) => r.tonight).map((r) => ({ name: r.name, id: r.id ?? null, team: r.team ?? null })) } : {}) });

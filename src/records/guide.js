@@ -79,7 +79,8 @@ export function seasonLines(teamFiles) {
 export function teamResults(teamFiles) {
   const out = {};
   for (const [tri, f] of Object.entries(teamFiles || {})) {
-    out[tri] = (f.games || []).filter((g) => g.pf != null && g.pa != null).map((g) => ({ d: g.d, home: !!g.home, win: g.pf > g.pa })).sort((a, b) => a.d.localeCompare(b.d));
+    // 0.145.0: road = not home and not a neutral site (n)
+    out[tri] = (f.games || []).filter((g) => g.pf != null && g.pa != null).map((g) => ({ d: g.d, home: !!g.home, road: !g.home && !g.n, win: g.pf > g.pa })).sort((a, b) => a.d.localeCompare(b.d));
   }
   return out;
 }
@@ -295,7 +296,7 @@ export function currentRecords({ guide, teamFiles, today = null, tonight = [], s
     const T = TEAMS[tri];
     const name = T ? T.nick : tri;
     const cur = streak(R), losses = R.filter((r) => !r.win).length, wins = R.length - losses;
-    const homeR = R.filter((r) => r.home), roadR = R.filter((r) => !r.home);
+    const homeR = R.filter((r) => r.home), roadR = R.filter((r) => r.road ?? !r.home);
     const checks = [
       { list: "winStreak", n: cur, what: "win streak", any: true },
       { list: "startUnbeaten", n: losses === 0 ? wins : 0, what: "unbeaten start", any: true },

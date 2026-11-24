@@ -19,7 +19,7 @@ export function cupOnly(teamFiles, cup) {
   const ko = new Set([...(cup.knockout?.quarterfinals || []), ...(cup.knockout?.semifinals || [])]);
   const out = {};
   for (const [tri, f] of Object.entries(teamFiles || {})) {
-    const games = (f.games || []).filter((g) => keys.has(g.home ? `${g.d}|${g.opp}|${tri}` : `${g.d}|${tri}|${g.opp}`) || ko.has(g.d));
+    const games = (f.games || []).filter((g) => keys.has(g.home || g.dh ? `${g.d}|${g.opp}|${tri}` : `${g.d}|${tri}|${g.opp}`) || ko.has(g.d));   // 0.145.0: dh at a neutral site
     out[tri] = { ...f, games };
   }
   return out;
@@ -43,7 +43,7 @@ export function cupRecords({ cup, teamFiles, tonight = [], today = null }) {
   const standings = Object.entries(cup.standings || {}).map(([team, s]) => {
     const G = files[team]?.games?.filter((g) => g.pf != null && g.pa != null) || [];
     const add = (base, games) => [base[0] + games.filter((g) => g.pf > g.pa).length, base[1] + games.filter((g) => g.pf < g.pa).length];
-    return { team, overall: add(s.overall, G), home: add(s.home, G.filter((g) => g.home)), road: add(s.road, G.filter((g) => !g.home)), season: add([0, 0], G), cupGamesLeft: left[team] || 0 };
+    return { team, overall: add(s.overall, G), home: add(s.home, G.filter((g) => g.home)), road: add(s.road, G.filter((g) => !g.home && !g.n)), season: add([0, 0], G), cupGamesLeft: left[team] || 0 };
   }).sort((a, b) => b.overall[0] / Math.max(1, b.overall[0] + b.overall[1]) - a.overall[0] / Math.max(1, a.overall[0] + a.overall[1]) || b.overall[0] - a.overall[0]);
   return { items, boards: r.boards, problems: r.problems, cupGamesPlayed: played, tonight: cupTonight, standings };
 }

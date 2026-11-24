@@ -99,8 +99,8 @@ export function restData({ games = [], teamFiles = {}, tonight = [], today = nul
       if (r == null) continue;
       const prev = r === 0 ? byDay[dayBefore(g.d)] : null;
       for (const [id, row] of Object.entries(g.pl || {})) {
-        if (!(row[ix.min] > 0)) continue;
-        (lines[id] ??= []).push({ b2b: r === 0 && prev?.pl?.[id]?.[ix.min] > 0, pts: row[ix.pts] || 0, min: row[ix.min] || 0, fgm: row[ix.fgm] || 0, fga: row[ix.fga] || 0, reb: row[ix.reb] || 0, ast: row[ix.ast] || 0 });
+        if (!(row[ix.min] > 0) && !(g.z || []).includes(id)) continue;   // 0.145.0: z = in for a few seconds
+        (lines[id] ??= []).push({ b2b: r === 0 && (prev?.pl?.[id]?.[ix.min] > 0 || (prev?.z || []).includes(id)), pts: row[ix.pts] || 0, min: row[ix.min] || 0, fgm: row[ix.fgm] || 0, fga: row[ix.fga] || 0, reb: row[ix.reb] || 0, ast: row[ix.ast] || 0 });
       }
     }
     for (const [id, L] of Object.entries(lines)) {

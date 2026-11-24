@@ -33,7 +33,8 @@ export const LINES = [
   { key: "ft", label: "90% from the line", m: "ftm", a: "fta", pct: 90, qualMakes: 125 },
 ];
 
-const played = (v) => v[IX.min] > 0 || LEAD_STATS.some(([k]) => v[IX[k]] > 0) || v[IX.fga] > 0 || v[IX.fta] > 0;
+// 0.145.0: minutes, or ESPN's word that he got in (the store's z: a few seconds, 0 minutes); a stat with 0 minutes is a game too.
+const played = (v, g = null, id = null) => v[IX.min] > 0 || (!!g && (g.z || []).includes(id)) || LEAD_STATS.some(([k]) => v[IX[k]] > 0) || v[IX.fga] > 0 || v[IX.fta] > 0;
 const sortRows = (rows) => [...rows].filter((g) => g.pl).sort((a, b) => a.d.localeCompare(b.d) || a.id.localeCompare(b.id));
 
 /** { team: [{ d, gameId, players: { id: line } }] } in date order; line = { min, pts, ... }. */
@@ -44,7 +45,7 @@ export function teamGames(rows) {
       const players = {};
       for (const [id, v] of Object.entries(g.pl)) {
         if (v[IX.side] !== side) continue;
-        players[id] = { played: played(v) };
+        players[id] = { played: played(v, g, id) };
         for (const [k, i] of Object.entries(IX)) if (i >= 2) players[id][k] = v[i];
       }
       (out[team] ??= []).push({ d: g.d, gameId: g.id, players });
@@ -129,7 +130,7 @@ export function shooting(rows) {
   const out = {};
   for (const g of sortRows(rows)) {
     for (const [id, v] of Object.entries(g.pl)) {
-      if (!played(v)) continue;
+      if (!played(v, g, id)) continue;
       const p = (out[id] ??= { id, games: 0, fgm: 0, fga: 0, fg3m: 0, fg3a: 0, ftm: 0, fta: 0 });
       p.games++;
       p.team = v[IX.side] === 0 ? g.h : g.a; // latest team (rows are in date order)

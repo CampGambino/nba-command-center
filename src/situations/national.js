@@ -31,16 +31,16 @@ export function nationalSplits(teamFiles, index, { currentTeam = null } = {}) {
     const ix = Object.fromEntries((f.keys || []).map((k, i) => [k, i]));
     const t = (teams[tri] = { nat: { w: 0, l: 0 }, other: { w: 0, l: 0 }, byNet: {} });
     for (const g of f.games || []) {
-      const key = g.home ? nationalKey(g.d, g.opp, tri) : nationalKey(g.d, tri, g.opp);
+      const key = g.home || g.dh ? nationalKey(g.d, g.opp, tri) : nationalKey(g.d, tri, g.opp);   // 0.145.0: dh = the listed home team at a neutral site
       const side = index.has(key) ? "nat" : "other";
-      if (side === "nat" && !aired.has(key)) aired.set(key, { d: g.d, away: g.home ? g.opp : tri, home: g.home ? tri : g.opp, networks: [...new Set(index.get(key) || [])] });
+      if (side === "nat" && !aired.has(key)) aired.set(key, { d: g.d, away: g.home || g.dh ? g.opp : tri, home: g.home || g.dh ? tri : g.opp, networks: [...new Set(index.get(key) || [])] });
       if (g.pf != null && g.pa != null) {
         const r = g.pf > g.pa ? "w" : "l";
         t[side][r]++;
         for (const n of new Set(index.get(key) || [])) (t.byNet[n] ??= { w: 0, l: 0 })[r]++;
       }
       for (const [id, row] of Object.entries(g.pl || {})) {
-        if (!(row[ix.min] > 0)) continue;
+        if (!(row[ix.min] > 0) && !(g.z || []).includes(id)) continue;   // 0.145.0: z = in for a few seconds
         const p = (players[id] ??= { id, name: (f.names || {})[id] || id, team: tri, last: "", nat: blank(), other: blank() });
         if (g.d >= p.last) { p.last = g.d; p.team = tri; }
         const s = p[side];

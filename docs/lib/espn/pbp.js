@@ -67,9 +67,10 @@ export const WINDOWS = {
   q4: { inPeriod: (per) => per === 4, cap: () => 720, close: false },
 };
 
-export function clutchPlayers(json, ids) { return windowPlayers(json, ids, WINDOWS.clutch); }
+export function clutchPlayers(json, ids, opts = {}) { return windowPlayers(json, ids, WINDOWS.clutch, opts); }
 
-export function windowPlayers(json, { homeId, awayId }, win = WINDOWS.clutch) {
+/** opts.starts (0.145.0, src/espn/parse.js periodStarts): the score at each period's start from the line score. */
+export function windowPlayers(json, { homeId, awayId }, win = WINDOWS.clutch, { starts = null } = {}) {
   const plays = json?.plays || [];
   // Player -> team, from the box score (ESPN team ids).
   const team = {}, names = {};
@@ -95,6 +96,7 @@ export function windowPlayers(json, { homeId, awayId }, win = WINDOWS.clutch) {
     const sec = clockSec(p?.clock?.displayValue);
     if (pPer !== per) {
       per = pPer;
+      if (starts?.[per]) [h, a] = starts[per];
       onCourt = new Set(starters[per] || []);
       clock = per >= 5 ? 300 : 720;
     }

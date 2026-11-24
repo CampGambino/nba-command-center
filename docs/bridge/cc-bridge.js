@@ -369,7 +369,7 @@ function oddNights({ rows = [], history = null, names = {}, pos = {}, dates = []
   const H = history?.t || {}, want = new Set(dates), played = [...rows].filter((g) => g.pl && /^\d{4}-\d\d-\d\d$/.test(g.d || "")).sort((a, b) => a.d.localeCompare(b.d));
   // his average in his other games this season
   const sum = {};
-  for (const g of played) for (const [id, v] of Object.entries(g.pl)) { if (!(v[IX.min] > 0)) continue; const s = (sum[id] ??= { n: 0, pts: 0, reb: 0, ast: 0 }); s.n++; s.pts += v[IX.pts] || 0; s.reb += v[IX.reb] || 0; s.ast += v[IX.ast] || 0; }
+  for (const g of played) for (const [id, v] of Object.entries(g.pl)) { if (!(v[IX.min] > 0) && !(g.z || []).includes(id)) continue; const s = (sum[id] ??= { n: 0, pts: 0, reb: 0, ast: 0 }); s.n++; s.pts += v[IX.pts] || 0; s.reb += v[IX.reb] || 0; s.ast += v[IX.ast] || 0; }
   const ctx = (id, l) => {
     const s = sum[id], mine = l.min > 0 ? 1 : 0, n = (s?.n || 0) - mine;
     return { pos: posGroup(pos[id]), avg: n >= ODD.games ? { pts: (s.pts - mine * l.pts) / n, reb: (s.reb - mine * l.reb) / n, ast: (s.ast - mine * l.ast) / n, n } : null };

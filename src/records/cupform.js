@@ -28,7 +28,7 @@ export function cupVsSeason({ teamFiles = {}, cup = {} }) {
       const c = !!isCup[`${tri}|${g.d}`];
       const s = t[c ? "c" : "r"]; if (g.pf > g.pa) s.w++; else s.l++; s.pf += g.pf; s.pa += g.pa;
       for (const [id, row] of Object.entries(g.pl || {})) {
-        if (!(row[ix.min] > 0)) continue;
+        if (!(row[ix.min] > 0) && !(g.z || []).includes(id)) continue;   // 0.145.0: z = in for a few seconds
         const p = (per[id] ??= { id, name: f.names?.[id] || id, tri, last: "", cup: [], base: [] });
         if (g.d >= p.last) { p.last = g.d; p.tri = tri; }
         const line = Object.fromEntries([...STATS, "fgm", "fga", "fg3a"].map((k) => [k, row[ix[k]] || 0]));
