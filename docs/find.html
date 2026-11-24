@@ -6,7 +6,7 @@
 <title>NBA Command Center · Index</title>
 <style>
   :root { --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a; --text: #e8eaef; --muted: #9aa3b2; --faint: #6b7383; --accent: #4f9cf7; --good: #3fbf7f; --warn: #e5a93b; --bad: #e5604f; --radius: 12px; }
-  @media (prefers-color-scheme: light) { :root { --bg: #f5f6f8; --panel: #fff; --panel2: #f0f2f5; --line: #e1e4ea; --text: #161a22; --muted: #5b6474; --faint: #8a93a3; } }
+  @media all { :root { --bg: #f5f6f8; --panel: #fff; --panel2: #f0f2f5; --line: #e1e4ea; --text: #161a22; --muted: #5b6474; --faint: #8a93a3; } }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   header { padding: 18px 16px 8px; max-width: 980px; margin: 0 auto; }
@@ -33,10 +33,12 @@
   .empty { color: var(--muted); padding: 10px 12px; font-size: 13.5px; }
   b.bad { color: var(--bad); } b.good { color: var(--good); }
 </style>
+<link rel="stylesheet" href="site/chrome.css">
+<script src="site/nav.js" defer></script>
 </head>
 <body>
 <header>
-  <h1>Index</h1>
+  <h1 class="keep">Index</h1>
   <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a href="standings.html">Standings</a><a href="clutch.html">Clutch</a><a href="players.html">With / without</a><a href="trends.html">Streaks &amp; outliers</a><a href="leaders.html">Team leaders</a><a href="defenses.html">vs top teams</a><a href="national.html">National TV</a><a href="gameflow.html">Game Flow</a><a href="records.html">Records</a><a href="awards.html">Award eligibility</a><a class="on" href="find.html">Index</a></nav>
   <div class="sub" id="sub">Where everything is, and how fresh it is.</div>
 </header>
@@ -185,6 +187,7 @@ const table = (id, title, words, note, head, rows) => `<details id="${id}" data-
 })();
 $("q").addEventListener("input", renderDir);
 if (location.hash.length > 1) { $("q").value = decodeURIComponent(location.hash.slice(1)); }
+{ const q0 = new URLSearchParams(location.search).get("q"); if (q0) $("q").value = q0; }   // 0.147.0: the menu bar's search box
 renderDir();
 </script>
 </body>

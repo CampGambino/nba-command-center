@@ -121,7 +121,7 @@ function liftForDark(hex){
 }
 /* Light look (0.60): the page follows the system setting, and on a white panel the problem is the reverse:
    pale brand colours (gold, white) vanish. Those are darkened toward black until they clear the same bar. */
-const LIGHT_UI = (()=>{ try{ return matchMedia("(prefers-color-scheme: light)").matches; }catch(e){ return false; } })();
+const LIGHT_UI = true;   // 0.147.0: the site is light only (the user, 11/24: "I prefer light mode")
 const LIGHT_BG=[255,255,255], MIN_LIGHT_CONTRAST=2.2;
 function lowerForLight(hex){
   const c=hexRgb(hex);

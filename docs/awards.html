@@ -11,7 +11,7 @@
     --accent: #4f9cf7; --good: #3fbf7f; --warn: #e5a93b; --bad: #e5604f; --live: #ff4d6d;
     --radius: 12px;
   }
-  @media (prefers-color-scheme: light) {
+  @media all {
     :root { --bg: #f5f6f8; --panel: #fff; --panel2: #f0f2f5; --line: #e1e4ea; --text: #161a22; --muted: #5b6474; --faint: #8a93a3; }
   }
   * { box-sizing: border-box; }
@@ -76,6 +76,8 @@
   ul.dates { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); margin: 0; padding: 8px 12px 8px 28px; font-size: 13px; }
   ul.dates li { margin: 3px 0; }
 </style>
+<link rel="stylesheet" href="site/chrome.css">
+<script src="site/nav.js" defer></script>
 </head>
 <body>
 <header>

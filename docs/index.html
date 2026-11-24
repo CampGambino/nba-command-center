@@ -11,7 +11,7 @@
     --accent: #4f9cf7; --good: #3fbf7f; --warn: #e5a93b; --bad: #e5604f; --live: #ff4d6d;
     --radius: 12px;
   }
-  @media (prefers-color-scheme: light) {
+  @media all {
     :root { --bg: #f5f6f8; --panel: #fff; --panel2: #f0f2f5; --line: #e1e4ea; --text: #161a22; --muted: #5b6474; --faint: #8a93a3; }
   }
   * { box-sizing: border-box; }
@@ -110,7 +110,36 @@
   details.fold { margin: 6px 0 0; }
   details.fold > summary { cursor: pointer; color: var(--muted, #6b7280); font-size: 13px; padding: 2px 0; }
   details.fold[open] > summary { margin-bottom: 4px; }
+  /* 0.147.0: the Spotlight and the ranked stream (the redesign the user accepted 11/24) */
+  header, main, footer { max-width: 1240px; }
+  .sp-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 16px; }
+  .sp-head h2 { margin-bottom: 4px; }
+  .sp-n { font-weight: 500; color: var(--faint); font-size: .8em; letter-spacing: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+  .chips button { font: inherit; font-size: 13px; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid #d5d9de; background: var(--panel); color: var(--muted); cursor: pointer; }
+  .chips button[aria-pressed="true"] { background: var(--text); color: #fff; border-color: var(--text); font-weight: 600; }
+  .chips .sep { width: 1px; height: 22px; background: #d5d9de; align-self: center; margin: 0 4px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 10px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .tile.big { grid-column: span 2; border: 2px solid var(--text); }
+  @media (max-width: 600px) { .tile.big { grid-column: auto; } }
+  .tile .meta { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--faint); }
+  .tile .meta b { color: var(--text); }
+  .tile .num { font: 700 30px/1.05 "Space Grotesk", Inter, sans-serif; letter-spacing: -.02em; }
+  .tile.big .num { font-size: 44px; }
+  .tile .num small { font: 600 14px Inter, sans-serif; color: var(--muted); margin-left: 4px; }
+  .tile .txt { font-size: 14.5px; line-height: 1.4; overflow-wrap: anywhere; }
+  .tile.big .txt { font-size: 16.5px; font-weight: 600; }
+  .tile .tag { font-size: 11px; font-weight: 700; color: var(--accent); }
+  .tile.ended { opacity: .75; }
+  ol.ranked { list-style: none; margin: 0 0 8px; padding: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; columns: 2 520px; column-gap: 0; }
+  ol.ranked li { break-inside: avoid; display: flex; gap: 10px; padding: 8px 14px; border-bottom: 1px solid #eef0f2; align-items: baseline; font-size: 14px; }
+  ol.ranked li > b { width: 26px; flex: none; color: var(--faint); font-size: 12.5px; text-align: right; }
+  ol.ranked li .g { flex: none; font-size: 11.5px; color: var(--faint); min-width: 64px; }
+  ol.ranked li .t { overflow-wrap: anywhere; }
 </style>
+<link rel="stylesheet" href="site/chrome.css">
+<script src="site/nav.js" defer></script>
 </head>
 <body>
 <header>
@@ -124,12 +153,22 @@
   <div class="games" id="games"></div>
   <div id="notesIssues"></div>
 
+  <section id="spot" aria-labelledby="h-spot">
+  <div class="sp-head"><h2 id="h-spot">Spotlight <span class="sp-n" id="spN"></span></h2><p class="key" id="spKey">Everything that clears the bar, most important first. No cap: a big night shows all of it.</p></div>
+  <div class="chips" id="spChips" role="group" aria-label="Filter"></div>
+  <div class="tiles" id="tiles"><div class="empty">Loading…</div></div>
+  <h2 id="stream">Everything else, ranked <span class="sp-n" id="stN"></span></h2>
+  <div class="key">Storylines, matchups, milestones, notes, finds and last night's lines in one order. Same filters as above.</div>
+  <ol class="ranked" id="ranked"></ol>
+  </section>
+  <details class="fold" id="briefFold"><summary>The briefing as before: the ten biggest, deep cuts, votes and copy</summary>
   <h2 id="briefing">The briefing</h2>
   <div class="key" id="briefKey">The slate's ten biggest storylines, ranked together across every game and every source: how big or rare it is, who it's about, national TV, and whether it's new today. Then the deep cuts: rare or big ones about lesser-known players. Each claim appears once, however many sources found it; <b>new</b> = first seen today, <b>updated</b> = seen before, its numbers have moved (a streak one longer, a mark closer); one already at the top the days before with the same numbers fades.</div>
   <div class="brief" id="brief"><div class="empty">Loading…</div></div>
+  </details>
   <details class="seen" id="seenBox" hidden><summary id="seenSum"></summary><div class="key">Stats other accounts posted, checked against what our lines said the morning before (from the results as they stood then). Each miss is the next thing to build.</div><ul id="seenList"></ul></details>
 
-  <h2>Tonight's storylines</h2>
+  <h2 id="storylines">Tonight's storylines</h2>
   <div class="key">What could happen or end tonight, per game: 📜 history from the teams' notes, 🩹 regulars on the injury report and what changes without them, milestones in reach, streaks on the line, runs leading the team, shooters a make or two from 50 / 40 / 90, and team streaks. The same lines go to Discord at 3 PM. Here, a line already in the briefing isn't repeated (the game's header counts them), and a team's weaker recent-form shifts fold under the game. Tap a line for the details.<span id="injAsOf"></span></div>
   <div class="stories" id="stories"><div class="empty">Loading…</div></div>
 
@@ -142,7 +181,7 @@
   <div class="controls" style="margin:0 0 8px"><select id="histTeam"><option value="">All of tonight's teams</option></select> <label style="font-size:13px"><input type="checkbox" id="histNew"> New today only</label></div>
   <div class="stories" id="historyList"><div class="empty">Loading…</div></div>
 
-  <h2>Likely tonight</h2>
+  <h2 id="likely">Likely tonight</h2>
   <div class="cards" id="tonight"></div>
   <details class="fold" id="longBox"><summary id="longSum"></summary><div class="cards" id="longshots"></div></details>
 
@@ -446,6 +485,62 @@ function renderSeen(f) {
   $("seenList").innerHTML = f.checks.map((c) => `<li class="${c.found ? "hit" : "miss"}"><b>${c.found === null ? "⏸️" : c.found ? "✅" : "❌"} ${esc(c.claim)}</b> <span class="empty">(${c.season ? `a ${c.season} post; replayed as of the ${md(c.morning)} morning` : `posted ${md(c.posted)}; our ${md(c.morning)} morning`})</span><br>${c.found ? `<span class="said">We said: ${esc(c.line)}${c.note ? ` (${esc(c.note)})` : ""}</span>` : `<span class="said">${c.found === null ? "Can't be replayed." : "Not in our lines."}${c.note ? ` ${esc(c.note)}` : ""}</span>`}</li>`).join("");
 }
 function alertLine(t) { const el = $("briefNote"); if (el) el.textContent = t; }
+// ---- 0.147.0: the Spotlight and "Everything else, ranked" (briefing.json's stream: every line, ranked, no cap) ----
+const SPOT_BAR = 5.5;   // a line ranked this high (the briefing's own scale: size, rarity, who, TV, new) is a Spotlight tile
+const GROUPS = [
+  ["Records & milestones", ["record", "milestone", "pace", "era", "feat", "cup", "club", "unique", "awards", "clinch"]],
+  ["Streaks", ["streak", "pstreak", "broken", "team", "turn", "beaten", "lead"]],
+  ["Form & shifts", ["shift", "form", "shooting", "luck", "season", "span", "role", "fourth", "qtr", "month", "monthp", "rookie", "foul", "early", "paradox", "scarce"]],
+  ["Matchups", ["matchup", "vsopp", "defense", "defpos", "tv", "rest", "lineup", "trade"]],
+  ["From the notes", ["history", "context"]],
+  ["Injuries", ["injury"]],
+];
+const WORD = { record: "Record", milestone: "Milestone", pace: "Pace", era: "Era", feat: "One of one", cup: "NBA Cup", club: "Club", unique: "Unique", awards: "Awards",
+  clinch: "Clinch", streak: "Streak", pstreak: "Streak", broken: "Streak over", team: "Team", turn: "Turned", beaten: "Beat the best", lead: "Team leader",
+  shift: "Shift", form: "Hot and cold", shooting: "Shooting", luck: "Luck", season: "Season", span: "Stretch", role: "Role", fourth: "Late game",
+  qtr: "Quarters", month: "Month", monthp: "Month", rookie: "Rookie", foul: "Fouls", early: "Early", paradox: "Paradox", scarce: "Rare", matchup: "Matchup",
+  vsopp: "Matchup", defense: "Defense", defpos: "Defense", tv: "National TV", rest: "Rest", lineup: "Lineup", trade: "Trade", history: "Notes",
+  context: "Context", injury: "Injury", find: "Found", oddline: "Odd line" };
+let SPOT = { group: "", game: "" };
+function bigNum(t) {
+  let m;
+  if ((m = t.match(/(\d[\d,]*\+?)\s+(straight|consecutive)\s+(games?|wins?|losses|meetings|seasons)/i))) return [m[1], m[2] === "consecutive" ? "straight" : m[2]];
+  if ((m = t.match(/:\s*(\d[\d,]*)\s+((?:offensive |defensive )?[a-z0-9-]+)\s+(?:from|to|away)\b/i))) return [m[1], m[2]];
+  if ((m = t.match(/\b(\d{1,3}(?:\.\d)?%)/))) return [m[1], ""];
+  if ((m = t.match(/(?<![\d-])(\d{1,2}-\d{1,2})(?![\d-])/))) return [m[1], ""];
+  return null;
+}
+function renderSpotlight(b, injuries) {
+  if (!b?.stream || b.today !== data.today) { $("tiles").innerHTML = `<div class="empty">No ranked lines for tonight yet (they're built with the day's data).</div>`; $("ranked").innerHTML = ""; return; }
+  const status = injuryStatus(injuries, data.today);
+  const out = (l) => l.player && /^(?:Out|Doubtful)$/.test(status(l.team, l.player) || "");
+  const groupOf = (l) => (l.from === "last" ? "Last night" : l.from === "find" || l.kind === "find" ? "Found in the numbers" : (GROUPS.find(([, ks]) => ks.includes(l.kind)) || ["Other"])[0]);
+  // Importance for this page: the briefing's rank, with outliers and milestones lifted and routine league-rank notes lines
+  // ("T-4th in NBA in minutes") lowered (the user, 11/24: "the outliers and key milestones require a bigger spotlight").
+  const tagOf = (l) => (l.kind === "history" ? (l.text.match(/^[A-Z]{3} notes(?: — [^:]+)?: ([^·]+) ·/) || [])[1] || "" : "");
+  const LIFT = { "Records & milestones": 0.8, "Last night": 0.6, Streaks: 0.5, "Form & shifts": 0.2, Injuries: -0.5 };
+  const imp = (l) => { const t = tagOf(l); return l.rank + (LIFT[groupOf(l)] || 0)
+    + (/NBA history|all-time|Only one/i.test(t) ? 0.6 : /(?:\d(?:st|nd|rd|th) in NBA|Leads NBA|Most in NBA)\s*$/.test(t) ? -1 : /team history/i.test(t) ? -0.3 : 0); };
+  const ordered = b.stream.map((l) => ({ ...l, imp: imp(l) })).sort((x, y) => y.imp - x.imp);
+  // a line about a player out tonight is kept, after everything else, and never a tile
+  const all = [...ordered.filter((l) => !out(l)), ...ordered.filter(out).map((l) => ({ ...l, outTonight: true }))];
+  const games = [...new Set(all.map((l) => l.game).filter((g) => g && g.includes("@")))];
+  const groups = [...new Set(all.map(groupOf))];
+  const chip = (kind, val, label, on) => `<button type="button" data-${kind}="${esc(val)}" aria-pressed="${on}">${esc(label)}</button>`;
+  $("spChips").innerHTML = chip("g", "", `All ${all.length}`, !SPOT.group) + groups.map((g) => chip("g", g, `${g} ${all.filter((l) => groupOf(l) === g).length}`, SPOT.group === g)).join("")
+    + (games.length > 1 ? `<span class="sep"></span>` + chip("m", "", "Every game", !SPOT.game) + games.map((g) => chip("m", g, g.replace("@", " @ "), SPOT.game === g)).join("") : "");
+  const shown = all.filter((l) => (!SPOT.group || groupOf(l) === SPOT.group) && (!SPOT.game || l.game === SPOT.game));
+  const tiles = shown.filter((l) => !l.outTonight && l.imp >= SPOT_BAR), rest = shown.filter((l) => !tiles.includes(l));
+  const place = new Map(all.map((l, i) => [l, i + 1]));
+  $("spN").textContent = tiles.length; $("stN").textContent = rest.length;
+  $("tiles").innerHTML = tiles.length ? tiles.map((l, i) => {
+    const n = bigNum(l.text), where = l.game === "league" ? (l.team || "League") : l.game === "last night" ? "Last night" : (l.game || "").replace("@", " @ ");
+    return `<article class="tile${i < 2 && !SPOT.group && !SPOT.game ? " big" : ""}"><div class="meta"><span><b>${place.get(l)}</b> · ${esc(WORD[l.kind] || l.kind)} · ${esc(where)}</span>${l.status === "new" ? `<span class="tag">NEW</span>` : l.status === "updated" ? `<span class="tag">UPDATED</span>` : ""}</div>`
+      + (n ? `<div class="num">${esc(n[0])}${n[1] ? `<small>${esc(n[1])}</small>` : ""}</div>` : "") + `<div class="txt">${esc(l.text)}</div></article>`;
+  }).join("") : `<div class="empty">Nothing ${SPOT.group || SPOT.game ? "here" : "tonight"} clears the bar; the ranked list below has every line.</div>`;
+  $("ranked").innerHTML = rest.map((l) => `<li><b>${place.get(l)}</b><span class="g">${esc(l.game === "league" ? (l.team || "League") : l.game === "last night" ? "Last night" : (l.game || "").replace("@", " @ "))}</span><span class="t">${esc(l.text)}${l.outTonight ? ` <i style="color:var(--bad)">(out tonight)</i>` : ""}</span></li>`).join("");
+  $("spChips").querySelectorAll("button").forEach((x) => x.onclick = () => { if ("g" in x.dataset) SPOT.group = x.dataset.g; else SPOT.game = x.dataset.m; renderSpotlight(b, injuries); });
+}
 function renderBriefing(b, injuries) {
   if (b !== undefined) BRIEF = b;
   if (injuries !== undefined) BRIEF_INJ = injuries;
@@ -500,6 +595,7 @@ async function renderStories() {
     STORY_CLAIMS = claimSet(stories.flatMap((g) => g.lines), CLAIMS);
     const BT = briefClaimSet(brief && brief.today === data.today ? brief : null, CLAIMS);
     renderBriefing(brief, injuries);
+    try { renderSpotlight(brief, injuries); } catch (e) { $("tiles").innerHTML = `<div class="empty">The Spotlight couldn't be drawn: ${esc(e.message)}</div>`; }
     renderSeen(flags);
     renderHistory(facts, injuries);
     renderMatchups(matchups, injuries);

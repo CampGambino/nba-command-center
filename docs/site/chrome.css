@@ -1,0 +1,45 @@
+/* The site's shared chrome (0.147.0, the redesign the user accepted 11/24: light mode, a grouped menu, search).
+   Loaded by every page after its own styles. Light is the only look now (the user: "I prefer light mode"); each page's
+   own light rules (formerly under prefers-color-scheme: light) now always apply. */
+html:root {
+  color-scheme: light;
+  --bg: #f4f5f7; --panel: #fff; --panel2: #f0f1f3; --line: #e1e4e8;
+  --text: #14181d; --muted: #4a5560; --faint: #5b6672; --dim: #4a5560; --dimmer: #5b6672;
+  --accent: #1d5fd1; --good: #1f7a4d; --warn: #8a5a00; --bad: #b42318; --live: #d9183f;
+}
+body { background: var(--bg); color: var(--text); }
+
+/* Header: brand, six menus, search. Replaces each page's row of 13 tabs (every tab is still in the menus). */
+.cc-bar { background: #fff; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 50; }
+.cc-bar .in { max-width: 1320px; margin: 0 auto; padding: 8px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; }
+.cc-brand { display: flex; align-items: center; gap: 9px; color: var(--text) !important; text-decoration: none !important; font: 700 17px/1 "Space Grotesk", Inter, system-ui, sans-serif; }
+.cc-brand i { width: 28px; height: 28px; border-radius: 7px; background: var(--text); display: grid; place-items: center; }
+.cc-menus { display: flex; flex-wrap: wrap; gap: 2px; flex: 1 1 auto; align-items: center; }
+.cc-menu { position: relative; }
+.cc-menu > a, .cc-menu > button { display: inline-flex; align-items: center; gap: 4px; min-height: 40px; padding: 0 12px; border-radius: 8px; border: 0; background: none;
+  color: var(--muted); font: 500 14px/1 Inter, system-ui, sans-serif; cursor: pointer; text-decoration: none; }
+.cc-menu > a.on, .cc-menu > button.on { background: var(--panel2); color: var(--text); font-weight: 600; }
+.cc-menu > button:hover, .cc-menu > a:hover { color: var(--text); background: var(--panel2); }
+.cc-menu > button:focus-visible, .cc-menu a:focus-visible, .cc-search input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cc-drop { display: none; position: absolute; top: calc(100% + 4px); left: 0; min-width: 290px; background: #fff; border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 14px 34px rgba(20, 24, 29, .14); padding: 6px; z-index: 60; }
+.cc-menu.open .cc-drop { display: block; }
+.cc-drop a { display: flex; justify-content: space-between; gap: 14px; padding: 9px 10px; border-radius: 8px; color: var(--text) !important; text-decoration: none !important; font: 14px/1.3 Inter, system-ui, sans-serif; }
+.cc-drop a:hover { background: var(--panel2); }
+.cc-drop a small { color: var(--faint); font-size: 12px; white-space: nowrap; }
+.cc-drop a.here { font-weight: 600; }
+.cc-search { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 0 10px; height: 40px; flex: 0 1 280px; min-width: 180px; }
+.cc-search input { border: 0; background: transparent; outline: none; font: 15px Inter, system-ui, sans-serif; color: var(--text); width: 100%; min-width: 0; }
+@media (max-width: 700px) {
+  .cc-search { flex: 1 1 100%; order: 3; }
+  .cc-drop { position: fixed; left: 8px; right: 8px; top: auto; min-width: 0; max-height: 70vh; overflow: auto; }
+}
+/* The old tab row stays in the page for anyone without scripts, hidden once the menus are drawn. */
+nav.cc-old { display: none !important; }
+/* The page's own title row: the bar names the site, so the old "NBA Command Center" heading goes (the Index keeps its own). */
+.cc-on header > h1:not(.keep) { display: none; }
+@media (max-width: 700px) {
+  .cc-bar { position: static; }
+  .cc-menus { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .cc-menu > button { padding: 0 10px; white-space: nowrap; }
+}

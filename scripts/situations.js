@@ -1059,6 +1059,14 @@ try {
         // 0.81: the finder's league list: a line voted down is gone, and the rest are ordered by surprise plus what the votes taught.
         finds: (args.prep?.finds || []).filter((l) => !model.down.has(l.key)).map((l) => ({ l, r: l.score + boost(l, model, args.prep?.stars || {}) })).sort((a, b) => b.r - a.r)
           .slice(0, 8).map(({ l }) => ({ key: l.key, kind: l.kind, team: l.team, player: l.player, text: l.text, game: "" })),
+        // 0.147.0: the whole ranked stream for the Spotlight and "Everything else, ranked" (no caps; tonight's lines, last
+        // night's lines and the finder's league list in one order).
+        stream: [
+          ...b.ranked.map((l) => ({ key: l.key, kind: l.kind, team: l.team, player: l.player || null, game: l.game, text: l.text, rank: l.rank, status: ledgerFirstRun ? null : l.status || null, from: "tonight" })),
+          ...(args.prep?.lastNight || []).map((l) => ({ key: l.key, kind: l.kind, team: l.team, player: l.player || null, game: "last night", text: l.text, rank: Math.round(((l.score ?? 3) + 0.3) * 100) / 100, from: "last" })),
+          ...(args.prep?.finds || []).filter((l) => !model.down.has(l.key)).map((l) => ({ key: l.key, kind: l.kind, team: l.team, player: l.player || null, game: "league", text: l.text,
+            rank: Math.round((l.score + boost(l, model, args.prep?.stars || {})) * 100) / 100, from: "find" })),
+        ].sort((x, y) => y.rank - x.rank),
         news: buzz ? Object.entries(buzz.players).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, n]) => ({ name, n, titles: buzz.titles[name] || [] })) : null }));
       console.log(`briefing: ${cand.all.length} candidates -> top ${b.top.length}, deep cuts ${b.deep.length}; ${model.n} votes, ${Object.keys(model.weights).length} learned weights; ${buzz ? `${Object.keys(buzz.players).length} players and ${Object.keys(buzz.teams).length} teams in the headlines` : "no headlines"}; ${(args.prep?.lastNight || []).length} lines from last night`);
     } catch (e) { console.error(`briefing not written: ${e.message}`); }

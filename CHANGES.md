@@ -2,6 +2,44 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.147.0 (2026-11-24): the redesign: light mode, six menus with search, and the Spotlight (no cap)
+
+The user, 11/24: "redesign the site", after accepting the mockup ("good but not great. I can live with it. there shouldn't be a cap regardless of how many games are played a night. the important information should rise to the front"). Earlier asks that still hold: light mode, no card just for a percentage, nothing lost from the current site, and outliers and key milestones with a bigger spotlight that grows on big nights.
+
+**Light mode everywhere.**
+- Every page's own light rules (they were under "if the computer prefers light") now always apply.
+- `docs/site/chrome.css` sets the shared light palette, with darker text greys and a stronger link blue for contrast.
+- Game Flow draws team colours for a light background (`LIGHT_UI`), and its error box is light too.
+
+**Six menus and a search box** (`docs/site/nav.js`, on every page):
+- The 13 tabs become Tonight, Storylines, Players, Teams, Records and Explore, as in the mockup's "where every section lives". Each menu lists the sections, each tagged with the tab it comes from.
+- Every old tab is still reachable; the old tab row stays in the page for a browser without scripts, hidden otherwise.
+- Search opens the Index with the words typed (`find.html?q=`).
+- On a phone the bar isn't pinned and the menus scroll sideways, so the bar doesn't take a third of the screen.
+
+**The Spotlight and "Everything else, ranked"** (top of the Watch List):
+- The build now writes the briefing's whole ranked pool (`stream` in `briefing.json`): every line for tonight's games, last night's lines and the finder's league list, with no per-game, per-kind or top-10 caps (`briefing()` returns `ranked`).
+- The page orders them by the briefing's rank with these adjustments:
+  - records and milestones +0.8, last night +0.6, streaks +0.5, form +0.2
+  - notes lines tagged as NBA or all-time history +0.6
+  - routine league-rank notes lines ("T-4th in NBA in minutes") −1, team-history ranks −0.3, injuries −0.5
+- Everything at 5.5 or above is a Spotlight tile: 21 tonight on 3 games, of 223 lines. The first two are double-width.
+- A tile shows a big number when the line has a clear one (142 straight, 11 assists, 72.7%, 8-0), with no card for a percentage alone.
+- Everything below the bar follows in one numbered list.
+- Filters by kind and by game narrow both and never hide anything by default. A line about a player out tonight stays, at the end, marked "(out tonight)".
+- The briefing as it was (top 10, deep cuts, votes, copy) is kept, folded under the Spotlight.
+
+**Page check** (`tools/check-pages.py`) now checks for the six menus and the old tab row's 13 links. All pages OK at 1400 and 390 px. A scripted sweep of every page found no dark backgrounds left, apart from the brand mark and pressed filter chips (meant to be dark).
+
+**Self-audit.**
+- **My first Spotlight bar (rank 4) made 136 of 223 lines tiles.** That isn't a spotlight. With rank alone at 5.5, 15 tiles were mostly league-rank notes lines ("ranks fourth in minutes played"), because the notes carry a high fixed score; outliers and milestones sat lower. The adjustments above are my placing. They decide what leads, so the user may want to move them.
+- **The first tile number for "his 25th career 20-5-5 game" read "20-5".** A W-L figure now must not touch another number or dash.
+- **`nav.js` first ran as a plain script and clashed with a page's own `esc`.** It's now wrapped; found by the page check before publishing.
+- **Not done:**
+  - `briefing.json` grows with the slate: 87 KB for 3 games, about 400 KB on a 15-game night.
+  - The game cards are still the sections below (storylines, matchups, notes), not one card per game as in the mockup.
+  - Pages other than the Watch List keep their own layouts under the new bar.
+
 ## 0.146.0 (2026-11-24): a pass counts the other man's game; released players read "FA"; the notes' games-played runs checked; a team's record in a player's last N games
 
 The user, 11/24, going through the loose ends: the Watch List pass lines "definitely fix. it helps to have intel for those matchups"; Tristan Enaruna "was released" (NBA.com's transactions: waived by Cleveland 11/7); "for notes' game-played, using a selfcheck is one way to assure consistency"; and a team's record in a player's last N games, asked for "because sometimes players are injured or out for a longer time in between games".

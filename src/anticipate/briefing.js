@@ -94,5 +94,7 @@ export function briefing({ all, games = [], stars = {}, nationalGames = new Set(
   const deepPool = live.filter((l) => !taken.has(l.key) && !topPlayers.has(l.player) && l.prom < 0.45 && (l.rare || RARE_KINDS.has(l.kind) || (l.score || 0) >= 3) && l.age < 7)
     .sort((a, b) => (b.score || 0) + (b.rare ? 0.3 : 0) + b.learned - ((a.score || 0) + (a.rare ? 0.3 : 0) + a.learned));
   const deep = pick(deepPool, deepN, { perGame: 2, perKind: 2 });
-  return { top, deep, seen: next };
+  // 0.147.0: the whole ranked pool, no caps (the user, 11/24: "there shouldn't be a cap regardless of how many games are
+  // played a night. the important information should rise to the front"). The Spotlight and the ranked list read it.
+  return { top, deep, seen: next, ranked: live };
 }

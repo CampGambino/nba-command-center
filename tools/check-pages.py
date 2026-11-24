@@ -25,7 +25,7 @@ async def check(browser, url, width):
     await pg.goto("http://localhost:8794/" + url)
     await pg.wait_for_timeout(1500)
     info = await pg.evaluate("""() => ({
-      nav: [...document.querySelectorAll('nav a')].length,
+      nav: [...document.querySelectorAll('nav.cc-old a')].length, bar: document.querySelectorAll('.cc-bar .cc-menu').length,
       sub: (document.getElementById('sub') || {}).textContent || '',
       rows: document.querySelectorAll('tr').length,
       wide: [...document.querySelectorAll('body *')].filter((e) => {
@@ -38,7 +38,8 @@ async def check(browser, url, width):
     await pg.close()
     problems = errs[:3]
     if "Couldn't" in info["sub"]: problems.append(info["sub"][:80])
-    if info["nav"] != 13: problems.append(f"nav has {info['nav']} links")
+    if info["nav"] != 13: problems.append(f"old tab row has {info['nav']} links")
+    if info["bar"] != 6: problems.append(f"menu bar has {info['bar']} menus")   # 0.147.0: the six menus
     if info["wide"]: problems.append("wider than the screen: " + ", ".join(info["wide"]))
     return problems, info
 
