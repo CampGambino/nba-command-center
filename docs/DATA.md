@@ -36,3 +36,7 @@ What they read is listed below and checked against the real published files on e
 ## The rest
 
 Every other file in `docs/data/` is read only by the site's own pages and by later build steps. `tests/run.js` checks those: every file parses, has no merge-conflict marks, and contains no copied notes text. Change them freely, along with the page that reads them.
+
+## Not read by anything yet
+
+- `src/data/nba-penalties-<date>.json` (0.143.0): every NBA fine and suspension announced on pr.nba.com, Sept. 2009 on. `keys` names the row fields: `date`, `name`, `team`, `kind` (player, coach, executive, team), `type` (fine, suspension), `amount`, `games` (null with `note` "indefinite" when no length was set), `reason`, `note`, `release` (the pr.nba.com address after the slash). Built by `tools/pr-fines/build.mjs` from releases saved in the user's browser (pr.nba.com refuses GitHub's servers). Nothing in the site or NBA Live reads it yet.

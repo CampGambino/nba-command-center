@@ -2,6 +2,36 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.143.0 (2026-11-23): a database of NBA fines and suspensions, from pr.nba.com
+
+The user, 11/23: "Are you able to scan all the articles from these pages to have a database of fines and career totals for each player? https://pr.nba.com/tag/nba-fines/", then "pc is connected. no need to send to discord".
+
+**How it was read:**
+- pr.nba.com refuses GitHub's servers (403, robots.txt included), so the releases were read in the user's own browser on the PC, as he would read them.
+- robots.txt asks for a 1-second gap and bars addresses with a query string, which rules out WordPress's posts API. So: the tag's 56 listing pages, then each of the 551 releases, one a second.
+- The tag misses some. The site's sitemap lists 4,743 releases, and 273 more had "fine", "suspension" or "penalty" in their address. They were read the same way. 77 were G League, WNBA or 2K League and are left out.
+
+**What came of it:** 922 penalties: 661 fines and 261 suspensions, of 395 people and 22 teams, from 9/15/2009 to 11/16/2026.
+- `src/data/nba-penalties-2026-11-23.json`: one row per penalty, per person (DATA.md).
+- `tools/pr-fines/parse.mjs` reads a release; `tools/pr-fines/build.mjs` builds the file from saved releases, so a refresh takes another read in the browser.
+- The Sheet "NBA fines and suspensions" (claude.ai artifact) has the same rows and a totals tab whose figures are formulas over them.
+
+**Checked:**
+- 30 random rows against their releases: all right.
+- In the 551 tagged releases, every name in a headline has a row, and every row's name is in its headline except where the release names more people than its headline; each of those was read.
+- Two penalties were published twice (Doc Rivers 5/15/2014, Clippers 11/7/2019): kept once.
+- Nine releases are worded beyond the parser and were entered by hand from their text: Kobe Bryant's $100,000 (David Stern's statement), Mark Stevens's $500,000, Pachulia and Richardson, Magloire and Jerebko, Dunn and Smith Jr., the 11 Pistons-Magic suspensions of 5/2022.
+- Draymond Green's suspension of 12/13/2023 was announced as indefinite; the reinstatement release gives 12 games, recorded so. Malik Monk's 2020 anti-drug suspension stays indefinite.
+
+**Not in it:** anything before 9/2009 (the site starts then), fines the league never announced, and draft picks taken for early free-agency talks (no fine).
+
+**Tested:** 1,154 checks; new: the parser's hardest sentences ("respectively", a shared team, "Additionally,", "has fined X $N", "Name, an owner of", never the player who was hit), and the file (922 rows, Draymond Green's 20 games, Anthony Edwards's $500,000, no penalty twice).
+
+**Self-audit:**
+- My first read of the site went through GitHub. It was refused, and I removed that workflow rather than disguise the request. The browser read is how the user reads the site.
+- The first parser passes put an official ("NBA Executive Vice…"), "Additionally" and a coach label on players. Each was found by a check above, not by luck. Checks that found nothing are no proof that nothing is left. The hand-read sample is 30 of 922.
+- A refresh can't run on its own (GitHub is refused), so the file is as of 11/16/2026 until the next browser read.
+
 ## 0.142.7 (2026-11-23): games played: Bridges's debut counted, no pass cards (bridge v34)
 
 The user, 11/23, with Mikal Bridges's Basketball-Reference page (655 games: every game the Suns, Nets and Knicks have played since his debut, the Knicks' 11/22 game included): "image 1 is mikal bridges. knicks had a game yesterday." And: "i dont need a javonte green alert for passing active list. or for anyone since they all move up one game at a time."

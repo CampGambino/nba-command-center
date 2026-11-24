@@ -5062,6 +5062,26 @@ await bridgeChecks(ok, root);
   ok(zf.rows.length === 17 && zf.rows.some((r) => r[4] === "Josh Minott" && r[1] === "2026-11-02"), "games played (0.142.7): this season's 0-minute games through 11/22, read from ESPN's summaries");
 }
 
+// ---------- 0.143.0: NBA fines and suspensions from pr.nba.com (the user, 11/23: "a database of fines and career totals for each player") ----------
+{
+  const { parseRelease } = await import("../tools/pr-fines/parse.mjs");
+  const one = (t, title = "") => parseRelease(t, title).rows.map((r) => [r.name, r.team, r.kind, r.type, r.amount ?? r.games].join(" "));
+  const a = one("NEW YORK – Houston Rockets head coach Ime Udoka, forward Tari Eason and center Alperen Sengun have been fined $50,000, $35,000 and $15,000, respectively, it was announced today. Eason has been fined $35,000 for throwing a towel. Sengun has been fined $15,000 for directing inappropriate language toward a game official.");
+  const b = one("NEW YORK – Detroit Pistons forward-center Isaiah Stewart has been suspended seven games for fighting, it was announced today. Additionally, Charlotte Hornets forwards Miles Bridges and Moussa Diabaté have each been suspended four games for fighting and escalating the altercation, and Pistons center Jalen Duren has been suspended two games for initiating the altercation.");
+  const c = one("NEW YORK – The NBA announced today that it has fined Golden State Warriors Governor Joe Lacob $50,000 for violating the league’s anti-tampering rule.");
+  const d = one("NEW YORK – Michael Gearon, an owner of the Atlanta Hawks, has been fined $35,000 for publicly criticizing NBA officiating.");
+  const e = one("NEW YORK – Atlanta Hawks guard Kingston Flemings has been suspended one game without pay for intentionally elbowing New Orleans Pelicans guard Bryce McGowens in the head.");
+  ok(JSON.stringify(a) === JSON.stringify(["Ime Udoka HOU coach fine 50000", "Tari Eason HOU player fine 35000", "Alperen Sengun HOU player fine 15000"])
+    && JSON.stringify(b) === JSON.stringify(["Isaiah Stewart DET player suspension 7", "Miles Bridges CHA player suspension 4", "Moussa Diabaté CHA player suspension 4", "Jalen Duren DET player suspension 2"])
+    && c[0] === "Joe Lacob GSW executive fine 50000" && d[0] === "Michael Gearon ATL executive fine 35000" && e.length === 1 && e[0] === "Kingston Flemings ATL player suspension 1",
+    "fines (0.143.0): a release's penalties, each to its own person: \"respectively\" amounts, a shared team, \"Additionally,\", the older \"has fined X $N\" and \"Name, an owner of\", never the player he hit", JSON.stringify([a, b, c, d, e]));
+  const pf = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-penalties-2026-11-23.json"), "utf8"));
+  const tot = (n) => pf.rows.filter((r) => r[1] === n).reduce((t, r) => ({ fines: t.fines + (r[4] === "fine"), dollars: t.dollars + (r[5] || 0), games: t.games + (r[6] || 0) }), { fines: 0, dollars: 0, games: 0 });
+  const dg = tot("Draymond Green"), ae = tot("Anthony Edwards");
+  ok(pf.rows.length === 922 && pf.from === "2009-09-15" && pf.through === "2026-11-16" && dg.games === 20 && dg.fines === 11 && ae.dollars === 500000
+    && !pf.rows.some((r) => /^(Additionally|NBA|The)\b/.test(r[1])) && new Set(pf.rows.map((r) => r[9] + r[1] + r[4] + r[5] + r[6])).size === pf.rows.length,
+    "fines (0.143.0): 922 penalties, 9/15/2009 to 11/16/2026; Draymond Green 11 fines and 20 games suspended (his indefinite one was 12), Anthony Edwards $500,000; no penalty twice", JSON.stringify({ dg, ae }));
+}
 // ---------- 0.142.5: last season's facts read as this season's (the user, 11/23: "the number of games played this season does not allow for what is listed") ----------
 {
   const { tooBigForSeason } = await import("../src/notes/narrative.js");
