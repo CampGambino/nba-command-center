@@ -127,6 +127,10 @@ export function agreement(data) {
   const games = [];
   for (const [id, v] of gp) { const vals = Object.values(v); if (vals.length > 1 && Math.max(...vals) !== Math.min(...vals)) games.push(`${name.get(id) || id} (${Object.entries(v).map(([w, n]) => `${n} ${w}`).join(", ")})`); }
   if (games.length) out.push(`${games.length} player${games.length === 1 ? "" : "s"} with different games played on different pages: ${few(games)}`);
+  // 0.146.0: a games-played run in the notes against our count (src/notes/facts.js checkGamesPlayed)
+  const gpl = [];
+  for (const [tri, L] of Object.entries(data["notes-facts"]?.teams || {})) for (const l of L || []) if (l.gpCheck && l.gpCheck.said !== l.gpCheck.now) gpl.push(`${tri} notes: ${l.player || "a player"} ${l.gpCheck.said} straight games, our count ${l.gpCheck.now}`);
+  if (gpl.length) out.push(`${gpl.length} games-played run${gpl.length === 1 ? "" : "s"} in the notes differ from our box scores: ${few(gpl)}`);
   // games missing from the per-game tables
   const all = (data.games?.games || []).length;
   for (const [f, label] of [["q4-players", "4th-quarter"], ["flowstats", "Game Flow"]]) { const n = data[f]?.games; if (all && Number.isFinite(n) && n < all) out.push(`the ${label} tables count ${n} of the season's ${all} games`); }

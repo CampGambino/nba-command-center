@@ -38,7 +38,7 @@ async def check(browser, url, width):
     await pg.close()
     problems = errs[:3]
     if "Couldn't" in info["sub"]: problems.append(info["sub"][:80])
-    if info["nav"] != 12: problems.append(f"nav has {info['nav']} links")
+    if info["nav"] != 13: problems.append(f"nav has {info['nav']} links")
     if info["wide"]: problems.append("wider than the screen: " + ", ".join(info["wide"]))
     return problems, info
 

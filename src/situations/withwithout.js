@@ -79,3 +79,23 @@ export function withWithout(file, outId) {
     players,
   };
 }
+
+/**
+ * 0.146.0: the team's record in a player's last N games played (the user, 11/24: "sometimes players are injured or out
+ * for a longer time in between games", so a team's last 10 and his last 10 can be very different stretches).
+ * -> { n, games: [{ d, opp, home, pf, pa }], record, spanned, missed, since, teamLastN } or null when he hasn't played.
+ *   spanned: the team games from the first of those N to the team's latest game; missed: the ones he sat in that span.
+ *   teamLastN: the team's own last N games, to set beside it.
+ */
+export function lastPlayed(file, id, n) {
+  const games = [...file.games].filter((g) => g.pf != null && g.pa != null).sort((a, b) => a.d.localeCompare(b.d));
+  const mine = games.filter((g) => played(g, id) || (g.z || []).includes(id));
+  if (!mine.length || !(n > 0)) return null;
+  const last = mine.slice(-n), since = last[0].d;
+  const span = games.filter((g) => g.d >= since);
+  return {
+    n: last.length, since, record: record(last), averages: averages(last.filter((g) => played(g, id)).map((g) => g.pl[id])),
+    games: last.map((g) => ({ d: g.d, opp: g.opp, home: !!g.home, pf: g.pf, pa: g.pa })),
+    spanned: span.length, missed: span.length - last.length, teamLastN: record(games.slice(-last.length)),
+  };
+}

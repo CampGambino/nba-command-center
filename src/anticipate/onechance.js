@@ -8,8 +8,9 @@
  * season only, and model the active player being passed. Each then gets its own recalibration. The user: "one chance".
  *
  * Where a records item and a milestone are the same chase (player, stat, target and his total now), both publish one number:
- *   - the records' number when it simulates a rival who also plays (the milestones don't model him);
- *   - otherwise the milestones' number (it knows more about whether he plays tonight).
+ *   - the records' number when it simulates a rival who also plays and the milestones don't;
+ *   - otherwise the milestones' number (it knows more about whether he plays tonight). Since 0.146.0 the milestones
+ *     model the man being passed too (src/anticipate/rivals.js), so this is nearly always the milestones' number.
  * The number that gave way is kept beside it as `own` ({ pTonight, pTonightRaw }) so each model is still scored on its own
  * calls (src/records/predictions.js reads records' `own`; the milestones' calls are saved before this runs).
  *
@@ -32,7 +33,7 @@ export function oneChance(recordsOut, watch) {
       const w = W.get(`${o.id}|${o.stat}|${o.target}|${o.now}`);
       if (w) {
         out.matched++;
-        const rival = Array.isArray(o.rivals) && o.rivals.some((r) => r.tonight);
+        const rival = Array.isArray(o.rivals) && o.rivals.some((r) => r.tonight) && !(Array.isArray(w.rivals) && w.rivals.some((r) => r.tonight));
         if (rival) {
           if (!w.own) w.own = { pTonight: w.pTonight, pTonightRaw: w.pTonightRaw ?? null };
           w.pTonight = o.pTonight; w.pTonightRaw = o.pTonightRaw ?? o.pTonight; if (typeof o.pNext5 === "number") w.pNext5 = o.pNext5;

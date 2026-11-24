@@ -66,7 +66,10 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
 {
   const { readPdf } = await import("../src/notes/pdf-layout.js");
   const { readHistory } = await import("../src/notes/narrative.js");
-  const { annotate, trimLines, staleCount } = await import("../src/notes/facts.js");
+  const { annotate, trimLines, staleCount, checkGamesPlayed } = await import("../src/notes/facts.js");
+  // 0.146.0: every active games-played run, as the last build counted it (docs/data/featlive.json, through last night)
+  let gpRuns = null;
+  try { gpRuns = JSON.parse(fs.readFileSync(path.join(root, "docs", "data", "featlive.json"), "utf8")).gpRuns || null; } catch { /* first build: no check */ }
   const { readCoachRecord, coachLine, fromTenures } = await import("../src/notes/formats/coach-record.js");
   const ctf = path.join(root, "src", "data", "coach-tenures.json");
   const coachTenures = fs.existsSync(ctf) ? JSON.parse(fs.readFileSync(ctf, "utf8")).coaches || {} : {};
@@ -133,7 +136,7 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
         const cl = coachLine(crec, e.opp);
         if (cl) hist.push({ page: null, text: cl, kind: "context", player: null, playerId: null, team: true, matchup: true, how: "team", resolved: false, boxGame: null, when: "season", score: 2.6 });
       } catch (err) { console.log(`  ${e.team} coach record: ${err.message}`); }
-      const read = annotate(hist, { doc, box, model, teamNames: [T.city, T.nick, e.team].filter(Boolean), careers });
+      const read = checkGamesPlayed(annotate(hist, { doc, box, model, teamNames: [T.city, T.nick, e.team].filter(Boolean), careers }), gpRuns);   // 0.146.0
       // 0.49: closed past one-offs, filler, the other venue's stats and layout-garbled lines are trimmed (listed on the page).
       const { keep: lines, trimmed } = trimLines(read, { box, today, home: e.home });
       trimmedBy[e.team] = trimmed.map((l) => ({ text: l.text, player: l.player && !l.guessed ? l.player : null, why: l.trimmed }));
@@ -149,7 +152,7 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
         const stale = l.hook?.stale;
         const score = l.score + (isNew ? 1.5 : 0) + (named ? 0.6 : 0) - (/^(?:He|His|She|They|It)\b/.test(l.text) ? 0.8 : 0) + (l.model != null ? 3 * (l.model - 0.5) : 0) + (l.hook?.live ? 0.5 : 0) - (stale ? 3 : 0);
         return { text: l.text, kind: l.kind, player: named ? l.player : null, playerId: named ? l.playerId : null, how: l.how, game: l.boxGame ? { d: l.boxGame.d, opp: l.boxGame.opp } : undefined, when: l.when, isNew, firstSeen: seen[k], score: Math.round(score * 100) / 100,
-          type: l.type, tag: l.tag, matchup: l.matchup || undefined, hook: l.hook ? { text: l.hook.text, live: !!l.hook.live, stale: !!stale } : undefined, model: l.model, kept: l.kept };
+          type: l.type, tag: l.tag, matchup: l.matchup || undefined, gpCheck: l.gpCheck || undefined, hook: l.hook ? { text: l.hook.text, live: !!l.hook.live, stale: !!stale } : undefined, model: l.model, kept: l.kept };
       }).sort((a, b) => b.score - a.score);
       // Keep 60 days of first-seen dates.
       const cut = new Date(Date.parse(`${today}T12:00:00Z`) - 60 * 864e5).toISOString().slice(0, 10);

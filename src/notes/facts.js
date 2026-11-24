@@ -511,6 +511,43 @@ const NTH_GAME = new RegExp(`\\b${DID}\\s+(?:at least\\s+|an?\\s+)?${CNT}?(?:\\+
 // A date, a weekday or "last night" in the line: it is about that night.
 const DATED = /\b\d{1,2}\/\d{1,2}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)[a-z]*\.? \d{1,2}\b|\b(?:Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day\b|\blast night\b/i;
 
+// ---------- A games-played run the notes count, against ours (0.146.0) ----------
+// The user, 11/24: the notes' own games-played lines should be held to the same count as the rest of the site ("using a
+// selfcheck is one way to assure consistency"). Our count: src/records/featboards.js gamesPlayedRuns (0.142.6), every
+// active run, in featlive.json's gpRuns as the last build left it (through last night, as the notes are).
+const PLAYED = "(?:has|have)\\s+(?:now\\s+|also\\s+)?(?:played|appeared)\\s+in";   // present: "played in 179 … to start his career" (WAS, Carrington) is a closed run
+const GP_SAID = [
+  new RegExp(`\\b${PLAYED}\\s+(?:each of\\s+)?(?:his|the|a|an)?\\s*(?:last|past|first)?\\s*${CNT}\\s+${RUN}\\s+(?:regular[- ]season\\s+)?(?:games|contests)`, "i"),
+  new RegExp(`\\b${CNT}\\s+${RUN}\\s+(?:regular[- ]season\\s+)?games\\s+played\\b`, "i"),
+  new RegExp(`\\b${CNT}[- ]game\\s+(?:games[- ]played|iron[- ]?man|consecutive[- ]games(?:[- ]played)?)\\s+streak`, "i"),
+];
+/** The games-played run a line states as current: -> n, or null (a run that ended, or another season's, is history). */
+export function statedPlayedRun(text) {
+  const t = plain(text);
+  if (/\b(?:snapped|ended|came to an end|was halted|last season|in 20(?:0\d|1\d|2[0-5])-\d\d)\b/i.test(t)) return null;
+  if (/\b(?:first|last|past)\s+\S+\s+(?:consecutive|straight)\b/i.test(t) && !/\b(?:played|appeared)\s+in\s+(?:each of\s+)?(?:his|the)\s+(?:last|past)\b/i.test(t)) return null;
+  for (const re of GP_SAID) { const m = t.match(re); const n = m && countOf(m[1]); if (n >= 2) return n; }
+  return null;
+}
+/** Lines whose games-played run differs from ours get a hook saying so; the line keeps the notes' words. runs: [[id, n, last]]. */
+export function checkGamesPlayed(lines, runs) {
+  if (!Array.isArray(runs) || !runs.length) return lines;
+  const R = new Map(runs.map(([id, n, last]) => [String(id), { n, last }]));
+  const md = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}`;
+  for (const l of lines || []) {
+    if (!l.playerId || l.guessed) continue;
+    const said = statedPlayedRun(l.text);
+    if (!said) continue;
+    const r = R.get(String(l.playerId));
+    const now = r ? r.n : 0;
+    l.gpCheck = { said, now, last: r?.last || null };
+    if (now === said) continue;
+    const note = r ? `Games check: our box scores count ${now} straight games played through ${md(r.last)}, not ${said}.` : `Games check: our box scores have no current run of games played for him (the notes say ${said}).`;
+    l.hook = l.hook ? { ...l.hook, text: `${l.hook.text} ${note}` } : { text: note, live: false };
+  }
+  return lines;
+}
+
 /**
  * The streak a line counts, when it is one the box scores can count too: a double-double or triple-double streak,
  * or "N straight games with X+ points". -> { n, key, test(row, k) } or null. Only present-tense lines: a streak

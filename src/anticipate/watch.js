@@ -43,7 +43,7 @@ export function reportRow(report, team, player) {
   return (report?.rows || []).find((r) => r.team === team && sameName(r.name, player)) || null;
 }
 
-export async function buildWatch({ team, notesDate, milestones, espn, today, sims = 4000, nba = null, verified = null, guideBase = null, report = null }) {
+export async function buildWatch({ team, notesDate, milestones, espn, today, sims = 4000, nba = null, verified = null, guideBase = null, report = null, rivalOf = null }) {
   const tracked = await trackMilestones({ team, notesDate, milestones, espn, nba, today, verified, guideBase });
   const warnings = [...tracked.warnings], problems = [...tracked.problems];
   let tonightGame = null;
@@ -157,7 +157,11 @@ export async function buildWatch({ team, notesDate, milestones, espn, today, sim
       if (injury?.status === "Out" && injury.returnDate && g.date < injury.returnDate && !(i === 0 && nbaRow)) p = 0;   // tonight: the NBA's report, when it lists him
       return { date: g.date, pPlay: p, pStart: i === 0 && tonight ? pStartTonight : null };
     });
-    const sim = simulate({ need: t.need, stat: m.stat, sample: f.sample, games, sims, seed: hash(`${m.player}|${m.stat}|${t.need}`) });
+    // 0.146.0: the man being passed, when he is still adding to his total (src/anticipate/rivals.js). Tonight he adds only
+    // if his team plays; after that, at his own rate in each of these games (as the record chases do).
+    const rv = rivalOf ? rivalOf({ kind: m.kind, scope: m.scope, team, qualifier: m.qualifier, passing: m.passing, espnId: t.espnId }) : null;
+    const rivals = rv ? [{ sample: rv.sample, games: games.map((g, i) => ({ pPlay: i === 0 && tonight ? rv.pTonight : rv.pPlay })) }] : [];
+    const sim = simulate({ need: t.need, stat: m.stat, sample: f.sample, games, rivals, sims, seed: hash(`${m.player}|${m.stat}|${t.need}`) });
     if (sim.unknown) { it.note = `no game-by-game data for ${m.stat}`; continue; }
     // The card shows the NBA's grade when the report lists him (ESPN's return date kept), else ESPN's status, unless
     // the report has his game and leaves him off (then he is shown as no one's injury, as he will be treated).
@@ -167,6 +171,7 @@ export async function buildWatch({ team, notesDate, milestones, espn, today, sim
     if (listed) it.lineup = { status: listed.lineupStatus, position: listed.position };
     if (listed && injury?.status === "Out") it.note = `listed in tonight's starting five but ESPN has him Out`;
     if (listed?.nbaId) it.nbaId = listed.nbaId;
+    if (rv) it.rivals = [{ name: rv.name, id: rv.id, team: rv.team, tonight: !!tonight && rv.tonight }];
     it.pTonight = tonight ? round(sim.byGame[0]) : 0;
     it.pNext3 = round(sim.byGame[Math.min(2, sim.byGame.length - 1)]);
     it.pNext5 = round(sim.byGame[Math.min(4, sim.byGame.length - 1)]);

@@ -39,8 +39,16 @@ for (const rep of reports) {
     if (v === null) continue;
     // 0.141.7: the stat, the chance to play and whether he played, so the "does he play" and "how much" parts of a call can
     // be scored apart (the backtest, claude/backtest-2026-11-21.md).
-    calls.push({ team: rep.team, player: i.player, what: i.kind === "pass" ? `pass ${i.passing?.player}` : `${i.target} ${i.label}`, need: i.need, p: i.pTonight, got: v, hit: v >= i.need,
-      stat: i.stat || null, pPlay: i.pPlayTonight ?? null, played: line ? (line.played ?? (line.min ?? 0) > 0) : false });
+    // 0.146.0: a pass whose man also played tonight was simulated as finishing ahead of him (src/anticipate/rivals.js).
+    let rivalGot = 0, rivalMissing = false;
+    for (const r of (i.rivals || []).filter((x) => x.tonight)) {
+      const rl = await rivalLine(r);
+      if (rl === undefined) { rivalMissing = true; continue; }
+      rivalGot = Math.max(rivalGot, rl ? (statFromLine(i.stat, rl) ?? 0) : 0);
+    }
+    if (rivalMissing) { console.log(`${i.player}: pass ${i.passing?.player}: the other man's game isn't final yet, not scored`); continue; }
+    calls.push({ team: rep.team, player: i.player, what: i.kind === "pass" ? `pass ${i.passing?.player}` : `${i.target} ${i.label}`, need: i.need, p: i.pTonight, got: v, hit: recordHit(v, i.need, rivalGot),
+      stat: i.stat || null, pPlay: i.pPlayTonight ?? null, played: line ? (line.played ?? (line.min ?? 0) > 0) : false, ...(i.rivals?.some((x) => x.tonight) ? { rivalGot } : {}) });
   }
 }
 // 0.141.9: the record chances (records, NBA Cup lists, franchise passes, season pace), kept by the build in

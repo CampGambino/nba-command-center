@@ -193,7 +193,8 @@ function describe(i) {
   if (n === 1) stat = stat.replace(/s\b(?=[^s]*$)/, ""); // "50-point games" -> "50-point game"
   if (i.kind === "pass") {
     const rk = i.passing?.rank ? ` (#${esc(i.passing.rank)})` : "";
-    return `${fmt(n)} ${esc(stat)} from passing <b>${esc(i.passing?.player)}</b>${rk} · ${esc(SCOPE[i.scope] || i.scope)}`;
+    const too = (i.rivals || []).some((r) => r.tonight) ? ` · ${esc(nick(i.passing?.player))} plays tonight too` : "";
+    return `${fmt(n)} ${esc(stat)} from passing <b>${esc(i.passing?.player)}</b>${rk} · ${esc(SCOPE[i.scope] || i.scope)}${too}`;
   }
   return `${fmt(n)} ${esc(stat)} from <b>${fmt(i.target)}</b> · ${esc(SCOPE[i.scope] || i.scope || "career")}`;
 }
@@ -277,7 +278,14 @@ function render() {
     if (L?.box && i.espnId && L.state !== "pre") {
       const line = L.box.players.find((p) => p.id === i.espnId);
       const v = statFromLine(i.stat, line);
-      if (v != null && i.need != null) { i.liveVal = v; i.needNow = Math.max(0, i.need - v); i.liveHit = v >= i.need; }
+      // 0.146.0: the man being passed adds to his total when he plays tonight too.
+      let add = 0;
+      for (const r of (i.rivals || []).filter((x) => x.tonight)) {
+        const R = live.get(teamGame(r.team));
+        const rv = R?.box && R.state !== "pre" ? statFromLine(i.stat, R.box.players.find((p) => p.id === String(r.id))) : null;
+        if (rv) add = Math.max(add, rv);
+      }
+      if (v != null && i.need != null) { i.liveVal = v; i.needNow = Math.max(0, i.need + add - v); i.liveHit = v >= i.need + add; }
     }
   }
   // Players out tonight (Out or Doubtful) go to the bottom of every list (the user, 11/13).

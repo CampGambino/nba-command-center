@@ -2,6 +2,53 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.146.0 (2026-11-24): a pass counts the other man's game; released players read "FA"; the notes' games-played runs checked; a team's record in a player's last N games
+
+The user, 11/24, going through the loose ends: the Watch List pass lines "definitely fix. it helps to have intel for those matchups"; Tristan Enaruna "was released" (NBA.com's transactions: waived by Cleveland 11/7); "for notes' game-played, using a selfcheck is one way to assure consistency"; and a team's record in a player's last N games, asked for "because sometimes players are injured or out for a longer time in between games".
+
+**Pass lines count the man being passed** (`src/anticipate/rivals.js`, used by `src/anticipate/watch.js`):
+- Before, "needs 12 to pass DeMar DeRozan" was simulated as if DeRozan's total stood still. When he plays too, the chance is for finishing ahead of him, as the record chases have done since 0.141.12.
+- Who counts as still adding:
+  - all-time and season lists: any active player with 3+ games this season, wherever he plays
+  - franchise lists: only while he is on that franchise. Team notes print these by surname ("Wagner"), so a surname is matched to the one player on that team now with it; two or none means no rival (a retired namesake can't be told apart).
+  - subset lists ("by a teen") are frozen; a window to now ("since 2018-19") is not.
+- Tonight he adds only if his team plays, capped by his injury grade; after that, at his own rate.
+- The line says "DeRozan plays tonight too", and the page's live countdown adds what he has scored in his own game.
+- Scoring (`scripts/score.js`) checks his game the same way, and the one-chance rule (`src/anticipate/onechance.js`) keeps the Watch List's number now that both model him.
+- Tonight (local build, 3 games): no pass line has a rival who plays tonight. The matches found: Banchero → Franz Wagner (Orlando points list), Trae Young → Jokić (assists since 2018-19). Flagg's "by a teen" lines (LeBron, Jabari Smith Jr.) are correctly left frozen.
+
+**Released players read "FA" on the award page** (`docs/awards.html`), as on national TV, Clutch and the 4th quarter. The card says "free agent since 11/7". Enaruna was already "FA (from CLE)" in the data; only the page's wording differed.
+
+**The notes' games-played runs against ours** (`checkGamesPlayed` in `src/notes/facts.js`):
+- Lines like "has played in 655 consecutive games" and "his 102 consecutive games played" are compared with our count of every active run (`gpRuns` in `featlive.json`, from 0.142.6's `gamesPlayedRuns`, through last night).
+- A difference gets "Games check: our box scores count 202 straight games played through 11/22, not 203", the notes' words kept.
+- The build's `agree` check lists any that differ.
+- Only present-tense claims: Washington's "played in 179 consecutive games to start his career" (Carrington, whose run ended 11/18) is history and is left alone.
+- Tonight's six teams' notes have no such line.
+
+**A team's record in a player's last N games played** (`lastPlayed` in `src/situations/withwithout.js`, on With / without):
+- Under the summary: "LAL in his last [10] games played: 9-1 … those 10 games span 11 team games since 11/2 (he missed 1) · LAL's own last 10 …". The dropdown offers every value from 1 to his games played.
+- Checked against ESPN's game log for Dončić: his last 10 are 9-1 (11/2-11/23).
+
+**Page check.** `tools/check-pages.py` expected 12 tabs; there are 13 since the Awards tab (0.144.0). It now expects 13. It also found the Defenses tab row wider than a phone screen, so the row now wraps. All pages OK at 1400 and 390 px.
+
+**Tests.** 884 here (5 new):
+- the games-played wording, including the Washington line
+- the games check against our runs
+- the rival lookup by list kind, team, grade, surname and "since" window
+- a rival moving the bar in the simulation
+
+Notes-PDF checks skipped (samples/ not here).
+
+**Self-audit.**
+- **The first rival lookup found nothing tonight.** Franchise lists print surnames only, and it matched full names, so a teammate on the same list (Banchero chasing Franz Wagner) was missed. Fixed with the one-teammate surname rule.
+- **The first rule also froze every subset list**, including "since 2018-19", whose total still grows. Fixed.
+- **The first games-played reader read "played in 179 consecutive games to start his career"** as a current claim. It would have flagged a true historical line. Now only "has/have played" or "N consecutive games played".
+- **Not proven:**
+  - A rival is assumed to play his own team's next games at his own rate, lined up with the chaser's games; the two schedules differ after tonight.
+  - Teammates on the same list are simulated as independent, though they play the same games.
+  - No pass with a rival playing tonight has been scored yet.
+
 ## 0.145.2 (2026-11-24): words drawn twice and big call-out numbers in the notes
 
 The user, 11/24, with an NBA Live card: "DET notes: Detroit gets rim protectiona cross the lineup, with 5.85.8 Kevin Huerter tying his career high…". Two faults in how we read the PDF, plus one in Detroit's own file:

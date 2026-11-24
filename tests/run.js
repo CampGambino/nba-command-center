@@ -3644,6 +3644,41 @@ await bridgeChecks(ok, root);
     ok(dl[0].hook?.text === "Date check: the box scores have the Rockets game on 11/15, not 11/16." && dl[0].dateCheck?.actual === "2026-11-15"
       && !dl[1].hook && !dl[2].hook && !dl[3].hook && !dl[4].hook,
       "0.145.0: a date next to an opponent the team didn't play that day, but did within 3 days, is flagged with the box scores' date; right dates, other seasons and far-off dates are left alone", JSON.stringify(dl.map((l) => l.hook?.text)));
+    // 0.146.0: the notes' games-played runs against ours (the user, 11/24: a self-check keeps them consistent).
+    const said = ["Mikal Bridges has played in 655 consecutive games, the longest active streak in the NBA.", "Champagnie has appeared in 203 straight games.",
+      "His 102 consecutive games played rank third among active players.", "has played in 100 consecutive regular-season games",
+      "He scored 20+ in five straight games.", "His 185-game iron man streak ended on 11/18.", "has started 40 consecutive games", "He has played in each of the last 12 games.",
+      "Wizards guard Bub Carrington, who grew up in Northwest Baltimore, played in 179 consecutive games to start his career."].map(F.statedPlayedRun);
+    ok(JSON.stringify(said) === JSON.stringify([655, 203, 102, 100, null, null, null, null, null]),
+      "0.146.0: a current games-played run is read from the notes' wording; scoring runs, ended runs, starts and \"each of the last N\" are not", JSON.stringify(said));
+    const gpl = F.checkGamesPlayed([{ text: "Has played in 655 consecutive games.", playerId: "1" }, { text: "Has appeared in 203 straight games.", playerId: "2" },
+      { text: "Has played in 176 consecutive games.", playerId: "3" }, { text: "Has played in 50 straight games.", playerId: "4", guessed: true }], [["1", 655, "2026-11-22"], ["2", 202, "2026-11-22"]]);
+    ok(!gpl[0].hook && gpl[0].gpCheck?.now === 655 && gpl[1].hook?.text === "Games check: our box scores count 202 straight games played through 11/22, not 203."
+      && /no current run/.test(gpl[2].hook?.text || "") && gpl[2].gpCheck?.now === 0 && !gpl[3].gpCheck,
+      "0.146.0: a games-played run that differs from our count gets a games check (ours with its date, or no run at all); a matching one or a guessed player is left alone", JSON.stringify(gpl.map((l) => l.hook?.text || null)));
+  }
+  {
+    // 0.146.0: the man a Watch List pass is against still adds to his total (src/anticipate/rivals.js).
+    const { rivalLookup } = await import("../src/anticipate/rivals.js");
+    const keys = ["side", "min", "pts", "reb", "ast", "stl", "blk", "fga", "fta", "tov", "pf", "fgm", "fg3m"];
+    const row = (pts) => [0, 30, pts, 5, 5, 1, 0, 15, 4, 2, 2, 7, 2];
+    const tf = (tri, names, ids) => ({ keys, names, games: Array.from({ length: 6 }, (_, i) => ({ d: `2026-11-${String(10 + i).padStart(2, "0")}`, opp: "XXX", pl: Object.fromEntries(ids.map((id) => [id, row(20 + i)])) })) });
+    const files = { GSW: tf("GSW", { 10: "Stephen Curry", 11: "Draymond Green" }, ["10", "11"]), SAC: tf("SAC", { 20: "DeMar DeRozan" }, ["20"]) };
+    const look = rivalLookup(files, { tonightTeams: new Set(["SAC"]), statusOf: (n) => (n === "DeMar DeRozan" ? "Questionable" : null), makeSampler });
+    const a = look({ kind: "pass", scope: "nba", team: "GSW", passing: { player: "DeMar DeRozan" }, espnId: "10" });
+    const b = look({ kind: "pass", scope: "franchise", team: "GSW", passing: { player: "DeMar DeRozan" }, espnId: "10" });
+    const c = look({ kind: "pass", scope: "franchise", team: "GSW", passing: { player: "Draymond Green" }, espnId: "10" });
+    const d = look({ kind: "pass", scope: "nba", team: "GSW", qualifier: "by a teen", passing: { player: "DeMar DeRozan" }, espnId: "10" });
+    const e = look({ kind: "pass", scope: "nba", team: "GSW", passing: { player: "Wilt Chamberlain" }, espnId: "10" });
+    const f = look({ kind: "pass", scope: "franchise", team: "GSW", passing: { player: "Green" }, espnId: "10" });
+    const g = look({ kind: "pass", scope: "season", team: "GSW", qualifier: "SINCE 2018", passing: { player: "DeMar DeRozan" }, espnId: "10" });
+    ok(f?.id === "11" && g?.id === "20", "0.146.0: a franchise list's surname is the one teammate with it; a \"since 2018-19\" window still grows", JSON.stringify([f?.id, g?.id]));
+    ok(a?.id === "20" && a.tonight && a.pTonight === 0.6 && !b && c?.id === "11" && c.tonight === false && c.pTonight === 0 && !d && !e,
+      "0.146.0: a pass's rival adds wherever he plays on an all-time list, only on the same franchise on a franchise list, never on a subset list or when retired; tonight only if his team plays, capped by his grade",
+      JSON.stringify([a && [a.id, a.tonight, a.pTonight], !!b, c && [c.id, c.tonight, c.pTonight], !!d, !!e]));
+    const solo = simulate({ need: 10, stat: "pts", sample: makeSampler([{ stats: { pts: 12 } }]), games: [{ pPlay: 1 }], sims: 500 });
+    const vs = simulate({ need: 10, stat: "pts", sample: makeSampler([{ stats: { pts: 12 } }]), games: [{ pPlay: 1 }], rivals: [{ sample: makeSampler([{ stats: { pts: 20 } }]), games: [{ pPlay: 1 }] }], sims: 500 });
+    ok(solo.byGame[0] > 0.9 && vs.byGame[0] < 0.1, "0.146.0: a rival who plays the same night moves the bar (12 against a need of 10 passes him alone, not when he adds 20)", JSON.stringify([solo.byGame[0], vs.byGame[0]]));
   }
   {
     // 0.113 (the user, 11/19: "taken as factual without fact checking"): a team's winning or losing streak is set

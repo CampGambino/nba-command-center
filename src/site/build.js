@@ -81,6 +81,18 @@ export async function buildSite({ entries, games = [], uncounted = [], espn, nba
     const by = new Map(Object.entries(cs.players).map(([n, rows]) => [loose(n), rows]));
     guideBase = (name, stat) => { const rows = by.get(loose(name)), i = K[STAT[stat] || stat]; return rows && i != null ? rows.reduce((a, r) => a + (r[i] || 0), 0) : null; };
   } catch { /* no guide totals: a difference stays a count check */ }
+  // 0.146.0: the man a pass is against, when he still adds to his total (src/anticipate/rivals.js), from this season's
+  // team files as the last build left them (this step runs before situations.js rewrites them).
+  let rivalOf = null;
+  try {
+    const dir = path.join(root, "docs", "data", "teams");
+    const teamFiles = Object.fromEntries(fs.readdirSync(dir).filter((f) => /^[A-Z]{3}\.json$/.test(f)).map((f) => [f.slice(0, 3), JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"))]));
+    const tonightTeams = new Set(games.flatMap((g) => [g.homeTri, g.awayTri]).filter(Boolean));
+    const statusOf = (name, tri) => report?.rows?.find((r) => r.team === tri && sameName(r.name, name))?.status ?? null;
+    const { rivalLookup } = await import("../anticipate/rivals.js");
+    const { makeSampler } = await import("../anticipate/model.js");
+    rivalOf = rivalLookup(teamFiles, { tonightTeams, statusOf, makeSampler });
+  } catch (err) { console.error(`pass rivals skipped: ${err.message}`); }
   const reports = [], teams = [];
   for (const e of entries) {
     const base = { team: e.team, notesStatus: e.notes?.status || "local", notesWhy: e.notes?.why || e.notes?.error || null, verifiedFormat: VERIFIED_FORMATS.has(e.team) };
@@ -93,7 +105,7 @@ export async function buildSite({ entries, games = [], uncounted = [], espn, nba
     }
     let watchItems = [], tonightGame = null;
     if (parsed) {
-      const w = await buildWatch({ team: e.team, notesDate: parsed.meta.gameDate, milestones: parsed.milestones, espn, nba, today, verified, guideBase, report });
+      const w = await buildWatch({ team: e.team, notesDate: parsed.meta.gameDate, milestones: parsed.milestones, espn, nba, today, verified, guideBase, report, rivalOf });
       reports.push({ ...w, opponent: parsed.meta.opponent, notesStatus: base.notesStatus });
       watchItems = w.items; tonightGame = w.tonightGame; problems.push(...w.problems);
     }
@@ -103,7 +115,7 @@ export async function buildSite({ entries, games = [], uncounted = [], espn, nba
     const found = await discoverMilestones({ team: e.team, espn, skip: watchItems, today });
     problems.push(...found.problems);
     if (found.milestones.length) {
-      const w2 = await buildWatch({ team: e.team, notesDate: today, milestones: found.milestones, espn, nba, today, report });
+      const w2 = await buildWatch({ team: e.team, notesDate: today, milestones: found.milestones, espn, nba, today, report, rivalOf });
       reports.push({ ...w2, origin: "espn" });
       watchItems = [...watchItems, ...w2.items];
       tonightGame = tonightGame || w2.tonightGame;
@@ -139,6 +151,7 @@ export async function buildSite({ entries, games = [], uncounted = [], espn, nba
         // simulation's own figure is kept beside it. The saved predictions (what is scored) stay the raw ones.
         pTonight: PLAY_ONLY.has(i.stat) ? i.pTonight ?? null : calibrate(i.pTonight ?? null, calibration), pTonightRaw: i.pTonight ?? null, pNext3: i.pNext3 ?? null, pNext5: i.pNext5 ?? null, eta: i.eta ?? null,
         pPlayTonight: i.pPlayTonight ?? null,
+        ...(i.rivals?.length ? { rivals: i.rivals } : {}),   // 0.146.0: the man being passed also adds (src/anticipate/rivals.js)
         injury: i.injury ? { status: i.injury.status, returnDate: i.injury.returnDate, from: i.injury.from ?? null, asOf: i.injury.asOf ?? null, comment: i.injury.from === "nba" ? i.injury.comment ?? null : null } : null,
         confidence: i.confidence ?? null, games: i.form?.games ?? null, lineup: i.lineup ?? null,
         reached: !!i.reached, stale: !!i.stale, note: i.note ?? null,

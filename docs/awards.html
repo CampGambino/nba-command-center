@@ -128,11 +128,13 @@ const isCand = (p) => !!p.stake && ((p.stake.mvp || 0) >= 3 || AWS.some((k) => (
 const isRot = (p) => p.teamGames >= 5 && p.full >= p.teamGames * 0.5;
 const awardChips = (p) => p.stake ? AWS.filter((k) => p.stake[k]).sort((a, b) => p.stake[b] - p.stake[a]).map((k) => `<span class="chip aw" title="Kalshi's price: the market's chance in points">${AW[k]} ${p.stake[k]}%</span>`).join("") : "";
 const tnChip = (p) => p.tonight ? `<span class="chip ${/Out|Doubtful/i.test(p.tonight.status) ? "out" : "dtd"}" title="${esc(p.tonight.reason || "")}">${esc(p.tonight.status)} tonight</span>` : p.plays ? `<span class="chip tn">plays tonight</span>` : "";
+// 0.146.0: a released player reads "FA", as on every other page (national TV, clutch, 4th quarter).
+const teamOf = (p) => p.team || (p.status === "unsigned" ? "FA" : "");
 const thin = (p) => p.status === "alive" && p.canMiss <= 8;
 function bigNum(p) {
   if (p.status === "in") return `<div class="n">✓</div><div class="w">reached 65</div>`;
   if (p.status === "out") return `<div class="n">OUT</div><div class="w">${p.outSince ? `since ${md(p.outSince)}` : "of reach of 65"}</div>`;
-  if (p.status === "unsigned") return `<div class="n">–</div><div class="w">not on a team</div>`;
+  if (p.status === "unsigned") return `<div class="n">–</div><div class="w">free agent${p.moved ? ` since ${md(p.moved)}` : ""}</div>`;
   return `<div class="n">${p.canMiss}</div><div class="w">${p.canMiss === 1 ? "game he can miss" : "games he can miss"}</div>`;
 }
 function bar(p) {
@@ -150,7 +152,7 @@ function card(p) {
   const sitAfter = p.tonight && /Out|Doubtful/i.test(p.tonight.status) && p.status === "alive" ? ` If he sits tonight: ${p.canMiss - 1 < 0 ? "out of reach" : p.canMiss - 1}.` : "";
   const alt = p.status === "out" ? (p.alt ? ` 62-game path still open (needs a season-ending injury after his 62nd game; he has played ${Math.round((p.share || 0) * 100)}% of his team's games, 85% needed).` : " Can't reach 62 either.") : "";
   return `<div class="card ${cls}"><div class="big">${bigNum(p)}</div><div>
-    <div><span class="who">${esc(p.name)}</span><span class="team">${esc(p.team || "")}${p.was ? ` (from ${esc(p.was)})` : ""}</span></div>
+    <div><span class="who">${esc(p.name)}</span><span class="team">${esc(teamOf(p))}${p.was ? ` (from ${esc(p.was)})` : ""}</span></div>
     <div class="chips">${awardChips(p)}${tnChip(p)}</div>
     ${bar(p)}
     <div class="meta">${p.q} counted of ${p.teamGames} team games · ${p.left ?? "?"} left · needs ${p.need}${p.noGames ? " · hasn't played this season" : p.status === "alive" ? ` · on pace for ${p.pace}` : ""}.${sitAfter}${alt}${p.status === "out" && p.grievanceBy ? ` Grievance window closed ${md(p.grievanceBy)}.` : ""}</div>
@@ -166,7 +168,7 @@ const val = (p, k) => k === "stake" ? stakeMax(p) : k === "missedN" ? p.teamGame
 function statusCell(p) {
   if (p.status === "out") return `<span class="st-out">out since ${md(p.outSince)}</span>${p.alt ? ` <span class="small">62 path open</span>` : ""}`;
   if (p.status === "in") return `<span class="st-in">eligible</span>`;
-  if (p.status === "unsigned") return `<span class="small">not on a team</span>`;
+  if (p.status === "unsigned") return `<span class="small">free agent${p.moved ? ` since ${md(p.moved)}` : ""}</span>`;
   return thin(p) ? `<span class="st-thin">${p.canMiss === 0 ? "no games to spare" : "on the edge"}</span>` : "alive";
 }
 function rows() {
@@ -178,7 +180,7 @@ function rows() {
 function renderTable() {
   const L = rows();
   $("tbl").innerHTML = `<thead><tr>${COLS.map(([k, t, n]) => `<th data-k="${k}" class="${n ? "num" : ""} ${SORT.k === k ? "on" : ""}">${t}${SORT.k === k ? (SORT.dir > 0 ? " ▲" : " ▼") : ""}</th>`).join("")}</tr></thead><tbody>${L.map((p) => `
-    <tr class="prow" data-id="${p.id}"><td>${esc(p.name)}</td><td>${esc(p.team || "–")}</td><td>${awardChips(p) || '<span class="small">–</span>'}</td><td class="num">${p.q}</td><td class="num">${p.teamGames}</td><td class="num">${p.left ?? "–"}</td><td class="num">${p.need}</td>
+    <tr class="prow" data-id="${p.id}"><td>${esc(p.name)}</td><td>${esc(teamOf(p) || "–")}</td><td>${awardChips(p) || '<span class="small">–</span>'}</td><td class="num">${p.q}</td><td class="num">${p.teamGames}</td><td class="num">${p.left ?? "–"}</td><td class="num">${p.need}</td>
     <td class="num">${p.status === "alive" ? p.canMiss : "–"}</td><td class="num">${p.shortUsed}/2</td><td class="num">${p.status === "alive" && !p.noGames ? p.pace : "–"}</td><td class="num">${p.teamGames - p.q}</td><td>${statusCell(p)} ${tnChip(p)}</td></tr>
     ${OPEN.has(p.id) ? `<tr class="detail"><td colspan="${COLS.length}">${esc(missedText(p) ? `Not counted: ${missedText(p)}.` : "Counted in every team game.")} ${p.under || p.short ? esc(`Games he played: ${p.full} at 20+ minutes, ${p.short} at 15-19 (${p.shortUsed} of them counted), ${p.under} under 15.`) : ""}${p.border.length ? `<br>Close calls on minutes: ${esc(borderText(p))}` : ""}${p.status === "out" && p.grievanceBy ? `<br>Out of reach since ${md(p.outSince)}; a grievance had to be filed by ${md(p.grievanceBy)}.` : ""}</td></tr>` : ""}`).join("")}</tbody>`;
   $("tblNote").textContent = `${L.length} player${L.length === 1 ? "" : "s"}. ${VIEW === "cand" ? "Award candidates: Kalshi gives him 3% or more for MVP, or 10% or more for DPOY, Most Improved, All-NBA (1st + 2nd + 3rd team) or All-Defensive (1st + 2nd)." : VIEW === "rot" ? "Rotation players: 20+ minutes in at least half his team's games." : ""} Click a row for the games he didn't count in.`;

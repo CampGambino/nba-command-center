@@ -123,12 +123,13 @@
     <span class="toggle" id="dir"><button data-d="best" class="on">Biggest rise first</button><button data-d="worst">Biggest drop first</button></span>
   </div>
   <div class="key" id="summary"></div>
+  <div class="key" id="lastn"></div>
   <div class="scroll"><table id="t"></table></div>
   </section>
 </main>
 <footer id="foot">"Without" counts games he didn't play (not listed, or 0 minutes) since his first game listed with the team. Averages are per game played by each teammate. Small samples: a 1- or 2-game "without" sample says little. From ESPN box scores.</footer>
 <script type="module">
-import { roster, withWithout } from "./lib/situations/withwithout.js";
+import { roster, withWithout, lastPlayed } from "./lib/situations/withwithout.js";
 import { pairSplit, everyone } from "./lib/situations/pairsplit.js";
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -164,7 +165,23 @@ function render() {
     const d = diff(p, k); const big = d != null && (k === "pts" ? Math.abs(d) >= 4 : k === "min" ? Math.abs(d) >= 5 : false);
     return `<td class="num">${fmt(p.with?.[k] ?? null)}</td><td class="num">${fmt(p.without?.[k] ?? null)}</td><td class="num ${big ? (d > 0 ? "hi" : "lo") : ""}">${d == null ? "–" : sg(d)}</td>`; }).join("")}</tr>`).join("");
   $("t").innerHTML = head1 + head2 + body;
+  renderLastN();
   document.querySelectorAll("th.sort").forEach((el) => el.onclick = () => { if (sortKey === el.dataset.k) dir = dir === "best" ? "worst" : "best"; else { sortKey = el.dataset.k; dir = "best"; } sync(); render(); });
+}
+// 0.146.0: the team in his last N games played, beside the team's own last N (they differ when he has missed time).
+let lastN = 10;
+function renderLastN() {
+  const id = $("out").value, gp = roster(file).find((p) => p.id === id)?.gp || 0;
+  if (!gp) { $("lastn").innerHTML = ""; return; }
+  const n = Math.min(lastN, gp), x = lastPlayed(file, id, n);
+  if (!x) { $("lastn").innerHTML = ""; return; }
+  const opts = Array.from({ length: gp }, (_, i) => i + 1).map((k) => `<option${k === n ? " selected" : ""}>${k}</option>`).join("");
+  const r = x.record, t = x.teamLastN, md = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}`;
+  $("lastn").innerHTML = `<b>${file.team} in his last <select id="lastnSel" aria-label="games">${opts}</select> games played</b>: ${r.w}-${r.l}, average margin ${sg(r.margin)}`
+    + ` · those ${x.n} games span ${x.spanned} team games since ${md(x.since)}${x.missed ? ` (he missed ${x.missed})` : ""}`
+    + ` · ${file.team}'s own last ${x.n}: ${t.w}-${t.l}, ${sg(t.margin)}`
+    + (x.averages ? ` · his line: ${f1(x.averages.pts)} pts, ${f1(x.averages.reb)} reb, ${f1(x.averages.ast)} ast in ${f1(x.averages.min)} min` : "");
+  $("lastnSel").onchange = (e) => { lastN = +e.target.value; renderLastN(); };
 }
 function sync() { document.querySelectorAll("#dir button").forEach((b) => b.classList.toggle("on", b.dataset.d === dir)); }
 document.querySelectorAll("#dir button").forEach((b) => b.onclick = () => { dir = b.dataset.d; sync(); render(); });
