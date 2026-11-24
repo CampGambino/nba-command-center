@@ -367,10 +367,11 @@
   .poster .ctrow{position:absolute;display:flex;align-items:center;gap:14px}
   .poster .ctrow .hs{box-shadow:0 0 0 3px var(--ring,#fff), 0 6px 16px rgba(40,22,4,.45);
     border-radius:50%}
-  .poster .cttext{white-space:nowrap;position:relative;padding-left:24px;
-    text-shadow:0 1px 3px rgba(40,22,4,.55)}
-  .poster .ctrank2{position:absolute;left:0;top:4px;font-size:13px;font-weight:800;
-    color:rgba(255,255,255,.8);font-variant-numeric:tabular-nums}
+  /* 0.152.0: a dark plate behind each name, so white text reads on the light wood and over the court's lines */
+  .poster .cttext{white-space:nowrap;position:relative;padding:5px 12px 6px 34px;margin-left:6px;
+    background:rgba(20,24,29,.82);border-radius:10px;box-shadow:0 4px 12px rgba(40,22,4,.25)}
+  .poster .ctrank2{position:absolute;left:12px;top:9px;font-size:13px;font-weight:800;
+    color:rgba(255,255,255,.75);font-variant-numeric:tabular-nums}
   .poster .ctrname{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.4px;
     line-height:1.1}
   .poster .ctrdist{font-size:14px;font-weight:600;color:rgba(255,255,255,.9);
@@ -384,7 +385,7 @@
   .poster .scdot.rest{fill:#c3c9d2}
   .poster .scdot.deep{stroke:#fff;stroke-width:1.6}
   .poster .scerr{stroke-width:2.4;stroke-opacity:.45;stroke-linecap:round}
-  .poster .sclab{font-size:12.5px;fill:#0d1117;font-weight:700}
+  .poster .sclab{font-size:12.5px;fill:#0d1117;font-weight:700;paint-order:stroke;stroke:#fff;stroke-width:3px}
 
   .pfoot{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
     margin-top:16px;padding-top:12px;border-top:1px solid #e6e9ee}

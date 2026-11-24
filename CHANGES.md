@@ -2,6 +2,31 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.152.0 (2026-11-24): Game Flow posters cleaned up — legible names, shorter footers, no empty layout choice
+
+The user, 11/24, on the Game Flow posters: they "could be relevant later, especially if they are spruced up, legible, and easily digestible"; then "go for 2, 3, and 4".
+
+**3PT range, "accuracy vs distance" poster** (`docs/gameflow/poster-scatter.js`):
+- The 12 named shooters no longer sit on their dots, where they piled up. Each name is in a column on the right with a thin line to his dot.
+- The "typical ±5.6 pts" bar moved under the names, out of the data.
+- Scatter labels have a white halo so grid lines don't run through them.
+- The footer is three short lines in place of a paragraph.
+
+**3PT range, "distance on court" poster** (`docs/gameflow/poster-court.js`, `docs/gameflow.css`):
+- The names and numbers were dark text on the wood floor; they now sit on a dark plate, white on dark.
+- The footer's span was hard-coded ("1.2 ft") and wrong for most cuts (0.7 ft for the full season today). It is now worked out from the five shown.
+
+**3PT range, "shot charts"**: the note under the charts was seven sentences on where each distance came from. It is now three: how they're ranked, that most distances are ESPN's whole feet (so a tenth between two players means little), and what a dot is.
+
+**Leads & comebacks**: had a layout menu whose "infographic" choice drew the same table. The menu is gone for this view. Counts and percentages ran together ("3 18%"); now "3 (18%)", the percentage smaller and grey.
+
+**Checked:** every poster and layout re-drawn in a headless browser against live ESPN data: accuracy vs distance, distance on court, shot charts, leads & comebacks, scoring highs, assist leaderboard. No page errors, no names overlapping. Tests 886 passed; all pages OK; bundled rules up to date.
+
+**Self-audit:**
+- The span in the court footer had been printing a number that wasn't computed; any other fixed numbers in poster footers? Searched poster-*.js for digits inside footer text: none left.
+- The shot-chart note no longer says how many distances came from each source. That detail is in the code comment; the page says only what changes the reading.
+- Not done: the season rotation heatmap and assist network have no poster form; nobody asked for one.
+
 ## 0.151.0 (2026-11-24): Lineups (2- to 5-man units) and hustle stats from NBA.com's rotations; exact seconds for award eligibility
 
 The user, 11/24, on the rotations and lineups idea parked earlier that day: "go for 2" (with the poster clean-up and the Game Flow split).

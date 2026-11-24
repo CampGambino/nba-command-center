@@ -1089,7 +1089,7 @@ export const layoutMode   = () => ($("#layout") ? $("#layout").value : "table");
 const TABLE_OR_POSTER=[["table","table"],["poster","infographic"]];
 const LAYOUTS={
   board:TABLE_OR_POSTER,
-  highs:TABLE_OR_POSTER, streaks:TABLE_OR_POSTER,
+  highs:TABLE_OR_POSTER,   // 0.152.0: streaks had an "infographic" choice that drew the same table; removed
   range:[["profile","shot profile"],["courts","shot charts"],["plot","distance on court"],["scatter","accuracy vs distance"]],
   splits:[["court","on / off court"],["game","by game"]],  // on/off first: the game-level split lives on the With / without page (0.58)
 };
@@ -1734,24 +1734,10 @@ function renderRange(agg){
   const nField=top.reduce((a,r)=>a+r.fromField,0);
   const nText=top.reduce((a,r)=>a+r.fromText,0);
   const nSpot=top.reduce((a,r)=>a+r.fromSpot,0);
-  const bits=[`Ranked on mean distance over every three-point attempt, makes and misses.`,
-    `${tot-noD} of ${tot} attempts carried a distance.`];
-  /* Which signal fed the average decides how much the decimal is worth, so it is
-     named rather than left for the reader to assume. The league feed measures to a
-     hundredth of a foot; ESPN states whole feet, so the same leaderboard is roughly
-     two orders of magnitude coarser per shot on that source. */
-  if(nField) bits.push(`${nField} came from the league feed's own <b>shotDistance</b>, `+
-    `measured to a hundredth of a foot.`);
-  if(nText) bits.push(`${nText} were read from the play text, which states `+
-    `<b>whole feet</b> — so each of those carries up to half a foot of rounding.`);
-  if(nSpot) bits.push(`${nSpot} fell back to the shot's coordinate.`);
-  if(nText && !nField) bits.push(`Running the local helper switches to the official `+
-    `feed and replaces every whole-foot figure with a measured one.`);
-  if(agg.agree) bits.push(`Where a stated distance and a coordinate both exist they `+
-    `differ by ${agg.agree.mean.toFixed(2)} ft on average (worst `+
-    `${agg.agree.max.toFixed(0)} ft).`);
-  bits.push(`Dots are placed from the coordinate; attempts from the same spot stack `+
-    `into one larger dot rather than being scattered to look distinct.`);
+  // 0.152.0: said briefly (the user, 11/24: "legible, and easily digestible"); the measurement detail is in the code
+  const bits=[`Ranked by the average distance of every three he took, makes and misses (${tot-noD} of ${tot} attempts have one).`];
+  if(nText) bits.push(`${nField ? "Some" : "Most"} distances are ESPN's whole feet, so a tenth of a foot between two players means little.`);
+  bits.push(`Each dot is a shot's spot; several from one spot make a bigger dot.`);
   const nt=el("div","note"); nt.innerHTML=bits.join(" ");
   card.appendChild(nt);
   finishRender();
@@ -2751,7 +2737,7 @@ const VIEW_CONTROLS = {
   board:    ["season","team","span","rank","layout","metric","shot","reload"],
   highs:    ["season","team","span","layout","reload"],
   range:    ["season","team","span","layout","reload"],
-  streaks:  ["season","span","layout","reload"],
+  streaks:  ["season","span","reload"],
   splits:   ["season","team","span","who1","who2","layout","reload"],
 };
 const ALL_CONTROLS = ["season","team","span","norm","metric","rank","layout","pool","shot",

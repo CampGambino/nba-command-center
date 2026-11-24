@@ -126,12 +126,10 @@ export function renderRangeCourt(card, agg){
   const p=posterShell(`NBA ${seasonLabel()}`, "Where the deepest shooters live");
   p.appendChild(wrap);
   posterFoot(p, [rangeScope(agg, agg.eligible.length),
-    `Ranked on mean distance over every three-point attempt; the percentage beside each `+
-    `name is his three-point shooting on those attempts.`,
-    `<b>The list is ordered, not to scale.</b> These five averages span 1.2 ft while the `+
-    `closest of them already sits ${near.toFixed(1)} ft behind the line, so no single scale `+
-    `can separate a tenth of a foot and still fit on a court. Position is rank; the numbers `+
-    `are the measurement.`]);
+    `Ranked by the average distance of every three he took; the percentage is how many went in.`,
+    // 0.152.0: the span was printed as a fixed "1.2 ft" whatever the five were
+    `<b>Ordered, not to scale:</b> these ${rows.length} span ${(Math.max(...rows.map(r=>r.avg))-Math.min(...rows.map(r=>r.avg))).toFixed(1)} ft, `+
+    `all ${near.toFixed(1)}+ ft behind the line.`]);
   card.appendChild(p);
   posterTools(card, p, "Where the deepest shooters live", "nba-3pt-court.html");
 }

@@ -71,20 +71,18 @@ export function renderRangeScatter(card, agg){
       fill:tcol(r.tri), class:"scdot deep"}));
   });
 
-  const LH=17;
+  // 0.152.0: the names in one column in the right margin, each tied to its dot, so no name sits on another shooter's
+  // dot (they were placed beside their own dots and crossed the neighbours'). The error bar moves to the bottom corner.
+  const LH=17, railX=W-R+16;
   const place=marked.map(r=>({r, x:px(r.avg), y:py(r.pct)})).sort((a,b)=>a.y-b.y);
   let lastY=-1e9;
-  place.forEach(o=>{ o.ly=Math.max(o.y, lastY+LH); lastY=o.ly; });
-  const over=lastY-(H-B-2);
+  place.forEach(o=>{ o.ly=Math.max(o.y+4, lastY+LH, T+4); lastY=o.ly; });
+  const over=lastY-(H-B-70);
   if(over>0) place.forEach(o=>{ o.ly-=over; });
+  for(let i=1;i<place.length;i++) if(place[i].ly<place[i-1].ly+LH) place[i].ly=place[i-1].ly+LH;
   place.forEach(o=>{
-    const right = o.x < W-R-8;
-    const lx = right ? o.x+11 : o.x-11;
-    if(Math.abs(o.ly-o.y)>3)
-      svg.appendChild(svgEl("line",{x1:o.x+(right?6:-6), y1:o.y, x2:lx-(right?2:-2),
-        y2:o.ly-4, class:"sctie"}));
-    svg.appendChild(svgText(lx, o.ly, o.r.name,
-      {class:"sclab","text-anchor":right?"start":"end"}));
+    svg.appendChild(svgEl("line",{x1:o.x+7, y1:o.y, x2:railX-4, y2:o.ly-4, class:"sctie"}));
+    svg.appendChild(svgText(railX, o.ly, o.r.name, {class:"sclab","text-anchor":"start"}));
   });
 
   /* One representative error bar in the corner instead of twelve across the plot. The
@@ -92,7 +90,7 @@ export function renderRangeScatter(card, agg){
      thing on the chart and it crossed the names. */
   const seTyp=marked.map(se).sort((a,b)=>a-b);
   const seMid=seTyp[Math.floor(seTyp.length/2)]||0;
-  const gx=W-R+34, gy=T+40, gh=(seMid/(y1-y0))*(H-T-B);
+  const gh=(seMid/(y1-y0))*(H-T-B), gx=W-R+34, gy=H-B-gh-6;
   svg.appendChild(svgEl("line",{x1:gx, y1:gy-gh, x2:gx, y2:gy+gh, class:"scerr",
     stroke:"#6b7480"}));
   svg.appendChild(svgEl("line",{x1:gx-4, y1:gy-gh, x2:gx+4, y2:gy-gh, class:"scerr",
@@ -103,18 +101,11 @@ export function renderRangeScatter(card, agg){
   svg.appendChild(svgText(gx+9, gy+9, `±${seMid.toFixed(1)} pts`, {class:"scgloss"}));
 
   p.appendChild(svg);
+  // 0.152.0: the footer, said in three short lines (the user, 11/24: posters "spruced up, legible, and easily digestible")
   posterFoot(p, [rangeScope(agg, all.length),
-    `Coloured and named are the ${deep.size} deepest averages; grey are the other `+
-    `qualified shooters, there so you can see whether the deep ones are unusual.`,
-    `Every shooter here averages at least ${Math.min(...xs).toFixed(1)} ft, so the `+
-    `three-point line sits off the left of the scale rather than wasting a third of it.`,
-    `The bar at the right is one standard error on a percentage at this sample size — `+
-    `typically ±${seMid.toFixed(1)} points, wide enough that small gaps between players `+
-    `are not real. It is drawn once rather than on every shooter.`,
-    `Across all ${n} qualified shooters the correlation between average distance and `+
-    `percentage is <b>r = ${rr.toFixed(2)}</b>. That is a description of these `+
-    `${n} players, not a law: no line is drawn because at this sample size one would `+
-    `imply more than the data holds.`]);
+    `Named: the ${deep.size} deepest average distances; grey: everyone else with enough attempts.`,
+    `The bar at the right is the usual margin of error (±${seMid.toFixed(1)} points): gaps smaller than that mean little.`,
+    `Distance and accuracy barely move together here (r = ${rr.toFixed(2)}).`]);
   card.appendChild(p);
   posterTools(card, p, "Does shooting deeper cost you?", "nba-3pt-accuracy.html");
 }

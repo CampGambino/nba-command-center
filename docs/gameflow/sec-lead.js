@@ -109,8 +109,8 @@ export function renderStreaks(agg){
     const td=el("td"); td.style.textAlign="left";
     td.innerHTML=`<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${tcol(t.tri)};margin-right:5px"></span>${t.tri}`;
     tr.appendChild(td);
-    COLS.forEach(c=>{ const v=c[2](t); const d=el("td","",String(v)+(c[0]!=="gp" && t.gp? ` <span style="color:var(--dimmer)">${pc(v,t.gp)}</span>`:""));
-      d.innerHTML=String(v)+(c[0]!=="gp" && t.gp? ` <span style="color:var(--dimmer)">${pc(v,t.gp)}</span>`:"");
+    COLS.forEach(c=>{ const v=c[2](t); const d=el("td","",String(v)+(c[0]!=="gp" && t.gp? `<span style="color:var(--dimmer);margin-left:7px;font-size:.88em">(${pc(v,t.gp)})</span>`:""));
+      d.innerHTML=String(v)+(c[0]!=="gp" && t.gp? `<span style="color:var(--dimmer);margin-left:7px;font-size:.88em">(${pc(v,t.gp)})</span>`:"");
       if(c[0]===sortKey.k){ d.style.color="var(--text)"; d.style.fontWeight="500"; } tr.appendChild(d); });
     [t.bigBlown,t.bigComeback].forEach(b=>{ const d=el("td"); d.innerHTML=game(b); d.style.textAlign="left"; tr.appendChild(d); });
     tbl.appendChild(tr);
