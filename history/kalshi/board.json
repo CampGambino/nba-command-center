@@ -33,7 +33,7 @@
   "KXNBASTLPROT": {
    "title": "NBA Player Steals Protected",
    "events": 3,
-   "markets": 49
+   "markets": 50
   },
   "KXNBASTOCK": {
    "title": "NBA Player Steals + Blocks",
@@ -338,7 +338,7 @@
   "KXNBASTATLEADER": {
    "title": "NBA Regular Season League Leader",
    "events": 11,
-   "markets": 693
+   "markets": 694
   },
   "KXNBASJC": {
    "title": "NBA Social Justice Champion",
@@ -618,7 +618,7 @@
   "KXNBASTL": {
    "title": "NBA Player Steals",
    "events": 3,
-   "markets": 49
+   "markets": 50
   },
   "KXNBARACE": {
    "title": "NBA Race to Points",
@@ -735,24 +735,24 @@
   "KXNBACLUTCH-27": "Stephen Curry 10%",
   "KXNBAROY-27": "Darius Acuff Jr. 35%",
   "KXNBACENTRAL-26": "Detroit 68%",
+  "KXNBAEXEC-27": "Zach Kleiman 41%",
   "KXNBAMIMP-27": "Ty Jerome 31%",
   "KXNBARECORD-27BEST": "San Antonio 45%",
   "KXNBARECORD-27WORST": "Sacramento 39%",
-  "KXNBAEXEC-27": "Zach Kleiman 41%",
   "KXNBACUPMVP-27": "Victor Wembanyama 26%",
-  "KXNBAEAST-27": "Boston 21%",
   "KXNBAWEST-27": "San Antonio 35%",
+  "KXNBAEAST-27": "Boston 21%",
   "KXNBADPOY-27": "Victor Wembanyama 79%",
   "KXNBASOUTHWEST-26": "San Antonio 75%",
-  "KXNBAATLANTIC-26": "Boston 46%",
   "KXNBASOUTHEAST-26": "Miami 51%",
-  "KXNBAFINMVP-27": "Victor Wembanyama 24%",
+  "KXNBAATLANTIC-26": "Boston 46%",
   "KXNBAEFINMVP-27": "Tyrese Maxey 20%",
-  "KXNBACUP-26": "San Antonio 23%",
   "KXNBACOY-27": "Micah Nori 22%",
-  "KXNBAMVP-27": "Victor Wembanyama 55%",
+  "KXNBAFINMVP-27": "Victor Wembanyama 24%",
+  "KXNBACUP-26": "San Antonio 23%",
   "KXNBANORTHWEST-26": "Oklahoma City 33%",
   "KXNBACONF-27": "Western Conference 61%",
+  "KXNBAMVP-27": "Victor Wembanyama 55%",
   "KXNBAWFINMVP-27": "Shai Gilgeous-Alexander 20%",
   "KXNBASIXTH-27": "Jrue Holiday 36%",
   "KXNBAPACIFIC-26": "Los Angeles L 82%",
