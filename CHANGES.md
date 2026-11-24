@@ -2,6 +2,42 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.148.0 (2026-11-24): the Bulls' and Pelicans' filled games checked against NBA.com's own box scores
+
+The user, 11/24: "continue with the bulls/pelicans. maybe you can use nba.com to verify those box scores".
+
+**NBA.com's box scores for all 972 games** (`tools/fetch-nbacom-box.mjs` → `tools/outside/nbacom/box-<season>.jsonl`, 2012-13 to 2017-18):
+- This is stats.nba.com's traditional box score for the same game ids as the pbpstats fill. It has every column, including turnovers, fouls and plus-minus, which pbpstats lacks.
+- One request every 1.5 seconds, run in three groups; all 972 were read with no failures. Players' points add up to the final score in all 972.
+
+**Against the pbpstats files:**
+- 20,117 player lines.
+- Points, assists, blocks, field goals made and threes made agree in every line.
+- Rebounds differ in 4 lines, steals in 4, field goal attempts in 4, three attempts in 1, free throw attempts in 6, offensive rebounds in 8, defensive rebounds in 10.
+- 3 players appear in NBA.com's box score only.
+- So the fill was right almost everywhere, as 0.122.0 found on the user's five Basketball-Reference box scores. The old note in `tools/fetch-pbpstats.mjs` saying steals "run short" is corrected.
+
+**The players' filled lines** (`src/data/player-logs-fill.json.gz`, `tools/verify-fill-nbacom.mjs`):
+- 1,286 of 1,291 lines matched their NBA.com line. The match is by game, then by the same points and seven shooting numbers; two alike are told apart by rebounds, assists and blocks.
+- Matched lines now carry NBA.com's minutes, rebounds, assists, steals and blocks, and the mark "n". Four numbers changed:
+  - Jrue Holiday, 10/28/17: rebounds 5 → 4
+  - Anthony Davis, 12/13/16: steals 1 → 2
+  - Taurean Prince, 10/26/17: rebounds 1 → 2
+  - Bogdan Bogdanović, 3/7/18: minutes 26 → 27
+- Lines marked "n" are whole lines for every reader (`src/situations/logfill.js`). The Streaks page's career highs, which set filled lines aside, now count them.
+- The other 5 stay "p", as before.
+
+**The odd-lines history** (`tools/odd-games/build-history.mjs`):
+- It now takes turnovers and fouls for the filled games from NBA.com, so every rule counts for those lines on its next run.
+- It hasn't been rerun: it reads the 39,065-game ESPN archive, which isn't in this workspace any more (`tools/odd-games/fetch-full.mjs` rebuilds it, several hours).
+
+**Tests.** 885 here (1 new: the verified lines carry "n"; the file check accepts "n").
+
+**Self-audit.**
+- **The first fetch was one game at a time, about 15 seconds a game** (stats.nba.com answers slowly): over four hours. It was restarted as three groups of two seasons, at the same 1.5-second spacing within each.
+- **The first match left 17 lines unmatched** because two players had the same scoring line (mostly scoreless). Rebounds, assists and blocks now break the tie; 5 are still alike and are left as they were.
+- **NBA.com's terms allow personal, noncommercial use.** That fits this project as the user runs it. The user asked for this use of NBA.com.
+
 ## 0.147.0 (2026-11-24): the redesign: light mode, six menus with search, and the Spotlight (no cap)
 
 The user, 11/24: "redesign the site", after accepting the mockup ("good but not great. I can live with it. there shouldn't be a cap regardless of how many games are played a night. the important information should rise to the front"). Earlier asks that still hold: light mode, no card just for a percentage, nothing lost from the current site, and outliers and key milestones with a bigger spotlight that grows on big nights.

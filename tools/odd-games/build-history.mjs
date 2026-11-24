@@ -52,6 +52,16 @@ const unnamed = {};
 const SCREENS = "tools/outside/bref-screens", screen = new Map();
 if (fs.existsSync(SCREENS)) for (const f of fs.readdirSync(SCREENS).filter((x) => x.endsWith(".json"))) for (const g of JSON.parse(fs.readFileSync(path.join(SCREENS, f), "utf8")).games || [])
   screen.set(`${g.d}|${[tri(g.h), tri(g.a)].sort().join("|")}`, Object.fromEntries(Object.entries(g.p).map(([name, v]) => [norm(name), { tov: v[13], pf: v[14], pts: v[15], reb: v[9] }])));
+// 0.148.0: NBA.com's own box score for every one of the 972 filled games (tools/outside/nbacom, by tools/fetch-nbacom-box.mjs),
+// so every filled line has its turnovers and fouls and every rule counts for it on the next run. Its points, shooting,
+// rebounds, assists, steals and blocks matched pbpstats in 20,113 of 20,117 player lines (CHANGES 0.148.0).
+const NBACOM = "tools/outside/nbacom";
+if (fs.existsSync(NBACOM)) for (const f of fs.readdirSync(NBACOM).filter((x) => /^box-.*\.jsonl$/.test(x))) for (const row of fs.readFileSync(path.join(NBACOM, f), "utf8").split("\n").filter(Boolean)) {
+  const g = JSON.parse(row), C = Object.fromEntries(g.cols.map((c, i) => [c, i + 5]));
+  const k = `${g.d}|${[tri(g.h), tri(g.a)].sort().join("|")}`;
+  if (screen.has(k)) continue;   // a Basketball-Reference screenshot read for the game comes first
+  screen.set(k, Object.fromEntries(Object.values(g.p).flat().filter((p) => p[3]).map((p) => [norm(p[1]), { tov: p[C.tov], pf: p[C.pf], pts: p[C.pts], reb: p[C.reb] }])));
+}
 if (fs.existsSync(FILL_DIR)) {
   const zeroedAt = new Map(), whole = new Set();
   for (const f of fs.readdirSync(DIR)) {

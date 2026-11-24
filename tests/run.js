@@ -2105,10 +2105,12 @@ await bridgeChecks(ok, root);
     const FL = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(root, "src", "data", "player-logs-fill.json.gz")))), LG = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(root, "src", "data", "player-logs-history.json.gz"))));
     const fx = Object.fromEntries(FL.columns.map((c, i) => [c, i])), all = Object.entries(FL.players).flatMap(([id, rs]) => rs.map((r) => [id, r]));
     const clash = all.filter(([id, r]) => (LG.players[id] || []).some((x) => x[0] === r[fx.date])).length, strangers = Object.keys(FL.players).filter((id) => !LG.players[id]).length;
-    ok(all.length >= 1291 && all.every(([, r]) => r[fx.src] === "p" && r[fx.type] === 2 && r[fx.date] >= "2012-10-01" && r[fx.date] <= "2018-04-30" && r[fx.pts] >= 0 && r[fx.fgm] <= r[fx.fga] && r[fx.fg3m] <= r[fx.fg3a] && r[fx.ftm] <= r[fx.fta]
+    ok(all.length >= 1291 && all.every(([, r]) => (r[fx.src] === "p" || r[fx.src] === "n") && r[fx.type] === 2 && r[fx.date] >= "2012-10-01" && r[fx.date] <= "2018-04-30" && r[fx.pts] >= 0 && r[fx.fgm] <= r[fx.fga] && r[fx.fg3m] <= r[fx.fg3a] && r[fx.ftm] <= r[fx.fta]
       && r[fx.pts] === 2 * r[fx.fgm] + r[fx.fg3m] + r[fx.ftm]) && clash === 0 && strangers === 0 && !LG.columns.includes("src"),
-      "0.110: src/data/player-logs-fill.json.gz: every row is marked \"p\", its points equal its made shots (2 x FGM + 3PM + FTM), no row repeats a game the logs have, every player is in the logs, and the logs file itself has no such rows",
+      "0.110: src/data/player-logs-fill.json.gz: every row is marked \"p\" (or \"n\", checked against NBA.com, 0.148.0), its points equal its made shots (2 x FGM + 3PM + FTM), no row repeats a game the logs have, every player is in the logs, and the logs file itself has no such rows",
       JSON.stringify([all.length, clash, strangers]));
+    const nn = all.filter(([, r]) => r[fx.src] === "n").length;
+    ok(nn >= 1280 && nn <= all.length, "0.148.0: the filled lines checked against NBA.com's box scores carry src \"n\" (1,286 of 1,291)", String(nn));
   }
   {
     // 0.115: one player's total against whole teams' totals, by window (the user, 11/19: "wembanyama having more blocks

@@ -6,6 +6,8 @@
 // So the filled logs go ONLY to readers that use the exact columns, or that use a floor in a way a floor can carry
 // (a floor of 1 or more is not a zero). Every other reader keeps the logs as they were. EXACT says which stats a reader
 // may take from a row with src "p".
+// 0.148.0: lines checked against NBA.com's own box score (tools/verify-fill-nbacom.mjs) carry src "n" and every column is
+// NBA.com's: a whole line, which no reader needs to set apart (1,286 of the 1,291; the other 5 stay "p").
 export const EXACT = new Set(["pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta"]);
 export const isFill = (row, columns) => row[columns.indexOf("src")] === "p";
 
@@ -16,7 +18,7 @@ export function withFill(logs, fill) {
   const players = {};
   for (const [id, rows] of Object.entries(logs.players)) {
     const have = new Set(rows.map((r) => r[di]));
-    const extra = (fill.players[id] || []).filter((r) => r[fi.src] === "p" && !have.has(r[fi.date])).map((r) => cols.map((c) => (fi[c] != null ? r[fi[c]] ?? null : null)));
+    const extra = (fill.players[id] || []).filter((r) => (r[fi.src] === "p" || r[fi.src] === "n") && !have.has(r[fi.date])).map((r) => cols.map((c) => (fi[c] != null ? r[fi[c]] ?? null : null)));
     players[id] = extra.length ? [...rows, ...extra].sort((a, b) => (a[di] < b[di] ? -1 : a[di] > b[di] ? 1 : 0)) : rows;
   }
   return { ...logs, columns: cols, players };

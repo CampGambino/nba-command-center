@@ -10,9 +10,10 @@
 //   { id, d, h, a, hs, as, p: { Home: [[nbaId, name, min, pts, reb, oreb, dreb, ast, stl, blk, fg3m, fg3a, fgm, fga, ftm, fta], …], Away: […] } }
 //
 // What these numbers are: pbpstats counts them from the league's play-by-play, so they are not the box score. Points,
-// field goals, threes and free throws are scoring plays and add up to the score (checked on reading, tools side). Steals
-// are short where a steal is not attached to a turnover play (Anthony Davis, 10/26/16: 5 here, 7 in the box score), and
-// rebounds can be one off (15 here, 16 in that night's box score). Use points and shooting; treat the rest as a floor.
+// field goals, threes and free throws are scoring plays and add up to the score (checked on reading, tools side).
+// (Corrected 0.148.0: this note used to say steals and rebounds run short, from Anthony Davis's 10/26/16 night-of reports
+// of 16 and 7. Basketball-Reference (0.122.0) and NBA.com's own box score (0.148.0) both have his 15 and 5, as here; across
+// all 972 games NBA.com's box score matches these files in 20,113 of 20,117 player lines.)
 import fs from "node:fs";
 import path from "node:path";
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i < 0 ? d : process.argv[i + 1]; };
