@@ -5898,6 +5898,58 @@ await bridgeChecks(ok, root);
     "notes (0.157.0): \"Season\" under a bio header's \"• 6th\" is not read into the sentence beside it (Phoenix, 11/25: \"Nov. 2 and Nov. Season 4\")", JSON.stringify(cols));
 }
 
+// ---------- 0.158.0: from the user's home-page screenshots of 11/25 ----------
+{
+  const F = await import("../src/notes/facts.js");
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const days = ["2026-10-21", "2026-10-24", "2026-10-26", "2026-10-29", "2026-10-31", "2026-11-02", "2026-11-04", "2026-11-07", "2026-11-10", "2026-11-11", "2026-11-13", "2026-11-16", "2026-11-18", "2026-11-21", "2026-11-23"];
+  const box = { keys, names: {}, games: days.map((d) => ({ d, opp: "BOS", home: true, pf: 1, pa: 0, pl: {} })) };
+  const T = (text, today, extra = {}, opt = {}) => F.trimReason({ text, ...extra }, { box, today, ...opt });
+  const acuffRun = "With 29 points and six assists versus Orlando on Nov. 10th, he recorded his seventh consecutive game with 20+ points and 5+ assists, the second longest streak this season and the fourth longest streak for a rookie in NBA history.";
+  const acuff2010 = "Recorded his second game with 20+ points and 10+ assists vs. LAL (11/4), becoming the sixth teenager in NBA history to have multiple 20-10 games.";
+  ok(T(acuffRun, "2026-11-25") === "past one-off (15 days ago, 6 games since)" && T(acuffRun, "2026-11-13") === null,
+    "notes (0.158.0): a run told in the past tense mid-sentence is over once the team has played past it (Acuff's seven straight through Nov. 10, still shown on 11/25); three days on it is kept, as in the 11/13 review", T(acuffRun, "2026-11-25"));
+  const ev = F.closedEvent({ text: acuff2010 }, { box, today: "2026-11-25" });
+  ok(ev && ev.age === 21 && ev.days === 14 && ev.why === "an NBA-history first" && /^past one-off \(21 days ago/.test(T(acuff2010, "2026-11-25") || "") && T(acuff2010, "2026-11-12") === null && F.agedShare(F.closedEvent({ text: acuff2010 }, { box, today: "2026-11-12" })) === 0.25,
+    "notes (0.158.0): a dated happening led by a past-tense verb is closed even with \"game with\" in it: \"the sixth teenager in NBA history\" keeps its place 14 days and loses rank on the way", JSON.stringify(ev));
+  ok(T("One of five players with five consecutive 20+ point games to start the season (10/21 - 10/29).", "2026-11-25", { facts: undefined }) === "past one-off (the start of the season, 27 days ago)"
+    && T("Towns recorded his 16th double-double to start the season, which ties him with Domantas Sabonis and Moses Malone for the fifth longest streak to start a season since the 1975-76 season.", "2026-11-25") === null
+    && T("One of five players with five consecutive 20+ point games to start the season (10/21 - 10/29).", "2026-11-05") === null,
+    "notes (0.158.0): a run \"to start the season\" whose printed dates ended over three weeks ago is cut; one still going, or recent, stays");
+  ok(/^a recap from the night of an earlier game/.test(T("Drummond’s double-double in the first half today was the third fastest (14:18) by any Knicks player since 1996-97 (play-by-play era).", "2026-11-25") || "")
+    && T("A win tonight would be the team's fifth straight.", "2026-11-25") === null,
+    "notes (0.158.0): \"in the first half today was…\" is a recap left in from an earlier night; \"a win tonight would…\" is not");
+  const mem = "Minnesota has now made at least 10 threes in 22 consecutive games against Memphis, tying its longest active streak versus any opponent (New Orleans Pelicans).";
+  ok(T(mem, "2026-11-25", {}, { opp: "OKC" }) === "a streak against another opponent (Memphis), not tonight's" && T(mem, "2026-11-25", {}, { opp: "MEM" }) === null && T(mem, "2026-11-25") === null,
+    "notes (0.158.0): a streak against a team that isn't tonight's opponent is the last opponent's series note; against tonight's it stays");
+  ok(T("Only had more than 6 rebounds once over the past 6 games after.", "2026-11-25") === "garbled (cut off mid-sentence)" && T("Has scored 20 or more in 5 straight games and counting.", "2026-11-25") === null,
+    "notes (0.158.0): a sentence ending on \"after.\" was cut off by the next column");
+  const d1 = F.dedupe([{ text: "Hawkins’ effort matched the most points by any Bulls reserve this season (other: Leonard Miller - 19 points at MIL, 10/23).", player: "Jordan Hawkins", score: 6 },
+    { text: "His 19 points off the bench matched the most points by any Bulls reserve this season (previous high: Leonard Miller - 19 points at MIL, 10/23).", player: "Leonard Miller", score: 5 }]);
+  const d2 = F.dedupe([{ text: "Giannis Antetokounmpo scored at least 20 points and grabbed 10 rebounds in eight-straight games from October 26 through November 10.", player: "Giannis Antetokounmpo", score: 4 },
+    { text: "Bam Adebayo and Giannis Antetokounmpo grabbed at least eight rebounds in nine-straight games from October 26 through November 12.", player: "Bam Adebayo", score: 4 }]);
+  ok(d1.length === 1 && /^Hawkins/.test(d1[0].text) && d2.length === 2 && F.commonRun("abc def ghi", "xx DEF, GHI yy") === 8,
+    "notes (0.158.0): the same sentence with another opening is one line even when filed under two players (same numbers, 45+ characters in common); two runs that share only their dates' wording are two");
+  ok(F.describe("Maxey ranks tied for second most 20-point games in the Eastern Conference and tied for fourth most in the league.", {}).tag === "T-2nd in the East" && F.describe("Wolf ranks 3rd in the NBA with a 52.2% 3PT (24-46) this season.", {}).tag === "3rd in NBA",
+    "notes (0.158.0): a rank in a conference is tagged as that, not as a rank in the NBA", F.describe("Maxey ranks tied for second most 20-point games in the Eastern Conference and tied for fourth most in the league.", {}).tag);
+  const { whoseNotes } = await import("../src/notes/meta.js");
+  const docOf = (names) => ({ pages: [{ lines: names.map((n) => ({ text: `${n} scored 10 points.` })) }] });
+  const A = ["Al One", "Bo Two", "Cy Three Jr.", "Di Four", "Ed Five", "Fy Six", "Gus Seven", "Hal Eight", "Ian Nine"], B = ["Jo Ten", "Ky Eleven", "Lu Twelve", "Mo Thirteen", "Ny Fourteen", "Oz Fifteen", "Pat Sixteen", "Quin Seventeen", "Ray Eighteen"];
+  const mine = whoseNotes(docOf([...A, B[0], B[1]]), A, B), theirs = whoseNotes(docOf([...B, A[0], A[1]]), A, B);
+  ok(mine.own === 9 && mine.opp === 2 && !mine.wrong && theirs.own === 2 && theirs.opp === 9 && theirs.wrong,
+    "notes (0.158.0): a file that names the opponent's roster and hardly any of the team's own is the other team's (11/25: the NBA's link for the Cavaliers' notes held the Knicks' file)", JSON.stringify({ mine, theirs }));
+  const { columnsOf } = await import("../src/notes/narrative.js");
+  const cell = (text, x0) => ({ text, x0, x1: x0 + text.length * 4 }), line = (y, ...cells) => ({ y, h: 8, text: cells.map((c) => c.text).join("  "), cells });
+  const cols = columnsOf({ page: 4, width: 612, lines: [line(279, cell("plus 3FG (11/22-11/23; Buzelis, Hield, Jalen Smith also with four-plus 3FGM each on", 57)), line(264, cell("11/22).", 57), cell("3 F G M", 490)), line(155, cell("Jordan Hawkins scored a Bulls career-high 19 points against CLE (11/23).", 192)), line(111, cell("B E N C H P O I N T S", 51))] }).flat().join(" ");
+  ok(!cols.includes("3 F G M") && cols.includes("11/22).") && cols.includes("B E N C H P O I N T S"),
+    "notes (0.158.0): a chart's letter-spaced label beside a sentence is not read into it; a letter-spaced heading alone on its line is left", cols);
+  const fd = fs.readFileSync(path.join(root, "src", "anticipate", "finder.js"), "utf8"), ix = fs.readFileSync(path.join(root, "docs", "index.html"), "utf8"), tn = fs.readFileSync(path.join(root, "scripts", "tonight.js"), "utf8");
+  ok(/x\.tied \? "is tied for" : "has"/.test(fd) && /tied: \[\.\.\.ranks\[k\]\.values\(\)\]\.filter\(\(v\) => v === r\)\.length > 1/.test(fd), "finds (0.158.0): two players level on a total are \"tied for\" it");
+  ok(/ol\.ranked \{[^}]*display: grid; grid-template-columns: repeat\(auto-fit, minmax\(min\(100%, 520px\), 1fr\)\)/.test(ix) && !/ol\.ranked \{[^}]*columns: 2/.test(ix) && /const pick3 = /.test(ix) && /l\.kind !== "awards" && \/\^\(\?:Out\|Doubtful\)/.test(ix) && /l\.kind === "awards" \|\| !\/\^\(\?:Out\|Doubtful\)/.test(ix) && /st\.notes === "wrong file"/.test(ix)
+    && /whoseNotes\(doc,/.test(tn) && /opp: e\.opp \}\)/.test(tn),
+    "home page (0.158.0): the ranked list reads across then down; a game card's three lines are about different players where it can; an award-eligibility line stays when its player sits; a wrong notes file is said at the top");
+}
+
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });
 const brief = (m) => [m.player, m.kind, m.stat, m.scope, m.current, m.target, m.need, m.status, m.passing?.player || ""].join(" | ");

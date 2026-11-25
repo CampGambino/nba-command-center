@@ -202,6 +202,7 @@ export function dangling(s) {
 
 const FOOTER = /^(?:[@#]\w+\s+)?(?:PAGE\s+)?\d{1,3}$|^[@#]\w+$/i;
 const STRAY_HEAD = /^(?:Date|Opponent|Result|Score)$/;
+const SPACED_LABEL = /^(?:[\p{Lu}\d] ){2,}[\p{Lu}\d]$/u;
 export function columnsOf(page) {
   const width = Math.ceil(page.width || 612);
   const cover = new Uint16Array(width + 1);
@@ -214,6 +215,9 @@ export function columnsOf(page) {
   const bioSeason = (l, i) => /^Seasons?$/.test(l.text.trim()) && page.lines.slice(Math.max(0, i - 3), i).some((u) => u.cells.some((c) => /•\s*\d{1,2}(?:st|nd|rd|th)\s*$/.test(c.text)));
   const lines = page.lines.filter((l, i) => !STRAY_HEAD.test(l.text.trim()) && !bioSeason(l, i))
     .map((l) => (l.y < 45 && l.cells.some((c) => FOOTER.test(c.text.trim())) ? { ...l, cells: l.cells.filter((c) => !FOOTER.test(c.text.trim())) } : l))
+    // 0.158.0: a chart's letter-spaced label on the same line as a sentence ("…each on 11/22).   3 F G M", Chicago 11/25)
+    // was read into it: "…on 11/22). 3 F G M Jordan Hawkins scored…". A heading alone on its line is left for the topic reader.
+    .map((l) => (l.cells.length > 1 && l.cells.some((c) => SPACED_LABEL.test(c.text.trim())) ? { ...l, cells: l.cells.filter((c) => !SPACED_LABEL.test(c.text.trim())) } : l))
     .filter((l) => l.cells.length);
   for (const l of lines) for (const c of l.cells) for (let x = Math.max(0, Math.floor(c.x0)); x <= Math.min(width, Math.ceil(c.x1)); x++) cover[x]++;
 

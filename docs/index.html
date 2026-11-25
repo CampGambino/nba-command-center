@@ -138,8 +138,10 @@
   #bygame h2 { margin-top: 26px; }
   .more-row { display: flex; gap: 8px; justify-content: center; margin: 6px 0 18px; }
   .more-row button { font: inherit; font-size: 13.5px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; }
-  ol.ranked { list-style: none; margin: 0 0 8px; padding: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; columns: 2 520px; column-gap: 0; }
-  ol.ranked li { break-inside: avoid; display: flex; gap: 10px; padding: 8px 14px; border-bottom: 1px solid #eef0f2; align-items: baseline; font-size: 14px; }
+  /* 0.158.0: read across, then down (30 31 / 32 33). As two newspaper columns, "Show 50 more" put the new lines at the
+     top of the right-hand column and moved the ones already read. */
+  ol.ranked { list-style: none; margin: 0 0 8px; padding: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); }
+  ol.ranked li { display: flex; gap: 10px; padding: 8px 14px; border-bottom: 1px solid #eef0f2; align-items: baseline; font-size: 14px; }
   ol.ranked li > b { width: 26px; flex: none; color: var(--faint); font-size: 12.5px; text-align: right; }
   ol.ranked li .g { flex: none; font-size: 11.5px; color: var(--faint); min-width: 64px; }
   ol.ranked li .t { overflow-wrap: anywhere; }
@@ -411,6 +413,10 @@ function renderHistory(facts, injuries) {
   const only = sel.value, newOnly = $("histNew").checked;
   // Every team playing tonight gets a card, lines or not, so each one is seen to be checked (0.49).
   const ST = f.status || {}, TR = f.trimmed || {};
+  // 0.158.0: a link that holds the other team's file is said at the top of the page too
+  { const wrong = Object.entries(ST).filter(([, st]) => st.notes === "wrong file"), el = $("notesIssues");
+    el.querySelector(".wrongfile")?.remove();
+    if (wrong.length) el.insertAdjacentHTML("beforeend", `<div class="warn-banner wrongfile">${wrong.map(([t, st]) => `<b>${esc(t)}</b>: ${esc(st.why)}. Nothing was read from it.`).join("<br>")}</div>`); }
   const noteWord = (st) => !st ? "" : !st.read ? `notes not read: ${st.notes === "stale" ? "not updated for tonight yet" : st.notes === "missing" ? "none posted" : esc(st.notes || "unavailable")}${st.why ? ` (${esc(st.why)})` : ""}` : st.error ? `notes read, error: ${esc(st.error)}` : st.notes === "stale" ? "notes read (last game's version)" : "notes read";
   const cards = Object.entries(f.teams).filter(([t]) => !only || t === only).sort(([a], [b]) => a.localeCompare(b)).map(([t, all]) => {
     const out = [...new Set(all.filter((x) => /^(?:Out|Doubtful)$/.test(status(t, x.player) || "")).map((x) => `${x.player} (${status(t, x.player)})`))];
@@ -528,7 +534,8 @@ function bigNum(t) {
 function renderSpotlight(b, injuries) {
   if (!b?.stream || b.today !== data.today) { $("tiles").innerHTML = `<div class="empty">No ranked lines for tonight yet (they're built with the day's data).</div>`; $("ranked").innerHTML = ""; return; }
   const status = injuryStatus(injuries, data.today);
-  const out = (l) => l.player && /^(?:Out|Doubtful)$/.test(status(l.team, l.player) || "");
+  // 0.158.0: an award-eligibility line is about the games he misses; his being out tonight is its point
+  const out = (l) => l.player && l.kind !== "awards" && /^(?:Out|Doubtful)$/.test(status(l.team, l.player) || "");
   const groupOf = (l) => (l.from === "last" ? "Last night" : l.from === "find" || l.kind === "find" ? "Found in the numbers" : (GROUPS.find(([, ks]) => ks.includes(l.kind)) || ["Other"])[0]);
   // Importance for this page: the briefing's rank, with outliers and milestones lifted and routine league-rank notes lines
   // ("T-4th in NBA in minutes") lowered (the user, 11/24: "the outliers and key milestones require a bigger spotlight").
@@ -571,10 +578,14 @@ function renderSpotlight(b, injuries) {
       byGame[l.game] = (byGame[l.game] || 0) + 1;
     }
   }
-  const cards = curated ? games.map((g) => [g, shown.filter((l) => l.game === g && !l.outTonight && !tiles.includes(l)).slice(0, 3)]).filter(([, ls]) => ls.length) : [];
+  // 0.158.0: a card's three lines are about three different players or teams where the game has them (11/25: SAC @ GSW's
+  // three were all Darius Acuff Jr.); only then a second line for the same player
+  const pick3 = (ls) => { const seen = new Set(), first = ls.filter((l) => { const k = l.player || `team ${l.team || ""} ${l.kind}`; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 3);
+    return first.length >= 3 ? first : [...first, ...ls.filter((l) => !first.includes(l))].slice(0, 3).sort((a, b) => ls.indexOf(a) - ls.indexOf(b)); };
+  const cards = curated ? games.map((g) => [g, pick3(shown.filter((l) => l.game === g && !l.outTonight && !tiles.includes(l)))]).filter(([, ls]) => ls.length) : [];
   const inCards = new Set(cards.flatMap(([, ls]) => ls));
   const rest = shown.filter((l) => !tiles.includes(l) && !inCards.has(l));
-  $("bygame").innerHTML = cards.length ? `<h2>Game by game <span class="sp-n">${cards.length}</span></h2><p class="key">Each game's best three lines not already above; pick the game in the filters for all of them.</p><div class="tiles">${cards.map(([g, ls]) =>
+  $("bygame").innerHTML = cards.length ? `<h2>Game by game <span class="sp-n">${cards.length}</span></h2><p class="key">Each game's best three lines not already above, a different player each where it can; pick the game in the filters for all of them.</p><div class="tiles">${cards.map(([g, ls]) =>
     `<article class="tile gcard"><div class="meta"><span><b>${esc(g.replace("@", " @ "))}</b></span><span>${shown.filter((l) => l.game === g).length} lines</span></div>${ls.map((l) => `<div class="gl"><b>${place.get(l)}</b>${esc(l.text)}</div>`).join("")}</article>`).join("")}</div>` : "";
 
   $("spN").textContent = tiles.length; $("stN").textContent = rest.length;
@@ -601,7 +612,7 @@ function renderBriefing(b, injuries) {
     MYVOTES = new Map();
     fetch(`${WORKER}/votes`, { cache: "no-store" }).then((r) => r.json()).then((j) => { for (const x of j.votes || []) MYVOTES.set(x.key, x.v); renderBriefing(); }).catch(() => {});
   }
-  const ok = (l) => !l.player || !/^(?:Out|Doubtful)$/.test(status(l.team, l.player) || "");
+  const ok = (l) => !l.player || l.kind === "awards" || !/^(?:Out|Doubtful)$/.test(status(l.team, l.player) || "");   // 0.158.0: the ten were nine when an award line's player sat
   const all = [...b.top, ...b.deep, ...(b.finds || [])];
   const btns = (l) => { if (!k || !l.key) return ""; const v = MYVOTES?.get(l.key) || 0, i = all.indexOf(l);
     return `<span class="vote"><button data-i="${i}" data-v="1" class="${v > 0 ? "on" : ""}" title="More like this">👍</button><button data-i="${i}" data-v="-1" class="${v < 0 ? "on" : ""}" title="Less like this (and hide this line)">👎</button></span>`; };

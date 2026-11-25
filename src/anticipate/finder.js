@@ -229,10 +229,11 @@ export function findings({ pg, names = {}, qsum = {}, teamGp = {}, allStars = nu
     }
     // rate: far higher in a total than in minutes
     const rate = [];
-    for (const t of tot) { let best = null; for (const [k, w] of TOTALS) { const r = ranks[k].get(t), rm = ranks.min.get(t); if (r <= RATE.top && rm >= RATE.ratio * r && rm - r >= RATE.gap && (!best || rm / r > best.rm / best.r)) best = { r, rm, w }; } if (best) rate.push({ t, ...best }); }
+    for (const t of tot) { let best = null; for (const [k, w] of TOTALS) { const r = ranks[k].get(t), rm = ranks.min.get(t); if (r <= RATE.top && rm >= RATE.ratio * r && rm - r >= RATE.gap && (!best || rm / r > best.rm / best.r)) best = { r, rm, w, tied: [...ranks[k].values()].filter((v) => v === r).length > 1 }; } if (best) rate.push({ t, ...best }); }
     for (const x of rate.sort((a, b) => b.rm / b.r - a.rm / a.r).slice(0, RATE.lines))
       out.push({ kind: "find", test: "rate", team: x.t.p.team, player: x.t.p.name, key: `find|rate|${x.t.p.id}`, surprise: 3 + Math.min(1.2, (x.rm - x.r) / 60), rare: false,
-        text: `${x.t.p.name} has the ${x.r === 1 ? "" : `${ord(x.r)} `}most ${x.w} in the NBA this season. He ranks ${ord(x.rm)} in minutes played` });
+        // 0.158.0: two players level say so (11/25: Myles Turner and Donovan Clingan each "has the 2nd most blocks")
+        text: `${x.t.p.name} ${x.tied ? "is tied for" : "has"} the ${x.r === 1 ? "" : `${ord(x.r)} `}most ${x.w} in the NBA this season. He ranks ${ord(x.rm)} in minutes played` });
     // group: ranks among bench players, and among rookies
     const groups = [["bench players", tot.filter((t) => t.p.gp >= QUALIFY.games && t.starts / t.p.gp < GROUP.starts)], ...(rookies && rookies.size ? [["rookies", tot.filter((t) => rookies.has(plainName(t.p.name)) || rookies.has(t.p.id))]] : [])];
     for (const [label, G] of groups) {

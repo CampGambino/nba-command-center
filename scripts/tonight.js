@@ -65,6 +65,7 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
 // (history/notes-facts/<TEAM>.json), so "new" means new in today's notes.
 {
   const { readPdf } = await import("../src/notes/pdf-layout.js");
+  const { whoseNotes } = await import("../src/notes/meta.js");
   const { readHistory } = await import("../src/notes/narrative.js");
   const { annotate, trimLines, staleCount, checkGamesPlayed, closedEvent, agedShare, SHELF } = await import("../src/notes/facts.js");
   // 0.146.0: every active games-played run, as the last build counted it (docs/data/featlive.json, through last night)
@@ -126,6 +127,20 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
       const O = TEAMS[e.opp] || {};
       const oppWords = [O.city, O.nick, ...(O.alt || []), ...(TEAM_ALIASES[e.opp] || [])].filter(Boolean);
       const doc = await readPdf(e.buf);
+      // 0.158.0: whose notes are these? On 11/25 the NBA's link for the Cavaliers' notes held the Knicks' file: it was read
+      // as Cleveland's, gave no lines, and the page said only "notes read · No lines kept". Count each roster's players
+      // named in the file: when the opponent's far outnumber the team's own, say so and read nothing from it.
+      try {
+        const of = path.join(root, "docs", "data", "teams", `${e.opp}.json`);
+        const oppBox = fs.existsSync(of) ? JSON.parse(fs.readFileSync(of, "utf8")) : null;
+        const whose = whoseNotes(doc, Object.values(box?.names || {}), Object.values(oppBox?.names || {}));
+        if (whose.wrong) {
+          status[e.team] = { ...status[e.team], notes: "wrong file", why: `the NBA's link for ${e.team}'s notes holds ${e.opp}'s file (it names ${whose.opp} ${e.opp} players and ${whose.own} of ${e.team}'s)`, read: false };
+          console.log(`  ${e.team}: ${status[e.team].why}; not read`);
+          teams[e.team] = []; trimmedBy[e.team] = [];
+          continue;
+        }
+      } catch (err) { console.log(`  ${e.team} whose-notes check: ${err.message}`); }
       // 0.48: league context, clubs, races and the series too, each read for type, tag, the table beside it and what tonight can change.
       const hist = readHistory(doc, players, { seasonStart, today, teamWords, oppWords, box });
       // 0.76: the head coach's record against tonight's opponent, from the "ALL-TIME RECORD VS. THE NBA" table (only when
@@ -139,7 +154,7 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
       } catch (err) { console.log(`  ${e.team} coach record: ${err.message}`); }
       const read = checkGamesPlayed(annotate(hist, { doc, box, model, teamNames: [T.city, T.nick, e.team].filter(Boolean), careers }), gpRuns);   // 0.146.0
       // 0.49: closed past one-offs, filler, the other venue's stats and layout-garbled lines are trimmed (listed on the page).
-      const { keep: lines, trimmed } = trimLines(read, { box, today, home: e.home });
+      const { keep: lines, trimmed } = trimLines(read, { box, today, home: e.home, opp: e.opp });
       trimmedBy[e.team] = trimmed.map((l) => ({ text: l.text, player: l.player && !l.guessed ? l.player : null, why: l.trimmed }));
       const seenFile = path.join(factsDir, `${e.team}.json`);
       const seen = fs.existsSync(seenFile) ? JSON.parse(fs.readFileSync(seenFile, "utf8")) : {};

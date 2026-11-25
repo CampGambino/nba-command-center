@@ -2,6 +2,48 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.158.0 (2026-11-25): fixes from the user's 20 home-page screenshots — a wrong notes file, more old notes, garbled and doubled lines, the ranked list's order
+
+The user, 11/25, 11:45 AM: "here are some screenshots from the home page" (20 of them, top to bottom, after 0.157.0). Read as a first-time reader would; everything below was checked against the data before it was changed.
+
+**The Cavaliers' notes showed "0 lines · notes read".** The NBA's link for Cleveland's notes (`gamenotes/cavaliers.pdf`) holds the Knicks' file today: Knicks roster, Knicks coach, "Tonight's Opponent: Cleveland Cavaliers". It was read as Cleveland's, gave nothing, and the page didn't say why.
+- The build now counts each roster's players named in a file (`whoseNotes`, `src/notes/meta.js`). When the opponent's far outnumber the team's own, the file isn't read and the page says so, at the top and on the team's notes card: "the NBA's link for CLE's notes holds NYK's file (it names 17 NYK players and 4 of CLE's)".
+- On tonight's 18 files only Cleveland's is flagged; every other names 15 or more of its own players.
+
+**More old notes** (the rule from 0.157.0 missed these; `src/notes/facts.js`):
+- *SAC @ GSW's game card was three Darius Acuff Jr. lines, two of them 15 and 21 days old.*
+  - "…on Nov. 10th, he recorded his seventh consecutive game…": the past-tense verb came mid-sentence, so the run still counted as live. A past-tense verb anywhere now closes a dated run the team has played past. Cut (15 days).
+  - "Recorded his second game with 20+ points and 10+ assists vs. LAL (11/4), becoming the sixth teenager in NBA history…": "game with" made it look like a growing count. It is a dated happening: kept through today (an NBA-history first by a 20-point scorer keeps 21 days), with its score down from 5.24 to 2.3.
+- "One of five players with five consecutive 20+ point games to start the season (10/21 - 10/29)" (LaVine, 27 days old): a run "to start the season" whose printed dates ended over three weeks ago is cut. One still going (Towns' double-doubles) stays.
+- "Drummond's double-double in the first half today was the third fastest…" was the second line for CLE @ NYK, so an NBA Live card: a recap left in from an earlier night. Cut, like the "tonight's game" recaps.
+- "Minnesota has now made at least 10 threes in 22 consecutive games against Memphis", on a night at Oklahoma City: a streak against a team that isn't tonight's opponent is the last opponent's series note. Cut.
+- Also cut by the same rules: three Brandon Miller runs from October 24 to November 15, and Adebayo and Antetokounmpo's nine straight through November 12.
+
+**Garbled and doubled lines:**
+- "HOU notes — Jabari Smith Jr.: Race · Only had more than 6 rebounds once over the past 6 games after." The next column cut the sentence off (it goes on "having 7+ in each of the 6 games prior"). A sentence ending on a word like "after" is trimmed as garbled; it had been Houston's top line.
+- "…on 11/22). 3 F G M Jordan Hawkins scored a Bulls career-high 19 points…": a chart's letter-spaced label beside the sentence was read into it and glued two sentences together. Such a label is dropped; the two now read as two lines.
+- "Hawkins' effort matched the most points by any Bulls reserve this season…" was there twice, the second ("His 19 points off the bench matched…") credited to Leonard Miller. The same sentence with another opening is now one line, even when filed under two players (45 or more characters in common and the same numbers).
+
+**Wrong labels:**
+- "PHI notes: T-2nd in NBA · Maxey ranks tied for second most 20-point games in the Eastern Conference and tied for fourth most in the league" is tagged "T-2nd in the East".
+- "Myles Turner has the 2nd most blocks" and "Donovan Clingan has the 2nd most blocks": each is now "is tied for the 2nd most" (`src/anticipate/finder.js`).
+
+**The page** (`docs/index.html`):
+- **Everything else, ranked** reads across and then down (30 31 / 32 33). It was two newspaper columns, so "Show 50 more" put the new lines at the top of the right-hand column and moved lines already read.
+- **Game by game**: a card's three lines are about three different players or teams where the game has them.
+- **The briefing's ten were nine.** An award-eligibility line about a player who sits tonight (Anthony Edwards) was hidden by the page; his sitting is its point. It shows now, there and in the Spotlight.
+
+**Before and after on today's files** (both versions run on the same morning's PDFs; Brooklyn posted new notes between the two runs, so its lines are left out of the comparison): 9 lines cut, 1 doubled line gone, 1 glued line split in two, 1 tag corrected, 1 score lowered; nothing else moved. Notes lines kept: 224 before, 214 after.
+
+**Checked:** tests 912 passed, 12 of them new; all pages OK. The rebuilt page opened in a browser: the wrong-file notice at the top; nine game cards with no player twice; the ranked list's rows in order before and after "Show 50 more"; ten in the briefing; "tied for" on both blocks lines.
+
+**Self-audit:**
+- My first duplicate rule (45 characters in common, nothing else) removed real lines: two Antetokounmpo runs that share "straight games from October 26 through November", a free-throw milestone, a Knicks assists line. The before/after run showed them gone. It now also needs the same numbers, and a test holds the Antetokounmpo pair apart.
+- "to have multiple 20-10 games" counted as present tense and kept the 21-day-old Acuff line untouched in the first run; "to have" is no longer read that way.
+- One test number came from my head and was wrong (a shared run of 8 characters, not 7).
+- I first thought 0.157.0 had emptied Cleveland's notes. It hadn't: the old code reads the same file to nothing. The 9:18 AM build's Cleveland lines came from the Bulls-game file still at that link.
+- Not done, and said to the user: the Houston sentence is trimmed, not repaired (the column split on that page needs its own fix); "POR notes: 37th all-time · Holiday is the second current Trail Blazer…" carries Lillard's rank as its tag; the same rare combination ("25 points, 5+ threes and 3+ blocks") listed for five players; matchup lines marked on two-game samples.
+
 ## 0.157.0 (2026-11-25): a notes line's age against its importance; no accolades in record lines
 
 The user, 11/25, with screenshots of the home page and two NBA Live cards:

@@ -134,3 +134,17 @@ function monthIndex(s) {
 }
 
 const iso = (y, m, d) => `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+
+/**
+ * 0.158.0: whose notes a file is, by the players it names. A team's own notes name nearly all of its roster and a
+ * handful of the opponent's; the other team's file is the reverse.
+ *   doc: readPdf's { pages: [{ lines: [{ text }] }] }; own, opp: each roster's full names
+ * -> { own, opp, wrong }: how many of each roster are named at least once; wrong when the opponent's file was served.
+ */
+export function whoseNotes(doc, own, opp) {
+  const plain = (x) => String(x || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z ]+/g, " ").replace(/\s+/g, " ");
+  const text = ` ${plain((doc?.pages || []).flatMap((p) => p.lines.map((l) => l.text)).join(" "))} `;
+  const named = (names) => new Set(names.map((n) => plain(n).replace(/ (?:jr|sr|ii|iii|iv)$/, "").trim()).filter((n) => n.includes(" ") && text.includes(` ${n} `))).size;
+  const a = named(own), b = named(opp);
+  return { own: a, opp: b, wrong: b >= 8 && a * 3 <= b };
+}

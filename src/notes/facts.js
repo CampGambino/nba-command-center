@@ -157,6 +157,10 @@ export function describe(text, meta = {}) {
   const subset = t.match(/\bamong(?:st)? (?:all )?(?:NBA |qualified )?(centers|rookies|guards|forwards|reserves|bench players|point guards|power forwards|sophomores|teenagers)\b/i);
   if (subset && rk && rk.rank === 1 && /^(?:Leads NBA|Most in NBA)$/.test(tag)) tag = `Leads ${subset[1].toLowerCase()}`;
   if (subset && rk && / in (?:NBA|team history)$| all-time$/.test(tag)) tag = tag.replace(/ in NBA$| in team history$| all-time$/, (m) => ` among ${subset[1].toLowerCase().replace(/([^s])$/, "$1s")}${/team/.test(m) ? " (team)" : ""}`);
+  // 0.158.0: a rank in a conference isn't a rank in the NBA ("Maxey ranks tied for second most 20-point games in the Eastern
+  // Conference and tied for fourth most in the league" was tagged "T-2nd in NBA")
+  { const conf = t.match(/\bin the (Eastern|Western) Conference\b/i), lg = t.search(/\bin the (?:NBA|league)\b/i);
+    if (conf && / in NBA$/.test(tag) && (lg < 0 || conf.index < lg)) tag = tag.replace(/ in NBA$/, ` in the ${conf[1][0].toUpperCase()}${conf[1].slice(1, -3).toLowerCase()}`); }
   return { type, tag, why, rank: rk?.rank ?? null, tie: rk?.tie ?? false, of: club, thresholds: th, streak: streakN ? Number(streakN[1]) : null, features: f };
 }
 
@@ -257,6 +261,13 @@ const jaccard = (a, b) => { let i = 0; for (const x of a) if (b.has(x)) i++; ret
 const sig = (th) => th.map((x) => `${x.stat}${x.min}`).sort().join(",");
 
 /** The same fact printed twice (a player's page and an infographic page): keep the better-scored one. */
+/** The longest run of characters two lines share, letters and digits only, case ignored. */
+export function commonRun(a, b) {
+  const A = plain(a).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(), B = plain(b).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  let best = 0, prev = new Uint16Array(B.length + 1);
+  for (let i = 1; i <= A.length; i++) { const cur = new Uint16Array(B.length + 1); for (let j = 1; j <= B.length; j++) if (A[i - 1] === B[j - 1]) { cur[j] = prev[j - 1] + 1; if (cur[j] > best) best = cur[j]; } prev = cur; }
+  return best;
+}
 export function dedupe(lines) {
   const out = [];
   // A box's heading put before its bullet ("Rockets Offense: …", "Rockets Defense: …") is not part of what the line says.
@@ -264,6 +275,13 @@ export function dedupe(lines) {
   for (const l of [...lines].sort((a, b) => (b.score || 0) - (a.score || 0))) {
     const d = l.facts || describe(l.text, l), b = bag(said(l)), who = l.player || (l.matchup ? "series" : "team");
     const dup = out.find((o) => {
+      // 0.158.0: the same sentence in two places with another opening, even filed under two players ("Hawkins’ effort
+      // matched the most points by any Bulls reserve this season (other: …" and "His 19 points off the bench matched the
+      // most points by any Bulls reserve this season (previous high: …", the second credited to Leonard Miller)
+      // (and the same numbers: "…in eight-straight games from October 26 through November 10" and "…in nine-straight games
+      // from October 26 through November 8" share as long a run and are two facts)
+      { const A = said(l), B = said(o), na = numbersIn(A), nb = numbersIn(B), [sm, lg] = na.size <= nb.size ? [na, nb] : [nb, na];
+        if (sm.size && [...sm].every((x) => lg.has(x)) && commonRun(A, B) >= 45) return true; }
       if ((o.player || (o.matchup ? "series" : "team")) !== who) return false;
       const od = o.facts, ob = bag(said(o));
       if (d.thresholds.length >= 2 && sig(d.thresholds) === sig(od.thresholds)) return true;
@@ -444,6 +462,8 @@ export function annotate(lines, { doc = null, tables = null, box = null, model =
 const TEAM_WORDS = Object.entries(TEAMS).flatMap(([tri, t]) => [[tri, tri], [tri, t.nick], ...(t.alt || []).map((a) => [tri, a]), ...(t.city === "LA" || t.city === "Los Angeles" ? [] : [[tri, t.city]])]);
 const OPP_AT = new RegExp(`\\b(?:vs\\.?|versus|at|@|against)\\s+(?:the\\s+)?(${TEAM_WORDS.map(([, w]) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).sort((a, b) => b.length - a.length).join("|")})\\b`, "g");
 const triOf = (w) => [...new Set(TEAM_WORDS.filter(([, x]) => x === w).map(([t]) => t))];
+// "…in 22 consecutive games against Memphis": a run, then within a few words "against" and a team
+const RUN_VS = new RegExp(`\\b(?:consecutive|straight)\\s+(?:[\\w+-]+\\s+){0,4}?(?:against|versus|vs\\.?)\\s+(?:the\\s+)?(${TEAM_WORDS.map(([, w]) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).sort((a, b) => b.length - a.length).join("|")})\\b`);
 /** -> [{ said: "YYYY-MM-DD", opp }] for each date printed next to an opponent ("on 11/16 vs. HOU", "vs. BKN (11/8/26)"). */
 export function datedGames(text, startYear) {
   const t = plain(text), out = [];
@@ -800,7 +820,7 @@ export function cantBeThisSeason(text, { box = null, playerId = null } = {}) {
  */
 export const SHELF = { nba: 14, team: 10, recap: 7, grace: 2, star: 1.5, starPpg: 20, penalty: 2.5 };
 const LIST_PASS = /\b(?:pass(?:ed|ing|es)|surpass\w*|moved (?:past|into|up)|eclips\w*|overt(?:ook|ak\w*)|entered the top|climbed)\b/i;
-const FIRST_OR_RECORD = /\b(?:first|only|youngest|oldest|fastest|records?)\b|\b(?:second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d+(?:st|nd|rd|th)) (?:\w+ ){0,2}(?:players?|rookies?|guards?|forwards?|centers?|teams?|duos?|trios?|pairs?|reserves?|teammates)\b/i;
+const FIRST_OR_RECORD = /\b(?:first|only|youngest|oldest|fastest|records?)\b|\b(?:second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d+(?:st|nd|rd|th)) (?:\w+ ){0,2}(?:players?|rookies?|guards?|forwards?|centers?|teams?|duos?|trios?|pairs?|reserves?|teammates|teenagers?|starters?)\b/i;
 export function shelfLife(text, { star = false } = {}) {
   const t = plain(text);
   const big = FIRST_OR_RECORD.test(t) && !LIST_PASS.test(t);
@@ -817,8 +837,11 @@ const isStar = (box, playerId) => {
   return rows.length >= 5 && rows.reduce((a, r) => a + (r[k.pts] || 0), 0) / rows.length >= SHELF.starPpg;
 };
 // a run told in the past tense: "Recorded multiple blocks in consecutive games (Nov. 2 and Nov. 4)…"
-const RUN_WORDS = /\b(?:consecutive|straight|in a row)\b/gi, RUN_ANY = /\b(?:consecutive|straight|in a row)\b/i;
-const PAST_LEAD = /^(?:[A-Z][\w.'’-]+ ){0,3}(?:recorded|tallied|posted|had|scored|notched|registered|made|grabbed|dished|blocked|finished|totaled|became|earned|reached|shot|hit|collected|handed out|pulled down|knocked down|logged|compiled|produced|put up|went)\b/i;
+const RUN_ANY = /\b(?:consecutive|straight|in a row)\b/i;
+const PAST_VERBS = "recorded|tallied|posted|had|scored|notched|registered|made|grabbed|dished|blocked|finished|totaled|became|earned|reached|shot|hit|collected|handed out|pulled down|knocked down|logged|compiled|produced|put up|went";
+const PAST_LEAD = new RegExp(`^(?:[A-Z][\\w.'’-]+ ){0,3}(?:${PAST_VERBS})\\b`, "i"), PAST_ANY = new RegExp(`\\b(?:${PAST_VERBS})\\b`, "i");
+// words that say it is still going
+const PRESENT = /\b(?:has|(?<!to )have|is|are|active|current(?:ly)?|now|averag\w+|leads?|ranks?|needs?|on pace|on track|within|away from)\b/i;   // "to have" is not "they have"
 
 /**
  * A line about a dated happening that is over: { when, age (days), since (the team's games after it), days, why, recap },
@@ -836,9 +859,16 @@ export function closedEvent(line, { box = null, today } = {}) {
   const singleGame = OPENER.test(t) || DEBUT.test(t) || /\bin (?:his|her|their) return\b|\breturn to play\b/i.test(t) || (FIXED_WINDOW.test(t) && !stretch) || /\bin a (?:single )?game\b|\btraveled to\b|\b(?:passed|surpassed|moved past|eclipsed|overtook)\b[^.]{0,80}\bon (?:\w+\.? \d|\d)/i.test(t);
   // 0.157.0: a run in the past tense whose last printed date the team has played past is over (or the count is old):
   // "consecutive" alone no longer makes it a live streak.
-  const closedRun = since >= 1 && PAST_LEAD.test(t) && RUN_ANY.test(t) && !/\b(?:has|have|is|are|active|current(?:ly)?|now)\b/i.test(t);
-  const openWords = OPEN.test(closedRun ? t.replace(RUN_WORDS, " ") : t);
-  const open = !singleGame && (stretch || openWords || /\branks? (?:t-)?\w+ in (?:the )?(?:NBA|league)\b/i.test(t) || d.type === "club" || d.type === "race" || (d.type === "streak" && !closedRun) || !!line.matchup || line.kind === "pass" || line.kind === "next" || !!line.hook?.live);
+  // 0.158.0: the past-tense verb can come anywhere ("With 29 points … on Nov. 10th, he recorded his seventh consecutive
+  // game with 20+ points and 5+ assists, the second longest streak this season": still shown 15 days later), and then
+  // only a series line, a race or a live hook keeps it open.
+  const closedRun = since >= 1 && RUN_ANY.test(t) && PAST_ANY.test(t) && !PRESENT.test(t);
+  // A happening led by a past-tense verb with its game's date ("Recorded his second game with 20+ points and 10+ assists
+  // vs. LAL (11/4), becoming the sixth teenager in NBA history…", 21 days old): "game with" doesn't make it a growing count.
+  const pastTelling = since >= 1 && PAST_LEAD.test(t) && !PRESENT.test(t);
+  const openWords = OPEN.test(pastTelling ? t.replace(/\bgames? with\b/gi, " ") : t);
+  const live = !!line.matchup || line.kind === "pass" || line.kind === "next" || !!line.hook?.live;
+  const open = !singleGame && (closedRun ? live : stretch || openWords || /\branks? (?:t-)?\w+ in (?:the )?(?:NBA|league)\b/i.test(t) || d.type === "club" || d.type === "race" || d.type === "streak" || live);
   if (open || longSpan(t, today)) return null;   // rare over a long span: the user keeps these
   const age = Math.round((Date.parse(today) - Date.parse(when)) / 864e5);
   return { when, age, since, ...shelfLife(t, { star: isStar(box, line.playerId) }) };
@@ -850,9 +880,11 @@ export function closedEvent(line, { box = null, today } = {}) {
  */
 export const agedShare = (ev) => (!ev || ev.recap ? 0 : Math.max(0, Math.min(1, (ev.age - SHELF.grace) / Math.max(1, ev.days - SHELF.grace))) ** 2);
 
-export function trimReason(line, { box = null, today, home = null } = {}) {
+export function trimReason(line, { box = null, today, home = null, opp = null } = {}) {
   const t = plain(line.text);
   const d = line.facts || describe(line.text, line);
+  // 0.158.0: a sentence the next column cut off ("Only had more than 6 rebounds once over the past 6 games after.", Houston 11/25)
+  if (/\b(?:after|before|and|or|the|of|with|to|for|while|when|than|by|from|a|an|as|but)\.?$/i.test(t.trim()) && !/\b(?:and|or) (?:more|counting|so on)\.?$/i.test(t.trim())) return "garbled (cut off mid-sentence)";
   { const cant = cantBeThisSeason(line.text, { box, playerId: line.playerId }); if (cant) return cant; }
   // Layout damage: a bio-table row ("… on Virginia / USA 8th Season 10/21/26 vs UTA") or two columns read across.
   if (/\b[A-Z][a-z]+(?: [A-Z][a-z]+)? \/ [A-Z]{2,3}\b|\b\d{1,2}(?:st|nd|rd|th) Season\b/.test(t)) return "garbled (a table row)";
@@ -885,6 +917,23 @@ export function trimReason(line, { box = null, today, home = null } = {}) {
   // A recap written the night of an earlier game and left in ("Gobert had 10 rebounds through three quarters of tonight's
   // game, marking his 37th…", from Oct. 25, read on Nov. 16): "tonight" was that night, and its counts have moved since.
   if (/\b(?:of|in|during|through) tonight['’]s (?:game|contest|win|loss|victory|matchup)\b/i.test(t) && /\b(?:had|scored|recorded|tallied|finished|posted|grabbed|marking|marked|made|dished|notched)\b/i.test(t)) return "a recap from the night of an earlier game (its counts are as of that night)";
+  // 0.158.0: the same with "today" ("Drummond’s double-double in the first half today was the third fastest…", still in
+  // the Knicks' notes two games later).
+  if (/\b(?:today|tonight) (?:was|were|marked|made|gave|moved|tied|set)\b|\b(?:in|during|of|through) (?:the )?(?:first|second|third|fourth|1st|2nd|3rd|4th) (?:half|quarter|period) (?:today|tonight)\b/i.test(t)) return "a recap from the night of an earlier game (its counts are as of that night)";
+  // 0.158.0: a run "to start the season" whose printed dates ended over three weeks ago ("five consecutive 20+ point games
+  // to start the season (10/21 - 10/29)", shown on 11/25). One still going prints no end date, or a recent one.
+  if (/\bto (?:start|begin|open) (?:the|this|a) season\b/i.test(t) && today && !longSpan(t, today)) {
+    const ended = eventDate(line.text, { today });
+    const days = ended ? Math.round((Date.parse(today) - Date.parse(ended)) / 864e5) : 0;
+    if (days > 21) return `past one-off (the start of the season, ${days} days ago)`;
+  }
+  // 0.158.0: a streak against a team that isn't tonight's opponent ("at least 10 threes in 22 consecutive games against
+  // Memphis", in Minnesota's notes on a night at Oklahoma City): the last opponent's series note, left in.
+  if (opp) {
+    const m = t.match(RUN_VS);
+    const other = m ? triOf(m[1]) : [];
+    if (other.length === 1 && other[0] !== opp) return `a streak against another opponent (${m[1]}), not tonight's`;
+  }
   // The other venue: a home-only stat on a road night, and the reverse.
   const homeStat = /\bhome (?:sellouts?|sellout streak|attendance|crowds?|games?|record|winning streak|win streak|losing streak|court)\b|\bsellouts?\b|\bat home\b/i.test(t);
   const roadStat = /\bon the road\b|\broad (?:games?|record|trip|winning streak|win streak|losing streak|wins?|losses)\b|\baway from home\b/i.test(t);
@@ -904,7 +953,7 @@ export function trimReason(line, { box = null, today, home = null } = {}) {
  * Split a team's lines into kept and trimmed. A team left with fewer than `floor` lines gets its best trimmed
  * past one-offs back (never garbled, filler or wrong-venue ones).
  */
-export function trimLines(lines, { box = null, today, home = null, floor = 4 } = {}) {
+export function trimLines(lines, { box = null, today, home = null, floor = 4, opp = null } = {}) {
   let keep = [], trimmed = [];
   // The same streak counted at two points of the season (a recap from three games ago beside the latest): the
   // higher count is the one to read; the lower is listed as trimmed (0.76).
@@ -920,7 +969,7 @@ export function trimLines(lines, { box = null, today, home = null, floor = 4 } =
   // the ladder (79th -> 78th -> 77th). A place far above belongs to some other list that shares the wording.
   const topOf = (key, n) => { for (;;) { const up = (rungs.get(key) || []).filter((m) => m < n && n - m <= 5); if (!up.length) return n; n = Math.min(...up); } };
   const lower = (l) => { const r = rung(l); const top = r ? topOf(r.key, r.n) : null; return r && top < r.n ? `an earlier place on the same list (${ordinal(r.n)}; he is ${ordinal(top)} now)` : null; };
-  for (const l of lines) { const why = older(l) || lower(l) || trimReason(l, { box, today, home }); (why ? trimmed : keep).push(why ? { ...l, trimmed: why } : l); }
+  for (const l of lines) { const why = older(l) || lower(l) || trimReason(l, { box, today, home, opp }); (why ? trimmed : keep).push(why ? { ...l, trimmed: why } : l); }
   // The same fact told twice, once with its date and once without ("Wilson is the first rookie in Bulls history to…"):
   // when the dated telling is a past one-off, so is the other.
   const firstName = (l) => (l.player || "").split(" ").slice(-1)[0];
