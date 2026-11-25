@@ -9,7 +9,10 @@
  * like for like); shooting is makes over attempts across the games, never an average of percentages; a qualified player
  * averages 5+ points, has played half his team's games, and has 2+ games on each side of the split.
  */
-export const POOL_MIN_PPG = 5, POOL_SHARE = 0.5, POOL_MIN_SIDE = 2, THIRTY = 30;
+// 0.161.0 (the user, 11/25: "this early in the season, three games is adequate"): three games on each side, up from two.
+// "Brandon Miller has averaged 14.0 points in 2 games against the bottom 5 defenses … the 2nd-biggest drop in the NBA"
+// was a highlighted line on two games.
+export const POOL_MIN_PPG = 5, POOL_SHARE = 0.5, POOL_MIN_SIDE = 3, THIRTY = 30;
 
 /** { id: { id, name, tri, games: [{ d, opp, home, pts, fgm, fga, fg3m, fg3a, min }] } } and { tri: team games played }. */
 export function playerGames(teamFiles) {

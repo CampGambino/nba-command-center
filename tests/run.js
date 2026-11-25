@@ -6063,6 +6063,19 @@ await bridgeChecks(ok, root);
     "notes (0.160.0): the age rule goes by the line's own dates, not a comparison's (\"other: … 10/23\", \"the other time coming from…\", \"since 10/13\"); a countdown, a streak the box scores still carry, a mark rare over ten years and another season's date (\"Nov. 9. 2022\") are left alone");
 }
 
+// ---------- 0.161.0: three games on each side for a line against a group (the user, 11/25) ----------
+{
+  const V = await import("../src/situations/vsplayers.js"), { EDGE } = await import("../src/situations/edges.js");
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const L = (pts) => keys.map((k) => ({ min: 36, pts, fgm: 6, fga: 18 }[k] ?? 0));
+  const run = (opp) => V.vsDefenses(V.playerGames({ AAA: { team: "AAA", keys, names: { 1: "Star" }, games: opp.map((o, i) => ({ d: `2026-11-0${i + 1}`, opp: o, home: true, pf: 100, pa: 90, pl: { 1: L(o === "TOP" ? 14 : 21) } })) } }), new Set(["TOP"]));
+  const two = run(["TOP", "TOP", "BBB", "CCC", "DDD", "EEE"]), three = run(["TOP", "TOP", "TOP", "BBB", "CCC", "DDD"]), twoRest = run(["TOP", "TOP", "TOP", "TOP", "CCC", "DDD"]);
+  const ed = fs.readFileSync(path.join(root, "src", "situations", "edges.js"), "utf8");
+  ok(V.POOL_MIN_SIDE === 3 && EDGE.minVs === 3 && two.rows.length === 0 && two.oneSided === 1 && three.rows.length === 1 && three.rows[0].vsGp === 3 && three.rows[0].gap === -7 && twoRest.rows.length === 0
+    && /x\.vsTop\?\.games >= EDGE\.minVs && x\.rest\?\.games >= EDGE\.minVs/.test(ed),
+    "matchups (0.161.0): a player's or a team's line against a group needs three games on each side (\"14.0 points in 2 games against the bottom 5 defenses\" is no longer a line); three is enough", JSON.stringify([two.oneSided, three.rows.length, twoRest.rows.length]));
+}
+
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });
 const brief = (m) => [m.player, m.kind, m.stat, m.scope, m.current, m.target, m.need, m.status, m.passing?.player || ""].join(" | ");

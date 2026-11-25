@@ -22,7 +22,7 @@ import { TEAMS } from "../teams.js";
 import { teamGameLines, vsTop, topSet, ratings } from "./ratings.js";
 import { playerGames, vsDefenses } from "./vsplayers.js";
 
-export const EDGE = { end: 5, players: 10, minGames: 5, share: 0.5, coverage: 0.8, topDef: 5, outliers: 10, gap: 4, teamGap: 5, perGame: 6 };
+export const EDGE = { end: 5, players: 10, minGames: 5, share: 0.5, coverage: 0.8, topDef: 5, outliers: 10, gap: 4, teamGap: 5, perGame: 6, minVs: 3 };   // minVs (0.161.0): a team's games against a group, and its others; players: POOL_MIN_SIDE in vsplayers.js
 // 0.135: the groups an opponent can be in. `by`/`side` as in ratings.js topSet; `what` reads after "against the".
 export const GROUPS = [
   { cat: "topdef", by: "defense", side: "top", what: (n) => `top ${n} defenses`, tag: (n) => `vs top-${n} defenses` },
@@ -109,7 +109,7 @@ export function edges({ rows, names = {}, tonight = [], teamFiles = null }) {
   const G = GROUPS.map((g) => {
     const set = topSet(R, N, g.by, g.side), vs = PGs ? vsDefenses(PGs, set) : { rows: [] };
     const tv = vsTop(lines, N, g.by, g.side).teams, key = g.by === "record" ? "net" : "ortg";
-    const diffs = Object.entries(tv).filter(([, x]) => x.diff != null && x.vsTop?.games >= 2 && x.rest?.games >= 2)
+    const diffs = Object.entries(tv).filter(([, x]) => x.diff != null && x.vsTop?.games >= EDGE.minVs && x.rest?.games >= EDGE.minVs)
       .map(([t, x]) => ({ t, diff: x.diff, games: x.vsTop.games, vs: x.vsTop[key], rest: x.rest[key], w: x.vsTop.w, l: x.vsTop.l, rw: x.rest.w, rl: x.rest.l })).sort((a, b) => a.diff - b.diff);
     const label = g.what(N) + (set.size > N ? ` (${set.size} teams, ties included)` : "");
     return { ...g, set, label, drops: vs.rows.filter((x) => x.gap < 0), rises: vs.rows.filter((x) => x.gap > 0).reverse(), diffs, key };

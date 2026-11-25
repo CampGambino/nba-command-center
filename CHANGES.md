@@ -2,6 +2,24 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.161.0 (2026-11-25): three games on each side for a line against a group
+
+The user, 11/25, 2:39 PM: "For minimum games, I think this early in the season, three games is adequate." (At 2:00 PM, to a question I had worded as "matchup lines": "Not really. Team face each other at most four times a season." I then said which lines I meant: a player's or a team's games against a group, such as the five worst defenses.)
+
+- A player's line against a group ("Brandon Miller has averaged 14.0 points in 2 games against the bottom 5 defenses and 20.8 in his other 12, the 2nd-biggest drop in the NBA") needs three games against the group and three others (`POOL_MIN_SIDE`, `src/situations/vsplayers.js`; it was two). The Defenses page's table reads the same number and says it.
+- A team's line against a group ("The Bulls have gone 2-0 against the 5 worst records") needs the same (`EDGE.minVs`, `src/situations/edges.js`).
+- Head-to-head lines ("has 30+ points in 14 of his last 20 games vs. MIN") are untouched: two teams meet at most four times a season, as the user said.
+
+**Before and after on today's files** (same inputs, both versions): the six lines resting on two games are gone (Brandon Miller, Michael Porter Jr., Egor Demin, Leonard Miller, the Bulls 2-0, the Nets). "The Nth-biggest drop in the NBA" is now counted among players with three games, so four kept lines changed their place in that count, and two players came into the ten biggest: Damian Lillard (16.6 points in 7 games against the 5 best records, 23.1 otherwise) and Donovan Mitchell (28.7 in 3 against the top 5 defenses). The ranked list: 634 lines to 629. The briefing's ten and five, and every game's own lines, were the same.
+
+**Checked:** tests 928 passed, 1 new; all pages OK.
+
+**Self-audit:**
+- The question I first asked named these "matchup lines", and the user answered about two teams meeting. That was my wording; 0.160.0's notes and the standing rules say so.
+- Each game shows a set number of matchup lines, so with Lillard's line in for SAS @ POR, "Wembanyama's teams have won 6 straight against the Trail Blazers" and CHI @ CHA's "The season series is tied 1-1" dropped off the ranked list, and CHI @ CHA's "Largest wins in the series" came on. I did not change that cap.
+- The existing test for this table had exactly three games on each side, so it passed unchanged; the new test has a two-game case that must be left out.
+- Not checked on a past date: later in the season nearly every regular will have three games against each group, so this floor will stop mattering by itself. The user's "this early in the season" suggests a higher number later; none is set.
+
 ## 0.160.0 (2026-11-25): full names on record lines; an age rule for notes that doesn't depend on wording
 
 The user, 11/25, 2:00 PM, answering three questions and asking one:
