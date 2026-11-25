@@ -565,6 +565,12 @@ const surname = (n) => String(n || "").normalize("NFD").replace(/[\u0300-\u036f]
 
 // 0.157.0 (the user, 11/25: "no need to include the accolades in the text. it takes up space"): a record line no longer
 // carries the player's headline award ("Brunson (Finals MVP): 28 points from…" is "Brunson: 28 points from…").
+// 0.160.0 (the user, 11/25: "Unless you can choose the right first name every time, go with what is provided"): a record
+// line gives the full name, as every other line does. The name is the record's own (`who`, the same record its last
+// name comes from), so it is never a guess; an item with no full name on file keeps its text. On 11/25 "Mitchell:" could
+// be Donovan or Davion, "George:" Paul or Keyonte, "Brown:" Jaylen or the Knicks' coach. `was` is the old wording, so the
+// build doesn't take a renamed line for a new one (scripts/situations.js).
+export const fullNamed = (i) => (i.last && i.who && i.who !== i.last && String(i.text).startsWith(`${i.last}:`) ? `${i.who}${i.text.slice(i.last.length)}` : i.text);
 function recordLines(records, teams, today, milestones) {
   if (!records || (records.today && today && records.today !== today)) return [];
   const out = [];
@@ -577,12 +583,12 @@ function recordLines(records, teams, today, milestones) {
       const dup = milestones.some((m) => m.team === i.team && m.stat === i.stat && nameKey(m.player) === nameKey(i.who)
         && (m.target === i.target || m.target === i.target - 1 || (m.passing && i.passing && i.passing.name.split(" and ").some((n) => surname(n) === surname(m.passing)))));
       if (dup) continue;
-      out.push({ team: i.team, player: i.who, kind: "record", text: `${i.text} (${pct(p)} tonight)`, score: i.score + p, passing: i.passing?.name || null, ...(i.siteOnly ? { siteOnly: true } : {}) });
+      const said = fullNamed(i);
+      out.push({ team: i.team, player: i.who, kind: "record", text: `${said} (${pct(p)} tonight)`, ...(said !== i.text ? { was: `${i.text} (${pct(p)} tonight)` } : {}), score: i.score + p, passing: i.passing?.name || null, ...(i.siteOnly ? { siteOnly: true } : {}) });
     } else if (i.need === 1) {
-      const text = i.kind === "coach"
-        ? i.stat === "games" ? `${i.text.replace(/: 1 game from passing/, ": coaches tonight to pass")}` : `${i.text.replace(/: 1 win from passing/, ": a win tonight passes")}`
-        : i.text;
-      out.push({ team: i.team, kind: "record", text, score: i.score });
+      const reword = (t) => (i.kind === "coach" ? (i.stat === "games" ? t.replace(/: 1 game from passing/, ": coaches tonight to pass") : t.replace(/: 1 win from passing/, ": a win tonight passes")) : t);
+      const text = reword(fullNamed(i)), was = reword(i.text);
+      out.push({ team: i.team, kind: "record", text, ...(was !== text ? { was } : {}), score: i.score });
     }
   }
   return out;
@@ -690,7 +696,7 @@ export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries =
     .flatMap((l) => {
       const st = l.player ? listed.get(`${l.team}|${nameKey(l.player)}`) : null;
       if (st === "Out" || st === "Doubtful") return [];
-      return [st === "Questionable" ? { ...l, text: `${l.text} · questionable tonight`, score: l.score * 0.8 } : l];
+      return [st === "Questionable" ? { ...l, text: `${l.text} · questionable tonight`, ...(l.was ? { was: `${l.was} · questionable tonight` } : {}), score: l.score * 0.8 } : l];
     });
   return { games, all: [...injuryLines(injuries, teams, watch.today), ...others, ...awardLines(elig, teams, watch.today)] };
 }

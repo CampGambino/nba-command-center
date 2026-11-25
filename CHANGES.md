@@ -2,6 +2,44 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.160.0 (2026-11-25): full names on record lines; an age rule for notes that doesn't depend on wording
+
+The user, 11/25, 2:00 PM, answering three questions and asking one:
+- On record lines giving the last name only: "Unless you can choose the right first name every time, go with what is provided."
+- On a three-game minimum for matchup lines: "Not really. Team face each other at most four times a season." Nothing changed.
+- "Did you fix only the listed errors specific to those teams, or do you make rules across all teams so those issues don't continue to arise?"
+
+**Full names on record lines** (`fullNamed`, `src/anticipate/tonight.js`). "Lopez: 6 points from passing Rick Barry" is "Brook Lopez: 6 points from…"; coaches too ("Steve Kerr: a win tonight passes Mike Dunleavy").
+- The first name can be chosen right every time because it isn't chosen: every one of today's 298 player and coach records carries its own full name (`who`), from the same record the last name comes from. A record with no full name on file keeps its text.
+- It was needed: in today's records "Mitchell" is Donovan or Davion, "George" is Paul or Keyonte, "Johnson" is Jalen or Keldon, "Brown" is Jaylen or the Knicks' coach.
+- NBA Live's own live cards already used the full name; the pre-game lines now match them. No bridge code changed.
+- A renamed line keeps its first-seen date and its history (`scripts/situations.js`), so none is marked new: all ten of today's record lines kept their status and rank.
+
+**The answer to "rules across all teams"**: yes. No rule names a team or a player; each is in the one notes reader every team's file goes through, with a test. But they recognize an old line by how it is worded, and each round another wording got by (0.157.0, 0.158.0, 0.159.0). So I audited every kept line on all 18 of tonight's teams for a printed date more than a week old: 18 of 215.
+- 12 are kept on purpose: firsts still inside their shelf life, a team with too few lines, a mark rare over ten years, or a date that belongs to a comparison ("other: Leonard Miller … 10/23").
+- 3 are 13 days old or less and state a count or a rank (Minnesota's two Nov. 12 lines, San Antonio's "As of Nov. 13").
+- 3 were plainly old and worded as standing facts, which no rule so far reads as old:
+  - "Anfernee Simons is the first 76er in franchise history to make at least five three-pointers off the bench in three consecutive games (10/28…)", 25 days ("is").
+  - "Chicago recorded 20-plus FTMs in eight-straight games (10/21-11/4), which is the second-longest streak in the NBA this season", 21 days ("which is").
+  - "Edwards scored 20 points in the first half and 27 … in the Oct. 26 game, marking his third and fourth 20+ point halves this season", 30 days, tagged "Leads NBA".
+
+**An age rule that doesn't read the wording** (`trimReason`, `src/notes/facts.js`). A line whose own latest date is more than 14 days back is moved to the trimmed list, whatever tense it is told in: what it counts or where it ranks is as of that date. A first with a longer shelf life (an NBA-history first by a 20-point scorer: 21 days) keeps that.
+- Left alone: a countdown, a series line, a streak the box scores still carry, and anything rare over ten years or more.
+- "Its own date" leaves out a comparison's ("other: … 10/23", "the other time coming from Feb. 26…") and the start of a span ("since 11/13") (`ownDates`).
+- A trimmed line is still on the page in the team's trimmed list with its reason, and a team left with fewer than four lines gets its best ones back, as before.
+- Also: "Nov. 9. 2022" (Booker's 1,000th three) was read as this November; a year after a period is now read as the year.
+
+**Before and after on today's files** (same afternoon's PDFs, both versions): the three lines above cut, nothing else trimmed; Philadelphia, left with few lines, got one recent recap back (Edgecombe, Nov. 19). Record lines: ten renamed, same status and rank. The first three lines of two games changed in name only ("LeBron James: 4 assists from passing…", "Damian Lillard: 2 3-pointers from passing…").
+
+**Checked:** tests 927 passed, 4 of them new; all pages OK.
+
+**Self-audit:**
+- The age rule changes a ruling I had tested in 0.159.0: "Has 3 games this season with 15+ rebounds, the latest on Nov. 6" (19 days) was kept as a present-tense count and is now trimmed. That test's date is moved inside 14 days, and the entry here says so. If the user wants standing counts kept longer, `SHELF.standing` is the one number.
+- My first `ownDates` stopped at the period in "Oct." and left "26 to Nov. 1" in the line, so a comparison's date still counted. A test written from the Warriors' line caught it. Today's real Warriors line had passed only because its date carries a year.
+- An older test expected "Gun: 21 points from passing…"; it now expects the full name.
+- The audit script re-runs the trimming on the saved lines, which lack a few fields the build has; it listed one Clippers line as cut that the real run keeps. The before/after run above is the real one.
+- Not done: Minnesota's two Nov. 12 lines and San Antonio's "As of Nov. 13" reach 14 days this week and will go then; I didn't cut them early.
+
 ## 0.159.0 (2026-11-25): fixes from the user's 18 screenshots of the ranked list — doubled lines, lost "th" endings, wrong tags, more old recaps, far-off countdowns
 
 The user, 11/25, 12:54 PM: "more photos from the home page" (18 screenshots: "Everything else, ranked", places 23 to 450). Read as a first-time reader would; each thing below was checked against the data before it was changed.

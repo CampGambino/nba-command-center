@@ -1045,6 +1045,13 @@ try {
       const { buildLedger, markShown, pageKey, hashKey } = await import("../src/anticipate/ledger.js");
       const ledgerFile = path.join(root, "history", "ledger-seen.json");
       const ledgerSeen = noAward(fs.existsSync(ledgerFile) ? JSON.parse(fs.readFileSync(ledgerFile, "utf8")) : {});
+      // 0.160.0: record lines now give the full name ("Brook Lopez: 6 points from…", was "Lopez: …"). A line seen under its
+      // old wording keeps its first-seen date and its history, so it isn't new today. (Keys last 30 days: this can go
+      // after 12/25/26, with noAward above.)
+      { const { lineKey } = await import("../src/anticipate/briefing.js"); const { claimKeyOf } = await import("../src/anticipate/ledger.js");
+        for (const l of cand.all) { if (!l.was) continue; const o = { ...l, text: l.was };
+          if (!(lineKey(l) in seen) && lineKey(o) in seen) seen[lineKey(l)] = seen[lineKey(o)];
+          if (!(claimKeyOf(l) in ledgerSeen) && claimKeyOf(o) in ledgerSeen) ledgerSeen[claimKeyOf(l)] = ledgerSeen[claimKeyOf(o)]; } }
       const ledger = buildLedger(cand.all, { seen: ledgerSeen, today: watch.today });
       const b = briefing({ all: cand.all, games: cand.games, stars: args.prep?.stars || {}, nationalGames: nat, seen, today: watch.today, model, buzz, ledger });
       fs.writeFileSync(seenFile, JSON.stringify(b.seen));

@@ -1463,7 +1463,7 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   const watch = { today: "2026-11-09", games: [{ id: "1", awayTri: "BBB", homeTri: "AAA" }], teams: [] };
   const recs = { today: "2026-11-09", items: [{ ...p2, pTonight: 0.4 }, { kind: "coach", team: "AAA", stat: "wins", need: 1, tonight: true, text: "Coach: 1 win from passing Old Coach (503) for 9th in career coaching wins", score: 3 }] };
   const lines = tonightStorylines({ watch, records: recs })[0].lines.filter((l) => l.kind === "record").map((l) => l.text);
-  ok(lines.includes("Gun: 21 points from passing Old Star (29,080) for the NBA record; 20 ties him (40% tonight)") && lines.includes("Coach: a win tonight passes Old Coach (503) for 9th in career coaching wins"),
+  ok(lines.includes("Young Gun: 21 points from passing Old Star (29,080) for the NBA record; 20 ties him (40% tonight)") && lines.includes("Coach: a win tonight passes Old Coach (503) for 9th in career coaching wins"),   // 0.160.0: the full name
     "records: tonight's storylines carry them", JSON.stringify(lines));
   const watch2 = { ...watch, teams: [{ team: "AAA", items: [{ player: "Young Gun", stat: "pts", kind: "pass", scope: "nba", target: 29080, need: 21, passing: { player: "Old Star" }, publishable: true, importance: 50, pTonight: 0.4 }] }] };
   const lines2 = tonightStorylines({ watch: watch2, records: recs })[0].lines.map((l) => l.kind);
@@ -5991,7 +5991,7 @@ await bridgeChecks(ok, root);
   const ament = "Scored a career-high 18 points with a career-best 9 rebounds in a career-leading 35 minutes of play on Nov. 19 vs. POR.";
   const third = "Logged his third game this season with 15+ REB and a career-high-tying 21 points at Atlanta (Nov. 21).";
   ok(/^past one-off \(1[89] days ago/.test(T(lyles, "2026-11-25") || "") && T(ament, "2026-11-25") === "past one-off (6 days ago, 2 games since)" && T(ament, "2026-11-20") === null && T(third, "2026-11-25") === null && /^past one-off/.test(T(third, "2026-11-29") || "")
-    && T("Minnesota has now held their opponents under 100 points three times this season, most recently on Nov. 12.", "2026-11-25") === null && T("Has 3 games this season with 15+ rebounds, the latest on Nov. 6.", "2026-11-25") === null,
+    && T("Minnesota has now held their opponents under 100 points three times this season, most recently on Nov. 12.", "2026-11-25") === null && T("Has 3 games this season with 15+ rebounds, the latest on Nov. 16.", "2026-11-25") === null,   // 0.160.0: was Nov. 6; a date over 14 days back is now past whatever the tense
     "notes (0.159.0): a telling of one night in the past tense is a recap whatever counts it carries (\"The Nov. 6 game marked his seventh career game with…\", \"a career-best 9 rebounds … on Nov. 19\"): gone after two games or a week; a count in the present tense stays", JSON.stringify([T(lyles, "2026-11-25"), T(ament, "2026-11-25"), T(third, "2026-11-25")]));
   // a streak count the notes are behind on
   const st = F.statedStreak("Facing Portland on Nov. 16, McDaniels finished with 13 points, extending his 10+ point streak to all 14 games to start the season, second-longest such streak of his career.");
@@ -6024,6 +6024,43 @@ await bridgeChecks(ok, root);
     && /\.\.\.withoutTonights\(args\.prep\?\.finds \|\| \[\], b\.ranked\)\.filter\(\(l\) => !model\.down\.has\(l\.key\)\)/.test(sj)
     && /const all = SPOT\.game \? \[\.\.\.all0\]\.sort\(\(a, b\) => place\.get\(a\) - place\.get\(b\)\) : firsts;/.test(ix) && /const place = new Map\(all0\.map\(\(l\) => \[l, placeOfFirst\.get\(saidAt\.get\(wordsOf\(l\)\)\)\]\)\);/.test(ix) && /chip\("g", "", `All \$\{firsts\.length\}`/.test(ix),
     "home page (0.159.0): a league-wide find already in tonight's lines is listed once, under its game (17 were doubled on 11/25); the same words under two games are one line in the list of every game, and each game's filter keeps its own", JSON.stringify(left));
+}
+
+// ---------- 0.160.0: the user's answers of 11/25 (full names; "rules across all teams") ----------
+{
+  const F = await import("../src/notes/facts.js");
+  const { fullNamed } = await import("../src/anticipate/tonight.js");
+  ok(fullNamed({ who: "Brook Lopez", last: "Lopez", text: "Lopez: 6 points from passing Rick Barry (18,395) for 79th all-time" }) === "Brook Lopez: 6 points from passing Rick Barry (18,395) for 79th all-time"
+    && fullNamed({ who: "Steve Kerr", last: "Kerr", text: "Kerr: 1 win from passing Mike Dunleavy (613) for 27th in career coaching wins" }).startsWith("Steve Kerr: 1 win")
+    && fullNamed({ who: "Spurs", text: "Spurs: 8 straight; a road win tonight makes 9" }) === "Spurs: 8 straight; a road win tonight makes 9"
+    && fullNamed({ who: "Nenê", last: "Nenê", text: "Nenê: 3 points from 10,000 career points" }) === "Nenê: 3 points from 10,000 career points"
+    && fullNamed({ last: "Lopez", text: "Lopez: 6 points from passing Rick Barry" }) === "Lopez: 6 points from passing Rick Barry",
+    "record lines (0.160.0): the full name is the record's own (\"Brook Lopez: 6 points from…\", coaches too); a team's line, a one-name player and an item with no full name on file keep their text");
+  const tn = fs.readFileSync(path.join(root, "src", "anticipate", "tonight.js"), "utf8"), sj = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8");
+  ok(/const said = fullNamed\(i\);/.test(tn) && /\.\.\.\(said !== i\.text \? \{ was: `\$\{i\.text\} \(\$\{pct\(p\)\} tonight\)` \} : \{\}\)/.test(tn) && /\.\.\.\(l\.was \? \{ was: `\$\{l\.was\} · questionable tonight` \} : \{\}\)/.test(tn)
+    && /if \(!\(lineKey\(l\) in seen\) && lineKey\(o\) in seen\) seen\[lineKey\(l\)\] = seen\[lineKey\(o\)\];/.test(sj) && /if \(!\(claimKeyOf\(l\) in ledgerSeen\) && claimKeyOf\(o\) in ledgerSeen\) ledgerSeen\[claimKeyOf\(l\)\] = ledgerSeen\[claimKeyOf\(o\)\];/.test(sj)
+    && tn === fs.readFileSync(path.join(root, "docs", "lib", "anticipate", "tonight.js"), "utf8"),
+    "record lines (0.160.0): a renamed line carries its old wording so the build keeps its first-seen date and its history (it isn't new today)");
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const days = ["2026-10-21", "2026-10-24", "2026-10-26", "2026-10-28", "2026-10-30", "2026-11-01", "2026-11-04", "2026-11-07", "2026-11-10", "2026-11-12", "2026-11-14", "2026-11-16", "2026-11-19", "2026-11-21", "2026-11-23"];
+  const box = { keys, names: {}, games: days.map((d) => ({ d, opp: "BOS", home: true, pf: 1, pa: 0, pl: {} })) };
+  const T = (text, today, extra = {}) => F.trimReason({ text, ...extra }, { box, today });
+  const simons = "Anfernee Simons is the first 76er in franchise history to make at least five three-pointers off the bench in three consecutive games (10/28 vs. IND (6-10 3FG), 10/30 vs. BOS and 11/1 vs. BKN).";
+  const ftm = "Chicago recorded 20-plus FTMs in eight-straight games (10/21-11/4), which is the second-longest streak in the NBA this season (NOP, 10-straight).";
+  const held = "In holding the Mavericks to just 94 points on Nov. 12, Minnesota has now held their opponents under 100 points three times this season, one of six teams that have recorded three or more such games.";
+  ok(T(simons, "2026-11-25") === "past one-off (its latest date is 24 days old; what it counts is as of then)" && T(simons, "2026-11-10") === null
+    && T(ftm, "2026-11-25") === "past one-off (its latest date is 21 days old; what it counts is as of then)" && T(ftm, "2026-11-16") === null
+    && T(held, "2026-11-25") === null && /^past one-off \(its latest date is 15 days old/.test(T(held, "2026-11-27") || ""),
+    "notes (0.160.0): whatever its wording, a line whose own latest date is more than 14 days back is past (\"is the first 76er…\" at 24 days, \"which is the second-longest streak\" at 21); inside 14 days a standing count stays", JSON.stringify([T(simons, "2026-11-25"), T(ftm, "2026-11-25"), T(held, "2026-11-27")]));
+  ok(T("Hawkins’ effort matched the most points by any Bulls reserve this season (other: Leonard Miller - 19 points at MIL, 10/23).", "2026-11-25") === null
+    && T("This is just the second time in the play-by-play era the Warriors have had four consecutive comeback wins after trailing by 10-or-more points, the other time coming from Oct. 26 to Nov. 1.", "2026-11-25") === null
+    && T("Deni Avdija is shooting 64.1% from the field over his last 4 games (since 10/13).", "2026-11-25") === null
+    && T("The Bulls attempted 47 free throws at TOR (10/21), the most FTA in a regulation game for the team since Dec. 12, 2014.", "2026-11-25") === null
+    && T("Is 21 assists short from the 1,000th of his career after his five assists on Oct. 28.", "2026-11-25", { kind: "next" }) === null
+    && T("Has started 103 consecutive regular season games, the longest active streak on the team (began Oct. 26).", "2026-11-25", { hook: { text: "x", live: true } }) === null
+    && F.eventDate("Made his 1,000th-career three-point field goal in win at Minnesota on Nov. 9. 2022, joining Steve Nash.", { today: "2026-11-25" }) === null
+    && !/10\/23/.test(F.ownDates("matched the most (other: Leonard Miller - 19 points at MIL, 10/23)")) && /11\/4/.test(F.ownDates("in eight-straight games (10/21-11/4)")),
+    "notes (0.160.0): the age rule goes by the line's own dates, not a comparison's (\"other: … 10/23\", \"the other time coming from…\", \"since 10/13\"); a countdown, a streak the box scores still carry, a mark rare over ten years and another season's date (\"Nov. 9. 2022\") are left alone");
 }
 
 const snapDir = path.join(root, "tests", "expected");

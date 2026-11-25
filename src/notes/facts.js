@@ -797,7 +797,7 @@ export function eventDate(text, { today, firstGame = null } = {}) {
     if (m[3] && !(Number(m[3].slice(-2)) === y % 100 || Number(m[3].slice(-2)) === (y - 1) % 100)) continue;
     if (Number(m[1]) <= 12 && Number(m[2]) <= 31) out.push(iso(Number(m[1]), Number(m[2])));
   }
-  for (const m of t.matchAll(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b(?:,?\s*((?:19|20)\d\d))?/gi)) {
+  for (const m of t.matchAll(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b(?:[.,]?\s*((?:19|20)\d\d))?/gi)) {   // 0.160.0: "Nov. 9. 2022"
     if (m[3] && !(Number(m[3]) === y || Number(m[3]) === y - 1)) continue; // another season's date
     out.push(iso(MON[m[1].toLowerCase()], Number(m[2])));
   }
@@ -855,7 +855,14 @@ export function cantBeThisSeason(text, { box = null, playerId = null } = {}) {
  * is the line (the user, 11/16). A player averaging SHELF.starPpg or more gets half as long again on the first two.
  * The lengths agree with what the user cut on 11/13: an NBA-history first at 23 days, a team-history first at 11.
  */
-export const SHELF = { nba: 14, team: 10, recap: 7, grace: 2, star: 1.5, starPpg: 20, penalty: 2.5 };
+export const SHELF = { nba: 14, team: 10, recap: 7, grace: 2, star: 1.5, starPpg: 20, penalty: 2.5, standing: 14 };
+// 0.160.0: the dates in a line that are its own, not a comparison's: "(other: Leonard Miller - 19 points at MIL, 10/23)",
+// "the other time coming from Feb. 26 to March 6", "(since 11/13)", "for the first time since 11/2" say when something
+// else happened, or where a span starts.
+export const ownDates = (text) => plain(text)
+  .replace(/\((?:others?|previous(?:ly)?|prev\.?|last|most|record|high|career[- ]high|season[- ]high|franchise record|the other)\b[^)]*\)/gi, " ")
+  .replace(/\bthe other (?:times?|instances?|occasions?)\b[^;]*/gi, " ")   // to the end: "Feb." would stop a sentence match
+  .replace(/\bsince (?:the )?(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)[a-z]*\.? \d{1,2}(?:st|nd|rd|th)?|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/gi, " ");
 const LIST_PASS = /\b(?:pass(?:ed|ing|es)|surpass\w*|moved (?:past|into|up)|eclips\w*|overt(?:ook|ak\w*)|entered the top|climbed)\b/i;
 const FIRST_OR_RECORD = /\b(?:first|only|youngest|oldest|fastest|records?)\b|\b(?:second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d+(?:st|nd|rd|th)) (?:\w+ ){0,2}(?:players?|rookies?|guards?|forwards?|centers?|teams?|duos?|trios?|pairs?|reserves?|teammates|teenagers?|starters?)\b/i;
 export function shelfLife(text, { star = false } = {}) {
@@ -1023,7 +1030,20 @@ export function trimReason(line, { box = null, today, home = null, opp = null } 
   if (home === true && roadStat && !homeStat) return "a road stat, on a home night";
   // Closed, past one-offs: a recap after two games or a week, as before; a bigger claim after its shelf life (0.157.0).
   const ev = closedEvent(line, { box, today });
-  if (!ev) return null;
+  if (!ev) {
+    // 0.160.0 (the user, 11/25: "do you make rules across all teams so those issues don't continue to arise?"): the rules
+    // above know an old line by its wording, and each round another wording got by ("is the first 76er … in three
+    // consecutive games (10/28…)", 25 days old, stayed because it says "is"). This one doesn't read the wording: a line
+    // whose own latest date is more than SHELF.standing days back (longer for a first with a longer shelf life) is past,
+    // whatever tense it is told in, because what it counts or where it ranks is as of that date. Left alone: a countdown,
+    // a series line, a streak the box scores still carry (a live hook), and anything rare over ten years or more.
+    const live = !!line.matchup || line.kind === "pass" || line.kind === "next" || !!line.hook?.live;
+    const own = today && !live && !longSpan(t, today) ? eventDate(ownDates(line.text), { today }) : null;
+    if (!own) return null;
+    const ageOwn = Math.round((Date.parse(today) - Date.parse(own)) / 864e5);
+    const keep = Math.max(SHELF.standing, shelfLife(t, { star: isStar(box, line.playerId) }).days);
+    return ageOwn > keep ? `past one-off (its latest date is ${ageOwn} days old; what it counts is as of then)` : null;
+  }
   const { age, since } = ev;
   // An event, not a stat (a trip, a first visit): over once it's past, and not brought back for a team with few lines.
   if (/\btraveled to\b|\bfor the first time in (?:team|franchise) history to (?:face|play|visit|travel)\b/i.test(t) && (since >= 1 || age > 3)) return `past event (${age} days ago)`;
