@@ -850,3 +850,44 @@
 {"d":"2026-11-23","team":"SAC","player":"Precious Achiuwa","what":"3300 points","need":25,"got":9,"p":0.085,"hit":false,"stat":"pts","pPlay":0.97,"played":true}
 {"d":"2026-11-23","team":"UTA","player":"Mo Bamba","what":"300 3-pointers","need":2,"got":0,"p":0.079,"hit":false,"stat":"fg3m","pPlay":0.95,"played":true}
 {"d":"2026-11-23","team":"POR","player":"Damian Lillard","what":"record (records): pass Dwight Howard in free throws","need":11,"got":9,"p":0.054,"hit":false,"stat":"ftm","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-24","team":"DEN","player":"DeMar DeRozan","what":"record (records): pass A.C. Green in games","need":1,"got":1,"p":0.974,"hit":true,"stat":"gp","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-24","team":"DEN","player":"Nikola Jokić","what":"record (records): 150 rebounds","need":2,"got":11,"p":0.971,"hit":true,"stat":"reb","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-24","team":"DEN","player":"Nikola Jokić","what":"record (records): pass Rick Barry in points","need":11,"got":18,"p":0.97,"hit":true,"stat":"pts","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-24","team":"DEN","player":"Nikola Jokić","what":"record (records): 151 rebounds","need":3,"got":11,"p":0.968,"hit":true,"stat":"reb","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-24","team":"DEN","player":"Nikola Jokić","what":"record (records): pass Brook Lopez in points","need":6,"got":18,"p":0.967,"hit":true,"stat":"pts","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-24","team":"DEN","player":"Nikola Jokić","what":"record (records): 122 assists","need":4,"got":5,"p":0.961,"hit":true,"stat":"ast","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-24","team":"DAL","player":"Cooper Flagg","what":"pass Jabari Smith Jr.","need":3,"got":6,"p":0.958,"hit":true,"stat":"reb","pPlay":0.97,"played":true}
+{"d":"2026-11-24","team":"DEN","player":"Nikola Jokić","what":"record (records): 154 rebounds","need":6,"got":11,"p":0.955,"hit":true,"stat":"reb","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-24","team":"DEN","player":"Nikola Jokić","what":"record (records): 107 defensive rebounds","need":1,"got":9,"p":0.936,"hit":true,"stat":"dreb","pPlay":0.97,"played":true,"rivalGot":0,"from":"records"}
+{"d":"2026-11-24","team":"WAS","player":"Trae Young","what":"12800 points","need":4,"got":17,"p":0.925,"hit":true,"stat":"pts","pPlay":0.97,"played":true}
+{"d":"2026-11-24","team":"WAS","player":"Anthony Davis","what":"19800 points","need":13,"got":33,"p":0.917,"hit":true,"stat":"pts","pPlay":0.97,"played":true}
+{"d":"2026-11-24","team":"BOS","player":"Baylor Scheierman","what":"300 defensive rebounds","need":1,"got":2,"p":0.862,"hit":true,"stat":"dreb","pPlay":0.97,"played":true}
+{"d":"2026-11-24","team":"WAS","player":"Trae Young","what":"3400 free throws","need":2,"got":8,"p":0.812,"hit":true,"stat":"ftm","pPlay":0.97,"played":true}
+{"d":"2026-11-24","team":"DEN","player":"Nikola Jokić","what":"record (records): 126 assists","need":8,"got":5,"p":0.804,"hit":false,"stat":"ast","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-24","team":"WAS","player":"Anthony Davis","what":"record (records): 130 defensive rebounds","need":5,"got":8,"p":0.791,"hit":true,"stat":"dreb","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-24","team":"DEN","player":"Nikola Jokić","what":"record (records): 112 defensive rebounds","need":6,"got":9,"p":0.779,"hit":true,"stat":"dreb","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-24","team":"ORL","player":"Tristan da Silva","what":"1500 points","need":8,"got":16,"p":0.766,"hit":true,"stat":"pts","pPlay":0.97,"played":true}
+{"d":"2026-11-24","team":"DAL","player":"Kyrie Irving","what":"record (records): 719 assists","need":4,"got":6,"p":0.749,"hit":true,"stat":"ast","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-24","team":"ORL","player":"Nikola Vučević","what":"record (records): pass Rudy Gobert in rebounds","need":1,"got":0,"p":0.736,"hit":false,"stat":"reb","pPlay":0.8,"played":false,"from":"records"}
+{"d":"2026-11-24","team":"DEN","player":"Nikola Jokić","what":"record (records): 605 blocks","need":1,"got":0,"p":0.66,"hit":false,"stat":"blk","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-24","team":"DET","player":"Ronald Holland II","what":"200 assists","need":1,"got":1,"p":0.646,"hit":true,"stat":"ast","pPlay":0.97,"played":true}
+{"d":"2026-11-24","team":"DAL","player":"Max Christie","what":"pass Harrison Barnes","need":2,"got":0,"p":0.643,"hit":false,"stat":"fgm","pPlay":0.97,"played":true}
+{"d":"2026-11-24","team":"BOS","player":"Payton Pritchard","what":"record (records): 912 3-pointers","need":2,"got":4,"p":0.578,"hit":true,"stat":"fg3m","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-24","team":"WAS","player":"Anthony Davis","what":"record (records): 62 offensive rebounds","need":3,"got":5,"p":0.507,"hit":true,"stat":"oreb","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-24","team":"WAS","player":"Alex Sarr","what":"100 steals","need":1,"got":0,"p":0.47,"hit":false,"stat":"stl","pPlay":0.97,"played":true}
+{"d":"2026-11-24","team":"BOS","player":"Baylor Scheierman","what":"400 rebounds","need":4,"got":4,"p":0.447,"hit":true,"stat":"reb","pPlay":0.97,"played":true}
+{"d":"2026-11-24","team":"WAS","player":"Anthony Davis","what":"2100 assists","need":3,"got":1,"p":0.425,"hit":false,"stat":"ast","pPlay":0.97,"played":true}
+{"d":"2026-11-24","team":"DAL","player":"Cooper Flagg","what":"700 field goals","need":10,"got":8,"p":0.344,"hit":false,"stat":"fgm","pPlay":0.97,"played":true}
+{"d":"2026-11-24","team":"BOS","player":"Paul George","what":"record (records): 2500 3-pointers","need":5,"got":6,"p":0.336,"hit":true,"stat":"fg3m","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-24","team":"DEN","player":"Nikola Jokić","what":"record (records): 129 assists","need":11,"got":5,"p":0.275,"hit":false,"stat":"ast","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-24","team":"WAS","player":"Anthony Davis","what":"400 3-pointers","need":2,"got":1,"p":0.239,"hit":false,"stat":"fg3m","pPlay":0.97,"played":true}
+{"d":"2026-11-24","team":"BOS","player":"Paul George","what":"2500 3-pointers","need":5,"got":6,"p":0.235,"hit":true,"stat":"fg3m","pPlay":0.97,"played":true}
+{"d":"2026-11-24","team":"ORL","player":"Jalen Suggs","what":"400 steals","need":3,"got":2,"p":0.219,"hit":false,"stat":"stl","pPlay":0.97,"played":true}
+{"d":"2026-11-24","team":"BOS","player":"Derrick White","what":"6250 field goal attempts","need":17,"got":10,"p":0.107,"hit":false,"stat":"fga","pPlay":0.97,"played":true}
+{"d":"2026-11-24","team":"BOS","player":"Devin Carter","what":"500 points","need":23,"got":0,"p":0.099,"hit":false,"stat":"pts","pPlay":0.95,"played":false}
+{"d":"2026-11-24","team":"WAS","player":"Khris Middleton","what":"13600 points","need":11,"got":0,"p":0.097,"hit":false,"stat":"pts","pPlay":0.95,"played":true}
+{"d":"2026-11-24","team":"WAS","player":"Deandre Ayton","what":"800 free throws","need":2,"got":0,"p":0.091,"hit":false,"stat":"ftm","pPlay":0.97,"played":true}
+{"d":"2026-11-24","team":"DEN","player":"DeMar DeRozan","what":"record (records): pass Robert Parish in field goals","need":6,"got":4,"p":0.079,"hit":false,"stat":"fgm","pPlay":0.97,"played":true,"from":"records"}
+{"d":"2026-11-24","team":"BOS","player":"Mike Conley","what":"2000 3-pointers","need":4,"got":0,"p":0.077,"hit":false,"stat":"fg3m","pPlay":0.95,"played":false}
+{"d":"2026-11-24","team":"BOS","player":"Mike Conley","what":"record (records): 2000 3-pointers","need":4,"got":0,"p":0.062,"hit":false,"stat":"fg3m","pPlay":0.95,"played":false,"from":"records"}
+{"d":"2026-11-24","team":"ORL","player":"Wendell Carter Jr.","what":"record (records): 4428 points","need":24,"got":9,"p":0.06,"hit":false,"stat":"pts","pPlay":0.97,"played":true,"from":"records"}
