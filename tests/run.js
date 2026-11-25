@@ -2786,7 +2786,7 @@ await bridgeChecks(ok, root);
     JSON.stringify([B.top.map((l) => [l.player || l.team, l.age, l.rank]), Object.keys(B.seen)]));
   ok(/const st = \(a\) => \(INJ && INJ\.date === W\.date \? INJSTATUS/.test(tp) && /id="oddwatchout"/.test(tp) && /fetch\("data\/injuries\.json"/.test(tp)
     && /const \{ selfCheck \} = await import\("\.\.\/src\/site\/selfcheck\.js"\)/.test(ci) && /\.\.\.\(checks\.length \? \{ checks \} : \{\}\)/.test(ci) && !/not \(\?:written\|read\|updated\|built\)/.test(ci)
-    && /for \(const c of h\?\.checks \|\| \[\]\) notes\.push\(`Build check: \$\{esc\(c\.text\)\}`\)/.test(ix) && fs.existsSync(path.join(root, "tools", "diagnose.mjs")),
+    && /for \(const t of new Set\(\(h\?\.checks \|\| \[\]\)\.map\(\(c\) => c\.text\)\)\) notes\.push\(`Build check: \$\{esc\(t\)\}`\)/.test(ix) && fs.existsSync(path.join(root, "tools", "diagnose.mjs")),
     "0.125: the odd lines' \"to watch tonight\" leaves out players listed out or doubtful and says who; every complaint a step prints reaches the health note (not only ones worded a certain way); the Watch List prints the build's own checks in its warning box; tools/diagnose.mjs is the by-hand version");
 }
 
@@ -5817,6 +5817,23 @@ await bridgeChecks(ok, root);
     && /data-v="types"/.test(def5) && /li\.edge/.test(idx5) && /i\.edge \? ' class="edge"'/.test(idx5) && fs.existsSync(path.join(root, "docs", "lib", "espn", "misc.js"))
     && fs.readFileSync(path.join(root, "docs", "lib", "espn", "misc.js"), "utf8") === fs.readFileSync(path.join(root, "src", "espn", "misc.js"), "utf8"),
     "pages (0.95): the league's win rates are said once above tonight's matchup cards, not as a column on each; the Top-N and count dropdowns offer every value (1-10 for the top defenses and records); the vs top teams page has a Scoring by type view; the Watch List marks the lopsided lines; the page's copy of the reader is the build's");
+}
+
+// ---------- 0.154.0: from the 11/24 simulation (past-date builds) ----------
+{
+  const { streakScore } = await import("../src/anticipate/tonight.js");
+  // a streak's score levels off below 6 (records and milestones top out about there); short runs score as before (length × weight / 5)
+  ok(streakScore(6) === 1.2 && streakScore(20) === 4 && streakScore(142 * 0.4) < 6 && streakScore(346 * 0.4) < 6 && streakScore(346 * 0.4) > streakScore(142 * 0.4),
+    "briefing (0.154.0): a long streak of a routine line ranks near the top, not miles above it (Tatum's 142 straight 10+ point games scored 11.4)");
+  const sit = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8");
+  ok(/allGames\(store\)\.filter\(\(g\) => !g\.d \|\| g\.d <= through\)/.test(sit), "situations (0.154.0): the season's results are cut at yesterday, so a build for an earlier date doesn't count later games");
+  const fr = fs.readFileSync(path.join(root, "tools", "fetch-rotations.mjs"), "utf8");
+  ok(/from "\.\.\/src\/season\.js"/.test(fr) && !/"2026-27"\)/.test(fr) && /incomplete/.test(fr) && /RETRY_DAYS = 7/.test(fr) && !/LOOSE_BALLS_RECOVERED \?\? r\.BOX_OUTS/.test(fr),
+    "rotations pull (0.154.0): the season from src/season.js; a game NBA.com hadn't finished posting is marked and read again for 7 days; loose balls no longer fall back to box-outs");
+  const ix = fs.readFileSync(path.join(root, "docs", "index.html"), "utf8"), bn = ix.match(/function bigNum\(t\) \{[\s\S]*?\n\}/);
+  const bigNum = bn ? new Function(`${bn[0]}; return bigNum;`)() : null;
+  ok(bigNum && bigNum("DET 1-2 in 3 games")?.[0] === "1-2" && bigNum("Doncic (4, 1/9-1/16/19) to post") === null && bigNum("10 points (4-7 FG, 2-4 3FG)") === null,
+    "Spotlight (0.154.0): a tile's big number is a record, not a date range or a shooting split");
 }
 
 const snapDir = path.join(root, "tests", "expected");

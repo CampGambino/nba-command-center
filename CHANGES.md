@@ -2,6 +2,53 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.154.0 (2026-11-24): fixes from a simulation of past dates — streak ranking, the rotations pull, results cut at the build date, Spotlight numbers
+
+The user, 11/24: "Run a simulation to try to catch errors or issues. Use dates from earlier this year and dates from last year if possible. Try to break it… especially outliers like days with 15 games or 1 game and test out the order rank on the items to gauge better how they should be displayed."
+
+**What was run:**
+- **Full builds dated in the past** (`scripts/ci.js build --today <date>`, each in its own copy of the repo):
+  - this season: 10/20 opening night (3 games), 11/2 (15), 11/3 (none), 11/5 (2)
+  - last season: 11/6/25 (1), 12/16/25 (only the NBA Cup final), 12/25/25 (Christmas), 4/12/26 (the season's last day, 15)
+  - Every one finished without an error.
+- **Today's ranking code on the real inputs** of the 11/12 (4 games), 11/18 (12), 11/23 (10) and 11/24 (3) evening builds, taken from git history. These are the honest test of the order: a dated build can't go back in time for everything. The NBA's notes PDFs, the injury report and rosters are only the current ones, so a replay of 11/2 reads 11/25's notes.
+- **The rotations pull's game check** on edge days: no games (11/26), the Cup final alone, All-Star Sunday, the play-in, Christmas.
+
+**Fixed:**
+- **A long streak of a routine line outranked everything** (`src/anticipate/tonight.js`).
+  - A streak scored its length × weight / 5 without limit. On the live 11/24 slate "Tatum: 10+ points in 142 straight games" ranked 13.5, the next line 7.9; on 11/18 four 10+ point runs were the top four, Durant's at 29.
+  - It now levels off below 6, the top of what records and milestones score (`streakScore`; short runs score as before). On 11/24 the two Jokić NBA Cup record chases now lead and Tatum's run is 4th.
+- **The season's results weren't cut at the build's date** (`scripts/situations.js`). A build for an earlier date counted every game on file: the 11/2 replay had PHI 14-4 (they were 6-1) and 145 team numbers disagreeing between pages. Only games through yesterday count now. In live builds this only matters for a re-run of an earlier day.
+- **The rotations pull** (`tools/fetch-rotations.mjs`):
+  - **Never re-read a half-posted game.** POR-PHI 11/23 was read with no hustle stats (NBA.com still has none) and would never have been read again. A file now says what it lacks (`incomplete`) and is read again daily for 7 days. NBA.com's MIL-MIA 11/18 rotation is still missing MIL entirely; both files are marked.
+  - **Had the season written in as "2026-27"**, so after next October's rollover it would have kept reading this season's list and found nothing new. It reads `src/season.js` now.
+  - Loose balls fell back to box-outs in the older response format.
+- **Spotlight's big numbers** (`docs/index.html` bigNum): a date range ("1/9-1/16/19") gave "9-1" and a shooting split ("4-7 FG") gave "4-7". It now only takes a won-lost record.
+- **A 15-game morning's notes warning** listed up to 30 teams in a block above the games. More than four now fold into one line ("22 of 30 teams' notes aren't the ones for tonight yet"), with the list a click away; each game card still flags its own.
+- An off day's Spotlight said "Nothing tonight clears the bar"; it now says there are no games tonight. Build-check lines are shown once each (12/16/25 listed two games twice).
+- **The scheduled pull's instructions:** All-Star Sunday counted as games (ESPN files it as regular season), so the day after would have woken the task; only games between two NBA teams count. The Lineups data is rebuilt even when no new game is read, so a late Game Flow file is picked up, and nothing is committed when nothing changed.
+
+**Found, not changed (a question for the user):** how many tiles the Spotlight shows.
+
+| Slate | Lines | Tiles (bar 5.5) | Most tiles for one player |
+|---|---|---|---|
+| 1 game (11/6/25 replay) | 72 | 10 | 5 (Booker) |
+| 3 games (11/24, real) | 224 | 23 | 8 (Jokić) |
+| 4 games (11/12, real) | 202 | 15 | 2 (Davis, Young) |
+| 12 games (11/18, real) | 790 | 112 | 11 (Dončić) |
+| 15 games (11/2 replay) | 817 | 144 | 12 (Dončić) |
+
+(Counted with this version's streak scores.)
+
+On a 12-game night the tiles run 6,100 pixels before the ranked list starts, and four "10+ points in N straight" tiles sit side by side. A prototype was drawn (not published): with no filter picked, the top 8 + 1 per game (up to 20), at most 2 a player, 3 a game, 1 of each kind of streak; then each game's best 3 others; then the ranked list. Picking a group or a game still shows every line over the bar. On 11/18 that is 20 tiles and 12 game cards in 2,400 pixels; no line leaves the page.
+
+**Checked:** tests 890 passed, including four new ones for these fixes; all pages OK. The 11/2 replay re-run after the fix counts 92 games through 11/1, with Durant at 7 games this season, not 18.
+
+**Self-audit:**
+- My first reading of the replays blamed the code for things that are the replay's limits: notes, injuries and Kalshi are only the current ones. Those are left out of the fixes and named here.
+- MIL-MIA 11/18 was called "NBA.com's stints are broken" in 0.151.0. It was re-checked from NBA.com tonight: it lists no MIL stints at all and 3 for MIA. So that note stands; it is now marked and will be tried again until 11/25.
+- Not done: the Spotlight's size and the per-game cards wait for the user's answer.
+
 ## 0.153.1 (2026-11-24): the NBA.com probe answered and removed
 
 The probe (0.150.1), run by hand at 23:06 UTC: from GitHub's runners all three stats.nba.com requests (`leaguegamelog`, `gamerotation`, `boxscorehustlev2`) got no answer within 40 seconds. NBA.com doesn't answer GitHub's servers, so the nightly build can't pull rotations or hustle stats.

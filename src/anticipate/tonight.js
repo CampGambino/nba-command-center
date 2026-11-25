@@ -70,6 +70,13 @@ function milestoneLines(watch, teams) {
   return out;
 }
 
+/**
+ * 0.154.0: a streak's score grows with its length up to 4 and then levels off below 6, the top of what records and
+ * milestones score. It grew without limit (length × weight / 5): on 11/24 "Tatum: 10+ points in 142 straight games"
+ * ranked 13.5, the next line 7.9; a replay of 11/2 put four 10+ point runs above everything (Durant's at 29).
+ * A long run of a routine line is worth a mention near the top, not the whole top.
+ */
+export const streakScore = (x) => { const s0 = x / 5; return s0 <= 4 ? s0 : 4 + 2 * (1 - 4 / s0); };
 function streakLines(trends, teams) {
   const out = [];
   const best = {};
@@ -86,7 +93,7 @@ function streakLines(trends, teams) {
     if (s.length * w < 6) continue; // notable enough: e.g. 10+ points needs 15 straight, 20+ points 5
     // 0.145.0: a run carried over from last season says so (trends.js activeStreaks: thisSeason, carried).
     const every = s.carried ? `, going back to last season (every game this season, ${s.thisSeason})` : s.length === s.ofGames ? ", every game this season" : "";
-    out.push({ team: s.team, player: s.name, kind: "streak", text: `${s.name}: ${s.label.toLowerCase()} in ${s.length} straight games${every}`, score: (s.length * w) / 5 });
+    out.push({ team: s.team, player: s.name, kind: "streak", text: `${s.name}: ${s.label.toLowerCase()} in ${s.length} straight games${every}`, score: streakScore(s.length * w) });
   }
   return out;
 }

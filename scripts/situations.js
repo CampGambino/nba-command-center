@@ -85,7 +85,9 @@ if (seasonBefore && store.season && seasonBefore !== store.season) {
 // Stat corrections: recent games are re-read for a few days (src/situations/results.js RECHECK_DAYS).
 if (store.corrected?.length) console.log(`stat corrections: ${store.corrected.length} recent game(s) changed on a re-read: ${store.corrected.join(", ")}`);
 if (store.requartered?.length) console.log(`quarter scores: ${store.requartered.length} game(s) changed on a re-read: ${store.requartered.map((x) => `${x.d} ${x.a}@${x.h}`).join(", ")}`);
-const rows = allGames(store);
+// 0.154.0: only games through yesterday. The store holds every date read so far; a build for an earlier date (a
+// re-run, or the replays of 11/24) would otherwise count games after it: PHI "14-4" on 11/2, when they were 6-1.
+const rows = allGames(store).filter((g) => !g.d || g.d <= through);
 if (!rows.length) { console.error(`no results collected${warnings.length ? `: ${warnings[0]}` : ""}`); process.exit(1); }
 // 0.145.0: one spelling per player. ESPN's box scores write "Nikola Jokic"; the Guide and the records built from it "Nikola
 // Jokić". Every line built here from the box scores uses the accented spelling where a reference file (src/data) has one

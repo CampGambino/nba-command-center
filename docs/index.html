@@ -357,7 +357,10 @@ function render() {
     return `<div class="game${L?.state === "in" ? " live" : ""}"><div class="teams">${esc(nick(g.away))} @ ${esc(nick(g.home))}</div><div class="state">${state}${L?.score ? ` · ${esc(L.score)}` : ""}</div><div class="state"><a href="${L?.state === "in" || L?.state === "post" ? `gameflow.html?game=${encodeURIComponent(g.id)}">Game Flow ›` : `gameflow.html?view=range">3PT matchups ›`}</a></div>${noteFlags.length ? `<div class="state" style="color:var(--warn)">${noteFlags.join(" · ")}</div>` : ""}</div>`;
   }).join("") || `<div class="empty">No games tonight.</div>`;
   const issues = data.teams.filter((t) => t.notesStatus && !["current", "local"].includes(t.notesStatus));
-  $("notesIssues").innerHTML = issues.length ? `<div class="warn-banner">${issues.map((t) => `<b>${esc(t.team)}</b>: ${esc(t.notesWhy || t.notesStatus)}`).join("<br>")}<br>Stale notes are still used: their totals are brought up to date from the games played since.</div>` : "";
+  // 0.154.0: more than four teams (a morning on a 15-game night: up to 30) fold into one line; each game card still flags its own
+  const why = issues.map((t) => `<b>${esc(t.team)}</b>: ${esc(t.notesWhy || t.notesStatus)}`).join("<br>"), STALE_NOTE = "Stale notes are still used: their totals are brought up to date from the games played since.";
+  $("notesIssues").innerHTML = !issues.length ? "" : issues.length <= 4 ? `<div class="warn-banner">${why}<br>${STALE_NOTE}</div>`
+    : `<details class="warn-banner"><summary>${issues.length} of ${data.teams.length} teams' notes aren't the ones for tonight yet. ${STALE_NOTE}</summary><div style="margin-top:6px">${why}</div></details>`;
 }
 
 async function poll() {
@@ -507,7 +510,8 @@ function bigNum(t) {
   if ((m = t.match(/(\d[\d,]*\+?)\s+(straight|consecutive)\s+(games?|wins?|losses|meetings|seasons)/i))) return [m[1], m[2] === "consecutive" ? "straight" : m[2]];
   if ((m = t.match(/:\s*(\d[\d,]*)\s+((?:offensive |defensive )?[a-z0-9-]+)\s+(?:from|to|away)\b/i))) return [m[1], m[2]];
   if ((m = t.match(/\b(\d{1,3}(?:\.\d)?%)/))) return [m[1], ""];
-  if ((m = t.match(/(?<![\d-])(\d{1,2}-\d{1,2})(?![\d-])/))) return [m[1], ""];
+  // 0.154.0: a record ("9-4"), not a date range ("1/9-1/16/19" gave "9-1") or shooting ("4-7 FG", "2-4 3FG", "6-for-9")
+  if ((m = t.match(/(?<![\d\/.-])(\d{1,2}-\d{1,2})(?![\d\/.-]|\s*(?:FG|3FG|3PT|FT|3P|from)\b)/))) return [m[1], ""];
   return null;
 }
 function renderSpotlight(b, injuries) {
@@ -537,7 +541,7 @@ function renderSpotlight(b, injuries) {
     const n = bigNum(l.text), where = l.game === "league" ? (l.team || "League") : l.game === "last night" ? "Last night" : (l.game || "").replace("@", " @ ");
     return `<article class="tile${i < 2 && !SPOT.group && !SPOT.game ? " big" : ""}"><div class="meta"><span><b>${place.get(l)}</b> · ${esc(WORD[l.kind] || l.kind)} · ${esc(where)}</span>${l.status === "new" ? `<span class="tag">NEW</span>` : l.status === "updated" ? `<span class="tag">UPDATED</span>` : ""}</div>`
       + (n ? `<div class="num">${esc(n[0])}${n[1] ? `<small>${esc(n[1])}</small>` : ""}</div>` : "") + `<div class="txt">${esc(l.text)}</div></article>`;
-  }).join("") : `<div class="empty">Nothing ${SPOT.group || SPOT.game ? "here" : "tonight"} clears the bar; the ranked list below has every line.</div>`;
+  }).join("") : `<div class="empty">${!games.length && !SPOT.group ? "No games tonight: last night's lines and the league-wide finds are in the list below." : `Nothing ${SPOT.group || SPOT.game ? "here" : "tonight"} clears the bar; the ranked list below has every line.`}</div>`;
   $("ranked").innerHTML = rest.map((l) => `<li><b>${place.get(l)}</b><span class="g">${esc(l.game === "league" ? (l.team || "League") : l.game === "last night" ? "Last night" : (l.game || "").replace("@", " @ "))}</span><span class="t">${esc(l.text)}${l.outTonight ? ` <i style="color:var(--bad)">(out tonight)</i>` : ""}</span></li>`).join("");
   $("spChips").querySelectorAll("button").forEach((x) => x.onclick = () => { if ("g" in x.dataset) SPOT.group = x.dataset.g; else SPOT.game = x.dataset.m; renderSpotlight(b, injuries); });
 }
@@ -631,7 +635,7 @@ async function renderHealth(watch) {
   if (h?.kept) notes.push(esc(h.kept) + ".");
   if (h?.keptTeams) notes.push(esc(h.keptTeams) + ".");   // 0.126: one team kept from an earlier build, the rest new
   // 0.125: what the build found when it read back its own output (src/site/selfcheck.js), in full, not behind a hover.
-  for (const c of h?.checks || []) notes.push(`Build check: ${esc(c.text)}`);
+  for (const t of new Set((h?.checks || []).map((c) => c.text))) notes.push(`Build check: ${esc(t)}`);   // 0.154.0: each said once (a replay of 12/16/25 listed two short play-by-play games twice)
   if (h?.held) notes.push(`Not switched to the new day yet (${esc(h.held)}). The next build after the last game ends moves on.`);
   // Builds run about every 2.5 hours from 8 AM to 5:30 PM ET: by late morning the newest should be under 5 hours old.
   if (ageH > 26 || (etHour >= 11 && etHour < 19 && ageH > 5)) notes.push(`The site last rebuilt ${esc(clock)} (${ageH >= 48 ? `${Math.round(ageH / 24)} days` : `${Math.round(ageH)} hours`} ago). Builds run about every 2.5 hours through the day, so GitHub's schedule is late or the build isn't running.`);
