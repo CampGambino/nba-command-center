@@ -132,6 +132,12 @@
   .tile.big .txt { font-size: 16.5px; font-weight: 600; }
   .tile .tag { font-size: 11px; font-weight: 700; color: var(--accent); }
   .tile.ended { opacity: .75; }
+  /* 0.155.0: Game by game cards, and the ranked list 50 at a time */
+  .gcard .gl { font-size: 13.5px; line-height: 1.4; border-top: 1px solid var(--line); padding-top: 6px; overflow-wrap: anywhere; }
+  .gcard .gl b { color: var(--faint); font-weight: 600; margin-right: 4px; }
+  #bygame h2 { margin-top: 26px; }
+  .more-row { display: flex; gap: 8px; justify-content: center; margin: 6px 0 18px; }
+  .more-row button { font: inherit; font-size: 13.5px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; }
   ol.ranked { list-style: none; margin: 0 0 8px; padding: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; columns: 2 520px; column-gap: 0; }
   ol.ranked li { break-inside: avoid; display: flex; gap: 10px; padding: 8px 14px; border-bottom: 1px solid #eef0f2; align-items: baseline; font-size: 14px; }
   ol.ranked li > b { width: 26px; flex: none; color: var(--faint); font-size: 12.5px; text-align: right; }
@@ -154,12 +160,14 @@
   <div id="notesIssues"></div>
 
   <section id="spot" aria-labelledby="h-spot">
-  <div class="sp-head"><h2 id="h-spot">Spotlight <span class="sp-n" id="spN"></span></h2><p class="key" id="spKey">Everything that clears the bar, most important first. No cap: a big night shows all of it.</p></div>
+  <div class="sp-head"><h2 id="h-spot">Spotlight <span class="sp-n" id="spN"></span></h2><p class="key" id="spKey">The night's top lines: at most 2 a player, a fair share for each game and one of each kind of streak. Pick a group or a game to see every line that clears the bar.</p></div>
   <div class="chips" id="spChips" role="group" aria-label="Filter"></div>
   <div class="tiles" id="tiles"><div class="empty">Loading…</div></div>
+  <div id="bygame"></div>
   <h2 id="stream">Everything else, ranked <span class="sp-n" id="stN"></span></h2>
   <div class="key">Storylines, matchups, milestones, notes, finds and last night's lines in one order. Same filters as above.</div>
   <ol class="ranked" id="ranked"></ol>
+  <div class="more-row" id="rankedMore"></div>
   </section>
   <details class="fold" id="briefFold"><summary>The briefing as before: the ten biggest, deep cuts, votes and copy</summary>
   <h2 id="briefing">The briefing</h2>
@@ -489,7 +497,8 @@ function renderSeen(f) {
 }
 function alertLine(t) { const el = $("briefNote"); if (el) el.textContent = t; }
 // ---- 0.147.0: the Spotlight and "Everything else, ranked" (briefing.json's stream: every line, ranked, no cap) ----
-const SPOT_BAR = 5.5;   // a line ranked this high (the briefing's own scale: size, rarity, who, TV, new) is a Spotlight tile
+const SPOT_BAR = 5.5;
+const SPOT_BASE = 8, SPOT_MAX = 20;   // 0.155.0: tiles with no filter picked: 8 + 1 a game, at most 20   // a line ranked this high (the briefing's own scale: size, rarity, who, TV, new) is a Spotlight tile
 const GROUPS = [
   ["Records & milestones", ["record", "milestone", "pace", "era", "feat", "cup", "club", "unique", "awards", "clinch"]],
   ["Streaks", ["streak", "pstreak", "broken", "team", "turn", "beaten", "lead"]],
@@ -504,7 +513,9 @@ const WORD = { record: "Record", milestone: "Milestone", pace: "Pace", era: "Era
   qtr: "Quarters", month: "Month", monthp: "Month", rookie: "Rookie", foul: "Fouls", early: "Early", paradox: "Paradox", scarce: "Rare", matchup: "Matchup",
   vsopp: "Matchup", defense: "Defense", defpos: "Defense", tv: "National TV", rest: "Rest", lineup: "Lineup", trade: "Trade", history: "Notes",
   context: "Context", injury: "Injury", find: "Found", oddline: "Odd line" };
-let SPOT = { group: "", game: "" };
+// 0.155.0: the ranked list shows RANK_PAGE lines at a time ("Show 50 more", "Show all"); a filter starts it over
+const RANK_PAGE = 50;
+let SPOT = { group: "", game: "", more: RANK_PAGE };
 function bigNum(t) {
   let m;
   if ((m = t.match(/(\d[\d,]*\+?)\s+(straight|consecutive)\s+(games?|wins?|losses|meetings|seasons)/i))) return [m[1], m[2] === "consecutive" ? "straight" : m[2]];
@@ -534,16 +545,46 @@ function renderSpotlight(b, injuries) {
   $("spChips").innerHTML = chip("g", "", `All ${all.length}`, !SPOT.group) + groups.map((g) => chip("g", g, `${g} ${all.filter((l) => groupOf(l) === g).length}`, SPOT.group === g)).join("")
     + (games.length > 1 ? `<span class="sep"></span>` + chip("m", "", "Every game", !SPOT.game) + games.map((g) => chip("m", g, g.replace("@", " @ "), SPOT.game === g)).join("") : "");
   const shown = all.filter((l) => (!SPOT.group || groupOf(l) === SPOT.group) && (!SPOT.game || l.game === SPOT.game));
-  const tiles = shown.filter((l) => !l.outTonight && l.imp >= SPOT_BAR), rest = shown.filter((l) => !tiles.includes(l));
+  // 0.155.0 (the user, 11/24, after the simulation: a 12-game night made 112 tiles, one player up to 12): with no filter,
+  // the Spotlight is the night's top lines, 8 + 1 a game (up to 20), at most 2 a player, 3 a game (more on a small slate) and one of each kind of
+  // streak ("10+ points in N straight": the longest). Then "Game by game": each game's best 3 others. Then everything
+  // else, ranked. A group or game filter shows every line over the bar, as before. No line leaves the page.
   const place = new Map(all.map((l, i) => [l, i + 1]));
+  const over = shown.filter((l) => !l.outTonight && l.imp >= SPOT_BAR), curated = !SPOT.group && !SPOT.game;
+  const SIZE = Math.min(SPOT_MAX, SPOT_BASE + Math.max(1, games.length)), PER_GAME = Math.max(3, Math.ceil(SIZE / Math.max(1, games.length)));   // a 1-game night isn't held to 3 tiles
+  const streakKind = (l) => (l.kind === "streak" ? (l.text.match(/: (.+?) in \d+ straight/) || [])[1] || null : null);
+  let tiles = over;
+  if (curated) {
+    const byPlayer = {}, byGame = {}, kinds = new Set();
+    tiles = [];
+    for (const l of over) {
+      if (tiles.length >= SIZE) break;
+      const sk = streakKind(l);
+      if ((l.player && (byPlayer[l.player] || 0) >= 2) || (byGame[l.game] || 0) >= PER_GAME || (sk && kinds.has(sk))) continue;
+      tiles.push(l);
+      if (sk) kinds.add(sk);
+      if (l.player) byPlayer[l.player] = (byPlayer[l.player] || 0) + 1;
+      byGame[l.game] = (byGame[l.game] || 0) + 1;
+    }
+  }
+  const cards = curated ? games.map((g) => [g, shown.filter((l) => l.game === g && !l.outTonight && !tiles.includes(l)).slice(0, 3)]).filter(([, ls]) => ls.length) : [];
+  const inCards = new Set(cards.flatMap(([, ls]) => ls));
+  const rest = shown.filter((l) => !tiles.includes(l) && !inCards.has(l));
+  $("bygame").innerHTML = cards.length ? `<h2>Game by game <span class="sp-n">${cards.length}</span></h2><p class="key">Each game's best three lines not already above; pick the game in the filters for all of them.</p><div class="tiles">${cards.map(([g, ls]) =>
+    `<article class="tile gcard"><div class="meta"><span><b>${esc(g.replace("@", " @ "))}</b></span><span>${shown.filter((l) => l.game === g).length} lines</span></div>${ls.map((l) => `<div class="gl"><b>${place.get(l)}</b>${esc(l.text)}</div>`).join("")}</article>`).join("")}</div>` : "";
+
   $("spN").textContent = tiles.length; $("stN").textContent = rest.length;
   $("tiles").innerHTML = tiles.length ? tiles.map((l, i) => {
     const n = bigNum(l.text), where = l.game === "league" ? (l.team || "League") : l.game === "last night" ? "Last night" : (l.game || "").replace("@", " @ ");
     return `<article class="tile${i < 2 && !SPOT.group && !SPOT.game ? " big" : ""}"><div class="meta"><span><b>${place.get(l)}</b> · ${esc(WORD[l.kind] || l.kind)} · ${esc(where)}</span>${l.status === "new" ? `<span class="tag">NEW</span>` : l.status === "updated" ? `<span class="tag">UPDATED</span>` : ""}</div>`
       + (n ? `<div class="num">${esc(n[0])}${n[1] ? `<small>${esc(n[1])}</small>` : ""}</div>` : "") + `<div class="txt">${esc(l.text)}</div></article>`;
   }).join("") : `<div class="empty">${!games.length && !SPOT.group ? "No games tonight: last night's lines and the league-wide finds are in the list below." : `Nothing ${SPOT.group || SPOT.game ? "here" : "tonight"} clears the bar; the ranked list below has every line.`}</div>`;
-  $("ranked").innerHTML = rest.map((l) => `<li><b>${place.get(l)}</b><span class="g">${esc(l.game === "league" ? (l.team || "League") : l.game === "last night" ? "Last night" : (l.game || "").replace("@", " @ "))}</span><span class="t">${esc(l.text)}${l.outTonight ? ` <i style="color:var(--bad)">(out tonight)</i>` : ""}</span></li>`).join("");
-  $("spChips").querySelectorAll("button").forEach((x) => x.onclick = () => { if ("g" in x.dataset) SPOT.group = x.dataset.g; else SPOT.game = x.dataset.m; renderSpotlight(b, injuries); });
+  const restShown = rest.slice(0, SPOT.more);
+  $("ranked").innerHTML = restShown.map((l) => `<li><b>${place.get(l)}</b><span class="g">${esc(l.game === "league" ? (l.team || "League") : l.game === "last night" ? "Last night" : (l.game || "").replace("@", " @ "))}</span><span class="t">${esc(l.text)}${l.outTonight ? ` <i style="color:var(--bad)">(out tonight)</i>` : ""}</span></li>`).join("");
+  const left = rest.length - restShown.length;
+  $("rankedMore").innerHTML = left > 0 ? `<button type="button" data-more="${RANK_PAGE}">Show ${Math.min(RANK_PAGE, left)} more</button><button type="button" data-more="all">Show all ${rest.length}</button>` : "";
+  $("rankedMore").querySelectorAll("button").forEach((x) => x.onclick = () => { SPOT.more = x.dataset.more === "all" ? Infinity : SPOT.more + RANK_PAGE; renderSpotlight(b, injuries); });
+  $("spChips").querySelectorAll("button").forEach((x) => x.onclick = () => { if ("g" in x.dataset) SPOT.group = x.dataset.g; else SPOT.game = x.dataset.m; SPOT.more = RANK_PAGE; renderSpotlight(b, injuries); });
 }
 function renderBriefing(b, injuries) {
   if (b !== undefined) BRIEF = b;

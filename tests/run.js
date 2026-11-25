@@ -5836,6 +5836,14 @@ await bridgeChecks(ok, root);
     "Spotlight (0.154.0): a tile's big number is a record, not a date range or a shooting split");
 }
 
+// 0.155.0: the Spotlight with no filter is a short list (the user, 11/24: "Please", to the layout drawn after the simulation)
+{
+  const ix = fs.readFileSync(path.join(root, "docs", "index.html"), "utf8");
+  ok(/const SPOT_BASE = 8, SPOT_MAX = 20;/.test(ix) && /PER_GAME = Math\.max\(3, Math\.ceil\(SIZE \/ Math\.max\(1, games\.length\)\)\)/.test(ix) && /\(l\.player && \(byPlayer\[l\.player\] \|\| 0\) >= 2\)/.test(ix)
+    && /id="bygame"/.test(ix) && /id="rankedMore"/.test(ix) && /const RANK_PAGE = 50;/.test(ix) && /const rest = shown\.filter\(\(l\) => !tiles\.includes\(l\) && !inCards\.has\(l\)\);/.test(ix),
+    "Spotlight (0.155.0): with no filter, 8 + 1 a game (at most 20), 2 a player, a share per game, one of each kind of streak; then each game's best 3; then the ranked list 50 at a time; every line still on the page");
+}
+
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });
 const brief = (m) => [m.player, m.kind, m.stat, m.scope, m.current, m.target, m.need, m.status, m.passing?.player || ""].join(" | ");

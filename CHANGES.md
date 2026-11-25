@@ -2,6 +2,33 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.155.0 (2026-11-24): the Spotlight is a short list again; Game by game cards; the ranked list 50 at a time
+
+The user, 11/24, to the layout drawn after the simulation (0.154.0) and the offer of a "show more" list: "Please".
+
+**What changed** (`docs/index.html`):
+- **With no filter picked, the Spotlight is the night's top lines.**
+  - It holds 8 + 1 per game, at most 20 (`SPOT_BASE`, `SPOT_MAX`), all still over the 5.5 bar.
+  - At most 2 per player.
+  - A fair share per game: 3, or more on a small slate (`PER_GAME`), so a 1-game night isn't held to 3.
+  - One of each kind of streak: of the "10+ points in N straight" runs, only the longest gets a tile.
+- **Game by game**: one card per game, holding its best 3 lines not already in the Spotlight.
+- **Everything else, ranked**: 50 at a time, with "Show 50 more" and "Show all N" buttons. Picking a filter starts it over.
+- **Picking a group or a game** still shows every line over the bar as tiles, as before.
+
+**Checked** on the real 11/18 inputs (12 games, 790 lines), clicking through in a browser:
+- 20 tiles + 12 cards × 3 + 734 in the list = 790, so every line is still on the page.
+- "Show 50 more" gives 100 lines, "Show all" gives 734.
+- The UTA @ LAL filter gives 16 tiles and 73 lines, with no cards; adding Streaks narrows it to 4 tiles.
+- Going back to All restores 20 tiles, 12 cards and 50 lines. No page errors.
+- The page is 16,400 pixels tall, down from 40,200.
+- Tonight (3 games): 11 tiles and 3 cards.
+- Tests 891 passed; all pages OK.
+
+**Self-audit:**
+- My first version held every game to 3 tiles. On tonight's 3 games that left 9 tiles where 11 were meant, and a 1-game night would have had 3. Fixed before publishing with the per-game share.
+- The live page will show the 0.154.0 streak scores only after the next build; the 11/24 file on the site still has Tatum's 142 straight at #1.
+
 ## 0.154.0 (2026-11-24): fixes from a simulation of past dates — streak ranking, the rotations pull, results cut at the build date, Spotlight numbers
 
 The user, 11/24: "Run a simulation to try to catch errors or issues. Use dates from earlier this year and dates from last year if possible. Try to break it… especially outliers like days with 15 games or 1 game and test out the order rank on the items to gauge better how they should be displayed."
