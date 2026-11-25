@@ -2,5 +2,6 @@
   "_about": "Minutes and seconds checked against an official-style box score (Basketball-Reference screenshots the user sent). src/situations/eligibility.js uses these before Game Flow's rebuilt seconds. Keyed by ESPN game id, then ESPN player id.",
   "401909091": { "4432847": { "name": "Terrence Shannon Jr.", "d": "2026-10-21", "sec": 1183, "mp": "19:43", "source": "Basketball-Reference box score, MIN 131 at MIA 106 (user screenshot 11/24; MIN minutes add to 240:00, points to 131)" } },
   "401909924": { "4351852": { "name": "Mitchell Robinson", "d": "2026-11-04", "sec": 1188, "mp": "19:48", "source": "Basketball-Reference box score (user screenshot 11/24; matched our play-by-play to the second)" } },
-  "401910010": { "4348700": { "name": "Goga Bitadze", "d": "2026-11-18", "sec": 1172, "mp": "19:32", "source": "Basketball-Reference box score (user screenshot 11/24; matched our play-by-play to the second)" } }
+  "401910010": { "4348700": { "name": "Goga Bitadze", "d": "2026-11-18", "sec": 1172, "mp": "19:32", "source": "Basketball-Reference box score (user screenshot 11/24; matched our play-by-play to the second)" } },
+  "401910009": { "4601025": { "name": "Pelle Larsson", "d": "2026-11-18", "sec": 893, "mp": "14:53", "source": "Basketball-Reference box score, MIL 130 at MIA 137 (user screenshot 11/24; MIA minutes add to 240:00, points to 137; matched our play-by-play to the second). ESPN shows 15 minutes: he is under 15:00." } }
 }

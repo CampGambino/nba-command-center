@@ -13,7 +13,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i < 0 ? d : process.argv[i + 1]; };
-const SEASON = arg("--season", "2026-27"), YEAR = String(+SEASON.slice(0, 4) + 1);
+// 0.156.0: the season from src/season.js (it was written in as "2026-27", like the pull's)
+const { SEASON: CURRENT } = await import("../src/season.js");
+const SEASON = arg("--season", CURRENT), YEAR = String(+SEASON.slice(0, 4) + 1);
 const { scoringEvents, teamIntervals, secondsPlayed } = await import("../src/situations/lineups.js");
 const { expandFeeds } = await import("../src/gameflow/feeds.js");
 const rotDir = path.join(root, "history", "nbacom", SEASON), flowDir = path.join(root, "docs", "data", "flow", YEAR);

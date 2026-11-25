@@ -2,6 +2,42 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.156.0 (2026-11-25): MIL-MIA 11/18 back in Lineups from the box score you sent; the rotations pull runs through the playoffs
+
+The user, 11/24, 11:56 PM: Basketball-Reference screenshots of MIL 130 at MIA 137 (11/18), and "the scheduler for checking nba.com stats should carry into the postseason as well. no need to end the checks in April".
+
+**MIL at MIA, 11/18:**
+- **The box score you sent was read into `src/data/boxchecks/2026-11-18-MIL-MIA.json`, and every column checked against the Team Totals:**
+  - Minutes: 240:00 a team.
+  - Points: 130 and 137.
+  - Plus-minus: -35 and +35, which is five times the 7-point margin.
+  - Every player's rebounds are offensive plus defensive, and his points are worked out from his shots.
+  - One difference: MIL's turnovers add to 15 against a total of 18. Those are three team turnovers, as the box lists them.
+- **ESPN's play-by-play matches it exactly.** Game Flow's rebuilt stints give all 24 players the same seconds as the box (Kuzma 30:02, Larsson 14:53, Donaldson and Richards 1:21) and the same plus-minus. ESPN's own box only has whole minutes: Larsson shows "15", but he played 14:53.
+- **New tool, `tools/fill-rotation-from-pbp.mjs`.** It writes those stints in NBA.com's format only if every player matches the box to the second and to the point; otherwise it writes nothing and lists the differences. NBA.com's rotation for the game (no MIL stints, 3 for MIA) is replaced, and the file says where the new one came from (`rotFrom`).
+- **Lineups:** 516 of 516 team-games covered whole and adding up to the score, 12,810 stretches. Nothing left out.
+- **Award checks:** Larsson's 14:53 is added to `minutes-checked.json`; the rebuild already had him under 15:00, so no count changes.
+
+**The postseason** (`tools/fetch-rotations.mjs`):
+- From April through July, or with `--post`, the pull also reads NBA.com's play-in and playoff game lists. Those games go to `history/nbacom/<season>/post/`, and each file says its type ("pi" or "p").
+- They're kept apart because the Lineups page, award eligibility and every season count read only regular-season files.
+- Tested on last season: 1,321 games listed (91 play-in and playoff). Three play-in games (MIA @ CHA, POR @ PHX, GSW @ LAC) and one playoff game (ATL @ NYK, 4/18/26) were read with full rotations and hustle stats for both teams.
+- On GitHub, where NBA.com doesn't answer, the build gives up after the first list, as before. The extra lists cost no time there.
+- `--types r,pi,p` reads only those kinds.
+- `scripts/lineups.js` had the season written in as "2026-27", like the pull did before 0.154.0; it reads `src/season.js` now.
+- The scheduled task now runs October through June and counts play-in and playoff nights (ESPN types 5 and 3) as game nights.
+
+**Not done:** the Lineups page doesn't show playoff lineups yet. Its scores come from Game Flow's files, and Game Flow reads only regular-season games. The playoff rotations are kept from the first play-in night on, so a playoff view can be built from them later.
+
+**Checked:**
+- The fill tool's dry run before writing.
+- Lineups rerun: 5,754 of 5,754 player-games within a minute of ESPN; this game's plus-minus equal to ESPN's box for every player.
+- Tests 894 passed, 3 of them new; all pages OK.
+
+**Self-audit:**
+- My first run of the fill tool refused all 12 MIA players as "on the other side". The check compared Game Flow's side number (0 or 1) to the word "home". It compares team abbreviations now, and nothing was written before it passed.
+- I first rewrote all of `minutes-checked.json` when adding Larsson, re-indenting the file. That was put back; only his line is added.
+
 ## 0.155.0 (2026-11-24): the Spotlight is a short list again; Game by game cards; the ranked list 50 at a time
 
 The user, 11/24, to the layout drawn after the simulation (0.154.0) and the offer of a "show more" list: "Please".

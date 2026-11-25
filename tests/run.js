@@ -5844,6 +5844,22 @@ await bridgeChecks(ok, root);
     "Spotlight (0.155.0): with no filter, 8 + 1 a game (at most 20), 2 a player, a share per game, one of each kind of streak; then each game's best 3; then the ranked list 50 at a time; every line still on the page");
 }
 
+// 0.156.0: the postseason pull, and a game whose NBA.com rotation is missing filled from ESPN's play-by-play
+{
+  const fr = fs.readFileSync(path.join(root, "tools", "fetch-rotations.mjs"), "utf8"), lu = fs.readFileSync(path.join(root, "scripts", "lineups.js"), "utf8");
+  ok(/SeasonType=\$\{name\}/.test(fr) && /\["pi", "PlayIn"\], \["p", "Playoffs"\]/.test(fr) && /path\.join\(OUT, "post"\)/.test(fr) && /todayMonth >= 4 && todayMonth <= 7/.test(fr)
+    && /filter\(\(x\) => \/\^g-\\d\+\\\.json\$\/\.test\(x\)\)/.test(lu) && /from "\.\.\/src\/season\.js"|import\("\.\.\/src\/season\.js"\)/.test(lu),
+    "rotations pull (0.156.0): play-in and playoff games are read (April-July, or --post) into post/, apart from the regular season the Lineups page and award checks read; lineups.js takes the season from src/season.js");
+  const BX = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "boxchecks", "2026-11-18-MIL-MIA.json"), "utf8"));
+  const secs = (t) => BX.teams[t].reduce((a, r) => a + (+r[1].split(":")[0]) * 60 + (+r[1].split(":")[1]), 0), col = (t, c) => BX.teams[t].reduce((a, r) => a + r[BX.cols.indexOf(c)], 0);
+  ok(secs("MIL") === 14400 && secs("MIA") === 14400 && col("MIL", "pts") === 130 && col("MIA", "pts") === 137 && col("MIL", "pm") === -35 && col("MIA", "pm") === 35,
+    "box check (0.156.0): the hand-read MIL-MIA box adds up: 240:00 a team, 130 and 137 points, plus-minus -35 and +35");
+  const R = JSON.parse(fs.readFileSync(path.join(root, "history", "nbacom", "2026-27", "g-0022600260.json"), "utf8"));
+  const played = (t) => R.rot[t].reduce((a, s) => a + (s[3] - s[2]), 0);
+  ok(played("MIL") === 144000 && played("MIA") === 144000 && /ESPN play-by-play/.test(R.rotFrom || "") && !(R.incomplete || []).some((x) => x.startsWith("rot")),
+    "lineups (0.156.0): MIL-MIA 11/18's rotation, missing on NBA.com, is rebuilt from ESPN's play-by-play: five players a side for all 48 minutes");
+}
+
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });
 const brief = (m) => [m.player, m.kind, m.stat, m.scope, m.current, m.target, m.need, m.status, m.passing?.player || ""].join(" | ");

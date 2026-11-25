@@ -9,7 +9,9 @@
  * One file a game in <out>/g-<gameId>.json: { id, d, home, away, rot: { TRI: [[personId, name, in, out, pts, ptDiff]] },
  * hustle: { TRI: [[personId, name, min, contested2, contested3, deflections, charges, screenAst, screenAstPts, looseBalls, boxOuts]] } }
  * Resumable (games already on file are skipped). 1.5 seconds between requests.
- *   NODE_USE_ENV_PROXY=1 node tools/fetch-rotations.mjs [--out history/nbacom/2026-27] [--season 2026-27] [--max N]
+ *   NODE_USE_ENV_PROXY=1 node tools/fetch-rotations.mjs [--out history/nbacom/2026-27] [--season 2026-27] [--max N] [--quick]
+ *     [--post] [--types r,pi,p]
+ * Play-in and playoff games (0.156.0) are read from April through July, or with --post, into <out>/post/.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -33,27 +35,44 @@ const rows = (j, name) => { const rs = (j?.resultSets || []).find((x) => x.name 
 fs.mkdirSync(OUT, { recursive: true });
 const log = await get(`https://stats.nba.com/stats/leaguegamelog?Counter=0&DateFrom=&DateTo=&Direction=ASC&LeagueID=00&PlayerOrTeam=T&Season=${SEASON}&SeasonType=Regular+Season&Sorter=DATE`, QUICK ? 1 : 3);
 if (!log) { (QUICK ? console.log : console.error)("rotations: NBA.com's game list can't be read from here; nothing fetched"); process.exit(QUICK ? 0 : 1); }
+// 0.156.0 (the user, 11/24: "should carry into the postseason as well"): from April through July, or with --post, the
+// play-in and playoff games are read too. They go to <OUT>/post/, apart from the regular season, so the Lineups page,
+// award eligibility and every season count read only regular-season files; each file says its type ("r", "pi", "p").
+const todayMonth = +new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }).slice(5, 7);
+const POST = process.argv.includes("--post") || (todayMonth >= 4 && todayMonth <= 7);
+const logs = [[log, "r", OUT]];
+if (POST) for (const [type, name] of [["pi", "PlayIn"], ["p", "Playoffs"]]) {
+  const j = await get(`https://stats.nba.com/stats/leaguegamelog?Counter=0&DateFrom=&DateTo=&Direction=ASC&LeagueID=00&PlayerOrTeam=T&Season=${SEASON}&SeasonType=${name}&Sorter=DATE`, QUICK ? 1 : 3);
+  await sleep(1500);
+  if (j) logs.push([j, type, path.join(OUT, "post")]); else console.log(`rotations: NBA.com's ${name} list can't be read; skipped this run`);
+}
 const games = new Map(), triOf = {};
-for (const r of rows(log, "LeagueGameLog")) {
+for (const [j, type, dir] of logs) for (const r of rows(j, "LeagueGameLog")) {
   triOf[r.TEAM_ID] = r.TEAM_ABBREVIATION;
-  const g = games.get(r.GAME_ID) || { id: r.GAME_ID, d: r.GAME_DATE, home: null, away: null };
+  const g = games.get(r.GAME_ID) || { id: r.GAME_ID, d: r.GAME_DATE, home: null, away: null, type, dir, teams: [] };
   if (/ vs\. /.test(r.MATCHUP)) g.home = r.TEAM_ABBREVIATION; else g.away = r.TEAM_ABBREVIATION;
+  g.teams.push(r.TEAM_ABBREVIATION);
   games.set(r.GAME_ID, g);
 }
+for (const [, , dir] of logs) fs.mkdirSync(dir, { recursive: true });
+const fileOf = (g) => path.join(g.dir, `g-${g.id}.json`);
 const [PK, PN] = arg("--part", "0/1").split("/").map(Number);   // --part k/n: every nth game from the kth (runs side by side)
 // a neutral-site game lists both teams with "@" (Mexico City, 11/7): the other team is the "home" one here; the build
 // matches such a game either way round (scripts/lineups.js)
-for (const g of games.values()) if (!g.home || !g.away) { const both = rows(log, "LeagueGameLog").filter((r) => r.GAME_ID === g.id).map((r) => r.TEAM_ABBREVIATION); g.home ??= both.find((t) => t !== g.away); g.away ??= both.find((t) => t !== g.home); }
+for (const g of games.values()) if (!g.home || !g.away) { const both = g.teams; g.home ??= both.find((t) => t !== g.away); g.away ??= both.find((t) => t !== g.home); }
 // 0.154.0: a game NBA.com hadn't finished posting is read again. POR-PHI 11/23 was read the next day with no hustle stats
 // (NBA.com had none yet) and never again; MIL's rotation for 11/18 is missing on NBA.com. Such a file says what it lacks
 // (`incomplete`) and is retried for RETRY_DAYS after the game, then left as it is.
 const RETRY_DAYS = 7, todayET = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 const daysSince = (d) => Math.round((Date.parse(`${todayET}T12:00:00Z`) - Date.parse(`${String(d).slice(0, 10)}T12:00:00Z`)) / 864e5);
-const lacking = (g) => { const f = path.join(OUT, `g-${g.id}.json`); if (!fs.existsSync(f)) return "new";
+const lacking = (g) => { const f = fileOf(g); if (!fs.existsSync(f)) return "new";
   try { const j = JSON.parse(fs.readFileSync(f, "utf8")); return j.incomplete?.length && daysSince(j.d) <= RETRY_DAYS ? "again" : null; } catch { return "new"; } };
-const todo = [...games.values()].filter((g, i) => i % PN === PK && lacking(g)).slice(0, MAX);
+// --types r,pi,p: read only those kinds (a backfill or a test of the playoff path)
+const TYPES = arg("--types", null)?.split(",");
+const todo = [...games.values()].filter((g, i) => i % PN === PK && (!TYPES || TYPES.includes(g.type)) && lacking(g)).slice(0, MAX);
 const again = todo.filter((g) => lacking(g) === "again").length;
-console.log(`${SEASON}: ${games.size} games played, ${todo.length} to read${again ? ` (${again} read before with something missing, tried again)` : ""}`);
+const nPost = [...games.values()].filter((g) => g.type !== "r").length;
+console.log(`${SEASON}: ${games.size} games played${nPost ? ` (${nPost} play-in and playoff)` : ""}, ${todo.length} to read${again ? ` (${again} read before with something missing, tried again)` : ""}`);
 let n = 0, failed = 0;
 for (const g of todo) {
   const rot = await get(`https://stats.nba.com/stats/gamerotation?GameID=${g.id}&LeagueID=00`); await sleep(1500);
@@ -67,11 +86,11 @@ for (const g of todo) {
   else for (const r of rows(hus, "PlayerStats")) (H[r.TEAM_ABBREVIATION] ??= []).push([String(r.PLAYER_ID), r.PLAYER_NAME, r.MINUTES || null, r.CONTESTED_SHOTS_2PT ?? 0, r.CONTESTED_SHOTS_3PT ?? 0, r.DEFLECTIONS ?? 0, r.CHARGES_DRAWN ?? 0, r.SCREEN_ASSISTS ?? 0, r.SCREEN_AST_PTS ?? 0, r.LOOSE_BALLS_RECOVERED ?? 0, r.BOX_OUTS ?? 0]);   // 0.154.0: loose balls fell back to box-outs
   // what NBA.com didn't have: a team with no stints, or no hustle stats for a team
   const incomplete = [...[g.home, g.away].filter((t) => !(R[t]?.length >= 5)).map((t) => `rot ${t}`), ...[g.home, g.away].filter((t) => !H[t]?.length).map((t) => `hustle ${t}`)];
-  const prev = (() => { try { return JSON.parse(fs.readFileSync(path.join(OUT, `g-${g.id}.json`), "utf8")); } catch { return null; } })();
+  const prev = (() => { try { return JSON.parse(fs.readFileSync(fileOf(g), "utf8")); } catch { return null; } })();
   // a second read keeps whichever part the first read had and this one lacks
   const rotOut = Object.keys(R).length ? R : prev?.rot || R, hustleOut = Object.keys(H).length ? H : prev?.hustle || null;
   const still = incomplete.filter((x) => (x.startsWith("rot") ? !(rotOut[x.slice(4)]?.length >= 5) : !hustleOut?.[x.slice(7)]?.length));
-  fs.writeFileSync(path.join(OUT, `g-${g.id}.json`), JSON.stringify({ id: g.id, d: g.d, home: g.home, away: g.away, rot: rotOut, hustle: hustleOut, ...(still.length ? { incomplete: still } : {}) }));
+  fs.writeFileSync(fileOf(g), JSON.stringify({ id: g.id, d: g.d, home: g.home, away: g.away, ...(g.type !== "r" ? { type: g.type } : {}), rot: rotOut, hustle: hustleOut, ...(still.length ? { incomplete: still } : {}) }));
   if (still.length) console.log(`  ${g.d} ${g.away}@${g.home}: NBA.com lacks ${still.join(", ")} (tried again for ${RETRY_DAYS} days)`);
   if (++n % 20 === 0) console.log(`  ${n} read`);
 }
