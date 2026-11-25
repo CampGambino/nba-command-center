@@ -23,7 +23,7 @@
   "KXNBASTL": {
    "title": "NBA Player Steals",
    "events": 9,
-   "markets": 218
+   "markets": 220
   },
   "KXNBA4QSPREAD": {
    "title": "NBA 4th Quarter Spread",
@@ -33,7 +33,7 @@
   "KXNBAASTPROT": {
    "title": "NBA Player Assists Protected",
    "events": 9,
-   "markets": 328
+   "markets": 330
   },
   "KXNBATOTALPRECISE": {
    "title": "NBA Total Points Range",
@@ -233,7 +233,7 @@
   "KXNBAPTS": {
    "title": "NBA Player Points",
    "events": 9,
-   "markets": 404
+   "markets": 407
   },
   "KXNBA4QTOTAL": {
    "title": "NBA 4th Quarter Total",
@@ -323,7 +323,7 @@
   "KXNBAAST": {
    "title": "NBA Player Assists",
    "events": 9,
-   "markets": 328
+   "markets": 330
   },
   "KXNBA1Q": {
    "title": "NBA 1st Quarter Winner",
@@ -368,7 +368,7 @@
   "KXNBAREBPROT": {
    "title": "NBA Player Rebounds Protected",
    "events": 9,
-   "markets": 414
+   "markets": 416
   },
   "KXNBAMIMP": {
    "title": "NBA Most Improved Player",
@@ -418,7 +418,7 @@
   "KXNBAPRAPROT": {
    "title": "Pts + Reb + Ast Protected",
    "events": 9,
-   "markets": 278
+   "markets": 280
   },
   "KXNBACLUTCH": {
    "title": "NBA Clutch Player of the Year",
@@ -428,7 +428,7 @@
   "KXNBAPRA": {
    "title": "NBA Player Points + Rebounds + Assists",
    "events": 9,
-   "markets": 278
+   "markets": 280
   },
   "KXNBAMVP": {
    "title": "NBA MVP",
@@ -463,7 +463,7 @@
   "KXNBAPTSPROT": {
    "title": "NBA Player Points Protected",
    "events": 9,
-   "markets": 405
+   "markets": 407
   },
   "KXNBAPLAYOFF": {
    "title": "Pro Basketball Playoff Qualifier",
@@ -598,7 +598,7 @@
   "KXNBASTLPROT": {
    "title": "NBA Player Steals Protected",
    "events": 9,
-   "markets": 219
+   "markets": 220
   },
   "KXNBA1QSPREAD": {
    "title": "NBA 1st Quarter Spread",
@@ -653,7 +653,7 @@
   "KXNBAREB": {
    "title": "NBA Player Rebounds",
    "events": 9,
-   "markets": 414
+   "markets": 416
   },
   "KXNBA3QTOTAL": {
    "title": "NBA 3rd Quarter Total",
@@ -737,18 +737,18 @@
   "KXNBACOY-27": "Micah Nori 22%",
   "KXNBAATLANTIC-26": "Boston 43%",
   "KXNBAWEST1SEED-26": "San Antonio 54%",
-  "KXNBACUP-26": "Boston 25%",
+  "KXNBACUP-26": "Boston 35%",
   "KXNBASOUTHWEST-26": "San Antonio 75%",
+  "KXNBAROY-27": "Darius Acuff Jr. 35%",
   "KXNBANORTHWEST-26": "Oklahoma City 33%",
   "KXNBAWEST-27": "San Antonio 35%",
-  "KXNBAROY-27": "Darius Acuff Jr. 35%",
   "KXNBAEXEC-27": "Zach Kleiman 41%",
   "KXNBAWFINMVP-27": "Shai Gilgeous-Alexander 20%",
   "KXNBA-27": "San Antonio 22%",
-  "KXNBAMIMP-27": "Ty Jerome 34%",
   "KXNBACUPMVP-27": "Victor Wembanyama 26%",
-  "KXNBAMVP-27": "Victor Wembanyama 54%",
+  "KXNBAMIMP-27": "Ty Jerome 35%",
   "KXNBASIXTH-27": "Jrue Holiday 29%",
+  "KXNBAMVP-27": "Victor Wembanyama 55%",
   "KXNBARECORD-27BEST": "San Antonio 47%",
   "KXNBARECORD-27WORST": "Sacramento 38%",
   "KXNBAPACIFIC-26": "Los Angeles L 82%",
@@ -758,6 +758,6 @@
   "KXNBAFINMVP-27": "Victor Wembanyama 24%",
   "KXNBAEFINMVP-27": "Tyrese Maxey 20%",
   "KXNBAEAST-27": "Boston 21%",
-  "KXNBAEAST1SEED-26": "Philadelphia 24%"
+  "KXNBAEAST1SEED-26": "Boston 27%"
  }
 }
