@@ -2,6 +2,10 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.158.1 (2026-11-25): one sentence in 0.158.0's notes corrected
+
+0.158.0's self-audit said where the 9:18 AM build's Cleveland lines came from without checking. The sentence is corrected in place, with what the files show. No code changed.
+
 ## 0.158.0 (2026-11-25): fixes from the user's 20 home-page screenshots — a wrong notes file, more old notes, garbled and doubled lines, the ranked list's order
 
 The user, 11/25, 11:45 AM: "here are some screenshots from the home page" (20 of them, top to bottom, after 0.157.0). Read as a first-time reader would; everything below was checked against the data before it was changed.
@@ -41,7 +45,7 @@ The user, 11/25, 11:45 AM: "here are some screenshots from the home page" (20 of
 - My first duplicate rule (45 characters in common, nothing else) removed real lines: two Antetokounmpo runs that share "straight games from October 26 through November", a free-throw milestone, a Knicks assists line. The before/after run showed them gone. It now also needs the same numbers, and a test holds the Antetokounmpo pair apart.
 - "to have multiple 20-10 games" counted as present tense and kept the 21-day-old Acuff line untouched in the first run; "to have" is no longer read that way.
 - One test number came from my head and was wrong (a shared run of 8 characters, not 7).
-- I first thought 0.157.0 had emptied Cleveland's notes. It hadn't: the old code reads the same file to nothing. The 9:18 AM build's Cleveland lines came from the Bulls-game file still at that link.
+- I first thought 0.157.0 had emptied Cleveland's notes. It hadn't: the old code reads the same file to nothing. (Corrected in 0.158.1: I then wrote that the 9:18 AM build's Cleveland lines "came from the Bulls-game file still at that link". That wasn't checked. What the files show: at 9:18 AM the link's file was dated for tonight against New York and its lines were Cleveland's own, about the Cavaliers and their last game against Chicago; by 11:29 AM the link held the Knicks' file.)
 - Not done, and said to the user: the Houston sentence is trimmed, not repaired (the column split on that page needs its own fix); "POR notes: 37th all-time · Holiday is the second current Trail Blazer…" carries Lillard's rank as its tag; the same rare combination ("25 points, 5+ threes and 3+ blocks") listed for five players; matchup lines marked on two-game samples.
 
 ## 0.157.0 (2026-11-25): a notes line's age against its importance; no accolades in record lines
