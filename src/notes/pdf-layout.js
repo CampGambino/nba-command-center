@@ -211,9 +211,35 @@ export function buildLines(items) {
       rows.push({ y: it.y, h: it.h, items: [it] });
     }
   }
+  lowerSuperscripts(rows);
   // The call-outs pulled out of sentences are left out: kept as lines of their own (or at the end of the page) they were
   // read into the paragraph around them ("…close to a block a game. 32.5 52 31 8.6 5.8.").
   return rows.map((r) => splitCallouts(r)[0]).filter((r) => r.items.some((it) => !it.space)).map((r) => assembleRow(r));
+}
+
+/**
+ * 0.159.0: a raised ordinal ending belongs to the number under it. Brooklyn's notes, 11/25: "which ranks 6" with a small
+ * "th" set 3pt higher, which made a row of its own ("th") and left the sentence reading "ranks 6 among NBA centers";
+ * San Antonio's "the sixth active player and 23 player in NBA history". A row holding nothing but st/nd/rd/th in type
+ * smaller than the row just under it, each ending starting where a number on that row stops, is put back on that row.
+ * Mutates rows (top of page first); returns how many endings were moved.
+ */
+export function lowerSuperscripts(rows) {
+  let n = 0;
+  for (let i = 0; i < rows.length - 1; i++) {
+    const up = rows[i], base = rows[i + 1];
+    const sup = up.items.filter((it) => !it.space);
+    if (!sup.length || !sup.every((it) => /^(?:st|nd|rd|th)$/.test(it.str.trim()))) continue;
+    const rise = up.y - base.y;
+    if (!(rise > 0 && rise <= base.h * 0.7 && up.h <= base.h * 0.85)) continue;
+    const ends = base.items.filter((it) => !it.space && /\d\s*$/.test(it.str));
+    const home = (it) => ends.some((b) => Math.abs(it.x - (b.x + b.w)) <= Math.max(2, base.h * 0.35));
+    if (!sup.every(home)) continue;
+    for (const it of sup) base.items.push({ ...it, str: it.str.trim(), y: base.y });
+    rows.splice(i--, 1);
+    n += sup.length;
+  }
+  return n;
 }
 
 /**

@@ -2,6 +2,55 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.159.0 (2026-11-25): fixes from the user's 18 screenshots of the ranked list — doubled lines, lost "th" endings, wrong tags, more old recaps, far-off countdowns
+
+The user, 11/25, 12:54 PM: "more photos from the home page" (18 screenshots: "Everything else, ranked", places 23 to 450). Read as a first-time reader would; each thing below was checked against the data before it was changed.
+
+**The same line twice** (17 of them). "Myles Turner is tied for the 2nd most blocks in the NBA this season" was at 226 under BKN @ MIL and again at 304 under MIL; Clingan, Towns, Wembanyama, Giddey, Coward, Sabonis and ten more the same way.
+- The league-wide finds were added to the list whole, and a find about a team playing tonight is already among tonight's lines under its game. The build now leaves those out of the league list (`withoutTonights`, `src/anticipate/briefing.js`; `scripts/situations.js`).
+- "MIL and MIA are the only teams that haven't held an opponent under 100" belongs to two of tonight's games and was listed under each. In the list of every game it is one line; each game's own filter still shows it, at the same place number (`docs/index.html`).
+
+**Lost "th" endings.** "which ranks 6 among NBA centers" (Brooklyn), "the sixth active player and 23 player in NBA history" (San Antonio). In the PDF the ending is set small and raised; it was read as a row of its own and dropped from the sentence.
+- A row holding only st/nd/rd/th, smaller than the row under it and starting where a number on that row stops, is put back on the number (`lowerSuperscripts`, `src/notes/pdf-layout.js`).
+- Tonight's files: five lines read right again ("ranks 6th", "the 5th most", "ranks 20th", "23rd player", "the 5th player … the 17th San Antonio player"), and two Brooklyn lines that had been broken by a stray "th" are read whole.
+- A line whose only change is a restored ending isn't marked new today (`scripts/tonight.js`).
+
+**Wrong tags** (`describe`, `src/notes/facts.js`):
+- "POR notes: 37th all-time · Holiday is the second current Trail Blazer to crack the NBA's all-time scoring top 100—Damian Lillard currently ranks 37th": the rank is Lillard's. A rank said of someone else after a dash or a semicolon is no longer the line's tag ("NBA history").
+- "1 of 23 in NBA history" on "one of 23 players in the NBA … since the 2021-22 campaign" is "1 of 23 since 2021-22"; "1 of 6 in NBA history" (Jaquez, "since 2023-24") the same; "2nd all-time" on Sabonis' triple-doubles "since the 2022-23 season" is "2nd since 2022-23".
+- "Leads NBA" on three lines that say tied ("tied for first in the NBA", "tied with Boston for the most") is "T-1st in NBA".
+- "Only one this season" on "Entered 2026-27 as the only player…" (Tshiebwe) is "Only one".
+- "Race" on "Ranks second in NBA history … behind only Steve Kerr" (Kennard) is "2nd all-time"; "NBA history" on "32 career 20-point triple-doubles, 12th in NBA history" is "12th all-time".
+
+**More old recaps** (`closedEvent`, `src/notes/facts.js`). A telling of one night in the past tense is a recap, kept two games or a week, whatever counts it carries:
+- "The Nov. 6 game marked Lyles' seventh career game with 3+ steals" (19 days old): "game with" had made it a growing count. Cut.
+- "Scored a career-high 18 points with a career-best 9 rebounds … on Nov. 19" (Ament, two games ago) and "Scored a career-high 25 points on Nov. 15 … with a career-best 9 FGM" (Jakucionis): "career-best" had kept them open. Cut.
+- "Grabbed a career-best 11 rebounds and blocked a career-high 3 shots versus Boston (Nov. 6)" (Steinbach, 19 days). Cut.
+- A count in the present tense ("has now held their opponents under 100 points three times this season") stays.
+
+**A streak count the notes are behind on.** "…extending his 10+ point streak to all 14 games to start the season" (McDaniels, from Nov. 16; he was at 18) wasn't recognized as a streak to check. That wording is now checked against the box scores like the others (`statedStreak`): it reads "Now 18 straight" with "The notes are behind…". The same check found one more: "Dosunmu has extended his 15+ point streak to nine games" is over (it ended Nov. 16) and now says so.
+
+**A wrong date in Charlotte's notes, now flagged.** Two lines say "versus Memphis (Nov. 24)". The game was Nov. 23 (our box scores, and Memphis' own notes: "Monday's win over the Hornets"). The date check read only dates written 11/24; it reads "Nov. 24" too (`datedGames`). Both lines keep the notes' words and add "Date check: the box scores have the Grizzlies game on 11/23, not 11/24."
+
+**Countdowns far from their mark rank lower.** "MIA notes — Bobby Portis: Is 21 assists short from the 1,000th of his career" was 31st on the page. He averages 1.5 assists: about 14 games off. Antetokounmpo's "46 points short from the 22,000th" (under two games) was 57th.
+- The site's own milestone lines have always been ranked by the chance of it happening tonight. A countdown printed in the notes had no such measure.
+- Now: how many games off it is at his rate this season (`reach`, `src/notes/facts.js`). Within two games' reach nothing changes; past that it loses half a point each time the distance doubles, 1.5 at most.
+- Importance against time, as in 0.157.0: a chase the scorer rates so high that it would still be at the storylines' ceiling keeps its score and its place. Durant's 658 points from Kobe Bryant for 4th, Thompson's 14 threes from Ray Allen for 3rd and Adebayo's 15 offensive rebounds from Rony Seikaly are unchanged.
+- Tonight: 13 lines lowered (Portis from 34th to about 100th in the build's order; eleven Charlotte round numbers such as "Liam McNeeley is 340 points away from 500 career points"; "The Rockets need 14 wins to reach 2,500"). No line is cut.
+
+**Before and after on today's files** (both versions run on the same afternoon's PDFs; Minnesota posted tonight's notes between the runs, so its lines are left out of the count): 4 old recaps cut, 2 lines flagged for a wrong date, 10 tags corrected, 5 lines with their endings back, 13 countdowns lowered, 1 streak marked over. The ranked list: 651 lines before, 632 after (16 doubled finds, the 4 cuts and the ended streak out; 2 Brooklyn lines in; the 17th double is handled on the page). The briefing's ten and five were the same. The three NBA Live lines were the same for eight of the nine games; for MIN @ OKC the McDaniels line, with its check, moved to first (while Minnesota's old notes were still up).
+
+**Checked:** tests 923 passed, 11 of them new; all pages OK. The rebuilt page opened in a browser: 634 lines, none twice; place numbers in order with and without a game filter; "MIL and MIA…" once in the full list and under each of its two games at the same number.
+
+**Self-audit:**
+- My first countdown rule took the distance off under the storylines' ceiling. The before/after run showed what that did: "Kevin Durant needs 658 points to pass Kobe Bryant" fell from 135th to 434th and out of the three NBA Live lines for PHX @ HOU, and Thompson's chase of Ray Allen out of MIA @ PHI's. That is a far-off round number and an all-time chase treated alike. Changed twice: a gentler curve, then the rule that a line still at the ceiling keeps its place. The NBA Live lines are back as they were.
+- My change to the "since" tags turned "T-13th all-time" ("since tracking started") into "T-13th in NBA". The before/after run showed it; put back, with a test.
+- Restoring "23rd" changed the line's words, so it was marked new today and jumped (4.23 to 5.73) in the first run. Lines that differ only by a restored ending now keep their first-seen date.
+- The page's copy of `briefing.js` (`docs/lib`) has to match the source; a test caught that I hadn't copied it.
+- With a game filter on, the first version showed one place number out of order (the line shared by two games). Fixed, and the browser check looks for it.
+- Not seen on live data: the McDaniels line. Minnesota replaced its notes while I was testing, and the new notes don't carry it. It read "Now 18 straight" in the run before that; a test holds the wording.
+- Not done, and said to the user: record lines use the last name only ("Holiday: 4 points from passing Jason Kidd", "Lopez: 6 points…") where every other line gives the full name, and the same text is on NBA Live, so it waits for the user's word; "Giannis Antetokounmpo has a double-double in 20 of his last 20 games vs. PHI" beside "…in 23 straight games against the 76ers"; "GSW … after 1-3 to start" beside the notes' "0-3 and then win their next eight" (both add up; ours splits a game later); three lines on the Warriors' sellout streak; the tag on a chase names the place being chased ("T-3rd in team history" on a line where Adebayo is the leader in two other lists); the two questions from 0.158.0 (the same rare combination for five players; matchup lines on two-game samples).
+
 ## 0.158.1 (2026-11-25): one sentence in 0.158.0's notes corrected
 
 0.158.0's self-audit said where the 9:18 AM build's Cleveland lines came from without checking. The sentence is corrected in place, with what the files show. No code changed.

@@ -67,7 +67,7 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
   const { readPdf } = await import("../src/notes/pdf-layout.js");
   const { whoseNotes } = await import("../src/notes/meta.js");
   const { readHistory } = await import("../src/notes/narrative.js");
-  const { annotate, trimLines, staleCount, checkGamesPlayed, closedEvent, agedShare, SHELF } = await import("../src/notes/facts.js");
+  const { annotate, trimLines, staleCount, checkGamesPlayed, closedEvent, agedShare, SHELF, reach, farShare } = await import("../src/notes/facts.js");
   // 0.146.0: every active games-played run, as the last build counted it (docs/data/featlive.json, through last night)
   let gpRuns = null;
   try { gpRuns = JSON.parse(fs.readFileSync(path.join(root, "docs", "data", "featlive.json"), "utf8")).gpRuns || null; } catch { /* first build: no check */ }
@@ -163,6 +163,10 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
         // 0.157.0: the same words in another order aren't a new line. Phoenix's "(Nov. 2 and Nov. Season 4)" on 11/25 was a
         // line first read 11/16 with a table's word spliced in at a different place: marked new, it went to the top.
         if (!(k in seen)) { const bag = bagOf(k), twin = Object.keys(seen).find((x) => x.length === k.length && bagOf(x) === bag); if (twin) seen[k] = seen[twin]; }
+        // 0.159.0: nor is a line whose only change is an ordinal ending the reader now keeps ("ranks 6 among NBA centers"
+        // is "ranks 6th among…" from today; "23 player in NBA history" is "23rd player").
+        if (!(k in seen) && /\d(?:st|nd|rd|th)\b/.test(k)) { const bare = (x) => x.replace(/\b(\d+)(?:st|nd|rd|th)\b/g, "$1"), mine = bare(k);
+          const twin = Object.keys(seen).find((x) => { const y = bare(x), n = Math.min(mine.length, y.length, 150); return n >= 30 && Math.abs(mine.length - y.length) <= 10 && mine.slice(0, n) === y.slice(0, n); }); if (twin) seen[k] = seen[twin]; }
         seen[k] ??= today;
         const isNew = seen[k] === today;
         if (!isNew) staleCount(l, seen[k], box);   // 0.113: a streak count printed unchanged while games went by
@@ -173,8 +177,15 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
         // rank as it ages through its shelf life (src/notes/facts.js SHELF), and its "new today" lift with it.
         const ev = closedEvent(l, { box, today }), old = agedShare(ev);
         const raw = l.score + (isNew ? 1.5 * (1 - old) : 0) + (named ? 0.6 : 0) - (/^(?:He|His|She|They|It)\b/.test(l.text) ? 0.8 : 0) + (l.model != null ? 3 * (l.model - 0.5) : 0) + (l.hook?.live ? 0.5 : 0) - (stale ? 3 : 0);
-        const score = old > 0 ? Math.min(raw, 4.8) - SHELF.penalty * old : raw;   // 4.8: the most a notes line counts for on the Watch List
-        return { aged: old > 0 ? { age: ev.age, days: ev.days, why: ev.why } : undefined, text: l.text, kind: l.kind, player: named ? l.player : null, playerId: named ? l.playerId : null, how: l.how, game: l.boxGame ? { d: l.boxGame.d, opp: l.boxGame.opp } : undefined, when: l.when, isNew, firstSeen: seen[k], score: Math.round(score * 100) / 100,
+        // 0.159.0: a countdown far from its mark ranks lower, by how many games off it is at his rate this season
+        // (the page's own milestone lines are ranked by the chance tonight; a notes countdown had no such measure).
+        const rc = reach(l, { box }), far = farShare(rc);
+        // Importance against time, as in 0.157.0: a chase the scorer rates so far above the storylines' 4.8 ceiling that it
+        // would still be at it (Durant's 658 points from Kobe Bryant, 6.9; Thompson's 14 threes from Ray Allen, 8.1) keeps
+        // its score and its place; an ordinary round number far off (Portis, 5.5 -> 4.1) loses the distance.
+        const aged = old > 0 ? Math.min(raw, 4.8) - SHELF.penalty * old : raw;   // 4.8: the most a notes line counts for on the Watch List
+        const score = far > 0 && aged - far < 4.8 ? aged - far : aged;
+        return { aged: old > 0 ? { age: ev.age, days: ev.days, why: ev.why } : undefined, reach: far > 0 ? { ...rc, far, ...(score === aged ? { kept: true } : {}) } : undefined, text: l.text, kind: l.kind, player: named ? l.player : null, playerId: named ? l.playerId : null, how: l.how, game: l.boxGame ? { d: l.boxGame.d, opp: l.boxGame.opp } : undefined, when: l.when, isNew, firstSeen: seen[k], score: Math.round(score * 100) / 100,
           type: l.type, tag: l.tag, matchup: l.matchup || undefined, gpCheck: l.gpCheck || undefined, hook: l.hook ? { text: l.hook.text, live: !!l.hook.live, stale: !!stale } : undefined, model: l.model, kept: l.kept };
       }).sort((a, b) => b.score - a.score);
       // Keep 60 days of first-seen dates.

@@ -98,3 +98,11 @@ export function briefing({ all, games = [], stars = {}, nationalGames = new Set(
   // played a night. the important information should rise to the front"). The Spotlight and the ranked list read it.
   return { top, deep, seen: next, ranked: live };
 }
+
+/** A line's words without the status the storylines add behind it ("… · questionable tonight"). */
+export const sameLine = (text) => String(text || "").replace(/ · (?:questionable|probable|doubtful) tonight$/i, "").trim();
+/** 0.159.0: the league-wide finds that tonight's lines don't already say (same words; tonight's copy carries its game). */
+export function withoutTonights(finds, tonight) {
+  const said = new Set((tonight || []).map((l) => sameLine(l.text)));
+  return (finds || []).filter((l) => !said.has(sameLine(l.text)));
+}

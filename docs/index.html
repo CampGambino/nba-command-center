@@ -545,18 +545,25 @@ function renderSpotlight(b, injuries) {
     + (/NBA history|all-time|Only one/i.test(t) ? 0.6 : /(?:\d(?:st|nd|rd|th) in NBA|Leads NBA|Most in NBA)\s*$/.test(t) ? -1 : /team history/i.test(t) ? -0.3 : 0); };
   const ordered = b.stream.map((l) => ({ ...l, imp: imp(l) })).sort((x, y) => y.imp - x.imp);
   // a line about a player out tonight is kept, after everything else, and never a tile
-  const all = [...ordered.filter((l) => !out(l)), ...ordered.filter(out).map((l) => ({ ...l, outTonight: true }))];
-  const games = [...new Set(all.map((l) => l.game).filter((g) => g && g.includes("@")))];
-  const groups = [...new Set(all.map(groupOf))];
+  const all0 = [...ordered.filter((l) => !out(l)), ...ordered.filter(out).map((l) => ({ ...l, outTonight: true }))];
+  // 0.159.0: the same words under two of tonight's games ("MIL and MIA are the only teams that haven't held an opponent
+  // under 100", once for each team's game) are one line in the list of every game; each game's own filter still has it.
+  const wordsOf = (l) => l.text.replace(/ · (?:questionable|probable|doubtful) tonight$/i, ""), saidAt = new Map();
+  for (const l of all0) if (!saidAt.has(wordsOf(l))) saidAt.set(wordsOf(l), l);
+  // a line's place is its place in the list of every game, whichever filter is on
+  const firsts = all0.filter((l) => saidAt.get(wordsOf(l)) === l), placeOfFirst = new Map(firsts.map((l, i) => [l, i + 1]));
+  const place = new Map(all0.map((l) => [l, placeOfFirst.get(saidAt.get(wordsOf(l)))]));
+  const all = SPOT.game ? [...all0].sort((a, b) => place.get(a) - place.get(b)) : firsts;
+  const games = [...new Set(all0.map((l) => l.game).filter((g) => g && g.includes("@")))];
+  const groups = [...new Set(firsts.map(groupOf))];
   const chip = (kind, val, label, on) => `<button type="button" data-${kind}="${esc(val)}" aria-pressed="${on}">${esc(label)}</button>`;
-  $("spChips").innerHTML = chip("g", "", `All ${all.length}`, !SPOT.group) + groups.map((g) => chip("g", g, `${g} ${all.filter((l) => groupOf(l) === g).length}`, SPOT.group === g)).join("")
+  $("spChips").innerHTML = chip("g", "", `All ${firsts.length}`, !SPOT.group) + groups.map((g) => chip("g", g, `${g} ${firsts.filter((l) => groupOf(l) === g).length}`, SPOT.group === g)).join("")
     + (games.length > 1 ? `<span class="sep"></span>` + chip("m", "", "Every game", !SPOT.game) + games.map((g) => chip("m", g, g.replace("@", " @ "), SPOT.game === g)).join("") : "");
   const shown = all.filter((l) => (!SPOT.group || groupOf(l) === SPOT.group) && (!SPOT.game || l.game === SPOT.game));
   // 0.155.0 (the user, 11/24, after the simulation: a 12-game night made 112 tiles, one player up to 12): with no filter,
   // the Spotlight is the night's top lines, 8 + 1 a game (up to 20), at most 2 a player, 3 a game (more on a small slate) and one of each kind of
   // streak ("10+ points in N straight": the longest). Then "Game by game": each game's best 3 others. Then everything
   // else, ranked. A group or game filter shows every line over the bar, as before. No line leaves the page.
-  const place = new Map(all.map((l, i) => [l, i + 1]));
   const over = shown.filter((l) => !l.outTonight && l.imp >= SPOT_BAR), curated = !SPOT.group && !SPOT.game;
   const SIZE = Math.min(SPOT_MAX, SPOT_BASE + Math.max(1, games.length)), PER_GAME = Math.max(3, Math.ceil(SIZE / Math.max(1, games.length)));   // a 1-game night isn't held to 3 tiles
   const streakKind = (l) => (l.kind === "streak" ? (l.text.match(/: (.+?) in \d+ straight/) || [])[1] || null : null);

@@ -48,9 +48,11 @@ export function thresholds(text) {
 function rankOf(t) {
   // "tying Michael Jordan for the seventh-most", "the third-longest active streak", "ranks 4th in the NBA", "T-3rd"
   let m = t.match(/\b(T-)?(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d{1,3}(?:st|nd|rd|th))[- ](?:most|highest|longest|best|fewest|lowest|least|largest|biggest|mark|in the (?:NBA|league)|among)\b/i);
-  if (m) return { rank: ordNum(m[2]), tie: !!m[1] || /\btying\b|\btied for\b/i.test(t) };
+  if (m) return { rank: ordNum(m[2]), tie: !!m[1] || /\btying\b|\btied for\b/i.test(t), at: m.index };
   m = t.match(/\b(?:ranks?\s+|for\s+|into\s+)(T-)?(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d{1,3}(?:st|nd|rd|th))\b(?:\s+(?:all-time|on the|in (?:NBA|franchise|team|league) history|place))?/i);
-  if (m) return { rank: ordNum(m[2]), tie: !!m[1] };
+  if (m) return { rank: ordNum(m[2]), tie: !!m[1], at: m.index };
+  m = t.match(/\b(T-)?(\d{1,3}(?:st|nd|rd|th)) in (?:NBA|league) history\b/i);   // 0.159.0: "…, 12th in NBA history"
+  if (m && ordNum(m[2]) > 1) return { rank: ordNum(m[2]), tie: !!m[1], at: m.index };
   if (/\b(?:leads?|led|leading)\s+(?:all\s+|the\s+)?(?:NBA|league)\b|\blead(?:s)? the (?:NBA|league)\b|\b(?:owns|has|holds) the most\b|\bthe (?:most|highest|fewest|least|lowest|best)\b[^.;]{0,90}\b(?:in the (?:NBA|league)|of any (?:team|player))|\bblocked the least\b|\bwhich leads the league\b/i.test(t)) return { rank: 1, tie: false };
   return null;
 }
@@ -124,30 +126,52 @@ export function score(f, model) {
   return 1 / (1 + Math.exp(-z));
 }
 
+const ENTERING = /\b(?:enter(?:ed|ing|s)?|came into|coming into|heading into)\s+(?:the\s+)?(?:20\d\d-\d\d(?:\s+(?:season|campaign))?|this (?:season|year|campaign)|the season)\b/gi;
+const lastName = (n) => String(n || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+(?:Jr\.?|Sr\.?|II|III|IV)$/, "").split(" ").pop();
+/** True when the rank in the line is said of another named person: it sits in its own clause (after a dash or a
+ *  semicolon), that clause names someone, and it doesn't name the line's player. */
+function othersRank(t, rk, player) {
+  if (!rk || rk.at == null || typeof player !== "string" || !player) return false;
+  const before = t.slice(0, rk.at), cut = Math.max(before.lastIndexOf("—"), before.lastIndexOf("–"), before.lastIndexOf(";"));
+  if (cut < 0) return false;
+  const clause = before.slice(cut + 1).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return /\b[A-Z][\w'’.-]+ [A-Z][\w'’-]+/.test(clause) && !clause.includes(lastName(player));
+}
+
 /** Type, tag and a one-line why, for the page, the storylines and the digest. */
 export function describe(text, meta = {}) {
   const t = plain(text);
   const f = features(t, meta);
-  const club = clubOf(t), rk = rankOf(t), th = thresholds(t);
+  const club = clubOf(t), th = thresholds(t);
+  // 0.159.0: a rank said of someone else isn't this line's ("Holiday is the second current Trail Blazer to crack the NBA's
+  // all-time scoring top 100—Damian Lillard currently ranks 37th on the list" was tagged "37th all-time").
+  const rk = othersRank(t, rankOf(t), meta.player) ? null : rankOf(t);
+  // 0.159.0: "Entered 2026-27 as the only player…" is about before this season, not about it (it was "Only one this season").
+  const seasonNow = f.season && THIS_SEASON_RE.test(t.replace(ENTERING, " "));
+  // 0.159.0: first place shared is a tie ("tied with Boston for the most games in the NBA" was "Leads NBA").
+  const tie1 = /\btied (?:with [^.;,]{1,40} )?for (?:the )?(?:first|most|(?:league|NBA) lead|lead)\b|\bT-(?:1st|first)\b/i.test(t);
+  const sinceYr = (t.match(/\bsince (?:the )?((?:19|20)\d\d(?:-\d\d)?)\b/i) || [])[1] || null;
   const streakN = t.match(/\b(\d{2,}) (?:consecutive|straight) (?:games|starts|contests)\b/i);
   const teamScope = /\b(?:franchise|team|club) (?:history|annals)\b|\b[A-Z][a-z]+['’]s? (?:all-time|career|franchise)\b|\bby any [A-Z][a-z]+s? player\b/.test(t)
     || (/\b(?:the )?only (?!NBA\b)(?:[A-Z][a-z]+s|76ers)\b(?! in NBA history)|\b\d{1,2}(?:st|nd|rd|th) [A-Z][a-z]+ ever\b|\bone of \w+ (?!NBA\b|All\b)[A-Z][a-z]+ (?:rookies|players|guards|forwards|centers|reserves)\b/.test(t) && !/\bin (?:NBA|league) history\b/i.test(t)); // "the only Raptors to…" (0.69), "one of three Maverick rookies" (0.71)
   const scope = teamScope ? "franchise" : f.league ? (f.history || /since/i.test(t) && !f.season ? "nba-history" : "nba") : f.franchise ? "franchise" : null;
   let type = "other", tag = "Notes", why = "";
   if (f.matchup) { type = "matchup"; tag = /\ball-time against\b[^.]*\bas a head coach\b/.test(t) ? "Coach vs. opponent" : "Series"; why = "The history with tonight's opponent."; }
-  else if (f.race) { type = "race"; tag = "Race"; why = "A race on a leaderboard: both sides can move."; }
+  else if (f.race) { type = "race"; tag = rk && rk.rank > 1 && f.history && !sinceYr ? `${rk.tie ? "T-" : ""}${ordinal(rk.rank)} all-time` : "Race"; why = "A race on a leaderboard: both sides can move."; }   // 0.159.0: its place, when it says one
   else if (f.streak && !ABSENCE.test(t) && !/\bfrom (?:\w+\.? \d{1,2}|\d{1,2}\/\d{1,2})[^.]{0,30}\b(?:to|through|until) (?:\w+\.? \d{1,2},? (?:19|20)\d\d|\d{1,2}\/\d{1,2}\/\d{2,4})|\b(?:snapped|ended|came to an end)\b/i.test(t)) { type = "streak"; tag = streakN ? `Active streak · ${Number(streakN[1])}` : "Active streak"; why = "A live streak: it grows if he plays tonight."; }
   else if (club != null) {
     type = "club";
-    const where = scope === "franchise" ? " in team history" : f.season ? " this season" : f.history || scope === "nba-history" ? " in NBA history" : "";
+    // 0.159.0: "one of 23 players in the NBA … since the 2021-22 campaign" is since 2021-22, not "in NBA history"
+    const where = scope === "franchise" ? " in team history" : seasonNow ? " this season" : f.history ? " in NBA history" : sinceYr ? ` since ${sinceYr}` : scope === "nba-history" ? " in NBA history" : "";
     tag = club === 1 ? `Only one${where}` : `1 of ${club}${where}`;
-    why = f.season ? "Rare company this season, and every game moves the averages." : scope === "franchise" ? "A first for the franchise." : "Rare company in league history.";
+    why = seasonNow ? "Rare company this season, and every game moves the averages." : scope === "franchise" ? "A first for the franchise." : "Rare company in league history.";
   } else if (rk && scope === "franchise") {
     type = "franchise"; tag = `${rk.tie ? "T-" : ""}${ordinal(rk.rank)} in team history`; why = "Team history.";
   } else if (rk && scope !== "franchise" && (f.league || f.season)) {
     type = "rank";
-    tag = rk.rank === 1 ? (f.season || !f.history ? "Leads NBA" : "Most in NBA") : `${rk.tie ? "T-" : ""}${ordinal(rk.rank)} in NBA`;
-    if (f.history || /since/i.test(t)) tag = rk.rank === 1 ? `Most since ${(t.match(/since (?:entering the league in )?((?:19|20)\d\d(?:-\d\d)?)/i) || [])[1] || "…"}`.replace(" since …", " in NBA") : `${rk.tie ? "T-" : ""}${ordinal(rk.rank)} ${/since 19|since 20/i.test(t) ? `since ${t.match(/since ((?:19|20)\d\d(?:-\d\d)?)/i)[1]}` : "all-time"}`;
+    tag = rk.rank === 1 ? (tie1 ? "T-1st in NBA" : f.season || !f.history ? "Leads NBA" : "Most in NBA") : `${rk.tie ? "T-" : ""}${ordinal(rk.rank)} in NBA`;
+    // 0.159.0: "since the 2022-23 season" is a span too ("51 in that time, which ranks second in the NBA" was "2nd all-time")
+    if (f.history || /since/i.test(t)) tag = rk.rank === 1 ? `Most since ${(t.match(/since (?:entering the league in |the )?((?:19|20)\d\d(?:-\d\d)?)/i) || [])[1] || "…"}`.replace(" since …", " in NBA") : `${rk.tie ? "T-" : ""}${ordinal(rk.rank)} ${sinceYr ? `since ${sinceYr}` : "all-time"}`;
     why = rk.rank === 1 ? "Best in the league right now." : rk.rank <= 3 ? "Top three in the league right now." : "Where he stands in the league.";
   } else if (scope !== "franchise" && (f.history || scope === "nba-history")) {
     const since = t.match(/\bsince (?:the )?((?:19|20)\d\d(?:-\d\d)?)\b/i);
@@ -465,6 +489,7 @@ const triOf = (w) => [...new Set(TEAM_WORDS.filter(([, x]) => x === w).map(([t])
 // "…in 22 consecutive games against Memphis": a run, then within a few words "against" and a team
 const RUN_VS = new RegExp(`\\b(?:consecutive|straight)\\s+(?:[\\w+-]+\\s+){0,4}?(?:against|versus|vs\\.?)\\s+(?:the\\s+)?(${TEAM_WORDS.map(([, w]) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).sort((a, b) => b.length - a.length).join("|")})\\b`);
 /** -> [{ said: "YYYY-MM-DD", opp }] for each date printed next to an opponent ("on 11/16 vs. HOU", "vs. BKN (11/8/26)"). */
+const MON_N = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
 export function datedGames(text, startYear) {
   const t = plain(text), out = [];
   const opps = [...t.matchAll(OPP_AT)].map((m) => ({ at: m.index, end: m.index + m[0].length, tri: triOf(m[1]) })).filter((o) => o.tri.length === 1);
@@ -474,6 +499,16 @@ export function datedGames(text, startYear) {
     const yr = mo >= 8 ? startYear : startYear + 1;
     if (m[3] && +m[3].slice(-2) !== yr % 100) continue;   // another season
     // the nearest opponent within a few words either side
+    const near = opps.map((o) => ({ o, gap: o.at >= m.index ? o.at - (m.index + m[0].length) : m.index - o.end })).filter((x) => x.gap <= 12).sort((a, b) => a.gap - b.gap)[0];
+    if (near) out.push({ said: `${yr}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`, opp: near.o.tri[0] });
+  }
+  // 0.159.0: a date written out ("in his first-career 20-point game versus Memphis (Nov. 24)", Charlotte's notes of 11/25;
+  // the game was 11/23) is checked the same way.
+  for (const m of t.matchAll(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b(?:[.,]?\s*((?:19|20)\d\d))?/gi)) {
+    const mo = MON_N[m[1].slice(0, 3).toLowerCase()], d = +m[2];
+    if (!mo || d < 1 || d > 31) continue;
+    const yr = mo >= 8 ? startYear : startYear + 1;
+    if (m[3] && +m[3] !== yr) continue;   // another season
     const near = opps.map((o) => ({ o, gap: o.at >= m.index ? o.at - (m.index + m[0].length) : m.index - o.end })).filter((x) => x.gap <= 12).sort((a, b) => a.gap - b.gap)[0];
     if (near) out.push({ said: `${yr}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`, opp: near.o.tri[0] });
   }
@@ -607,6 +642,8 @@ export function statedStreak(text) {
   let min = m && +m[1], word = m && m[2], n = m && countOf(m[3]);
   if (!m && (m = t.match(new RegExp(`\\b${CNT} ${RUN} (?:games|contests|outings) (?:with|scoring|of|recording) (?:at least )?(\\d{1,2})(\\+|-plus| or more)? ${STREAK_STAT}`, "i"))) && (m[3] || /at least/i.test(m[0]))) { n = countOf(m[1]); min = +m[2]; word = m[4]; }
   if (!n && (m = t.match(new RegExp(`\\b${CNT} ${RUN} (\\d{1,2})-(point|rebound|assist) games`, "i")))) { n = countOf(m[1]); min = +m[2]; word = m[3]; }
+  // 0.159.0: "extending his 10+ point streak to all 14 games to start the season" (Minnesota, 11/23, by then 18)
+  if (!n && (m = t.match(new RegExp(`\\b(\\d{1,2})(?:\\+|-plus)[- ](point|rebound|assist|steal|block)s? streak to (?:all )?${CNT} (?:${RUN} )?(?:games|contests)`, "i")))) { min = +m[1]; word = m[2]; n = countOf(m[3]); }
   const stat = word && statKey(/^3|three/i.test(word) ? "threes" : word.replace(/s$/, "") + "s");
   if (!n || !min || !stat) return null;
   return { n, key: `${stat}${min}`, label: `games with ${min}+ ${WORD[stat]}`, test: (row, k) => row[k[stat]] >= min };
@@ -865,14 +902,59 @@ export function closedEvent(line, { box = null, today } = {}) {
   const closedRun = since >= 1 && RUN_ANY.test(t) && PAST_ANY.test(t) && !PRESENT.test(t);
   // A happening led by a past-tense verb with its game's date ("Recorded his second game with 20+ points and 10+ assists
   // vs. LAL (11/4), becoming the sixth teenager in NBA history…", 21 days old): "game with" doesn't make it a growing count.
-  const pastTelling = since >= 1 && PAST_LEAD.test(t) && !PRESENT.test(t);
-  const openWords = OPEN.test(pastTelling ? t.replace(/\bgames? with\b/gi, " ") : t);
+  // 0.159.0: the same when the game itself is the subject ("The Nov. 6 game marked Lyles' seventh career game with 3+
+  // steals", shown 19 days later), and "career-best" or "this season" inside such a telling is that night's count too
+  // ("Scored a career-high 18 points with a career-best 9 rebounds … on Nov. 19", "Logged his third game this season
+  // with 15+ REB … at Atlanta (Nov. 20)"): a recap, kept two games or a week like any other.
+  const pastTelling = since >= 1 && (PAST_LEAD.test(t) || /^(?:The )?(?:(?:Jan|Feb|Mar|Apr|Oct|Nov|Dec)[a-z]*\.? \d{1,2}|\d{1,2}\/\d{1,2}) (?:game|win|loss|victory|contest) (?:marked|was|gave|made)\b/i.test(t)) && !PRESENT.test(t);
+  const openWords = OPEN.test(pastTelling ? t.replace(/\bgames? (?:this season )?with\b|\bcareer-best\b|\bthis season\b/gi, " ") : t);
   const live = !!line.matchup || line.kind === "pass" || line.kind === "next" || !!line.hook?.live;
   const open = !singleGame && (closedRun ? live : stretch || openWords || /\branks? (?:t-)?\w+ in (?:the )?(?:NBA|league)\b/i.test(t) || d.type === "club" || d.type === "race" || d.type === "streak" || live);
   if (open || longSpan(t, today)) return null;   // rare over a long span: the user keeps these
   const age = Math.round((Date.parse(today) - Date.parse(when)) / 864e5);
   return { when, age, since, ...shelfLife(t, { star: isStar(box, line.playerId) }) };
 }
+// ---------- How far off a countdown is (0.159.0) ----------
+// The page's own milestone lines are ranked by the chance it happens tonight, and dropped under 25%. A countdown printed
+// in the notes had no such measure: "Is 21 assists short from the 1,000th of his career" (Bobby Portis, 1.4 a game: about
+// fourteen games off) ranked 28th of 650 on 11/25, above Antetokounmpo's "46 points short from the 22,000th" (two games).
+const REACH_STAT = [
+  ["oreb", /^offensive (?:rebounds?|boards?)$/i], ["dreb", /^defensive (?:rebounds?|boards?)$/i], ["reb", /^(?:total )?(?:rebounds?|boards?)$/i],
+  ["fg3m", /^(?:3-?pointers?|three-?pointers?|threes|triples|3-?pt field goals?|three-point field goals?|3PM|3FGM?|3-pointers? made)$/i],
+  ["ftm", /^(?:free[- ]throws?|FTM?|made free throws?)$/i], ["fgm", /^(?:field goals?|FGM?|made field goals?)$/i],
+  ["pts", /^points?$/i], ["ast", /^assists?$/i], ["stl", /^steals?$/i], ["blk", /^(?:blocks?|blocked shots?)$/i], ["gp", /^(?:games?|games? played|appearances?)$/i], ["w", /^(?:wins?|victories)$/i]];
+const REACH_WORD = "((?:offensive |defensive |total |made |three-point |3-?pt )?[A-Za-z3][\\w-]*(?: (?:field goals?|throws?|shots?|played))?)(?: made)?";
+const REACH_RE = [
+  new RegExp(`\\b(\\d[\\d,]*) ${REACH_WORD} (?:short (?:of|from)|shy of|away from|from (?:tying|passing|reaching|becoming|moving|the\\b|his\\b|\\d))`, "i"),
+  new RegExp(`\\bneeds? (?:just |only )?(\\d[\\d,]*) (?:more )?${REACH_WORD} (?:to|for)\\b`, "i")];
+/**
+ * A countdown's distance: { need, stat, per (a game this season), games (need / per) }, or null when the line isn't one,
+ * the stat isn't in the box scores, or he has played fewer than three games. A team's wins count against its record.
+ */
+export function reach(line, { box = null } = {}) {
+  if (!box || !(box.games || []).length) return null;
+  const t = plain(line.text);
+  let m = null; for (const re of REACH_RE) { m = t.match(re); if (m) break; }
+  if (!m) return null;
+  const need = Number(m[1].replace(/,/g, "")), stat = REACH_STAT.find(([, re]) => re.test(m[2].trim()))?.[0];
+  if (!need || !stat) return null;
+  const k = Object.fromEntries((box.keys || []).map((x, i) => [x, i]));
+  let per;
+  if (stat === "w") { if (line.playerId) return null; per = box.games.filter((g) => g.pf > g.pa).length / box.games.length; }
+  else {
+    if (!line.playerId) return null;
+    const rows = box.games.map((g) => g.pl?.[String(line.playerId)]).filter((r) => r && r[k.min] > 0);
+    if (rows.length < 3) return null;
+    per = stat === "gp" ? rows.length / box.games.length : k[stat] == null ? null : rows.reduce((a, r) => a + (r[k[stat]] || 0), 0) / rows.length;
+    if (per == null) return null;
+  }
+  const games = per > 0 ? need / per : Infinity;
+  return { need, stat, per: Math.round(per * 100) / 100, games: Number.isFinite(games) ? Math.round(games * 10) / 10 : null };
+}
+/** What a countdown loses in rank for being far off: nothing within two games' reach, then half a point each time the
+ *  distance doubles, 1.5 at most (four games 0.5, eight 1.0, sixteen or more 1.5). The line stays on the page. */
+export const farShare = (r) => (!r ? 0 : r.games == null ? 1.5 : r.games <= 2 ? 0 : Math.min(1.5, Math.round(0.5 * Math.log2(r.games / 2) * 100) / 100));
+
 /**
  * What a kept line loses in rank (× SHELF.penalty): 0 while fresh (SHELF.grace days), 1 at the end of its shelf life,
  * and slowly at first (the square of the way through). An NBA-history first three days old loses next to nothing; at

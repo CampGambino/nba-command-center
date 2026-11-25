@@ -5950,6 +5950,82 @@ await bridgeChecks(ok, root);
     "home page (0.158.0): the ranked list reads across then down; a game card's three lines are about different players where it can; an award-eligibility line stays when its player sits; a wrong notes file is said at the top");
 }
 
+// ---------- 0.159.0: from the user's ranked-list screenshots of 11/25 ----------
+{
+  const F = await import("../src/notes/facts.js");
+  const P = await import("../src/notes/pdf-layout.js");
+  const { withoutTonights, sameLine } = await import("../src/anticipate/briefing.js");
+  // a raised "th" 3pt above its number, in smaller type
+  const row = (y, h, parts) => parts.map(([x, str, w]) => ({ x, y, h, w, str }));
+  const sup = [...row(532.6, 6, [[391, "th", 5]]), ...row(529.5, 9, [[60, "per game, which ranks 6", 331]]), ...row(518.8, 9, [[60, "among NBA centers this season", 130]])];
+  const two = [...row(745.9, 5, [[512, "rd", 5]]), ...row(742.8, 7.9, [[40, "the sixth active player and 23", 472], [520, "player in", 40]])];
+  const heading = [...row(540, 6, [[300, "th", 5]]), ...row(529.5, 9, [[60, "Thunder on the boards", 100]])];   // no number under it: left alone
+  const txt = (items) => P.buildLines(items.map((x) => ({ ...x }))).map((l) => l.text);
+  ok(txt(sup)[0] === "per game, which ranks 6th" && txt(sup).length === 2 && /and 23rd\s+player in/.test(txt(two)[0]) && txt(two).length === 1 && txt(heading).length === 2 && txt(heading)[0] === "th",
+    "notes PDF (0.159.0): a raised ordinal ending is put back on its number (\"ranks 6\" + a small \"th\" above it reads \"ranks 6th\"; \"23 player\" reads \"23rd player\"); one with no number under it is left", JSON.stringify([txt(sup), txt(two), txt(heading)]));
+  const tag = (t, player = null) => F.describe(t, { player, team: !player }).tag;
+  ok(tag("Holiday is the second current Trail Blazer to crack the NBA’s all-time scoring top 100—Damian Lillard currently ranks 37th on the list (22,945 points).", "Jrue Holiday") === "NBA history"
+    && tag("Lillard passed Kobe Bryant—Lillard now ranks 37th on the all-time list.", "Damian Lillard") === "37th all-time",
+    "notes (0.159.0): a rank said of someone else after a dash isn't the line's tag (\"37th all-time\" was Lillard's, on a Holiday line); his own still is");
+  ok(tag("Herro is also one of 23 players in the NBA with a combined average of more than 20.0 ppg, 5.0 rpg and 4.0 apg since the 2021-22 campaign.", "Tyler Herro") === "1 of 23 since 2021-22"
+    && tag("Domantas Sabonis has proven to be one of the league's leaders in triple-doubles since the 2022-23 season, tallying 51 in that time, which ranks second in the NBA.", "Domantas Sabonis") === "2nd since 2022-23"
+    && tag("Booker is one of four players in league history to tally 18,000 points, 3,900 assists and 1,000 three-pointers before turning 30.", "Devin Booker") === "1 of 4 in NBA history"
+    && tag("The Knicks 8-for-8 start is tied for the 13th longest streak in the NBA since tracking started.") === "T-13th all-time",
+    "notes (0.159.0): a club or a rank \"since the 2021-22 campaign\" is tagged with its span, not \"in NBA history\" or \"all-time\"; real all-time ones are unchanged");
+  ok(tag("The Nets are tied for first in the NBA with 11.3 catch-and-shoot 3PM per game and with 12.4 points per game off dribble-handoffs.") === "T-1st in NBA"
+    && tag("The Wolves have now held their opponents under 40.0% shooting five time this season, tied with Boston for the most games in the NBA this season.") === "T-1st in NBA"
+    && tag("Diabate currently leads the league in all major offensive rebounding statistics; total offensive rebounds (76).", "Moussa Diabaté") === "Leads NBA",
+    "notes (0.159.0): first place shared is \"T-1st in NBA\", not \"Leads NBA\"; a sole lead still leads");
+  ok(tag("Entered 2026-27 as the only player with 15+ GP to have averaged at least 15.0 rebounds and 6.0 offensive boards per 36 minutes played.", "Oscar Tshiebwe") === "Only one"
+    && tag("Giddey is the only guard in the NBA this season to record a half with at least 10 points/10 rebounds/five assists.", "Josh Giddey") === "Only one this season"
+    && tag("Ranks second in NBA history amongst qualified players in career 3FG% behind only Steve Kerr.", "Luke Kennard") === "2nd all-time"
+    && tag("Has 32 career 20-point triple-doubles, 12th in NBA history.", "Domantas Sabonis") === "12th all-time",
+    "notes (0.159.0): \"Entered 2026-27 as the only player…\" isn't \"this season\"; a place on an all-time list is the tag (\"2nd all-time\" was \"Race\", \"12th all-time\" was \"NBA history\")");
+  // old recaps
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const days = ["2026-10-21", "2026-10-24", "2026-10-26", "2026-10-29", "2026-10-31", "2026-11-02", "2026-11-04", "2026-11-07", "2026-11-10", "2026-11-11", "2026-11-13", "2026-11-16", "2026-11-19", "2026-11-21", "2026-11-23"];
+  const line = (pts, ast) => { const r = Array(keys.length).fill(0); r[1] = 30; r[2] = pts; r[10] = ast; return r; };
+  const box = { keys, names: {}, games: days.map((d, i) => ({ d, opp: i === 14 ? "MEM" : "BOS", home: true, pf: i % 4 ? 110 : 90, pa: 100, pl: { 7: line(28, 1.5), 8: line(i < 12 ? 16 : 9, 4) } })) };
+  const T = (text, today, opt = {}) => F.trimReason({ text }, { box, today, ...opt });
+  const lyles = "The Nov. 6 game marked Lyles' seventh career game with 3+ steals, moving to 5-2 when recording 3+ steals.";
+  const ament = "Scored a career-high 18 points with a career-best 9 rebounds in a career-leading 35 minutes of play on Nov. 19 vs. POR.";
+  const third = "Logged his third game this season with 15+ REB and a career-high-tying 21 points at Atlanta (Nov. 21).";
+  ok(/^past one-off \(1[89] days ago/.test(T(lyles, "2026-11-25") || "") && T(ament, "2026-11-25") === "past one-off (6 days ago, 2 games since)" && T(ament, "2026-11-20") === null && T(third, "2026-11-25") === null && /^past one-off/.test(T(third, "2026-11-29") || "")
+    && T("Minnesota has now held their opponents under 100 points three times this season, most recently on Nov. 12.", "2026-11-25") === null && T("Has 3 games this season with 15+ rebounds, the latest on Nov. 6.", "2026-11-25") === null,
+    "notes (0.159.0): a telling of one night in the past tense is a recap whatever counts it carries (\"The Nov. 6 game marked his seventh career game with…\", \"a career-best 9 rebounds … on Nov. 19\"): gone after two games or a week; a count in the present tense stays", JSON.stringify([T(lyles, "2026-11-25"), T(ament, "2026-11-25"), T(third, "2026-11-25")]));
+  // a streak count the notes are behind on
+  const st = F.statedStreak("Facing Portland on Nov. 16, McDaniels finished with 13 points, extending his 10+ point streak to all 14 games to start the season, second-longest such streak of his career.");
+  const mc = F.checkStreaks([{ text: "Facing Portland on Nov. 16, McDaniels finished with 13 points, extending his 10+ point streak to all 12 games to start the season.", playerId: "7" },
+    { text: "With 24 points against the Bulls, Dosunmu has extended his 15+ point streak to nine games, the longest such streak of his career.", playerId: "8" }], box);
+  ok(st && st.n === 14 && st.key === "pts10" && mc[0].tag === "Now 15 straight" && /The notes are behind: the box scores have it at 15 straight with 10\+ points through 11\/23 \(every game he has played this season\)/.test(mc[0].hook.text)
+    && mc[1].tag === "Streak over" && /the notes say 9 straight with 15\+ points; the box scores have 0 through 11\/23/.test(mc[1].hook.text),
+    "notes (0.159.0): \"extending his 10+ point streak to all 14 games\" is checked against the box scores like any other streak: behind is said, over is said", JSON.stringify(mc.map((l) => [l.tag, l.hook?.text])));
+  // a date written out
+  const dc = F.checkDates([{ text: "Tallied a career-high 25 points in his first-career 20-point game versus Memphis (Nov. 24)." }, { text: "Tied his career-high with 3 blocks versus Memphis (Nov. 23)." }, { text: "Made his 1,000th-career three-point field goal in win at Memphis on Nov. 24, 2022." }], box);
+  ok(dc[0].hook?.text === "Date check: the box scores have the Grizzlies game on 11/23, not 11/24." && !dc[1].hook && !dc[2].hook,
+    "notes (0.159.0): a game's date written out (\"versus Memphis (Nov. 24)\") is checked against the schedule like \"11/24\"; another season's date is left", JSON.stringify(dc.map((l) => l.hook?.text || null)));
+  // countdowns
+  const R = (text, playerId) => F.reach({ text, playerId }, { box });
+  const portis = R("Is 21 assists short from the 1,000th of his career.", "7"), giannis = R("Giannis Antetokounmpo is 46 points short from the 22,000th point of his career.", "7"), wins = R("The Rockets need 6 wins to reach 2,500 in franchise history.", null);
+  ok(portis.games === 14 && F.farShare(portis) === 1.4 && giannis.games === 1.6 && F.farShare(giannis) === 0 && F.farShare(R("Klay Thompson is now 16 assists away from tying Ray Allen for third place.", "8")) === 0.5
+    && wins.stat === "w" && wins.per === 0.73 && R("Hall is 1 rebound away from 100 career rebounds.", "99") === null && R("Scored 21 points, one shy of his season high.", "7") === null && F.farShare(null) === 0
+    && F.farShare({ games: 400 }) === 1.5 && F.farShare({ games: null }) === 1.5,
+    "notes (0.159.0): a countdown's distance is its need over his rate this season (21 assists at 1.5 a game: 14 games); within two games' reach it loses nothing, then half a point per doubling, 1.5 at most; no rate, no change", JSON.stringify({ portis, giannis, wins }));
+  const tnSrc = fs.readFileSync(path.join(root, "src", "anticipate", "tonight.js"), "utf8"), tjs = fs.readFileSync(path.join(root, "scripts", "tonight.js"), "utf8");
+  ok(/score: Math\.min\(4\.8, f\.score\)/.test(tnSrc) && /const rc = reach\(l, \{ box \}\), far = farShare\(rc\);/.test(tjs) && /const score = far > 0 && aged - far < 4\.8 \? aged - far : aged;/.test(tjs) && /reach: far > 0 \? \{ \.\.\.rc, far, /.test(tjs)
+    && /const bare = \(x\) => x\.replace\(\/\\b\(\\d\+\)\(\?:st\|nd\|rd\|th\)\\b\/g, "\$1"\)/.test(tjs),
+    "notes (0.159.0): the distance comes off the line's score unless it would still be at the storylines' 4.8 ceiling: a chase the scorer rates far above it (Durant on Kobe Bryant, 6.9) keeps its place, an ordinary round number far off doesn't; a line whose only change is a restored ordinal ending isn't new today");
+  // the ranked list
+  const finds = [{ text: "Myles Turner is tied for the 2nd most blocks in the NBA this season. He ranks 119th in minutes played" }, { text: "Victor Wembanyama has the most blocks in the NBA this season. He ranks 52nd in minutes played" }, { text: "Luka Dončić has 7 40-point games this season: more than any other team has in total (13 teams have none)" }];
+  const tonightLines = [{ text: "Myles Turner is tied for the 2nd most blocks in the NBA this season. He ranks 119th in minutes played" }, { text: "Victor Wembanyama has the most blocks in the NBA this season. He ranks 52nd in minutes played · questionable tonight" }];
+  const left = withoutTonights(finds, tonightLines);
+  const ix = fs.readFileSync(path.join(root, "docs", "index.html"), "utf8"), sj = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8");
+  ok(left.length === 1 && /Luka/.test(left[0].text) && sameLine("x · questionable tonight") === "x" && withoutTonights(finds, []).length === 3
+    && /\.\.\.withoutTonights\(args\.prep\?\.finds \|\| \[\], b\.ranked\)\.filter\(\(l\) => !model\.down\.has\(l\.key\)\)/.test(sj)
+    && /const all = SPOT\.game \? \[\.\.\.all0\]\.sort\(\(a, b\) => place\.get\(a\) - place\.get\(b\)\) : firsts;/.test(ix) && /const place = new Map\(all0\.map\(\(l\) => \[l, placeOfFirst\.get\(saidAt\.get\(wordsOf\(l\)\)\)\]\)\);/.test(ix) && /chip\("g", "", `All \$\{firsts\.length\}`/.test(ix),
+    "home page (0.159.0): a league-wide find already in tonight's lines is listed once, under its game (17 were doubled on 11/25); the same words under two games are one line in the list of every game, and each game's filter keeps its own", JSON.stringify(left));
+}
+
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });
 const brief = (m) => [m.player, m.kind, m.stat, m.scope, m.current, m.target, m.need, m.status, m.passing?.player || ""].join(" | ");

@@ -1016,7 +1016,7 @@ try {
     // The briefing (0.66): one ranking over every candidate line, with what was already shown on earlier days.
     try {
       const { tonightCandidates } = await import("../src/anticipate/tonight.js");
-      const { briefing } = await import("../src/anticipate/briefing.js");
+      const { briefing, withoutTonights } = await import("../src/anticipate/briefing.js");
       const cand = tonightCandidates(args);
       for (const l of cand.all) if (l.player) l.player = ACCENTS.get(l.player) || l.player;   // 0.145.0: one spelling per player (the line's text stays as built)
       const seenFile = path.join(root, "history", "briefing-seen.json");
@@ -1074,7 +1074,9 @@ try {
         stream: [
           ...b.ranked.map((l) => ({ key: l.key, kind: l.kind, team: l.team, player: l.player || null, game: l.game, text: l.text, rank: l.rank, status: ledgerFirstRun ? null : l.status || null, from: "tonight" })),
           ...(args.prep?.lastNight || []).map((l) => ({ key: l.key, kind: l.kind, team: l.team, player: l.player || null, game: "last night", text: l.text, rank: Math.round(((l.score ?? 3) + 0.3) * 100) / 100, from: "last" })),
-          ...(args.prep?.finds || []).filter((l) => !model.down.has(l.key)).map((l) => ({ key: l.key, kind: l.kind, team: l.team, player: l.player || null, game: "league", text: l.text,
+          // 0.159.0: a league-wide find about a team playing tonight is already in tonight's lines, under its game: it
+          // was listed twice (17 lines on 11/25: "Myles Turner is tied for the 2nd most blocks…" at 226 and at 304).
+          ...withoutTonights(args.prep?.finds || [], b.ranked).filter((l) => !model.down.has(l.key)).map((l) => ({ key: l.key, kind: l.kind, team: l.team, player: l.player || null, game: "league", text: l.text,
             rank: Math.round((l.score + boost(l, model, args.prep?.stars || {})) * 100) / 100, from: "find" })),
         ].sort((x, y) => y.rank - x.rank),
         news: buzz ? Object.entries(buzz.players).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, n]) => ({ name, n, titles: buzz.titles[name] || [] })) : null }));
