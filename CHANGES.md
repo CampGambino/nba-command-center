@@ -2,6 +2,55 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.157.0 (2026-11-25): a notes line's age against its importance; no accolades in record lines
+
+The user, 11/25, with screenshots of the home page and two NBA Live cards:
+- On "PHX notes — Jalen Green: Recorded multiple blocks in consecutive games (Nov. 2 and Nov. Season 4) for the first time in his career": "this is notable at the time, but it's also been three weeks since it happened. there has to be a balance in time from note from game notes and how important it is."
+- On "Brunson (Finals MVP): 28 points from passing…": "no need to include the accolades in the text. it takes up space".
+
+**Why the Jalen Green line was a card three weeks on** (three causes, each fixed):
+- **The word "consecutive" made it a live streak.** Dated one-offs have been cut after two games or a week since 0.49, but any line saying "consecutive" or "straight" was exempt. A run told in the past tense with its dates, which the team has since played past, is now a closed happening like any other (`closedEvent` in `src/notes/facts.js`). "Has … in five straight" stays live.
+- **It was marked new today.** "New" goes by the exact words, and a stray word had moved: on 11/16 the line read "…in his career. Season"; today it read "Nov. Season 4". New lines get a lift, so it went to the top of Phoenix's notes. The same words in a different order no longer count as new (`scripts/tonight.js`).
+- **The stray "Season"** is the second line of the bio header beside the paragraph ("G • 6-4 • 186 • … • 6th" / "Season"). It is dropped (`src/notes/narrative.js`), so the line reads "(Nov. 2 and Nov. 4)" as printed.
+
+**Age against importance** (`SHELF` in `src/notes/facts.js`): how long a dated happening that is over keeps a place.
+
+| What the line is | Kept for |
+|---|---|
+| A first, an only or a record in NBA history | 14 days |
+| The same in a team's history | 10 days |
+| Anything else: a recap, a career or season high, a career first, a pass on a list | two games or a week, as before |
+
+- A player averaging 20 or more gets half as long again on the first two (21 and 15 days).
+- A line kept past two days loses rank as it ages, slowly at first: under 1% of the penalty at day 3, a quarter at day 8 of 14, all 2.5 points on its last day. Its "new today" lift shrinks the same way.
+- A pass on a list ("passed Julius Erving for the 79th most points in NBA history") stays a recap: the place he holds now is the line (the user, 11/16).
+- The lengths agree with what the user cut on 11/13: an NBA-history first at 23 days, a team-history first at 11.
+
+**On today's 18 teams' notes, before and after** (the same step run on both versions):
+- Cut now: the Jalen Green line; Antetokounmpo's two runs from October 26 to November 8 and 10; Booker's eight straight with multiple threes, October 30 to November 12.
+- Kept now, lower down: five firsts that had been cut after two games, among them Mara's first 20-and-15 by a rookie in Thunder history (5 days ago) and Booker's 3,000th rebound, the sixth player in NBA history with those totals (9 days ago).
+- Sunk: LeBron James' 16,000th field goal (21 days ago, kept only because Philadelphia has few lines) from 5.0 to 2.3; Sharpe's franchise-record run that ended 11/16 from 3.98 to 2.07.
+- Nearly unchanged: Giddey's NBA-history line from 11/22 (5.17 to 5.15 in the ranked list).
+- Notes lines kept: 223 before, 224 after.
+
+**No accolades in record lines** (`src/anticipate/tonight.js`): "James (4× MVP): 4 assists from…" is "James: 4 assists from…", on the site and on NBA Live's cards (they read the same text; no bridge change). The saved "seen before" keys are read without the award, so those lines aren't marked new again.
+
+**Also from the screenshots:**
+- **A false build warning.** "#7 in the briefing is about Anthony Edwards, who is listed out tonight" was about his award-eligibility line ("can miss 3 more games and stay award-eligible"). His sitting is that line's point, so the check now leaves award lines alone, as it does injury lines.
+- **The streak tile went to the wrong run.** The Spotlight shows one tile per kind of streak. It went to whichever ranked first (Gilgeous-Alexander's 234 straight) while Durant's 346 sat in a game card. It goes to the longest now.
+
+**Checked:**
+- Tests 900 passed, 6 of them new; all pages OK; bundled rules up to date.
+- The notes and storyline steps run on today's PDFs before and after, compared line by line (above).
+- The home page drawn from the new files: no award in any tile, Durant's 346 in the streak tile, no Jalen Green line in PHX @ HOU's lines.
+- The old and new self-check on the same files: the Edwards warning only in the old.
+
+**Self-audit:**
+- My first shelf lives were too long (28 days for NBA history, 14 for team history, 7 for any career mark), and counted list passes as NBA history. That brought back Booker's climb past Erving and McGrady, which the user had cut on 11/16, and contradicted the 11/13 review. Shortened, and narrowed to firsts and records, before anything was published.
+- My first penalty was a straight line and dropped Giddey's three-day-old NBA-history line out of the Spotlight. It is slow at first now.
+- Two expected numbers in the new tests were typed from my head and wrong (games since 11/4: 8, not 6); both now come from a run.
+- Not done: the tiles' big numbers still come from notes text ("60%", "62.5%" on two Herro tiles). Nobody asked.
+
 ## 0.156.0 (2026-11-25): MIL-MIA 11/18 back in Lineups from the box score you sent; the rotations pull runs through the playoffs
 
 The user, 11/24, 11:56 PM: Basketball-Reference screenshots of MIL 130 at MIA 137 (11/18), and "the scheduler for checking nba.com stats should carry into the postseason as well. no need to end the checks in April".

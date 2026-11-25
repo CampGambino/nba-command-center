@@ -1020,7 +1020,10 @@ try {
       const cand = tonightCandidates(args);
       for (const l of cand.all) if (l.player) l.player = ACCENTS.get(l.player) || l.player;   // 0.145.0: one spelling per player (the line's text stays as built)
       const seenFile = path.join(root, "history", "briefing-seen.json");
-      const seen = fs.existsSync(seenFile) ? JSON.parse(fs.readFileSync(seenFile, "utf8")) : {};
+      // 0.157.0: record lines lost their "(4× MVP)"; the saved keys of lines seen with it are read without it, so those
+      // lines aren't marked new again. (Keys last 30 days: this can go after 12/25/26.)
+      const noAward = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k.replace(/ \((?:#× )?(?:finals? )?(?:mvp|dpoy)\)(?=:)/, ""), v]));
+      const seen = noAward(fs.existsSync(seenFile) ? JSON.parse(fs.readFileSync(seenFile, "utf8")) : {});
       const nat = new Set((args.national?.upcoming || []).filter((g) => g.d === watch.today && g.status !== "dropped").map((g) => `${g.away}@${g.home}`));
       // 0.67: the user's 👍/👎 from the Worker (a copy is kept in history/ in case the Worker can't be reached).
       const { learn, boost } = await import("../src/anticipate/learn.js");
@@ -1041,7 +1044,7 @@ try {
       // 0.138: the ledger: one record per claim across every detector, with what was seen and shown on earlier days.
       const { buildLedger, markShown, pageKey, hashKey } = await import("../src/anticipate/ledger.js");
       const ledgerFile = path.join(root, "history", "ledger-seen.json");
-      const ledgerSeen = fs.existsSync(ledgerFile) ? JSON.parse(fs.readFileSync(ledgerFile, "utf8")) : {};
+      const ledgerSeen = noAward(fs.existsSync(ledgerFile) ? JSON.parse(fs.readFileSync(ledgerFile, "utf8")) : {});
       const ledger = buildLedger(cand.all, { seen: ledgerSeen, today: watch.today });
       const b = briefing({ all: cand.all, games: cand.games, stars: args.prep?.stars || {}, nationalGames: nat, seen, today: watch.today, model, buzz, ledger });
       fs.writeFileSync(seenFile, JSON.stringify(b.seen));

@@ -26,7 +26,6 @@
  *              record, with a 25%+ chance tonight; a coach's milestone or a team's place in the NBA's streak
  *              and best-start lists that tonight's game decides. Where the notes already carry the same
  *              milestone, theirs is kept; a notes history line about the same pass gives way to this one.
- *              A former MVP, Finals MVP or DPOY carries it: "James (4× MVP): ...".
  *   context    this season against his own career (records.json "context", src/records/yoy.js, from the NBA Guide's
  *              year-by-year stats): a big swing from last season or a career low / high ("Harden: 16.7 points a game,
  *              down 6.9 from 23.6 in 2025-26; his lowest since 2023-24"). Not an event tonight, so ranked low:
@@ -564,12 +563,8 @@ function historyLines(facts, teams, today) {
 
 const surname = (n) => String(n || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+(?:Jr\.?|Sr\.?|II|III|IV)$/, "").split(" ").pop().toLowerCase();
 
-// A headline award in front of a record line: "James (4× MVP): ...". MVP, Finals MVP and DPOY only, the first one.
-function withAward(text, who, awards) {
-  const top = String(awards?.[who] || "").split(" · ")[0];
-  return /^(?:\d+× )?(?:MVP|Finals MVP|DPOY)$/.test(top) ? text.replace(/^([^:(]+):/, `$1 (${top}):`) : text;
-}
-
+// 0.157.0 (the user, 11/25: "no need to include the accolades in the text. it takes up space"): a record line no longer
+// carries the player's headline award ("Brunson (Finals MVP): 28 points from…" is "Brunson: 28 points from…").
 function recordLines(records, teams, today, milestones) {
   if (!records || (records.today && today && records.today !== today)) return [];
   const out = [];
@@ -582,7 +577,7 @@ function recordLines(records, teams, today, milestones) {
       const dup = milestones.some((m) => m.team === i.team && m.stat === i.stat && nameKey(m.player) === nameKey(i.who)
         && (m.target === i.target || m.target === i.target - 1 || (m.passing && i.passing && i.passing.name.split(" and ").some((n) => surname(n) === surname(m.passing)))));
       if (dup) continue;
-      out.push({ team: i.team, player: i.who, kind: "record", text: withAward(`${i.text} (${pct(p)} tonight)`, i.who, records.awards), score: i.score + p, passing: i.passing?.name || null, ...(i.siteOnly ? { siteOnly: true } : {}) });
+      out.push({ team: i.team, player: i.who, kind: "record", text: `${i.text} (${pct(p)} tonight)`, score: i.score + p, passing: i.passing?.name || null, ...(i.siteOnly ? { siteOnly: true } : {}) });
     } else if (i.need === 1) {
       const text = i.kind === "coach"
         ? i.stat === "games" ? `${i.text.replace(/: 1 game from passing/, ": coaches tonight to pass")}` : `${i.text.replace(/: 1 win from passing/, ": a win tonight passes")}`

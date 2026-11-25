@@ -1635,8 +1635,9 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   const recs = { today: "2026-11-09", awards: { "Star Guy": "4× MVP · 4× Finals MVP", "Sixth Guy": "Sixth Man" },
     items: [item("Star Guy", "Guy: 5 points from passing Old (100) for 3rd all-time"), item("Sixth Guy", "Guy: 5 assists from passing Old (100) for 9th all-time")] };
   const lines = tonightStorylines({ watch, records: recs })[0].lines.map((l) => l.text);
-  ok(lines.includes("Guy (4× MVP): 5 points from passing Old (100) for 3rd all-time (50% tonight)") && lines.includes("Guy: 5 assists from passing Old (100) for 9th all-time (50% tonight)"),
-    "record lines: a former MVP's carries his MVPs; a Sixth Man's doesn't (headline awards only)", JSON.stringify(lines));
+  // 0.157.0 (the user, 11/25: "no need to include the accolades in the text. it takes up space")
+  ok(lines.includes("Guy: 5 points from passing Old (100) for 3rd all-time (50% tonight)") && lines.includes("Guy: 5 assists from passing Old (100) for 9th all-time (50% tonight)") && !lines.some((t) => /MVP/.test(t)),
+    "record lines (0.157.0): no award in the text, whatever the player has won", JSON.stringify(lines));
 }
 
 // ---------- Postseason and All-Star career lists, single-game lists (NBA Guide pp. 157-186) ----------
@@ -5858,6 +5859,43 @@ await bridgeChecks(ok, root);
   const played = (t) => R.rot[t].reduce((a, s) => a + (s[3] - s[2]), 0);
   ok(played("MIL") === 144000 && played("MIA") === 144000 && /ESPN play-by-play/.test(R.rotFrom || "") && !(R.incomplete || []).some((x) => x.startsWith("rot")),
     "lineups (0.156.0): MIL-MIA 11/18's rotation, missing on NBA.com, is rebuilt from ESPN's play-by-play: five players a side for all 48 minutes");
+}
+
+// ---------- 0.157.0: a notes line's age against its importance (the user, 11/25) ----------
+{
+  const F = await import("../src/notes/facts.js");
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const days = ["2026-10-21", "2026-10-24", "2026-10-26", "2026-10-28", "2026-10-31", "2026-11-02", "2026-11-04", "2026-11-07", "2026-11-09", "2026-11-11", "2026-11-13", "2026-11-16", "2026-11-18", "2026-11-21", "2026-11-23"];
+  const row = (pts) => { const r = keys.map(() => 0); r[1] = 30; r[2] = pts; return r; };
+  const box = { keys, names: {}, games: days.map((d) => ({ d, opp: "BOS", home: true, pf: 1, pa: 0, pl: { 7: row(13), 9: row(28) } })) };
+  const T = (text, today, extra = {}) => F.trimReason({ text, ...extra }, { box, today });
+  const green = "Recorded multiple blocks in consecutive games (Nov. 2 and Nov. 4) for the first time in his career.";
+  // the user's case: a career first, three weeks on, is cut; the day after it happened it is kept, and a week on it's cut
+  ok(T(green, "2026-11-25", { playerId: "7" }) === "past one-off (21 days ago, 8 games since)" && T(green, "2026-11-05", { playerId: "7" }) === null && /^past one-off/.test(T(green, "2026-11-12", { playerId: "7" }) || ""),
+    "notes (0.157.0): a run told in the past tense with its dates is over once the team has played past it: Jalen Green's two-game blocks note is cut three weeks on, kept the day after", T(green, "2026-11-25", { playerId: "7" }));
+  // a live streak ("has … straight") and a count still growing stay open
+  ok(T("Has recorded multiple blocks in five straight games (Nov. 13-23), the longest streak of his career.", "2026-11-25", { playerId: "7" }) === null,
+    "notes (0.157.0): a streak told as still going (\"has … straight\") stays");
+  const nba = "Became the first player in NBA history to record 23 points, 14 rebounds and 22 assists in a game vs. DEN (11/13).", team = "Became the first rookie in Bulls history to tally four steals and four 3FGM in a game vs. PHI (11/13).", recap = "Scored 25 points at New Orleans on Nov. 13.",
+    pass = "On Nov. 13 vs. Hornets, passed Tracy McGrady for the 78th most points in NBA history.", high = "Scored a career-high 18 points on 7-10 shooting in a win over New Orleans on 11/13.";
+  const S = (text, today, id) => F.closedEvent({ text, playerId: id }, { box, today });
+  ok(S(nba, "2026-11-25", "7").days === 14 && S(team, "2026-11-25", "7").days === 10 && S(nba, "2026-11-25", "9").days === 21 && S(team, "2026-11-25", "9").days === 15
+    && [green, recap, pass, high].every((x) => S(x, "2026-11-25", "9").recap && S(x, "2026-11-25", "9").days === 7)
+    && F.shelfLife("Sharpe recorded 5+ assists in six consecutive contests from 11/4 - 11/16, which set the franchise record.").days === 10 && F.shelfLife("Passed Scott Skiles (1,176) for eighth on the Magic’s all-time free throws made list on Oct. 28 @ Toronto.").recap,
+    "notes (0.157.0): shelf lives: a first or record in NBA history 14 days, in team history 10, half as long again for a 20-point scorer; a recap, a career high, a career first and a pass on a list as before");
+  // kept longer than a recap, and losing rank on the way
+  ok(T(nba, "2026-11-25", { playerId: "7" }) === null && /^past one-off \(12 days ago, 4 games since; a team-history first keeps its place 10 days\)$/.test(T(team, "2026-11-25", { playerId: "7" }) || "") && /^past one-off \(\d+ days ago, 2 games since\)$/.test(T(recap, "2026-11-20", { playerId: "7" }) || "")
+    && /^past one-off/.test(T(pass, "2026-11-20", { playerId: "7" }) || "") && /^past one-off/.test(T(high, "2026-11-20", { playerId: "7" }) || "") && /NBA-history first keeps its place 14 days/.test(T(nba, "2026-11-28", { playerId: "7" }) || "")
+    && F.agedShare(S(nba, "2026-11-14", "7")) === 0 && Math.abs(F.agedShare(S(nba, "2026-11-21", "7")) - 0.25) < 1e-9 && F.agedShare(S(nba, "2026-11-16", "7")) < 0.01 && F.agedShare(S(nba, "2026-11-27", "7")) === 1 && F.agedShare(S(recap, "2026-11-14", "7")) === 0,
+    "notes (0.157.0): an NBA-history first is kept 12 days on where a team first, a recap, a list pass and a career high are cut; it loses rank slowly at first: nothing for two days, under 1% at day 3, a quarter at day 8, all of the penalty at day 14");
+  const tn = fs.readFileSync(path.join(root, "scripts", "tonight.js"), "utf8"), nv = fs.readFileSync(path.join(root, "src", "notes", "narrative.js"), "utf8"), sc = fs.readFileSync(path.join(root, "src", "site", "selfcheck.js"), "utf8"), ix = fs.readFileSync(path.join(root, "docs", "index.html"), "utf8");
+  ok(/bagOf\(x\) === bag/.test(tn) && /SHELF\.penalty \* old/.test(tn) && /1\.5 \* \(1 - old\)/.test(tn) && /const bioSeason = /.test(nv) && /l\.kind !== "awards"/.test(sc) && /longest\[sk\] !== l/.test(ix),
+    "0.157.0: the same words reordered aren't new; the age penalty is applied; a bio header's stray \"Season\" is dropped; an award-eligibility line about a player who is out isn't flagged; the streak tile goes to the longest run");
+  const { columnsOf } = await import("../src/notes/narrative.js");
+  const cell = (text, x0) => ({ text, x0, x1: x0 + text.length * 4 }), line = (y, ...cells) => ({ y, h: 8, text: cells.map((c) => c.text).join("  "), cells });
+  const cols = columnsOf({ page: 1, width: 612, lines: [line(447, cell("G • 6-4 • 186 • NBA G League Ignite/USA • 6th", 300)), line(442, cell("+ Recorded multiple blocks in consecutive games (Nov. 2 and Nov.", 300)), line(438, cell("Season", 520)), line(435, cell("4) for the first time in his career", 300))] });
+  ok(!cols.flat().join(" ").includes("Season") && cols.flat().join(" ").includes("Nov. 4)".slice(-2)),
+    "notes (0.157.0): \"Season\" under a bio header's \"• 6th\" is not read into the sentence beside it (Phoenix, 11/25: \"Nov. 2 and Nov. Season 4\")", JSON.stringify(cols));
 }
 
 const snapDir = path.join(root, "tests", "expected");

@@ -208,7 +208,11 @@ export function columnsOf(page) {
   // 0.77: the page's own footer (a bare page number, "@nuggets PAGE 5", "@BullsPR PAGE 16") was read as the end of the
   // last sentence above it ("…an NBA single-season record. 1."), and a table's header word printed inside a paragraph
   // ("…in three consecutive / Date / games…") as part of it.
-  const lines = page.lines.filter((l) => !STRAY_HEAD.test(l.text.trim()))
+  // 0.157.0: the second line of a bio header ("G • 6-4 • 186 • NBA G League Ignite/USA • 6th" / "Season") printed beside a
+  // paragraph landed inside its sentence: "(Nov. 2 and Nov. Season 4)" (Phoenix, 11/25; on 11/16 the same word was at
+  // the sentence's end). A line that is only "Season", under a line ending in "• 6th", is that header's.
+  const bioSeason = (l, i) => /^Seasons?$/.test(l.text.trim()) && page.lines.slice(Math.max(0, i - 3), i).some((u) => u.cells.some((c) => /•\s*\d{1,2}(?:st|nd|rd|th)\s*$/.test(c.text)));
+  const lines = page.lines.filter((l, i) => !STRAY_HEAD.test(l.text.trim()) && !bioSeason(l, i))
     .map((l) => (l.y < 45 && l.cells.some((c) => FOOTER.test(c.text.trim())) ? { ...l, cells: l.cells.filter((c) => !FOOTER.test(c.text.trim())) } : l))
     .filter((l) => l.cells.length);
   for (const l of lines) for (const c of l.cells) for (let x = Math.max(0, Math.floor(c.x0)); x <= Math.min(width, Math.ceil(c.x1)); x++) cover[x]++;

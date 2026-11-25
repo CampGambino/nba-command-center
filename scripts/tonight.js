@@ -66,7 +66,7 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
 {
   const { readPdf } = await import("../src/notes/pdf-layout.js");
   const { readHistory } = await import("../src/notes/narrative.js");
-  const { annotate, trimLines, staleCount, checkGamesPlayed } = await import("../src/notes/facts.js");
+  const { annotate, trimLines, staleCount, checkGamesPlayed, closedEvent, agedShare, SHELF } = await import("../src/notes/facts.js");
   // 0.146.0: every active games-played run, as the last build counted it (docs/data/featlive.json, through last night)
   let gpRuns = null;
   try { gpRuns = JSON.parse(fs.readFileSync(path.join(root, "docs", "data", "featlive.json"), "utf8")).gpRuns || null; } catch { /* first build: no check */ }
@@ -110,6 +110,7 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
   const factsDir = path.join(root, "history", "notes-facts");
   fs.mkdirSync(factsDir, { recursive: true });
   const keyOf = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().slice(0, 160);
+  const bagOf = (k) => k.split(" ").sort().join(" ");
   const teams = {}, trimmedBy = {}, status = {};
   // Every team playing tonight is listed, with or without lines, so the page shows each one was checked (0.49).
   for (const e of entries) status[e.team] = { opp: e.opp, home: e.home, notes: e.notes.status, why: e.notes.why || e.notes.error || null, read: !!e.buf };
@@ -144,14 +145,21 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
       const seen = fs.existsSync(seenFile) ? JSON.parse(fs.readFileSync(seenFile, "utf8")) : {};
       const facts = lines.map((l) => {
         const k = keyOf(l.text);
+        // 0.157.0: the same words in another order aren't a new line. Phoenix's "(Nov. 2 and Nov. Season 4)" on 11/25 was a
+        // line first read 11/16 with a table's word spliced in at a different place: marked new, it went to the top.
+        if (!(k in seen)) { const bag = bagOf(k), twin = Object.keys(seen).find((x) => x.length === k.length && bagOf(x) === bag); if (twin) seen[k] = seen[twin]; }
         seen[k] ??= today;
         const isNew = seen[k] === today;
         if (!isNew) staleCount(l, seen[k], box);   // 0.113: a streak count printed unchanged while games went by
         const named = l.player && !l.guessed;
         // The learned scorer (src/data/fact-model.json) weighs in: 0.5 is neutral; a live hook (a race, a club to stay in) adds.
         const stale = l.hook?.stale;
-        const score = l.score + (isNew ? 1.5 : 0) + (named ? 0.6 : 0) - (/^(?:He|His|She|They|It)\b/.test(l.text) ? 0.8 : 0) + (l.model != null ? 3 * (l.model - 0.5) : 0) + (l.hook?.live ? 0.5 : 0) - (stale ? 3 : 0);
-        return { text: l.text, kind: l.kind, player: named ? l.player : null, playerId: named ? l.playerId : null, how: l.how, game: l.boxGame ? { d: l.boxGame.d, opp: l.boxGame.opp } : undefined, when: l.when, isNew, firstSeen: seen[k], score: Math.round(score * 100) / 100,
+        // 0.157.0 (the user, 11/25: "a balance in time … and how important it is"): a dated happening that is over loses
+        // rank as it ages through its shelf life (src/notes/facts.js SHELF), and its "new today" lift with it.
+        const ev = closedEvent(l, { box, today }), old = agedShare(ev);
+        const raw = l.score + (isNew ? 1.5 * (1 - old) : 0) + (named ? 0.6 : 0) - (/^(?:He|His|She|They|It)\b/.test(l.text) ? 0.8 : 0) + (l.model != null ? 3 * (l.model - 0.5) : 0) + (l.hook?.live ? 0.5 : 0) - (stale ? 3 : 0);
+        const score = old > 0 ? Math.min(raw, 4.8) - SHELF.penalty * old : raw;   // 4.8: the most a notes line counts for on the Watch List
+        return { aged: old > 0 ? { age: ev.age, days: ev.days, why: ev.why } : undefined, text: l.text, kind: l.kind, player: named ? l.player : null, playerId: named ? l.playerId : null, how: l.how, game: l.boxGame ? { d: l.boxGame.d, opp: l.boxGame.opp } : undefined, when: l.when, isNew, firstSeen: seen[k], score: Math.round(score * 100) / 100,
           type: l.type, tag: l.tag, matchup: l.matchup || undefined, gpCheck: l.gpCheck || undefined, hook: l.hook ? { text: l.hook.text, live: !!l.hook.live, stale: !!stale } : undefined, model: l.model, kept: l.kept };
       }).sort((a, b) => b.score - a.score);
       // Keep 60 days of first-seen dates.

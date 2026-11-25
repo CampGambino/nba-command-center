@@ -787,6 +787,69 @@ export function cantBeThisSeason(text, { box = null, playerId = null } = {}) {
   return null;
 }
 
+/**
+ * 0.157.0 (the user, 11/25, on "Recorded multiple blocks in consecutive games (Nov. 2 and Nov. 4) for the first time in
+ * his career" shown three weeks later: "there has to be a balance in time from note from game notes and how important it
+ * is"): how many days a dated happening that is over keeps a place, by how big the claim is.
+ *   - a first, an only or a record in NBA history: SHELF.nba days
+ *   - the same in a team's history: SHELF.team days
+ *   - everything else (a recap, a career or season high, a pass on a list): the rule since 0.49, two games or a week
+ * A pass on a list ("passed Julius Erving for the 79th most points in NBA history") is a recap: the place he holds now
+ * is the line (the user, 11/16). A player averaging SHELF.starPpg or more gets half as long again on the first two.
+ * The lengths agree with what the user cut on 11/13: an NBA-history first at 23 days, a team-history first at 11.
+ */
+export const SHELF = { nba: 14, team: 10, recap: 7, grace: 2, star: 1.5, starPpg: 20, penalty: 2.5 };
+const LIST_PASS = /\b(?:pass(?:ed|ing|es)|surpass\w*|moved (?:past|into|up)|eclips\w*|overt(?:ook|ak\w*)|entered the top|climbed)\b/i;
+const FIRST_OR_RECORD = /\b(?:first|only|youngest|oldest|fastest|records?)\b|\b(?:second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d+(?:st|nd|rd|th)) (?:\w+ ){0,2}(?:players?|rookies?|guards?|forwards?|centers?|teams?|duos?|trios?|pairs?|reserves?|teammates)\b/i;
+export function shelfLife(text, { star = false } = {}) {
+  const t = plain(text);
+  const big = FIRST_OR_RECORD.test(t) && !LIST_PASS.test(t);
+  // a team's own history first ("in Bulls history", "the franchise record"), then the league's
+  const teamScope = /\b(?:franchise|team|club)(?:['’]s)? (?:history|record|all-time)\b|\b[A-Z][A-Za-z]+(?:['’]s|s['’]) all-time\b|\bin (?!NBA\b)[A-Z][A-Za-z]+ history\b/.test(t);
+  const nbaScope = !teamScope && /\b(?:NBA|league) history\b|\ball-time\b|\bNBA record\b/i.test(t);
+  const [days, why] = big && nbaScope ? [SHELF.nba, "an NBA-history first"] : big && teamScope ? [SHELF.team, "a team-history first"] : [SHELF.recap, "a recap"];
+  return { days: Math.round(days * (star && why !== "a recap" ? SHELF.star : 1)), why, recap: why === "a recap" };
+}
+const isStar = (box, playerId) => {
+  if (!box || !playerId) return false;
+  const k = Object.fromEntries((box.keys || []).map((x, i) => [x, i]));
+  const rows = (box.games || []).map((g) => g.pl?.[String(playerId)]).filter((r) => r && r[k.min] > 0);
+  return rows.length >= 5 && rows.reduce((a, r) => a + (r[k.pts] || 0), 0) / rows.length >= SHELF.starPpg;
+};
+// a run told in the past tense: "Recorded multiple blocks in consecutive games (Nov. 2 and Nov. 4)…"
+const RUN_WORDS = /\b(?:consecutive|straight|in a row)\b/gi, RUN_ANY = /\b(?:consecutive|straight|in a row)\b/i;
+const PAST_LEAD = /^(?:[A-Z][\w.'’-]+ ){0,3}(?:recorded|tallied|posted|had|scored|notched|registered|made|grabbed|dished|blocked|finished|totaled|became|earned|reached|shot|hit|collected|handed out|pulled down|knocked down|logged|compiled|produced|put up|went)\b/i;
+
+/**
+ * A line about a dated happening that is over: { when, age (days), since (the team's games after it), days, why, recap },
+ * or null for anything still going, undated, or rare over ten years or more.
+ */
+export function closedEvent(line, { box = null, today } = {}) {
+  if (!today) return null;
+  const t = plain(line.text), d = line.facts || describe(line.text, line);
+  const games = (box?.games || []).filter((g) => g.d < today).map((g) => g.d).sort();
+  const when = eventDate(line.text, { today, firstGame: games[0] || null });
+  if (!when) return null;
+  const since = games.filter((g) => g > when).length;
+  // A stretch against the start of the season ("averaging 108.0 over the past 5 games after averaging 120.7 the first 7") is now.
+  const stretch = /\b(?:past|last) (?:\d{1,2}|two|three|four|five|six|seven|eight|nine|ten) (?:games|GP|contests)\b|\bsince entering\b|\bper overall\b|\boverall this season\b|\b\d+ (?:straight|consecutive) games\b[^.]{0,40}\bthis season\b/i.test(t);
+  const singleGame = OPENER.test(t) || DEBUT.test(t) || /\bin (?:his|her|their) return\b|\breturn to play\b/i.test(t) || (FIXED_WINDOW.test(t) && !stretch) || /\bin a (?:single )?game\b|\btraveled to\b|\b(?:passed|surpassed|moved past|eclipsed|overtook)\b[^.]{0,80}\bon (?:\w+\.? \d|\d)/i.test(t);
+  // 0.157.0: a run in the past tense whose last printed date the team has played past is over (or the count is old):
+  // "consecutive" alone no longer makes it a live streak.
+  const closedRun = since >= 1 && PAST_LEAD.test(t) && RUN_ANY.test(t) && !/\b(?:has|have|is|are|active|current(?:ly)?|now)\b/i.test(t);
+  const openWords = OPEN.test(closedRun ? t.replace(RUN_WORDS, " ") : t);
+  const open = !singleGame && (stretch || openWords || /\branks? (?:t-)?\w+ in (?:the )?(?:NBA|league)\b/i.test(t) || d.type === "club" || d.type === "race" || (d.type === "streak" && !closedRun) || !!line.matchup || line.kind === "pass" || line.kind === "next" || !!line.hook?.live);
+  if (open || longSpan(t, today)) return null;   // rare over a long span: the user keeps these
+  const age = Math.round((Date.parse(today) - Date.parse(when)) / 864e5);
+  return { when, age, since, ...shelfLife(t, { star: isStar(box, line.playerId) }) };
+}
+/**
+ * What a kept line loses in rank (× SHELF.penalty): 0 while fresh (SHELF.grace days), 1 at the end of its shelf life,
+ * and slowly at first (the square of the way through). An NBA-history first three days old loses next to nothing; at
+ * day 8 a quarter; at day 14 all of it.
+ */
+export const agedShare = (ev) => (!ev || ev.recap ? 0 : Math.max(0, Math.min(1, (ev.age - SHELF.grace) / Math.max(1, ev.days - SHELF.grace))) ** 2);
+
 export function trimReason(line, { box = null, today, home = null } = {}) {
   const t = plain(line.text);
   const d = line.facts || describe(line.text, line);
@@ -827,20 +890,13 @@ export function trimReason(line, { box = null, today, home = null } = {}) {
   const roadStat = /\bon the road\b|\broad (?:games?|record|trip|winning streak|win streak|losing streak|wins?|losses)\b|\baway from home\b/i.test(t);
   if (home === false && homeStat && !roadStat) return "a home stat, on a road night";
   if (home === true && roadStat && !homeStat) return "a road stat, on a home night";
-  // Closed, past one-offs.
-  const games = (box?.games || []).filter((g) => g.d < today).map((g) => g.d).sort();
-  const when = eventDate(line.text, { today, firstGame: games[0] || null });
-  // A stretch against the start of the season ("averaging 108.0 over the past 5 games after averaging 120.7 the first 7") is now.
-  const stretch = /\b(?:past|last) (?:\d{1,2}|two|three|four|five|six|seven|eight|nine|ten) (?:games|GP|contests)\b|\bsince entering\b|\bper overall\b|\boverall this season\b|\b\d+ (?:straight|consecutive) games\b[^.]{0,40}\bthis season\b/i.test(t);
-  const singleGame = OPENER.test(t) || DEBUT.test(t) || /\bin (?:his|her|their) return\b|\breturn to play\b/i.test(t) || (FIXED_WINDOW.test(t) && !stretch) || /\bin a (?:single )?game\b|\btraveled to\b|\b(?:passed|surpassed|moved past|eclipsed|overtook)\b[^.]{0,80}\bon (?:\w+\.? \d|\d)/i.test(t);
-  const open = !singleGame && (stretch || OPEN.test(t) || /\branks? (?:t-)?\w+ in (?:the )?(?:NBA|league)\b/i.test(t) || d.type === "club" || d.type === "race" || d.type === "streak" || !!line.matchup || line.kind === "pass" || line.kind === "next" || !!line.hook?.live);
-  if (open || !when) return null;
-  if (longSpan(t, today)) return null; // rare over a long span: the user keeps these
-  const age = Math.round((Date.parse(today) - Date.parse(when)) / 864e5);
-  const since = games.filter((g) => g > when).length;
+  // Closed, past one-offs: a recap after two games or a week, as before; a bigger claim after its shelf life (0.157.0).
+  const ev = closedEvent(line, { box, today });
+  if (!ev) return null;
+  const { age, since } = ev;
   // An event, not a stat (a trip, a first visit): over once it's past, and not brought back for a team with few lines.
   if (/\btraveled to\b|\bfor the first time in (?:team|franchise) history to (?:face|play|visit|travel)\b/i.test(t) && (since >= 1 || age > 3)) return `past event (${age} days ago)`;
-  if (since >= 2 || age > 7) return `past one-off (${OPENER.test(t) ? "season opener, " : ""}${age} days ago, ${since} games since)`;
+  if (ev.recap ? since >= 2 || age > SHELF.recap : age > ev.days) return `past one-off (${OPENER.test(t) ? "season opener, " : ""}${age} days ago, ${since} games since${ev.recap ? "" : `; ${ev.why} keeps its place ${ev.days} days`})`;
   return null;
 }
 

@@ -62,7 +62,9 @@ export function selfCheck({ data = {}, buildStart = null, keptFiles = [], copies
   // who is listed out or doubtful tonight
   const inj = data.injuries, gone = new Map();
   if (inj && today && inj.date === today) for (const p of inj.players || []) if (/^(out|doubtful)$/i.test(p.status || "")) gone.set(`${p.team}|${nkey(p.name)}`, p.status);
-  const isGone = (l) => l && l.player && l.kind !== "injury" && gone.get(`${l.team}|${nkey(l.player)}`);
+  // 0.157.0: an award-eligibility line is about the games he misses ("can miss 3 more games and stay award-eligible"):
+  // his being out tonight is the story, as with an injury line (11/25: Anthony Edwards' was flagged on the Watch List)
+  const isGone = (l) => l && l.player && l.kind !== "injury" && l.kind !== "awards" && gone.get(`${l.team}|${nkey(l.player)}`);
   const spots = [];
   for (const [i, l] of (data.briefing?.top || []).entries()) spots.push([`#${i + 1} in the briefing`, l]);
   for (const [i, l] of (data.briefing?.deep || []).entries()) spots.push([`deep cut ${i + 1}`, l]);

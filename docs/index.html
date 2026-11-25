@@ -556,11 +556,15 @@ function renderSpotlight(b, injuries) {
   let tiles = over;
   if (curated) {
     const byPlayer = {}, byGame = {}, kinds = new Set();
+    // 0.157.0: the tile for a kind of streak goes to the longest one (11/25: Gilgeous-Alexander's 234 straight had the tile
+    // and Durant's 346 was in a game card, because the tile went to whichever ranked first)
+    const runLen = (l) => +((l.text.match(/ in (\d+) straight/) || [])[1] || 0), longest = {};
+    for (const l of over) { const sk = streakKind(l); if (sk && (!longest[sk] || runLen(l) > runLen(longest[sk]))) longest[sk] = l; }
     tiles = [];
     for (const l of over) {
       if (tiles.length >= SIZE) break;
       const sk = streakKind(l);
-      if ((l.player && (byPlayer[l.player] || 0) >= 2) || (byGame[l.game] || 0) >= PER_GAME || (sk && kinds.has(sk))) continue;
+      if ((l.player && (byPlayer[l.player] || 0) >= 2) || (byGame[l.game] || 0) >= PER_GAME || (sk && (kinds.has(sk) || longest[sk] !== l))) continue;
       tiles.push(l);
       if (sk) kinds.add(sk);
       if (l.player) byPlayer[l.player] = (byPlayer[l.player] || 0) + 1;
