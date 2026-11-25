@@ -105,7 +105,8 @@ export async function buildSite({ entries, games = [], uncounted = [], espn, nba
     }
     let watchItems = [], tonightGame = null;
     if (parsed) {
-      const w = await buildWatch({ team: e.team, notesDate: parsed.meta.gameDate, milestones: parsed.milestones, espn, nba, today, verified, guideBase, report, rivalOf });
+      // 0.163.0: notes with a misprinted date are tonight's (src/notes/watcher.js misprintedDate): no game came after them
+      const w = await buildWatch({ team: e.team, notesDate: e.notes?.misprint ? e.notes.misprint.date : parsed.meta.gameDate, milestones: parsed.milestones, espn, nba, today, verified, guideBase, report, rivalOf });
       reports.push({ ...w, opponent: parsed.meta.opponent, notesStatus: base.notesStatus });
       watchItems = w.items; tonightGame = w.tonightGame; problems.push(...w.problems);
     }

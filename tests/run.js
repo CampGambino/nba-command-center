@@ -1425,7 +1425,7 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   ok(coach.includes("Coach: 2 wins from passing Old Coach (503) for 9th in career coaching wins") && coach.includes("Coach: coaches his 1,000th game"),
     "records: a coach's wins and games = the guide's + his team's this season (4-0: 502 wins, 999 games)", JSON.stringify(coach));
   const team = r.items.find((i) => i.kind === "team");
-  ok(team && team.text === "AAA: 4 straight; a win tonight makes 5, tie the best win streak in NBA history (X, then)" && team.tonight, "records: a team streak reaching the NBA's list", JSON.stringify(team));
+  ok(team && team.text === "AAA: 4 straight; a win tonight makes 5, tying the best win streak in NBA history (X, then)" && team.tonight, "records: a team streak reaching the NBA's list", JSON.stringify(team));
   ok(!r.players.some((p) => p.name === "Gary Payton") && strictKey("Gary Payton II") !== strictKey("Gary Payton") && strictKey("Tim Hardaway Jr.") === strictKey("Tim Hardaway Jr"),
     "records: the guide's Gary Payton is never this season's Gary Payton II (suffixes kept in matching)");
   addChances(r2.items, files, { makeSampler, simulate, sims: 500 });
@@ -2349,7 +2349,7 @@ await bridgeChecks(ok, root);
     const F8 = f8({ pg: pgN, names: namesN }), of = (t) => F8.filter((x) => x.test === t).map((x) => x.text);
     ok(of("club").some((t) => /^Players this season with 300 points, 100 rebounds, 75 assists and 20 blocks: All Around\. Nobody else$/.test(t)) && !of("club").some((t) => /Scorer|Boarder|Passer|Blocker|Filler/.test(t))
       && of("rate").some((t) => /^Quick Hands has the most steals in the NBA this season\. He ranks \d+(st|nd|rd|th) in minutes played$/.test(t))
-      && of("group").some((t) => /^Sixth Man among bench players this season: 1st in points, .*1st in assists.*1st in threes, 1st in plus\/minus$/.test(t))
+      && of("group").some((t) => /^Sixth Man off the bench this season \(10 games as a reserve\): 1st in points, .*1st in assists.*1st in threes, 1st in plus\/minus$/.test(t))
       && CLUB.most === 3 && RATE.ratio === 2.5 && GROUP.need === 3,
       "0.108.0: the finder searches every set of two to four season totals for a club of at most three (round bars taken from the candidate's own numbers, each cleared alone by several players, together by one), sets every total against minutes played (first in steals, near last in minutes), and ranks players inside a group (the bench: first in points, assists, threes and plus/minus); none of the names, stats or bars is given to it",
       JSON.stringify({ club: of("club"), rate: of("rate"), group: of("group") }));
@@ -3832,7 +3832,7 @@ await bridgeChecks(ok, root);
     const G = await import("../src/gameflow/stats.js");
     const lists = [{ id: "q20", what: "quarters of 20+ points", since: "2016-17", event: { type: "quarter", min: 20 }, source: "Suns game notes for 11/15/26 (Stathead)", through: "2026-11-14",
       rows: [["Luka Doncic", 33], ["Stephen Curry", 31], ["Devin Booker", 29], ["James Harden", 29], ["Damian Lillard", 24]] }];
-    const big = [{ name: "Devin Booker", pts: 22, date: "2026-11-10" }, { name: "Devin Booker", pts: 26, date: "2026-11-15" }, { name: "Luka Dončić", pts: 21, date: "2026-11-15" }];
+    const big = [{ name: "Devin Booker", pts: 22, date: "2026-11-10" }, { name: "Devin Booker", pts: 26, date: "2026-11-15" }, { name: "Luka Dončić", pts: 21, date: "2026-11-15" }, { name: "James Harden", pts: 20, date: "2026-11-01" }];   // 0.163.0: Harden has one this season (before the list's day: not added)
     const S = G.seededCounts(lists, big, { "devin booker": "PHX", "luka doncic": "LAL", "james harden": "CLE", "stephen curry": "GSW" });
     ok(S[0].rows.map((r) => `${r.name} ${r.n}`).join(", ") === "Luka Doncic 34, Stephen Curry 31, Devin Booker 30, James Harden 29, Damian Lillard 24", "seeded list: only quarters after the day the list was read are added (accents or not)", JSON.stringify(S[0].rows));
     const T = await import("../src/anticipate/tonight.js");
@@ -4470,7 +4470,8 @@ await bridgeChecks(ok, root);
   const sc = S2.seededCounts(sd.lists, [], { "stephen curry": "GSW", "lebron james": "LAL" }, [{ name: "LeBron James", pts: 41, date: "2026-11-20" }, { name: "LeBron James", pts: 44, date: "2026-11-01" }, { name: "Stephen Curry", pts: 39, date: "2026-11-21" }]);
   const g35 = sc.find((l) => l.id === "g40-age35");
   const sl = T2.seededLines({ seeded: [g35] }, new Set(["LAL", "GSW"])).map((l) => l.text);
-  ok(g35 && g35.rows.map((r) => `${r.name} ${r.n}`).join("|") === "Stephen Curry 16|LeBron James 16|Michael Jordan 12" && sl.length === 2 && sl.some((t) => /^LeBron James has 16 40-point games at age 35 or older, tied with Stephen Curry for the most; the next one puts him alone in first\. From the Warriors' notes, counted forward here from 11\/15$/.test(t)) && S2.BIG_GAME === 40,
+  ok(g35 && g35.rows.map((r) => `${r.name} ${r.n}`).join("|") === "Stephen Curry 16|LeBron James 16|Michael Jordan 12" && sl.length === 1 && sl.some((t) => /^LeBron James has 16 40-point games at age 35 or older, tied with Stephen Curry for the most; the next one puts him alone in first\. From the Warriors' notes, counted forward here from 11\/15$/.test(t)) && S2.BIG_GAME === 40   // 0.163.0: Curry, with no 40-point game this season, has no "next one" line
+    && g35.rows.find((r) => r.name === "LeBron James").season === 2 && g35.rows.find((r) => r.name === "Stephen Curry").season === 0,
     "seeded lists (0.82): a list of whole games (40-point games at 35 or older, from the Warriors' notes) is counted forward from the day after it was printed", JSON.stringify([g35, sl]));
   const byB = (o) => ({ gp: 9, upW: 3, upL: 1, downW: 4, downL: 2, run: [], longest: 0, last: "2026-11-05", lateW: 1, lateLost: [], lateWon: [], backRun: [], longestBack: 1, ...o });
   const fb = { by10: { GSW: byB({ backRun: [{ down: 25, opp: "LAL", d: "2026-10-30" }, { down: 11, opp: "LAC", d: "2026-11-01" }, { down: 17, opp: "PHX", d: "2026-11-02" }], longestBack: 3 }), MIA: byB({}) } };
@@ -6105,6 +6106,129 @@ await bridgeChecks(ok, root);
   ok(who === "Does It,Holder Now" && /\(1 of his 3 games this season\)$/.test(out.pre.find((p) => p.name === "Does It").line) && /adding to his NBA record/.test(out.pre.find((p) => p.name === "Holder Now").line)
     && out.boards.b.rows.find((r) => r.name === "Past Star").now === 40 && /if \(!n \|\| n\.after < 3 \|\| !\(r\.season > 0 \|\| n\.record\)\) continue;/.test(fbSrc),
     "feat boards (0.162.0): a pre-game line only for a player who has done it this season or would add to a record he holds; one in the top 10 with none this season gets no line, and stays on the board NBA Live counts from", JSON.stringify(out.pre.map((p) => p.line)));
+}
+
+// ---------- 0.163.0: the home-page review of 11/25 (20 screenshots): a misprinted notes date, last season's text, bench ranks, tags, labels ----------
+{
+  const W = await import("../src/notes/watcher.js"), F = await import("../src/notes/facts.js"), N = await import("../src/notes/narrative.js");
+  const T = await import("../src/anticipate/tonight.js"), G = await import("../src/gameflow/stats.js"), SL = await import("../src/anticipate/seasonlong.js");
+  // a misprinted date
+  const stale = W.judge("HOU", { meta: { gameDate: "2026-11-23", opponent: "PHX" } }, false, "2026-11-25", "PHX");
+  const hou = [{ d: "2026-11-20", opp: "DEN" }, { d: "2026-11-23", opp: "LAC" }];
+  const fixed = W.misprintedDate(stale, { date: "2026-11-25", opponent: "PHX", games: hou });
+  const real = W.misprintedDate(stale, { date: "2026-11-25", opponent: "PHX", games: [...hou.slice(0, 1), { d: "2026-11-23", opp: "PHX" }] });
+  const other = W.misprintedDate(W.judge("HOU", { meta: { gameDate: "2026-11-23", opponent: "LAC" } }, false, "2026-11-25", "PHX"), { date: "2026-11-25", opponent: "PHX", games: hou });
+  const tn = fs.readFileSync(path.join(root, "scripts", "tonight.js"), "utf8"), bd = fs.readFileSync(path.join(root, "src", "site", "build.js"), "utf8");
+  ok(stale.status === "stale" && fixed.status === "current" && fixed.misprint.said === "2026-11-23" && fixed.misprint.date === "2026-11-25" && /print the date as 11\/23, when HOU played LAC: a misprint/.test(fixed.why)
+    && real.status === "stale" && other.status === "stale" && W.misprintedDate(stale, { date: "2026-11-25", opponent: "PHX", games: [] }).status === "stale"
+    && /misprintedDate\(r, \{ date: today, opponent: opp/.test(tn) && /notesDate: e\.notes\?\.misprint \? e\.notes\.misprint\.date : parsed\.meta\.gameDate/.test(bd),
+    "notes (0.163.0): notes that name tonight's opponent under a date the team didn't play them on are tonight's with a misprinted date (Houston, 11/25: 'Nov. 23' over the Phoenix game; the 11/23 game was counted twice in Durant's milestone); notes from a real earlier game against the same team, or for another opponent, stay stale; the milestone tracker counts from tonight",
+    JSON.stringify([fixed.status, fixed.why, real.status, other.status]));
+  // another season's game
+  const sas = { team: "SAS", games: [{ d: "2026-11-21", opp: "MEM", pf: 110, pa: 100 }, { d: "2026-11-23", opp: "SAC", pf: 110, pa: 100 }] };
+  const dl = [{ text: "On 11/23 in Phoenix, Julian Champagnie set a new career high with 12 rebounds – his second career double-double." }, { text: "On 11/23 in Sacramento, he had 7 rebounds." },
+    { text: "Ranks second in Spurs history (11/23) in threes." }, { text: "On 11/23 in San Antonio, he had 7." }, { text: "On 11/24 in Sacramento, he had six threes." }, { text: "On 11/23 in Phoenix, he had his first double-double this season." }];
+  F.checkDates(dl, sas);
+  const why = dl.map((l) => F.trimReason(l, { box: sas, today: "2026-11-25" }));
+  ok(dl[0].dateCheck?.otherSeason && /^an earlier season's game \(on 11\/23 this season the team played SAC, not PHX\)$/.test(why[0]) && !dl[1].dateCheck && !dl[2].dateCheck && !dl[3].dateCheck
+    && dl[4].dateCheck?.actual === "2026-11-23" && !dl[4].dateCheck.otherSeason && dl[5].dateCheck?.otherSeason && !/earlier season/.test(why[5] || "") && /earlier season's game/.test(dl[5].hook.text),
+    "notes (0.163.0): a game named by its city ('On 11/23 in Phoenix') on a day the team played somebody else, with no game against that team within three days, is another season's: the line is trimmed and says why (San Antonio, 11/25, still carried Champagnie's 11/23/25 game); the team's own city is a home game, 'in Spurs history' isn't a city, a date a day off is still a date check, and a line that says 'this season' stays, flagged",
+    JSON.stringify([dl.map((l) => l.dateCheck || null), why]));
+  // a last-meeting box under "Last game vs."
+  const nsrc = fs.readFileSync(path.join(root, "src", "notes", "narrative.js"), "utf8");
+  ok(/\(\?:GAME\|TIME\|MATCHUP\|Game\|Time\|Matchup\|game\|time\|matchup\) \(\?:VS/.test(nsrc)
+    && N.summarizeTable("Holiday ranks among the league leaders off the bench in several categories this season, as shown in the table: Category Value NBA Bench Rank Total Bench Points 239 pts 1st Assists 76 ast 2nd 3-Pointers Made 42 3PM t-1st 3-Point Percentage (min. 90 3PA) 44.2% 5th Points Per 36 Minutes 18.4 4th")
+      === "Holiday ranks among the league leaders off the bench in several categories this season, as shown in the table: Total Bench Points 239 pts (1st); Assists 76 ast (2nd); 3-Pointers Made 42 3PM (t-1st); 3-Point Percentage 44.2% (5th); Points Per 36 Minutes 18.4 (4th).",
+    "notes (0.163.0): 'Last game vs. Nets – April 10, 2026' heads a last-meeting box like 'LAST MEETING' does (Milwaukee, 11/25: last April's 'Green finished with a career-high 35 points' ran as this season's); a table label keeps its '3-' ('3-Pointers Made 42 3PM (t-1st)', not 'Pointers Made')");
+  // a stated record the results have moved past
+  const mem = { team: "MEM", games: [] }; const seq = "WWWWWWLLLWLWWWWWLW";
+  ["10-21", "10-23", "10-25", "10-26", "10-29", "10-31", "11-02", "11-04", "11-06", "11-09", "11-11", "11-13", "11-14", "11-16", "11-18", "11-19", "11-21", "11-23"].forEach((d, i) => mem.games.push({ d: `2026-${d}`, opp: "XXX", pf: seq[i] === "W" ? 110 : 100, pa: 105 }));
+  const rl = [{ text: "Memphis moved to 2-0 against Golden State this season and 12-4 overall, the team’s best start since the 2014-15 season." }, { text: "Memphis improved to 13-5 overall." }, { text: "The Grizzlies fell to 3-9 on the season." }, { text: "Memphis moved to 6-0 against the West." }];
+  F.checkRecordSaid(rl, mem);
+  ok(rl[0].recordCheck?.asOf === "2026-11-19" && rl[0].hook.text === "Record check: the Grizzlies were 12-4 after 11/19; they are 13-5 now." && !rl[1].recordCheck && !rl[2].recordCheck && !rl[3].recordCheck
+    && F.trimReason({ ...rl[0] }, { box: mem, today: "2026-11-25" }) == null && /past one-off/.test(F.trimReason({ ...rl[0] }, { box: mem, today: "2026-12-20" }) || ""),
+    "notes (0.163.0): a team record said as the season's ('12-4 overall') that the results show at exactly that many games, with games played since, says when it was true and what it is now, and that day dates the line (Memphis, 11/25: 12-4 was after 11/19; 13-5 now); the current record, a record that never was, and a record against part of the league say nothing",
+    JSON.stringify(rl.map((l) => [l.recordCheck || null, l.hook?.text || null])));
+  // tags
+  const tag = (t, p) => F.describe(t, { player: p }).tag;
+  const tags = [tag("With three blocks on Nov. 21, Gobert became the 17th NBA player (since blocked shots became an official statistic in 1973-74) to register at least 500 blocks with 2 different teams. Manute Bol is the only player to accomplish the feat with three teams.", "Rudy Gobert"),
+    tag("Gobert is the only player in NBA history with four DPOY awards. Ben Wallace is the only other player with three.", "Rudy Gobert"),
+    tag("Sharpe owns the highest career offensive rebound percentage in NBA history (18.3%), min. 200 games played, and owns the fourth-highest career field goal percentage (56.3%) in Nets franchise history.", "Day'Ron Sharpe"),
+    tag("His 12 threes are the most in franchise history and one of the most in NBA history.", "A B"),
+    tag("The Knicks pulled down 50+ rebounds for the sixth time this season, which ties for second in the NBA (Minnesota Timberwolves).", null),
+    tag("Memphis leads the NBA in free throw percentage (.854) and is on pace to record the best free throw percentage in a single season in NBA history.", null),
+    tag("His 14 blocks tied the most in a game in NBA history and rank second in Spurs franchise history for a half.", "A B")];
+  ok(tags[0] !== "Only one" && !/^Only one/.test(tags[0]) && tags[1] === "Only one in NBA history" && tags[2] === "NBA record" && tags[3] === "Team history" && tags[4] === "T-2nd in NBA" && tags[5] === "Leads NBA" && tags[6] === "Ties NBA record",
+    "notes tags (0.163.0): an 'only' said of someone else isn't the line's (Gobert's line was 'Only one' for Manute Bol); the best mark in NBA history comes before a franchise rank ('NBA record', not '4th in team history'; the user: an NBA record comes before a franchise record), 'one of the most' is not it, and a tie says so; 'ties for second in the NBA' is T-2nd; a lead held now is 'Leads NBA'",
+    JSON.stringify(tags));
+  // labels said once
+  const m163 = T.buildTonight ? null : null;
+  ok(T.labelled("Playoff rematch", "Playoff rematch: the Spurs beat the Trail Blazers 4-1 in the 2025-26 playoffs.") === "Playoff rematch: the Spurs beat the Trail Blazers 4-1 in the 2025-26 playoffs."
+    && T.labelled("vs top-5 records · Bam Adebayo", "Bam Adebayo has averaged 11.7 points in 3 games") === "vs top-5 records: Bam Adebayo has averaged 11.7 points in 3 games"
+    && T.labelled("Streak vs PHI · 23", "Giannis Antetokounmpo has a double-double in 23 straight games against the 76ers.") === "Streak vs PHI · 23: Giannis Antetokounmpo has a double-double in 23 straight games against the 76ers."
+    && T.labelled("Series", "The Knicks lead 2-0") === "Series: The Knicks lead 2-0" && m163 === null,
+    "matchup lines (0.163.0): a label is said once ('Playoff rematch: Playoff rematch: the Spurs beat…' and 'vs top-5 records · Bam Adebayo: Bam Adebayo has averaged…' until 11/25)");
+  // "the next one…" only for a player with one this season
+  const lists = [{ id: "q20", what: "quarters of 20+ points", since: "2016-17", event: { type: "quarter", min: 20 }, source: "Suns game notes for 11/15/26 (Stathead)", through: "2026-11-14", rows: [["Stephen Curry", 31], ["Devin Booker", 29], ["James Harden", 29]] }];
+  const S = G.seededCounts(lists, [{ name: "James Harden", pts: 22, date: "2026-11-02" }], { "devin booker": "PHX", "james harden": "CLE", "stephen curry": "GSW" });
+  const sl = T.seededLines({ seeded: S }, new Set(["PHX", "CLE"])).map((l) => l.player);
+  const oldFile = T.seededLines({ seeded: [{ ...S[0], rows: S[0].rows.map(({ season, ...r }) => r) }] }, new Set(["PHX", "CLE"])).length;
+  ok(sl.join() === "James Harden" && S[0].rows.find((r) => r.name === "Devin Booker").season === 0 && oldFile === 2,
+    "seeded lists (0.163.0; the user, 11/25, on next-game lines): 'the next one…' is said of a player with one this season (Harden, a 20-point quarter on 11/2), not of one with none (Booker); a stats file written before the count existed says what it did", JSON.stringify([sl, S[0].rows]));
+  // a stretch starts where its run starts
+  const gm = (s) => [...s].map((c, i) => ({ d: `2026-11-${String(i + 1).padStart(2, "0")}`, win: c === "W" }));
+  const all = gm("LLLWWWWWWWWLLLLLW"), snapped = SL.snapToRuns([all.slice(0, 4), all.slice(4, 11), all.slice(11)]).map((p) => `${p.filter((g) => g.win).length}-${p.filter((g) => !g.win).length}`);
+  const even = SL.snapToRuns([gm("WLWL"), gm("WLWW")]).map((p) => p.length);
+  ok(snapped.join() === "0-3,8-0,1-5" && even.join() === "4,4",
+    "turns (0.163.0): a stretch starts where its run starts (Golden State lost three, won eight, went 1-5: '8-0 in the 8 games before that, after 0-3 to start', where the split said 7-0 after 1-3; the Warriors' notes say 0-3 and then eight wins); a stretch with no lean keeps its edge; whether there is a turn is still decided on the split", JSON.stringify([snapped, even]));
+  // the page: tile numbers and labels; a streak-record line's wording
+  const ix = fs.readFileSync(path.join(root, "docs", "index.html"), "utf8"), gd = fs.readFileSync(path.join(root, "src", "records", "guide.js"), "utf8"), ks = fs.readFileSync(path.join(root, "scripts", "kalshi.js"), "utf8");
+  const bn = new Function(`${(ix.match(/function bigNum\(t\) \{[\s\S]*?\n\}/) || [""])[0]}; return bigNum;`)();
+  ok(bn("Anthony Edwards (All-NBA 99% on Kalshi): can miss 3 more games and stay award-eligible under the 65-game rule")?.join() === "3,more games"
+    && bn("He’s one of just four players this season to record back-to-back 30-point games while shooting 60% or better from the field") == null
+    && bn("Tyler Herro is shooting 62.5% from three over his last 3 games")?.[0] === "62.5%" && bn("Damian Lillard: 2 3-pointers from passing Stephen Curry (63) for 2nd in NBA Cup history")?.join() === "2,threes" && /l\.kind === "feat" && \/\\bhis next\\b/.test(ix) && /esc\(wordOf\(l\)\)/.test(ix)
+    && /"tying the best" : "the best"\) : `\$\{ties\.length \? "tied for " : ""\}/.test(gd) && /how: pr\.how, bid: cents\(m\.yes_bid_dollars\), ask: cents\(m\.yes_ask_dollars\)/.test(ks),
+    "home page (0.163.0): an award line's tile shows the games he can still miss, not the market price in its label; a bar to clear ('60% or better') isn't a tile's number; '2 threes' over a tile, not '2 3-pointers'; a next-game line's tile is 'Next one', not 'One of one'; 'a win makes 9, tied for the 7th-best…'; the award prices are saved with how each was read",
+    JSON.stringify([bn("Anthony Edwards (All-NBA 99% on Kalshi): can miss 3 more games"), bn("shooting 60% or better from the field")]));
+}
+
+// ---------- 0.163.0: what the old-against-new run of 11/25 caught in this version's own rules ----------
+{
+  const F = await import("../src/notes/facts.js");
+  // a list of other teams' games in parentheses isn't this team's game
+  const min = { team: "MIN", games: [{ d: "2026-11-04", opp: "HOU" }, { d: "2026-11-12", opp: "DAL" }] };
+  const L = [{ text: "Minnesota punded the paint against the Mavericks on Nov. 12, recording a season-high 74 points down low, the third-highest paint-point toal in the NBA this season (New Orleans: 80 points; Oct. 29 vs. Sacramento and Denver: 76 points; Nov. 4 vs. Toronto)." },
+    { text: "He set a career high with 12 rebounds (11/4 at TOR)." }];
+  F.checkDates(L, min);
+  // two bars are two facts; the same bar told twice is one
+  const k = [{ text: "The Knicks pulled down 50+ rebounds for the sixth time this season, which ties for second in the NBA (Minnesota Timberwolves).", team: true, score: 5 },
+    { text: "The Knicks pulled down 40+ rebounds as a team for the 13th time this season, tying for second in the NBA.", team: true, score: 4 },
+    { text: "The Knicks have pulled down 50+ rebounds six times this season, tied for second in the NBA.", team: true, score: 3 }];
+  const kept = F.dedupe(k).map((l) => l.text.slice(23, 26));
+  const tn = fs.readFileSync(path.join(root, "scripts", "tonight.js"), "utf8");
+  ok(!L[0].dateCheck && L[1].dateCheck?.otherSeason && kept.join() === "50+,40+" && /mine\[i\] === "3" && skipped < 4/.test(tn),
+    "notes (0.163.0, from the old-against-new run): a date inside a list in parentheses ('(New Orleans: 80 points; … Denver: 76 points; Nov. 4 vs. Toronto)') can be another team's game and isn't called another season's (the first cut flagged Minnesota's line), while '(11/4 at TOR)' alone is the line's own; '50+ rebounds for the sixth time' and '40+ rebounds for the 13th time' are two lines now that both are tagged T-2nd, and the same bar told twice is still one; a line whose table label got its '3-' back keeps the day it was first seen",
+    JSON.stringify([L.map((l) => l.dateCheck || null), kept]));
+}
+
+// ---------- 0.163.0: bench ranks count bench games; a past leader's name as the rosters spell it ----------
+{
+  const { findings } = await import("../src/anticipate/finder.js");
+  const pg = {}, names = {}; let n = 0;
+  const add = (name, per, starts = 0) => { const id = String(++n); names[id] = name;
+    pg[id] = Array.from({ length: 12 }, (_, i) => ({ d: `2026-11-${String(i + 1).padStart(2, "0")}`, team: `T${n % 30}`, opp: "ZZZ", starter: i < starts ? 1 : 0, min: 24, pts: 8, reb: 3, ast: 2, stl: 0, blk: 0, fg3m: 1, fgm: 3, ftm: 1, pm: 0,
+      ...(i < starts ? per.start || per : per.bench || per) })); };
+  for (let i = 0; i < 28; i++) add(`Reserve ${i}`, { pts: 7 + (i % 5), reb: 2 + (i % 3), ast: 1 + (i % 3), fg3m: i % 3 }, 0);
+  add("Pure Sixth", { pts: 16, ast: 6, fg3m: 3 }, 0);                                                              // never starts: 192 points, 72 assists, 36 threes off the bench
+  add("Part Starter", { start: { pts: 30, ast: 9, fg3m: 6 }, bench: { pts: 9, ast: 2, fg3m: 2 } }, 5);            // 5 starts in 12: 213 points in all, 63 off the bench
+  add("Nikola Jokić", { pts: 28, reb: 13, ast: 10 }, 12);
+  add("New Leader", { pts: 20, reb: 4, ast: 12 }, 12);
+  const F = findings({ pg, names, leaders: { ast: [{ season: "2025-26", player: "Nikola Jokic", value: 10.7 }] } });
+  const grp = F.filter((x) => x.test === "group").map((x) => x.text), first = F.find((x) => x.test === "first" && /assists/.test(x.text))?.text || "";
+  ok(grp.some((t) => /^Pure Sixth off the bench this season \(12 games as a reserve\): 1st in points, 1st in assists, 1st in threes$/.test(t)) && !grp.some((t) => /^Part Starter/.test(t))
+    && /last season's leader: Nikola Jokić, 10\.7\)$/.test(first),
+    "finder (0.163.0): a bench rank counts what a player did off the bench (11/25: Julian Champagnie, 6 starts in 18, was '1st in threes' with the threes he made as a starter, and Jrue Holiday, who hasn't started, was 2nd in points where Portland's notes have him 1st); a past leader's name is spelled as this season's rosters spell it (Jokić)",
+    JSON.stringify([grp, first]));
 }
 
 const snapDir = path.join(root, "tests", "expected");

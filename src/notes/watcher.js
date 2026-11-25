@@ -140,5 +140,26 @@ export function judge(team, version, isNew, date, opponent) {
   return { team, status, isNew, version, meta: m, why };
 }
 
+/**
+ * 0.163.0: a printed date that can't be right. Houston's notes of 11/25/26 print "Wednesday, Nov. 23, 2026" over the game
+ * against Phoenix: the Rockets played the Clippers on the 23rd (a Monday), and the notes already recap that game. Judged
+ * by the date alone they were "stale", the page said "not updated yet", and the milestone tracker counted the 11/23 game
+ * a second time (Kevin Durant "needs 626 to pass Kobe Bryant"; the notes, and the totals, say 658).
+ * The rule, for every team: notes that name tonight's opponent, under a date on which the team did not play that
+ * opponent, are tonight's notes with a misprinted date. Notes left over from a real earlier game against the same team
+ * (a home-and-home) stay stale, because that game is in the results.
+ *   r:     judge()'s answer
+ *   games: the team's games so far, [{ d: "YYYY-MM-DD", opp: "TRI" }]
+ *   -> r, or r with status "current", a why that says so, and misprint: { said, date }
+ */
+export function misprintedDate(r, { date, opponent, games = null } = {}) {
+  const m = r?.meta;
+  if (!r || r.status !== "stale" || !m?.gameDate || !m.opponent || !opponent || m.opponent !== opponent || !Array.isArray(games) || !games.length) return r;
+  if (games.some((g) => g.d === m.gameDate && g.opp === opponent)) return r;                     // a real game against them that day: the notes are that game's
+  const that = games.find((g) => g.d === m.gameDate), md = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}`;
+  const why = `notes name tonight's opponent (${opponent}) but print the date as ${md(m.gameDate)}${that ? `, when ${r.team} played ${that.opp}` : `, when ${r.team} had no game`}: a misprint, read as tonight's`;
+  return { ...r, status: "current", why, misprint: { said: m.gameDate, date } };
+}
+
 /** Path to a stored version's PDF. */
 export const versionPath = (dataDir, team, version) => path.join(dataDir, "notes", team, version.file);

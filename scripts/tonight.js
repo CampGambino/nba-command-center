@@ -22,7 +22,7 @@ const dataDir = path.join(root, "data");
 const { createEspn } = await import("../src/espn/client.js");
 const { createNbaStatic } = await import("../src/nba/static.js");
 const { etDate } = await import("../src/espn/parse.js");
-const { checkNotes, versionPath } = await import("../src/notes/watcher.js");
+const { checkNotes, versionPath, misprintedDate } = await import("../src/notes/watcher.js");
 const { buildSite } = await import("../src/site/build.js");
 
 const args = process.argv.slice(2);
@@ -40,11 +40,16 @@ const entries = [];
 for (const g of games) {
   for (const [team, opp] of [[g.awayTri, g.homeTri], [g.homeTri, g.awayTri]]) {
     if (!team) { console.log(`  unknown team in game ${g.id}`); continue; }
-    const r = await checkNotes({ team, date: today, opponent: opp, dataDir });
+    let r = await checkNotes({ team, date: today, opponent: opp, dataDir });
+    // 0.163.0: tonight's opponent under a date the team didn't play them on is a misprinted date, not an old file
+    if (r.status === "stale") {
+      try { const tf = path.join(root, "docs", "data", "teams", `${team}.json`); r = misprintedDate(r, { date: today, opponent: opp, games: fs.existsSync(tf) ? JSON.parse(fs.readFileSync(tf, "utf8")).games : null }); }
+      catch (err) { console.log(`  ${team} date check: ${err.message}`); }
+    }
     const file = r.version ? versionPath(dataDir, team, r.version) : null;
     const buf = file && fs.existsSync(file) ? fs.readFileSync(file) : null;
     console.log(`  ${team.padEnd(3)} notes: ${r.status}${r.why ? ` (${r.why})` : ""}${r.error ? ` (${r.error})` : ""}`);
-    entries.push({ team, opp, home: team === g.homeTri, buf, notes: { status: r.status, why: r.why, error: r.error } });
+    entries.push({ team, opp, home: team === g.homeTri, buf, notes: { status: r.status, why: r.why, error: r.error, ...(r.misprint ? { misprint: r.misprint } : {}) } });
   }
 }
 // 0.140: the milestone chances' recalibration, fitted to every scored call on file (history/calls.jsonl).
@@ -167,6 +172,20 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
         // is "ranks 6th among…" from today; "23 player in NBA history" is "23rd player").
         if (!(k in seen) && /\d(?:st|nd|rd|th)\b/.test(k)) { const bare = (x) => x.replace(/\b(\d+)(?:st|nd|rd|th)\b/g, "$1"), mine = bare(k);
           const twin = Object.keys(seen).find((x) => { const y = bare(x), n = Math.min(mine.length, y.length, 150); return n >= 30 && Math.abs(mine.length - y.length) <= 10 && mine.slice(0, n) === y.slice(0, n); }); if (twin) seen[k] = seen[twin]; }
+        // 0.163.0: nor one whose only change is a table label getting its "3-" back ("Pointers Made 42 3PM" is
+        // "3-Pointers Made 42 3PM" from today): the old key is this one with some "3" tokens missing.
+        if (!(k in seen) && /\b3 point/.test(k)) { const mine = k.split(" ");
+          const twin = Object.keys(seen).find((x) => { const y = x.split(" "); let i = 0, j = 0, skipped = 0;
+            while (i < mine.length && j < y.length) {
+              if (mine[i] === y[j]) { i++; j++; } else if (mine[i] === "3" && skipped < 4) { i++; skipped++; }
+              else if ((i === mine.length - 1 || j === y.length - 1) && (mine[i].startsWith(y[j]) || y[j].startsWith(mine[i]))) break;   // a key is cut at 160 characters, mid-word
+              else return false; }
+            return skipped > 0 && j >= 8; }); if (twin) seen[k] = seen[twin]; }
+        // 0.163.0: a line the old duplicate rule folded into another (same tag, alike words, another bar: "first career 15+
+        // point/5+ assist half" under "first 30+ point/5+ assist game") was never on file, so on the first build under
+        // the new rule it read as new and went to the top of its game (Minnesota, 11/25). Until every team has played
+        // once under the rule, it is dated like the line it was folded into. Removable after 12/5/26.
+        if (!(k in seen) && l.kin && today <= "2026-12-05") { const kk = keyOf(l.kin); if (kk in seen) seen[k] = seen[kk]; }
         seen[k] ??= today;
         const isNew = seen[k] === today;
         if (!isNew) staleCount(l, seen[k], box);   // 0.113: a streak count printed unchanged while games went by

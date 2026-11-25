@@ -183,17 +183,39 @@ function rankWords(since, up) {
   }
   return said;
 }
+/**
+ * 0.163.0: a stretch starts where its run starts. The split needs a few games on each side, so a run that began inside
+ * the stretch before was cut late: Golden State lost three, won eight, then went 1-5, and the line of 11/25 read "7-0 in
+ * the 7 games before that, after 1-3 to start" beside the Warriors' own "first team to start a season 0-3 and then win
+ * their next eight". A game at the edge of one stretch that matches the stretch beside it, and not its own, moves over:
+ * "8-0 in the 8 games before that, after 0-3 to start". Each stretch keeps at least one game.
+ */
+export function snapToRuns(P) {
+  const out = P.map((p) => [...p]), mostly = (p) => p.filter((g) => g.win).length * 2 > p.length ? true : p.filter((g) => g.win).length * 2 < p.length ? false : null;
+  for (let i = 0; i + 1 < out.length; i++) {
+    const A = out[i], B = out[i + 1];
+    // the end of A belongs to B: it has B's first result, and that isn't what A mostly was
+    while (A.length > 1 && A[A.length - 1].win === B[0].win && mostly(B) === B[0].win && mostly(A.slice(0, -1)) === !B[0].win) B.unshift(A.pop());
+    // the start of B belongs to A
+    while (B.length > 1 && B[0].win === A[A.length - 1].win && mostly(A) === A[A.length - 1].win && mostly(B.slice(1)) === !A[A.length - 1].win) A.push(B.shift());
+  }
+  return out;
+}
 export function turnLines({ rows }) {
   const out = [], T = teamGames(rows), wp = (gs) => gs.filter((g) => g.win).length / gs.length;
   for (const [team, games] of Object.entries(T)) {
-    const P = stretches(games.map((g) => g.win)).map(([i, j]) => games.slice(i, j));
-    if (P.length < 2) continue;
-    const cur = P[P.length - 1];
-    let prev = P[P.length - 2], wide = false;
-    if (cur.length > TURN.ratio * prev.length) { prev = games.slice(0, games.length - cur.length); wide = P.length > 2; }
+    // Whether there is a turn is decided on the stretches as split (a few games at least on each side); what is said of
+    // it uses the same stretches moved to where their runs start (0.163.0, snapToRuns).
+    const P0 = stretches(games.map((g) => g.win)).map(([i, j]) => games.slice(i, j));
+    if (P0.length < 2) continue;
+    let cur = P0[P0.length - 1];
+    let prev = P0[P0.length - 2], wide = false;
+    if (cur.length > TURN.ratio * prev.length) { prev = games.slice(0, games.length - cur.length); wide = P0.length > 2; }
     if (cur.length > TURN.ratio * prev.length) continue;
     const z = Math.abs(wp(cur) - wp(prev)) / (0.5 * Math.sqrt(1 / cur.length + 1 / prev.length));
     if (z < TURN.z) continue;
+    const P = snapToRuns(P0);
+    cur = P[P.length - 1]; prev = wide ? games.slice(0, games.length - cur.length) : P[P.length - 2];
     // what it has been since: ranks in the league's top five after a turn for the better, bottom five after one for the worse
     const since = sinceRanks(T, cur[0].d)?.[team], said = rankWords(since, wp(cur) > wp(prev));
     let text = `${team} went ${rec(prev)} in its first ${prev.length} games; ${rec(cur)} since (${md(cur[0].d)} on)`;

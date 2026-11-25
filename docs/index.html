@@ -520,13 +520,19 @@ const WORD = { record: "Record", milestone: "Milestone", pace: "Pace", era: "Era
   vsopp: "Matchup", defense: "Defense", defpos: "Defense", tv: "National TV", rest: "Rest", lineup: "Lineup", trade: "Trade", history: "Notes",
   context: "Context", injury: "Injury", find: "Found", oddline: "Odd line" };
 // 0.155.0: the ranked list shows RANK_PAGE lines at a time ("Show 50 more", "Show all"); a filter starts it over
+// 0.163.0: "One of one" is a game nobody else has had; a line about a player's next game of a kind is "Next one"
+const wordOf = (l) => (l.kind === "feat" && /\bhis next\b[^.]*\bwould be his\b/.test(l.text) ? "Next one" : WORD[l.kind] || l.kind);
 const RANK_PAGE = 50;
 let SPOT = { group: "", game: "", more: RANK_PAGE };
 function bigNum(t) {
   let m;
   if ((m = t.match(/(\d[\d,]*\+?)\s+(straight|consecutive)\s+(games?|wins?|losses|meetings|seasons)/i))) return [m[1], m[2] === "consecutive" ? "straight" : m[2]];
-  if ((m = t.match(/:\s*(\d[\d,]*)\s+((?:offensive |defensive )?[a-z0-9-]+)\s+(?:from|to|away)\b/i))) return [m[1], m[2]];
-  if ((m = t.match(/\b(\d{1,3}(?:\.\d)?%)/))) return [m[1], ""];
+  if ((m = t.match(/:\s*(\d[\d,]*)\s+((?:offensive |defensive )?[a-z0-9-]+)\s+(?:from|to|away)\b/i))) return [m[1], /^3-pointers?$/i.test(m[2]) ? (m[1] === "1" ? "three" : "threes") : m[2]];   // 0.163.0: "2 threes", not "2 3-pointers" (it read "23-pointers")
+  // 0.163.0: an award line's number is the games he can still miss, not the market's price in its label ("99%" stood over
+  // Anthony Edwards's "can miss 3 more games"); and a bar to clear isn't the line's number ("60%" stood over "…while
+  // shooting 60% or better from the field")
+  if ((m = t.match(/\bcan miss (\d+) more games?\b/))) return [m[1], +m[1] === 1 ? "more game" : "more games"];
+  if ((m = t.match(/(?<!\b(?:at least|least|above|over|under|below|than) )\b(\d{1,3}(?:\.\d)?%)(?!\+| on Kalshi| (?:shooting )?or (?:better|more|higher|worse|lower|less)| and (?:above|better|up))/))) return [m[1], ""];
   // 0.154.0: a record ("9-4"), not a date range ("1/9-1/16/19" gave "9-1") or shooting ("4-7 FG", "2-4 3FG", "6-for-9")
   if ((m = t.match(/(?<![\d\/.-])(\d{1,2}-\d{1,2})(?![\d\/.-]|\s*(?:FG|3FG|3PT|FT|3P|from)\b)/))) return [m[1], ""];
   return null;
@@ -598,7 +604,7 @@ function renderSpotlight(b, injuries) {
   $("spN").textContent = tiles.length; $("stN").textContent = rest.length;
   $("tiles").innerHTML = tiles.length ? tiles.map((l, i) => {
     const n = bigNum(l.text), where = l.game === "league" ? (l.team || "League") : l.game === "last night" ? "Last night" : (l.game || "").replace("@", " @ ");
-    return `<article class="tile${i < 2 && !SPOT.group && !SPOT.game ? " big" : ""}"><div class="meta"><span><b>${place.get(l)}</b> · ${esc(WORD[l.kind] || l.kind)} · ${esc(where)}</span>${l.status === "new" ? `<span class="tag">NEW</span>` : l.status === "updated" ? `<span class="tag">UPDATED</span>` : ""}</div>`
+    return `<article class="tile${i < 2 && !SPOT.group && !SPOT.game ? " big" : ""}"><div class="meta"><span><b>${place.get(l)}</b> · ${esc(wordOf(l))} · ${esc(where)}</span>${l.status === "new" ? `<span class="tag">NEW</span>` : l.status === "updated" ? `<span class="tag">UPDATED</span>` : ""}</div>`
       + (n ? `<div class="num">${esc(n[0])}${n[1] ? `<small>${esc(n[1])}</small>` : ""}</div>` : "") + `<div class="txt">${esc(l.text)}</div></article>`;
   }).join("") : `<div class="empty">${!games.length && !SPOT.group ? "No games tonight: last night's lines and the league-wide finds are in the list below." : `Nothing ${SPOT.group || SPOT.game ? "here" : "tonight"} clears the bar; the ranked list below has every line.`}</div>`;
   const restShown = rest.slice(0, SPOT.more);

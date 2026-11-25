@@ -48,9 +48,10 @@ export function thresholds(text) {
 function rankOf(t) {
   // "tying Michael Jordan for the seventh-most", "the third-longest active streak", "ranks 4th in the NBA", "T-3rd"
   let m = t.match(/\b(T-)?(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d{1,3}(?:st|nd|rd|th))[- ](?:most|highest|longest|best|fewest|lowest|least|largest|biggest|mark|in the (?:NBA|league)|among)\b/i);
-  if (m) return { rank: ordNum(m[2]), tie: !!m[1] || /\btying\b|\btied for\b/i.test(t), at: m.index };
+  if (m) return { rank: ordNum(m[2]), tie: !!m[1] || /\btying\b|\bti(?:ed|es|e) for\b/i.test(t), at: m.index };   // 0.163.0: "which ties for second in the NBA"
   m = t.match(/\b(?:ranks?\s+|for\s+|into\s+)(T-)?(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d{1,3}(?:st|nd|rd|th))\b(?:\s+(?:all-time|on the|in (?:NBA|franchise|team|league) history|place))?/i);
-  if (m) return { rank: ordNum(m[2]), tie: !!m[1], at: m.index };
+  // 0.163.0: "…which ties for second in the NBA" is a tie (the Knicks' line of 11/25 was tagged "2nd in NBA")
+  if (m) return { rank: ordNum(m[2]), tie: !!m[1] || (/^for/i.test(m[0]) && /\b(?:tie[sd]?|tying)\s+(?:(?:him|her|them|it)\s+)?$/i.test(t.slice(0, m.index))), at: m.index };
   m = t.match(/\b(T-)?(\d{1,3}(?:st|nd|rd|th)) in (?:NBA|league) history\b/i);   // 0.159.0: "…, 12th in NBA history"
   if (m && ordNum(m[2]) > 1) return { rank: ordNum(m[2]), tie: !!m[1], at: m.index };
   if (/\b(?:leads?|led|leading)\s+(?:all\s+|the\s+)?(?:NBA|league)\b|\blead(?:s)? the (?:NBA|league)\b|\b(?:owns|has|holds) the most\b|\bthe (?:most|highest|fewest|least|lowest|best)\b[^.;]{0,90}\b(?:in the (?:NBA|league)|of any (?:team|player))|\bblocked the least\b|\bwhich leads the league\b/i.test(t)) return { rank: 1, tie: false };
@@ -138,11 +139,25 @@ function othersRank(t, rk, player) {
   return /\b[A-Z][\w'’.-]+ [A-Z][\w'’-]+/.test(clause) && !clause.includes(lastName(player));
 }
 
+/** The text without a sentence whose "only" belongs to another named person: the sentence opens with a full name that
+ *  isn't the line's player (and doesn't name him), and it isn't the line's first sentence. */
+function withoutOthersOnly(t, player) {
+  if (typeof player !== "string" || !player) return t;
+  const mine = lastName(player), flat = (x) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const parts = t.split(/(?<=[.!?])\s+(?=[A-Z])/);
+  if (parts.length < 2) return t;
+  return parts.filter((p, i) => !(i > 0 && /^[A-Z][\w'’.-]+ [A-Z][\w'’-]+(?: (?:Jr\.?|Sr\.?|II|III|IV))? (?:is|was|remains|are|were) (?:still )?the only\b/.test(flat(p)) && !flat(p).includes(mine))).join(" ");
+}
+// 0.163.0 (the user, 11/25: "an NBA record comes before a franchise record"): the best mark in NBA history, said outright
+const NBA_BEST = /(?<!one of )(?<!among )\bthe (?:most|highest|best|longest|fewest|lowest|youngest|oldest|fastest|largest)\b(?:(?!\b(?:franchise|team|club)\b)[^.;,]){0,80}\bin (?:NBA|league) history\b|\b(?:holds|owns|set|sets|broke|breaks) (?:the|an) (?:NBA|league)(?: all-time)? record\b/i;
+
 /** Type, tag and a one-line why, for the page, the storylines and the digest. */
 export function describe(text, meta = {}) {
   const t = plain(text);
   const f = features(t, meta);
-  const club = clubOf(t), th = thresholds(t);
+  // 0.163.0: an "only" said of someone else isn't this line's ("…Gobert became the 17th NBA player to register at least
+  // 500 blocks with 2 different teams. Manute Bol is the only player to accomplish the feat with three teams." was "Only one")
+  const club = clubOf(withoutOthersOnly(t, meta.player)), th = thresholds(t);
   // 0.159.0: a rank said of someone else isn't this line's ("Holiday is the second current Trail Blazer to crack the NBA's
   // all-time scoring top 100—Damian Lillard currently ranks 37th on the list" was tagged "37th all-time").
   const rk = othersRank(t, rankOf(t), meta.player) ? null : rankOf(t);
@@ -169,14 +184,20 @@ export function describe(text, meta = {}) {
     type = "franchise"; tag = `${rk.tie ? "T-" : ""}${ordinal(rk.rank)} in team history`; why = "Team history.";
   } else if (rk && scope !== "franchise" && (f.league || f.season)) {
     type = "rank";
-    tag = rk.rank === 1 ? (tie1 ? "T-1st in NBA" : f.season || !f.history ? "Leads NBA" : "Most in NBA") : `${rk.tie ? "T-" : ""}${ordinal(rk.rank)} in NBA`;
+    // 0.163.0: "leads the NBA in free throw percentage (.854) and is on pace to record the best … in NBA history" is a
+    // lead held now ("Most in NBA" read as a count, and as history)
+    const leadsNow = /\blead(?:s|ing)? (?:all )?(?:the )?(?:NBA|league)\b/i.test(t) && !sinceYr;
+    tag = rk.rank === 1 ? (tie1 ? "T-1st in NBA" : f.season || !f.history || leadsNow ? "Leads NBA" : "Most in NBA") : `${rk.tie ? "T-" : ""}${ordinal(rk.rank)} in NBA`;
     // 0.159.0: "since the 2022-23 season" is a span too ("51 in that time, which ranks second in the NBA" was "2nd all-time")
-    if (f.history || /since/i.test(t)) tag = rk.rank === 1 ? `Most since ${(t.match(/since (?:entering the league in |the )?((?:19|20)\d\d(?:-\d\d)?)/i) || [])[1] || "…"}`.replace(" since …", " in NBA") : `${rk.tie ? "T-" : ""}${ordinal(rk.rank)} ${sinceYr ? `since ${sinceYr}` : "all-time"}`;
+    if ((f.history || /since/i.test(t)) && !(rk.rank === 1 && leadsNow && !tie1)) tag = rk.rank === 1 ? `Most since ${(t.match(/since (?:entering the league in |the )?((?:19|20)\d\d(?:-\d\d)?)/i) || [])[1] || "…"}`.replace(" since …", " in NBA") : `${rk.tie ? "T-" : ""}${ordinal(rk.rank)} ${sinceYr ? `since ${sinceYr}` : "all-time"}`;
     why = rk.rank === 1 ? "Best in the league right now." : rk.rank <= 3 ? "Top three in the league right now." : "Where he stands in the league.";
   } else if (scope !== "franchise" && (f.history || scope === "nba-history")) {
     const since = t.match(/\bsince (?:the )?((?:19|20)\d\d(?:-\d\d)?)\b/i);
     type = "alltime"; tag = rk ? `${rk.tie ? "T-" : ""}${ordinal(rk.rank)} ${since ? `since ${since[1]}` : "all-time"}` : since ? `Since ${since[1]}` : "NBA history"; why = "All-time company.";
   } else if (f.franchise) { type = "franchise"; tag = "Team history"; why = "Team history."; }
+  { const nb = NBA_BEST.exec(t);   // 0.163.0: before a franchise rank, and before a lower rank said after it
+    if (nb && (type === "franchise" || (type === "rank" && rk && rk.rank > 1 && rk.at > nb.index))) {
+      type = "alltime"; tag = /\b(?:tied|ties|tying|matched|matching|equal(?:l?ed|s))\b[^.;,]{0,25}$/i.test(t.slice(0, nb.index)) ? "Ties NBA record" : "NBA record"; why = "The best mark in league history."; } }
   // A ranking within a subset says so ("Amongst all NBA centers, Sharpe ranks fifth…" is "5th among centers", 0.65).
   const subset = t.match(/\bamong(?:st)? (?:all )?(?:NBA |qualified )?(centers|rookies|guards|forwards|reserves|bench players|point guards|power forwards|sophomores|teenagers)\b/i);
   if (subset && rk && rk.rank === 1 && /^(?:Leads NBA|Most in NBA)$/.test(tag)) tag = `Leads ${subset[1].toLowerCase()}`;
@@ -298,6 +319,7 @@ export function dedupe(lines) {
   const said = (l) => (l.topic && l.text.startsWith(`${l.topic}: `) ? l.text.slice(l.topic.length + 2) : l.text);
   for (const l of [...lines].sort((a, b) => (b.score || 0) - (a.score || 0))) {
     const d = l.facts || describe(l.text, l), b = bag(said(l)), who = l.player || (l.matchup ? "series" : "team");
+    let kin = null;
     const dup = out.find((o) => {
       // 0.158.0: the same sentence in two places with another opening, even filed under two players ("Hawkins’ effort
       // matched the most points by any Bulls reserve this season (other: …" and "His 19 points off the bench matched the
@@ -313,9 +335,15 @@ export function dedupe(lines) {
       const j = jaccard(b, ob);
       let shared = 0; for (const x of b) if (ob.has(x)) shared++;
       { const A = said(l), B = said(o), na = numbersIn(A).size, nb = numbersIn(B).size; if (na <= nb ? sameFact(A, B) : sameFact(B, A)) return true; }
-      return j >= 0.6 || (d.type === od.type && d.tag === od.tag && (j >= 0.35 || (d.rank === 1 && shared >= 4)));
+      // 0.163.0: two bars are two facts ("pulled down 50+ rebounds for the sixth time this season, which ties for second
+      // in the NBA" and "40+ rebounds as a team for the 13th time this season, tying for second in the NBA": the Knicks'
+      // lines of 11/25 were kept apart only by the first one's tag missing its tie)
+      const bars = (x) => [...plain(x).matchAll(/\b(\d+)(?:\+|-plus| or more)/g)].map((m) => m[1]).sort().join(), ba = bars(said(l)), bb = bars(said(o));
+      const twoBars = !!ba && !!bb && ba !== bb, alike = d.type === od.type && d.tag === od.tag && (j >= 0.35 || (d.rank === 1 && shared >= 4));
+      if (alike && twoBars && j < 0.6) kin ??= o.text;   // kept apart from this line by its bars alone: scripts/tonight.js dates it like that line for the first days of the rule
+      return j >= 0.6 || (alike && !twoBars);
     });
-    if (!dup) out.push({ ...l, facts: d });
+    if (!dup) out.push({ ...l, facts: d, ...(kin ? { kin } : {}) });
     // 0.77: the one that says more stays ("He ranks 11th in the NBA with 130 bench points" lost to "Wagner ranks 11 with
     // 130 bench points this season and is 8th in the NBA with a 58.4% FG"; the user, 11/16), whatever their scores.
     else if (numbersIn(said(l)).size > numbersIn(said(dup)).size && sameFact(said(dup), said(l))) out[out.indexOf(dup)] = { ...l, facts: d };
@@ -467,7 +495,7 @@ export function annotate(lines, { doc = null, tables = null, box = null, model =
     const hit = scoped.find((x) => x[1] === m[1] && x[3] === m[2] && [...words(x[4])].filter((w) => mine.has(w)).length >= 2);
     if (hit) { l.text = l.text.replace(new RegExp(`\\bone of ${m[1]} ${m[2]}\\b`), `one of ${m[1]} ${hit[2]} ${m[2]}`); l.facts = describe(l.text, l); }
   }
-  return checkDates(notCalledActive(checkStreaks(dedupe(lines).map((l) => {
+  return checkRecordSaid(checkDates(notCalledActive(checkStreaks(dedupe(lines).map((l) => {
     const d = l.facts;
     const names = l.player ? [l.player, l.player.split(" ").slice(-1)[0]] : teamNames;
     l.facts = d;
@@ -477,7 +505,7 @@ export function annotate(lines, { doc = null, tables = null, box = null, model =
     const f = { ...d.features, live: hook?.live ? 1 : 0 };
     const p = model ? score(f, model) : null;
     return { ...l, features: f, type: d.type, tag: d.tag, why: d.why, race: race || undefined, stay: stay || undefined, hook: hook || undefined, model: p == null ? undefined : Math.round(p * 1000) / 1000 };
-  }), box)), box);
+  }), box)), box), box);
 }
 // ---------- A game's date against the schedule (0.145.0) ----------
 // The Wizards' notes, 11/24: "25 points … on 11/16 vs. HOU" and, two lines on, "25 points … on 11/15 vs. Houston". The
@@ -490,9 +518,17 @@ const triOf = (w) => [...new Set(TEAM_WORDS.filter(([, x]) => x === w).map(([t])
 const RUN_VS = new RegExp(`\\b(?:consecutive|straight)\\s+(?:[\\w+-]+\\s+){0,4}?(?:against|versus|vs\\.?)\\s+(?:the\\s+)?(${TEAM_WORDS.map(([, w]) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).sort((a, b) => b.length - a.length).join("|")})\\b`);
 /** -> [{ said: "YYYY-MM-DD", opp }] for each date printed next to an opponent ("on 11/16 vs. HOU", "vs. BKN (11/8/26)"). */
 const MON_N = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
-export function datedGames(text, startYear) {
+// 0.163.0: "On 11/23 in Phoenix, …" names the game by its city. Cities only (not "in Spurs history"), and never the
+// team's own city: for the Suns, "in Phoenix" is a home game against somebody else.
+const CITY_WORDS = Object.entries(TEAMS).filter(([, t]) => t.city && !/^(?:LA|Los Angeles)$/.test(t.city)).map(([tri, t]) => [tri, t.city]);
+const IN_CITY = new RegExp(`\\bin\\s+(${CITY_WORDS.map(([, w]) => w).sort((x, y) => y.length - x.length).join("|")})\\b(?!\\s+(?:history|franchise|uniforms?|[A-Z]))`, "g");
+// A date inside a list in parentheses ("…the third-highest paint-point total in the NBA this season (New Orleans: 80 points;
+// Oct. 29 vs. Sacramento and Denver: 76 points; Nov. 4 vs. Toronto)") can be another team's game.
+const inList = (t, at) => { const open = t.lastIndexOf("(", at), shut = t.lastIndexOf(")", at); if (open < 0 || shut > open) return false; const end = t.indexOf(")", at), inside = t.slice(open, end < 0 ? t.length : end); return /[;:]/.test(inside); };
+export function datedGames(text, startYear, { own = null } = {}) {
   const t = plain(text), out = [];
-  const opps = [...t.matchAll(OPP_AT)].map((m) => ({ at: m.index, end: m.index + m[0].length, tri: triOf(m[1]) })).filter((o) => o.tri.length === 1);
+  const opps = [...t.matchAll(OPP_AT)].map((m) => ({ at: m.index, end: m.index + m[0].length, tri: triOf(m[1]) })).filter((o) => o.tri.length === 1)
+    .concat([...t.matchAll(IN_CITY)].map((m) => ({ at: m.index, end: m.index + m[0].length, tri: CITY_WORDS.filter(([, w]) => w === m[1]).map(([x]) => x) })).filter((o) => o.tri.length === 1 && o.tri[0] !== own));
   for (const m of t.matchAll(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/g)) {
     const mo = +m[1], d = +m[2];
     if (mo < 1 || mo > 12 || d < 1 || d > 31) continue;
@@ -500,7 +536,7 @@ export function datedGames(text, startYear) {
     if (m[3] && +m[3].slice(-2) !== yr % 100) continue;   // another season
     // the nearest opponent within a few words either side
     const near = opps.map((o) => ({ o, gap: o.at >= m.index ? o.at - (m.index + m[0].length) : m.index - o.end })).filter((x) => x.gap <= 12).sort((a, b) => a.gap - b.gap)[0];
-    if (near) out.push({ said: `${yr}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`, opp: near.o.tri[0] });
+    if (near) out.push({ said: `${yr}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`, opp: near.o.tri[0], listed: inList(t, m.index) });
   }
   // 0.159.0: a date written out ("in his first-career 20-point game versus Memphis (Nov. 24)", Charlotte's notes of 11/25;
   // the game was 11/23) is checked the same way.
@@ -510,7 +546,7 @@ export function datedGames(text, startYear) {
     const yr = mo >= 8 ? startYear : startYear + 1;
     if (m[3] && +m[3] !== yr) continue;   // another season
     const near = opps.map((o) => ({ o, gap: o.at >= m.index ? o.at - (m.index + m[0].length) : m.index - o.end })).filter((x) => x.gap <= 12).sort((a, b) => a.gap - b.gap)[0];
-    if (near) out.push({ said: `${yr}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`, opp: near.o.tri[0] });
+    if (near) out.push({ said: `${yr}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`, opp: near.o.tri[0], listed: inList(t, m.index) });
   }
   return out;
 }
@@ -521,15 +557,55 @@ export function checkDates(lines, box) {
   const startYear = Number([...games].sort((a, b) => (a.d < b.d ? -1 : 1))[0].d.slice(0, 4));
   const md = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}`, days = (a, b) => Math.abs(Date.parse(a) - Date.parse(b)) / 864e5;
   for (const l of lines || []) {
-    for (const { said, opp } of datedGames(l.text, startYear)) {
+    for (const { said, opp, listed } of datedGames(l.text, startYear, { own: box?.team || null })) {
       if (games.some((g) => g.d === said && g.opp === opp)) continue;
       const real = games.filter((g) => g.opp === opp && days(g.d, said) <= 3).sort((a, b) => days(a.d, said) - days(b.d, said))[0];
-      if (!real) continue;
+      if (!real) {
+        // 0.163.0: the team played somebody else that day, and not this opponent within three days: the game is another
+        // season's. San Antonio's notes of 11/25/26 still carried "On 11/23 in Phoenix, Julian Champagnie set a new career
+        // high with 12 rebounds" from 2025-26 (on 11/23/26 the Spurs were in Sacramento; his high this season is 8).
+        const that = games.find((g) => g.d === said);
+        if (that && that.opp !== opp && !l.dateCheck && !listed) {
+          const note = `Date check: on ${md(said)} this season the box scores have the ${TEAMS[that.opp]?.nick || that.opp}, not the ${TEAMS[opp]?.nick || opp}: this reads as an earlier season's game.`;
+          l.dateCheck = { said, actual: null, opp, played: that.opp, otherSeason: true };
+          l.hook = l.hook ? { ...l.hook, text: `${l.hook.text} ${note}` } : { text: note, live: false };
+          break;
+        }
+        continue;
+      }
       const note = `Date check: the box scores have the ${TEAMS[opp]?.nick || opp} game on ${md(real.d)}, not ${md(said)}.`;
       l.dateCheck = { said, actual: real.d, opp };
       l.hook = l.hook ? { ...l.hook, text: `${l.hook.text} ${note}` } : { text: note, live: false };
       break;
     }
+  }
+  return lines;
+}
+
+/**
+ * 0.163.0: a team record said in passing that the results have moved past. Memphis's notes of 11/25/26: "Memphis moved to
+ * 2-0 against Golden State this season and 12-4 overall, the team's best start since the 2014-15 season"; the Grizzlies
+ * were 12-4 after 11/19 and are 13-5. The text stays as printed; the line says when that record was true and what it is
+ * now, and that day is the line's date for the age rule. Only a record said as the whole season's ("12-4 overall",
+ * "8-2 on the season") that the results show at exactly that many games, with games played since. Mutates.
+ */
+const REC_SAID = /\b(?:mov(?:ed|ing|es)|improv(?:ed|ing|es)|f(?:ell|alling|alls)|dropp?(?:ed|ing|s)|(?:ran|pushed|upped|evened) (?:its|their) record|(?:are|is) now)\b[^.;]{0,90}?(?<![\d-])(\d{1,2})-(\d{1,2})(?=\s+(?:overall|on the (?:season|year)|for the season)\b)/i;
+export function checkRecordSaid(lines, box) {
+  const games = (box?.games || []).filter((g) => g.d && g.pf != null && g.pa != null).sort((a, b) => (a.d < b.d ? -1 : 1));
+  if (!games.length) return lines;
+  const md = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}`, nick = TEAMS[box.team]?.nick || box.team || "team";
+  const rec = (n) => { const w = games.slice(0, n).filter((g) => g.pf > g.pa).length; return [w, n - w]; };
+  const [cw, cl] = rec(games.length);
+  for (const l of lines || []) {
+    const m = REC_SAID.exec(plain(l.text));
+    if (!m) continue;
+    const W = +m[1], L = +m[2], n = W + L;
+    if (n < 1 || n >= games.length) continue;
+    const [w, lo] = rec(n);
+    if (w !== W || lo !== L) continue;
+    const note = `Record check: the ${nick} were ${W}-${L} after ${md(games[n - 1].d)}; they are ${cw}-${cl} now.`;
+    l.recordCheck = { said: `${W}-${L}`, asOf: games[n - 1].d, now: `${cw}-${cl}` };
+    l.hook = l.hook ? { ...l.hook, text: `${l.hook.text} ${note}` } : { text: note, live: false };
   }
   return lines;
 }
@@ -975,6 +1051,8 @@ export function trimReason(line, { box = null, today, home = null, opp = null } 
   // 0.158.0: a sentence the next column cut off ("Only had more than 6 rebounds once over the past 6 games after.", Houston 11/25)
   if (/\b(?:after|before|and|or|the|of|with|to|for|while|when|than|by|from|a|an|as|but)\.?$/i.test(t.trim()) && !/\b(?:and|or) (?:more|counting|so on)\.?$/i.test(t.trim())) return "garbled (cut off mid-sentence)";
   { const cant = cantBeThisSeason(line.text, { box, playerId: line.playerId }); if (cant) return cant; }
+  // 0.163.0: a game the box scores place in another season (checkDates), in a line that doesn't say it is about this one
+  if (line.dateCheck?.otherSeason && !THIS_SEASON_RE.test(t)) return `an earlier season's game (on ${+line.dateCheck.said.slice(5, 7)}/${+line.dateCheck.said.slice(8, 10)} this season the team played ${line.dateCheck.played}, not ${line.dateCheck.opp})`;
   // Layout damage: a bio-table row ("… on Virginia / USA 8th Season 10/21/26 vs UTA") or two columns read across.
   if (/\b[A-Z][a-z]+(?: [A-Z][a-z]+)? \/ [A-Z]{2,3}\b|\b\d{1,2}(?:st|nd|rd|th) Season\b/.test(t)) return "garbled (a table row)";
   if ((t.match(/\bjoining\b/g) || []).length >= 2 || /\b(?:of|in|to|the|for|and)\s+[A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+(?:Jr|Sr)\.?|\s+I{2,3})?\s+(?:notches|notched|records|recorded|becomes|became|scores|scored|posts|posted|tallies|tallied)\b/.test(t)) return "garbled (two columns read as one)";
@@ -1038,7 +1116,7 @@ export function trimReason(line, { box = null, today, home = null, opp = null } 
     // whatever tense it is told in, because what it counts or where it ranks is as of that date. Left alone: a countdown,
     // a series line, a streak the box scores still carry (a live hook), and anything rare over ten years or more.
     const live = !!line.matchup || line.kind === "pass" || line.kind === "next" || !!line.hook?.live;
-    const own = today && !live && !longSpan(t, today) ? eventDate(ownDates(line.text), { today }) : null;
+    const own = today && !live && !longSpan(t, today) ? eventDate(ownDates(line.text), { today }) || line.recordCheck?.asOf || null : null;   // 0.163.0: or the day its stated record was true
     if (!own) return null;
     const ageOwn = Math.round((Date.parse(today) - Date.parse(own)) / 864e5);
     const keep = Math.max(SHELF.standing, shelfLife(t, { star: isStar(box, line.playerId) }).days);

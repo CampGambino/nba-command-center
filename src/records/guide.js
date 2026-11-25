@@ -318,7 +318,8 @@ export function currentRecords({ guide, teamFiles, today = null, tonight = [], s
       const rec = c.losses ? `${next}-${c.losses}` : `${next}`;
       const t = playing.get(tri);
       const fits = t && (c.home == null || t.home === c.home);
-      const place = better === 0 ? (ties.length ? "tie the best" : "the best") : `${ties.length ? "tie for " : ""}the ${ORD(better + 1)}-best`;
+      // 0.163.0: "a road win tonight makes 9, tied for the 7th-best…" ("makes 9, tie for the 7th-best" until 11/25)
+      const place = better === 0 ? (ties.length ? "tying the best" : "the best") : `${ties.length ? "tied for " : ""}the ${ORD(better + 1)}-best`;
       const text = c.losses || c.list === "startUnbeaten"
         ? `${name}: ${c.losses ? `${wins}-${c.losses}` : `${wins}-0`}; a win${fits ? " tonight" : ""} makes ${rec}${c.losses ? "" : "-0"}, ${place} ${c.what} in NBA history${ties.length ? ` (${ties.map((r) => `${r.team} ${r.when}`).join("; ")})` : ""}`
         : `${name}: ${c.n} straight; a ${c.home === true ? "home " : c.home === false ? "road " : ""}win${fits ? " tonight" : ""} makes ${next}, ${place} ${c.what} in NBA history${ties.length ? ` (${ties.map((r) => `${r.team}, ${r.when}`).join("; ")})` : ""}`;

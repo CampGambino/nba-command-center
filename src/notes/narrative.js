@@ -429,7 +429,10 @@ export function summarizeTable(s, teamTris = []) {
   for (const m of body.matchAll(/([A-Z][A-Za-z.&’' -]{3,40}?)\s+(-?[\d.]+%?(?: [A-Za-z%]{2,4})?)\s+\(((?:t-)?\d{1,2}(?:st|nd|rd|th))\)\s+(-?[\d.]+%?(?: [A-Za-z%]{2,4})?)\s+\(((?:t-)?\d{1,2}(?:st|nd|rd|th))\)/g))
     if (!/rank|Category/i.test(m[1])) rows.push(`${m[1].trim()} ${m[4]} (${m[5]}), from ${m[2]} (${m[3]})`);
   // Value and rank: "Label value rank".
-  if (!rows.length) for (const m of body.matchAll(/([A-Z][A-Za-z0-9.&’'\/ -]{3,45}?)\s+((?:\.\d+|\d+(?:\.\d+)?)%?(?: ?[A-Za-z]{2,4})?)\s+((?:t-)?\d{1,2}(?:st|nd|rd|th))\b/g))
+  // 0.163.0: a label can open with a digit ("3-Pointers Made 42 3PM t-1st", "3-Point Percentage 44.2% 5th"; Portland,
+  // 11/25: they read "Pointers Made 42 3PM" and "Point Percentage 44.2%"), and its value can be followed by a unit that
+  // opens with one ("42 3PM").
+  if (!rows.length) for (const m of body.matchAll(/((?:(?<![\d.])[23]-)?[A-Z][A-Za-z0-9.&’'\/ -]{3,45}?)\s+((?:\.\d+|\d+(?:\.\d+)?)%?(?: ?(?:[A-Za-z]{2,4}|3PM|3FGM|3PA))?)\s+((?:t-)?\d{1,2}(?:st|nd|rd|th))\b/g))
     if (!/^(?:Value|Rank|Category|NBA)\b/.test(m[1].trim())) rows.push(`${m[1].replace(/^(?:Value NBA (?:Bench )?Rank|Category Value NBA (?:Bench )?Rank)\s*/, "").trim()} ${m[2]} (${m[3]})`);
   // A ranked list: our own team's rows.
   if (!rows.length && teamTris.length) for (const m of body.matchAll(/\b(\d{1,2})\s+(\p{Lu}[\p{L}.’'\-]+(?:\s+\p{Lu}[\p{L}.’'\-]+){1,2})\s+([A-Z]{3})\s+(\.?\d[\d.]*)/gu))
@@ -554,7 +557,10 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
     // gave "Jalen Johnson continued his breakout season with his 43rd double-double" as this season's): a last-meeting box
     // dated before this season is last season's game; everything in it, to the next box or the end of the block, is too.
     const oldMeet = [];
-    if (seasonStart) for (const m of b.text.matchAll(/\b(?:LAST|PREVIOUS|PRIOR|MOST RECENT) MEETING\b|\b(?:Last|Previous|Prior|Most Recent) Meeting\b(?=\s*[:\-–—]?\s*[\p{Lu}0-9])/gu)) {
+    // 0.163.0: Milwaukee heads the same box "Last game vs. Nets – April 10, 2026 – Fiserv Forum" (11/25: its "Green finished
+    // with a career-high 35 points, his first career 30-point game" ran as a line about this season; AJ Green's high this
+    // season is 13). "Last game/time/matchup vs. <team>" with a date is a last-meeting box too.
+    if (seasonStart) for (const m of b.text.matchAll(/\b(?:LAST|PREVIOUS|PRIOR|MOST RECENT) MEETING\b|\b(?:Last|Previous|Prior|Most Recent) Meeting\b(?=\s*[:\-–—]?\s*[\p{Lu}0-9])|\b(?:LAST|PREVIOUS|MOST RECENT|Last|Previous|Most Recent) (?:GAME|TIME|MATCHUP|Game|Time|Matchup|game|time|matchup) (?:VS\.?|vs\.?|AGAINST|against|VERSUS|versus)(?= (?:the )?\p{Lu})/gu)) {
       const head = b.text.slice(m.index, m.index + 260);
       const dm = /\b(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)[A-Z]*\.?\s+(\d{1,2}),?\s+((?:19|20)\d\d)\b/i.exec(head), sm = /\b(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})\b/.exec(head);
       const d = dm ? `${dm[3]}-${String(MONTHS.indexOf(dm[1].toLowerCase()) / 3 + 1).padStart(2, "0")}-${dm[2].padStart(2, "0")}`

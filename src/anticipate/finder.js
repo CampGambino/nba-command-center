@@ -104,6 +104,7 @@ export function findings({ pg, names = {}, qsum = {}, teamGp = {}, allStars = nu
     P.push({ id, name: names[id] || id, team, gp, games, ppg: games.reduce((a, g) => a + g.pts, 0) / gp, ok: gp >= QUALIFY.games && gp >= QUALIFY.share * (teamGp[team] || gp) });
   }
   const Q = P.filter((p) => p.ok).sort((a, b) => b.ppg - a.ppg);
+  const spelled = (n) => P.find((p) => plainName(p.name) === plainName(n))?.name || n;   // a name from a list, as this season's rosters spell it
   const out = [];
   if (Q.length < 30) return out;
   // 1. part: a piece of his scoring against everyone's whole.
@@ -173,7 +174,7 @@ export function findings({ pg, names = {}, qsum = {}, teamGp = {}, allStars = nu
       if (before.length) continue;
       const rookie = !!rookies?.has(top.p.id), last = past[past.length - 1];
       out.push({ kind: "find", test: "first", team: top.p.team, player: top.p.name, key: `find|first|${top.p.id}|${k}`, surprise: 2.9 + (rookie ? 0.4 : 0), rare: true,       // where the leader's "never an All-Star" line used to sit
-        text: `${top.p.name} leads the NBA in ${word} (${r1(top.v)} ${unit} a game)${rookie ? " as a rookie" : `: he has never led the league in ${word}`}${last ? ` (last season's leader: ${last.player}, ${r1(last.value)})` : ""}` });
+        text: `${top.p.name} leads the NBA in ${word} (${r1(top.v)} ${unit} a game)${rookie ? " as a rookie" : `: he has never led the league in ${word}`}${last ? ` (last season's leader: ${spelled(last.player)}, ${r1(last.value)})` : ""}` });   // 0.163.0: the name as our rosters spell it ("Nikola Jokić"; the leaders list has "Jokic")
     }
   }
   // `more` (0.107.1; the user, 11/18, on a "most 45/5/5 games: Dončić 3, every other player combined 2" post: "finding
@@ -235,7 +236,12 @@ export function findings({ pg, names = {}, qsum = {}, teamGp = {}, allStars = nu
         // 0.158.0: two players level say so (11/25: Myles Turner and Donovan Clingan each "has the 2nd most blocks")
         text: `${x.t.p.name} ${x.tied ? "is tied for" : "has"} the ${x.r === 1 ? "" : `${ord(x.r)} `}most ${x.w} in the NBA this season. He ranks ${ord(x.rm)} in minutes played` });
     // group: ranks among bench players, and among rookies
-    const groups = [["bench players", tot.filter((t) => t.p.gp >= QUALIFY.games && t.starts / t.p.gp < GROUP.starts)], ...(rookies && rookies.size ? [["rookies", tot.filter((t) => rookies.has(plainName(t.p.name)) || rookies.has(t.p.id))]] : [])];
+    // 0.163.0: a bench rank counts what a player did off the bench, the way the league and the teams count it. It used to
+    // be a player's whole season when he had started under half his games: on 11/25 Julian Champagnie (6 starts in 18)
+    // was "1st in threes" with the 23 he made as a starter, and Jrue Holiday, who has not started, was "2nd in points,
+    // 3rd in assists" where Portland's notes, and the count below, have him 1st, 2nd and tied for 1st in threes.
+    const benchTot = P.map((p) => { const t = { p, min: 0, pm: 0, starts: 0, gp: 0 }; for (const [k] of TOTALS) t[k] = 0; for (const g of p.games) { if (g.starter) continue; t.gp++; t.min += g.min || 0; t.pm += g.pm || 0; for (const [k] of TOTALS) t[k] += g[k] || 0; } return t; });
+    const groups = [["bench players", benchTot.filter((t) => t.gp >= QUALIFY.games)], ...(rookies && rookies.size ? [["rookies", tot.filter((t) => rookies.has(plainName(t.p.name)) || rookies.has(t.p.id))]] : [])];
     for (const [label, G] of groups) {
       if (G.length < 20) continue;
       const gr = Object.fromEntries([...TOTALS, ["pm", "plus/minus"]].map(([k]) => [k, rankBy(G, (t) => t[k])])), found = [];
@@ -243,7 +249,7 @@ export function findings({ pg, names = {}, qsum = {}, teamGp = {}, allStars = nu
       for (const t of G) { const said = [...TOTALS, ["pm", "plus/minus"]].filter(([k]) => t[k] > 0 && shared(k, t[k]) <= 2).map(([k, w]) => [gr[k].get(t), w, shared(k, t[k]) > 1]).filter(([r]) => r <= GROUP.top); if (said.length >= GROUP.need && said.some(([r]) => r <= GROUP.best)) found.push({ t, said, sum: said.reduce((a, [r]) => a + (GROUP.top + 1 - r), 0) }); }
       for (const f of found.sort((a, b) => b.sum - a.sum).slice(0, GROUP.lines))
         out.push({ kind: "find", test: "group", team: f.t.p.team, player: f.t.p.name, key: `find|group|${label}|${f.t.p.id}`, surprise: 2.8 + Math.min(1.2, f.sum / 20), rare: false,
-          text: `${f.t.p.name} among ${label} this season: ${f.said.map(([r, w, tie]) => `${tie ? "tied for " : ""}${ord(r)} in ${w}`).join(", ")}` });   // 0.132.0: a shared rank says so
+          text: `${f.t.p.name} ${label === "bench players" ? `off the bench this season (${f.t.gp} games as a reserve)` : `among ${label} this season`}: ${f.said.map(([r, w, tie]) => `${tie ? "tied for " : ""}${ord(r)} in ${w}`).join(", ")}` });   // 0.132.0: a shared rank says so
     }
   }
   // 9. outdo (0.115; the user, 11/19: "does the program check if a player has more than any stat compared to other

@@ -465,6 +465,10 @@ export function seededLines(flow, teams) {
   for (const L of flow?.seeded || []) {
     L.rows.forEach((r) => {
       if (!r.team || !teams.has(r.team)) return;
+      // 0.163.0 (the user, 11/25, on next-game lines: "It feels akin to saying a players next 100 point game will be their
+      // first"): "the next one…" is said of a player who has one this season. On 11/25 it ran for LeBron James (no 40-point
+      // game this season), and for Devin Booker, James Harden and Damian Lillard (no 20-point quarter this season).
+      if (r.season === 0) return;
       const place = L.rows.filter((x) => x.n > r.n).length + 1;
       const tied = L.rows.filter((x) => x !== r && x.n === r.n);
       const above = L.rows.filter((x) => x.n > r.n).sort((a, b) => a.n - b.n)[0] || null;
@@ -525,13 +529,25 @@ function injuryLines(injuries, teams, today) {
   });
 }
 
+/** 0.163.0: a matchup line under its label, said once. "Playoff rematch: Playoff rematch: the Spurs beat…" (the text already
+ *  opens with its label) is the text alone; "vs top-5 records · Bam Adebayo: Bam Adebayo has averaged…" (the label ends
+ *  with the name the text opens with) is "vs top-5 records: Bam Adebayo has averaged…". */
+export function labelled(tag, text) {
+  const t = String(text || ""), g = String(tag || "");
+  if (!g) return t;
+  if (t.toLowerCase().startsWith(`${g.toLowerCase()}:`) || t.toLowerCase().startsWith(`${g.toLowerCase()} `)) return t;
+  const cut = g.lastIndexOf(" · "), name = cut > 0 ? g.slice(cut + 3) : null;
+  if (name && t.startsWith(name)) return `${g.slice(0, cut)}: ${t}`;
+  return `${g}: ${t}`;
+}
 // Tonight's matchups (records/matchup.js via docs/data/matchups.json): the series, and players against tonight's opponent.
 function matchupLines(matchups, teams, today) {
   if (!matchups || (matchups.today && today && matchups.today !== today)) return [];
   const out = [];
   for (const g of matchups.games || []) {
     if (!teams.has(g.away) && !teams.has(g.home)) continue;
-    for (const i of (g.items || []).slice(0, 6)) out.push({ team: i.team, player: i.player || null, kind: "matchup", game: `${g.away}@${g.home}`, text: `${i.tag}: ${i.text}`, score: Math.min(4.2, (i.score || 1) + (i.active ? 0.3 : 0)) });
+    for (const i of (g.items || []).slice(0, 6)) { const text = labelled(i.tag, i.text), old = `${i.tag}: ${i.text}`;
+      out.push({ team: i.team, player: i.player || null, kind: "matchup", game: `${g.away}@${g.home}`, text, ...(text !== old ? { was: old } : {}), score: Math.min(4.2, (i.score || 1) + (i.active ? 0.3 : 0)) }); }
   }
   return out;
 }

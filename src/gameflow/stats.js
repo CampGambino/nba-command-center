@@ -175,7 +175,7 @@ const plainName = (n) => String(n || "").normalize("NFD").replace(/[\u0300-\u036
  * "MOST 20+ POINT QUARTERS IN THE NBA SINCE 2016-17 (STATHEAD)"). Each row's count is the printed one plus the
  * player's quarters at that level dated after the list's `through` day.
  *   bigQuarters: flowStats().bigQuarters; teamOf: plain name -> team code, for tonight's slate
- *   -> [{ id, what, since, source, through, min, rows: [{ name, n, added, team }] }], rows best first
+ *   -> [{ id, what, since, source, through, min, rows: [{ name, n, added, season, team }] }], rows best first
  */
 export const BIG_GAME = 40;   // every game of 40+ points is kept, for seeded lists of such games (0.82)
 export function seededCounts(lists, bigQuarters, teamOf = {}, bigGames = []) {
@@ -185,8 +185,10 @@ export function seededCounts(lists, bigQuarters, teamOf = {}, bigGames = []) {
     const events = l.event.type === "game" ? bigGames : bigQuarters;
     const rows = l.rows.map(([name, n]) => {
       const k = plainName(name);
-      const added = (events || []).filter((q) => plainName(q.name) === k && q.pts >= l.event.min && String(q.date).slice(0, 10) > l.through).length;
-      return { name, n: n + added, added, team: teamOf[k] || null };
+      const mine = (events || []).filter((q) => plainName(q.name) === k && q.pts >= l.event.min);
+      const added = mine.filter((q) => String(q.date).slice(0, 10) > l.through).length;
+      // 0.163.0: how many he has this season (the events are this season's), for "the next one…" lines (src/anticipate/tonight.js seededLines)
+      return { name, n: n + added, added, season: mine.length, team: teamOf[k] || null };
     }).sort((a, b) => b.n - a.n);
     return { id: l.id, what: l.what, since: l.since || null, source: l.source, through: l.through, min: l.event.min, rows };
   });

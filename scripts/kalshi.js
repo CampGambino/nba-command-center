@@ -12,7 +12,7 @@
  * Read only: nothing here trades or signs in. Kalshi's website is never read (its terms bar that); only the API.
  */
 import fs from "node:fs"; import path from "node:path"; import { fileURLToPath } from "node:url";
-import { look, line, priceOf } from "../src/kalshi.js";
+import { look, line, priceOf, cents } from "../src/kalshi.js";
 import { KALSHI_SERIES } from "../src/situations/eligibility.js";
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), ".."), args = process.argv.slice(2), arg = (k, d) => (args.includes(k) ? args[args.indexOf(k) + 1] : d);
 const stateFile = arg("--state", path.join(root, ".cache", "kalshi-state.json")), dry = args.includes("--dry"), out = path.join(root, "history", "kalshi");
@@ -59,7 +59,8 @@ fs.writeFileSync(path.join(out, "status.json"), JSON.stringify(status, null, 1))
 // player's price, for the award eligibility page (src/situations/eligibility.js). Rewritten only when a price changes.
 {
   const awards = {};
-  for (const e of events) if (KALSHI_SERIES[e.series_ticker]) (awards[e.series_ticker] ||= []).push(...e.markets.map((m) => ({ name: m.yes_sub_title || m.subtitle || m.title, p: priceOf(m).p })).filter((m) => m.name && m.p > 0));
+  for (const e of events) if (KALSHI_SERIES[e.series_ticker]) (awards[e.series_ticker] ||= []).push(...e.markets.map((m) => { const pr = priceOf(m);   // 0.163.0: how the price was read, and the quote behind it, so a stale last trade can be told from a live market
+    return { name: m.yes_sub_title || m.subtitle || m.title, p: pr.p, how: pr.how, bid: cents(m.yes_bid_dollars), ask: cents(m.yes_ask_dollars), v: Math.round(Number(m.volume_24h_fp || 0)) }; }).filter((m) => m.name && m.p > 0));
   for (const k of Object.keys(awards)) awards[k].sort((a, b) => b.p - a.p || a.name.localeCompare(b.name));
   const aFile = path.join(out, "awards.json"), was = fs.existsSync(aFile) ? JSON.parse(fs.readFileSync(aFile, "utf8")) : null;
   if (Object.keys(awards).length && JSON.stringify(was?.series) !== JSON.stringify(awards)) fs.writeFileSync(aFile, JSON.stringify({ at: now, series: awards }));
