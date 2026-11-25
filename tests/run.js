@@ -6071,9 +6071,40 @@ await bridgeChecks(ok, root);
   const run = (opp) => V.vsDefenses(V.playerGames({ AAA: { team: "AAA", keys, names: { 1: "Star" }, games: opp.map((o, i) => ({ d: `2026-11-0${i + 1}`, opp: o, home: true, pf: 100, pa: 90, pl: { 1: L(o === "TOP" ? 14 : 21) } })) } }), new Set(["TOP"]));
   const two = run(["TOP", "TOP", "BBB", "CCC", "DDD", "EEE"]), three = run(["TOP", "TOP", "TOP", "BBB", "CCC", "DDD"]), twoRest = run(["TOP", "TOP", "TOP", "TOP", "CCC", "DDD"]);
   const ed = fs.readFileSync(path.join(root, "src", "situations", "edges.js"), "utf8");
-  ok(V.POOL_MIN_SIDE === 3 && EDGE.minVs === 3 && two.rows.length === 0 && two.oneSided === 1 && three.rows.length === 1 && three.rows[0].vsGp === 3 && three.rows[0].gap === -7 && twoRest.rows.length === 0
-    && /x\.vsTop\?\.games >= EDGE\.minVs && x\.rest\?\.games >= EDGE\.minVs/.test(ed),
+  ok(V.POOL_MIN_SIDE === 3 && EDGE.minVs === undefined && two.rows.length === 0 && two.oneSided === 1 && three.rows.length === 1 && three.rows[0].vsGp === 3 && three.rows[0].gap === -7 && twoRest.rows.length === 0
+    && /x\.vsTop\?\.games >= floors\.vs && x\.rest\?\.games >= floors\.rest/.test(ed),   // 0.162.0: the floors grow with the pool
     "matchups (0.161.0): a player's or a team's line against a group needs three games on each side (\"14.0 points in 2 games against the bottom 5 defenses\" is no longer a line); three is enough", JSON.stringify([two.oneSided, three.rows.length, twoRest.rows.length]));
+}
+
+// ---------- 0.162.0: the minimum grows with the pool; a next-game line only for a player doing it now (the user, 11/25) ----------
+{
+  const V = await import("../src/situations/vsplayers.js"), FB = await import("../src/records/featboards.js");
+  ok(V.median([3, 1, 2]) === 2 && V.median([4, 2, 3, 3]) === 3 && V.median([]) === 0 && V.sideMin([2, 3, 3, 4]) === 3 && V.sideMin([14, 13, 15, 12]) === 7 && V.sideMin([5, 6, 7]) === 3 && V.sideMin([7, 7, 7]) === 4
+    && JSON.stringify(V.sideFloors([14, 13, 15, 12], [60, 61, 58, 62])) === '{"vs":7,"rest":3}' && JSON.stringify(V.sideFloors([60, 61, 58], [14, 13, 15])) === '{"vs":3,"rest":7}' && JSON.stringify(V.sideFloors([3, 4, 2], [13, 12, 14])) === '{"vs":3,"rest":3}',
+    "matchups (0.162.0): the smaller side of a split needs three games, or half of what is typical there among those compared, whichever is more (3 in November, 7 when the typical count is 14); the larger side keeps three");
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const L = (pts) => keys.map((k) => ({ min: 36, pts, fgm: 6, fga: 18 }[k] ?? 0));
+  // 26 team games, 12 of them against the group; Star and Mate play all, Late only 4 of the 12 (and all 14 others)
+  const opp = Array.from({ length: 26 }, (_, i) => (i < 12 ? "TOP" : `O${i}`));
+  const file = { team: "AAA", keys, names: { 1: "Star", 2: "Mate", 3: "Late" }, games: opp.map((o, i) => ({ d: `2027-01-${String(i + 1).padStart(2, "0")}`, opp: o, home: true, pf: 100, pa: 90,
+    pl: { 1: L(o === "TOP" ? 14 : 21), 2: L(15), ...(i >= 8 ? { 3: L(o === "TOP" ? 8 : 20) } : {}) } })) };
+  const res = V.vsDefenses(V.playerGames({ AAA: file }), new Set(["TOP"]));
+  const dh = fs.readFileSync(path.join(root, "docs", "defenses.html"), "utf8");
+  ok(res.minVs === 6 && res.minRest === 3 && res.rows.length === 2 && !res.rows.some((r) => r.name === "Late") && res.oneSided === 1
+    && /\$\{res\.minVs\}\+ games against them and \$\{res\.minRest\}\+ against the rest/.test(dh),
+    "matchups (0.162.0): with twelve games against the group typical, a player with four isn't compared (floor 6); the Defenses page states the floors in use", JSON.stringify([res.minVs, res.minRest, res.rows.map((r) => [r.name, r.vsGp]), res.oneSided]));
+  // next-game lines
+  const b = { label: "30-point, 10-rebound, 5-assist games", one: "30-10-5 game", min: { pts: 30, reb: 10, ast: 5 } };
+  const g = (d, id, team, pts) => ({ d, gameId: id, team, opp: "ZZZ", home: true, pts, reb: 11, ast: 6, starter: 1 });
+  const pg = { p1: [g("2026-11-05", "g1", "AAA", 12), g("2026-11-10", "g2", "AAA", 14), g("2026-11-12", "g3", "AAA", 9)],          // on the list, none this season, not the leader
+    p2: [g("2026-11-05", "g4", "AAA", 31), g("2026-11-10", "g5", "AAA", 12), g("2026-11-12", "g6", "AAA", 15)],                     // one this season
+    p3: [g("2026-11-05", "g7", "AAA", 10), g("2026-11-10", "g8", "AAA", 11), g("2026-11-12", "g9", "AAA", 12)] };                   // the record holder, none this season
+  const file2 = { asOf: "2026-11-01", source: "test", boards: { b: { label: b.label, one: b.one, min: b.min, rows: [["Holder Now", "2013-14", "2025-26", 164], ["Old Great", "1960-61", "1970-71", 150], ["Past Star", "2008-09", "2014-15", 40], ["Does It", "2020-21", "2026-27", 39], ["Other Man", "1990-91", "1999-00", 40]] } }, streaks: {} };
+  const out = FB.buildFeatLive({ file: file2, pg, names: { p1: "Past Star", p2: "Does It", p3: "Holder Now" }, tonightTeams: new Set(["AAA"]) });
+  const who = out.pre.map((p) => p.name).sort().join(), fbSrc = fs.readFileSync(path.join(root, "src", "records", "featboards.js"), "utf8");
+  ok(who === "Does It,Holder Now" && /\(1 of his 3 games this season\)$/.test(out.pre.find((p) => p.name === "Does It").line) && /adding to his NBA record/.test(out.pre.find((p) => p.name === "Holder Now").line)
+    && out.boards.b.rows.find((r) => r.name === "Past Star").now === 40 && /if \(!n \|\| n\.after < 3 \|\| !\(r\.season > 0 \|\| n\.record\)\) continue;/.test(fbSrc),
+    "feat boards (0.162.0): a pre-game line only for a player who has done it this season or would add to a record he holds; one in the top 10 with none this season gets no line, and stays on the board NBA Live counts from", JSON.stringify(out.pre.map((p) => p.line)));
 }
 
 const snapDir = path.join(root, "tests", "expected");

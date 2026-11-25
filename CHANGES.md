@@ -2,6 +2,32 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.162.0 (2026-11-25): a next-game line only for a player doing it now; the group minimum grows with the season
+
+The user, 11/25, 3:57 PM:
+- "we'll go with your suggestion on repeated combos"
+- "my logic is that this early in the season, most teams haven't faced a top-five team that often. while 2 is an ok check, three seems ok right now. as the season progresses and the data pool grows, the minimum should shift proportionate to the amount of games left with the comparable games played by other players or teams on the minimum side."
+
+**"His next … would be his Nth" lines** (`src/records/featboards.js`). A pre-game line is made when the next one would be at least his 3rd, would pass or tie a name, and he has done it this season or it would add to a record he holds. The third way in, "or it puts him in the top 10", is gone: on a rare list three or four career games is already the top 10, so nearly everyone on the list had a line.
+- Tonight: 24 such lines become 8 (Wembanyama's four, Antetokounmpo's 30-10-5, Gilgeous-Alexander, Turner's 5-block game, Brunson). The 16 that left were all "none in his N games this season": LeBron James' five, Lopez's three, Harden's two, and one each for Maxey, Durant, VanVleet, Turner, Sabonis and Antetokounmpo.
+- NBA Live is untouched: its live card reads the career lists (the boards), and those are the same file as before. If one of the sixteen does it tonight, the card still fires.
+
+**The group minimum grows with the pool** (`sideFloors`, `src/situations/vsplayers.js`; used for players and, in `src/situations/edges.js`, for teams). The smaller side of the split (nearly always the games against the group) needs three games, or half of what is typical there among the players or teams being compared (the median), whichever is more. The larger side keeps three.
+- Today the typical player has faced each five-team group two or three times and the typical team 2.5 to 3: the floor is 3 for all four groups, so nothing changed tonight.
+- It first moves to 4 when the typical count reaches 7 (about mid-season for a five-team group) and is about 7 by April, when the typical count is about 14. Those two are arithmetic from the schedule, not a run on real data.
+- The Defenses page's table uses the same floors and prints the two numbers in use.
+- How I read the user's sentence: "the comparable games played by other players or teams on the minimum side" is the typical number of games the others have on the smaller side; "proportionate" is the one-half. Both are single numbers (`POOL_MIN_SIDE`, `POOL_SIDE_SHARE`) if the user meant something else.
+
+**Before and after on today's files** (same inputs, both versions): the 16 lines above gone, nothing added; the ranked list 629 lines to 613. The lines against a group, the briefing's ten and five, every game's own lines, and the boards NBA Live counts from were all identical.
+
+**Checked:** tests 931 passed, 3 of them new; all pages OK.
+
+**Self-audit:**
+- No test had covered the top-10 way in: removing it failed nothing. The new test has a top-10 player with none this season (no line), one with a game this season (line) and a record holder with none this season (line), and checks he is still on the board.
+- "Half of the typical count" is my number. The user gave the principle, not the fraction. At one-half a player needs seven games against the top five defenses in April to be compared with players who have fourteen.
+- The April figure is not tested on a real late-season file: this season's files only reach November and the repository holds no earlier season's team files in this form. The test builds a 26-game season by hand (typical twelve, floor six).
+- 0.161.0 added `EDGE.minVs`; it is removed again here, since teams and players now take their floor from the same function. Its test is updated.
+
 ## 0.161.0 (2026-11-25): three games on each side for a line against a group
 
 The user, 11/25, 2:39 PM: "For minimum games, I think this early in the season, three games is adequate." (At 2:00 PM, to a question I had worded as "matchup lines": "Not really. Team face each other at most four times a season." I then said which lines I meant: a player's or a team's games against a group, such as the five worst defenses.)

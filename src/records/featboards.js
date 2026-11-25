@@ -48,8 +48,12 @@ export function buildFeatLive({ file, pg, names = {}, tonightTeams = null, notes
     for (const r of rows) {
       if (!r.live || (tonightTeams && !tonightTeams.has(r.team))) continue;
       const n = featNext(boards[key], r);
-      // Worth a line: a count of 3 or more, and something he does now (a game like it this season), or a record, or the top 10.
-      if (!n || n.after < 3 || !(r.season > 0 || n.record || (n.place != null && n.place <= 10))) continue;
+      // Worth a line: a count of 3 or more, and something he does now (a game like it this season), or a record.
+      // 0.162.0 (the user, 11/25: "Why are those players without one this season displayed? It feels akin to saying a
+      // players next 100 point game will be their first"): no longer "or the top 10". On a rare list three or four career
+      // games is already the top 10, so nearly everyone on it had a line: LeBron James five on 11/25, none this season,
+      // his last 3-steal, 3-block, 3-three game in 2014-15. NBA Live's live card reads the boards, not these lines.
+      if (!n || n.after < 3 || !(r.season > 0 || n.record)) continue;
       pre.push({ board: key, id: r.id, name: r.name, team: r.team, now: r.now, place: n.place, record: n.record, line: `${n.line} (${r.season ? `${r.season} of his ${r.gp} games this season` : `none in his ${r.gp} games this season`})`,
         // Scored with the storylines' other lines (a night's eighth is about 4.8): a record he holds and does often makes it;
         // a long shot (none this season) doesn't.

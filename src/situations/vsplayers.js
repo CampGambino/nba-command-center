@@ -13,6 +13,20 @@
 // "Brandon Miller has averaged 14.0 points in 2 games against the bottom 5 defenses … the 2nd-biggest drop in the NBA"
 // was a highlighted line on two games.
 export const POOL_MIN_PPG = 5, POOL_SHARE = 0.5, POOL_MIN_SIDE = 3, THIRTY = 30;
+// 0.162.0 (the user, 11/25: "this early in the season, most teams haven't faced a top-five team that often. while 2 is an ok
+// check, three seems ok right now. as the season progresses and the data pool grows, the minimum should shift proportionate
+// to … the comparable games played by other players or teams on the minimum side"): the floor grows with the pool. The
+// smaller side of the split (nearly always the games against the group) needs POOL_MIN_SIDE games, or POOL_SIDE_SHARE of
+// what is typical there among those being compared (the median), whichever is more. In late November the typical player
+// has faced a five-team group three or four times: the floor is 3. By April it is about fourteen: the floor is about 7.
+export const POOL_SIDE_SHARE = 0.5;
+export const median = (a) => { const v = [...a].sort((x, y) => x - y), n = v.length; return n ? (n % 2 ? v[(n - 1) / 2] : (v[n / 2 - 1] + v[n / 2]) / 2) : 0; };
+export const sideMin = (counts) => Math.max(POOL_MIN_SIDE, Math.ceil(POOL_SIDE_SHARE * median(counts)));
+/** The floors for the two sides of a split, from everyone's counts on each: { vs, rest }. Only the smaller side's grows. */
+export function sideFloors(vsCounts, restCounts) {
+  const vsSmaller = median(vsCounts) <= median(restCounts);
+  return { vs: vsSmaller ? sideMin(vsCounts) : POOL_MIN_SIDE, rest: vsSmaller ? POOL_MIN_SIDE : sideMin(restCounts) };
+}
 
 /** { id: { id, name, tri, games: [{ d, opp, home, pts, fgm, fga, fg3m, fg3a, min }] } } and { tri: team games played }. */
 export function playerGames(teamFiles) {
@@ -49,7 +63,7 @@ export function splitRow(p, top) {
 
 /** Every qualified player against the top defenses, biggest drop first, with counts of who was left out and why. */
 export function vsDefenses({ players, teamGp }, top) {
-  const out = [];
+  const pool = [];
   let considered = 0, quiet = 0, thin = 0, oneSided = 0;
   for (const p of Object.values(players)) {
     considered++;
@@ -57,11 +71,13 @@ export function vsDefenses({ players, teamGp }, top) {
     if ((r.avg ?? 0) < POOL_MIN_PPG) { quiet++; continue; }
     r.need = Math.ceil((teamGp[p.tri] || 0) * POOL_SHARE);
     if (r.gp < r.need) { thin++; continue; }
-    if (r.vsGp < POOL_MIN_SIDE || r.restGp < POOL_MIN_SIDE) { oneSided++; continue; }
-    out.push(r);
+    pool.push(r);
   }
+  // 0.162.0: the floor on each side, set by what is typical among these players (see POOL_SIDE_SHARE)
+  const floors = sideFloors(pool.map((r) => r.vsGp), pool.map((r) => r.restGp));
+  const out = pool.filter((r) => (r.vsGp < floors.vs || r.restGp < floors.rest ? (oneSided++, false) : true));
   out.sort((a, b) => a.gap - b.gap || a.name.localeCompare(b.name));
-  return { rows: out, considered, quiet, thin, oneSided };
+  return { rows: out, considered, quiet, thin, oneSided, minVs: floors.vs, minRest: floors.rest };
 }
 
 /**
