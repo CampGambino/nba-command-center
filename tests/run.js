@@ -6341,6 +6341,22 @@ await bridgeChecks(ok, root);
   }
 }
 
+// ---------- 0.167.0: play-in games are not regular-season games anywhere ----------
+{
+  const zlib = await import("node:zlib"), RS = await import("../src/situations/results.js"), MP = await import("../tools/mark-play-in.mjs");
+  const fx = { columns: ["date", "opp", "home", "result", "type", "min", "pts"], players: { a: [["2026-04-12", "BOS", 1, "W", 2, 30, 20], ["2026-04-15", "ORL", 1, "W", 2, 34, 31], ["2026-04-19", "BOS", 0, "L", 3, 36, 21]], b: [["2022-04-12", "CLE", 1, "W", 2, 40, 25]] } };
+  const first = MP.markPlayIn(fx), again = MP.markPlayIn(fx);
+  const lf = path.join(root, "src", "data", "player-logs-history.json.gz");
+  let left = -1, marked = -1;
+  if (fs.existsSync(lf)) { const L = JSON.parse(zlib.gunzipSync(fs.readFileSync(lf))), ix = Object.fromEntries(L.columns.map((c, i) => [c, i])); left = 0; marked = 0;
+    for (const rows of Object.values(L.players)) for (const r of rows) if (RS.PLAY_IN_DATES.has(r[ix.date])) { if (r[ix.type] === 2) left++; else if (r[ix.type] === 5) marked++; } }
+  const bf = fs.readFileSync(path.join(root, "tools", "backfill-matchups.js"), "utf8");
+  ok(first.n === 2 && again.n === 0 && fx.players.a.map((r) => r[4]).join() === "2,5,3" && fx.players.b[0][4] === 5 && (left === -1 || (left === 0 && marked === 456))
+    && /\/play\.\?in\/i\.test\(t\.name\) \? 5/.test(bf),
+    "history (0.167.0): play-in games are their own type in the past-seasons player log, in neither the regular season nor the playoffs (ESPN's logs file them as regular season; 456 rows on 16 dates were counted in last season's averages, career marks and runs against one opponent); the back-fill tool reads them that way from now on; marking twice changes nothing",
+    JSON.stringify({ first, again, left, marked }));
+}
+
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });
 const brief = (m) => [m.player, m.kind, m.stat, m.scope, m.current, m.target, m.need, m.status, m.passing?.player || ""].join(" | ");

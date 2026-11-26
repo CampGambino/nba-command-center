@@ -2,6 +2,22 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.167.0 (2026-11-25): play-in games are not regular-season games
+
+Found in 0.166.0's check against Basketball-Reference, and not left to sit. ESPN names the play-in "… Play In Regular Season", and the tool that built the past-seasons player log (`tools/backfill-matchups.js`) read that as regular season. 456 rows on 16 play-in dates (2020 to 2026) were counted wherever that file is read: last season's games and averages, career percentages, marks since 2016-17, runs against one opponent. The NBA and Basketball-Reference count play-in games in neither the regular season nor the playoffs.
+
+- **The rows are marked as their own type** (`tools/mark-play-in.mjs`, run once on `src/data/player-logs-history.json.gz`; type 5). Every reader asks for type 2 or type 3, so they are now in neither, with no reader changed. The back-fill tool reads the play-in as type 5 from now on. The dates are `PLAY_IN_DATES` (`src/situations/results.js`): add next April's three when the schedule is out.
+- The site's Streaks page was already right (its carry file leaves the play-in out), and so were team records (the scoreboard gives the play-in its own season type).
+
+**Before and after on today's files** (`scripts/situations.js`, same inputs): 12 of 595 lines change, each by one game. Checked by hand: "Domantas Sabonis has a double-double in 5 straight games against the Warriors" is 4 (the fifth was the play-in of 4/16/24); "Tyrese Maxey has 20+ points in 7 straight games against the Heat" appears (his 19 in the play-in of 4/17/24 had broken it); Shai Gilgeous-Alexander's "30+ points in 14 of his last 20 vs. MIN" is 15 (the play-in of 4/14/23 leaves the window); Brook Lopez's "more than in all of last season (3 in 76 games)" is "(3 in 75 games)", and Davion Mitchell's line of that kind changed with his count; four career percentages move a tenth; Brook Lopez's blocks since 10/25/23 are 437, not 438. The briefing's ten and five, and each game's first three lines for NBA Live, are the same. Two "largest wins in the series" lines left the page because a game shows a set number of matchup lines and a new streak line took the place (known since 0.161.0).
+
+**Checked:** tests 958 passed (1 new: no type-2 row is left on a play-in date, 456 are marked, marking twice changes nothing). 0.166.0's build finished green and the live file carries the runs with their bars.
+
+**Self-audit:**
+- The 2026 dates (4/14, 4/15, 4/17) come from the file itself: the three days after the last full slate with 31 to 47 player rows each. The earlier years are the play-in's known dates. The 2021 play-in (5/18 to 5/21) has no rows in the file at all.
+- I did not re-read every line the site writes from this file; the comparison above is today's 595 lines. Pages built from it on other days (the Records pages' "since 2016-17" marks) were not diffed.
+- The history file changes by 456 numbers but is stored compressed, so the whole file is new in git (1.6 MB).
+
 ## 0.166.0 (2026-11-25): NBA Live's streak cards on a sliding scale; one card for one run
 
 The user, 11/25, 11:25 PM, with three NBA Live cards and Basketball-Reference's list of active 10+ point runs: "image 1 and 2: why did I receive both alerts? image 3: a six game streak of 10+ points doesn't warrant an alert. that's very low level. maybe when they approach 75 or 100 straight games, but it is something that is common. … It'll be very notable if a player is close to not extending the number late in the game, maybe over 100 games. I don't know if a tracker exists … if there is, it should be the players who have a long streak on the cusp of falling short. … It's all situational, because a steak of 10+ points will be longer than a streak of 30+ point games, something that is uncommon past 5 games. sliding scale if you will". A bridge change (v36), made on that message.

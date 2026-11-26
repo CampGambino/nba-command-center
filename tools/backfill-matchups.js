@@ -9,7 +9,7 @@
  *   src/data/nba-results-history.json   every regular-season and playoff game, 2016-17 to 2025-26:
  *                                        rows [date, home, away, homeScore, awayScore, type]  (type 2 = regular, 3 = playoffs)
  *   src/data/player-logs-history.json.gz every game of every player who has played this season, same seasons:
- *                                        { players: { <espnId>: [[date, opp, home 1|0, "W"|"L", type, min, pts, reb, ast, stl, blk, fg3m, fgm, fga, fg3a, ftm, fta], …] } }
+ *                                        { players: { <espnId>: [[date, opp, home 1|0, "W"|"L", type (2 regular, 3 playoffs, 5 play-in), min, pts, reb, ast, stl, blk, fg3m, fgm, fga, fg3a, ftm, fta], …] } }
  * This season's games come from the daily box scores (docs/data/teams/*.json), so neither file changes during a season.
  *
  * Prints counts only (the Actions log is public).
@@ -110,8 +110,10 @@ async function logs() {
       seasonsRead++;
       const parsed = readGameLog(j);
       for (const t of parsed.types) {
-        const type = /post/i.test(t.name) ? 3 : /regular/i.test(t.name) ? 2 : null;
-        if (!type) continue; // preseason, play-in, All-Star
+        // 0.167.0: ESPN names the play-in "… Play In Regular Season", so it was read as regular season. It is its own
+        // type, 5 (tools/mark-play-in.mjs marked the rows already on file): in neither the regular season nor the playoffs.
+        const type = /post/i.test(t.name) ? 3 : /play.?in/i.test(t.name) ? 5 : /regular/i.test(t.name) ? 2 : null;
+        if (!type) continue; // preseason, All-Star
         for (const g of t.games) {
           const ev = j.events?.[g.id] || {};
           const opp = tri(ev.opponent?.abbreviation);
