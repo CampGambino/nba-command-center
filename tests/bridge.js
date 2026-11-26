@@ -628,9 +628,9 @@ export async function bridgeChecks(ok, root, deps = {}) {
         { name: "Big Ten", now: 164 }, { name: "Old Guard", now: 157 }, { name: "Tie Man", id: "f1", team: "AAA", live: true, now: 136, games: ["fz1"] }, { name: "Other Tie", now: 135 }, { name: "Verge Guy", id: "f4", team: "AAA", live: true, now: 156, games: [] }] },
       t15: { label: "15-15-15 games", one: "15-15-15 game", min: { pts: 15, reb: 15, ast: 15 }, rows: [{ name: "Triple Man", id: "f2", team: "AAA", live: true, now: 18, games: [] }, { name: "Oscar Old", now: 14 }] },
       lowtd: { label: "10-10 games with single-digit points", one: "10-10 game with single-digit points", min: { reb: 10, ast: 10 }, max: { pts: 9 }, rows: [{ name: "Pass First", id: "f3", team: "AAA", live: true, now: 24, games: [] }, { name: "Old Kidd", now: 25 }] } },
-      streaks: [{ id: "s1", name: "Dub Guy", team: "AAA", tests: ["dd"], label: "a double-double", n: 15, source: "notes" },
+      streaks: [{ id: "s1", name: "Dub Guy", team: "AAA", tests: ["dd"], label: "a double-double", n: 15, bar: 11, source: "box" },
         { id: "s2", name: "Three Guy", team: "AAA", tests: [{ k: "fg3m", min: 1 }], label: "a made three", n: 102, source: "list", since: "1967-68", list: [{ name: "Long One", n: 268 }, { name: "Six Man", n: 110 }, { name: "Nine Nine", n: 99 }] },
-        { id: "s3", name: "Dime Guy", team: "AAA", tests: [{ k: "ast", min: 5 }], label: "5+ assists", n: 13, source: "notes" }],
+        { id: "s3", name: "Dime Guy", team: "AAA", tests: [{ k: "ast", min: 5 }], label: "5+ assists", n: 13, bar: 10, source: "box" }],
       teamStreaks: [{ team: "AAA", kind: "ptsVs", n: 31, min: 100, opp: "BBB", label: "games with 100+ points against the Bees" }, { team: "BBB", kind: "winHolding", n: 33, max: 105, label: "wins when holding the opponent to 105 or fewer" }] };
     const Z = { pts: 0, tpm: 0, tpa: 0, reb: 0, ast: 0, stl: 0, blk: 0, dreb: 0, oreb: 0, fgm: 0, fga: 0, ftm: 0, fta: 0, to: 0, pf: 0, min: 30, starter: true };
     const P = (id, name, o) => ({ ...Z, id, name, ...o });
@@ -655,12 +655,12 @@ export async function bridgeChecks(ok, root, deps = {}) {
     const s3 = pick(r3, "cc-streak-");
     ok(s3["s2-fz1"]?.icon === "🔥 STREAK EXTENDED" && s3["s2-fz1"].text === "Three Guy (AAA) — a made three in 103 straight games, the 3rd-longest since 1967-68; Six Man's 110 is next" && !s3["s1-fz1"] && !s3["s3-fz1"],
       "bridge v29: a run on the all-time list extends the moment the line meets it, with where it now stands", JSON.stringify(s3));
-    const late = await go(gm({ period: 4, clock: "4:30" })), sl = pick(late, "cc-streak-");
+    const late = await go(gm({ period: 4, clock: "4:30" })), sl = pick(late, "cc-run-");
     ok(sl["s1-fz1"]?.icon === "⚠️ STREAK IN DANGER" && sl["s1-fz1"].text === "Dub Guy (AAA) — 3 rebounds short of a double-double for 16 straight games, 4:30 left in the 4th"
-      && sl["s3-fz1"]?.text === "Dime Guy (AAA) — 2 assists short of 5+ assists for 14 straight games, 4:30 left in the 4th",
-      "bridge v29: inside the last six minutes, a notes run he hasn't met yet is \"in danger\", saying what's missing", JSON.stringify(sl));
+      && sl["s3-fz1"]?.text === "Dime Guy (AAA) — 2 assists short of 5+ assists for 14 straight games, 4:30 left in the 4th" && !pick(r3, "cc-run-")["s1-fz1"],
+      "bridge v29 (v36: for a run at its bar): inside the last six minutes, a run he hasn't met yet is \"in danger\", saying what's missing", JSON.stringify(sl));
     const d = late.ctx.GAMES[0].boxscore.away.find((p) => p.id === "s3"); d.ast = 5; late.ctx.GAMES[0].status = "final"; late.ctx.runAlertChecks(); await flush();
-    const sf = pick(late, "cc-streak-");
+    const sf = pick(late, "cc-run-");
     ok(sf["s3-fz1"]?.icon === "🔥 STREAK EXTENDED" && sf["s3-fz1"].text === "Dime Guy (AAA) — 5+ assists in 14 straight games" && sf["s1-fz1"]?.icon === "🧊 STREAK ENDS" && /^Dub Guy \(AAA\) — his run of 15 straight games with a double-double ends \(18 pts, 7 reb, 3 ast\)$/.test(sf["s1-fz1"].text),
       "bridge v29: getting there replaces the warning; at the final an unmet run ends, with his line", JSON.stringify(sf));
     // Team runs: 100+ against that one opponent, live; a win while holding the opponent under the bar, at stake only under it.
@@ -672,6 +672,54 @@ export async function bridgeChecks(ok, root, deps = {}) {
       "bridge v29: late, trailing while holding the opponent under the bar puts the team run in danger", JSON.stringify(tl));
     const old = pick(await go(gm(), "20261108"), "cc-streak-");
     ok(!Object.keys(old).length, "bridge v29: a night the file already counts gets no streak cards", Object.keys(old).join(" "));
+    // v36 (0.166.0; the user, 11/25: "a six game streak of 10+ points doesn't warrant an alert … sliding scale if you will";
+    // "why did I receive both alerts?"): runs weighed by their bar, one card a player, none where NBA Live's own card tells it.
+    {
+      const keep = featData;
+      const T10 = [{ k: "pts", min: 10 }], T15 = [{ k: "pts", min: 15 }], T30 = [{ k: "pts", min: 30 }], R10 = [{ k: "reb", min: 10 }];
+      featData = { v: 1, today: "2026-11-09", asOf: "2026-11-07", through: "2026-11-08", boards: {}, teamStreaks: [], streaks: [
+        { id: "k1", name: "Low Guy", team: "AAA", tests: T10, label: "10+ points", n: 5, bar: 82, source: "box" },                          // Kuzma: far under the bar
+        { id: "k2", name: "Old File", team: "AAA", tests: T10, label: "10+ points", n: 5, source: "notes" },                               // an older file's notes run: no bar, no card
+        { id: "k3", name: "Long Run", team: "AAA", tests: T10, label: "10+ points", n: 346, bar: 82, start: "2021-04-25", source: "box" },   // 347 tonight: not a mark
+        { id: "k4", name: "Round Run", team: "AAA", tests: T10, label: "10+ points", n: 349, bar: 82, start: "2021-04-25", source: "box" },  // 350: a mark
+        { id: "k5", name: "Big Towns", team: "AAA", tests: ["dd"], label: "a double-double", n: 20, bar: 11, start: "2026-04-01", source: "box" },
+        { id: "k5", name: "Big Towns", team: "AAA", tests: R10, label: "10+ rebounds", n: 20, bar: 12, start: "2026-04-01", source: "box" },
+        { id: "k6", name: "Shai Guy", team: "AAA", tests: T15, label: "15+ points", n: 167, bar: 41, start: "2024-03-26", source: "box" },
+        { id: "k6", name: "Shai Guy", team: "AAA", tests: T10, label: "10+ points", n: 233, bar: 82, start: "2023-10-30", source: "box" },
+        { id: "k6", name: "Shai Guy", team: "AAA", tests: T30, label: "30+ points", n: 6, bar: 6, start: "2026-10-28", source: "box" },
+        { id: "k7", name: "Sits Out", team: "AAA", tests: T10, label: "10+ points", n: 100, bar: 82, source: "box" }] };
+      const Z2 = { pts: 0, tpm: 0, tpa: 0, reb: 0, ast: 0, stl: 0, blk: 0, dreb: 0, oreb: 0, fgm: 0, fga: 0, ftm: 0, fta: 0, to: 0, pf: 0, min: 30, starter: true };
+      const Q = (id, name, o) => ({ ...Z2, id, name, ...o });
+      const side = (o = {}) => [Q("k1", "Low Guy", { pts: 12 }), Q("k2", "Old File", { pts: 12 }), Q("k3", "Long Run", { pts: 14 }), Q("k4", "Round Run", { pts: 11 }), Q("k5", "Big Towns", { pts: 12, reb: 10, ast: 7 }),
+        Q("k6", "Shai Guy", { pts: 31, ...o.shai }), Q("k7", "Sits Out", { pts: 0, min: 0, starter: false })];
+      const g6 = (o = {}, b = {}) => [{ id: "rz1", status: "live", period: 3, clock: "6:00", away: { tricode: "AAA", score: 96 }, home: { tricode: "BBB", score: 90 }, boxscore: { away: side(b), home: [Q("h9", "Home Nine", { pts: 10 })] }, ...o }];
+      const go6 = async (games, own) => { const r = run({ games, date: "20261109", extra: own ? { runAlertChecks: function () { this.fireStory("streak-rz1-k5", { type: "streak", icon: "📊 21 STRAIGHT", text: "Big Towns (AA) — 21 straight double-doubles, dating to last season", gameId: "rz1" }); } } : {} }); await flush(); r.ctx.runAlertChecks(); await flush(); return r; };
+      const a = pick(await go6(g6()), "cc-run-"), old6 = pick(await go6(g6()), "cc-streak-");
+      ok(!a["k1-rz1"] && !a["k2-rz1"] && !old6["k2-rz1"] && !a["k3-rz1"] && !a["k7-rz1"]
+        && a["k4-rz1"]?.icon === "🔥 STREAK EXTENDED" && a["k4-rz1"].text === "Round Run (AAA) — 10+ points in 350 straight games (since 4/25/21)" && /only about 50 runs of this kind have reached 82 games/.test(a["k4-rz1"].sub)
+        && a["k5-rz1"]?.text === "Big Towns (AAA) — a double-double in 21 straight games (since 4/1/26); also 10+ rebounds in 21 straight"
+        && a["k6-rz1"]?.text === "Shai Guy (AAA) — 30+ points in 7 straight games (since 10/28/26)",
+        "bridge v36 (0.166.0): a run under its bar gets no card (10+ points in 6 straight; the bar is 82), nor does an old file's notes run with no bar; a long run is carded when it reaches a round mark (350, not 347); one card a player, the run furthest past its bar with the others after it; a player who sits is left alone",
+        JSON.stringify(Object.entries(a).map(([k, c]) => [k, c.icon, c.text])));
+      const b6 = await go6(g6(), true), bb = pick(b6, "cc-run-");
+      ok(bb["k5-rz1"]?.text === "Big Towns (AAA) — 10+ rebounds in 21 straight games (since 4/1/26)" && b6.cards.get("streak-rz1-k5")?.icon === "📊 21 STRAIGHT",
+        "bridge v36: where NBA Live's own card already tells the run (\"21 straight double-doubles\"), the bridge doesn't say it again; a different stat's run (10+ rebounds) is still his card", JSON.stringify(bb["k5-rz1"]));
+      const lateG = await go6(g6({ period: 4, clock: "4:30" }, { shai: { pts: 13 } })), lt = pick(lateG, "cc-run-");
+      ok(lt["k6-rz1"]?.icon === "⚠️ STREAK IN DANGER" && lt["k6-rz1"].text === "Shai Guy (AAA) — 2 points short of 15+ points for 168 straight games, 4:30 left in the 4th; also short of 30+ points (6 straight)",
+        "bridge v36: in the last six minutes a run at its bar that tonight's line doesn't meet is in danger: the run furthest past its bar leads (15+ points for 168 straight, 2 points short), with what else is short", JSON.stringify(lt["k6-rz1"]));
+      const sh = lateG.ctx.GAMES[0].boxscore.away.find((p) => p.id === "k6"); sh.pts = 16; lateG.ctx.runAlertChecks(); await flush();
+      const mid = pick(lateG, "cc-run-")["k6-rz1"];
+      lateG.ctx.GAMES[0].status = "final"; lateG.ctx.runAlertChecks(); await flush();
+      const fin6 = pick(lateG, "cc-run-")["k6-rz1"];
+      ok(mid?.icon === "⚠️ STREAK IN DANGER" && /^Shai Guy \(AAA\) — 14 points short of 30\+ points for 7 straight games/.test(mid.text)
+        && fin6?.icon === "🧊 STREAK ENDS" && fin6.text === "Shai Guy (AAA) — his run of 6 straight games with 30+ points (since 10/28/26) ends (16 pts, 0 reb, 0 ast)",
+        "bridge v36: once he is past 15 the warning moves to the run still short (30+ points), and at the final that run ends with his line; the 15+ and 10+ runs, extended but not at a round mark, say nothing", JSON.stringify([mid, fin6]));
+      const safe = await go6(g6({ period: 4, clock: "4:30" }, { shai: { pts: 9 } }));
+      const s9 = safe.ctx.GAMES[0].boxscore.away.find((p) => p.id === "k6"); const before9 = pick(safe, "cc-run-")["k6-rz1"]?.icon; s9.pts = 36; safe.ctx.runAlertChecks(); await flush();
+      ok(before9 === "⚠️ STREAK IN DANGER" && pick(safe, "cc-run-")["k6-rz1"]?.icon === "🔥 STREAK EXTENDED" && /30\+ points in 7 straight/.test(pick(safe, "cc-run-")["k6-rz1"].text) && /var VERSION = 36;/.test(code),
+        "bridge v36: a warning he answers is replaced by the mark he reaches (or taken down when there is none); the bridge is version 36", JSON.stringify(pick(safe, "cc-run-")["k6-rz1"]));
+      featData = keep;
+    }
     // v33 (0.142.6): games-played runs. Every 50th game or a pass on the active list gets a card; a plain game doesn't;
     // a final without him in his team's box ends it.
     featData = { v: 1, today: "2026-11-09", asOf: "2026-11-07", through: "2026-11-08", boards: {}, teamStreaks: [], streaks: [

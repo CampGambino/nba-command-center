@@ -14,10 +14,11 @@ import { strictKey } from "./guide.js";
 import { noteStreak } from "../anticipate/prep.js";
 import { TEAMS } from "../teams.js";
 import { walkStreak, appeared } from "./gpstreak.js";
+import { careerGames, longRuns, countable, testsKey, RUN_FEATS } from "./streakbars.js";
 
 const SEASON_NOW = (d) => { const y = +d.slice(0, 4), m = +d.slice(5, 7), s = m >= 8 ? y : y - 1; return `${s}-${String((s + 1) % 100).padStart(2, "0")}`; };
 
-export function buildFeatLive({ file, pg, names = {}, tonightTeams = null, notesFacts = null, games = null, gpBase = null, gpZero = null }) {
+export function buildFeatLive({ file, pg, names = {}, tonightTeams = null, notesFacts = null, games = null, gpBase = null, gpZero = null, logs = null }) {
   const problems = [];
   const through = Object.values(pg).reduce((m, gs) => (gs.length && gs[gs.length - 1].d > m ? gs[gs.length - 1].d : m), "");
   const season = through ? SEASON_NOW(through) : null;
@@ -80,23 +81,23 @@ export function buildFeatLive({ file, pg, names = {}, tonightTeams = null, notes
         since: S.since, list, last: gs[gs.length - 1].d });
     }
   }
-  // (b) The teams' game notes: a run they name that our box scores show still going, of at least their count and no longer
-  // than it plus his games since the note (or a run to start the season that is every game he has played).
-  const seen = new Set(streaks.map((s) => `${s.id}|${JSON.stringify(s.tests)}`));
-  for (const [team, facts] of Object.entries(notesFacts?.teams || {})) for (const f of facts || []) {
-    const id = f.playerId && String(f.playerId), gs = id && pg[id];
-    if (!gs || gs.length < 3) continue;
-    const st = noteStreak(f.text);
+  // (b) 0.166.0 (the user, 11/25, on "Kyle Kuzma — 10+ points in 6 straight games": "a six game streak of 10+ points
+  // doesn't warrant an alert … sliding scale if you will"): every player's runs, weighed by how rare their length is
+  // (src/records/streakbars.js: a run counts once it is as long as the 50th-longest of its kind since 2016-17). The count
+  // runs across seasons (Karl-Anthony Towns's double-doubles: 20 entering 11/25, where this season alone gave 16 and a
+  // second card beside NBA Live's own "21 straight, dating to last season"). A run a team's notes name is weighed the
+  // same way, whatever its tests; one that can't be counted in the history (starts) gets no live card. Before 0.166.0
+  // any notes run of three games was followed.
+  const seen = new Set(streaks.map((s) => `${s.id}|${testsKey(s.tests)}`));
+  const inFeats = new Set(RUN_FEATS.map((f) => testsKey(f.tests))), extra = [], unweighed = [];
+  for (const [, facts] of Object.entries(notesFacts?.teams || {})) for (const f of facts || []) {
+    const id = f.playerId && String(f.playerId), st = id && pg[id] ? noteStreak(f.text) : null;
     if (!st) continue;
-    const key = `${id}|${JSON.stringify(st.tests)}`;
-    if (seen.has(key)) continue;
-    let n = 0; for (let i = gs.length - 1; i >= 0 && streakMet(st.tests, gs[i]); i--) n++;
-    const since = f.firstSeen ? gs.filter((x) => x.d >= f.firstSeen).length : 0;
-    const wholeSeason = st.fromStart && n === gs.length;
-    if (n < 3 || n < st.n || (n > st.n + since + 1 && !wholeSeason)) continue;
-    seen.add(key);
-    streaks.push({ id, name: names[id] || f.player, team: teamOf(id) || team, tests: st.tests, label: st.label, n, source: "notes", note: f.text, ...(st.fromStart ? { fromStart: true } : {}), last: gs[gs.length - 1].d });
+    if (!countable(st.tests)) { unweighed.push(`${names[id] || f.player}: ${st.label}`); continue; }
+    extra.push({ id, tests: st.tests, label: inFeats.has(testsKey(st.tests)) ? RUN_FEATS.find((x) => testsKey(x.tests) === testsKey(st.tests)).label : st.label, note: f.text });
   }
+  const long = logs ? longRuns({ career: careerGames(logs, pg), pg, names, teamOf, extra }) : { runs: [], bars: {} };
+  for (const r of long.runs) { const key = `${r.id}|${testsKey(r.tests)}`; if (seen.has(key)) continue; seen.add(key); streaks.push({ ...r, name: names[r.id] || r.name }); }
 
   // (c) Team runs in the notes: wins over one opponent (home or not), 100+ points against one opponent, wins when holding
   // the opponent to N or fewer. The notes' count, carried on by this season's games since the date it is as of.
@@ -125,7 +126,7 @@ export function buildFeatLive({ file, pg, names = {}, tonightTeams = null, notes
   for (const r of ironman.slice(0, 12)) if (r.n >= 50 && !streaks.some((x) => x.id === r.id && x.tests.includes("play")))
     streaks.push({ id: r.id, name: names[r.id] || r.name, team: r.team, tests: ["play"], label: "a game played", n: r.n, source: "gp", rank: r.rank,
       list: ironman.slice(0, 12).filter((x) => x.id !== r.id).map((x) => ({ name: names[x.id] || x.name, n: x.n })), last: r.last });
-  return { v: 1, asOf: file.asOf, through, source: file.source, boards, pre: pre.sort((a, b) => b.score - a.score), streaks, teamStreaks, teamEnded, ironman: ironman.slice(0, 25),
+  return { v: 1, asOf: file.asOf, through, source: file.source, boards, pre: pre.sort((a, b) => b.score - a.score), streaks, bars: long.bars, unweighed, teamStreaks, teamEnded, ironman: ironman.slice(0, 25),
     // 0.146.0: every active run [espn id, games, last game], for checking the notes' own games-played lines (src/notes/facts.js)
     gpRuns: ironman.map((r) => [r.id, r.n, r.last]), problems };
 }

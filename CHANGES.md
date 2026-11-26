@@ -2,6 +2,34 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.166.0 (2026-11-25): NBA Live's streak cards on a sliding scale; one card for one run
+
+The user, 11/25, 11:25 PM, with three NBA Live cards and Basketball-Reference's list of active 10+ point runs: "image 1 and 2: why did I receive both alerts? image 3: a six game streak of 10+ points doesn't warrant an alert. that's very low level. maybe when they approach 75 or 100 straight games, but it is something that is common. … It'll be very notable if a player is close to not extending the number late in the game, maybe over 100 games. I don't know if a tracker exists … if there is, it should be the players who have a long streak on the cusp of falling short. … It's all situational, because a steak of 10+ points will be longer than a streak of 30+ point games, something that is uncommon past 5 games. sliding scale if you will". A bridge change (v36), made on that message.
+
+**Why two cards for Karl-Anthony Towns.** Two counters. "21 straight double-doubles, dating to last season" is NBA Live's own card: it counts across seasons (4 to end 2025-26, 17 this season). "a double-double in 17 straight games" was the bridge's: it followed any run a team's notes name and counted this season's box scores only. One run, two numbers, two cards.
+
+**What the tracker was.** The bridge has had "streak extended / in danger (last 6 minutes) / ends" cards since 11/21, but only for runs the notes name and for Stephen Curry's made-three run, and for any length from three games. So Kyle Kuzma's six games got a card, and Kevin Durant's 346 never would have: Houston's notes don't name it. Luka Dončić's ten straight 30-point games (10/25 to 11/17, ended with 29 on 11/18) came before the tracker existed.
+
+**What it is now** (`src/records/streakbars.js`, `src/records/featlive.js`, `src/records/featboards.js`, `docs/bridge/cc-bridge.js` v36):
+- **The scale.** A run gets a card once it is as long as the 50th-longest run of its kind in the box scores since 2016-17 (regular season, games played). That is about five runs a season league-wide, whatever the feat. On today's files: 82 games for 10+ points, 41 for 15+, 21 for 20+, 11 for 25+, 6 for 30+, 11 for a double-double, 12 for 10+ rebounds, 23 for 5+ assists, 48 for a made three, 17 for a block. The 50 is mine; it is the rank that lands on both of the user's marks ("75 or 100" for 10+ points, "uncommon past 5" for 30+).
+- **Every player, across seasons.** 23 kinds of run are counted for every player from the history file and this season's games, not only what the notes name. Tonight 26 runs are at their bar or one game from it: Durant 346 (10+ points), Shai Gilgeous-Alexander 167 (15+), 233 (10+), 12 (25+) and 6 (30+), Dončić 221 (10+) and 14 (25+), Victor Wembanyama 47 (a block), Towns 20 (a double-double; 10+ rebounds), Jayson Tatum 143, Kawhi Leonard 101, and so on. A run the notes name with other tests (Wembanyama's "a block and a steal", 6) is weighed by the same rule. Kuzma's 5 is 77 short of a card.
+- **The cards, from the bar on.** In danger in the last 6 minutes while his line is short ("2 points short of 15+ points for 168 straight games, 4:30 left in the 4th"); ends at the final; extended when the run reaches its bar or a round mark past it (every game where the bar is 12 or under, every 5th game to 39, every 25th above: Durant's next is 350). One card a player: the run furthest past its bar, any others after it.
+- **One run, one card.** NBA Live's own cards pass through the bridge; when one already tells a run for that player ("21 straight double-doubles"), the bridge says nothing about that run. A different stat's run is still his card (10+ rebounds in 21 straight: the user, earlier today, "Double double and rebounds are different stats").
+- A notes run that can't be counted in the history (a run of starts) gets no live card. Curry's made-three run, the games-played runs and the team runs are as they were.
+
+**Checked against Basketball-Reference** (`src/data/streak-check-2026-11-24.json`, the user's screenshot). The first comparison had 14 of 19 runs equal and five one game long: Durant, Leonard, Darius Garland, Tyrese Maxey and Deni Avdija, each with a play-in game inside his run. ESPN's logs, and so our history file, mark play-in games as regular season; the NBA and Basketball-Reference count them in neither. With the play-in dates left out (`PLAY_IN_DATES`, `src/situations/results.js`) all 19 counts and start dates are equal, and Curry's run is 102, as the all-time list has it.
+
+**Checked:** tests 957 passed (11 new, 3 updated: the two v29 streak tests now use runs with a bar; a three-game notes run is no longer followed). The situations build on today's files writes 26 runs with bars; the bridge, in the test harness on those shapes: no card for a run under its bar or for an old file's notes run, the round mark, one card a player, the warning moving to the next run and ending, NBA Live's own card respected. Bridge rules rebundled; the contract test accepts the new file.
+
+**Self-audit:**
+- **Play-in games are still counted as regular season everywhere else that reads the history file** (season averages for last year, career highs since 2016-17, runs against one opponent, the site's Streaks page carry). This version leaves them out only of these runs. It is a real error, found tonight, and is next (0.167.0), with its own before-and-after.
+- I have not seen NBA Live's file. That its own streak card passes through the bridge with words like "21 straight double-doubles" comes from the user's screenshot; the match is on the player's name, "straight / consecutive / in a row" and the feat's words. If NBA Live words another feat differently, both cards can show again. Not run inside NBA Live: the harness only.
+- The history file holds this season's 425 players back to 2016-17, not everyone who played in those seasons, so each bar is a little lower than the true 50th-longest. A run reaching a veteran's first game on file is marked "at least".
+- The round-mark steps (1, 5, 25) are mine. So is "one card a player".
+- Curry's made-three card still shows every game he makes one (the 11/21 rule: it names his place on the all-time list). By the new scale it would show at 125. Left alone; the user's call.
+- The bridge is live for NBA Live at once; the file with bars is written by the next build. Until then the old file's notes runs are simply not carded.
+- The site's own streak lines and tiles are not changed by this; the message was about NBA Live's cards.
+
 ## 0.165.0 (2026-11-25): no Kalshi price on the Awards page
 
 The user, 11/25, 8:56 PM: "You can remove Kalshi odds from awards page."

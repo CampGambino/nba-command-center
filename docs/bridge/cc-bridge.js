@@ -56,6 +56,17 @@
  *       Live's own QUARTER EXPLOSION card is up for a quarter, the season place and list are added to that card (its
  *       all-time list stays) and the separate season card is not fired; it shows only where NBA Live has no card.
  *       This is the one place the bridge adds to a card of NBA Live's: two fields, on its way through fireStory.
+ *     - (v36, 0.166.0; the user, 11/25, with two cards for Karl-Anthony Towns's double-doubles and one for "Kyle Kuzma —
+ *       10+ points in 6 straight games": "why did I receive both alerts?", "a six game streak of 10+ points doesn't
+ *       warrant an alert … maybe when they approach 75 or 100 straight games … very notable if a player is close to not
+ *       extending the number late in the game … sliding scale if you will") STREAKS ON A SLIDING SCALE. A run gets a
+ *       card only once it is as long as the 50th-longest run of its kind in the box scores since 2016-17 (featlive.json
+ *       gives each run its bar: 82 games for 10+ points, 41 for 15+, 21 for 20+, 6 for 30+, 11 for a double-double).
+ *       Every player's runs are followed, across seasons, not only the ones the notes name. From the bar on: "in danger"
+ *       in the last 6 minutes while tonight's line is short, "ends" at the final, and "extended" when it reaches the bar
+ *       or a round mark past it (every game where the bar is 12 or under, every 5th to 39, every 25th above). One card
+ *       a player: the run furthest past its bar, the others in the small print. Where NBA Live's own card already tells
+ *       the run ("21 straight double-doubles"), the bridge says nothing. A notes run with no bar is not carded.
  *     - (v35, 0.150.0; the user, 11/24: "you can remove the odd-line card disclaimer if there isn't any concern") the
  *       odd-line card's back no longer ends "… of games not on file": every regular-season game since 1993-94 is on file.
  *     - (v34, 0.142.7; the user, 11/23: "i dont need a javonte green alert for passing active list … they all move up one
@@ -141,7 +152,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 35;
+  var VERSION = 36;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -876,6 +887,39 @@ function streakShort(tests, l) {
 }
 const shortText = (L) => L.map(([k, m]) => say(k, m)).join(" and ");
 
+// ---- 0.166.0: a player's runs, weighed by how rare their length is (the bars are worked out by the build:
+// src/records/streakbars.js; a run: { tests, label, n, bar }) ----
+/** How often a run past its bar is worth an "extended" card: every game where the bar is low (the feat is rare), every
+ *  5th game for a middling bar, every 25th where runs are long (10+ points). Reaching the bar is always one. */
+const runStep = (bar) => (bar <= 12 ? 1 : bar < 40 ? 5 : 25);
+const runMark = (run, n1) => n1 >= run.bar && (n1 === run.bar || n1 % runStep(run.bar) === 0);
+/**
+ * What, if anything, to say about one player's runs with tonight's line: one thing, the run furthest past its bar.
+ *   fin: the game is over; late: the last minutes of a live game
+ *   -> { kind: "ends" | "danger" | "extended", run, n1, short?, also: [run] } or null
+ * "ends" and "danger" are for a run already at its bar that tonight's line doesn't meet; "extended" for a run that
+ * reaches its bar or a round mark past it tonight. A run under its bar says nothing.
+ */
+function runCard(runs, l, { fin = false, late = false } = {}) {
+  const R = (runs || []).filter((r) => r && r.bar > 0 && Number.isFinite(r.bar)), far = (a, b) => b.n / b.bar - a.n / a.bar;
+  const unmet = R.filter((r) => r.n >= r.bar && !streakMet(r.tests, l)).sort(far);
+  const marks = R.filter((r) => streakMet(r.tests, l) && runMark(r, r.n + 1)).sort(far);
+  if (fin && unmet.length) return { kind: "ends", run: unmet[0], n1: unmet[0].n, also: unmet.slice(1) };
+  if (!fin && late && unmet.length) return { kind: "danger", run: unmet[0], n1: unmet[0].n + 1, short: streakShort(unmet[0].tests, l), also: unmet.slice(1) };
+  if (marks.length) return { kind: "extended", run: marks[0], n1: marks[0].n + 1, also: marks.slice(1) };
+  return null;
+}
+/** Does another card's text already tell this run for this player ("21 straight double-doubles")? NBA Live has its own
+ *  streak cards; where it has said a run, the bridge doesn't say it again. */
+function saysRun(text, name, tests) {
+  const flat = (x) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(), t = flat(text);
+  const last = flat(name).replace(/\s+(?:jr\.?|sr\.?|ii|iii|iv)$/, "").split(" ").pop();
+  if (!last || !t.includes(last) || !/\bstraight\b|\bconsecutive\b|\bin a row\b/.test(t)) return false;
+  const WORD = { pts: "(?:points?|pts|-point)", reb: "(?:rebounds?|reb)", ast: "(?:assists?|ast)", stl: "(?:steals?|stl)", blk: "(?:blocks?|blk)", fg3m: "(?:threes?|3-?pointers?|3pm|3s)" };
+  return (tests || []).every((x) => x === "dd" ? /double-double/.test(t) : x === "td" ? /triple-double/.test(t)
+    : x && x.k && WORD[x.k] ? (x.min === 1 ? new RegExp(WORD[x.k]).test(t) : new RegExp("\\b" + x.min + "\\+?[ -]?" + WORD[x.k]).test(t)) : false);
+}
+
 /** A team streak at stake tonight? kind winVs (wins vs one opponent, home games only if home), ptsVs (points vs one
  *  opponent), winHolding (wins when holding the opponent to `max` or fewer). -> { atStake, met, ended, inDanger } */
 function teamStake(t, g) {
@@ -889,7 +933,7 @@ function teamStake(t, g) {
   }
   return { atStake: false };
 }
-    return { FEAT_STEP, FEAT_WORD, featOrd, qualifies, shortOf, LEAD_SLACK, standing, featMove, featNext, featLive, featWarnText, streakMet, streakShort, shortText, teamStake };
+    return { FEAT_STEP, FEAT_WORD, featOrd, qualifies, shortOf, LEAD_SLACK, standing, featMove, featNext, featLive, featWarnText, streakMet, streakShort, shortText, runStep, runMark, runCard, saysRun, teamStake };
   })();
   // ===== END BUNDLED RULES =====
   state.oddRules = ODD_RULES && typeof ODD_RULES.liveHits === "function" && typeof ODD_RULES.liveKind === "function" ? ODD_RULES : null;
@@ -1990,13 +2034,45 @@ function teamStake(t, g) {
     var live = game.status === "live", fin = game.status === "final", late = lateNow(game), clock = String(game.clock || "").trim();
     var per = Number(game.period) || 0, when = per >= 5 ? "overtime" : "the 4th";
     var ON_FILE = function (s) { return s.source === "list" ? "the all-time list of runs since " + (s.since || "1967-68") + " (Basketball-Reference), plus box scores since" : "a run the " + s.team + " game notes name; the count is our box scores'"; };
+    // v36: has one of NBA Live's own cards for this game already told this run for him?
+    var ownSays = function (name, tests) {
+      if (typeof R.saysRun !== "function") return false;
+      var O = state.ownRuns || {};
+      return Object.keys(O).some(function (k) { var c = O[k]; return (c.gameId == null || String(c.gameId) === String(game.id)) && R.saysRun(c.text, name, tests); });
+    };
+    // v36: every player's runs, each with its bar (source "box"): one card a player, the run furthest past its bar.
+    var mdy = function (d) { return d ? Number(d.slice(5, 7)) + "/" + Number(d.slice(8, 10)) + "/" + d.slice(2, 4) : ""; };
+    var byPlayer = {};
+    (D.streaks || []).forEach(function (s) { if (s.source === "box" && s.bar > 0 && (s.team === sides.away || s.team === sides.home)) (byPlayer[s.id] = byPlayer[s.id] || []).push(s); });
+    if (typeof R.runCard === "function") Object.keys(byPlayer).forEach(function (id) {
+      var runs = byPlayer[id], team = runs[0].team, side = team === sides.away ? "away" : "home";
+      var p = (box[side] || []).find(function (x) { return x && String(x.id) === String(id); });
+      var k = "cc-run-" + id + "-" + game.id;
+      if (!p || (p.min || 0) < 1) return;                               // a game he doesn't play leaves his runs alone
+      var l = boxLine(p), c = R.runCard(runs.filter(function (r) { return !ownSays(p.name, r.tests); }), l, { fin: fin, late: late });
+      if (!c) { if (state.keys[k]) dropCard(k); return; }       // a warning he has since answered, with no mark to say
+      var r = c.run, more = r.atLeast ? "at least " : "", since = r.start ? " (since " + mdy(r.start) + ")" : "";
+      var sub = "Command Center · regular season, box scores since 2016-17 · only about 50 runs of this kind have reached " + r.bar + " games in that time";
+      var line = " (" + l.pts + " pts, " + l.reb + " reb, " + l.ast + " ast" + (r.tests.some(function (x) { return x && x.k === "fg3m"; }) ? ", " + l.fg3m + " 3PM" : "") + (r.tests.some(function (x) { return x && x.k === "stl"; }) ? ", " + l.stl + " stl" : "") + (r.tests.some(function (x) { return x && x.k === "blk"; }) ? ", " + l.blk + " blk" : "") + ")";
+      var also = function (verb, f) { return c.also.length ? "; " + verb + " " + c.also.map(f).join(", ") : ""; };
+      if (c.kind === "extended") fire(k, { type: "streak", icon: "🔥 STREAK EXTENDED", text: p.name + " (" + team + ") — " + r.label + " in " + more + c.n1 + " straight games" + since + also("also", function (x) { return x.label + " in " + (x.n + 1) + " straight"; }),
+        sub: sub, live: live, gameId: game.id, gameTag: tag, gameScore: scr });
+      else if (c.kind === "ends") fire(k, { type: "streak", icon: "🧊 STREAK ENDS", text: p.name + " (" + team + ") — his run of " + more + r.n + " straight games with " + r.label + since + " ends" + line + also("also ends:", function (x) { return x.label + " in " + x.n + " straight"; }),
+        sub: sub, live: live, gameId: game.id, gameTag: tag, gameScore: scr });
+      else { var short = R.shortText(c.short);
+        fire(k, { type: "streak", icon: "⚠️ STREAK IN DANGER", text: p.name + " (" + team + ") — " + (short ? short + " short of " : "") + r.label + " for " + more + c.n1 + " straight games" + (clock ? ", " + clock + " left in " + when : "") + also("also short of", function (x) { return x.label + " (" + x.n + " straight)"; }),
+          sub: sub, live: true, gameId: game.id, gameTag: tag, gameScore: scr }); }
+    });
     (D.streaks || []).forEach(function (s) {
       if (s.team !== sides.away && s.team !== sides.home) return;
+      if (s.source === "box") return;                                   // v36: handled above
+      if (s.source === "notes") return;                                 // v36: a notes run with no bar (an older file's) is not carded
       var side = s.team === sides.away ? "away" : "home", team = s.team;
       var p = (box[side] || []).find(function (x) { return x && String(x.id) === String(s.id); });
       if (s.tests.length === 1 && s.tests[0] === "play") { playRun(s, p, side, team); return; }
       if (!p || ((p.min || 0) < 1 && !(p.starter && s.tests.indexOf("start") >= 0))) return;   // a game he doesn't play leaves a run alone
       var l = boxLine(p), k = "cc-streak-" + s.id + "-" + game.id, n1 = s.n + 1;
+      if (ownSays(p.name, s.tests)) { if (state.keys[k]) dropCard(k); return; }   // v36: NBA Live's own card tells it
       var met = R.streakMet(s.tests, l), startOnly = s.tests.length === 1 && s.tests[0] === "start";
       var place = "";
       if (s.source === "list" && Array.isArray(s.list)) {
@@ -2533,6 +2609,8 @@ function teamStake(t, g) {
     // v9: NBA Live's quarter card picks up the season place on its way to the screen; any failure passes it through untouched.
     var fire0 = fireStory;
     fireStory = function (key, card) {
+      // v36: remember what NBA Live's own cards say about runs ("21 straight double-doubles"), so ours don't repeat them
+      try { if (card && String(key).indexOf("cc-") !== 0 && /\bstraight\b|\bconsecutive\b|\bin a row\b/i.test(String(card.text || ""))) (state.ownRuns = state.ownRuns || {})[key] = { gameId: card.gameId, text: String(card.text) }; } catch (e) {}
       var out = card;
       try { out = decorate(key, card) || card; } catch (e) { out = card; state.decorateError = String(e && e.message || e); }
       return fire0.call(this, key, out);

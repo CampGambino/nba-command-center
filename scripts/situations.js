@@ -488,7 +488,14 @@ for (const [tri, games] of Object.entries(perTeam)) {
       const files = ffs.map((f) => JSON.parse(fs.readFileSync(path.join(root, "src", "data", f), "utf8")));
       const file = { ...files[0], boards: {}, streaks: {} };
       for (const x of files) { for (const [k, b] of Object.entries(x.boards || {})) file.boards[k] = { asOf: x.asOf, ...b }; Object.assign(file.streaks, x.streaks || {}); }
-      const F = buildFeatLive({ file, pg: playerGames(rows.filter((g) => !g.cupFinal)), names: NAMES,
+      // 0.166.0: the box scores back to 2016-17, for runs that reach past this season and for each kind of run's bar
+      let featLogs = null;
+      try { const zlib = await import("node:zlib"), { withFill } = await import("../src/situations/logfill.js");
+        const lf = path.join(root, "src", "data", "player-logs-history.json.gz"), ff2 = path.join(root, "src", "data", "player-logs-fill.json.gz");
+        featLogs = fs.existsSync(lf) ? JSON.parse(zlib.gunzipSync(fs.readFileSync(lf))) : null;
+        if (featLogs && fs.existsSync(ff2)) featLogs = withFill(featLogs, JSON.parse(zlib.gunzipSync(fs.readFileSync(ff2)))); }
+      catch (e) { warnings.push(`feat boards: the history logs could not be read (${e.message}); no runs are followed live`); }
+      const F = buildFeatLive({ file, pg: playerGames(rows.filter((g) => !g.cupFinal)), names: NAMES, logs: featLogs,
         tonightTeams: new Set((tonight || []).flatMap((g) => [g.home, g.away])), notesFacts,
         // 0.142.6: consecutive games played, last season's runs carried through this season's games (DNPs included)
         games: rows, gpBase: latestData(/^games-played-streaks-\d{4}-\d\d\.json$/), gpZero: latestData(/^zero-minute-games-\d{4}-\d\d\.json$/) });

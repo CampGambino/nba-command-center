@@ -5140,9 +5140,9 @@ await bridgeChecks(ok, root);
     notesFacts: { teams: { AAA: [{ text: "The Aces have won 11 consecutive home games against the Bees.", playerId: null, firstSeen: "2026-11-11" }, { text: "Me Player has recorded a double-double in three straight games to start the season.", playerId: "p1", firstSeen: "2026-11-11" }] } } });
   const row = out.boards.b.rows.find((r) => r.name === "Me Player");
   ok(row.now === 135 && row.base === 134 && JSON.stringify(row.games) === '["g2"]' && out.pre[0]?.line === "Me Player: his next 30-10-5 game would be his 136th, passing Tied Man (135) for 2nd all-time (2 of his 3 games this season)"
-    && out.streaks.some((s) => s.name === "Me Player" && s.n === 3 && s.source === "notes") && !out.teamStreaks.length && out.teamEnded.length === 0 && !out.problems.length
+    && !out.streaks.length && !out.teamStreaks.length && out.teamEnded.length === 0 && !out.problems.length
     && FB.teamStreakOf("The Mavericks have won 11 consecutive home games against Utah.", "DAL")?.opp === "UTA" && FB.teamStreakOf("In defeating Portland 106-105 on Nov. 17, the Wolves have now won 33 consecutive games when holding opponents to 105 points or fewer.", "MIN")?.asOf === "11-17",
-    "feat boards (0.142): the screenshot's count plus his qualifying games after its date (named, so NBA Live can't count tonight twice); a notes run the box scores confirm is followed; a team's home run over one opponent waits for a home game against it",
+    "feat boards (0.142): the screenshot's count plus his qualifying games after its date (named, so NBA Live can't count tonight twice); a three-game run the notes name is no longer followed live (0.166.0: runs are weighed by their bar); a team's home run over one opponent waits for a home game against it",
     JSON.stringify({ row, pre: out.pre, streaks: out.streaks, team: out.teamStreaks, problems: out.problems }));
   // The real file: every board's count and filter agree with our box scores this season (its own consistency check), through 11/19.
   const real = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "feat-boards-2026-11-21.json"), "utf8"));
@@ -6276,6 +6276,69 @@ await bridgeChecks(ok, root);
     && !/Award odds|stake\[k\]\}%|Kalshi award prices as of|stakeMax/.test(aw) && /\["stake", "Award"\]/.test(aw) && /no prices are shown/.test(aw),
     "awards page (0.165.0; the user, 11/25: \"You can remove Kalshi odds from awards page\"): the chips and the table name the awards a player is a candidate for (MVP at 3 or more, the others at 10 or more) and show no price; no 'Award odds' column, no price time in the header; nothing sorts by a hidden price",
     JSON.stringify([names[0](p), names[1](p)]));
+}
+
+// ---------- 0.166.0: live streak cards on a sliding scale (the user, 11/25: "a six game streak of 10+ points doesn't warrant an alert … sliding scale if you will") ----------
+{
+  const S = await import("../src/records/streakbars.js"), FL = await import("../src/records/featlive.js"), FB = await import("../src/records/featboards.js"), RS = await import("../src/situations/results.js");
+  const zlib = await import("node:zlib");
+  const cols = ["date", "opp", "home", "result", "type", "min", "pts", "reb", "ast", "stl", "blk", "fg3m"];
+  const row = (d, pts, o = {}) => [d, "XXX", 1, "W", o.type ?? 2, o.min ?? 30, pts, o.reb ?? 3, 2, 0, 0, 1];
+  // a player's games: play-in, the Cup's title game, the playoffs and a DNP are not regular-season games played
+  const logs = { columns: cols, players: {
+    a1: [row("2026-04-08", 12), row("2026-04-10", 14), row("2026-04-15", 4), row("2026-04-19", 3, { type: 3 }), row("2025-12-16", 2), row("2026-04-12", 0, { min: 0 })],
+    a2: Array.from({ length: 60 }, (_, i) => row(`2025-${String(1 + Math.floor(i / 20)).padStart(2, "0")}-${String(1 + (i % 20)).padStart(2, "0")}`, i === 9 ? 3 : 20)) } };
+  const pgA = { a1: [{ d: "2026-10-21", pts: 11, reb: 2, ast: 1 }, { d: "2026-10-23", pts: 15, reb: 2, ast: 1 }] };
+  const career = S.careerGames(logs, pgA), a1 = S.runsOf(career.a1, [{ k: "pts", min: 10 }]), a2 = S.runsOf(career.a2, [{ k: "pts", min: 10 }]);
+  ok(career.a1.length === 4 && a1.active.n === 4 && a1.active.start === "2026-04-08" && JSON.stringify(a2.lengths) === "[9,50]" && RS.PLAY_IN_DATES.has("2026-04-15") && RS.PLAY_IN_DATES.has("2022-04-12"),
+    "streak bars (0.166.0): a run is counted over regular-season games played, across seasons; a play-in game, the Cup's title game, a playoff game and a DNP are not in it (ESPN's logs file the play-in as regular season: with them in, five of Basketball-Reference's 19 active 10+ point runs were one game long)",
+    JSON.stringify([career.a1.map((g) => g.d), a1, a2.lengths]));
+  // the bar: the 50th-longest run of the kind, never under three; fewer than 50 runs on file: no bar
+  const many = { columns: cols, players: Object.fromEntries(Array.from({ length: 60 }, (_, i) => [`m${i}`, [...Array.from({ length: 5 + i }, (_, j) => row(`2025-01-${String(1 + (j % 28)).padStart(2, "0")}T${j}`, 12)), row("2025-03-01", 2)]])) };
+  const cm = S.careerGames(many, {});
+  ok(S.barOf(cm, [{ k: "pts", min: 10 }]) === 15 && S.barOf(cm, [{ k: "pts", min: 10 }], 10) === 55 && S.barOf(career, [{ k: "pts", min: 10 }]) === Infinity && S.barOf(cm, [{ k: "pts", min: 40 }]) === Infinity
+    && S.countable(["dd"]) && S.countable([{ k: "ast", min: 5 }]) && !S.countable(["start"]) && !S.countable([{ k: "pts", min: 10 }, "start"]),
+    "streak bars: the bar is the length of the 50th-longest run of the kind on file (60 runs of 5 to 64 games: 15); with fewer than 50 runs there is no bar and no card; a run of starts can't be counted in the history",
+    JSON.stringify([S.barOf(cm, [{ k: "pts", min: 10 }]), S.barOf(cm, [{ k: "pts", min: 10 }], 10)]));
+  // which run is carded, and when
+  const kd = { tests: [{ k: "pts", min: 10 }], label: "10+ points", n: 346, bar: 82 }, kz = { ...kd, n: 5 }, s15 = { tests: [{ k: "pts", min: 15 }], label: "15+ points", n: 167, bar: 41 },
+    s10 = { ...kd, n: 233 }, s30 = { tests: [{ k: "pts", min: 30 }], label: "30+ points", n: 6, bar: 6 }, at = { ...kd, n: 81 };
+  const say = (x) => (x ? `${x.kind} ${x.run.label} ${x.n1}${x.also.length ? ` +${x.also.map((r) => r.label).join("+")}` : ""}` : null);
+  const got = [say(FL.runCard([kz], { pts: 12 })), say(FL.runCard([kz], { pts: 3 }, { fin: true })), say(FL.runCard([kz], { pts: 3 }, { late: true })),
+    say(FL.runCard([kd], { pts: 12 })), say(FL.runCard([{ ...kd, n: 349 }], { pts: 12 })), say(FL.runCard([at], { pts: 10 })), say(FL.runCard([kd], { pts: 7 }, { late: true })), say(FL.runCard([kd], { pts: 7 })), say(FL.runCard([kd], { pts: 7 }, { fin: true })),
+    say(FL.runCard([s15, s10, s30], { pts: 13 }, { late: true })), say(FL.runCard([s15, s10, s30], { pts: 31 })), say(FL.runCard([s15, s10, s30], { pts: 8 }, { fin: true }))];
+  ok(JSON.stringify(got) === JSON.stringify([null, null, null, null, "extended 10+ points 350", "extended 10+ points 82", "danger 10+ points 347", null, "ends 10+ points 346",
+      "danger 15+ points 168 +30+ points", "extended 30+ points 7", "ends 15+ points 167 +10+ points+30+ points"])
+    && [6, 12, 13, 39, 40, 82].map(FL.runStep).join() === "1,1,5,5,25,25",
+    "streak cards (0.166.0): a run under its bar says nothing, whatever happens (10+ points in 6 straight; the bar is 82); a run at its bar is in danger late, ends at the final, and is \"extended\" only on reaching the bar or a round mark (every game for a bar of 12 or under, every 5th to 39, every 25th above); one thing a player, the run furthest past its bar",
+    JSON.stringify(got));
+  ok(FL.saysRun("Karl-Anthony Towns (NY) — 21 straight double-doubles, dating to last season", "Karl-Anthony Towns", ["dd"]) && !FL.saysRun("Karl-Anthony Towns (NY) — 21 straight double-doubles", "Karl-Anthony Towns", [{ k: "reb", min: 10 }])
+    && FL.saysRun("Luka Dončić — 6 straight 30-point games", "Luka Doncic", [{ k: "pts", min: 30 }]) && !FL.saysRun("Luka Dončić — 6 straight 30-point games", "Luka Dončić", [{ k: "pts", min: 25 }])
+    && !FL.saysRun("Jalen Brunson (NY) — 21 straight double-doubles", "Karl-Anthony Towns", ["dd"]) && !FL.saysRun("Karl-Anthony Towns — a double-double tonight", "Karl-Anthony Towns", ["dd"]),
+    "streak cards: another card tells the same run when it names the player, a run, and the same feat (\"21 straight double-doubles\"); a different feat, bar or player isn't the same run");
+  // the build: every player's runs with their bars, a notes run weighed like any other; without the history, none
+  const bigLogs = { columns: cols, players: { ...many.players, p1: Array.from({ length: 14 }, (_, i) => row(`2026-03-${String(1 + i).padStart(2, "0")}`, 12, { reb: 11 })) } };
+  const pgB = { p1: [{ d: "2026-11-05", gameId: "g1", team: "AAA", opp: "BBB", home: true, pts: 31, reb: 11, ast: 6, starter: 1 }, { d: "2026-11-10", gameId: "g2", team: "AAA", opp: "CCC", home: false, pts: 13, reb: 12, ast: 7, starter: 1 }] };
+  const fileB = { asOf: "2026-11-08", source: "test", boards: {}, streaks: {} };
+  const nfB = { teams: { AAA: [{ text: "Me Player has started 16 consecutive games.", playerId: "p1", firstSeen: "2026-11-11" }] } };
+  const outB = FB.buildFeatLive({ file: fileB, pg: pgB, names: { p1: "Me Player" }, notesFacts: nfB, logs: bigLogs }), none = FB.buildFeatLive({ file: fileB, pg: pgB, names: { p1: "Me Player" }, notesFacts: nfB });
+  const r10 = outB.streaks.find((s) => s.label === "10+ points");
+  ok(r10 && r10.n === 16 && r10.bar === 16 && r10.start === "2026-03-01" && r10.source === "box" && r10.team === "AAA" && outB.bars["10+ points"] === 16 && outB.bars["40+ points"] === null
+    && !outB.streaks.some((s) => s.source === "notes") && !none.streaks.length && Array.isArray(outB.unweighed),
+    "feat boards (0.166.0): the live file carries every player's runs at their bar, counted across seasons (14 games last season and 2 this one: 16), with the bar and the start; no notes run is followed unweighed; without the history on hand nothing is followed",
+    JSON.stringify([outB.streaks.map((s) => [s.label, s.n, s.bar]), outB.bars["10+ points"]]));
+  // Basketball-Reference's list of 11/24/26 against our own count, on the real files (while they hold that day)
+  const chk = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "streak-check-2026-11-24.json"), "utf8"));
+  const lf = path.join(root, "src", "data", "player-logs-history.json.gz"), td = path.join(root, "docs", "data", "teams");
+  if (fs.existsSync(lf) && fs.existsSync(td)) {
+    const real = JSON.parse(zlib.gunzipSync(fs.readFileSync(lf))), pgR = {}, nm = {};
+    for (const f of fs.readdirSync(td)) { const b = JSON.parse(fs.readFileSync(path.join(td, f), "utf8")), k = Object.fromEntries(b.keys.map((x, i) => [x, i])); Object.assign(nm, b.names);
+      for (const g of b.games) { if (g.d > chk.asOf) continue; for (const [id, l] of Object.entries(g.pl || {})) if (l[k.min] > 0) (pgR[id] ||= []).push({ d: g.d, pts: l[k.pts], reb: l[k.reb], ast: l[k.ast], stl: l[k.stl], blk: l[k.blk], fg3m: l[k.fg3m] }); } }
+    const cr = S.careerGames(real, pgR), bad = [];
+    const covers = Object.values(pgR).some((gs) => gs.some((g) => g.d === "2026-11-24"));
+    for (const [name, n, start] of chk.rows) { const id = Object.keys(nm).find((i) => nm[i] === name), a = id && cr[id] ? S.runsOf(cr[id], chk.tests).active : null; if (!a || a.n !== n || a.start !== start) bad.push(`${name}: ${n} from ${start}, ours ${a ? `${a.n} from ${a.start}` : "none"}`); }
+    ok(!covers || !bad.length, "streak bars, the real files (0.166.0): all 19 of Basketball-Reference's active 10+ point runs entering 11/25/26 (the user's screenshot: Kevin Durant 346 from 4/25/21 … Jalen Johnson 31) equal our count and start date", bad.join("; "));
+  }
 }
 
 const snapDir = path.join(root, "tests", "expected");

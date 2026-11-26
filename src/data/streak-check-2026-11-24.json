@@ -1,0 +1,29 @@
+{
+  "what": "Active runs of consecutive games with 10+ points, NBA regular season, longest first",
+  "source": "Basketball-Reference (Stathead streak finder: 'Longest streak of consecutive games, in the NBA/BAA, in the regular season, streak is active, requiring Points >= 10'); the user's screenshot of 11/25/26, the list heading into the games of Wednesday 11/25",
+  "asOf": "2026-11-24",
+  "tests": [{ "k": "pts", "min": 10 }],
+  "note": "Rank 14 on the screenshot is Paul Arizin (40, 1962-01-03 to 1962-03-11), a run still open when his career ended; not a current player, left out here. Checked 11/25/26: all 19 counts and start dates equal ours once play-in games are left out (five were one game long with them in).",
+  "columns": ["name", "n", "start", "last"],
+  "rows": [
+    ["Kevin Durant", 346, "2021-04-25", "2026-11-23"],
+    ["Shai Gilgeous-Alexander", 233, "2023-10-30", "2026-11-23"],
+    ["Luka Dončić", 221, "2023-01-30", "2026-11-23"],
+    ["Jayson Tatum", 143, "2024-01-13", "2026-11-24"],
+    ["Kawhi Leonard", 101, "2025-01-15", "2026-10-23"],
+    ["Pascal Siakam", 89, "2025-03-22", "2026-11-23"],
+    ["Austin Reaves", 82, "2025-03-08", "2026-11-11"],
+    ["Victor Wembanyama", 75, "2025-11-05", "2026-11-21"],
+    ["Nickeil Alexander-Walker", 67, "2025-12-23", "2026-11-22"],
+    ["Darius Garland", 53, "2025-12-06", "2026-11-23"],
+    ["Cooper Flagg", 47, "2026-01-19", "2026-11-24"],
+    ["Karl-Anthony Towns", 47, "2026-01-30", "2026-11-22"],
+    ["Tyrese Maxey", 44, "2026-01-27", "2026-11-23"],
+    ["Ty Jerome", 38, "2025-03-14", "2026-11-23"],
+    ["Zion Williamson", 34, "2026-03-03", "2026-11-23"],
+    ["Giannis Antetokounmpo", 34, "2025-12-27", "2026-11-18"],
+    ["Deni Avdija", 33, "2026-03-08", "2026-11-23"],
+    ["Jalen Brunson", 32, "2026-03-08", "2026-11-22"],
+    ["Jalen Johnson", 31, "2026-03-04", "2026-11-22"]
+  ]
+}

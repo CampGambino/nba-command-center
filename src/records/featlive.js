@@ -120,6 +120,39 @@ export function streakShort(tests, l) {
 }
 export const shortText = (L) => L.map(([k, m]) => say(k, m)).join(" and ");
 
+// ---- 0.166.0: a player's runs, weighed by how rare their length is (the bars are worked out by the build:
+// src/records/streakbars.js; a run: { tests, label, n, bar }) ----
+/** How often a run past its bar is worth an "extended" card: every game where the bar is low (the feat is rare), every
+ *  5th game for a middling bar, every 25th where runs are long (10+ points). Reaching the bar is always one. */
+export const runStep = (bar) => (bar <= 12 ? 1 : bar < 40 ? 5 : 25);
+export const runMark = (run, n1) => n1 >= run.bar && (n1 === run.bar || n1 % runStep(run.bar) === 0);
+/**
+ * What, if anything, to say about one player's runs with tonight's line: one thing, the run furthest past its bar.
+ *   fin: the game is over; late: the last minutes of a live game
+ *   -> { kind: "ends" | "danger" | "extended", run, n1, short?, also: [run] } or null
+ * "ends" and "danger" are for a run already at its bar that tonight's line doesn't meet; "extended" for a run that
+ * reaches its bar or a round mark past it tonight. A run under its bar says nothing.
+ */
+export function runCard(runs, l, { fin = false, late = false } = {}) {
+  const R = (runs || []).filter((r) => r && r.bar > 0 && Number.isFinite(r.bar)), far = (a, b) => b.n / b.bar - a.n / a.bar;
+  const unmet = R.filter((r) => r.n >= r.bar && !streakMet(r.tests, l)).sort(far);
+  const marks = R.filter((r) => streakMet(r.tests, l) && runMark(r, r.n + 1)).sort(far);
+  if (fin && unmet.length) return { kind: "ends", run: unmet[0], n1: unmet[0].n, also: unmet.slice(1) };
+  if (!fin && late && unmet.length) return { kind: "danger", run: unmet[0], n1: unmet[0].n + 1, short: streakShort(unmet[0].tests, l), also: unmet.slice(1) };
+  if (marks.length) return { kind: "extended", run: marks[0], n1: marks[0].n + 1, also: marks.slice(1) };
+  return null;
+}
+/** Does another card's text already tell this run for this player ("21 straight double-doubles")? NBA Live has its own
+ *  streak cards; where it has said a run, the bridge doesn't say it again. */
+export function saysRun(text, name, tests) {
+  const flat = (x) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(), t = flat(text);
+  const last = flat(name).replace(/\s+(?:jr\.?|sr\.?|ii|iii|iv)$/, "").split(" ").pop();
+  if (!last || !t.includes(last) || !/\bstraight\b|\bconsecutive\b|\bin a row\b/.test(t)) return false;
+  const WORD = { pts: "(?:points?|pts|-point)", reb: "(?:rebounds?|reb)", ast: "(?:assists?|ast)", stl: "(?:steals?|stl)", blk: "(?:blocks?|blk)", fg3m: "(?:threes?|3-?pointers?|3pm|3s)" };
+  return (tests || []).every((x) => x === "dd" ? /double-double/.test(t) : x === "td" ? /triple-double/.test(t)
+    : x && x.k && WORD[x.k] ? (x.min === 1 ? new RegExp(WORD[x.k]).test(t) : new RegExp("\\b" + x.min + "\\+?[ -]?" + WORD[x.k]).test(t)) : false);
+}
+
 /** A team streak at stake tonight? kind winVs (wins vs one opponent, home games only if home), ptsVs (points vs one
  *  opponent), winHolding (wins when holding the opponent to `max` or fewer). -> { atStake, met, ended, inDanger } */
 export function teamStake(t, g) {

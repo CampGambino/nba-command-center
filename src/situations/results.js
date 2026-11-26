@@ -38,6 +38,15 @@ export const QUARTER_DAYS = 10;
 // here. This is the second lock, by date: no other game is played on the day of the final. 2026-12-11 was confirmed by
 // the user (11/18/26) and is the one game ESPN's schedule lists that day, labelled "NBA Cup Championship".
 export const CUP_TITLE_DATES = new Set(["2023-12-09", "2024-12-17", "2025-12-16", "2026-12-11"]);
+/**
+ * 0.166.0: the play-in tournament's dates. ESPN's game logs file these games as regular season (type 2), and so does
+ * src/data/player-logs-history.json.gz; the NBA and Basketball-Reference count them in neither the regular season nor
+ * the playoffs. Found 11/25/26 against Basketball-Reference's list of active 10+ point runs: Kevin Durant, Kawhi Leonard,
+ * Darius Garland, Tyrese Maxey and Deni Avdija were each one game long, each with one play-in game inside his run. Only
+ * play-in games are played on these days. Add each April's three dates when the schedule is out.
+ */
+export const PLAY_IN_DATES = new Set(["2020-08-15", "2021-05-18", "2021-05-19", "2021-05-20", "2021-05-21", "2022-04-12", "2022-04-13", "2022-04-15", "2023-04-11", "2023-04-12", "2023-04-14",
+  "2024-04-16", "2024-04-17", "2024-04-19", "2025-04-15", "2025-04-16", "2025-04-18", "2026-04-14", "2026-04-15", "2026-04-17"]);
 export function rowFromGame(g) {
   if (!g.final || g.seasonType !== 2 || !g.homeTri || !g.awayTri) return null;
   if (CUP_TITLE_DATES.has(g.date)) return null;
