@@ -224,7 +224,11 @@ export const LINE_STAKE = 10, LINE_MVP = 3, LINE_MARGIN = 8, LINE_OUT_DAYS = 10;
 export const isCandidate = (p) => !!p.stake && ((p.stake.mvp || 0) >= LINE_MVP || AWARDS.some((k) => (p.stake[k] || 0) >= LINE_STAKE));
 const md = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}`;
 const pl = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
-export const stakeText = (p) => (p.best ? `${AWARD_LABEL[p.best]} ${p.stake[p.best]}% on Kalshi` : "");
+// 0.164.0 (the user, 11/25: "I don't think Kalshi price is needed now"): the award he is in the running for, without the
+// market's price. The prices were mostly not chances: on 11/25, 175 of the 204 award prices on file were last trades in
+// markets with no live quote (Alex Caruso's "All-Defensive 90%": bid 0, ask 100, no volume), and none of the All-NBA or
+// All-Defensive team prices was a live quote. The price still decides who is listed (isCandidate) and is on the Awards page.
+export const stakeText = (p) => (p.best ? AWARD_LABEL[p.best] : "");
 
 /** Watch List lines for tonight's teams. */
 export function eligibilityLines(file, teams, today) {

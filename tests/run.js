@@ -5251,8 +5251,8 @@ await bridgeChecks(ok, root);
   const L = eligibilityLines({ ...E, today: "2026-11-21" }, new Set(["AAA"]), "2026-11-21");
   const LX = L.find((l) => l.player === "Ex Player"), LY = L.find((l) => l.player === "Wy Player");
   const E2 = eligibility({ rows, names: { X: "Ex Player", Y: "Wy Player" }, seconds, listings, awards: { series: { KXNBADPOY: [{ name: "Ex Player", p: 9 }], KXNBAMVP: [{ name: "Wy Player", p: 2 }] } }, today: "2026-11-21", through: "2026-11-20" });
-  ok(L.length === 2 && /can miss 3 more games and stay award-eligible under the 65-game rule \(6 of his team's 20 games counted, 62 left\) · out tonight \(Left Ankle Sprain\); 2 after tonight/.test(LX.text) && /All-NBA 35% on Kalshi/.test(LX.text)
-    && /Wy Player \(MVP 5% on Kalshi\) can no longer reach 65 games: out of award eligibility since 11\/20 \(2 games counted, 62 left\); the 62-game season-ending-injury path is still open/.test(LY.text) && LY.score > LX.score - 1
+  ok(L.length === 2 && /can miss 3 more games and stay award-eligible under the 65-game rule \(6 of his team's 20 games counted, 62 left\) · out tonight \(Left Ankle Sprain\); 2 after tonight/.test(LX.text) && /^Ex Player \(All-NBA\): /.test(LX.text) && !/Kalshi/.test(LX.text)
+    && /Wy Player \(MVP\) can no longer reach 65 games: out of award eligibility since 11\/20 \(2 games counted, 62 left\); the 62-game season-ending-injury path is still open/.test(LY.text) && LY.score > LX.score - 1
     && eligibilityLines({ ...E2, today: "2026-11-21" }, new Set(["AAA"]), "2026-11-21").length === 0 && eligibilityLines({ ...E, today: "2026-11-21" }, new Set(["CCC"]), "2026-11-21").length === 0,
     "award eligibility (0.144.0): the Watch List gets a line for a player the market gives a real chance (MVP 3%+, or 10%+ elsewhere) once his margin is 8 games or fewer (with tonight's injury listing), or in the 10 days after 65 went out of reach; a 9% DPOY or 2% MVP price gets none, and nor does a team not playing", JSON.stringify(L));
   const { tonightStorylines } = await import("../src/anticipate/tonight.js");
@@ -6229,6 +6229,42 @@ await bridgeChecks(ok, root);
     && /last season's leader: Nikola Jokić, 10\.7\)$/.test(first),
     "finder (0.163.0): a bench rank counts what a player did off the bench (11/25: Julian Champagnie, 6 starts in 18, was '1st in threes' with the threes he made as a starter, and Jrue Holiday, who hasn't started, was 2nd in points where Portland's notes have him 1st); a past leader's name is spelled as this season's rosters spell it (Jokić)",
     JSON.stringify([grp, first]));
+}
+
+// ---------- 0.164.0: the user's answers of 11/25, 7:22 PM: no Kalshi price on award lines; one streak, one number ----------
+{
+  const P = await import("../src/anticipate/prep.js"), T = await import("../src/anticipate/tonight.js"), F = await import("../src/notes/facts.js"), E = await import("../src/situations/eligibility.js");
+  // an award line names the award, not the market's price
+  ok(E.stakeText({ best: "allnba", stake: { allnba: 99 } }) === "All-NBA" && E.stakeText({ best: null, stake: {} }) === "",
+    "award eligibility (0.164.0; the user: \"I don't think Kalshi price is needed now\"): an award line says the award ('Anthony Edwards (All-NBA): can miss 3 more games…'), not the market's price; 175 of the 204 award prices on file on 11/25 were last trades with no live quote");
+  // every game of the window: the run itself, past the window
+  const cols = ["date", "opp", "home", "result", "type", "min", "pts", "reb", "ast", "stl", "blk", "fg3m", "fgm", "fga", "fg3a", "ftm", "fta"];
+  const row = (d, opp, reb) => [d, opp, 1, "W", 2, 34, 28, reb, 5, 1, 1, 1, 10, 18, 3, 4, 5];
+  const vsPhi = [row("2017-01-16", "PHI", 6), ...Array.from({ length: 23 }, (_, i) => row(`20${18 + Math.floor(i / 3)}-0${(i % 3) + 1}-1${i % 3}`, "PHI", 13))];
+  const rest = Array.from({ length: 60 }, (_, i) => row(`20${17 + Math.floor(i / 8)}-1${i % 3}-${10 + (i % 15)}`, "XXX", i % 3 === 0 ? 12 : 7));
+  const pgG = { g1: [{ d: "2026-11-23", team: "MIA", opp: "QQQ", min: 34, pts: 28, reb: 7, ast: 5, stl: 1, blk: 1, fg3m: 1 }] };
+  const V = P.vsOppLines({ pg: pgG, logs: { columns: cols, players: { g1: [...vsPhi, ...rest] } }, names: { g1: "Giannis Guy" }, games: [{ away: "MIA", home: "PHI" }] });
+  const part = P.vsOppLines({ pg: pgG, logs: { columns: cols, players: { g1: [...vsPhi.slice(0, -1), row("2025-04-03", "PHI", 6), ...rest] } }, names: { g1: "Giannis Guy" }, games: [{ away: "MIA", home: "PHI" }] });
+  const run = { kind: "matchup", team: "MIA", player: "Giannis Guy", text: "Streak vs PHI · 23: Giannis Guy has a double-double in 23 straight games against the 76ers." };
+  const vline = { kind: "vsopp", team: "MIA", player: "Giannis Guy", text: V[0]?.text, every: V[0]?.every };
+  ok(/^Giannis Guy has a double-double in each of his last 23 games vs\. PHI \(/.test(V[0]?.text || "") && V[0].every.n === 23 && /a double-double in 19 of his last 20 games vs\. PHI/.test(part[0]?.text || "") && !part[0].every
+    && T.withoutSaidRuns([run, vline]).length === 1 && T.withoutSaidRuns([run, vline])[0].kind === "matchup"
+    && T.withoutSaidRuns([{ ...run, text: run.text.replace(/23/g, "21") }, vline]).length === 2 && T.withoutSaidRuns([{ ...run, text: "Streak vs PHI · 23: Giannis Guy has 30+ points in 23 straight games against the 76ers." }, vline]).length === 2
+    && T.withoutSaidRuns([run, { ...vline, player: "Other Guy" }]).length === 2 && T.withoutSaidRuns([vline]).length === 1,
+    "one run, one number (0.164.0; the user: \"the most recent, usually higher number, is most accurate\"): a feat in every one of his last 20 against tonight's opponent is said as the run itself, counted past the 20-game window ('each of his last 23', not '20 of his last 20' beside '23 straight'), and the line goes when a matchup line says the same run for him at least as long; 19 of 20 is said as before; a shorter matchup run, another feat or another player drops nothing",
+    JSON.stringify([V[0]?.text, part[0]?.text]));
+  // a season-start count under the same streak's count now
+  const box = { team: "GSW", games: Array.from({ length: 17 }, (_, i) => ({ d: `2026-11-${String(i + 1).padStart(2, "0")}`, opp: "XXX", pf: 100, pa: 90 })) };
+  const L = [{ text: "The Warriors' franchise-record home sellout streak, the fifth-longest in NBA history, is at 614 consecutive games (8 sellouts in 2026-27), regular season, play-in and playoffs.", team: true, type: "streak" },
+    { text: "Currently the Warriors have the second-longest active home sellout streak, trailing only Miami, and the fifth-longest all-time streak in NBA history.", team: true, type: "streak" },
+    { text: "Entering the 2026-27 season, the Warriors had sold out 606 consecutive home games (Miami, 683).", team: true, type: "streak" },
+    { text: "Entering the season, the Warriors had won 12 consecutive home openers.", team: true, type: "streak" },
+    { text: "Entering the 2026-27 season, Curry had made a three in 150 consecutive home games.", playerId: "1", player: "Stephen Curry" }];
+  const r = F.trimLines(L, { box, today: "2026-11-25" });
+  const far = F.trimLines([{ ...L[0], text: L[0].text.replace("614", "700") }, L[2]], { box, today: "2026-11-25" });
+  ok(r.keep.length === 4 && r.trimmed.length === 1 && r.trimmed[0].trimmed === "the count entering the season (606); the same streak is at 614 in another line" && far.trimmed.length === 0,
+    "notes (0.164.0; the user: \"Sellout streak can't be two different numbers unless it's two different stats\"): a streak's count entering the season goes when another line of the same team or player counts the same thing higher by no more than the games played since (606 entering the season, 614 now); a line with no number, another streak and a player's streak stay, and so does a count too far above to be the same streak",
+    JSON.stringify([r.keep.map((l) => l.text.slice(0, 40)), r.trimmed.map((l) => l.trimmed), far.trimmed.length]));
 }
 
 const snapDir = path.join(root, "tests", "expected");

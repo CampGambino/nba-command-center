@@ -497,7 +497,7 @@ export function vsOppLines({ pg, logs, names, games: slate, lastN = 20 }) {
     const o = opp.get(team);
     if (!name || !o) continue;
     const all = [...(L[id] || []).filter((g) => g.type === 2), ...games.map((g) => ({ ...g, type: 2 }))].sort((a, b) => a.d.localeCompare(b.d));
-    const vs = all.filter((g) => g.opp === o).slice(-lastN);
+    const allVs = all.filter((g) => g.opp === o), vs = allVs.slice(-lastN);
     if (vs.length < 6) continue;
     let best = null;
     for (const [k, label, test] of VS) {
@@ -508,10 +508,17 @@ export function vsOppLines({ pg, logs, names, games: slate, lastN = 20 }) {
       if (!best || w > best.w) best = { k, label, hit, rate, base, w };
     }
     if (!best) continue;
-    const t = sum(vs);
+    // 0.164.0 (the user, 11/25: "the most recent, usually higher number, is most accurate"): the window is his last 20
+    // games against them, so "in 20 of his last 20 vs. PHI" stood beside the matchup line's "23 straight games against
+    // the 76ers" (both right, by the box scores: Giannis Antetokounmpo's last game against Philadelphia without a
+    // double-double was 3/4/18). When every game of the window has it, the line says the run itself, counted past the
+    // window; `every` lets tonight's list drop it where a matchup line already says that run.
+    let span = vs, every = null;
+    if (best.hit === vs.length) { const test = VS.find((v) => v[0] === best.k)[2]; let n = 0; for (let i = allVs.length - 1; i >= 0 && test(allVs[i]); i--) n++; span = allVs.slice(-n); every = { label: best.label, n }; }
+    const t = sum(span);
     out.push({ kind: "vsopp", team, opp: o, player: name, id, key: `vsopp|${id}|${o}|${best.k}`,
-      text: `${name} has ${best.label} in ${best.hit} of his last ${vs.length} games vs. ${o} (${Math.round(best.base * 100)}% of all his games since 2016-17); ${r1(t.pts / t.g)} PPG, ${r1(t.reb / t.g)} RPG, ${r1(t.ast / t.g)} APG in those games`,
-      score: 2.7 + Math.min(0.9, best.w * 1.5) });
+      text: `${name} has ${best.label} in ${every ? `each of his last ${every.n}` : `${best.hit} of his last ${vs.length}`} games vs. ${o} (${Math.round(best.base * 100)}% of all his games since 2016-17); ${r1(t.pts / t.g)} PPG, ${r1(t.reb / t.g)} RPG, ${r1(t.ast / t.g)} APG in those games`,
+      ...(every ? { every } : {}), score: 2.7 + Math.min(0.9, best.w * 1.5) });
   }
   return out;
 }

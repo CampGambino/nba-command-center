@@ -1149,7 +1149,25 @@ export function trimLines(lines, { box = null, today, home = null, floor = 4, op
   // the ladder (79th -> 78th -> 77th). A place far above belongs to some other list that shares the wording.
   const topOf = (key, n) => { for (;;) { const up = (rungs.get(key) || []).filter((m) => m < n && n - m <= 5); if (!up.length) return n; n = Math.min(...up); } };
   const lower = (l) => { const r = rung(l); const top = r ? topOf(r.key, r.n) : null; return r && top < r.n ? `an earlier place on the same list (${ordinal(r.n)}; he is ${ordinal(top)} now)` : null; };
-  for (const l of lines) { const why = older(l) || lower(l) || trimReason(l, { box, today, home, opp }); (why ? trimmed : keep).push(why ? { ...l, trimmed: why } : l); }
+  // 0.164.0 (the user, 11/25: "Sellout streak can't be two different numbers unless it's two different stats"): the
+  // Warriors' notes give the home sellout streak twice, "Entering the 2026-27 season, the Warriors had sold out 606
+  // consecutive home games" and "…is at 614 consecutive games (8 sellouts in 2026-27)". One streak at two points in time:
+  // the count now is the line. A count said as of the season's start goes when another line of the same owner counts
+  // the same thing higher by no more than the games played since (the box scores' count; a few more allowed for the
+  // preseason and play-in the notes may count).
+  const startCount = (l) => { const t = plain(l.text); if (l.streakNow || !/\b(?:entering|coming into|heading into|prior to|before|at the start of) (?:the |this )?(?:\d{4}-\d{2} )?(?:season|campaign)\b/i.test(t)) return null; const m = /\b(\d{1,4}) (?:consecutive|straight)\b/.exec(t); return m ? +m[1] : null; };
+  const nowCount = (l) => { const t = plain(l.text); const m = /\b(\d{1,4}) (?:consecutive|straight)\b/.exec(t) || /\bstreak\b[^.;]{0,60}?\b(?:at|to|reached|stands at) (\d{1,4})\b/i.exec(t); return m ? +m[1] : null; };
+  const GENERIC = new Set("the a an of in at is are was were had has have and with to for their his its on by as that this it from consecutive straight game games streak streaks season seasons campaign entering currently regular".split(" "));
+  const subject = (l) => new Set(plain(l.text).toLowerCase().replace(/\bsold[- ]out\b|\bsell[- ]?outs?\b/g, "sellout").replace(/[^a-z ]+/g, " ").split(/\s+/).filter((w) => w.length > 2 && !GENERIC.has(w)).map((w) => w.replace(/s$/, "")));
+  const played = (box?.games || []).length;
+  const passed = (l) => {
+    const n = startCount(l); if (n == null) return null;
+    const mine = subject(l);
+    const now = lines.filter((o) => o !== l && (o.playerId || null) === (l.playerId || null) && startCount(o) == null).map((o) => ({ m: nowCount(o), shared: [...subject(o)].filter((w) => mine.has(w)).length }))
+      .filter((x) => x.m != null && x.m > n && x.m <= n + played + 8 && x.shared >= 2).sort((a, b) => b.m - a.m)[0];
+    return now ? `the count entering the season (${n}); the same streak is at ${now.m} in another line` : null;
+  };
+  for (const l of lines) { const why = older(l) || lower(l) || passed(l) || trimReason(l, { box, today, home, opp }); (why ? trimmed : keep).push(why ? { ...l, trimmed: why } : l); }
   // The same fact told twice, once with its date and once without ("Wilson is the first rookie in Bulls history to…"):
   // when the dated telling is a past one-off, so is the other.
   const firstName = (l) => (l.player || "").split(" ").slice(-1)[0];

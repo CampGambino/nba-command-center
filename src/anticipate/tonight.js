@@ -653,7 +653,14 @@ function prepStoryLines(prep, teams, games, today) {
   const opp = new Map();
   for (const g of games) { opp.set(g.away, g.home); opp.set(g.home, g.away); }
   return prep.lines.filter((l) => PREP_KINDS.has(l.kind) && teams.has(l.team) && (l.kind !== "vsopp" || opp.get(l.team) === l.opp))
-    .map((l) => ({ team: l.team, player: l.player, kind: l.kind, text: l.text, score: l.score, key: l.key, rare: !!l.rare, ...(l.standing ? { standing: true } : {}) }));
+    .map((l) => ({ team: l.team, player: l.player, kind: l.kind, text: l.text, score: l.score, key: l.key, rare: !!l.rare, ...(l.standing ? { standing: true } : {}), ...(l.every ? { every: l.every } : {}) }));
+}
+/** 0.164.0: one run, said once. A line that he has had it in each of his last N games against tonight's opponent goes
+ *  when a matchup line says the same run for the same player at least as long ("…a double-double in 23 straight games
+ *  against the 76ers"): the higher, current count is the one kept. */
+export function withoutSaidRuns(lines) {
+  const runs = lines.filter((l) => l.kind === "matchup" && l.player).map((l) => ({ player: l.player, m: / has (.+?) in (\d+) straight games against /.exec(l.text) })).filter((x) => x.m);
+  return lines.filter((l) => !(l.kind === "vsopp" && l.every && runs.some((r) => r.player === l.player && r.m[1] === l.every.label && +r.m[2] >= l.every.n)));
 }
 
 /**
@@ -708,7 +715,8 @@ export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries =
   const hist = historyLines(facts, teams, watch.today).filter((h) => !recs.some((r) => r.player && r.passing && r.team === h.team
     && new RegExp(`\\b${surname(r.player)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
     && r.passing.split(" and ").some((n) => new RegExp(`\\b${surname(n)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, "")))));
-  const others = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams).filter((l) => !clubLines(leaders, teams).some((c) => c.player === l.player)), ...clubLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today), ...tvLines(national, teams, watch.today), ...restLines(rest, teams, watch.today), ...formLines(form, teams, watch.today), ...foulLines(fouls, teams), ...earlyLines(fouls, teams, watch.today), ...fourthLines(fouls, teams), ...lastTwoLines(fouls, teams), ...shotLines(fouls, teams, watch.today, prep?.stars || null), ...flowTeamLines(fouls, teams, watch.today), ...seededLines(fouls, teams), ...prepStoryLines(prep, teams, games, watch.today), ...cupLines(records, teams, watch.today), ...featLines(featlive, teams, watch.today)]
+  const others0 = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams).filter((l) => !clubLines(leaders, teams).some((c) => c.player === l.player)), ...clubLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today), ...tvLines(national, teams, watch.today), ...restLines(rest, teams, watch.today), ...formLines(form, teams, watch.today), ...foulLines(fouls, teams), ...earlyLines(fouls, teams, watch.today), ...fourthLines(fouls, teams), ...lastTwoLines(fouls, teams), ...shotLines(fouls, teams, watch.today, prep?.stars || null), ...flowTeamLines(fouls, teams, watch.today), ...seededLines(fouls, teams), ...prepStoryLines(prep, teams, games, watch.today), ...cupLines(records, teams, watch.today), ...featLines(featlive, teams, watch.today)];
+  const others = withoutSaidRuns(others0)
     .flatMap((l) => {
       const st = l.player ? listed.get(`${l.team}|${nameKey(l.player)}`) : null;
       if (st === "Out" || st === "Doubtful") return [];
