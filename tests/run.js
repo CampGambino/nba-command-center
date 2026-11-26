@@ -6323,9 +6323,9 @@ await bridgeChecks(ok, root);
   const nfB = { teams: { AAA: [{ text: "Me Player has started 16 consecutive games.", playerId: "p1", firstSeen: "2026-11-11" }] } };
   const outB = FB.buildFeatLive({ file: fileB, pg: pgB, names: { p1: "Me Player" }, notesFacts: nfB, logs: bigLogs }), none = FB.buildFeatLive({ file: fileB, pg: pgB, names: { p1: "Me Player" }, notesFacts: nfB });
   const r10 = outB.streaks.find((s) => s.label === "10+ points");
-  ok(r10 && r10.n === 16 && r10.bar === 16 && r10.start === "2026-03-01" && r10.source === "box" && r10.team === "AAA" && outB.bars["10+ points"] === 16 && outB.bars["40+ points"] === null
+  ok(r10 && r10.n === 16 && r10.bar === 8 && r10.everyGame && r10.start === "2026-03-01" && r10.source === "box" && r10.team === "AAA" && outB.bars["10+ points"] === 16 && outB.bars["40+ points"] === null
     && !outB.streaks.some((s) => s.source === "notes") && !none.streaks.length && Array.isArray(outB.unweighed),
-    "feat boards (0.166.0): the live file carries every player's runs at their bar, counted across seasons (14 games last season and 2 this one: 16), with the bar and the start; no notes run is followed unweighed; without the history on hand nothing is followed",
+    "feat boards (0.166.0; 0.168.0: the league's longest 10+ run has half the bar): the live file carries every player's runs at their bar, counted across seasons (14 games last season and 2 this one: 16), with the bar and the start; no notes run is followed unweighed; without the history on hand nothing is followed",
     JSON.stringify([outB.streaks.map((s) => [s.label, s.n, s.bar]), outB.bars["10+ points"]]));
   // Basketball-Reference's list of 11/24/26 against our own count, on the real files (while they hold that day)
   const chk = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "streak-check-2026-11-24.json"), "utf8"));
@@ -6355,6 +6355,42 @@ await bridgeChecks(ok, root);
     && /\/play\.\?in\/i\.test\(t\.name\) \? 5/.test(bf),
     "history (0.167.0): play-in games are their own type in the past-seasons player log, in neither the regular season nor the playoffs (ESPN's logs file them as regular season; 456 rows on 16 dates were counted in last season's averages, career marks and runs against one opponent); the back-fill tool reads them that way from now on; marking twice changes nothing",
     JSON.stringify({ first, again, left, marked }));
+}
+
+// ---------- 0.168.0: the user's answers on the streak scale (11/26): their bars, the leaders every game, one streak card a player; a pass says its place ----------
+{
+  const S = await import("../src/records/streakbars.js"), FL = await import("../src/records/featlive.js"), IM = await import("../src/anticipate/importance.js"), NT = await import("../src/records/notable.js");
+  const cols = ["date", "opp", "home", "result", "type", "min", "pts", "reb", "ast", "stl", "blk", "fg3m"];
+  const row = (d, pts, fg3m = 0) => [d, "XXX", 1, "W", 2, 30, pts, 3, 2, 0, 0, fg3m];
+  const day = (i) => `2025-${String(1 + Math.floor(i / 28)).padStart(2, "0")}-${String(1 + (i % 28)).padStart(2, "0")}`;
+  // 60 retired-style runs of 10+ points (5 to 64 games, each ended) set the bar at 15; three players are active
+  const players = Object.fromEntries(Array.from({ length: 60 }, (_, i) => [`m${i}`, [...Array.from({ length: 5 + i }, (_, j) => row(day(j), 12)), row("2025-12-30", 2)]]));
+  players.kd = Array.from({ length: 40 }, (_, j) => row(day(j), 22, 1)); players.sg = Array.from({ length: 30 }, (_, j) => row(day(j), 21, 1)); players.cu = Array.from({ length: 49 }, (_, j) => row(day(j), 8, 1));
+  const pg = { kd: [{ d: "2026-11-01", pts: 25, reb: 3, ast: 2, fg3m: 1 }], sg: [{ d: "2026-11-01", pts: 24, reb: 3, ast: 2, fg3m: 1 }], cu: [{ d: "2026-11-01", pts: 9, reb: 3, ast: 2, fg3m: 2 }] };
+  const R = S.longRuns({ career: S.careerGames({ columns: cols, players }, pg), pg, names: { kd: "Kay Dee", sg: "Ess Gee", cu: "See Three" }, teamOf: () => "AAA" });
+  const get = (id, label) => R.runs.find((r) => r.id === id && r.label === label);
+  ok(R.bars["a made three"] === 50 && R.bars["a double-double"] === 10 && R.bars["30+ points"] === 5 && R.bars["10+ points"] === 17
+    && get("kd", "10+ points")?.leader && get("kd", "10+ points").everyGame && get("kd", "10+ points").bar === 9 && !get("kd", "10+ points").tied
+    && get("sg", "10+ points")?.bar === 17 && !get("sg", "10+ points").leader && !get("sg", "10+ points").everyGame
+    && get("cu", "a made three")?.n === 50 && get("cu", "a made three").leader && !get("cu", "a made three").everyGame
+    && R.leaders["10+ points"].n === 41 && R.leaders["10+ points"].names.join() === "Kay Dee" && R.leaders["a made three"].names.join() === "See Three",
+    "streak bars (0.168.0; the user, 11/26): a made three starts at 50, a double-double at 10, 30+ points at 5 (the user's bars; the others stay the 50th-longest); the longest active run of 10+ points (and of 20+) is marked for a card every game, from half the kind's bar; the second-longest is not, and the leader of another kind is named but not marked",
+    JSON.stringify([R.bars["a made three"], R.bars["10+ points"], R.runs.map((r) => [r.id, r.label, r.n, r.leader || false, r.everyGame || false]), R.leaders["10+ points"]]));
+  const kd = { tests: [{ k: "pts", min: 10 }], label: "10+ points", n: 346, bar: 82 }, s25 = { tests: [{ k: "pts", min: 25 }], label: "25+ points", n: 12, bar: 11 }, s15 = { tests: [{ k: "pts", min: 15 }], label: "15+ points", n: 174, bar: 41 };
+  const say = (x) => (x ? `${x.kind} ${x.run.label} ${x.n1}` : null);
+  ok(say(FL.runCard([kd], { pts: 12 })) === null && say(FL.runCard([{ ...kd, everyGame: true }], { pts: 12 })) === "extended 10+ points 347"
+    && say(FL.runCard([s25], { pts: 31 })) === "extended 25+ points 13" && say(FL.runCard([s25], { pts: 31 }, { quiet: true })) === null
+    && say(FL.runCard([s25, s15], { pts: 31 }, { quiet: true })) === "extended 15+ points 175" && say(FL.runCard([{ ...kd, everyGame: true }], { pts: 12 }, { quiet: true })) === "extended 10+ points 347"
+    && say(FL.runCard([s25], { pts: 20 }, { quiet: true, late: true })) === "danger 25+ points 13" && say(FL.runCard([s25], { pts: 20 }, { quiet: true, fin: true })) === "ends 25+ points 12"
+    && FL.saysAnyRun("Shai Gilgeous-Alexander (OKC) — 7 straight 30-point games", "Shai Gilgeous-Alexander") && !FL.saysAnyRun("Shai Gilgeous-Alexander (OKC) — 32 points tonight", "Shai Gilgeous-Alexander") && !FL.saysAnyRun("Chet Holmgren (OKC) — 7 straight games with a block", "Shai Gilgeous-Alexander"),
+    "streak cards (0.168.0; the user, 11/26, with \"25+ points in 13 straight games\" beside NBA Live's \"7 straight 30-point games\": \"why two alerts?\"): while NBA Live's own streak card is up for a player, an every-game \"extended\" card of ours is not added; a long run's round mark, the league leader's card, \"in danger\" and \"ends\" still are; the leader's run is a mark every game");
+  // a pass carries its place when the notes say it in words
+  const m = { kind: "pass", scope: "franchise", stat: "fg3m", passing: { player: "P.J. Washington Jr.", forWhat: "seventh-most in franchise history" } };
+  const wsrc = fs.readFileSync(path.join(root, "src", "anticipate", "watch.js"), "utf8");
+  ok(IM.passPlace(m) === 7 && IM.passPlace({ ...m, passing: { player: "X", rank: "3rd" } }) === 3 && IM.passPlace({ ...m, passing: { player: "X", forWhat: "the franchise lead" } }) === null
+    && NT.isMinorPass({ ...m, passing: { ...m.passing, rank: IM.passPlace(m) } }) && !NT.isMinorPass(m) && !NT.isMinorPass({ ...m, passing: { player: "X", rank: 3 } })
+    && /rank: m\.passing\.rank \?\? \(m\.kind === "pass" \? passPlace\(m\) : null\)/.test(wsrc) && /isMinorPass\(\{ kind: m\.kind, scope: m\.scope, stat: m\.stat, passing \}\)/.test(wsrc),
+    "watch list (0.168.0; the user, 11/26, on \"Brandon Miller — passes P.J. Washington Jr. in franchise history (3-pointers)\": \"shouldn't this tell me what place is being passed?\"): a pass whose place the notes give in words (\"for seventh-most in franchise history\") carries the place, so a card can say it, and the rule for which places get a card (franchise: top 3) applies: 7th is a line in the full list, not an NBA Live card; with no place it had slipped through");
 }
 
 const snapDir = path.join(root, "tests", "expected");

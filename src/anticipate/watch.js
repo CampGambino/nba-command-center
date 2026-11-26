@@ -1,7 +1,7 @@
 import { isMinorPass, isSiteOnlyPass } from "../records/notable.js";
 import { trackMilestones } from "../registry/track.js";
 import { makeSampler, simulate } from "./model.js";
-import { importance } from "./importance.js";
+import { importance, passPlace } from "./importance.js";
 import { sameName } from "../notes/names.js";
 
 /**
@@ -187,17 +187,22 @@ export async function buildWatch({ team, notesDate, milestones, espn, today, sim
     const t = m.tracking || {};
     const imp = importance(m);
     const live = t.status !== "off-roster";
+    // 0.168.0 (the user, 11/26, on "Brandon Miller — passes P.J. Washington Jr. in franchise history (3-pointers)":
+    // "shouldn't this tell me what place is being passed?"): the Hornets' notes say "for seventh-most in franchise
+    // history"; the place was kept as words only, so the card couldn't say it and the rule for which places get a card
+    // (franchise: top 3) never saw it. The place is read from the words when no rank is printed.
+    const passing = m.passing ? { player: m.passing.player, total: m.passing.total, rank: m.passing.rank ?? (m.kind === "pass" ? passPlace(m) : null), forWhat: m.passing.forWhat } : null;
     return {
       team: m.team, player: t.espnName || m.player, notesName: m.player, espnId: t.espnId || null, nbaId: t.nbaId || null, origin: m.origin || "notes", stat: m.stat, label: m.label, kind: m.kind, scope: m.scope,
       target: t.target ?? m.target, current: t.current ?? m.current, need: t.need ?? m.need,
-      passing: m.passing ? { player: m.passing.player, total: m.passing.total, rank: m.passing.rank, forWhat: m.passing.forWhat } : null,
+      passing,
       ...(m.qualifier ? { qualifier: m.qualifier } : {}),   // 0.142.3: a subset list ("by a teen"); its label says so
       importance: imp.score, why: imp.reasons,
       status: m.status, checks: m.checks || [], tracking: t.status || null,
       publishable: live && m.status === "ok" && t.status !== "disagrees",
       source: m.sources?.[0]?.text || null,
-      ...(isMinorPass({ kind: m.kind, scope: m.scope, stat: m.stat, passing: m.passing }) ? { minor: true } : {}),   // 0.64
-      ...(isSiteOnlyPass({ kind: m.kind, scope: m.scope, stat: m.stat, passing: m.passing }) ? { siteOnly: true } : {}),   // 0.142: points 51st-100th
+      ...(isMinorPass({ kind: m.kind, scope: m.scope, stat: m.stat, passing }) ? { minor: true } : {}),   // 0.64
+      ...(isSiteOnlyPass({ kind: m.kind, scope: m.scope, stat: m.stat, passing }) ? { siteOnly: true } : {}),   // 0.142: points 51st-100th
     };
   }
 }

@@ -56,6 +56,15 @@
  *       Live's own QUARTER EXPLOSION card is up for a quarter, the season place and list are added to that card (its
  *       all-time list stays) and the separate season card is not fired; it shows only where NBA Live has no card.
  *       This is the one place the bridge adds to a card of NBA Live's: two fields, on its way through fireStory.
+ *     - (v37, 0.168.0; the user, 11/26, with "25+ points in 13 straight games" beside NBA Live's own "7 straight 30-point
+ *       games": "why two alerts? and the explainer text in the top alert isn't needed"; "the leaders for 20+ points and
+ *       10+ points should get updated when they extend the streak"; "made three streak can start at 50. double-double
+ *       at 10. 30+ points at 5 and each game after"; "Keep curry at each game") STREAKS: while one of NBA Live's own
+ *       streak cards is up for a player in a game, the bridge adds no every-game "extended" card for him (a round mark
+ *       of a long run, the league leader's card, "in danger" and "ends" still show). The league's longest active run of
+ *       10+ points and of 20+ points is carded every game it grows, from half the kind's bar, and says it is the longest
+ *       active run. The bars for a made three (50), a double-double (10) and 30+ points (5) are the user's. The card's small
+ *       print is "Command Center" and no more.
  *     - (v36, 0.166.0; the user, 11/25, with two cards for Karl-Anthony Towns's double-doubles and one for "Kyle Kuzma —
  *       10+ points in 6 straight games": "why did I receive both alerts?", "a six game streak of 10+ points doesn't
  *       warrant an alert … maybe when they approach 75 or 100 straight games … very notable if a player is close to not
@@ -152,7 +161,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 36;
+  var VERSION = 37;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -892,7 +901,8 @@ const shortText = (L) => L.map(([k, m]) => say(k, m)).join(" and ");
 /** How often a run past its bar is worth an "extended" card: every game where the bar is low (the feat is rare), every
  *  5th game for a middling bar, every 25th where runs are long (10+ points). Reaching the bar is always one. */
 const runStep = (bar) => (bar <= 12 ? 1 : bar < 40 ? 5 : 25);
-const runMark = (run, n1) => n1 >= run.bar && (n1 === run.bar || n1 % runStep(run.bar) === 0);
+// 0.168.0: a run marked everyGame (the league's longest active run of 10+ or 20+ points) is a mark every game.
+const runMark = (run, n1) => n1 >= run.bar && (n1 === run.bar || !!run.everyGame || n1 % runStep(run.bar) === 0);
 /**
  * What, if anything, to say about one player's runs with tonight's line: one thing, the run furthest past its bar.
  *   fin: the game is over; late: the last minutes of a live game
@@ -900,14 +910,23 @@ const runMark = (run, n1) => n1 >= run.bar && (n1 === run.bar || n1 % runStep(ru
  * "ends" and "danger" are for a run already at its bar that tonight's line doesn't meet; "extended" for a run that
  * reaches its bar or a round mark past it tonight. A run under its bar says nothing.
  */
-function runCard(runs, l, { fin = false, late = false } = {}) {
+function runCard(runs, l, { fin = false, late = false, quiet = false } = {}) {
   const R = (runs || []).filter((r) => r && r.bar > 0 && Number.isFinite(r.bar)), far = (a, b) => b.n / b.bar - a.n / a.bar;
   const unmet = R.filter((r) => r.n >= r.bar && !streakMet(r.tests, l)).sort(far);
-  const marks = R.filter((r) => streakMet(r.tests, l) && runMark(r, r.n + 1)).sort(far);
+  // quiet (0.168.0; the user, 11/26, with "25+ points in 13 straight games" beside NBA Live's own "7 straight 30-point
+  // games": "why two alerts?"): NBA Live already has a streak card up for him tonight, so an every-game "extended" card
+  // of ours is not added to it. A round mark of a long run and the league leader's card are rare enough to keep.
+  const marks = R.filter((r) => streakMet(r.tests, l) && runMark(r, r.n + 1) && (!quiet || r.everyGame || runStep(r.bar) > 1)).sort(far);
   if (fin && unmet.length) return { kind: "ends", run: unmet[0], n1: unmet[0].n, also: unmet.slice(1) };
   if (!fin && late && unmet.length) return { kind: "danger", run: unmet[0], n1: unmet[0].n + 1, short: streakShort(unmet[0].tests, l), also: unmet.slice(1) };
   if (marks.length) return { kind: "extended", run: marks[0], n1: marks[0].n + 1, also: marks.slice(1) };
   return null;
+}
+/** Does another card tell a run, any run, for this player? */
+function saysAnyRun(text, name) {
+  const flat = (x) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(), t = flat(text);
+  const last = flat(name).replace(/\s+(?:jr\.?|sr\.?|ii|iii|iv)$/, "").split(" ").pop();
+  return !!last && t.includes(last) && /\bstraight\b|\bconsecutive\b|\bin a row\b/.test(t);
 }
 /** Does another card's text already tell this run for this player ("21 straight double-doubles")? NBA Live has its own
  *  streak cards; where it has said a run, the bridge doesn't say it again. */
@@ -933,7 +952,7 @@ function teamStake(t, g) {
   }
   return { atStake: false };
 }
-    return { FEAT_STEP, FEAT_WORD, featOrd, qualifies, shortOf, LEAD_SLACK, standing, featMove, featNext, featLive, featWarnText, streakMet, streakShort, shortText, runStep, runMark, runCard, saysRun, teamStake };
+    return { FEAT_STEP, FEAT_WORD, featOrd, qualifies, shortOf, LEAD_SLACK, standing, featMove, featNext, featLive, featWarnText, streakMet, streakShort, shortText, runStep, runMark, runCard, saysAnyRun, saysRun, teamStake };
   })();
   // ===== END BUNDLED RULES =====
   state.oddRules = ODD_RULES && typeof ODD_RULES.liveHits === "function" && typeof ODD_RULES.liveKind === "function" ? ODD_RULES : null;
@@ -2049,13 +2068,16 @@ function teamStake(t, g) {
       var p = (box[side] || []).find(function (x) { return x && String(x.id) === String(id); });
       var k = "cc-run-" + id + "-" + game.id;
       if (!p || (p.min || 0) < 1) return;                               // a game he doesn't play leaves his runs alone
-      var l = boxLine(p), c = R.runCard(runs.filter(function (r) { return !ownSays(p.name, r.tests); }), l, { fin: fin, late: late });
+      // v37: with one of NBA Live's own streak cards up for him tonight, no every-game "extended" card is added to it
+      var O2 = state.ownRuns || {}, quiet = typeof R.saysAnyRun === "function" && Object.keys(O2).some(function (kk) { var cc = O2[kk]; return (cc.gameId == null || String(cc.gameId) === String(game.id)) && R.saysAnyRun(cc.text, p.name); });
+      var l = boxLine(p), c = R.runCard(runs.filter(function (r) { return !ownSays(p.name, r.tests); }), l, { fin: fin, late: late, quiet: quiet });
       if (!c) { if (state.keys[k]) dropCard(k); return; }       // a warning he has since answered, with no mark to say
       var r = c.run, more = r.atLeast ? "at least " : "", since = r.start ? " (since " + mdy(r.start) + ")" : "";
-      var sub = "Command Center · regular season, box scores since 2016-17 · only about 50 runs of this kind have reached " + r.bar + " games in that time";
+      var sub = "Command Center";                                       // v37 (the user, 11/26): "the explainer text … isn't needed"
+      var lead = r.leader && r.everyGame ? (r.tied ? ", tied for the longest active run in the NBA" : ", the longest active run in the NBA") : "";
       var line = " (" + l.pts + " pts, " + l.reb + " reb, " + l.ast + " ast" + (r.tests.some(function (x) { return x && x.k === "fg3m"; }) ? ", " + l.fg3m + " 3PM" : "") + (r.tests.some(function (x) { return x && x.k === "stl"; }) ? ", " + l.stl + " stl" : "") + (r.tests.some(function (x) { return x && x.k === "blk"; }) ? ", " + l.blk + " blk" : "") + ")";
       var also = function (verb, f) { return c.also.length ? "; " + verb + " " + c.also.map(f).join(", ") : ""; };
-      if (c.kind === "extended") fire(k, { type: "streak", icon: "🔥 STREAK EXTENDED", text: p.name + " (" + team + ") — " + r.label + " in " + more + c.n1 + " straight games" + since + also("also", function (x) { return x.label + " in " + (x.n + 1) + " straight"; }),
+      if (c.kind === "extended") fire(k, { type: "streak", icon: "🔥 STREAK EXTENDED", text: p.name + " (" + team + ") — " + r.label + " in " + more + c.n1 + " straight games" + since + lead + also("also", function (x) { return x.label + " in " + (x.n + 1) + " straight"; }),
         sub: sub, live: live, gameId: game.id, gameTag: tag, gameScore: scr });
       else if (c.kind === "ends") fire(k, { type: "streak", icon: "🧊 STREAK ENDS", text: p.name + " (" + team + ") — his run of " + more + r.n + " straight games with " + r.label + since + " ends" + line + also("also ends:", function (x) { return x.label + " in " + x.n + " straight"; }),
         sub: sub, live: live, gameId: game.id, gameTag: tag, gameScore: scr });

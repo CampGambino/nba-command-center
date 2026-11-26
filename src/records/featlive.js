@@ -125,7 +125,8 @@ export const shortText = (L) => L.map(([k, m]) => say(k, m)).join(" and ");
 /** How often a run past its bar is worth an "extended" card: every game where the bar is low (the feat is rare), every
  *  5th game for a middling bar, every 25th where runs are long (10+ points). Reaching the bar is always one. */
 export const runStep = (bar) => (bar <= 12 ? 1 : bar < 40 ? 5 : 25);
-export const runMark = (run, n1) => n1 >= run.bar && (n1 === run.bar || n1 % runStep(run.bar) === 0);
+// 0.168.0: a run marked everyGame (the league's longest active run of 10+ or 20+ points) is a mark every game.
+export const runMark = (run, n1) => n1 >= run.bar && (n1 === run.bar || !!run.everyGame || n1 % runStep(run.bar) === 0);
 /**
  * What, if anything, to say about one player's runs with tonight's line: one thing, the run furthest past its bar.
  *   fin: the game is over; late: the last minutes of a live game
@@ -133,14 +134,23 @@ export const runMark = (run, n1) => n1 >= run.bar && (n1 === run.bar || n1 % run
  * "ends" and "danger" are for a run already at its bar that tonight's line doesn't meet; "extended" for a run that
  * reaches its bar or a round mark past it tonight. A run under its bar says nothing.
  */
-export function runCard(runs, l, { fin = false, late = false } = {}) {
+export function runCard(runs, l, { fin = false, late = false, quiet = false } = {}) {
   const R = (runs || []).filter((r) => r && r.bar > 0 && Number.isFinite(r.bar)), far = (a, b) => b.n / b.bar - a.n / a.bar;
   const unmet = R.filter((r) => r.n >= r.bar && !streakMet(r.tests, l)).sort(far);
-  const marks = R.filter((r) => streakMet(r.tests, l) && runMark(r, r.n + 1)).sort(far);
+  // quiet (0.168.0; the user, 11/26, with "25+ points in 13 straight games" beside NBA Live's own "7 straight 30-point
+  // games": "why two alerts?"): NBA Live already has a streak card up for him tonight, so an every-game "extended" card
+  // of ours is not added to it. A round mark of a long run and the league leader's card are rare enough to keep.
+  const marks = R.filter((r) => streakMet(r.tests, l) && runMark(r, r.n + 1) && (!quiet || r.everyGame || runStep(r.bar) > 1)).sort(far);
   if (fin && unmet.length) return { kind: "ends", run: unmet[0], n1: unmet[0].n, also: unmet.slice(1) };
   if (!fin && late && unmet.length) return { kind: "danger", run: unmet[0], n1: unmet[0].n + 1, short: streakShort(unmet[0].tests, l), also: unmet.slice(1) };
   if (marks.length) return { kind: "extended", run: marks[0], n1: marks[0].n + 1, also: marks.slice(1) };
   return null;
+}
+/** Does another card tell a run, any run, for this player? */
+export function saysAnyRun(text, name) {
+  const flat = (x) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(), t = flat(text);
+  const last = flat(name).replace(/\s+(?:jr\.?|sr\.?|ii|iii|iv)$/, "").split(" ").pop();
+  return !!last && t.includes(last) && /\bstraight\b|\bconsecutive\b|\bin a row\b/.test(t);
 }
 /** Does another card's text already tell this run for this player ("21 straight double-doubles")? NBA Live has its own
  *  streak cards; where it has said a run, the bridge doesn't say it again. */

@@ -96,7 +96,7 @@ export function buildFeatLive({ file, pg, names = {}, tonightTeams = null, notes
     if (!countable(st.tests)) { unweighed.push(`${names[id] || f.player}: ${st.label}`); continue; }
     extra.push({ id, tests: st.tests, label: inFeats.has(testsKey(st.tests)) ? RUN_FEATS.find((x) => testsKey(x.tests) === testsKey(st.tests)).label : st.label, note: f.text });
   }
-  const long = logs ? longRuns({ career: careerGames(logs, pg), pg, names, teamOf, extra }) : { runs: [], bars: {} };
+  const long = logs ? longRuns({ career: careerGames(logs, pg), pg, names, teamOf, extra }) : { runs: [], bars: {}, leaders: {} };
   for (const r of long.runs) { const key = `${r.id}|${testsKey(r.tests)}`; if (seen.has(key)) continue; seen.add(key); streaks.push({ ...r, name: names[r.id] || r.name }); }
 
   // (c) Team runs in the notes: wins over one opponent (home or not), 100+ points against one opponent, wins when holding
@@ -126,7 +126,7 @@ export function buildFeatLive({ file, pg, names = {}, tonightTeams = null, notes
   for (const r of ironman.slice(0, 12)) if (r.n >= 50 && !streaks.some((x) => x.id === r.id && x.tests.includes("play")))
     streaks.push({ id: r.id, name: names[r.id] || r.name, team: r.team, tests: ["play"], label: "a game played", n: r.n, source: "gp", rank: r.rank,
       list: ironman.slice(0, 12).filter((x) => x.id !== r.id).map((x) => ({ name: names[x.id] || x.name, n: x.n })), last: r.last });
-  return { v: 1, asOf: file.asOf, through, source: file.source, boards, pre: pre.sort((a, b) => b.score - a.score), streaks, bars: long.bars, unweighed, teamStreaks, teamEnded, ironman: ironman.slice(0, 25),
+  return { v: 1, asOf: file.asOf, through, source: file.source, boards, pre: pre.sort((a, b) => b.score - a.score), streaks, bars: long.bars, leaders: long.leaders, unweighed, teamStreaks, teamEnded, ironman: ironman.slice(0, 25),
     // 0.146.0: every active run [espn id, games, last game], for checking the notes' own games-played lines (src/notes/facts.js)
     gpRuns: ironman.map((r) => [r.id, r.n, r.last]), problems };
 }

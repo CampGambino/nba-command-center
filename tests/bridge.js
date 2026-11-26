@@ -696,14 +696,14 @@ export async function bridgeChecks(ok, root, deps = {}) {
       const go6 = async (games, own) => { const r = run({ games, date: "20261109", extra: own ? { runAlertChecks: function () { this.fireStory("streak-rz1-k5", { type: "streak", icon: "📊 21 STRAIGHT", text: "Big Towns (AA) — 21 straight double-doubles, dating to last season", gameId: "rz1" }); } } : {} }); await flush(); r.ctx.runAlertChecks(); await flush(); return r; };
       const a = pick(await go6(g6()), "cc-run-"), old6 = pick(await go6(g6()), "cc-streak-");
       ok(!a["k1-rz1"] && !a["k2-rz1"] && !old6["k2-rz1"] && !a["k3-rz1"] && !a["k7-rz1"]
-        && a["k4-rz1"]?.icon === "🔥 STREAK EXTENDED" && a["k4-rz1"].text === "Round Run (AAA) — 10+ points in 350 straight games (since 4/25/21)" && /only about 50 runs of this kind have reached 82 games/.test(a["k4-rz1"].sub)
+        && a["k4-rz1"]?.icon === "🔥 STREAK EXTENDED" && a["k4-rz1"].text === "Round Run (AAA) — 10+ points in 350 straight games (since 4/25/21)" && a["k4-rz1"].sub === "Command Center"
         && a["k5-rz1"]?.text === "Big Towns (AAA) — a double-double in 21 straight games (since 4/1/26); also 10+ rebounds in 21 straight"
         && a["k6-rz1"]?.text === "Shai Guy (AAA) — 30+ points in 7 straight games (since 10/28/26)",
         "bridge v36 (0.166.0): a run under its bar gets no card (10+ points in 6 straight; the bar is 82), nor does an old file's notes run with no bar; a long run is carded when it reaches a round mark (350, not 347); one card a player, the run furthest past its bar with the others after it; a player who sits is left alone",
         JSON.stringify(Object.entries(a).map(([k, c]) => [k, c.icon, c.text])));
       const b6 = await go6(g6(), true), bb = pick(b6, "cc-run-");
-      ok(bb["k5-rz1"]?.text === "Big Towns (AAA) — 10+ rebounds in 21 straight games (since 4/1/26)" && b6.cards.get("streak-rz1-k5")?.icon === "📊 21 STRAIGHT",
-        "bridge v36: where NBA Live's own card already tells the run (\"21 straight double-doubles\"), the bridge doesn't say it again; a different stat's run (10+ rebounds) is still his card", JSON.stringify(bb["k5-rz1"]));
+      ok(!bb["k5-rz1"] && b6.cards.get("streak-rz1-k5")?.icon === "📊 21 STRAIGHT" && bb["k4-rz1"] && bb["k6-rz1"],
+        "bridge v36, v37: where NBA Live's own streak card is up for a player (\"21 straight double-doubles\"), the bridge doesn't say that run again, and (v37; the user, 11/26: \"why two alerts?\") adds no every-game card for another of his runs either; other players' cards are untouched", JSON.stringify(bb["k5-rz1"] || null));
       const lateG = await go6(g6({ period: 4, clock: "4:30" }, { shai: { pts: 13 } })), lt = pick(lateG, "cc-run-");
       ok(lt["k6-rz1"]?.icon === "⚠️ STREAK IN DANGER" && lt["k6-rz1"].text === "Shai Guy (AAA) — 2 points short of 15+ points for 168 straight games, 4:30 left in the 4th; also short of 30+ points (6 straight)",
         "bridge v36: in the last six minutes a run at its bar that tonight's line doesn't meet is in danger: the run furthest past its bar leads (15+ points for 168 straight, 2 points short), with what else is short", JSON.stringify(lt["k6-rz1"]));
@@ -716,8 +716,36 @@ export async function bridgeChecks(ok, root, deps = {}) {
         "bridge v36: once he is past 15 the warning moves to the run still short (30+ points), and at the final that run ends with his line; the 15+ and 10+ runs, extended but not at a round mark, say nothing", JSON.stringify([mid, fin6]));
       const safe = await go6(g6({ period: 4, clock: "4:30" }, { shai: { pts: 9 } }));
       const s9 = safe.ctx.GAMES[0].boxscore.away.find((p) => p.id === "k6"); const before9 = pick(safe, "cc-run-")["k6-rz1"]?.icon; s9.pts = 36; safe.ctx.runAlertChecks(); await flush();
-      ok(before9 === "⚠️ STREAK IN DANGER" && pick(safe, "cc-run-")["k6-rz1"]?.icon === "🔥 STREAK EXTENDED" && /30\+ points in 7 straight/.test(pick(safe, "cc-run-")["k6-rz1"].text) && /var VERSION = 36;/.test(code),
-        "bridge v36: a warning he answers is replaced by the mark he reaches (or taken down when there is none); the bridge is version 36", JSON.stringify(pick(safe, "cc-run-")["k6-rz1"]));
+      ok(before9 === "⚠️ STREAK IN DANGER" && pick(safe, "cc-run-")["k6-rz1"]?.icon === "🔥 STREAK EXTENDED" && /30\+ points in 7 straight/.test(pick(safe, "cc-run-")["k6-rz1"].text) && /var VERSION = 3[7-9];/.test(code),
+        "bridge v36: a warning he answers is replaced by the mark he reaches (or taken down when there is none)", JSON.stringify(pick(safe, "cc-run-")["k6-rz1"]));
+      // v37 (0.168.0): the league leader in 10+ and 20+ points every game; NBA Live's own card up: only a leader's card or a long run's round mark is added
+      featData = { v: 1, today: "2026-11-09", asOf: "2026-11-07", through: "2026-11-08", boards: {}, teamStreaks: [], streaks: [
+        { id: "k3", name: "Long Run", team: "AAA", tests: T10, label: "10+ points", n: 346, bar: 82, start: "2021-04-25", source: "box", leader: true, everyGame: true },
+        { id: "k4", name: "Second Run", team: "AAA", tests: T10, label: "10+ points", n: 233, bar: 82, start: "2023-10-30", source: "box" },
+        { id: "k6", name: "Shai Guy", team: "AAA", tests: [{ k: "pts", min: 25 }], label: "25+ points", n: 12, bar: 11, start: "2026-10-31", source: "box" },
+        { id: "k6", name: "Shai Guy", team: "AAA", tests: T30, label: "30+ points", n: 6, bar: 5, start: "2026-10-28", source: "box" },
+        { id: "k6", name: "Shai Guy", team: "AAA", tests: T15, label: "15+ points", n: 174, bar: 41, start: "2024-03-26", source: "box" }] };
+      const go7 = async (games, own) => { const r = run({ games, date: "20261109", extra: own ? { runAlertChecks: function () { this.fireStory("streak-rz1-k6", { type: "streak", icon: "🔥 7 STRAIGHT", text: "Shai Guy (AA) — 7 straight 30-point games", gameId: "rz1" }); } } : {} }); await flush(); r.ctx.runAlertChecks(); await flush(); return r; };
+      const v7 = pick(await go7(g6()), "cc-run-"), v7own = pick(await go7(g6(), true), "cc-run-");
+      const v7low = pick(await go7(g6({}, { shai: { pts: 32 } }).map((g) => ({ ...g, boxscore: { ...g.boxscore, away: g.boxscore.away.map((p) => (p.id === "k6" ? { ...p, pts: 32 } : p)) } })), true), "cc-run-");
+      ok(v7["k3-rz1"]?.text === "Long Run (AAA) — 10+ points in 347 straight games (since 4/25/21), the longest active run in the NBA" && v7["k3-rz1"].sub === "Command Center" && !v7["k4-rz1"]
+        && v7["k6-rz1"]?.text === "Shai Guy (AAA) — 15+ points in 175 straight games (since 3/26/24); also 30+ points in 7 straight, 25+ points in 13 straight"
+        && v7own["k6-rz1"]?.text === "Shai Guy (AAA) — 15+ points in 175 straight games (since 3/26/24)" && v7own["k3-rz1"],
+        "bridge v37 (0.168.0; the user, 11/26): the league's longest active run of 10+ points is carded every game it grows and says so (347), the second-longest only at round marks; the small print is \"Command Center\"; with NBA Live's own \"7 straight 30-point games\" up, his every-game 25+ card is not added, while a long run's round mark (15+ points, 175) still is",
+        JSON.stringify([v7["k3-rz1"]?.text, v7["k6-rz1"]?.text, v7own["k6-rz1"]?.text, Object.keys(v7low)]));
+      // the made-three run on the all-time list (Stephen Curry's): every game, and in danger late while he has none
+      { const keep7 = featData.streaks;
+        featData.streaks = [{ id: "k3", name: "Long Run", team: "AAA", tests: [{ k: "fg3m", min: 1 }], label: "a made three", n: 102, source: "list", since: "1967-68", list: [{ name: "Long One", n: 268 }, { name: "Six Man", n: 110 }] }];
+        const cold = await go7(g6({ period: 4, clock: "3:10" })), c1 = pick(cold, "cc-streak-")["k3-rz1"];
+        const tg = cold.ctx.GAMES[0].boxscore.away.find((p) => p.id === "k3"); tg.tpm = 1; cold.ctx.runAlertChecks(); await flush();
+        const c2 = pick(cold, "cc-streak-")["k3-rz1"];
+        ok(c1?.icon === "⚠️ STREAK IN DANGER" && c1.text === "Long Run (AAA) — 1 three short of a made three for 103 straight games, 3:10 left in the 4th" && c2?.icon === "🔥 STREAK EXTENDED" && /^Long Run \(AAA\) — a made three in 103 straight games, the 3rd-longest since 1967-68/.test(c2.text),
+          "bridge v37 (the user, 11/26: \"Keep curry at each game … does curry get one if he is close to not extending the streak?\"): the made-three run on the all-time list is carded every game he makes one, and in the last six minutes without one it is \"in danger\"", JSON.stringify([c1, c2?.text]));
+        featData.streaks = keep7; }
+      featData.streaks = featData.streaks.filter((x) => x.label !== "15+ points");
+      const v7q = pick(await go7(g6(), true), "cc-run-"), v7n = pick(await go7(g6()), "cc-run-");
+      ok(!v7q["k6-rz1"] && v7n["k6-rz1"]?.text === "Shai Guy (AAA) — 30+ points in 7 straight games (since 10/28/26); also 25+ points in 13 straight",
+        "bridge v37: \"25+ points in 13 straight\" beside NBA Live's \"7 straight 30-point games\" (the user's two cards of 11/25) is one card now: NBA Live's; without NBA Live's card the bridge's one card leads with the 30+ run", JSON.stringify([v7q["k6-rz1"] || null, v7n["k6-rz1"]?.text]));
       featData = keep;
     }
     // v33 (0.142.6): games-played runs. Every 50th game or a pass on the active list gets a card; a plain game doesn't;

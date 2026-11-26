@@ -35,6 +35,19 @@ export const RUN_FEATS = [
   { tests: [T("stl", 1)], label: "a steal" }, ...[2, 3].map((n) => ({ tests: [T("stl", n)], label: `${n}+ steals` })),
 ];
 export const testsKey = (tests) => JSON.stringify(tests);
+/**
+ * 0.168.0 (the user, 11/26, on the scale: "your numbers seem fine … I think made three streak can start at 50.
+ * double-double at 10. 30+ points at 5 and each game after since it rarely gets past 14"): bars the user set, in place
+ * of the 50th-longest (which gave 48, 11 and 6).
+ */
+export const BAR_SET = { [testsKey([T("fg3m", 1)])]: 50, [testsKey(["dd"])]: 10, [testsKey([T("pts", 30)])]: 5 };
+/**
+ * 0.168.0 (the user, 11/26: "the leaders for 20+ points and 10+ points should get updated when they extend the streak"):
+ * for these kinds the longest active run in the league is carded every game it is extended, not only at round marks.
+ * The leader's bar is half the kind's (11 games for 20+ points, 41 for 10+): on 11/26 the 20+ leaders were at 16, five
+ * short of 21, and would have had no card to update. The half is mine. A tie has two leaders.
+ */
+export const LEADER_EVERY_GAME = new Set([testsKey([T("pts", 10)]), testsKey([T("pts", 20)])]);
 /** Can this run be counted in the history on file? (Starts aren't in it.) */
 export const countable = (tests) => (tests || []).length > 0 && tests.every((x) => x === "dd" || x === "td" || (x && x.k && ["pts", "reb", "ast", "stl", "blk", "fg3m"].includes(x.k)));
 
@@ -77,26 +90,34 @@ export function barOf(career, tests, rank = BAR_RANK) {
  * The runs still going that are at their bar, or one game from it.
  *   career: careerGames(); pg: this season's games (a run is followed only for a player who has played this season)
  *   extra: [{ tests, label, id, note? }] runs a team's notes name, for tests outside RUN_FEATS
- *   -> { runs: [{ id, name, team, tests, label, n, bar, start, source: "box", atLeast?, note? }], bars: { label: bar } }
+ *   -> { runs: [{ id, name, team, tests, label, n, bar, start, source: "box", leader?, everyGame?, atLeast?, note? }],
+ *        bars: { label: bar }, leaders: { label: { n, names } } }
  */
 export function longRuns({ career, pg = {}, names = {}, teamOf = () => null, extra = [] }) {
   const feats = [...RUN_FEATS], keys = new Set(feats.map((f) => testsKey(f.tests)));
   for (const x of extra) if (countable(x.tests) && !keys.has(testsKey(x.tests))) { keys.add(testsKey(x.tests)); feats.push({ tests: x.tests, label: x.label, only: new Set(extra.filter((y) => testsKey(y.tests) === testsKey(x.tests)).map((y) => String(y.id))) }); }
   const noteOf = (id, tests) => extra.find((x) => String(x.id) === String(id) && testsKey(x.tests) === testsKey(tests))?.note || null;
   const runs = [], bars = {};
+  const leaders = {};
   for (const f of feats) {
-    const bar = barOf(career, f.tests);
+    const key = testsKey(f.tests), bar = BAR_SET[key] ?? barOf(career, f.tests);
     bars[f.label] = Number.isFinite(bar) ? bar : null;
     if (!Number.isFinite(bar)) continue;
-    for (const id of Object.keys(pg)) {
+    // every active run of the kind among this season's players: the longest is the leader (a tie has two)
+    const active = [];
+    for (const id of Object.keys(pg)) { const gs = career[id]; if (!gs || !gs.length) continue; const a = runsOf(gs, f.tests).active; if (a) active.push({ id, gs, a }); }
+    const top = active.reduce((m, x) => Math.max(m, x.a.n), 0);
+    if (!f.only && top) leaders[f.label] = { n: top, names: active.filter((x) => x.a.n === top).map((x) => names[x.id] || String(x.id)) };
+    const tied = active.filter((x) => x.a.n === top).length > 1;
+    for (const { id, gs, a } of active) {
       if (f.only && !f.only.has(String(id))) continue;
-      const gs = career[id]; if (!gs || !gs.length) continue;
-      const a = runsOf(gs, f.tests).active;
-      if (!a || a.n + 1 < bar) continue;
-      const note = noteOf(id, f.tests);
-      runs.push({ id: String(id), name: names[id] || String(id), team: teamOf(id), tests: f.tests, label: f.label, n: a.n, bar, start: a.start, source: "box",
+      const note = noteOf(id, f.tests), leader = !f.only && a.n === top, every = leader && LEADER_EVERY_GAME.has(key);
+      const myBar = every ? Math.min(bar, Math.ceil(bar / 2)) : bar;
+      if (a.n + 1 < myBar) continue;
+      runs.push({ id: String(id), name: names[id] || String(id), team: teamOf(id), tests: f.tests, label: f.label, n: a.n, bar: myBar, start: a.start, source: "box",
+        ...(leader ? { leader: true, ...(tied ? { tied: true } : {}) } : {}), ...(every ? { everyGame: true } : {}),
         ...(a.fromFirst && a.start < "2017-01-01" ? { atLeast: true } : {}), ...(note ? { note } : {}), last: gs[gs.length - 1].d });
     }
   }
-  return { runs: runs.sort((a, b) => b.n / b.bar - a.n / a.bar), bars };
+  return { runs: runs.sort((a, b) => b.n / b.bar - a.n / a.bar), bars, leaders };
 }

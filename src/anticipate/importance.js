@@ -40,6 +40,10 @@ const LANDMARKS = {
 const ORDINALS = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth",
   "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth", "sixteenth", "seventeenth", "eighteenth", "nineteenth", "twentieth"];
 
+/** 0.168.0: the place a pass is for, as a number, or null: the passed player's printed rank, or the place the notes say
+ *  in words ("for seventh-most in franchise history"). The Watch List item carries it, so a card can say it and the
+ *  rule for which places get a card can see it. */
+export function passPlace(m) { const n = rankOf(m); return Number.isFinite(n) && n > 0 ? n : null; }
 /** Rank the player moves into: the passed player's printed rank, or "seventh-most" / "10th" in a sentence. */
 function rankOf(m) {
   if (m.passing?.rank != null) {
