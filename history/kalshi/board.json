@@ -611,7 +611,7 @@
   "KXNBACONF-27": "Western Conference 61%",
   "KXNBACLUTCH-27": "Stephen Curry 10%",
   "KXNBASIXTH-27": "Jrue Holiday 33%",
-  "KXNBAMVP-27": "Victor Wembanyama 55%",
+  "KXNBAMVP-27": "Victor Wembanyama 54%",
   "KXNBAFINMVP-27": "Victor Wembanyama 22%",
   "KXNBACUP-26": "San Antonio 22%",
   "KXNBASOUTHEAST-26": "Miami 51%",
@@ -623,9 +623,9 @@
   "KXNBARECORD-27WORST": "Sacramento 38%",
   "KXNBAPACIFIC-26": "Los Angeles L 82%",
   "KXNBAWEST1SEED-26": "San Antonio 55%",
-  "KXNBAWEST-27": "San Antonio 35%",
-  "KXNBANORTHWEST-26": "Minnesota 33%",
-  "KXNBACOY-27": "Micah Nori 23%",
+  "KXNBAWEST-27": "San Antonio 36%",
+  "KXNBANORTHWEST-26": "Minnesota 32%",
+  "KXNBACOY-27": "Micah Nori 17%",
   "KXNBAWFINMVP-27": "Shai Gilgeous-Alexander 20%",
   "KXNBAEAST1SEED-26": "Boston 28%",
   "KXNBAMIMP-27": "Ty Jerome 34%",
@@ -633,6 +633,6 @@
   "KXNBASOUTHWEST-26": "San Antonio 75%",
   "KXNBAATLANTIC-26": "Boston 37%",
   "KXNBAEFINMVP-27": "Tyrese Maxey 20%",
-  "KXNBACUPMVP-27": "Victor Wembanyama 21%"
+  "KXNBACUPMVP-27": "Victor Wembanyama 20%"
  }
 }
