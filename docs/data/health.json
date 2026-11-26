@@ -1,1 +1,1 @@
-{"at":"2026-11-26T04:57:53.015Z","today":"2026-11-25","steps":[{"step":"tonight","ok":true,"sec":262},{"step":"situations","ok":true,"sec":71},{"step":"flow","ok":true,"sec":1},{"step":"fetch-rotations","ok":true,"sec":49},{"step":"lineups","ok":true,"sec":1}]}
+{"at":"2026-11-26T06:00:31.886Z","today":"2026-11-26","steps":[{"step":"tonight","ok":true,"sec":1},{"step":"situations","ok":true,"sec":72},{"step":"flow","ok":true,"sec":6},{"step":"fetch-rotations","ok":true,"sec":49},{"step":"lineups","ok":true,"sec":1}]}
