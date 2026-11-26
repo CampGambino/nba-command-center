@@ -107,8 +107,8 @@
   },
   "KXNBASPREAD": {
    "title": "NBA Spread",
-   "events": 10,
-   "markets": 330
+   "events": 11,
+   "markets": 363
   },
   "KXNBA3RDTEAM": {
    "title": "All-NBA 3rd Team",
@@ -142,8 +142,8 @@
   },
   "KXNBAWINMARGIN": {
    "title": "NBA Win Margin",
-   "events": 10,
-   "markets": 80
+   "events": 11,
+   "markets": 88
   },
   "KXNBACENTRAL": {
    "title": "Pro Basketball Central Division Winner",
@@ -352,8 +352,8 @@
   },
   "KXNBATEAMTOTAL": {
    "title": "NBA Team Total",
-   "events": 5,
-   "markets": 190
+   "events": 11,
+   "markets": 418
   },
   "KXNBAFRANCHISEOWNER": {
    "title": "NBA Franchise Owner",
@@ -562,8 +562,8 @@
   },
   "KXNBATOTAL": {
    "title": "NBA Total",
-   "events": 10,
-   "markets": 290
+   "events": 11,
+   "markets": 319
   },
   "KXNBACONF": {
    "title": "NBA Conference to Win the Championship",
@@ -614,25 +614,25 @@
   "KXNBANORTHWEST-26": "Minnesota 33%",
   "KXNBAMVP-27": "Victor Wembanyama 54%",
   "KXNBAWFINMVP-27": "Shai Gilgeous-Alexander 20%",
-  "KXNBADPOY-27": "Victor Wembanyama 79%",
   "KXNBACENTRAL-26": "Detroit 68%",
-  "KXNBACOY-27": "Micah Nori 18%",
+  "KXNBADPOY-27": "Victor Wembanyama 79%",
+  "KXNBACOY-27": "Micah Nori 20%",
+  "KXNBACUPMVP-27": "Victor Wembanyama 24%",
   "KXNBA-27": "San Antonio 23%",
-  "KXNBARECORD-27BEST": "San Antonio 39%",
+  "KXNBARECORD-27BEST": "San Antonio 37%",
   "KXNBARECORD-27WORST": "Sacramento 38%",
-  "KXNBACUPMVP-27": "Victor Wembanyama 22%",
   "KXNBAEFINMVP-27": "Tyrese Maxey 20%",
-  "KXNBAEAST1SEED-26": "Boston 29%",
-  "KXNBASIXTH-27": "Jrue Holiday 34%",
+  "KXNBAEAST1SEED-26": "Boston 27%",
   "KXNBACLUTCH-27": "Stephen Curry 10%",
+  "KXNBASIXTH-27": "Jrue Holiday 36%",
   "KXNBAATLANTIC-26": "Boston 39%",
   "KXNBASOUTHEAST-26": "Miami 51%",
   "KXNBAWEST-27": "San Antonio 36%",
-  "KXNBAWEST1SEED-26": "San Antonio 51%",
   "KXNBAROY-27": "Darius Acuff Jr. 34%",
+  "KXNBAWEST1SEED-26": "San Antonio 51%",
+  "KXNBAPACIFIC-26": "Los Angeles L 82%",
   "KXNBAFINMVP-27": "Victor Wembanyama 22%",
   "KXNBACONF-27": "Western Conference 61%",
-  "KXNBAPACIFIC-26": "Los Angeles L 82%",
   "KXNBACUP-26": "Boston 20%"
  }
 }
