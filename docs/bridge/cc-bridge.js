@@ -56,6 +56,9 @@
  *       Live's own QUARTER EXPLOSION card is up for a quarter, the season place and list are added to that card (its
  *       all-time list stays) and the separate season card is not fired; it shows only where NBA Live has no card.
  *       This is the one place the bridge adds to a card of NBA Live's: two fields, on its way through fireStory.
+ *     - (v38, 0.169.0; the user, 11/26: "Top 5 for franchise should work") a pass on a franchise list gets a card to
+ *       5th place in points, rebounds, assists, steals, blocks and threes (it was 3rd); other stats stay at the top 2.
+ *       The card names the place: "passes P.J. Washington Jr. (#5) in franchise history".
  *     - (v37, 0.168.0; the user, 11/26, with "25+ points in 13 straight games" beside NBA Live's own "7 straight 30-point
  *       games": "why two alerts? and the explainer text in the top alert isn't needed"; "the leaders for 20+ points and
  *       10+ points should get updated when they extend the streak"; "made three streak can start at 50. double-double
@@ -161,7 +164,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 37;
+  var VERSION = 38;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -1235,8 +1238,8 @@ function teamStake(t, g) {
     });
   }
   /* 0.61 (the user, 11/13: "consider player, team, new placement, and stat… scale back"): a pass gets a card only for a
-     place worth saying. NBA Cup: top 2. Franchise: top 3 in points, rebounds, assists, steals, blocks, threes; top 2 in
-     anything else. All-time: top 25 in those six, top 10 in anything else. Round numbers are left to the cadence. */
+     place worth saying. NBA Cup: top 2. Franchise: top 5 in points, rebounds, assists, steals, blocks, threes (v38, the
+     user, 11/26: "Top 5 for franchise should work"; it was top 3); top 2 in anything else. All-time: top 25 in those six, top 10 in anything else. Round numbers are left to the cadence. */
   var MAJOR = { pts: 1, reb: 1, ast: 1, stl: 1, blk: 1, fg3m: 1 };
   // v11: the night's big names (tonight.json `stars`, from the prep stats' prominence). No list: no exceptions.
   function bigName(name) { var S = state.tonight && state.tonight.stars; return !!(S && S[name] != null); }
@@ -1246,7 +1249,7 @@ function teamStake(t, g) {
     if (!place) return true;
     var major = !!MAJOR[stat];
     if (scope === "cup") return place <= 2;
-    if (scope === "franchise") return place <= (major ? 3 : 2);
+    if (scope === "franchise") return place <= (major ? 5 : 2);
     if (scope === "nba") return place <= (stat === "pts" ? 50 : major ? 25 : 10);
     return true;
   }

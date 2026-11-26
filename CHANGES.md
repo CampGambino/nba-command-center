@@ -2,6 +2,23 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.169.0 (2026-11-26): a franchise pass gets a card to 5th place (bridge v38)
+
+The user, 11/26, 1:07 AM, asked whether franchise passes should stay at the top 3 or show lower places with the place on the card: "Top 5 for franchise should work".
+
+- **Franchise lists: top 5** in points, rebounds, assists, steals, blocks and threes (`FRANCHISE_TOP`, `src/records/notable.js`; the bridge's copy of the rule, v38). It was top 3, the user's rule of 11/13. The card names the place, as it always did when it had one: "passes P.J. Washington Jr. (#5) in franchise history (3-pointers)"; since 0.168.0 it has one when the notes give it in words.
+- Unchanged: other stats on a franchise list (top 2), all-time lists (top 25 in the six main stats, top 10 otherwise; points to 50th), the Cup (top 2). A list whose scope isn't proven keeps the old top 3: the user's answer was about franchise lists.
+- The same rule decides what the Watch List shows without the "minor places" box ticked, so franchise passes for 4th and 5th are on the Watch List and in tonight's lines too.
+
+**On today's files:** Brandon Miller's pass for 7th and Moussa Diabaté's for 10th still get no card. Three passes the record tracker is following are for 5th and will now get one when they happen: Zion Williamson, 65 points from 5th in Pelicans history; Scottie Barnes, 10 blocks from 5th in Raptors history; Lauri Markkanen, 33 threes from 5th in Jazz history. No notes pass for 4th or 5th is on today's list.
+
+**Checked:** tests 963 passed (2 updated: the rule's limits, and franchise 5th / 6th / 7th, another stat's 3rd, an unproven list's 3rd / 4th). Bridge rules up to date.
+
+**Self-audit:**
+- I kept "other stats: top 2" and the unproven-list limit where they were; "Top 5 for franchise" could be read to cover them. Said in the reply.
+- The Records page ranks a franchise top-3 place as a "headline" (a different scale, for ordering that page); not changed.
+- No build comparison was run for this one: it is one number in a rule under test, and the count above comes from the published files.
+
 ## 0.168.0 (2026-11-26): the user's bars and leaders for streak cards; one streak card a player; a pass says its place (bridge v37)
 
 The user, 11/26, 12:41 AM: "your numbers seem fine. the leaders for 20+ points and 10+ points should get updated when they extend the streak. I think durant and Shai are the active leader in both. I think made three streak can start at 50. double-double at 10. 30+ points at 5 and each game after since it rarely gets past 14. Keep curry at each game. any other players get one during every game? and does curry get one if he is close to not extending the streak? image 1: why two alerts? and the explainer text in the top alert isn't needed. image 2: shouldn't this tell me what place is being passed?"

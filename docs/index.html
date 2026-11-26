@@ -339,7 +339,7 @@ function render() {
   }
   // Players out tonight (Out or Doubtful) go to the bottom of every list (the user, 11/13).
   const isOut = (i) => (/^(out|doubtful)/i.test(String(i.injury?.status || "")) ? 1 : 0);
-  // 0.64: a pass to a place not worth saying (i.minor: Cup top 2, franchise top 3/2, all-time top 25/10) stays off
+  // 0.64: a pass to a place not worth saying (i.minor: Cup top 2, franchise top 5/2, all-time top 25/10) stays off
   // Tonight and Coming up; it's in the full list only with "include review / not live" on (as NBA Live: no card even when reached).
   const projected = items.filter((i) => (i.publishable && !i.minor) || $("showReview").checked);
   const tonight = items.filter((i) => !i.minor && ((i.pTonight ?? 0) >= 0.05 || i.liveHit))

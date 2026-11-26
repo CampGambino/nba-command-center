@@ -1476,16 +1476,18 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
 // ---------- 0.64: the notability rule on the Watch List, the Records "Tonight" tab and the storylines ----------
 {
   const { worthPlace, isMinorPass } = await import("../src/records/notable.js");
-  ok(worthPlace("cup", "pts", 2) && !worthPlace("cup", "pts", 3) && worthPlace("franchise", "reb", 3) && !worthPlace("franchise", "dreb", 3)
+  ok(worthPlace("cup", "pts", 2) && !worthPlace("cup", "pts", 3) && worthPlace("franchise", "reb", 5) && !worthPlace("franchise", "reb", 6) && worthPlace("franchise", "fg3m", 4) && !worthPlace("franchise", "dreb", 3)
     && worthPlace("franchise", "dreb", 2) && worthPlace("nba", "ast", 25) && !worthPlace("nba", "ast", 26) && !worthPlace("nba", "gp", 11) && worthPlace("nba", "gp", 10) && worthPlace("nba", "pts", null),
-    "notable: Cup top 2; franchise top 3 (six main stats) / top 2; all-time top 25 / top 10; no known place is kept");
+    "notable: Cup top 2; franchise top 5 (six main stats; 0.169.0, the user, 11/26: \"Top 5 for franchise should work\"; it was 3) / top 2; all-time top 25 / top 10; no known place is kept");
   // Records items (kind + rank) and Watch List items (kind pass + scope + passing.rank).
   ok(isMinorPass({ kind: "franchise", stat: "ast", rank: 8 }) && !isMinorPass({ kind: "franchise", stat: "ast", rank: 3 })
     && isMinorPass({ kind: "pass", stat: "blk", rank: 37 }) && !isMinorPass({ kind: "pass", stat: "pts", rank: 16 })
     && isMinorPass({ kind: "cup", stat: "stl", rank: 5 }) && !isMinorPass({ kind: "round", stat: "pts", rank: 40 }) && !isMinorPass({ kind: "coach", stat: "wins", rank: 30 })
     && isMinorPass({ kind: "pass", scope: "franchise", stat: "dreb", passing: { rank: 8 } }) && !isMinorPass({ kind: "pass", scope: "nba", stat: "fg3m", passing: { rank: 1 } })
-    && isMinorPass({ kind: "pass", scope: "unknown", stat: "fg3m", passing: { rank: 4 } }) && !isMinorPass({ kind: "round", scope: "career", stat: "pts" }),
-    "notable: Records and Watch List passes judged by the place reached; round numbers and coaches untouched; an unproven list gets the franchise rule");
+    && isMinorPass({ kind: "pass", scope: "unknown", stat: "fg3m", passing: { rank: 4 } }) && !isMinorPass({ kind: "pass", scope: "unknown", stat: "fg3m", passing: { rank: 3 } }) && !isMinorPass({ kind: "round", scope: "career", stat: "pts" })
+    && !isMinorPass({ kind: "pass", scope: "franchise", stat: "fg3m", passing: { rank: 5 } }) && isMinorPass({ kind: "pass", scope: "franchise", stat: "fg3m", passing: { rank: 7 } })
+    && !isMinorPass({ kind: "franchise", stat: "ast", rank: 5 }) && isMinorPass({ kind: "franchise", stat: "ast", rank: 6 }) && isMinorPass({ kind: "franchise", stat: "oreb", rank: 3 }),
+    "notable: Records and Watch List passes judged by the place reached; round numbers and coaches untouched; a franchise pass in the six main stats is worth saying to 5th (0.169.0; Brandon Miller's 7th is not), another stat to 2nd; an unproven list keeps the top 3");
   const watch = { today: "2026-11-09", games: [{ id: "1", awayTri: "BBB", homeTri: "AAA" }], teams: [{ team: "AAA", items: [
     { player: "Bench Guy", stat: "dreb", kind: "pass", scope: "franchise", target: 900, need: 2, passing: { player: "Old Big", rank: 8 }, publishable: true, importance: 50, pTonight: 0.8, minor: true },
     { player: "Star Guy", stat: "pts", kind: "pass", scope: "franchise", target: 20000, need: 5, passing: { player: "Legend", rank: 2 }, publishable: true, importance: 60, pTonight: 0.8 }] }] };
