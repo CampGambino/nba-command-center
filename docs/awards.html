@@ -125,10 +125,14 @@ const MISSED = { injury: "injury", rest: "rest", personal: "personal / not with 
 const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 let D = null, VIEW = null, SORT = { k: "canMiss", dir: 1 }, OPEN = new Set();
 
-const stakeMax = (p) => p.stake ? Math.max(...AWS.map((k) => p.stake[k] || 0)) : 0;
 const isCand = (p) => !!p.stake && ((p.stake.mvp || 0) >= 3 || AWS.some((k) => (p.stake[k] || 0) >= 10));
 const isRot = (p) => p.teamGames >= 5 && p.full >= p.teamGames * 0.5;
-const awardChips = (p) => p.stake ? AWS.filter((k) => p.stake[k]).sort((a, b) => p.stake[b] - p.stake[a]).map((k) => `<span class="chip aw" title="Kalshi's price: the market's chance in points">${AW[k]} ${p.stake[k]}%</span>`).join("") : "";
+// 0.165.0 (the user, 11/25: "You can remove Kalshi odds from awards page"): the awards he is in the running for, by name.
+// No price is shown anywhere on this page; the markets still decide who is listed as a candidate (isCand).
+// Only the awards that make him a candidate (the same bar as isCand): with the number gone, a chip for a 1-cent price would
+// read as a real chance.
+const awardNames = (p) => p.stake ? AWS.filter((k) => (p.stake[k] || 0) >= (k === "mvp" ? 3 : 10)).sort((a, b) => p.stake[b] - p.stake[a]).map((k) => AW[k]) : [];
+const awardChips = (p) => awardNames(p).map((n) => `<span class="chip aw">${n}</span>`).join("");
 const tnChip = (p) => p.tonight ? `<span class="chip ${/Out|Doubtful/i.test(p.tonight.status) ? "out" : "dtd"}" title="${esc(p.tonight.reason || "")}">${esc(p.tonight.status)} tonight</span>` : p.plays ? `<span class="chip tn">plays tonight</span>` : "";
 // 0.146.0: a released player reads "FA", as on every other page (national TV, clutch, 4th quarter).
 const teamOf = (p) => p.team || (p.status === "unsigned" ? "FA" : "");
@@ -163,10 +167,10 @@ function card(p) {
   </div></div>`;
 }
 const COLS = [
-  ["name", "Player"], ["team", "Team"], ["stake", "Award odds (Kalshi)"], ["q", "Counted", 1], ["teamGames", "Team games", 1], ["left", "Left", 1], ["need", "Needs", 1],
+  ["name", "Player"], ["team", "Team"], ["stake", "Award"], ["q", "Counted", 1], ["teamGames", "Team games", 1], ["left", "Left", 1], ["need", "Needs", 1],
   ["canMiss", "Can miss", 1], ["shortUsed", "15-19 used", 1], ["pace", "On pace for", 1], ["missedN", "Not counted", 1], ["status", "Status"],
 ];
-const val = (p, k) => k === "stake" ? stakeMax(p) : k === "missedN" ? p.teamGames - p.q : k === "canMiss" ? (p.status === "out" ? -100 + (p.canMiss ?? 0) : p.status === "in" ? 999 : p.canMiss ?? 998) : p[k];
+const val = (p, k) => k === "stake" ? (awardNames(p).join(", ") || "zzz") : k === "missedN" ? p.teamGames - p.q : k === "canMiss" ? (p.status === "out" ? -100 + (p.canMiss ?? 0) : p.status === "in" ? 999 : p.canMiss ?? 998) : p[k];
 function statusCell(p) {
   if (p.status === "out") return `<span class="st-out">out since ${md(p.outSince)}</span>${p.alt ? ` <span class="small">62 path open</span>` : ""}`;
   if (p.status === "in") return `<span class="st-in">eligible</span>`;
@@ -177,7 +181,7 @@ function rows() {
   const team = $("team").value, q = $("q").value.trim().toLowerCase(), tn = $("tn").checked;
   let L = D.players.filter((p) => VIEW === "cand" ? isCand(p) : VIEW === "rot" ? isRot(p) : true)
     .filter((p) => (!team || p.team === team) && (!q || p.name.toLowerCase().includes(q)) && (!tn || p.plays));
-  return L.sort((a, b) => { const x = val(a, SORT.k), y = val(b, SORT.k); return (typeof x === "string" ? String(x).localeCompare(String(y)) : (x ?? 0) - (y ?? 0)) * SORT.dir || stakeMax(b) - stakeMax(a); });
+  return L.sort((a, b) => { const x = val(a, SORT.k), y = val(b, SORT.k); return (typeof x === "string" ? String(x).localeCompare(String(y)) : (x ?? 0) - (y ?? 0)) * SORT.dir || a.name.localeCompare(b.name); });
 }
 function renderTable() {
   const L = rows();
@@ -185,8 +189,8 @@ function renderTable() {
     <tr class="prow" data-id="${p.id}"><td>${esc(p.name)}</td><td>${esc(teamOf(p) || "–")}</td><td>${awardChips(p) || '<span class="small">–</span>'}</td><td class="num">${p.q}</td><td class="num">${p.teamGames}</td><td class="num">${p.left ?? "–"}</td><td class="num">${p.need}</td>
     <td class="num">${p.status === "alive" ? p.canMiss : "–"}</td><td class="num">${p.shortUsed}/2</td><td class="num">${p.status === "alive" && !p.noGames ? p.pace : "–"}</td><td class="num">${p.teamGames - p.q}</td><td>${statusCell(p)} ${tnChip(p)}</td></tr>
     ${OPEN.has(p.id) ? `<tr class="detail"><td colspan="${COLS.length}">${esc(missedText(p) ? `Not counted: ${missedText(p)}.` : "Counted in every team game.")} ${p.under || p.short ? esc(`Games he played: ${p.full} at 20+ minutes, ${p.short} at 15-19 (${p.shortUsed} of them counted), ${p.under} under 15.`) : ""}${p.border.length ? `<br>Close calls on minutes: ${esc(borderText(p))}` : ""}${p.status === "out" && p.grievanceBy ? `<br>Out of reach since ${md(p.outSince)}; a grievance had to be filed by ${md(p.grievanceBy)}.` : ""}</td></tr>` : ""}`).join("")}</tbody>`;
-  $("tblNote").textContent = `${L.length} player${L.length === 1 ? "" : "s"}. ${VIEW === "cand" ? "Award candidates: Kalshi gives him 3% or more for MVP, or 10% or more for DPOY, Most Improved, All-NBA (1st + 2nd + 3rd team) or All-Defensive (1st + 2nd)." : VIEW === "rot" ? "Rotation players: 20+ minutes in at least half his team's games." : ""} Click a row for the games he didn't count in.`;
-  document.querySelectorAll("#tbl th").forEach((th) => th.onclick = () => { const k = th.dataset.k; SORT = SORT.k === k ? { k, dir: -SORT.dir } : { k, dir: ["stake", "q", "pace"].includes(k) ? -1 : 1 }; renderTable(); });
+  $("tblNote").textContent = `${L.length} player${L.length === 1 ? "" : "s"}. ${VIEW === "cand" ? "Award candidates: players Kalshi's award markets have in the running for MVP, DPOY, Most Improved, All-NBA or All-Defensive." : VIEW === "rot" ? "Rotation players: 20+ minutes in at least half his team's games." : ""} Click a row for the games he didn't count in.`;
+  document.querySelectorAll("#tbl th").forEach((th) => th.onclick = () => { const k = th.dataset.k; SORT = SORT.k === k ? { k, dir: -SORT.dir } : { k, dir: ["q", "pace"].includes(k) ? -1 : 1 }; renderTable(); });
   document.querySelectorAll("#tbl tr.prow").forEach((tr) => tr.onclick = () => { const id = tr.dataset.id; OPEN.has(id) ? OPEN.delete(id) : OPEN.add(id); renderTable(); });
 }
 function setView(v) { VIEW = v; document.querySelectorAll("#view button").forEach((b) => b.classList.toggle("on", b.dataset.v === v)); renderTable(); }
@@ -196,16 +200,16 @@ async function main() {
   D = await fetch("data/eligibility.json", { cache: "no-store" }).then((r) => r.ok ? r.json() : null).catch(() => null);
   if (!D?.players) { $("sub").textContent = "No eligibility data yet: it appears with the next build."; return; }
   const hasOdds = D.players.some((p) => p.stake);
-  $("sub").textContent = `Through ${md(D.through)} · ${D.players.length} players · ${hasOdds ? `Kalshi award prices as of ${new Date(D.awardsAt).toLocaleString([], { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" })}` : "no Kalshi award prices on file yet"} · built ${new Date(D.generatedAt).toLocaleString([], { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" })}`;
+  $("sub").textContent = `Through ${md(D.through)} · ${D.players.length} players · ${hasOdds ? "" : "no award candidates on file yet · "}built ${new Date(D.generatedAt).toLocaleString([], { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" })}`;
   const notes = [];
-  if (!hasOdds) notes.push("Kalshi's award prices aren't on file yet (they're saved by the hourly Kalshi read). Until then the cards show rotation players and the table starts on them.");
+  if (!hasOdds) notes.push("The list of award candidates isn't on file yet (it comes with the hourly Kalshi read). Until then the cards show rotation players and the table starts on them.");
   const later = D.counts?.toCheckLater || 0, stuck = (D.counts?.toCheck || 0) - later;
   if (later) notes.push(`${later} player-game${later === 1 ? "" : "s"} at ESPN's 20 or 15 minutes ${later === 1 ? "hasn't" : "haven't"} been checked against the play-by-play yet (ESPN rounds to the nearest minute, so a "20" can be 19:30): ${later === 1 ? "its" : "their"} Game Flow file comes with the next build. Counted as ESPN shows until then.`);
   if (stuck) { const who = D.players.filter((p) => p.border.some((b) => b.why === "miss")).map((p) => `${p.name} ${p.border.filter((b) => b.why === "miss").map((b) => md(b.d)).join(", ")}`); notes.push(`${stuck} player-game${stuck === 1 ? "" : "s"} at ESPN's 20 or 15 minutes couldn't be settled from the play-by-play (the rebuilt minutes don't match ESPN's): counted as ESPN shows, which may be 30 seconds generous. ${who.slice(0, 6).join("; ")}.`); }
   $("banner").innerHTML = notes.map((n) => `<div class="warn-banner">${esc(n)}</div>`).join("");
   // the cards: candidates (or rotation players before the prices arrive), out of reach first, then the thinnest margins
   const pool = D.players.filter((p) => hasOdds ? isCand(p) : isRot(p) && p.status !== "in");
-  const top = pool.filter((p) => p.status === "out" || p.status === "alive").sort((a, b) => (a.status === "out" ? -1 : 0) - (b.status === "out" ? -1 : 0) || a.canMiss - b.canMiss || stakeMax(b) - stakeMax(a)).slice(0, 12);
+  const top = pool.filter((p) => p.status === "out" || p.status === "alive").sort((a, b) => (a.status === "out" ? -1 : 0) - (b.status === "out" ? -1 : 0) || a.canMiss - b.canMiss || a.name.localeCompare(b.name)).slice(0, 12);
   $("cards").innerHTML = top.length ? top.map(card).join("") : `<div class="empty">Nobody tracking for an award is near the line.</div>`;
   const teams = [...new Set(D.players.map((p) => p.team).filter(Boolean))].sort();
   $("team").innerHTML += teams.map((t) => `<option>${t}</option>`).join("");
@@ -218,7 +222,7 @@ async function main() {
   const recent = D.players.filter((p) => p.status === "out" && p.outSince && isCand(p)).sort((a, b) => b.outSince.localeCompare(a.outSince));
   for (const p of recent) dl.push(`<li>${esc(p.name)} (${esc(p.team)}): 65 out of reach since ${md(p.outSince)}; grievance window to ${md(p.grievanceBy)}.</li>`);
   $("dateList").innerHTML = dl.join("") || `<li class="small">No dates yet.</li>`;
-  $("foot").innerHTML = `Minutes from ESPN's box scores. ESPN rounds to the nearest minute, so its 20s and 15s are settled from the play-by-play (Game Flow rebuilds each player's seconds from the substitutions). Team games left = 82 minus games played; a traded player's count runs across his teams. Award odds are Kalshi's prices (its API), not a forecast of ours. The league's own count decides.`;
+  $("foot").innerHTML = `Minutes from ESPN's box scores. ESPN rounds to the nearest minute, so its 20s and 15s are settled from the play-by-play (Game Flow rebuilds each player's seconds from the substitutions). Team games left = 82 minus games played; a traded player's count runs across his teams. Who counts as an award candidate comes from Kalshi's award markets (its API); no prices are shown. The league's own count decides.`;
 }
 main();
 </script>

@@ -2,6 +2,21 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.165.0 (2026-11-25): no Kalshi price on the Awards page
+
+The user, 11/25, 8:56 PM: "You can remove Kalshi odds from awards page."
+
+- **The Awards page shows no price** (`docs/awards.html`). The chips on the cards and in the table read "All-NBA", "All-Def", "MVP" where they read "All-NBA 99%". The column "Award odds (Kalshi)" is "Award". The header no longer gives the time of the prices, and the footnote says the candidates come from Kalshi's award markets and that no prices are shown.
+- **A chip only for an award that makes him a candidate** (MVP at 3 or more, the others at 10 or more: the bar the page already used for its candidates). With the number beside it, "MVP 1%" read as a long shot; a bare "MVP" chip for a 1-cent price would read as a real chance.
+- **Nothing sorts by a hidden number.** The Award column sorts by the award's name, players with none last; ties elsewhere fall back to the player's name, where they fell back to the price.
+
+**Checked:** tests 946 passed (1 new); all pages OK; the page rendered on today's file: 35 candidates, no percentage anywhere, the column sorts, no script errors.
+
+**Self-audit:**
+- The prices still decide who is a candidate, on this page and for the award lines; the user was asked about that at 7:40 PM and answered only about showing the odds, so it is unchanged. The page says where the list comes from.
+- A first cut sorted players with no award to the top of the Award column (a "~" sorts before letters); seen in the screenshot and fixed before publishing.
+- `eligibility.json` still carries each player's `stake`; the page and the lines need it to pick candidates. Nothing was removed from the data.
+
 ## 0.164.0 (2026-11-25): the user's answers on the 0.163.0 list: no Kalshi price on award lines; one streak, one number
 
 The user, 11/25, 7:22 PM, on the calls 0.163.0 left open: "I don't think Kalshi price is needed now." "Sellout streak can't be two different numbers unless it's two different stats." "Why is Gianni's double double two different marks? … We should have box score data to confirm if either or both are correct, and if the higher number is true while the lesser number is true, then both are true but the most recent, usually higher number, is most accurate." Left as they are, by the same message: Karl-Anthony Towns's two streak tiles ("Double double and rebounds are different stats"), the "+1.6 SD" wording, and notes lines that open with a surname ("I don't want the program to guess the wrong first name").

@@ -6267,6 +6267,17 @@ await bridgeChecks(ok, root);
     JSON.stringify([r.keep.map((l) => l.text.slice(0, 40)), r.trimmed.map((l) => l.trimmed), far.trimmed.length]));
 }
 
+// ---------- 0.165.0: no Kalshi price on the Awards page ----------
+{
+  const aw = fs.readFileSync(path.join(root, "docs", "awards.html"), "utf8");
+  const names = new Function(`const AW = { mvp: "MVP", dpoy: "DPOY", mip: "MIP", allnba: "All-NBA", alldef: "All-Def" }, AWS = ["mvp", "dpoy", "mip", "allnba", "alldef"]; ${(aw.match(/const awardNames = [^\n]+/) || [""])[0]} ${(aw.match(/const awardChips = [^\n]+/) || [""])[0]} return [awardNames, awardChips];`)();
+  const p = { stake: { mvp: 2, allnba: 99, alldef: 12, dpoy: 9 } };
+  ok(names[0](p).join() === "All-NBA,All-Def" && names[1](p) === '<span class="chip aw">All-NBA</span><span class="chip aw">All-Def</span>' && names[0]({}).length === 0
+    && !/Award odds|stake\[k\]\}%|Kalshi award prices as of|stakeMax/.test(aw) && /\["stake", "Award"\]/.test(aw) && /no prices are shown/.test(aw),
+    "awards page (0.165.0; the user, 11/25: \"You can remove Kalshi odds from awards page\"): the chips and the table name the awards a player is a candidate for (MVP at 3 or more, the others at 10 or more) and show no price; no 'Award odds' column, no price time in the header; nothing sorts by a hidden price",
+    JSON.stringify([names[0](p), names[1](p)]));
+}
+
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });
 const brief = (m) => [m.player, m.kind, m.stat, m.scope, m.current, m.target, m.need, m.status, m.passing?.player || ""].join(" | ");
