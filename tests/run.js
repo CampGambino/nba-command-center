@@ -6665,6 +6665,16 @@ await bridgeChecks(ok, root);
     JSON.stringify({ pages: pages.length, without }));
 }
 
+// ---------- 0.175.0 (bridge v39): a pre-game card's small print is the source only ----------
+{
+  const br = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");
+  const pre = br.slice(br.indexOf("function pregame("), br.indexOf("function status("));
+  ok(/sub: "Command Center",/.test(pre) && !/sub: "[^"]*(?:storyline|pre-game)/i.test(pre)
+    && Number(/var VERSION = (\d+);/.exec(br)[1]) >= 39 && JSON.parse(fs.readFileSync(path.join(root, "docs", "bridge", "version.json"), "utf8")).version === Number(/var VERSION = (\d+);/.exec(br)[1]),
+    "NBA Live's pre-game cards (bridge v39; the user, 11/27: \"because these alerts only show pregame and are for the games tonight, no need to display the text for tonight's storyline and (pre-game)\"): the small print is \"Command Center\" and nothing more; the card's header already says PRE-GAME. The published bridge version matches the script's",
+    pre.slice(pre.indexOf("sub:"), pre.indexOf("sub:") + 80));
+}
+
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });
 const brief = (m) => [m.player, m.kind, m.stat, m.scope, m.current, m.target, m.need, m.status, m.passing?.player || ""].join(" | ");

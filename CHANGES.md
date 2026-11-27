@@ -2,6 +2,17 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.175.0 (2026-11-27, bridge v39): a pre-game card's small print is "Command Center" only
+
+The user, 11/27, 4:52 PM, with two "FROM THE NOTES" cards for GS @ POR, each ending "Command Center · tonight's storyline (pre-game)": "because these alerts only show pregame and are for the games tonight, no need to display the text for tonight's storyline and (pre-game)".
+
+- **docs/bridge/cc-bridge.js (v39):** the small print under every pre-game card is now "Command Center". The card's header already says "GS @ POR · PRE-GAME". All pre-game cards come through the one place, so it holds for every kind (notes, milestones, streaks, matchups, awards).
+- bridge/version.json is 39, so an open NBA Live says a new version is there and asks for a refresh.
+
+**Checked.** tests/run.js: 989 passed, 0 failed (one new: the pre-game card's small print, and that the published version number is the script's). The bridge harness inside it fires the pre-game cards as before. `node --check` on the bridge; the bundled rules are up to date.
+
+**Self-audit.** (1) "Command Center" is kept so the card still says where it came from; the user named the two phrases to drop, not the source. If the line should go altogether, it is one word. (2) Not seen in NBA Live itself: it runs on the user's PC. (3) Cards during a game keep their small print (the source of a count, "regular season, ESPN box scores since…"); only the pre-game line was named. (4) No other bridge behaviour changed.
+
 ## 0.174.0 (2026-11-27): every page asks search engines and crawlers to stay out
 
 The user, 11/27, 3:08 PM: "Are there any protections to stop people from copying the site or finding our formulas and information we pull from?" There were none. Of the four options laid out (a stay-out request to crawlers; a no-reuse notice; a private repo with a public site; a private repo and a sign-in), 3:12 PM: "Do 1. Nobody will care about number 2".

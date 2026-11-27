@@ -56,6 +56,8 @@
  *       Live's own QUARTER EXPLOSION card is up for a quarter, the season place and list are added to that card (its
  *       all-time list stays) and the separate season card is not fired; it shows only where NBA Live has no card.
  *       This is the one place the bridge adds to a card of NBA Live's: two fields, on its way through fireStory.
+ *     - (v39, 0.175.0; the user, 11/27: "because these alerts only show pregame and are for the games tonight, no need
+ *       to display the text for tonight's storyline and (pre-game)") a pre-game card's small print is "Command Center" only.
  *     - (v38, 0.169.0; the user, 11/26: "Top 5 for franchise should work") a pass on a franchise list gets a card to
  *       5th place in points, rebounds, assists, steals, blocks and threes (it was 3rd); other stats stay at the top 2.
  *       The card names the place: "passes P.J. Washington Jr. (#5) in franchise history".
@@ -164,7 +166,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 38;
+  var VERSION = 39;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -1086,7 +1088,8 @@ function teamStake(t, g) {
     g.lines.filter(function (l) { return !l.bg && !l.siteOnly && (l.kind !== "foul" || !state.flow); }).slice(0, PRE_PER_GAME).forEach(function (l, n) {
       fire("cc-pre-" + T.today + "-" + sides.away + "-" + sides.home + "-" + n, {
         type: "milestone", icon: ICON[l.kind] || "📌 STORYLINE", text: l.text,
-        sub: "Command Center · tonight's storyline (pre-game)",
+        // v39 (the user, 11/27): no "tonight's storyline (pre-game)" here: the card's own header says PRE-GAME and these cards are only tonight's
+        sub: "Command Center",
         live: false, gameId: game.id, gameTag: tag, gameScore: "Pre-game",
       });
     });
