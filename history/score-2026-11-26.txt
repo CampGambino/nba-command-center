@@ -1,0 +1,2 @@
+
+0 calls scored, Brier undefined (lower is better; always guessing 50% scores 0.250)
