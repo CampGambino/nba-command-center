@@ -2,6 +2,24 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.174.0 (2026-11-27): every page asks search engines and crawlers to stay out
+
+The user, 11/27, 3:08 PM: "Are there any protections to stop people from copying the site or finding our formulas and information we pull from?" There were none. Of the four options laid out (a stay-out request to crawlers; a no-reuse notice; a private repo with a public site; a private repo and a sign-in), 3:12 PM: "Do 1. Nobody will care about number 2".
+
+- **All 14 pages carry `<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noai, noimageai">`** in their head. A search engine that honours it doesn't list the page, keep a copy or a snippet of it, or follow its links (to the other pages and the data files). `noai` and `noimageai` are asked of AI crawlers; they are not a standard and few honour them.
+- **A test** fails if any page in docs/ lacks the tag, so a page added later can't go out without it.
+
+**What this does not do** (told to the user):
+- It is a request. A person with the address, or a crawler that ignores the tag, sees everything as before.
+- **No robots.txt was added, because here it would do nothing.** Crawlers read that file only at the top of an address (campgambino.github.io/robots.txt); this site lives one level down (/nba-command-center/), and a robots.txt there is never read. The top level belongs to a separate repository named CampGambino.github.io, which doesn't exist. Creating it with a two-line robots.txt is the user's to do or approve.
+- **The data files (docs/data/*.json) can't carry a tag**, and GitHub Pages can't send the header that would. They are reached from the pages; "nofollow" asks crawlers not to go there.
+- **The repository on github.com is untouched**: it is public, and what crawlers may read there is GitHub's to say. Only making it private hides the code, the change log and the tests (options 3 and 4, not asked).
+- A page already listed by a search engine drops out only when the engine next reads it.
+
+**Checked.** tests/run.js: 988 passed, 0 failed. tools/check-pages.py: all pages OK. The tag is the second line of each page's head.
+
+**Self-audit.** (1) Whether any search engine had listed the site was checked with one web search for the repository's name (nothing found); that is not proof. (2) I can't read the live page from here to see the tag served; it is in the published files, and GitHub Pages serves those as they are. (3) The pages are hand-kept files, so the tag is in 14 places; the test is what keeps a 15th from being missed. (4) No NBA Live or bridge change; no page looks or works differently.
+
 ## 0.173.0 (2026-11-27): every reader of a player's past games gets the same, whole set
 
 The user, 11/27, 2:02 PM, on moving the other readers to the box-score archive: "If it corrects the mistakes, then go for archive. I don't know what it means, but we need to limit bugs, errors, and omissions."

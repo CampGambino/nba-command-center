@@ -6656,6 +6656,15 @@ await bridgeChecks(ok, root);
   }
 }
 
+// ---------- 0.174.0: every page asks search engines and crawlers to stay out (the user, 11/27) ----------
+{
+  const pages = fs.readdirSync(path.join(root, "docs")).filter((f) => f.endsWith(".html"));
+  const without = pages.filter((f) => { const head = fs.readFileSync(path.join(root, "docs", f), "utf8").split("</head>")[0]; return !/<meta name="robots" content="[^"]*\bnoindex\b[^"]*\bnofollow\b[^"]*">/.test(head); });
+  ok(pages.length >= 14 && !without.length,
+    "every page of the site carries the robots tag in its head (0.174.0; the user, 11/27, on keeping the site from being found and copied: \"Do 1\"): noindex and nofollow, so a search engine that honours it neither lists the page nor follows its links to the data files. A page added later needs the same line",
+    JSON.stringify({ pages: pages.length, without }));
+}
+
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });
 const brief = (m) => [m.player, m.kind, m.stat, m.scope, m.current, m.target, m.need, m.status, m.passing?.player || ""].join(" | ");
