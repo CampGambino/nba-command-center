@@ -2,6 +2,14 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.171.1 (2026-11-27): "To watch tonight" back on the Streaks page (broken by 0.171.0 for one build)
+
+0.171.0 added an argument to the new list's call in scripts/situations.js with a find-and-replace that also matched the same text in another call, the odd lines' "To watch tonight" (0.118). That call then named a variable that doesn't exist there, the step failed with "odd lines, tonight: firstSeason is not defined", and the 1:19 PM build wrote the Streaks page without tonight's watch list (the 12:37 PM build had 11 runs or repeats a game short and 192 player habits). The build itself still passed: the step catches its own error and prints it. The extra argument is gone from that call.
+
+**Checked.** A build on today's files prints "odd lines to watch tonight: …" again and no "is not defined"; trends.json has `odd.tonight` again.
+
+**Self-audit.** (1) My own error, live from 1:19 PM until this build; nothing else read that call. (2) I compared the old and new builds' matchup lines, ranked list and the new file, and not the two build logs: the error line was in the new log all along. From now on a comparison of two builds includes every "not written" / "not read" / "is not defined" line of each log. (3) A replace in a script is now checked for how many places it matched.
+
 ## 0.171.0 (2026-11-27): a league-wide list of each player's win or loss run against one team, with him playing
 
 The user, 11/27, 12:51 PM, on "Murray's teams have won 8 straight against the Jazz with him playing": "the Murray point is separate from the Nuggets streak… he missed games during the 10-game Nuggets win streak… that would be something else to track for players who change teams, their win/loss streak against another team… Dennis Schroder has played for about 12 teams, so he is a possible test case". The matchup line already counts this way (only the games he played, whatever team he was on) and shows on the night his team plays that opponent. Asked whether to add a league-wide list of the longest ones: "sure".

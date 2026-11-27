@@ -751,7 +751,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
       const pf = path.join(root, "src", "data", "odd-lines-players.json"), players = fs.existsSync(pf) ? JSON.parse(fs.readFileSync(pf, "utf8")) : null;
       if (games.length) {
         const W = oddWatch({ rows: rows.filter((g) => !g.cupFinal), history, players, names: NAMES, pos: rosterPos, teams: new Set(Object.keys(vs)), vs, IX: LINE_IX,
-          teamNow: (id, t) => (rosterChanges[id] ? rosterChanges[id].team || "FA" : t), firstSeason });
+          teamNow: (id, t) => (rosterChanges[id] ? rosterChanges[id].team || "FA" : t) });
         oddByDate.tonight = { date: today, since: players?.since || null, runMin: history?.runMin || null, ...W };
         console.log(`odd lines to watch tonight: ${W.runs.length} run(s) or repeat(s) a game short, ${W.owners.length} player habit(s) on ${games.length} game(s)`);
       }
