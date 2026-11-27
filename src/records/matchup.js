@@ -17,6 +17,7 @@
 import { TEAMS } from "../teams.js";
 import { seriesItems } from "./series.js";
 import { pairHistory, runsOf, bestMargins } from "./pairs.js";
+import { CUP_TITLE_DATES } from "../situations/results.js";
 
 const FIRST = "2016-17";
 const START = "2016-10-01";
@@ -29,6 +30,17 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const avg = (rows, i) => rows.reduce((a, r) => a + (r[i] || 0), 0) / rows.length;
 const r1 = (x) => (Math.round(x * 10) / 10).toFixed(1);
 const C = { date: 0, opp: 1, home: 2, res: 3, type: 4, min: 5, pts: 6, reb: 7, ast: 8, stl: 9, blk: 10, fg3m: 11 };
+// 0.171.0: the logs now come with the Bulls and Pelicans games of 2016-17 and 2017-18 that ESPN lacks (src/situations/logfill.js).
+// A filled row's last column says where it is from: "n" is NBA.com's whole line; "p" (5 rows) has the game, the result and
+// the points right but only a floor for rebounds, assists, steals and blocks, so it counts for a win or a loss, not an average.
+const SRC = 17;
+const wholeLine = (r) => r[SRC] !== "p";
+/**
+ * Was he in the league before the files begin? The Guide's first season for him when it has one (`firstSeason(name)`);
+ * failing that, whether his first game on file is in the first weeks of 2016-17. The date alone called Jrue Holiday
+ * (first game 11/18/16) and Khris Middleton (2/8/17) players whose careers began on file: each missed the start of that season.
+ */
+const beforeFiles = (name, games, firstSeason) => { const s = firstSeason?.(name); return s ? s < FIRST : games.length > 0 && games[0][C.date] <= "2016-11-15"; };
 const STAT = { pts: ["points", 5], reb: ["rebounds", 3], ast: ["assists", 3] };
 // 0.88: a series streak is placed in the series' history from 5 straight; "last won there" is added from 6 at one site.
 export const STREAK = { context: 5, there: 6 };
@@ -162,24 +174,76 @@ export function teamItems(history, teamFiles, away, home, today, past = null) {
 /** A player's regular-season games, oldest first, from the back-fill and this season's box scores (rows in the logs' columns). */
 export function playerGames(id, logs, teamFiles) {
   const out = new Map();
-  for (const r of logs?.players?.[id] || []) if (r[C.type] === 2) out.set(r[C.date], r);
+  // 0.171.0: the Cup's title game is in no regular-season count (as in src/records/streakbars.js)
+  for (const r of logs?.players?.[id] || []) if (r[C.type] === 2 && !CUP_TITLE_DATES.has(r[C.date])) out.set(r[C.date], r);
   for (const [t, f] of Object.entries(teamFiles || {})) {
     const k = Object.fromEntries((f.keys || []).map((x, i) => [x, i]));
     for (const g of f.games || []) {
       const l = g.pl?.[id];
-      if (!l || (!(l[k.min] > 0) && !(g.z || []).includes(id))) continue;   // 0.145.0: z = in for a few seconds
+      if (!l || (!(l[k.min] > 0) && !(g.z || []).includes(id)) || CUP_TITLE_DATES.has(g.d)) continue;   // 0.145.0: z = in for a few seconds
       out.set(g.d, [g.d, g.opp, g.home ? 1 : 0, g.pf > g.pa ? "W" : "L", 2, l[k.min], l[k.pts], l[k.reb], l[k.ast], l[k.stl], l[k.blk], l[k.fg3m], t]);
     }
   }
   return [...out.values()].sort((a, b) => (a[0] < b[0] ? -1 : 1));
 }
 
-export function playerItems({ id, name, team, opp, logs, teamFiles, today, minGames = 4 }) {
-  const games = playerGames(id, logs, teamFiles).filter((r) => r[C.date] < today && r[C.date] >= START);
-  const vs = games.filter((r) => r[C.opp] === opp);
+/**
+ * 0.171.0 (the user, 11/27, on "Jamal Murray's teams have won 8 straight against the Jazz with him playing": "that would be
+ * something else to track for players who change teams, their win/loss streak against another team… Dennis Schroder has
+ * played for about 12 teams, so he is a possible test case… That would require knowing when those players played and
+ * not on the injury report against those teams throughout their career"; and, offered a league-wide list of them, "sure").
+ *
+ * Every current player's run of wins or losses against each team, in the regular-season games he played, whatever team
+ * he was on. A game he missed is not in his log, so it neither extends nor ends the run: that is why Murray's 8 sits
+ * inside Denver's 10. The same count as the "Streak vs …" line of tonight's matchups, for every opponent and every day.
+ *   teamFiles: { TRI: { names, keys, games } } (this season); logs: the history back to 2016-17; tonight: [{ home, away }]
+ * -> [{ id, name, team, opp, res: "W" | "L", n, since, last, games, career?, atLeast?, tonight? }], longest first.
+ *   career: every game he has played against them; atLeast: the run reaches his first game on file and he was in the
+ *   league before the files begin, so it may be longer. A run against the team he is on now is left out: it can't go on.
+ *   team: the team of his last game this season, or the roster's when he has moved since (teamNow).
+ */
+export const TEAM_RUN = { min: 5 };
+export function teamRunsVs({ logs, teamFiles, names = {}, today, tonight = [], teamNow = null, firstSeason = null }) {
+  const oppTonight = new Map();
+  for (const g of tonight || []) { oppTonight.set(g.home, g.away); oppTonight.set(g.away, g.home); }
+  const ids = new Set(), listedOn = new Map(), listedAt = new Map();
+  for (const [t, f] of Object.entries(teamFiles || {})) {
+    for (const id of Object.keys(f.names || {})) { ids.add(id); if (!listedOn.has(id)) listedOn.set(id, t); }
+    for (const g of f.games || []) for (const id of Object.keys(g.pl || {})) if (!(listedAt.get(id) >= g.d)) { listedAt.set(id, g.d); listedOn.set(id, t); }
+  }
+  const rows = [];
+  for (const id of ids) {
+    const games = playerGames(id, logs, teamFiles).filter((r) => (!today || r[C.date] < today) && r[C.date] >= START);
+    if (!games.length) continue;
+    // this season's rows carry the team he played for (a past row has a number there); with no game yet this season, the
+    // team whose box scores last listed him
+    // `teamNow(id, team)`: the roster's word when he has moved since (signed elsewhere, or "FA" when waived)
+    const played = [...games].reverse().find((r) => typeof r[12] === "string")?.[12] || listedOn.get(id) || null;
+    const team = teamNow ? teamNow(id, played) || played : played;
+    const before = beforeFiles(names[id], games, firstSeason);
+    const by = new Map();
+    for (const r of games) (by.get(r[C.opp]) || by.set(r[C.opp], []).get(r[C.opp])).push(r);
+    for (const [opp, rs] of by) {
+      if (opp === team) continue;
+      const res = rs[rs.length - 1][C.res];
+      let n = 0;
+      for (let i = rs.length - 1; i >= 0 && rs[i][C.res] === res; i--) n++;
+      if (n < TEAM_RUN.min) continue;
+      rows.push({ id, name: names[id] || id, team, opp, res, n, since: rs[rs.length - n][C.date], last: rs[rs.length - 1][C.date], games: rs.length,
+        ...(n === rs.length ? (before ? { atLeast: true } : { career: true }) : {}), ...(team && oppTonight.get(team) === opp ? { tonight: true } : {}) });
+    }
+  }
+  return rows.sort((a, b) => b.n - a.n || a.name.localeCompare(b.name) || a.opp.localeCompare(b.opp));
+}
+
+export function playerItems({ id, name, team, opp, logs, teamFiles, today, minGames = 4, firstSeason = null }) {
+  // every game he played (a win or a loss is known for each), and the ones with a whole stat line (the averages and stat runs)
+  const played = playerGames(id, logs, teamFiles).filter((r) => r[C.date] < today && r[C.date] >= START);
+  const games = played.filter(wholeLine);
+  const vs = games.filter((r) => r[C.opp] === opp), vsPlayed = played.filter((r) => r[C.opp] === opp);
   const items = [];
-  if (vs.length < 2) return items;
-  const career = games.length && games[0][C.date] > "2016-11-15";
+  if (vsPlayed.length < 2) return items;
+  const career = played.length > 0 && !beforeFiles(name, played, firstSeason);
   const scope = career ? "in his career" : `since ${FIRST}`;
   const who = name;
   // Best or worst against any team.
@@ -200,8 +264,8 @@ export function playerItems({ id, name, team, opp, logs, teamFiles, today, minGa
     }
     if (best) items.push({ kind: "matchup", team, player: name, text: `${who} has averaged ${r1(best.mine)} ${best.word} in ${vs.length} games against the ${nick(opp)} ${scope}, his ${best.hi ? "most" : "fewest"} against any team (${r1(best.all)} overall).`, tag: best.hi ? `Best vs any team` : `Worst vs any team`, score: 1.6 + 0.5 * Math.min(best.strength, 3), lopsided: true });
     // His teams' record in those games.
-    const W = vs.filter((r) => r[C.res] === "W").length, L = vs.length - W;
-    if (vs.length >= 8 && (W / vs.length >= 0.85 || L / vs.length >= 0.85)) items.push({ kind: "matchup", team, player: name, text: `${who}'s teams are ${W}-${L} against the ${nick(opp)} in games he's played ${scope}.`, tag: `${W}-${L} vs ${opp}`, score: Math.min(2.6, 1.4 + 0.08 * Math.max(W, L)), lopsided: true });
+    const W = vsPlayed.filter((r) => r[C.res] === "W").length, L = vsPlayed.length - W;
+    if (vsPlayed.length >= 8 && (W / vsPlayed.length >= 0.85 || L / vsPlayed.length >= 0.85)) items.push({ kind: "matchup", team, player: name, text: `${who}'s teams are ${W}-${L} against the ${nick(opp)} in games he's played ${scope}.`, tag: `${W}-${L} vs ${opp}`, score: Math.min(2.6, 1.4 + 0.08 * Math.max(W, L)), lopsided: true });
   }
   // A streak still going against this opponent.
   const runs = [
@@ -217,20 +281,22 @@ export function playerItems({ id, name, team, opp, logs, teamFiles, today, minGa
   let top = null;
   for (const [what, test, min, base] of runs) {
     if (!bar[what]) continue;
+    const of = what === "a win" || what === "a loss" ? vsPlayed : vs;
     let n = 0;
-    for (let i = vs.length - 1; i >= 0 && test(vs[i]); i--) n++;
+    for (let i = of.length - 1; i >= 0 && test(of[i]); i--) n++;
     if (n < min) continue;
     const score = base + 0.25 * (n - min);
-    if (!top || score > top.score) top = { what, n, score };
+    if (!top || score > top.score) top = { what, n, score, all: n === of.length };
   }
   if (top) {
-    const text = top.what === "a win" ? `${who}'s teams have won ${top.n} straight against the ${nick(opp)} with him playing${top.n === vs.length ? `, every game ${scope}` : ""}.`
-      : top.what === "a loss" ? `${who}'s teams have lost ${top.n} straight against the ${nick(opp)} with him playing${top.n === vs.length ? `, every game ${scope}` : ""}.`
-      : `${who} has ${top.what} in ${top.n} straight games against the ${nick(opp)}${top.n === vs.length ? `, every game ${scope}` : ""}.`;
+    const text = top.what === "a win" ? `${who}'s teams have won ${top.n} straight against the ${nick(opp)} with him playing${top.all ? `, every game ${scope}` : ""}.`
+      : top.what === "a loss" ? `${who}'s teams have lost ${top.n} straight against the ${nick(opp)} with him playing${top.all ? `, every game ${scope}` : ""}.`
+      : `${who} has ${top.what} in ${top.n} straight games against the ${nick(opp)}${top.all ? `, every game ${scope}` : ""}.`;
     items.push({ kind: "matchup", team, player: name, text, tag: `Streak vs ${opp} · ${top.n}`, score: top.score, active: true });
   }
   // The last meeting, when big.
   const lastG = vs[vs.length - 1];
+  if (!lastG) return items;
   if (seasonOf(lastG[C.date]) === seasonOf(today) && (lastG[C.pts] >= 30 || lastG[C.reb] >= 15 || lastG[C.ast] >= 12)) {
     const parts = [[C.pts, "points"], [C.reb, "rebounds"], [C.ast, "assists"]].filter(([i]) => lastG[i] >= 10).map(([i, w]) => `${lastG[i]} ${w}`);
     items.push({ kind: "matchup", team, player: name, text: `${who} had ${parts.join(", ")} against the ${nick(opp)} on ${md(lastG[C.date])} (${lastG[C.res] === "W" ? "won" : "lost"}).`, tag: "Last meeting", score: 1.2 + (lastG[C.pts] >= 40 ? 0.6 : 0) });
@@ -254,7 +320,7 @@ export function regulars(teamFiles, tri) {
   return out;
 }
 
-export function matchups({ history, logs, teamFiles, tonight, today, series = null, deep = null, official = null, bests = null }) {
+export function matchups({ history, logs, teamFiles, tonight, today, series = null, deep = null, official = null, bests = null, firstSeason = null }) {
   // 0.84: the all-time series from the team media guides (through last season) plus this season's meetings.
   const y = Number(String(today).slice(0, 4)) - (Number(String(today).slice(5, 7)) >= 8 ? 0 : 1), seasonStart = `${y}-08-01`;
   return (tonight || []).map((g) => {
@@ -266,7 +332,7 @@ export function matchups({ history, logs, teamFiles, tonight, today, series = nu
     // A player's lines weigh with his role: 0.8 for a 6-point player, 1.0 at 15, 1.2 at 24+ points a game this season.
     for (const [t, o] of [[g.away, g.home], [g.home, g.away]]) for (const p of regulars(teamFiles, t)) {
       const role = 0.8 + Math.min(0.4, Math.max(0, (p.ppg - 6) / 45));
-      items.push(...playerItems({ id: p.id, name: p.name, team: t, opp: o, logs, teamFiles, today }).map((i) => ({ ...i, score: Math.round(i.score * role * 100) / 100 })));
+      items.push(...playerItems({ id: p.id, name: p.name, team: t, opp: o, logs, teamFiles, today, firstSeason }).map((i) => ({ ...i, score: Math.round(i.score * role * 100) / 100 })));
     }
     return { id: g.id, away: g.away, home: g.home, items: items.sort((a, b) => b.score - a.score) };
   });

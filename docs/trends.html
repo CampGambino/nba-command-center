@@ -172,6 +172,17 @@
   </div>
   <div class="scroll"><table id="streaks"></table></div>
 
+  <h2 id="vs">Against one team, with him playing</h2>
+  <div class="controls">
+    <span class="toggle" id="vres"><button data-r="all" class="on">Wins and losses</button><button data-r="W">Wins</button><button data-r="L">Losses</button></span>
+    <select id="vmin"><option value="5">5+ straight</option><option value="6">6+ straight</option><option value="8">8+ straight</option><option value="10" selected>10+ straight</option><option value="12">12+ straight</option></select>
+    <select id="vteam"><option value="">All teams</option></select>
+    <select id="vopp"><option value="">Any opponent</option></select>
+    <span class="toggle" id="vnight"><button data-n="all" class="on">Everyone</button><button data-n="tonight">Tonight's matchups</button></span>
+  </div>
+  <div class="key" id="vkey"></div>
+  <div class="scroll"><table id="vtab"></table></div>
+
   <h2 id="form">Hot and cold</h2>
   <div class="controls">
     <span class="toggle" id="fdir"><button data-d="up" class="on">Hot</button><button data-d="down">Cold</button></span>
@@ -390,6 +401,32 @@ fetch("data/shifts.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : 
   renderShifts();
 }).catch(() => { $("hkey").textContent = "Shifts come with the next build."; });
 fetch("data/form.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => { FD = d; if (FD) renderForm(); else $("fkey").textContent = "Form data comes with the next build."; }).catch(() => {});
+// 0.171.0 (the user, 11/27): every current player's run of wins or losses against each team in the games he played, for
+// whatever team he was on (docs/data/vsruns.json, src/records/matchup.js teamRunsVs). A game he missed is not in the count.
+let VS = null, vres = "all", vnight = "all";
+function renderVs() {
+  if (!VS) return;
+  const min = +$("vmin").value, team = $("vteam").value, opp = $("vopp").value;
+  const mdy = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}/${d.slice(2, 4)}`;
+  const rows = VS.rows.filter((r) => r.n >= min && (vres === "all" || r.res === vres) && (!team || r.team === team) && (!opp || r.opp === opp) && (vnight === "all" || r.tonight));
+  document.querySelectorAll("#vres button").forEach((b) => b.classList.toggle("on", b.dataset.r === vres));
+  document.querySelectorAll("#vnight button").forEach((b) => b.classList.toggle("on", b.dataset.n === vnight));
+  $("vkey").innerHTML = `His teams' current run against one opponent in the regular-season games he played, ${esc(VS.from)} on, whatever team he was on: a game he missed neither extends nor ends it. Players who have played this season. <b>+</b> the run reaches his first game on file and may be longer. ${rows.length} run${rows.length === 1 ? "" : "s"} shown.`;
+  $("vtab").innerHTML = `<tr><th>Player</th><th>Team now</th><th>Against</th><th>Run</th><th class="num">Since</th><th class="num">Games against them on file</th><th></th></tr>` +
+    (rows.map((r) => `<tr><td><b>${esc(r.name)}</b></td><td>${esc(r.team || "")}</td><td>${esc(r.opp)}</td><td><b>${r.res === "W" ? "Won" : "Lost"} ${r.n}${r.atLeast ? "+" : ""}</b></td><td class="num">${mdy(r.since)}</td><td class="num">${r.games}</td>` +
+      `<td class="small" style="color:var(--muted)">${[r.career ? "every game of his career against them" : "", r.tonight ? "<b>plays them tonight</b>" : ""].filter(Boolean).join(" · ")}</td></tr>`).join("")
+      || `<tr><td colspan="7" class="small" style="color:var(--muted)">No run fits these filters.</td></tr>`);
+}
+fetch("data/vsruns.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => {
+  if (!d || !Array.isArray(d.rows)) { $("vkey").textContent = "Not built yet (it comes with the day's data)."; return; }
+  VS = d;
+  $("vteam").innerHTML += [...new Set(d.rows.map((r) => r.team).filter(Boolean))].sort().map((t) => `<option>${t}</option>`).join("");
+  $("vopp").innerHTML += [...new Set(d.rows.map((r) => r.opp))].sort().map((t) => `<option>${t}</option>`).join("");
+  for (const id of ["vmin", "vteam", "vopp"]) $(id).onchange = renderVs;
+  document.querySelectorAll("#vres button").forEach((b) => b.onclick = () => { vres = b.dataset.r; renderVs(); });
+  document.querySelectorAll("#vnight button").forEach((b) => b.onclick = () => { vnight = b.dataset.n; renderVs(); });
+  renderVs();
+}).catch(() => { $("vkey").textContent = "Couldn't read the runs file."; });
 fetch("data/trends.json", { cache: "no-store" }).then((r) => r.json()).then((d) => {
   T = d;
   const dates = Object.keys(d.anomalies).sort().reverse();

@@ -6527,6 +6527,52 @@ await bridgeChecks(ok, root);
     "one stretch, said once (0.170.0; Avdija's 18-for-28 and Mamukelashvili's misses were each on the page twice): for one player, stat and direction the best-scored of the shift, slump, shots-run and hot-hand lines is kept; a line with no twin stays", stretch.join(","));
 }
 
+// ---------- 0.171.0: a player's run of wins or losses against one team, with him playing, for every player (the user, 11/27) ----------
+{
+  const M = await import("../src/records/matchup.js");
+  const g = (d, opp, res) => [d, opp, 1, res, 2, 30, 10, 3, 2, 0, 0, 1];
+  const logs = { columns: ["date", "opp", "home", "result", "type", "min", "pts", "reb", "ast", "stl", "blk", "fg3m"], players: {
+    // in the league before the files begin; on three teams since
+    p1: [g("2016-10-26", "UTA", "W"), g("2017-01-05", "UTA", "W"), g("2018-02-01", "UTA", "W"), g("2019-03-01", "UTA", "W"), g("2020-01-10", "UTA", "W"),
+      g("2019-11-01", "BOS", "W"), g("2021-04-15", "BOS", "L"), g("2022-01-02", "BOS", "L"), g("2023-02-03", "BOS", "L"), g("2024-03-04", "BOS", "L"), g("2025-01-05", "BOS", "L"), g("2026-02-06", "BOS", "L"),
+      g("2023-11-01", "OKC", "L"), g("2024-02-01", "OKC", "L"), g("2024-12-17", "OKC", "W"), g("2025-01-20", "OKC", "L"), g("2025-11-20", "OKC", "L"), g("2026-01-20", "OKC", "L"),
+      g("2021-01-01", "AAA", "W"), g("2022-01-01", "AAA", "W"), g("2023-01-01", "AAA", "W"), g("2024-01-01", "AAA", "W"), g("2025-01-01", "AAA", "W"),
+      [...g("2025-04-15", "MIA", "L")].map((x, i) => (i === 4 ? 5 : x))],
+    // a career that began in 2023
+    p2: [g("2023-11-10", "GSW", "L"), g("2024-01-10", "GSW", "L"), g("2024-12-10", "GSW", "L"), g("2025-03-10", "GSW", "L")] } };
+  const keys = ["min", "pts", "reb", "ast", "stl", "blk", "fg3m"], line = [30, 10, 3, 2, 0, 0, 1];
+  const teamFiles = {
+    AAA: { names: { p1: "Vet One" }, keys, games: [{ d: "2026-11-01", opp: "BOS", home: true, pf: 90, pa: 100, pl: { p1: line } }, { d: "2026-11-10", opp: "BOS", home: false, pf: 110, pa: 100, pl: { x9: line } }] },
+    BBB: { names: { p2: "Young Two" }, keys, games: [{ d: "2026-11-05", opp: "GSW", home: true, pf: 95, pa: 99, pl: { p2: line } }] } };
+  const R = M.teamRunsVs({ logs, teamFiles, names: { p1: "Vet One", p2: "Young Two" }, today: "2026-11-27", tonight: [{ home: "GSW", away: "BBB" }] });
+  const row = (id, opp) => R.find((r) => r.id === id && r.opp === opp);
+  ok(row("p1", "BOS")?.res === "L" && row("p1", "BOS").n === 7 && row("p1", "BOS").since === "2021-04-15" && row("p1", "BOS").games === 8 && row("p1", "BOS").team === "AAA" && !row("p1", "BOS").atLeast
+    && row("p1", "UTA")?.n === 5 && row("p1", "UTA").atLeast === true && row("p1", "OKC")?.n === 5 && row("p1", "OKC").res === "L" && !row("p1", "AAA") && !row("p1", "MIA")
+    && row("p2", "GSW")?.n === 5 && row("p2", "GSW").career === true && row("p2", "GSW").tonight === true && R[0] === row("p1", "BOS"),
+    "runs against a team (0.171.0; the user, 11/27: \"their win/loss streak against another team… Dennis Schroder… a possible test case\"): a player's run follows him across teams and counts only the games he played (the win his team had without him doesn't end it); the Cup's title game and the play-in are in no count; a run reaching the first game on file of a player already in the league is \"at least\"; every game of a career says so; a run against the team he is on now is left out; tonight's opponent is marked; longest first",
+    JSON.stringify(R));
+  // the Bulls and Pelicans games ESPN's logs lack are put back before a run is counted; a player with no game yet this season
+  const { withFill } = await import("../src/situations/logfill.js");
+  const cols = ["date", "opp", "home", "result", "type", "min", "pts", "reb", "ast", "stl", "blk", "fg3m", "fgm", "fga", "fg3a", "ftm", "fta"];
+  const h = (d, opp, res) => [d, opp, 1, res, 2, 30, 20, 5, 4, 1, 0, 2, 7, 15, 5, 4, 4];
+  const espn = { columns: cols, players: {
+    p4: ["2018-12-01", "2019-12-01", "2020-12-01", "2021-12-01", "2022-12-01", "2023-12-01"].map((d) => h(d, "CHI", "W")),
+    p5: ["2021-12-01", "2022-12-01", "2023-12-01", "2024-12-01", "2025-12-01"].map((d) => h(d, "UTA", "L")) } };
+  const fill = { columns: [...cols, "src"], players: { p4: [[...h("2016-12-10", "CHI", "W"), "p"].map((x, i) => (i === 7 ? 0 : x)), [...h("2017-11-10", "CHI", "L"), "n"]] } };
+  const full = withFill(espn, fill);
+  const tf = { DDD: { names: { p4: "Old Four", p5: "Hurt Five" }, keys, games: [{ d: "2026-11-02", opp: "MIA", home: true, pf: 100, pa: 90, pl: { p4: line, p5: [0, 0, 0, 0, 0, 0, 0] } }] } };
+  const bare = M.teamRunsVs({ logs: espn, teamFiles: tf, names: tf.DDD.names, today: "2026-11-27" }), filled = M.teamRunsVs({ logs: full, teamFiles: tf, names: tf.DDD.names, today: "2026-11-27" });
+  const f4 = filled.find((r) => r.id === "p4" && r.opp === "CHI"), b4 = bare.find((r) => r.id === "p4" && r.opp === "CHI"), f5 = filled.find((r) => r.id === "p5");
+  // a veteran who missed the start of 2016-17: the Guide's first season, not the date of his first game on file
+  const vet = M.teamRunsVs({ logs: full, teamFiles: tf, names: tf.DDD.names, today: "2026-11-27", firstSeason: (n) => (n === "Hurt Five" ? "2012-13" : null) }).find((r) => r.id === "p5");
+  const moved = M.teamRunsVs({ logs: full, teamFiles: tf, names: tf.DDD.names, today: "2026-11-27", tonight: [{ home: "UTA", away: "EEE" }], teamNow: (id, t) => (id === "p5" ? "EEE" : t) }).find((r) => r.id === "p5");
+  const it = M.playerItems({ id: "p4", name: "Old Four", team: "DDD", opp: "CHI", logs: full, teamFiles: tf, today: "2026-11-27" }).map((i) => i.text);
+  ok(b4?.career === true && f4?.n === 6 && f4.games === 8 && !f4.career && !f4.atLeast && f5?.team === "DDD" && f5.n === 5 && f5.career === true && moved?.team === "EEE" && moved.tonight === true && vet?.atLeast === true && !vet.career
+    && it.some((t) => /Old Four's teams have won 6 straight against the Bulls with him playing\.$/.test(t)) && !it.some((t) => /every game/.test(t)),
+    "runs against a team, the games ESPN lacks (0.171.0; found checking Markkanen's 14 straight losses to Golden State: his 2017-18 season with Chicago was not in the logs, and it has two more): the filled logs go to the count, so a run that only looked like every game of a career isn't called one; a filled line with only a floor for rebounds still says who won; a player with no game yet this season is on the team whose box scores list him, not on a number from an old row, and on his new team once the roster says he has moved; a veteran is one by the Guide's first season for him, whenever his first game on file is",
+    JSON.stringify({ b4, f4, f5, moved, vet, it }));
+}
+
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });
 const brief = (m) => [m.player, m.kind, m.stat, m.scope, m.current, m.target, m.need, m.status, m.passing?.player || ""].join(" | ");

@@ -751,7 +751,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
       const pf = path.join(root, "src", "data", "odd-lines-players.json"), players = fs.existsSync(pf) ? JSON.parse(fs.readFileSync(pf, "utf8")) : null;
       if (games.length) {
         const W = oddWatch({ rows: rows.filter((g) => !g.cupFinal), history, players, names: NAMES, pos: rosterPos, teams: new Set(Object.keys(vs)), vs, IX: LINE_IX,
-          teamNow: (id, t) => (rosterChanges[id] ? rosterChanges[id].team || "FA" : t) });
+          teamNow: (id, t) => (rosterChanges[id] ? rosterChanges[id].team || "FA" : t), firstSeason });
         oddByDate.tonight = { date: today, since: players?.since || null, runMin: history?.runMin || null, ...W };
         console.log(`odd lines to watch tonight: ${W.runs.length} run(s) or repeat(s) a game short, ${W.owners.length} player habit(s) on ${games.length} game(s)`);
       }
@@ -932,7 +932,21 @@ try {
     const { matchups } = await import("../src/records/matchup.js");
     const zlib = await import("node:zlib");
     const history = fs.existsSync(histFile) ? JSON.parse(fs.readFileSync(histFile, "utf8")) : null;
-    const logs = fs.existsSync(logFile) ? JSON.parse(zlib.gunzipSync(fs.readFileSync(logFile))) : null;
+    const logsEspn = fs.existsSync(logFile) ? JSON.parse(zlib.gunzipSync(fs.readFileSync(logFile))) : null;
+    // 0.171.0: with the Bulls and Pelicans games of 2016-17 and 2017-18, which ESPN's logs lack for every player in them
+    // (src/situations/logfill.js). Without them Markkanen's first season was missing, Butler, Davis and Holiday read as
+    // "in his career" from 2017 or 2018, and no run against Chicago or New Orleans could reach back past 2018.
+    const fillF = path.join(root, "src", "data", "player-logs-fill.json.gz"), { withFill: fillIn } = await import("../src/situations/logfill.js");
+    const logs = logsEspn && fs.existsSync(fillF) ? fillIn(logsEspn, JSON.parse(zlib.gunzipSync(fs.readFileSync(fillF)))) : logsEspn;
+    // 0.171.0: each player's first season, as the Guide's year-by-year pages have it, so "in his career" isn't read off the
+    // date of his first game on file (a veteran who missed the start of 2016-17 looked like a rookie)
+    let firstSeason = null;
+    try {
+      const csName = fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^nba-career-seasons-\d{4}-\d{2}\.json$/.test(f)).sort().pop();
+      const { strictKey } = await import("../src/records/guide.js");
+      const cs = csName ? JSON.parse(fs.readFileSync(path.join(root, "src", "data", csName), "utf8")) : null, si = cs ? cs.keys.indexOf("season") : -1;
+      if (cs && si >= 0) { const first = new Map(); for (const [n, rows] of Object.entries(cs.players)) { const y = rows.map((r) => r[si]).filter((x) => /^\d{4}-\d{2}$/.test(x)).sort()[0]; if (y) first.set(strictKey(n), y); } firstSeason = (n) => first.get(strictKey(n)) || null; }
+    } catch (e) { console.error(`first seasons not read: ${e.message}`); }
     // 0.84: the all-time series each team's media guide prints (tools/parse-series-history.py), counted forward.
     const serName = fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^nba-series-history-\d{4}-\d{2}\.json$/.test(f)).sort().pop();
     const series = serName ? JSON.parse(fs.readFileSync(path.join(root, "src", "data", serName), "utf8")) : null;
@@ -962,7 +976,7 @@ try {
         console.log(`series: ${table.length} of 435 pairings from ${Object.keys(series.guides || {}).length} team guides (${table.filter((r) => r.status === "confirmed" && !r.counted && !r.checked).length} confirmed by both guides, ${table.filter((r) => r.counted).length} by a count of the games, ${table.filter((r) => r.checked).length} by an outside check, ${table.filter((r) => r.status === "differs").length} where they differ)`);
       } catch (e) { console.error(`series not written: ${e.message}`); }
     }
-    const m = matchups({ history, logs, teamFiles, tonight, today, series, deep: deepShared.deep, official: deepShared.official, bests: seriesBests });
+    const m = matchups({ history, logs, teamFiles, tonight, today, series, deep: deepShared.deep, official: deepShared.official, bests: seriesBests , firstSeason });
     // 0.95 (the user, 11/17): what is lopsided between tonight's opponents by the type of scoring (paint, fast break,
     // second chance, off turnovers) and against the top defenses (src/situations/edges.js). The lines join each game's
     // matchup items (EDGE.perGame of them, the page shows them first); the whole table goes to docs/data/edges.json.
@@ -978,6 +992,13 @@ try {
     } catch (e) { console.error(`edges not written: ${e.message}`); }
     fs.writeFileSync(path.join(root, "docs", "data", "matchups.json"), JSON.stringify({ generatedAt: out.generatedAt, today, window: history?.seasons || null, games: m.map((g) => ({ ...g, items: [...g.items.slice(0, 12), ...g.items.slice(12).filter((i) => i.series || i.edge)] })) }));   // 0.85.1: the all-time series line is kept even on a game with more than twelve items
     console.log(`matchups: ${m.reduce((a, g) => a + g.items.length, 0)} items for ${m.length} games tonight${history ? "" : " (no results back-fill yet)"}${logs ? "" : " (no player logs back-fill yet)"}`);
+    // 0.171.0: every current player's run of wins or losses against each team with him playing (the Streaks page's list)
+    try {
+      const { teamRunsVs, TEAM_RUN } = await import("../src/records/matchup.js");
+      const vs = logs ? teamRunsVs({ logs, teamFiles, names: NAMES, today, tonight, teamNow: (id, t) => (rosterChanges[id] ? rosterChanges[id].team || "FA" : t), firstSeason }) : [];
+      fs.writeFileSync(path.join(root, "docs", "data", "vsruns.json"), JSON.stringify({ generatedAt: out.generatedAt, today, from: "2016-17", min: TEAM_RUN.min, rows: vs }));
+      console.log(`runs against a team: ${vs.length} of ${TEAM_RUN.min}+ games (longest: ${vs[0] ? `${vs[0].name} ${vs[0].res}${vs[0].n} vs ${vs[0].opp}` : "none"})`);
+    } catch (e) { console.error(`runs against a team not written: ${e.message}`); }
   } catch (e) { console.error(`matchups not written: ${e.message}`); }
 }
 // Rest and back-to-backs (src/situations/rest.js, moved from GameFlow in 0.55): teams, players, and tonight's rest.
