@@ -123,7 +123,8 @@ export function findings({ pg, names = {}, qsum = {}, teamGp = {}, allStars = nu
     hits.sort((a, b) => (a.c.half ? a.rank / PART.half : a.rank / PART.top) - (b.c.half ? b.rank / PART.half : b.rank / PART.top));
     const use = hits.slice(0, PART.max), own = 1 + Q.indexOf(p), best = use[0];
     const surprise = 0.8 + use.reduce((a, h) => a + (1 - (h.rank - 1) / (h.c.half ? PART.half : PART.top)) * (h.c.half ? 1.3 : 1), 0);
-    const sayHit = (h) => `his scoring ${h.c.say} alone (${r1(h.v)}) would ${h.rank === 1 ? `still lead everyone else${h.below[0] ? ` (next: ${h.below[0].name}, ${r1(h.below[0].ppg)})` : ""}` : `rank ${ord(h.rank)}${h === best && h.below.length ? `, ahead of ${h.below.map((o) => `${o.name}'s ${r1(o.ppg)}`).join(" and ")}` : ""}`}`;
+    // 0.170.0: "his scoring without his free throws alone" read as if the free throws were the part counted
+    const sayHit = (h) => `his scoring ${h.c.say}${/^without\b/.test(h.c.say) ? "" : " alone"} (${r1(h.v)}) would ${h.rank === 1 ? `still lead everyone else${h.below[0] ? ` (next: ${h.below[0].name}, ${r1(h.below[0].ppg)})` : ""}` : `rank ${ord(h.rank)}${h === best && h.below.length ? `, ahead of ${h.below.map((o) => `${o.name}'s ${r1(o.ppg)}`).join(" and ")}` : ""}`}`;
     const said = use.map(sayHit).join("; ");
     out.push({ kind: "find", test: "part", team: p.team, player: p.name, key: `find|part|${p.id}|${use.map((h) => h.c.key).join("+")}`, surprise, rare: best.rank <= 5,
       text: `${p.name} is ${own === 1 ? "the NBA's leading scorer" : `${ord(own)} in the NBA in scoring`} at ${r1(p.ppg)} a game. ${said[0].toUpperCase()}${said.slice(1)}` });
@@ -241,6 +242,8 @@ export function findings({ pg, names = {}, qsum = {}, teamGp = {}, allStars = nu
     // was "1st in threes" with the 23 he made as a starter, and Jrue Holiday, who has not started, was "2nd in points,
     // 3rd in assists" where Portland's notes, and the count below, have him 1st, 2nd and tied for 1st in threes.
     const benchTot = P.map((p) => { const t = { p, min: 0, pm: 0, starts: 0, gp: 0 }; for (const [k] of TOTALS) t[k] = 0; for (const g of p.games) { if (g.starter) continue; t.gp++; t.min += g.min || 0; t.pm += g.pm || 0; for (const [k] of TOTALS) t[k] += g[k] || 0; } return t; });
+    // 0.170.0: the line says its ranks are of totals (New Orleans' notes had Derik Queen "6th among all NBA reserves" in
+    // rebounds a game on the day this line had him "tied for 2nd in rebounds")
     const groups = [["bench players", benchTot.filter((t) => t.gp >= QUALIFY.games)], ...(rookies && rookies.size ? [["rookies", tot.filter((t) => rookies.has(plainName(t.p.name)) || rookies.has(t.p.id))]] : [])];
     for (const [label, G] of groups) {
       if (G.length < 20) continue;
@@ -249,7 +252,7 @@ export function findings({ pg, names = {}, qsum = {}, teamGp = {}, allStars = nu
       for (const t of G) { const said = [...TOTALS, ["pm", "plus/minus"]].filter(([k]) => t[k] > 0 && shared(k, t[k]) <= 2).map(([k, w]) => [gr[k].get(t), w, shared(k, t[k]) > 1]).filter(([r]) => r <= GROUP.top); if (said.length >= GROUP.need && said.some(([r]) => r <= GROUP.best)) found.push({ t, said, sum: said.reduce((a, [r]) => a + (GROUP.top + 1 - r), 0) }); }
       for (const f of found.sort((a, b) => b.sum - a.sum).slice(0, GROUP.lines))
         out.push({ kind: "find", test: "group", team: f.t.p.team, player: f.t.p.name, key: `find|group|${label}|${f.t.p.id}`, surprise: 2.8 + Math.min(1.2, f.sum / 20), rare: false,
-          text: `${f.t.p.name} ${label === "bench players" ? `off the bench this season (${f.t.gp} games as a reserve)` : `among ${label} this season`}: ${f.said.map(([r, w, tie]) => `${tie ? "tied for " : ""}${ord(r)} in ${w}`).join(", ")}` });   // 0.132.0: a shared rank says so
+          text: `${f.t.p.name} ${label === "bench players" ? `off the bench this season (${f.t.gp} games as a reserve), by totals` : `among ${label} this season, by totals`}: ${f.said.map(([r, w, tie]) => `${tie ? "tied for " : ""}${ord(r)} in ${w}`).join(", ")}` });   // 0.132.0: a shared rank says so
     }
   }
   // 9. outdo (0.115; the user, 11/19: "does the program check if a player has more than any stat compared to other

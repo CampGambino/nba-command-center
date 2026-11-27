@@ -1,6 +1,7 @@
 import { checkLine, statClaims, thresholdClaims, meetsThresholds } from "./boxscore.js";
 import { SEASON, SEASON_RE, SEASON_SHORT } from "../season.js";
 import { normStat, num } from "./stats.js";
+import { TEAMS } from "../teams.js";
 
 /**
  * Narrative milestone text, read in the right order.
@@ -36,8 +37,11 @@ export function blocks(doc) {
       const text = col
         .replace(/([\p{L}\d]+)-\n([\p{L}\d]+)/gu, (m, l, r) => (keepsHyphen(l, r, vocab) ? `${l}-${r}` : `${l}${r}`)) // a line ending in a hyphen
         .replace(/\s*\n\s*/g, " ")
+        // 0.170.0: two sentences printed with no space between them ("…a career-high 5 steals and 2 blocks.Dereck Lively II
+        // was inactive…", Dallas 11/27) were read as one line
+        .replace(/([a-z]{3,}[.!?])(?=[A-Z][a-z]{2,}\b)/g, "$1 ").replace(/([a-z\d)])\.{2}(?=[A-Z][a-z]{2,}\b)/g, "$1. ")
         .replace(/\s+/g, " ");
-      for (const bullet of cleanSidebar(text).split(/\s*[•▪●]\s*/)) {
+      for (const bullet of cleanSidebar(text).split(/\s*[•▪●\u0001]\s*/)) {
         // A bullet is a full note even without a final stop ("Has started 97 consecutive regular season games").
         let t = bullet.trim();
         if (t.length >= 40 && /[\p{L}\d%)]$/u.test(t) && !/\b(?:to|the|a|an|of|and|at|in|with|as|by|for|or|his|their|from|on|was|were|who|that|is|are|which)$/i.test(t)) t += ".";
@@ -63,10 +67,14 @@ export function keepsHyphen(left, right, vocab) {
   const l = left.toLowerCase(), r = right.toLowerCase();
   if (vocab.get(l + r)) return false;
   if (vocab.get(`${l}-${r}`) || COMPOUND_FIRST.has(l)) return true;
+  // 0.170.0: "Indiana's bench has com-" / "bined to average 38.9 points" stayed "com-bined" (the user's image, 11/27): "com"
+  // is printed on its own all over the notes, in web addresses. A first half of three letters or fewer is most often the
+  // front of a cut word (com-, in-, re-, con-), so its second half has to be a word the notes use elsewhere too.
+  if (l.length <= 3 && (vocab.get(r) || 0) < 2) return false;
   return (vocab.get(l) || 0) >= 2; // itself at the line end, and at least once more
 }
 // First halves of the compounds game notes are full of ("second-longest", "career-high", "all-time", "double-double").
-const COMPOUND_FIRST = new Set("first second third fourth fifth sixth seventh eighth ninth tenth career season franchise team game single double triple all two three four five six high low league best most".split(" "));
+const COMPOUND_FIRST = new Set("first second third fourth fifth sixth seventh eighth ninth tenth career season franchise team game single double triple all one two three four five six ten top high low league best most".split(" "));
 
 /** How often each word, and each hyphenated compound, is printed in these texts. */
 export function wordCounts(texts) {
@@ -90,6 +98,10 @@ export function cleanSidebar(text) {
     // Portland's player boxes: the season line's header and values read into the bullets ("GP/GS PPG RPG APG SPG BPG MPG", "11/2 8.3 3.5 2.0 0.5 0.3 23.1").
     .replace(/\bGP\/GS PPG RPG APG SPG BPG MPG\b/g, " ")
     .replace(/\b\d{1,2}\/\d{1,2}(?:\s+\d{1,2}\.\d){6}\b/g, " ")
+    // 0.170.0: the same boxes in New Orleans' notes label the second stat row "Career vs. LA Clippers"; with the rows
+    // taken out the label was left on the note beside it ("Career vs. LA Clippers - Among NBA players who average…",
+    // tagged "Series")
+    .replace(/\bCareer vs\.? (?:[A-Z][\w.]*)(?: [A-Z0-9][\w.]*){0,2}\s+(?=[-–]\s)/g, " ")
     .replace(/\b\d{1,2}(?:st|nd|rd|th) season \(\d{1,2}(?:st|nd|rd|th) w\/[A-Z]{2,3}\)\s*/g, " ")
     .replace(/Notes\/Trends\s*\[[^\]]{0,60}\]\s*/g, " ")
     .replace(/\b(?:19|20)\d\d-\d\d Season Stats\b\s*/g, " ")
@@ -219,6 +231,19 @@ export function columnsOf(page) {
     // was read into it: "…on 11/22). 3 F G M Jordan Hawkins scored…". A heading alone on its line is left for the topic reader.
     .map((l) => (l.cells.length > 1 && l.cells.some((c) => SPACED_LABEL.test(c.text.trim())) ? { ...l, cells: l.cells.filter((c) => !SPACED_LABEL.test(c.text.trim())) } : l))
     .filter((l) => l.cells.length);
+  // 0.170.0: an ordinal's ending printed as a superscript on a row of its own, above the line it belongs to ("nd." over
+  // "November 22", Denver 11/27, in a large-type box) was read before that line: "…through Sunday, nd. November 22 Jokić
+  // wins the award…", and the sentence started at "November 22". It goes back on the number it sits beside.
+  for (let i = 0; i + 1 < lines.length; i++) {
+    const up = lines[i], base = lines[i + 1];
+    if (up.cells.length !== 1 || !/^(?:st|nd|rd|th)[.,;]?$/.test(up.cells[0].text.trim())) continue;
+    const gap = up.y - base.y, sup = up.cells[0];
+    if (!(gap > 0 && gap < (base.h || 10)) || !((up.h || 0) < (base.h || 10) * 0.8)) continue;
+    const k = base.cells.findIndex((c) => /\d$/.test(c.text.trim()) && Math.abs(c.x1 - sup.x0) <= 4);
+    if (k < 0) continue;
+    const cells = base.cells.map((c, n) => (n === k ? { ...c, text: c.text.trim() + sup.text.trim(), x1: sup.x1 } : c));
+    lines.splice(i, 2, { ...base, cells });
+  }
   for (const l of lines) for (const c of l.cells) for (let x = Math.max(0, Math.floor(c.x0)); x <= Math.min(width, Math.ceil(c.x1)); x++) cover[x]++;
 
   const limit = Math.max(1, Math.floor(lines.length * 0.03));
@@ -238,10 +263,12 @@ export function columnsOf(page) {
     }
     perCol.forEach((parts, i) => { if (parts.length) { parts.y = l.y; cols[i].push(parts); } });
   }
-  return cols.filter((c) => c.length).map(sideBySide);
+  return cols.filter((c) => c.length).map((c) => sideBySide(c));
 }
 
-const SIDE_GUTTER = 6, SIDE_ROWS = 3, SIDE_CHARS = 20;
+const SIDE_GUTTER = 6, SIDE_ROWS = 3, SIDE_CHARS = 20, SIDE_DEPTH = 3;
+/** Between two sides read one after the other (a line of its own): blocks() ends a block there, as at a bullet. */
+export const SIDE_BREAK = "\u0001";
 /**
  * Two lists of sentences printed side by side on part of a page (Dallas p.5, 11/15: "UPCOMING MILESTONES" beside
  * "RECENT MILESTONES"). The page's own gutters miss them when full-width text above covers the gap, and reading
@@ -251,10 +278,32 @@ const SIDE_GUTTER = 6, SIDE_ROWS = 3, SIDE_CHARS = 20;
  * rows: one column's rows, each a list of cells. A run of 3+ rows that all leave the same strip empty, with
  * sentences (not table cells) on both sides of it in at least 3 of them, is read left side first, then right.
  * Tables keep reading across: their cells are short or numeric, and the lists read from them depend on it.
+ *
+ * 0.170.0 (the user's images, 11/27), three more shapes of the same thing:
+ *  - a paragraph beside a table (the Lakers' series notes beside the schedule; the Warriors' Cup recap beside their Cup
+ *    results): "The Lakers are 22-27 all-time against 2/6/27 Frost Bank Center 5:30 p.m.", "…22 points off 11/24/23 vs.
+ *    San Antonio W, 118-112 the bench". One side is running text (its lines carry on from one to the next) and the other
+ *    is not: the text is read first and the table after it, each still across its own rows;
+ *  - three columns (the Lakers' "HIGHEST SCORING GAMES": "Posted the NBA's first 50-point game of the Became the first
+ *    player in NBA history to season, adding…"): each side of a split is read for a split of its own;
+ *  - a heading over each column ("OCT. 25 / AT UTAH" beside "NOV. 1 / VS. TORONTO") is not a row of table cells that
+ *    counts against the sentences under it.
  * -> the column's lines as text
  */
-export function sideBySide(rows) {
+export function sideBySide(rows, depth = 0) {
   const text = (cells) => cells.map((c) => c.text).join(" ");
+  const prose = (t) => t.length >= SIDE_CHARS && /[a-z]{3,}\s+[a-z]{2,}/.test(t) && !/^[\d.,%\s()\-–/]+$/.test(t);
+  const label = (t) => t.length < 40 && !/[a-z]{2,}/.test(t);
+  // running text: three lines of sentences or more, at least two of them carried on by the next line of the same side
+  const sides = (S) => S.map(text).filter(Boolean);
+  const running = (S) => {
+    const T = sides(S);
+    let wraps = 0;
+    for (let n = 0; n + 1 < T.length; n++) if (prose(T[n]) && (/[\p{L}\d]-$/u.test(T[n]) || (!/[.!?:;…]["”’)]?$/.test(T[n]) && /^[a-z(]/.test(T[n + 1])))) wraps++;
+    const said = T.filter(prose).length;
+    return said >= SIDE_ROWS && wraps >= 2 && said >= T.length * 0.5;
+  };
+  const tabular = (S) => { const T = sides(S); return T.length >= SIDE_ROWS && T.filter(prose).length <= T.length * 0.4 && !running(S); };
   const out = [];
   let i = 0;
   while (i < rows.length) {
@@ -283,18 +332,34 @@ export function sideBySide(rows) {
         lo = a; hi = z;
         const left = rows[j].filter((c) => c.x1 <= lo), right = rows[j].filter((c) => c.x0 >= hi);
         if (left.length && right.length) both++;
+        left.y = rows[j].y; right.y = rows[j].y;
         L.push(left); R.push(right);
       }
-      if (j - i < SIDE_ROWS || both < SIDE_ROWS) continue;
+      if (j - i < SIDE_ROWS) continue;
       // Sentences on both sides: long cells with words in them, few bare numbers.
-      const pairs = L.map((l, n) => [text(l), text(R[n])]).filter(([l, r]) => l && r);
-      const prose = (t) => t.length >= SIDE_CHARS && /[a-z]{3,}\s+[a-z]{2,}/.test(t) && !/^[\d.,%\s()\-–/]+$/.test(t);
+      const pairs = L.map((l, n) => [text(l), text(R[n])]).filter(([l, r]) => l && r && !(label(l) && label(r)));
       const ok = pairs.filter(([l, r]) => prose(l) && prose(r)).length;
-      if (ok < SIDE_ROWS || ok < pairs.length * 0.6) continue;
-      if (!best || j - i > best.j - i) best = { j, L, R };
+      const two = both >= SIDE_ROWS && ok >= SIDE_ROWS && ok >= pairs.length * 0.6;
+      // the text on the left and the table on its right; they need not share a row (Washington's player pages print the
+      // table's rows between the lines of a sentence: "…the second Wizard under the age of 22 to MINS post 30+ points…").
+      // Not the other way round: a column of bullets, or of player headings ("#16 Caleb Martin" / "F." / "8th Season",
+      // Dallas's starters page), stands left of the text it belongs to, and reading it apart would cut every note from
+      // its bullet or its player.
+      const beside = !two && running(L) && tabular(R);
+      if (!two && !beside) continue;
+      if (!best || j - i > best.j - i) best = { j, L, R, beside };
     }
     if (!best) { out.push(text(rows[i])); i++; continue; }
-    for (const side of [best.L, best.R]) for (const cells of side) if (cells.length) out.push(text(cells));
+    // The table goes after its text, unless the text carries on below the table (its last line stops mid-sentence and
+    // the next row starts in lower case): then the table is read first, so the sentence isn't cut in two by it.
+    const lastL = sides(best.L).pop() || "", after = best.j < rows.length ? text(rows[best.j]) : "";
+    const order = best.beside && !/[.!?:;…]["”’)]?$/.test(lastL) && /^[a-z]/.test(after) ? [best.R, best.L] : [best.L, best.R];
+    order.forEach((side, n) => {
+      const part = side.filter((cells) => cells.length);
+      if (n) out.push(SIDE_BREAK);   // the two sides are two texts: the last line of one doesn't run into the first of the other
+      if (depth < SIDE_DEPTH) out.push(...sideBySide(part, depth + 1)); else for (const cells of part) out.push(text(cells));
+    });
+    if (best.j < rows.length && order[1] === best.R) out.push(SIDE_BREAK);
     i = best.j;
   }
   return out;
@@ -315,8 +380,14 @@ export function repairLayout(s) {
   // 0.107.1 (the user's image, 11/18): a table's header word printed inside a sentence and stuck to the word before it
   // ("he's gone 100% fromDate the free-throw line", Denver). 0.77 drops such a word when it stands alone on a line.
   t = t.replace(/(\p{Ll})(?:Date|Opponent|Result|Score)(?=\s+\p{Ll})/gu, "$1");
+  // 0.170.0: a row label of the season-highs table printed between two lines of a sentence ("…the second Wizard under the
+  // age of 22 to MINS post 30+ points…", "…in the third ASTS quarter", "five- TREB or-more rebounds"; Washington, Boston,
+  // Atlanta). Only the table's own spellings, and only between two lower-case words (a count before one is prose: "(282 3FGM)").
+  t = t.replace(/(?<=[\p{Ll}\-]) (?:MINS|OREB|DREB|TREB|ASTS|STLS|BLKS|3FGM|3FGA|FGM|FGA|FTM|FTA) (?=\p{Ll}|(?:Jan|Feb|Mar|Apr|Oct|Nov|Dec)[a-z]*\.? \d)/gu, " ").replace(/(\p{Ll}-) (?=or-more\b)/gu, "$1");
   t = t.replace(/^(?:\p{Lu} ){3,}\p{Lu}(?:\s*[\/&]\s*(?:\p{Lu} ){2,}\p{Lu})*\s+(?=\p{Lu}\p{Ll})/u, ""); // a letter-spaced heading before the sentence ("S T E A L S / B L O C K S With five assists…", Chicago; 0.78)
   t = t.replace(/(\))\s+20\d\d-\d\d\.?$/, "$1."); // the next header's season after the last bullet ("…(70 on 3/24/17) 2026-27.", Phoenix)
+  // 0.170.0: the same after a word that can't lead into a season ("…in 35 minutes or less 2026-27.", Phoenix 11/27)
+  t = t.replace(/(?<!\b(?:in|of|since|during|for|from|to|through|and|the|his|their|its|a|by|entering|into|after|before|until|than|vs\.?|season|seasons|campaign|year))(?<=\p{Ll}) 20\d\d-\d\d\.?$/u, ".");
   // 0.71: a letter-spaced footer ("2 0 2 6 - 2 7 D A L L A S M A V E R I C K S G A M E N O T E S."), and a page number
   // with the PR accounts ("17 Find us on X: @spurs | Facebook: http://…").
   t = t.replace(/(?:\s|^)(?:[\p{Lu}0-9\-&](?:\s+|(?=\.?\s*$))){8,}\.?/gu, " ");
@@ -358,7 +429,8 @@ function sentences(text) {
   // common abbreviations (Jr., No., vs., Oct., St.).
   const parts = [];
   let last = 0;
-  const re = /([.!?…])\s+(?=["“(]?[A-Z])/g;
+  // 0.170.0: or by a dash that bullets the next sentence ("…after missing 11 games. - Among NBA players who average…", New Orleans)
+  const re = /([.!?…])\s+(?=(?:[-–]\s+)?["“(]?[A-Z])/g;
   for (const m of text.matchAll(re)) {
     const before = text.slice(Math.max(0, m.index - 4), m.index + 1);
     if (/\b(?:[A-Z]|Jr|Sr|No|vs|St|Mt|Dr|Jan|Feb|Mar|Apr|Aug|Sept?|Oct|Nov|Dec|Def|Off|Pct|Reb|Opp)\.$/.test(before)) continue;
@@ -400,12 +472,15 @@ const SERIES = /\bseason series\b|\bseries (?:history|between)\b|\bthis season['
 // "Since entering the league in 2012-13, Davis owns…": a timeframe, not when it happened, and not background.
 const SINCE_CLAUSE = /^Since (?:entering|joining|being drafted|he (?:joined|entered|arrived)|his (?:arrival|debut|rookie))[^,]{0,140},\s*/i;
 const PASSY = /\b(?:pass|passing|tie|tying|surpass|move (?:up|into|past)|jump)\b/i;
-const NOT_NBA = /\b(?:program record|against No\. \d+|high school|school history|program(?:'s)? (?:history|all-time)|NCAA|college|freshman|sophomore|junior|senior year|AAU|conference tournament|EuroLeague|Olympic|FIBA|national team|G League|summer league|preseason)\b/i;
+const NOT_NBA = /\b(?:(?:Big 12|Big Ten|Big East|Pac-1[02]|Mountain West|Atlantic 10|Ivy League|West Coast Conference|American Athletic) (?:history|record|play|tournament|title|champion\w*|Conference)|(?:SEC|ACC|WCC|AAC|MAC|SWAC|MEAC) (?:history|record|tournament|title|Player of the Year|Freshman of the Year)|program record|against No\. \d+|high school|school history|program(?:'s)? (?:history|all-time)|NCAA|college|freshman|sophomore|junior|senior year|AAU|conference tournament|EuroLeague|Olympic|FIBA|national team|G League|summer league|preseason)\b/i;
 const CURRENT = new RegExp(String.raw`\b(?:active streak|longest active|this season|this year|${SEASON_RE}|${SEASON_SHORT}|tonight|last game|last night|his last|over (?:his|the) (?:past|last) \d+|in (?:each of )?the first \d+ games|through \d+ games|to (?:begin|start|open) (?:the|his|their) (?:season|campaign|year)|for the \w+ (?:straight|consecutive) game|season opener|today|so far|is now|currently|this campaign|in (?:his|their) (?:\w+ )?debut with|(?:has|have) (?:now )?(?:recorded|scored|made|posted|had|tallied|grabbed|dished|hit|logged|notched) [^.]{0,60}\b(?:straight|consecutive) games)\b|\b(?:Oct|Nov|Dec)\.? \d{1,2}\b|\b1[0-2]\/\d{1,2}\b`, "i");   // 0.141.6: the season from src/season.js
 // 0.141.6: seasons before this one (src/season.js), not a typed "2025-26" that next season would read as current.
 const PAST_YEARS = Array.from({ length: Number(SEASON.slice(0, 4)) - 2000 }, (_, i) => String(i).padStart(2, "0")).join("|");
 const OLDER = new RegExp(String.raw`\b(?:last season|in 20(?:${PAST_YEARS})-\d\d|20(?:${PAST_YEARS})-\d\d:|during (?:the )?20(?:${PAST_YEARS})|previous (?:season|\d+ seasons)|career-long|as a rookie in)\b`, "i");
 
+// 0.170.0: three records in a row with no stop between them is a table ("When Giannis Antetokounmpo scores 30+ points 4-4
+// Mitchell 3-6 When Bam Adebayo records a double-double 3-2 Mitchell 3-1 When…", Miami's "record when" box)
+const RECORD_ROWS = /(?:\b\d{1,2}-\d{1,2}\s+\p{Lu}[^.;,:]*?){3}/u;
 const TABLEY = /\b(?:ASTS?|STLS?|REBS?|BLKS?|TREB|PTS|TOV)\s+\d|\d+[prab]-\d+[prab]\b|\s\*\s|\b\d+K (?:PTS|AST|REB)\b|(?:\b[A-Z0-9’'&]{2,}\b\s+){3,}|\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\s+\d{1,3}\s|\b[A-Z]{2,3}\s+\d{1,3}\s+\d{1,2}\/\d{1,2}\b/;
 const MONTHS = "janfebmaraprmayjunjulaugsepoctnovdec";
 const ABBR = "NBA|ABA|MVP|ESPN|TNT|ABC|NBC|USA|FGM|FTM|FTA|FGA|PPG|RPG|APG|SPG|BPG|OT|ET|PT|II|III|IV|ECF|WCF|NCAA|LA|AT&T";
@@ -533,6 +608,9 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
         .concat([...s.matchAll(/(\b(?:since|than|before|until|in NBA history since)\s+(?:the\s+)?(?:\w+\s+)?)?\b((?:19|20)\d\d)(?:-\d\d)?\b(?!\/)/g)].filter((m) => !m[1]).map((m) => `${m[2]}-${/-\d\d/.test(m[0]) ? "12-31" : "06-30"}`))
     .concat(undated(s)); // "on 11/9", "Nov. 4": the latest such date on or before today ("11/26" on 11/12 is last season's)
   const byId = Object.fromEntries(full.map((p) => [String(p.id), p]));
+  const ownWords = new Set([...teamWords, ...oppWords].map((w) => w.toLowerCase()));   // tonight's opponent is the series' subject, not a former team
+  const otherTeams = Object.values(TEAMS).flatMap((t) => [t.city, t.nick, ...(t.alt || [])]).filter((w) => w && !ownWords.has(w.toLowerCase()));
+  const otherTeamFirst = (t) => otherTeams.some((w) => new RegExp(`^(?:The )?${esc(w)} (?:went|finished|was|were) `).test(t));
   const out = [], seen = new Set();
   let sectionWho = null, sectionPage = null; // the player whose part of the page this is: the last one named on it
   // A player's heading and his bullets can be separate blocks ("KYSHAWN GEORGE • Was selected… • Leads all… • Is one of
@@ -580,12 +658,19 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
     let prevRaw = null; // the sentence before, for "That's the fifth-most…" and "They have…"
     let sIdx = 0, prevIdx = -9; // prevRaw is the sentence right before only when prevIdx === sIdx - 1
     let paraWho = null, sinceWho = 0, lastWhen = null;
+    let nextHdr = null;   // a season header read at the end of the sentence before (0.170.0)
     let paraHead = false; // paraWho came from a capitals heading (a player's list of bullets), not from a sentence naming him
     if (carry && carry.page === b.page && carry.bio) { bioWho = paraWho = sectionWho = carry.who; sinceWho = 0; paraHead = true; }
     else if (carry && carry.page === b.page && carry.dist <= 700) { paraWho = carry.who; sinceWho = carry.dist; paraHead = true; }
     const keep = () => { carry = paraWho && paraHead ? { who: paraWho, page: b.page, dist: sinceWho, bio: !!(bioWho && paraWho === bioWho) } : null; }; // lastWhen: "old" / "current" for the paragraph's last dated sentence // chars of text since paraWho was named // the player this paragraph is about, for its "He..." sentences
-    for (let s of (sentences(b.text.replace(/\b((?:19|20)\d\d-\d\d)\s+(SEASON HIGHLIGHTS|SEASON|NOTABLES|Season Highlights|NOTES|Notes)(?=\b|:)/g, "$1\u2060$2").replace(/(^|\s)((?:19|20)\d\d-\d\d):(?=\s)/g, "$1$2\u2060:")).flatMap((x) => x.split(/\s+(?=(?:19|20)\d\d-\d\d\u2060)|\s+(?=(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s+\p{Lu}|#\s?\d{1,2}\s+\p{Lu})/u).flatMap((y) => y.split(/\s*(?:…|\.{3}|[▪●•\u0000-\u0008\u000b\u000c\u000e-\u001f]|\s[o◦▫+]\s(?=[A-Z]))\s*/u).map((z, k, all) => { let w = k > 0 && /^[a-z]/.test(z) ? z[0].toUpperCase() + z.slice(1) : z; if (k < all.length - 1 && /[\p{L}\d%)]$/u.test(w) && !/\b(?:to|the|a|an|of|and|at|in|with|as|by|for|or|his|their|from|on|was|were|who|that|is|are|which)$/i.test(w)) w += "."; return w; }))).map((x) => x.replace(/\s*\*{2,}.*$/, "").trim())).flatMap((x) => splitBullets(x, full))) {
+    for (let s of (sentences(b.text.replace(/\b(LAST|THIS|CURRENT) SEASON:/g, "$1\u2060SEASON:").replace(/\b((?:19|20)\d\d-\d\d)\s+(SEASON HIGHLIGHTS|SEASON|NOTABLES|Season Highlights|Season(?=:)|NOTES|Notes)(?=\b|:)/g, "$1\u2060$2").replace(/(^|\s)((?:19|20)\d\d-\d\d):(?=\s)/g, "$1$2\u2060:")).flatMap((x) => x.split(/\s+(?=(?:19|20)\d\d-\d\d\u2060)|\s+(?=(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s+\p{Lu}|#\s?\d{1,2}\s+\p{Lu})/u).flatMap((y) => y.split(/\s*(?:…|\.{3}|[▪●•\u0000-\u0008\u000b\u000c\u000e-\u001f]|\s[o◦▫+]\s(?=[A-Z]))\s*/u).map((z, k, all) => { let w = k > 0 && /^[a-z]/.test(z) ? z[0].toUpperCase() + z.slice(1) : z; if (k < all.length - 1 && /[\p{L}\d%)]$/u.test(w) && !/\b(?:to|the|a|an|of|and|at|in|with|as|by|for|or|his|their|from|on|was|were|who|that|is|are|which)$/i.test(w)) w += "."; return w; }))).map((x) => x.replace(/\s*\*{2,}.*$/, "").trim())).flatMap((x) => splitBullets(x, full))) {
       sinceWho += s.length + 1;
+      // 0.170.0: Phoenix's player boxes head each season's bullets with the bare season on a line of its own, which reads as
+      // the last word of the bullet above ("…in 35 minutes or less 2026-27 + Averaging 15.8 points… + Has knocked down
+      // consecutive triples in eight straight games…"). It was cut off and forgotten, and the bullets under it were judged
+      // by the date of last season's bullet above them. It is the header of what follows.
+      if (nextHdr) { seasonHdr = nextHdr; lastWhen = null; nextHdr = null; }
+      { const m = /(?:(?<=\))|(?<!\b(?:in|of|since|during|for|from|to|through|and|the|his|their|its|a|by|entering|into|after|before|until|than|vs\.?|season|seasons|campaign|year))(?<=\p{Ll})) ((?:19|20)\d\d-\d\d)\.?$/u.exec(s); if (m) nextHdr = m[1]; }
       { const at = b.text.indexOf(s.slice(0, 25).replace(/\u2060/g, " "), cursor); if (at >= 0) cursor = at; }
       if (oldMeet.some((m) => cursor >= m.at && cursor < m.end)) { drop("last-meeting-old", s); continue; }
       while (bios.length && bios[0].at <= cursor + 5) { bioWho = paraWho = sectionWho = bios.shift().p; sinceWho = 0; lastWhen = null; seasonHdr = null; }
@@ -595,7 +680,11 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       // NBA" in November; "these stats were from last season"): San Antonio heads a bio paragraph with the bare season
       // and a colon ("2025-26: 2025-26 NBA Sixth Man of the Year … One of two Spurs who played in all 82 games …").
       // The word after the season is now optional; the colon or dash is still required.
-      { const sh = s.match(/^(?:[\p{Lu} ]{3,}:\s*)?((?:19|20)\d\d)-(\d\d)\s*(?:\(([^)]{2,30})\)|\u2060?(?:SEASON HIGHLIGHTS|SEASON|NOTABLES|Season Highlights|NOTES|Notes)(?:\s*\([^)]{2,30}\))?|(\u2060)(?=:))\s*[:–—-]\s*/u);
+      // 0.170.0: Detroit heads a bio paragraph "LAST SEASON:" ("…He shot 44.7 percent from the field, a career-high 38.1
+      // percent from three-point range…" read as this season's): the same as a heading that names the season
+      { const ls = curSeason && /^(LAST|THIS|CURRENT)\u2060SEASON:\s*/.exec(s);
+        if (ls) { seasonHdr = ls[1] === "LAST" ? `${+curSeason.slice(0, 4) - 1}-${curSeason.slice(2, 4)}` : curSeason; s = s.slice(ls[0].length); if (s) s = s[0].toUpperCase() + s.slice(1); } }
+      { const sh = s.match(/^(?:[\p{Lu} ]{3,}:\s*)?((?:19|20)\d\d)-(\d\d)\s*(?:\(([^)]{2,30})\)|\u2060?(?:SEASON HIGHLIGHTS|SEASON|NOTABLES|Season Highlights|Season(?=:)|NOTES|Notes)(?:\s*\([^)]{2,30}\))?|(\u2060)(?=:))\s*[:–—-]\s*/u);
         // the bare form only inside a player's bio: elsewhere "2025-26: 3-1" is a table row, not a heading
         if (sh && (!sh[4] || bioWho)) { seasonHdr = `${sh[1]}-${sh[2]}`; s = s.slice(sh[0].length); if (s) s = s[0].toUpperCase() + s.slice(1); } }
       s = s.replace(/\u2060/g, " ");
@@ -610,6 +699,12 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
         const m = s.match(/^.*(?:[\p{Lu}0-9.,%\/’'&#+:()\-]{2,}\s+){2,}(?=\p{Lu}\p{Ll}+[\s,'’])/u);
         if (m && s.length - m[0].length >= 40 && /\d|(?:\S+\s+){3}/.test(m[0])) s = s.slice(m[0].length);
       }
+      // 0.170.0: the end of a table cell that wrapped onto the sentence's line ("…(vs. DET, / 11/22/26)" beside "Has knocked
+      // down at least one triple in 17 straight games…", Atlanta): one such piece wasn't cut by the rule above, which wants two
+      s = s.replace(/^\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\)\s+(?=\p{Lu}\p{Ll})/u, "");
+      // 0.170.0: New Orleans' player boxes mark each note with a dash ("- Among NBA players who average 25.0 minutes per game
+      // or less, is ranked 1st in rebounds per game"): the dash is the bullet, not the sentence's first character
+      s = s.replace(/^[-–]\s+(?=\p{Lu}\p{Ll})/u, "");
       s = s.replace(/(?:\s+[@#][A-Za-z0-9_]{3,})+$/, ""); // the PR account's handle at the end of an infographic page
       s = repairLayout(s);   // 0.65: game-log rows spliced in, stray ordinal suffixes, the page footer
       s = s.replace(/\b(joining|joins|joined) (\p{Lu}\p{Ll}+), (\p{Lu}\p{Ll}+) and (?=\p{Lu})/u, "$1 $2 $3 and "); // "joining Moussa, Cisse and Popeye Jones" (0.71)
@@ -662,7 +757,9 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       // A span of seasons running through last season ("each of the past three seasons (2023-26)") is a run still going, not an old date.
       // 0.82: an earlier occurrence named for comparison is not when the line happened ("…, the other time coming from
       // Feb. 26 to Mar. 3, 2023", "…largest deficit to overcome since March 1, 2015 at Boston when they won…").
-      const core = s.replace(SINCE_CLAUSE, "").replace(/[,;]\s*(?:with )?the (?:only )?(?:other|last|previous|most recent)(?: such)? (?:times?|instances?|occasions?|occurrences?|one)\b.*$/i, "")
+      // 0.170.0: nor do the years of the players it lists ("Lendeborg (2026) joined Paolo Banchero (2022), George McGinnis
+      // (1975)…", Golden State: read as a 1958 line once the table beside it no longer put a date in it)
+      const core = s.replace(SINCE_CLAUSE, "").replace(/(?<=\p{Ll}) \((?:19|20)\d\d\)/gu, "").replace(/[,;]\s*(?:with )?the (?:only )?(?:other|last|previous|most recent)(?: such)? (?:times?|instances?|occasions?|occurrences?|one)\b.*$/i, "")
         .replace(/\bsince (?:(?:a|an|the) )?(?:[\w'’-]+ ){0,6}?(?:on )?(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)[a-z]*\.? \d{1,2}, (?:19|20)\d\d\b.*$/i, "")
         .replace(/\b(era|tracked|recorded|kept)\s*\((?:since\s+)?(?:19|20)\d\d(?:-\d\d)?\)/i, "$1").replace(/\b((?:19|20)\d\d)-(\d\d)\b/g, (m, a, b) => (seasonStart && +b - +a.slice(2) >= 2 && 2000 + +b >= +seasonStart.slice(0, 4) ? "these seasons" : m));
       // A stats sidebar's cell read into the sentence ("(10-14 MINS 31 at TOR 11/11/26 FG…") doesn't date it (0.71).
@@ -674,8 +771,10 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       if (s.length < 40) continue;
       // Splices and table fragments: stat-table labels with numbers, stat lines, runs of capitals,
       // a start that isn't a capitalised word, unbalanced brackets, a sentence that stops mid-thought.
-      if (!/^[\p{Lu}"“]/u.test(s) || /^\d|^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.? \d/.test(s)) { drop("start", s); continue; }
-      if (TABLEY.test(s) && !tableLine) { drop("tabley", s); continue; }
+      // 0.170.0: or with the tail of a player's header ("Years Pro32 vs. NYK 12/15/24 on 11/16 vs. PHI and his…", Brooklyn,
+      // whose player pages are printed over another layer of text)
+      if (!/^[\p{Lu}"“]/u.test(s) || /^\d|^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.? \d|^(?:Years?|Seasons?) Pro/.test(s)) { drop("start", s); continue; }
+      if ((TABLEY.test(s) || RECORD_ROWS.test(s)) && !tableLine) { drop("tabley", s); continue; }
       // Two capitals words in a row that aren't common abbreviations: a table or heading spliced in ("his seventh MOST DOUBLE-DOUBLES double-double").
       if (CAPS_PAIR.test(s) && !tableLine) { drop("caps-pair", s); continue; }
       // A stat sidebar's cells read into the line ("FTA 12 at HOU 22 at PHI 11/30/25", "OREB 2 11/9 @ TOR (3x)", "…Career vs. New York Knicks record…").
@@ -761,6 +860,10 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       if (!dates.length && how && how !== "named" && how !== "heading" && prevWhen === "old" && !/\b(?:this season|active streak|longest active)\b/i.test(s)) { drop("follows-old", s); continue; }
       // 0.71: "Harper Jr.'s six 3-pointers marked a career high" right after "…at SAS March 10": that game's, named or not.
       if (!dates.length && prevWhen === "old" && /\b(?:marked|tied|matched|equaled|set|setting|tying)\b[^.]{0,40}\b(?:career|season)[- ]high\b/i.test(s) && !/\b(?:this season|has|is|now)\b/i.test(s)) { drop("follows-old", s); continue; }
+      // 0.170.0: a dateless sentence about how another team did, after a line from an earlier season, is that season's too
+      // ("Charlotte went 42-35 when Bridges was available and 2-3 when he missed time", last in Phoenix's list of Miles
+      // Bridges's 2025-26 notes; naming him had kept it)
+      if (!dates.length && prevWhen === "old" && otherTeamFirst(s)) { drop("follows-old", s); continue; }
       // The box scores: a line's single-game numbers ("30 points, 14 rebounds… vs. WAS (10/24)") match a game
       // a player of ours had this season → that's who, and it's current. Numbers credited to a player who never
       // had that game → not this season's (if he was named) or not his (if he was inferred).
@@ -774,7 +877,12 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       } else if (!who && chk.who && byId[chk.who]) { who = byId[chk.who]; how = "box"; boxCurrent = true; }
       // "The last player named on this page" is right too often to ignore and wrong too often to trust
       // (Brandon Miller's line credited to Kon Knueppel): only with a box score that agrees.
-      if (how === "section" && chk.named !== "yes") { drop("section-unconfirmed", s); continue; }
+      // 0.170.0: or with a game of his this season that clears every bar the line names ("Became the first player in NBA
+      // history to reach 45 points, 15 rebounds, six assists, five steals and eight 3-pointers in a game", under the Lakers'
+      // "NOV. 1 / VS. TORONTO" heading: Dončić's 45-15-6 with 5 steals and 8 threes that night).
+      const sectionGame = how === "section" && chk.named !== "yes" && who && box ? (() => { const ths = thresholdClaims(s); return ths.length >= 2 ? meetsThresholds(box, String(who.id), ths) : null; })() : null;
+      if (sectionGame) { boxCurrent = true; chk.game = chk.game || sectionGame; }
+      if (how === "section" && chk.named !== "yes" && !sectionGame) { drop("section-unconfirmed", s); continue; }
       // Series lines are about tonight's opponent only (notes keep the last opponent's series page around).
       if (SERIES.test(s) && oppRe && !oppRe.test(plain(s)) && !/\bthis season['’]s series\b/i.test(s)) { drop("other-series", s); continue; }
       // A table row read into prose ("Domantas Sabonis 413 which ranks sixth…").

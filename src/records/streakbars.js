@@ -70,6 +70,34 @@ export function careerGames(logs, pg = {}) {
   return out;
 }
 
+/**
+ * 0.170.0: how long each of the Streaks page's runs stood at a player's last game before this season, and the bar for each
+ * kind, counted from the same box scores as the live cards (careerGames: the Cup's title game and the play-in left out).
+ * The page had its own count, made once from ESPN's game logs (src/data/streak-carry-*.json), which leaves out the play-in
+ * and the All-Star game but counts the Cup's title game: on 11/27/26 the home page said Gilgeous-Alexander 235 straight
+ * with 10+ points, Wembanyama 77 and Lillard 66 with a made three, where NBA Live's cards and Basketball-Reference had
+ * 234, 76 and 65 (each played in a title game inside his run: 12/17/24, 12/16/25).
+ *   streaks: trends.js STREAKS ([key, label, test]); tests: trends.js STREAK_TESTS ({ key: featlive tests })
+ *   fallback: the carry file, for a player the history file doesn't hold
+ * -> { players: { id: { key: [n, from, atLeast?] } }, bars: { key: bar } }
+ */
+export function seasonCarry({ logs, pg = {}, streaks = [], tests = {}, fallback = null }) {
+  const career = careerGames(logs, {}), players = {}, bars = {};
+  for (const [id, games] of Object.entries(pg)) {
+    const first = games[0]?.d, past = (career[id] || []).filter((g) => !first || g.d < first);
+    if (!past.length) { if (fallback?.players?.[id]) players[id] = fallback.players[id]; continue; }
+    for (const [key, , test] of streaks) {
+      if (key === "start") continue;
+      let n = 0;
+      for (let i = past.length - 1; i >= 0 && test(past[i]); i--) n++;
+      if (n >= 1) (players[id] ??= {})[key] = [n, past[past.length - n].d, ...(n === past.length && past[0].d < "2017-01-01" ? [true] : [])];
+    }
+  }
+  const all = careerGames(logs, pg);
+  for (const [key, t] of Object.entries(tests)) { const b = BAR_SET[testsKey(t)] ?? barOf(all, t); if (Number.isFinite(b)) bars[key] = b; }
+  return { players, bars };
+}
+
 /** One player's runs for a test: every finished or current run's length, and the run still going (or null). */
 export function runsOf(games, tests) {
   const lengths = []; let n = 0, start = null;

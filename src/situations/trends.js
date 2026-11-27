@@ -52,15 +52,21 @@ export const STREAKS = [
   ["start", "Starts", (l) => l.starter === 1, 0],
 ];
 
+/** The same runs as the live cards' tests (src/records/featlive.js streakMet), for the bar of each kind (0.170.0). */
+export const STREAK_TESTS = { pts10: [{ k: "pts", min: 10 }], pts20: [{ k: "pts", min: 20 }], pts25: [{ k: "pts", min: 25 }], pts30: [{ k: "pts", min: 30 }],
+  reb10: [{ k: "reb", min: 10 }], ast8: [{ k: "ast", min: 8 }], dd: ["dd"], three: [{ k: "fg3m", min: 1 }], threes3: [{ k: "fg3m", min: 3 }] };
+
 /** Active streaks at or above each category's minimum, longest first. */
 /**
  * 0.145.0: a run that covers every game he has played this season goes on from last season (carry: src/data/streak-carry-*.json,
  * made by tools/streak-carry.mjs from ESPN's game logs: { players: { id: { key: [n, from] } } }). Where the Records page and NBA
  * Live hold the same run from Basketball-Reference's list (featlive.json streaks: Curry's made threes), that count is used, so
  * every page says one number. length = the whole run; thisSeason = its games this season; carried = from before; since = its start.
+ * 0.170.0: the build now counts `carry` from the box-score history (src/records/streakbars.js seasonCarry), as the live cards
+ * do; the file is the fallback for a player the history doesn't hold.
  */
 const FEAT_KEY = (tests) => (tests?.length === 1 && tests[0].k === "fg3m" ? (tests[0].min === 1 ? "three" : tests[0].min === 3 ? "threes3" : null) : null);
-export function activeStreaks(pg, names = {}, { carry = null, featlive = null } = {}) {
+export function activeStreaks(pg, names = {}, { carry = null, featlive = null, bars = null } = {}) {
   const out = [];
   const listed = new Map();
   for (const s of featlive?.streaks || []) { const k = FEAT_KEY(s.tests); if (k && s.source === "list") listed.set(`${s.id}|${k}`, s); }
@@ -77,7 +83,8 @@ export function activeStreaks(pg, names = {}, { carry = null, featlive = null } 
       const total = n + carried;
       if (total >= Math.max(min, 2) && n >= 1) {
         out.push({ id, name: names[id] || id, team: games[games.length - 1].team, key, label, length: total, ofGames: games.length, since: carried ? (before?.[1] || games[0].d) : games[games.length - n].d, last: games[games.length - 1].d, seasonBest: best,
-          ...(carried ? { thisSeason: n, carried, carriedFrom: fromList ? "list" : "logs", ...(!fromList && before?.[2] ? { atLeast: true } : {}) } : {}) });
+          ...(carried ? { thisSeason: n, carried, carriedFrom: fromList ? "list" : "logs", ...(!fromList && before?.[2] ? { atLeast: true } : {}) } : {}),
+          ...(bars?.[key] ? { bar: bars[key] } : {}) });   // 0.170.0: how long a run of this kind has to be to be rare (src/records/streakbars.js)
       }
     }
   }

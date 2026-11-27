@@ -76,6 +76,28 @@ function milestoneLines(watch, teams) {
  * A long run of a routine line is worth a mention near the top, not the whole top.
  */
 export const streakScore = (x) => { const s0 = x / 5; return s0 <= 4 ? s0 : 4 + 2 * (1 - 4 / s0); };
+/**
+ * 0.170.0: a run is weighed against how long runs of its kind get (the user, 11/25, on NBA Live's cards: "a six game streak
+ * of 10+ points doesn't warrant an alert… maybe when they approach 75 or 100 straight games… sliding scale if you will";
+ * the bars: src/records/streakbars.js, in trends.json as each streak's `bar`). The page's own lines still scored a run by
+ * its length alone: on 11/27 fourteen "10+ points in N straight games" lines, 31 to 221 long, and four of them (77, 67, 54
+ * and 82 games) among a game's three best lines. At its bar a run scores 4.6, about a night's tenth line; past it the score
+ * climbs toward 6; short of it the score falls away faster than the length (half the bar is 1.6). Nothing is left out: a
+ * shorter run is further down the list. The curve's numbers are mine.
+ */
+export const BAR_SCORE = { at: 4.6, top: 6, fall: 1.5 };
+export const barScore = (length, bar) => { const r = length / bar; return r >= 1 ? BAR_SCORE.at + (BAR_SCORE.top - BAR_SCORE.at) * (1 - 1 / r) : BAR_SCORE.at * r ** BAR_SCORE.fall; };
+const seasonOfDay = (d) => { const y = +d.slice(0, 4), a = +d.slice(5, 7) >= 8 ? y : y - 1; return `${a}-${String((a + 1) % 100).padStart(2, "0")}`; };
+/**
+ * 0.170.0: where a carried run goes back to. Every one said "going back to last season": Dončić's 221 straight with 10+
+ * points began on 1/30/23, Tatum's 143 on 1/13/24, Lillard's made threes on 11/20/24 (he did not play in 2025-26).
+ * Last season when it began there; otherwise the season it began in ("at least" when it reaches the first game on file).
+ */
+export function runBack(s) {
+  if (!s.since || !s.last) return "last season";
+  const from = seasonOfDay(s.since), now = seasonOfDay(s.last), prev = `${+now.slice(0, 4) - 1}-${now.slice(2, 4)}`;
+  return from >= prev ? "last season" : `${s.atLeast ? "at least " : ""}${from}`;
+}
 function streakLines(trends, teams) {
   const out = [];
   const best = {};
@@ -91,8 +113,10 @@ function streakLines(trends, teams) {
     const w = STREAK_WEIGHT[s.key] ?? 1;
     if (s.length * w < 6) continue; // notable enough: e.g. 10+ points needs 15 straight, 20+ points 5
     // 0.145.0: a run carried over from last season says so (trends.js activeStreaks: thisSeason, carried).
-    const every = s.carried ? `, going back to last season (every game this season, ${s.thisSeason})` : s.length === s.ofGames ? ", every game this season" : "";
-    out.push({ team: s.team, player: s.name, kind: "streak", text: `${s.name}: ${s.label.toLowerCase()} in ${s.length} straight games${every}`, score: streakScore(s.length * w) });
+    const every = s.carried ? `, going back to ${runBack(s)} (every game this season, ${s.thisSeason})` : s.length === s.ofGames ? ", every game this season" : "";
+    const head = `${s.name}: ${s.label.toLowerCase()} in ${s.length} straight games`, old = s.carried ? `${head}, going back to last season (every game this season, ${s.thisSeason})` : null;
+    // `was`: the wording before 0.170.0, so a line that only names its season now isn't shown as new
+    out.push({ team: s.team, player: s.name, kind: "streak", text: `${head}${every}`, ...(old && old !== `${head}${every}` ? { was: old } : {}), score: s.bar ? barScore(s.length, s.bar) : streakScore(s.length * w) });
   }
   return out;
 }
@@ -360,7 +384,8 @@ export function flowTeamLines(flow, teams, today = null) {
     if ((x.backRun || []).length >= BY10.run) {
       const nb = x.backRun.length, best = tris.reduce((m, o) => Math.max(m, B[o].longestBack || 0), 0);
       out.push({ team: t, kind: "team", key: `back10|${t}`, rare: nb >= 3, score: 3.2 + 0.4 * (nb - 2) + (nb + 1 > best ? 0.3 : 0),
-        text: `${t} has won its last ${nb} games after trailing by 10+ (${x.backRun.map((g) => `${g.down} down to ${g.opp} ${md(g.d)}`).join(", ")}); a ${ordinalWord(nb + 1)} straight tonight would ${nb + 1 > best ? "be the longest such run in the NBA this season" : `tie the season's longest (${best})`}` });
+        text: `${t} has won its last ${nb} games after trailing by 10+ (${x.backRun.map((g) => `${g.down} down to ${g.opp} ${md(g.d)}`).join(", ")}); a ${ordinalWord(nb + 1)} straight tonight would ${nb + 1 > best ? "be the longest such run in the NBA this season" : nb + 1 === best ? `tie the season's longest (${best})` : `leave it short of the season's longest (${best})`}` });   // 0.170.0: "a third straight tonight would tie the season's longest (4)"
+
     }
     // 0.81: a lead of 15+ held in the 4th quarter and lost (or won back), with the league's record in such games.
     if ((x.lateLost || []).length || (x.lateWon || []).length) {
@@ -600,7 +625,12 @@ function recordLines(records, teams, today, milestones) {
         && (m.target === i.target || m.target === i.target - 1 || (m.passing && i.passing && i.passing.name.split(" and ").some((n) => surname(n) === surname(m.passing)))));
       if (dup) continue;
       const said = fullNamed(i);
-      out.push({ team: i.team, player: i.who, kind: "record", text: `${said} (${pct(p)} tonight)`, ...(said !== i.text ? { was: `${i.text} (${pct(p)} tonight)` } : {}), score: i.score + p, passing: i.passing?.name || null, ...(i.siteOnly ? { siteOnly: true } : {}) });
+      // 0.170.0: the man being passed plays tonight too, so the gap can move ("Dončić: 2 3-pointers from passing Damian
+      // Lillard (67) for the NBA Cup record", with Lillard at Golden State the same night). The chance already counts his
+      // game (src/records/guide.js rivals); the line now says he plays.
+      const also = (i.rivals || []).filter((r) => r.tonight).map((r) => String(r.name).replace(/\s+(?:Jr\.?|Sr\.?|II|III|IV)$/, "").split(" ").pop());
+      const tail = `(${pct(p)} tonight${also.length ? `; ${also.join(" and ")} ${also.length > 1 ? "play" : "plays"} tonight too` : ""})`;
+      out.push({ team: i.team, player: i.who, kind: "record", text: `${said} ${tail}`, ...(said !== i.text || also.length ? { was: `${i.text} (${pct(p)} tonight)` } : {}), score: i.score + p, passing: i.passing?.name || null, ...(i.siteOnly ? { siteOnly: true } : {}) });
     } else if (i.need === 1) {
       const reword = (t) => (i.kind === "coach" ? (i.stat === "games" ? t.replace(/: 1 game from passing/, ": coaches tonight to pass") : t.replace(/: 1 win from passing/, ": a win tonight passes")) : t);
       const text = reword(fullNamed(i)), was = reword(i.text);
@@ -664,6 +694,29 @@ export function withoutSaidRuns(lines) {
 }
 
 /**
+ * 0.170.0: one stretch, said once. Four finders can describe the same hot or cold spell: the shift ("is shooting 64.3% from
+ * three over his last 5 games (18-for-28, since 11/13), up from 33.9%…"), the slump ("is 18-for-28 from three over his last
+ * 5 games (64.3%, since 11/13); he had shot 33.3% for his career…"), the shots run ("has missed his last 17 3-point
+ * attempts" beside "is 0-for-16 from three over his last 5 games") and, for points, the five-game hot hand ("is hot: 26.0
+ * points over his last 5…" beside "is averaging 30.3 points over his last 3 games…"). Avdija's and Mamukelashvili's were each
+ * on the home page twice on 11/27. For one player, one stat and one direction, the best-scored line is the one kept.
+ */
+export function withoutSameStretch(lines) {
+  const fam = (l) => {
+    const k = String(l.key || "");
+    let m;
+    if ((m = /^shift\|[^|]+\|(\w+)$/.exec(k))) return { stat: m[1], dir: /, up from /.test(l.text) ? "hot" : "cold" };
+    if ((m = /^slump\|[^|]+\|(\w+)\|(hot|cold)$/.exec(k))) return { stat: m[1], dir: m[2] };
+    if ((m = /^shots\|[^|]+\|(fg3|fg|ft)Miss$/.exec(k))) return { stat: m[1], dir: "cold" };
+    if (l.kind === "form" && (m = / is (hot|cold): [\d.]+ points over /.exec(l.text))) return { stat: "pts", dir: m[1] };
+    return null;
+  };
+  const best = new Map();
+  for (const l of lines) { const f = l.player && fam(l); if (!f) continue; const k = `${l.player}|${f.stat}|${f.dir}`; if (!best.has(k) || (l.score || 0) > (best.get(k).score || 0)) best.set(k, l); }
+  return lines.filter((l) => { const f = l.player && fam(l); return !f || best.get(`${l.player}|${f.stat}|${f.dir}`) === l; });
+}
+
+/**
  * NBA Cup all-time records on a Cup night (0.71; the user, 11/15: "the Magic are the only undefeated team at home…
  * worth noting in the watch list the next time they have a home NBA Cup game"). From records.json cup.standings
  * (the Cup guide's all-time records plus this season's games) and cup.tonight.
@@ -716,7 +769,7 @@ export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries =
     && new RegExp(`\\b${surname(r.player)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
     && r.passing.split(" and ").some((n) => new RegExp(`\\b${surname(n)}\\b`, "i").test(h.text.normalize("NFD").replace(/[\u0300-\u036f]/g, "")))));
   const others0 = [...hist, ...miles, ...recs, ...streakLines(trends, teams), ...leadLines(leaders, teams), ...shootingLines(leaders, teams).filter((l) => !clubLines(leaders, teams).some((c) => c.player === l.player)), ...clubLines(leaders, teams), ...teamLines(trends, teams), ...contextLines(records, teams, watch.today), ...matchupLines(matchups, teams, watch.today), ...tvLines(national, teams, watch.today), ...restLines(rest, teams, watch.today), ...formLines(form, teams, watch.today), ...foulLines(fouls, teams), ...earlyLines(fouls, teams, watch.today), ...fourthLines(fouls, teams), ...lastTwoLines(fouls, teams), ...shotLines(fouls, teams, watch.today, prep?.stars || null), ...flowTeamLines(fouls, teams, watch.today), ...seededLines(fouls, teams), ...prepStoryLines(prep, teams, games, watch.today), ...cupLines(records, teams, watch.today), ...featLines(featlive, teams, watch.today)];
-  const others = withoutSaidRuns(others0)
+  const others = withoutSameStretch(withoutSaidRuns(others0))
     .flatMap((l) => {
       const st = l.player ? listed.get(`${l.team}|${nameKey(l.player)}`) : null;
       if (st === "Out" || st === "Doubtful") return [];

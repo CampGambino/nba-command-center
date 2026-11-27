@@ -771,7 +771,20 @@ for (const [tri, games] of Object.entries(perTeam)) {
     watchLines = streakWatch({ history: fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null, rows, today, deep });
     console.log(`team streak watch: ${watchLines.length} lines`);
   } catch (e) { console.error(`team streak watch: ${e.message}`); }
-  fs.writeFileSync(path.join(root, "docs", "data", "trends.json"), JSON.stringify({ generatedAt: out.generatedAt, through, streaks: activeStreaks(pg, NAMES, { carry: latestData(/^streak-carry-\d{4}-\d\d\.json$/), featlive: (() => { try { return JSON.parse(fs.readFileSync(path.join(root, "docs", "data", "featlive.json"), "utf8")); } catch { return null; } })() }).map(nowTeam), teams: teamStreaks(rows), watch: watchLines, highsAllowed: careers ? careerHighsAllowed(pg, careers, NAMES) : null, anomalies: byDate, odd: oddByDate }));
+  // 0.170.0: the Streaks page's runs, counted from the same box scores as the live cards (the Cup's title game and the play-in
+  // left out, this season's too), with each kind's bar; the carry file is the fallback where the history can't be read.
+  const pgRuns = playerGames(rows.filter((g) => !g.cupFinal));
+  let runCarry = latestData(/^streak-carry-\d{4}-\d\d\.json$/);
+  try {
+    const zlib = await import("node:zlib"), { withFill } = await import("../src/situations/logfill.js"), { seasonCarry } = await import("../src/records/streakbars.js"), { STREAKS, STREAK_TESTS } = await import("../src/situations/trends.js");
+    const lf = path.join(root, "src", "data", "player-logs-history.json.gz"), ff2 = path.join(root, "src", "data", "player-logs-fill.json.gz");
+    if (fs.existsSync(lf)) {
+      let hl = JSON.parse(zlib.gunzipSync(fs.readFileSync(lf)));
+      if (fs.existsSync(ff2)) hl = withFill(hl, JSON.parse(zlib.gunzipSync(fs.readFileSync(ff2))));
+      runCarry = seasonCarry({ logs: hl, pg: pgRuns, streaks: STREAKS, tests: STREAK_TESTS, fallback: runCarry });
+    }
+  } catch (e) { warnings.push(`streak carry: the history logs could not be read (${e.message}); the carry file is used`); }
+  fs.writeFileSync(path.join(root, "docs", "data", "trends.json"), JSON.stringify({ generatedAt: out.generatedAt, through, streaks: activeStreaks(pgRuns, NAMES, { carry: runCarry, bars: runCarry?.bars || null, featlive: (() => { try { return JSON.parse(fs.readFileSync(path.join(root, "docs", "data", "featlive.json"), "utf8")); } catch { return null; } })() }).map(nowTeam), teams: teamStreaks(rows), watch: watchLines, highsAllowed: careers ? careerHighsAllowed(pg, careers, NAMES) : null, anomalies: byDate, odd: oddByDate }));
   // Hot hand (src/situations/form.js, moved from GameFlow in 0.56): each player's game lines for the form section.
   try {
     const { formData } = await import("../src/situations/form.js");

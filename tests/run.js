@@ -2351,7 +2351,7 @@ await bridgeChecks(ok, root);
     const F8 = f8({ pg: pgN, names: namesN }), of = (t) => F8.filter((x) => x.test === t).map((x) => x.text);
     ok(of("club").some((t) => /^Players this season with 300 points, 100 rebounds, 75 assists and 20 blocks: All Around\. Nobody else$/.test(t)) && !of("club").some((t) => /Scorer|Boarder|Passer|Blocker|Filler/.test(t))
       && of("rate").some((t) => /^Quick Hands has the most steals in the NBA this season\. He ranks \d+(st|nd|rd|th) in minutes played$/.test(t))
-      && of("group").some((t) => /^Sixth Man off the bench this season \(10 games as a reserve\): 1st in points, .*1st in assists.*1st in threes, 1st in plus\/minus$/.test(t))
+      && of("group").some((t) => /^Sixth Man off the bench this season \(10 games as a reserve\), by totals: 1st in points, .*1st in assists.*1st in threes, 1st in plus\/minus$/.test(t))
       && CLUB.most === 3 && RATE.ratio === 2.5 && GROUP.need === 3,
       "0.108.0: the finder searches every set of two to four season totals for a club of at most three (round bars taken from the candidate's own numbers, each cleared alone by several players, together by one), sets every total against minutes played (first in steals, near last in minutes), and ranks players inside a group (the bench: first in points, assists, threes and plus/minus); none of the names, stats or bars is given to it",
       JSON.stringify({ club: of("club"), rate: of("rate"), group: of("group") }));
@@ -4344,7 +4344,7 @@ await bridgeChecks(ok, root);
   const FD = findings({ pg: pgF, names: namesF, qsum: qsumF, teamGp: teamGpF });
   const fd = (re) => FD.find((f) => re.test(f.key));
   const part = fd(/^find\|part\|\d+\|q3\+noft$/), teamsF = fd(/^find\|teams\|\d+\|a10$/), gapF = FD.filter((f) => f.test === "gap" && f.player === "Absurd Scorer");
-  ok(part && part.player === "Absurd Scorer" && part.text === "Absurd Scorer is the NBA's leading scorer at 40.0 a game. His scoring through three quarters alone (33.0) would still lead everyone else (next: Scorer ATL, 28.0); his scoring without his free throws alone (31.0) would still lead everyone else (next: Scorer ATL, 28.0)"
+  ok(part && part.player === "Absurd Scorer" && part.text === "Absurd Scorer is the NBA's leading scorer at 40.0 a game. His scoring through three quarters alone (33.0) would still lead everyone else (next: Scorer ATL, 28.0); his scoring without his free throws (31.0) would still lead everyone else (next: Scorer ATL, 28.0)"
     && teamsF && teamsF.text === "Lone Passer has 10 games with 10+ assists this season: more than any other team has in total (29 teams have none)" && teamsF.rare
     && gapF.length === 1 && /^Absurd Scorer leads the NBA in scoring/.test(gapF[0].text) && /a bigger gap than the one between 2nd and 10th/.test(gapF[0].text)
     && !FD.some((f) => f.test === "part" && /^Second /.test(f.player)) && FD.every((f) => f.kind === "find" && f.score >= 2.9 && f.score <= 4 && f.key.startsWith("find|")) && PART.top === 10 && FT.min === 24,
@@ -5777,7 +5777,7 @@ await bridgeChecks(ok, root);
     const SL = D.shootingLuck({ pg: pgS, names: namesS, seasons: seasonsS });
     const PX = D.bigGameLosses({ pg: pgS, names: namesS });
     ok(SL.length === 1 && /^Hot Hand is shooting 50\.0% on threes this season \(30-for-60\), against 35\.0% over his career before it \(400 attempts\): 15\.0 points above his own rate, the furthest above among the 7 players with 40\+ attempts$/.test(SL[0].text)
-      && PX.length === 1 && /^Lone Star has 4 games of 30\+ points this season \(32\.0 a game in them\), and B is 0-4 in those games \(3-3 in the others\)$/.test(PX[0].text),
+      && PX.length === 1 && /^Lone Star has 4 games of 30\+ points this season \(32\.0 a game in them\), and B is 0-4 in those games \(3-3 in his other 6\)$/.test(PX[0].text),
       "detectors (0.141): a shooter far from his own career rate on volume (players near theirs are not said); a scorer whose team loses his 30-point games", JSON.stringify({ SL: SL.map((l) => l.text), PX: PX.map((l) => l.text) }));
     // Defense by position: centers score 5 over their averages against DEF; tonight OFF (with a center) plays DEF.
     const pgP = {}, posP = {}, namesP = {};
@@ -6040,7 +6040,7 @@ await bridgeChecks(ok, root);
     && fullNamed({ last: "Lopez", text: "Lopez: 6 points from passing Rick Barry" }) === "Lopez: 6 points from passing Rick Barry",
     "record lines (0.160.0): the full name is the record's own (\"Brook Lopez: 6 points from…\", coaches too); a team's line, a one-name player and an item with no full name on file keep their text");
   const tn = fs.readFileSync(path.join(root, "src", "anticipate", "tonight.js"), "utf8"), sj = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8");
-  ok(/const said = fullNamed\(i\);/.test(tn) && /\.\.\.\(said !== i\.text \? \{ was: `\$\{i\.text\} \(\$\{pct\(p\)\} tonight\)` \} : \{\}\)/.test(tn) && /\.\.\.\(l\.was \? \{ was: `\$\{l\.was\} · questionable tonight` \} : \{\}\)/.test(tn)
+  ok(/const said = fullNamed\(i\);/.test(tn) && /\.\.\.\(said !== i\.text \|\| also\.length \? \{ was: `\$\{i\.text\} \(\$\{pct\(p\)\} tonight\)` \} : \{\}\)/.test(tn) && /\.\.\.\(l\.was \? \{ was: `\$\{l\.was\} · questionable tonight` \} : \{\}\)/.test(tn)
     && /if \(!\(lineKey\(l\) in seen\) && lineKey\(o\) in seen\) seen\[lineKey\(l\)\] = seen\[lineKey\(o\)\];/.test(sj) && /if \(!\(claimKeyOf\(l\) in ledgerSeen\) && claimKeyOf\(o\) in ledgerSeen\) ledgerSeen\[claimKeyOf\(l\)\] = ledgerSeen\[claimKeyOf\(o\)\];/.test(sj)
     && tn === fs.readFileSync(path.join(root, "docs", "lib", "anticipate", "tonight.js"), "utf8"),
     "record lines (0.160.0): a renamed line carries its old wording so the build keeps its first-seen date and its history (it isn't new today)");
@@ -6227,7 +6227,7 @@ await bridgeChecks(ok, root);
   add("New Leader", { pts: 20, reb: 4, ast: 12 }, 12);
   const F = findings({ pg, names, leaders: { ast: [{ season: "2025-26", player: "Nikola Jokic", value: 10.7 }] } });
   const grp = F.filter((x) => x.test === "group").map((x) => x.text), first = F.find((x) => x.test === "first" && /assists/.test(x.text))?.text || "";
-  ok(grp.some((t) => /^Pure Sixth off the bench this season \(12 games as a reserve\): 1st in points, 1st in assists, 1st in threes$/.test(t)) && !grp.some((t) => /^Part Starter/.test(t))
+  ok(grp.some((t) => /^Pure Sixth off the bench this season \(12 games as a reserve\), by totals: 1st in points, 1st in assists, 1st in threes$/.test(t)) && !grp.some((t) => /^Part Starter/.test(t))
     && /last season's leader: Nikola Jokić, 10\.7\)$/.test(first),
     "finder (0.163.0): a bench rank counts what a player did off the bench (11/25: Julian Champagnie, 6 starts in 18, was '1st in threes' with the threes he made as a starter, and Jrue Holiday, who hasn't started, was 2nd in points where Portland's notes have him 1st); a past leader's name is spelled as this season's rosters spell it (Jokić)",
     JSON.stringify([grp, first]));
@@ -6393,6 +6393,138 @@ await bridgeChecks(ok, root);
     && NT.isMinorPass({ ...m, passing: { ...m.passing, rank: IM.passPlace(m) } }) && !NT.isMinorPass(m) && !NT.isMinorPass({ ...m, passing: { player: "X", rank: 3 } })
     && /rank: m\.passing\.rank \?\? \(m\.kind === "pass" \? passPlace\(m\) : null\)/.test(wsrc) && /isMinorPass\(\{ kind: m\.kind, scope: m\.scope, stat: m\.stat, passing \}\)/.test(wsrc),
     "watch list (0.168.0; the user, 11/26, on \"Brandon Miller — passes P.J. Washington Jr. in franchise history (3-pointers)\": \"shouldn't this tell me what place is being passed?\"): a pass whose place the notes give in words (\"for seventh-most in franchise history\") carries the place, so a card can say it, and the rule for which places get a card (franchise: top 3) applies: 7th is a line in the full list, not an NBA Live card; with no place it had slipped through");
+}
+
+// ---------- 0.170.0: the user's 20 images of the home page (11/27): text beside a table, three columns, streak counts and where they go back to ----------
+{
+  const N = await import("../src/notes/narrative.js"), F = await import("../src/notes/facts.js"), BX = await import("../src/notes/boxscore.js");
+  const S = await import("../src/records/streakbars.js"), TR = await import("../src/situations/trends.js"), TN = await import("../src/anticipate/tonight.js");
+  const cell = (text, x0, w = text.length * 4) => ({ text, x0, x1: x0 + w, cx: x0 + w / 2 });
+  const row = (y, ...cells) => Object.assign(cells, { y });
+  // a paragraph with a schedule table to its right (the Lakers' series notes)
+  const beside = N.sideBySide([
+    row(509, cell("ing back to their first meeting in December 1976 ... The Lakers are 99-97 (.505)", 23, 311), cell("DATE", 360), cell("SITE", 447), cell("TIME", 537)),
+    row(499, cell("all-time against the Spurs franchise (56-41 at home, 43-56 on the road) … The", 23, 311), cell("11/27/26", 356), cell("Frost Bank Center", 421), cell("6:30 p.m. PT", 524)),
+    row(489, cell("Lakers lost the 2025-26 season series 1-3 ... The Lakers are 22-27 all-time against", 23, 311), cell("2/6/27", 359), cell("Frost Bank Center", 421), cell("5:30 p.m. PT", 524)),
+    row(479, cell("the Spurs at Crypto.com Arena during the regular season ... The Lakers are 22-", 23, 311), cell("4/4/27", 359), cell("Crypto.com Arena", 420), cell("7 p.m. PT", 531)),
+    row(467, cell("22 all-time against San Antonio during the regular season at Frost Bank Center.", 23, 311)),
+  ]);
+  ok(beside.indexOf("the Spurs at Crypto.com Arena during the regular season ... The Lakers are 22-") === beside.indexOf("Lakers lost the 2025-26 season series 1-3 ... The Lakers are 22-27 all-time against") + 1
+    && beside.indexOf(N.SIDE_BREAK) === 5 && beside[6] === "DATE SITE TIME" && beside[8] === "2/6/27 Frost Bank Center 5:30 p.m. PT",
+    "side by side (0.170.0; \"The Lakers are 22-27 all-time against 2/6/27 Frost Bank Center 5:30 p.m.\"): a paragraph with a table to its right is read whole, then the table across its own rows, with a break between them", beside.join(" / "));
+  // three columns under capitals headings (the Lakers' highest scoring games)
+  const three = N.sideBySide([
+    row(117, cell("OCT. 25 / AT UTAH", 21), cell("NOV. 1 / VS. TORONTO", 220), cell("NOV. 6 / VS. PORTLAND", 409)),
+    row(92, cell("52 POINTS", 21), cell("45 POINTS", 220), cell("53 POINTS", 409)),
+    row(72, cell("Posted the NBA's first 50-point game of the", 21, 180), cell("Became the first player in NBA history to", 220, 173), cell("Scored 53 in a 124-118 win, the second-most", 409, 180)),
+    row(61, cell("season, adding eight rebounds, 10 assists and", 21, 180), cell("reach 45 points, 15 rebounds, six assists,", 220, 173), cell("points in an NBA Cup game behind De'Aaron", 409, 180)),
+    row(51, cell("eight 3-pointers. Became the first Laker since", 21, 180), cell("five steals and eight 3-pointers in a game.", 220, 173), cell("Fox (60). Joined Elgin Baylor, Kobe Bryant and", 409, 180)),
+    row(41, cell("1963 with at least 50 points and 10 assists in", 21, 180), cell("Four of his steals and four of his 3-pointers", 220, 173), cell("George Mikan as the only Lakers to score 40", 409, 180)),
+    row(31, cell("a game.", 21), cell("came in the opening quarter, also an NBA", 220, 173), cell("or more in four straight games.", 409, 123)),
+  ]).filter((t) => t !== N.SIDE_BREAK);
+  ok(three.indexOf("season, adding eight rebounds, 10 assists and") === three.indexOf("Posted the NBA's first 50-point game of the") + 1
+    && three.indexOf("reach 45 points, 15 rebounds, six assists,") === three.indexOf("Became the first player in NBA history to") + 1
+    && three.indexOf("points in an NBA Cup game behind De'Aaron") === three.indexOf("Scored 53 in a 124-118 win, the second-most") + 1,
+    "side by side (0.170.0; \"…first 50-point game of the Became the first player in NBA history to season…\"): three columns are each read whole, their capitals headings not counted as table rows", three.join(" / "));
+  // a column of bullets left of their text stays with it
+  const bullets = N.sideBySide([
+    row(100, cell("•", 39, 3), cell("Morez Johnson Jr. recorded a career-high 17 rebounds and tied a career-high 13 points", 54, 330)),
+    row(91, cell("vs. UTA (11/6/26), becoming one of three Maverick rookies to do it.", 54, 260)),
+    row(82, cell("•", 39, 3), cell("Johnson Jr. was selected with the ninth overall pick in the 2026 NBA draft. The Mavericks", 54, 330)),
+    row(73, cell("have only picked ninth four other times in franchise history.", 54, 240)),
+    row(64, cell("•", 39, 3), cell("Johnson Jr. recorded his first career double-figure scoring game with 10 points", 54, 310)),
+  ]);
+  ok(bullets[0].startsWith("• Morez") && bullets[2].startsWith("• Johnson Jr. was") && !bullets.includes(N.SIDE_BREAK), "side by side (0.170.0): bullets left of their text are not read as a table beside it", bullets.join(" / "));
+  // a cut word, two sentences with no space, a superscript ending on its own row
+  {
+    const L = (text, y = 100, h = 8, x0 = 12, x1 = 304) => ({ text, y, h, cells: [{ x0, x1, cx: (x0 + x1) / 2, text }], charX: [] });
+    const b = N.blocks({ pages: [{ page: 1, width: 612, lines: [L("See pacers.com and nba.com for more. Indiana's bench has com-", 120), L("bined to average 38.9 points per game this season. He had 5 steals and 2 blocks.Dereck Lively II was inactive.", 110)] }] });
+    ok(/bench has combined to average/.test(b[0].text) && /2 blocks\. Dereck Lively II was inactive/.test(b[0].text),
+      "blocks (0.170.0): \"com-\" / \"bined\" is one word even though the notes print \"com\" alone (web addresses); two sentences printed with no space between them are two", b[0].text);
+    const cols = N.columnsOf({ width: 612, lines: [
+      { text: "November 16 th through Sunday,", y: 475, h: 13.4, cells: [{ x0: 29, x1: 249, cx: 139, text: "November 16 th through Sunday," }] },
+      { text: "nd.", y: 462, h: 8, cells: [{ x0: 110, x1: 121, cx: 115, text: "nd." }] },
+      { text: "November 22", y: 456, h: 13.4, cells: [{ x0: 29, x1: 110, cx: 70, text: "November 22" }] },
+      { text: "Jokić wins the award for the first time", y: 418, h: 13.4, cells: [{ x0: 29, x1: 249, cx: 139, text: "Jokić wins the award for the first time" }] }] });
+    ok(cols[0].join(" | ") === "November 16 th through Sunday, | November 22nd. | Jokić wins the award for the first time",
+      "columns (0.170.0; \"November 22 Jokić wins the award…\"): a superscript ending on a row of its own goes back on its number", cols[0].join(" | "));
+  }
+  ok(N.repairLayout("Registered 30 points, making him the second Wizard under the age of 22 to MINS post 30+ points on at least .850 from the field in team history.") === "Registered 30 points, making him the second Wizard under the age of 22 to post 30+ points on at least .850 from the field in team history."
+    && N.repairLayout("Moved past Jamal Crawford (282 3FGM) for No. 19 on the list.") === "Moved past Jamal Crawford (282 3FGM) for No. 19 on the list."
+    && N.repairLayout("Joined Stephen Curry as the only players to have 10+ assists and 8+ threes in 35 minutes or less 2026-27.") === "Joined Stephen Curry as the only players to have 10+ assists and 8+ threes in 35 minutes or less."
+    && N.repairLayout("The longest streak by a Suns reserve since 2021-22.") === "The longest streak by a Suns reserve since 2021-22.",
+    "layout repair (0.170.0): a season-highs table's row label between two words of a sentence is cut (a count's label is not); the next header's season after a sentence's last word is cut (\"since 2021-22\" is not)");
+  // headings and bullets inside a player's notes
+  {
+    const L = (text, y) => ({ text, y, h: 8, cells: [{ x0: 40, x1: 560, cx: 300, text }], charX: [] });
+    const doc = { pages: [{ page: 1, width: 612, lines: [
+      L("LAST SEASON: Green appeared in all 82 regular-season games for Detroit in his first season with the team, making six starts.", 300),
+      L("Green shot 44.7 percent from the field, a career-high 38.1 percent from three-point range and ranked fifth in the NBA in steals.", 290)] },
+    { page: 2, width: 612, lines: [
+      L("SEASON NOTES: - On 11/14 vs. DEN, Missi returned to the starting lineup after missing 11 games. - Missi is ranked 1st in the NBA in", 300),
+      L("rebounds per game this season among players who average 25.0 minutes or less, averaging 9.0.", 290)] }] };
+    const dropped = [];
+    const out = N.readHistory(doc, [{ id: "1", name: "Javonte Green" }, { id: "2", name: "Yves Missi" }], { seasonStart: "2026-10-01", today: "2026-11-27", teamWords: ["Detroit", "Pistons"], oppWords: [], dropped });
+    ok(out.length === 1 && out[0].player === "Yves Missi" && out[0].text.startsWith("Missi is ranked 1st in the NBA in rebounds per game")
+      && dropped.filter((d) => d.reason === "past-season" && /^2025-26: Green/.test(d.text)).length === 2,
+      "notes headings (0.170.0): the lines under \"LAST SEASON:\" are last season's (Detroit: \"He shot 44.7 percent from the field, a career-high 38.1 percent…\"); a dash that bullets a note ends the sentence before it and is not the note's first character (New Orleans)",
+      JSON.stringify([out.map((l) => l.text), dropped]));
+  }
+  // the notes' streaks and ranks
+  const s16 = F.statedStreak("Towns recorded his 16th double-double to start the season, which ties him with Domantas Sabonis and Moses Malone for the fifth longest streak to start a season since the 1975-76 season.");
+  const s17 = F.statedStreak("Has knocked down at least one triple in 17 straight games, tied for the second-longest such streak of his career.");
+  ok(s16 && s16.n === 16 && s16.key === "dd" && s17 && s17.n === 17 && s17.key === "fg3m1" && s17.test([0, 2], { fg3m: 1 }) && !s17.test([0, 0], { fg3m: 1 }),
+    "notes streaks (0.170.0): \"his 16th double-double to start the season\" is a run of 16 the box scores can count (so the older \"nine straight\" beside it goes, and this one is told it is behind); \"at least one triple in 17 straight games\" is a made-three run");
+  const lg = F.describe("In defeating Memphis 104-95 on Nov. 21, the Wolves have now won 34 consecutive games when holding opponents to 105 points or fewer, the longest active streak in the NBA.", { matchup: true });
+  const sr = F.describe("Minnesota has now made at least 10 threes in 22 consecutive games against Memphis, tying its longest active streak versus any opponent (New Orleans Pelicans).", { matchup: true });
+  ok(lg.type === "streak" && /^Active streak · 34/.test(lg.tag) && sr.tag === "Series", "notes tags (0.170.0): a run measured against the league that names tonight's opponent as its last game is a streak, not \"Series\"; a run against the opponent stays a series note", `${lg.tag} / ${sr.tag}`);
+  const RK = [{ playerId: "1", tag: "7th among centers", text: "Amongst all NBA centers, Sharpe currently ranks seventh in APG (4.1) and total assists (70)." },
+    { playerId: "1", tag: "6th among centers", text: "Day'Ron Sharpe is averaging a career-high 4.1 assists per game, which ranks 6th among NBA centers this season." },
+    { playerId: "1", tag: "4th in NBA", text: "Ranks 4th in the NBA in OREB (3.8) and 3rd with a 15.2% OREB%." }, { playerId: "2", tag: "6th among centers", text: "Averaging 4.1 assists per game, 6th among NBA centers." }];
+  F.checkRanksAgree(RK);
+  ok(/has this at 6th, not 7th/.test(RK[0].hook?.text || "") && /has this at 7th, not 6th/.test(RK[1].hook?.text || "") && !RK[2].hook && !RK[3].hook,
+    "notes ranks (0.170.0; Brooklyn's Sharpe, \"seventh in APG (4.1)\" and \"4.1 assists per game, which ranks 6th\"): two places for one player, group, stat and figure are each told of the other; another stat or another player is not");
+  ok(F.dedupe([{ text: "Herb Jones has recorded at least one steal and one block in 107 career games, which is ranked 4th in franchise history.", player: "Herbert Jones", score: 3 },
+    { text: "Jones has recorded three steals in 73 career games, which is ranked 4th in franchise history.", player: "Herbert Jones", score: 4.4 }]).length === 2,
+    "duplicates (0.170.0): two career counts of different feats are two lines (New Orleans: \"one steal and one block in 107 career games\" and \"three steals in 73 career games\", both 4th in franchise history)");
+  const th = BX.thresholdClaims("Became the first player in NBA history to reach 45 points, 15 rebounds, six assists, five steals and eight 3-pointers in a game.");
+  ok(th.length === 5 && th.find((x) => x.stat === "pts").min === 45 && th.find((x) => x.stat === "fg3m").min === 8, "box check (0.170.0): \"to reach 45 points, 15 rebounds, six assists, five steals and eight 3-pointers in a game\" names five bars", JSON.stringify(th));
+
+  // the Streaks page's runs from the box-score history: the Cup's title game is in no count
+  const cols = ["date", "opp", "home", "result", "type", "min", "pts", "reb", "ast", "stl", "blk", "fg3m"];
+  const g = (d, pts, fg3m = 1) => [d, "XXX", 1, "W", 2, 30, pts, 3, 2, 0, 0, fg3m];
+  const logs = { columns: cols, players: { a: [g("2024-12-10", 4, 0), g("2024-12-14", 22), g("2024-12-17", 21), g("2024-12-19", 25), g("2025-01-05", 30)], b: [g("2016-10-26", 12), g("2025-03-01", 15)] } };
+  const pgS = { a: [{ d: "2026-10-21", team: "AAA", pts: 20, reb: 3, ast: 2, stl: 0, blk: 0, fg3m: 2 }, { d: "2026-10-23", team: "AAA", pts: 31, reb: 3, ast: 2, stl: 0, blk: 0, fg3m: 1 }], c: [{ d: "2026-10-21", team: "CCC", pts: 11, reb: 3, ast: 2, stl: 0, blk: 0, fg3m: 0 }] };
+  const carry = S.seasonCarry({ logs, pg: pgS, streaks: TR.STREAKS, tests: TR.STREAK_TESTS, fallback: { players: { c: { pts10: [7, "2026-03-01"] } } } });
+  const act = TR.activeStreaks(pgS, { a: "Ay", c: "See" }, { carry, bars: { pts20: 21, ...carry.bars } });
+  const a10 = act.find((x) => x.id === "a" && x.key === "pts20"), c10 = act.find((x) => x.id === "c" && x.key === "pts10");
+  ok(carry.players.a.pts10[0] === 3 && carry.players.a.pts10[1] === "2024-12-14" && a10 && a10.length === 5 && a10.since === "2024-12-14" && a10.bar === 21 && c10 && c10.length === 8
+    && carry.bars.three === 50 && carry.bars.dd === 10 && carry.bars.pts30 === 5,
+    "streak carry (0.170.0; the home page had Gilgeous-Alexander at 235 straight with 10+ points, Wembanyama 77 and Lillard 66 with a made three, one more than NBA Live and Basketball-Reference): the run before this season is counted from the box-score history without the Cup's title game (12/17/24), with its start; a player the history doesn't hold keeps the carry file's count; the user's bars come with it",
+    JSON.stringify([carry.players.a, a10, c10, carry.bars]));
+  ok(TN.runBack({ since: "2026-01-19", last: "2026-11-25" }) === "last season" && TN.runBack({ since: "2023-01-30", last: "2026-11-25" }) === "2022-23" && TN.runBack({ since: "2024-11-20", last: "2026-11-25" }) === "2024-25"
+    && TN.runBack({ since: "2016-10-26", last: "2026-11-25", atLeast: true }) === "at least 2016-17" && TN.runBack({ last: "2026-11-25" }) === "last season",
+    "streak lines (0.170.0; \"Luka Dončić: 10+ points in 221 straight games, going back to last season\"): a run says the season it began in (2022-23), \"last season\" only when it began there");
+  ok(Math.abs(TN.barScore(82, 82) - 4.6) < 1e-9 && TN.barScore(347, 82) > TN.barScore(143, 82) && TN.barScore(347, 82) < 6 && TN.barScore(54, 82) < 2.6 && TN.barScore(31, 82) < TN.barScore(54, 82) && TN.barScore(7, 5) > TN.barScore(13, 21),
+    "streak lines (0.170.0; the user's sliding scale, 11/25): a run is scored against its kind's bar (4.6 at the bar, under 6 however long, falling away under it), so 54 straight with 10+ points ranks under 7 straight with 30+");
+  {
+    const by = (backRun = [], longestBack = backRun.length) => ({ gp: 17, upW: 5, upL: 1, downW: 3, downL: 5, run: [], longest: 0, backRun, longestBack, last: "2026-11-25" });
+    const back = [{ down: 14, opp: "CHA", d: "2026-11-20" }, { down: 13, opp: "DET", d: "2026-11-22" }];
+    const say = (longest) => TN.flowTeamLines({ games: 270, by10: { ATL: by(back), GSW: by([], longest) }, swing: [], full: { halves: [], games: [], fives: [] } }, new Set(["ATL", "BOS"]), "2026-11-27").find((l) => l.key === "back10|ATL")?.text || "";
+    ok(/a third straight tonight would leave it short of the season's longest \(4\)$/.test(say(4)) && /a third straight tonight would tie the season's longest \(3\)$/.test(say(3)) && /would be the longest such run in the NBA this season$/.test(say(2)),
+      "comeback runs (0.170.0; \"a third straight tonight would tie the season's longest (4)\"): a third straight ties a longest of three, is short of four, and is the longest past two", [say(4), say(3), say(2)].join(" | "));
+  }
+  const stretch = TN.withoutSameStretch([
+    { player: "Deni Avdija", kind: "shift", key: "shift|1|fg3", score: 4.96, text: "Deni Avdija is shooting 64.3% from three over his last 5 games (18-for-28, since 11/13), up from 33.9% over the 11 games before (21-for-62)" },
+    { player: "Deni Avdija", kind: "span", key: "slump|1|fg3|hot", score: 4.34, text: "Deni Avdija is 18-for-28 from three over his last 5 games (64.3%, since 11/13); he had shot 33.3% for his career before that" },
+    { player: "Deni Avdija", kind: "shift", key: "shift|1|pts", score: 3, text: "Deni Avdija is averaging 29.0 points over his last 5 games (since 11/13), up from 23.0 over the 11 games before" },
+    { player: "Deni Avdija", kind: "form", score: 2.27, text: "Deni Avdija is hot: 29.0 points over his last 5 vs 23.0 in his 11 games before (+1.5 SD; 4 of 5 above normal)" },
+    { player: "Sandro Mamukelashvili", kind: "pstreak", key: "shots|Sandro Mamukelashvili|fg3Miss", score: 3.97, text: "Sandro Mamukelashvili has missed his last 17 3-point attempts (over his last 6 games, since 11/11)" },
+    { player: "Sandro Mamukelashvili", kind: "span", key: "slump|2|fg3|cold", score: 3.85, text: "Sandro Mamukelashvili is 0-for-16 from three over his last 5 games (0.0%, since 11/15)" },
+    { player: "Jaden McDaniels", kind: "span", key: "slump|3|fg3|hot", score: 4.5, text: "Jaden McDaniels is 13-for-17 from three over his last 4 games" },
+    { player: "Ryan Rollins", kind: "shift", key: "shift|4|fg3", score: 4.39, text: "Ryan Rollins is shooting 13.6% from three over his last 6 games (3-for-22, since 11/11), down from 69.2% over the 4 games before (9-for-13)" }]).map((l) => l.key || l.kind);
+  ok(stretch.join(",") === "shift|1|fg3,shift|1|pts,shots|Sandro Mamukelashvili|fg3Miss,slump|3|fg3|hot,shift|4|fg3",
+    "one stretch, said once (0.170.0; Avdija's 18-for-28 and Mamukelashvili's misses were each on the page twice): for one player, stat and direction the best-scored of the shift, slump, shots-run and hot-hand lines is kept; a line with no twin stays", stretch.join(","));
 }
 
 const snapDir = path.join(root, "tests", "expected");

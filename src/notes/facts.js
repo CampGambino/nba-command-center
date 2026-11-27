@@ -171,7 +171,12 @@ export function describe(text, meta = {}) {
     || (/\b(?:the )?only (?!NBA\b)(?:[A-Z][a-z]+s|76ers)\b(?! in NBA history)|\b\d{1,2}(?:st|nd|rd|th) [A-Z][a-z]+ ever\b|\bone of \w+ (?!NBA\b|All\b)[A-Z][a-z]+ (?:rookies|players|guards|forwards|centers|reserves)\b/.test(t) && !/\bin (?:NBA|league) history\b/i.test(t)); // "the only Raptors to…" (0.69), "one of three Maverick rookies" (0.71)
   const scope = teamScope ? "franchise" : f.league ? (f.history || /since/i.test(t) && !f.season ? "nba-history" : "nba") : f.franchise ? "franchise" : null;
   let type = "other", tag = "Notes", why = "";
-  if (f.matchup) { type = "matchup"; tag = /\ball-time against\b[^.]*\bas a head coach\b/.test(t) ? "Coach vs. opponent" : "Series"; why = "The history with tonight's opponent."; }
+  // 0.170.0: a run measured against the whole league that names tonight's opponent only as its latest game ("In defeating
+  // Memphis 104-95 on Nov. 21, the Wolves have now won 34 consecutive games when holding opponents to 105 points or fewer,
+  // the longest active streak in the NBA", tagged "Series") is a streak; one counted against the opponent stays a series note.
+  const leagueRun = f.streak && /\b(?:(?:second-|third-)?longest|only) active\b[^.;]{0,50}\bin the (?:NBA|league)\b|\bactive (?:such )?streak in the (?:NBA|league)\b/i.test(t)
+    && !/\b(?:straight|consecutive)\b[^.;]{0,40}\b(?:against|vs\.?|versus|over) (?:the )?[A-Z]|\bmeetings?\b|\bseries\b/.test(t);
+  if (f.matchup && !leagueRun) { type = "matchup"; tag = /\ball-time against\b[^.]*\bas a head coach\b/.test(t) ? "Coach vs. opponent" : "Series"; why = "The history with tonight's opponent."; }
   else if (f.race) { type = "race"; tag = rk && rk.rank > 1 && f.history && !sinceYr ? `${rk.tie ? "T-" : ""}${ordinal(rk.rank)} all-time` : "Race"; why = "A race on a leaderboard: both sides can move."; }   // 0.159.0: its place, when it says one
   else if (f.streak && !ABSENCE.test(t) && !/\bfrom (?:\w+\.? \d{1,2}|\d{1,2}\/\d{1,2})[^.]{0,30}\b(?:to|through|until) (?:\w+\.? \d{1,2},? (?:19|20)\d\d|\d{1,2}\/\d{1,2}\/\d{2,4})|\b(?:snapped|ended|came to an end)\b/i.test(t)) { type = "streak"; tag = streakN ? `Active streak · ${Number(streakN[1])}` : "Active streak"; why = "A live streak: it grows if he plays tonight."; }
   else if (club != null) {
@@ -341,6 +346,11 @@ export function dedupe(lines) {
       const bars = (x) => [...plain(x).matchAll(/\b(\d+)(?:\+|-plus| or more)/g)].map((m) => m[1]).sort().join(), ba = bars(said(l)), bb = bars(said(o));
       const twoBars = !!ba && !!bb && ba !== bb, alike = d.type === od.type && d.tag === od.tag && (j >= 0.35 || (d.rank === 1 && shared >= 4));
       if (alike && twoBars && j < 0.6) kin ??= o.text;   // kept apart from this line by its bars alone: scripts/tonight.js dates it like that line for the first days of the rule
+      // 0.170.0: two career counts are two facts too ("at least one steal and one block in 107 career games, which is ranked
+      // 4th in franchise history" and "three steals in 73 career games, which is ranked 4th in franchise history", New
+      // Orleans: the second, read for the first time on 11/27, took the first one's place)
+      const games = (x) => [...plain(x).matchAll(/\bin (\d[\d,]*) career games\b/g)].map((m) => m[1]).sort().join(), ga = games(said(l)), gb = games(said(o));
+      if (ga && gb && ga !== gb) return false;
       return j >= 0.6 || (alike && !twoBars);
     });
     if (!dup) out.push({ ...l, facts: d, ...(kin ? { kin } : {}) });
@@ -495,7 +505,7 @@ export function annotate(lines, { doc = null, tables = null, box = null, model =
     const hit = scoped.find((x) => x[1] === m[1] && x[3] === m[2] && [...words(x[4])].filter((w) => mine.has(w)).length >= 2);
     if (hit) { l.text = l.text.replace(new RegExp(`\\bone of ${m[1]} ${m[2]}\\b`), `one of ${m[1]} ${hit[2]} ${m[2]}`); l.facts = describe(l.text, l); }
   }
-  return checkRecordSaid(checkDates(notCalledActive(checkStreaks(dedupe(lines).map((l) => {
+  return checkRanksAgree(checkRecordSaid(checkDates(notCalledActive(checkStreaks(dedupe(lines).map((l) => {
     const d = l.facts;
     const names = l.player ? [l.player, l.player.split(" ").slice(-1)[0]] : teamNames;
     l.facts = d;
@@ -505,7 +515,7 @@ export function annotate(lines, { doc = null, tables = null, box = null, model =
     const f = { ...d.features, live: hook?.live ? 1 : 0 };
     const p = model ? score(f, model) : null;
     return { ...l, features: f, type: d.type, tag: d.tag, why: d.why, race: race || undefined, stay: stay || undefined, hook: hook || undefined, model: p == null ? undefined : Math.round(p * 1000) / 1000 };
-  }), box)), box), box);
+  }), box)), box), box));
 }
 // ---------- A game's date against the schedule (0.145.0) ----------
 // The Wizards' notes, 11/24: "25 points … on 11/16 vs. HOU" and, two lines on, "25 points … on 11/15 vs. Houston". The
@@ -590,6 +600,34 @@ export function checkDates(lines, box) {
  * "8-2 on the season") that the results show at exactly that many games, with games played since. Mutates.
  */
 const REC_SAID = /\b(?:mov(?:ed|ing|es)|improv(?:ed|ing|es)|f(?:ell|alling|alls)|dropp?(?:ed|ing|s)|(?:ran|pushed|upped|evened) (?:its|their) record|(?:are|is) now)\b[^.;]{0,90}?(?<![\d-])(\d{1,2})-(\d{1,2})(?=\s+(?:overall|on the (?:season|year)|for the season)\b)/i;
+/**
+ * 0.170.0: one player's place in one stat, given two ways in the same notes ("Amongst all NBA centers, Sharpe currently
+ * ranks seventh in APG (4.1)…" and "…a career-high 4.1 assists per game, which ranks 6th among NBA centers this season",
+ * Brooklyn 11/27). Both lines stay as printed; each gets a note that the other says otherwise. Only when the two share
+ * the group, the stat and the figure itself, so two different lists are never set against each other.
+ */
+const RANK_TAG = /^(?:T-)?(\d+)(?:st|nd|rd|th) (among [a-z]+|in NBA)$/;
+const RANK_STATS = [["ast", /\bassists?\b|\bapg\b/i], ["reb", /\brebound|\brpg\b/i], ["pts", /\bpoints?\b|\bppg\b|\bscoring\b/i], ["stl", /\bsteals?\b|\bspg\b/i], ["blk", /\bblocks?\b|\bbpg\b/i],
+  ["fg3", /\bthree|\b3-point|\b3pm\b|\b3fg/i], ["fg", /\bfield goal|\bfg%/i], ["ft", /\bfree throw|\bft%/i]];
+export function checkRanksAgree(lines) {
+  const seen = [];
+  for (const l of lines || []) {
+    const m = l.playerId && RANK_TAG.exec(l.tag || "");
+    if (!m) continue;
+    const t = plain(l.text), stats = RANK_STATS.filter(([, re]) => re.test(t)).map(([k]) => k);
+    if (stats.length !== 1) continue;
+    seen.push({ l, rank: +m[1], key: `${l.playerId}|${m[2]}|${stats[0]}`, figures: new Set(t.match(/\b\d{1,3}\.\d\b/g) || []) });
+  }
+  for (const a of seen) {
+    const b = seen.find((x) => x !== a && x.key === a.key && x.rank !== a.rank && [...x.figures].some((f) => a.figures.has(f)));
+    if (!b) continue;
+    const note = `Rank check: another line in these notes has this at ${ordinal(b.rank)}, not ${ordinal(a.rank)}.`;
+    a.l.rankCheck = { said: a.rank, other: b.rank };
+    a.l.hook = a.l.hook ? { ...a.l.hook, text: `${a.l.hook.text} ${note}` } : { text: note, live: false };
+  }
+  return lines;
+}
+
 export function checkRecordSaid(lines, box) {
   const games = (box?.games || []).filter((g) => g.d && g.pf != null && g.pa != null).sort((a, b) => (a.d < b.d ? -1 : 1));
   if (!games.length) return lines;
@@ -702,17 +740,23 @@ export function statedStreak(text) {
       if (n >= 2 && min && stat) return { n, key: `${stat}${min}`, label: `games with ${min}+ ${WORD[stat]}`, test: (row, k) => row[k[stat]] >= min };
     }
   }
-  if (!/\bto (?:start|open|begin) (?:the|this|his|a) (?:season|campaign|year)\b|\b(?:has|have) (?:now |also )?(?:recorded|posted|scored|registered|tallied|had|notched|logged|grabbed|made|hit|dished)\b|\bactive\b|\bthis season\b|\bcurrent\b|\b(?:recorded|posted|notched|registered|logged|tallied) (?:his|her)\b|\bextend(?:ed|s|ing)?\b|\bin (?:each of )?(?:his|the) (?:last|past)\b/i.test(t)) return null;
+  if (!/\bto (?:start|open|begin) (?:the|this|his|a) (?:season|campaign|year)\b|\b(?:has|have) (?:now |also )?(?:recorded|posted|scored|registered|tallied|had|notched|logged|grabbed|made|hit|dished|knocked down|drained|connected on|converted|pulled down|handed out)\b|\bactive\b|\bthis season\b|\bcurrent\b|\b(?:recorded|posted|notched|registered|logged|tallied) (?:his|her)\b|\bextend(?:ed|s|ing)?\b|\bin (?:each of )?(?:his|the) (?:last|past)\b/i.test(t)) return null;
   for (const [key, word, need] of DOUBLES) {
     if (key === "dd" && /triple-double/i.test(t)) continue;
     const m = t.match(new RegExp(`\\b${CNT} ${RUN} (?:games? with (?:an? )?)?${word}`, "i")) || t.match(new RegExp(`\\b${word} in ${SPAN}`, "i"))
-      || t.match(new RegExp(`\\b${CNT}-game ${word.replace("s?", "")} streak`, "i"));
+      || t.match(new RegExp(`\\b${CNT}-game ${word.replace("s?", "")} streak`, "i"))
+      // 0.170.0: "recorded his 16th double-double to start the season" (the Knicks, 11/27, beside "a double-double in nine
+      // straight games to start the season" on a night the run stood at 17): an ordinal, so it is the run's length
+      || t.match(new RegExp(`\\b(?:his|her) (\\d{1,3}(?:st|nd|rd|th)|${Object.keys(COUNT).filter((w) => /(?:st|nd|rd|th)$/.test(w)).join("|")}) ${word} to (?:start|open|begin) (?:the|this|his|her) (?:season|campaign|year)\\b`, "i"));
     const n = m && countOf(m[1]);
     if (n) return { n, key, label: key === "dd" ? "double-doubles" : "triple-doubles", test: (row, k) => ["pts", "reb", "ast", "stl", "blk"].filter((x) => row[k[x]] >= 10).length >= need };
   }
   // 0.113: "both a block and a steal in 10 straight games"
   const bs = t.match(new RegExp(`\\b(?:both )?(?:a|at least one) (?:block|steal) and (?:a|at least one|one) (?:steal|block) in ${SPAN}`, "i"));
   if (bs && countOf(bs[1])) return { n: countOf(bs[1]), key: "blkstl", label: "games with a block and a steal", test: (row, k) => row[k.stl] >= 1 && row[k.blk] >= 1 };
+  // 0.170.0: "at least one triple in 17 straight games" (Atlanta, 11/27): a made three every game, said without a number
+  const one3 = t.match(new RegExp(`\\b(?:at least (?:one|1|a)|a|one) (?:made )?(?:three-pointer|3-pointer|three|triple|trey|(?:3|three)-point field goal)s? in ${SPAN}`, "i"));
+  if (one3 && countOf(one3[1])) return { n: countOf(one3[1]), key: "fg3m1", label: "games with a made three", test: (row, k) => row[k.fg3m] >= 1 };
   // "30+ points in five straight games", "five straight games with at least 30 points", "five straight 30-point games"
   let m = t.match(new RegExp(`\\b(\\d{1,2})(?:\\+|-plus| or more) ${STREAK_STAT} in ${SPAN}`, "i"));
   let min = m && +m[1], word = m && m[2], n = m && countOf(m[3]);

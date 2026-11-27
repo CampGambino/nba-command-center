@@ -2,6 +2,54 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.170.0 (2026-11-27): the home page, 20 more images: text printed beside a table, streak counts and where they go back to
+
+The user, 11/27, 11:25 AM, with 20 screenshots of the home page: "here's the latest batch of notes. continue to refine". Every line in them was checked against the files. What was wrong, each fixed as a rule for every team:
+
+**Notes read wrong (src/notes/narrative.js)**
+- **A paragraph with a table to its right** was read straight across: "The Lakers are 22-27 all-time against 2/6/27 Frost Bank Center 5:30 p.m." (their series notes beside the schedule; a tile, No. 8), "On November 25, the Kings defeated the Kings, 129-110, behind De'Anthony Melton's 24 points and Gui Santos' 22 points off 11/24/23 vs. San Antonio W, 118-112 the bench.." (the Warriors' Cup recap beside their Cup results). Where one side of an empty strip is running text and the other is not, the text is read first and the table after it (`sideBySide`). The table's rows can sit between the text's lines (Washington, Atlanta). Not the other way round: bullets and player headings stand left of their text and stay with it.
+- **Three columns** ("Posted the NBA's first 50-point game of the Became the first player in NBA history to season, adding…", the Lakers' highest scoring games): each side of a split is read for a split of its own, and a capitals heading over each column no longer counts as a table row against the sentences under it.
+- The two sides are now two blocks of text, so the last sentence of one doesn't run into the first row of the other.
+- **A superscript on its own row** ("nd." above "November 22", Denver) goes back on its number: "November 22 Jokić wins the award…" began mid-sentence.
+- **"com-bined"** (Indiana): "com" is printed alone all over the notes, in web addresses, so the hyphen was kept. A first half of three letters or fewer needs a second half the notes use as a word too.
+- **Two sentences with no space between them** ("…2 blocks.Dereck Lively II was inactive…", Dallas; "…317 days)..Scored a game-high…", Boston) are two.
+- **A season-highs table's row label inside a sentence** ("…under the age of 22 to MINS post 30+ points…", "in the third ASTS quarter") is cut; **the next header's season after a sentence's last word** ("…in 35 minutes or less 2026-27.") is cut and becomes the header of the bullets under it (Phoenix; "…the longest streak by a Suns reserve since 2021-22" had been kept only because a table cell had put a date in the bullet above it).
+- **"LAST SEASON:"** heads last season's lines (Detroit); **a dash bullets a note** (New Orleans: "Career vs. LA Clippers - Among NBA players who average 25.0 minutes…", tagged "Series", was a stat table's label and the next note's dash); "2025-26 Season:" is a heading like "2025-26 SEASON:".
+- **A college record is not a notes line**: "…the first player in Big 12 history with 20 assists and no turnovers…" was credited to Terance Mann (Brooklyn's player pages are printed over a second layer of text; this was another player's college page). Conference records join the college rules; a line starting with a header's tail ("Years Pro32 vs. NYK…") is dropped.
+- **"Name (year)" lists don't date a line** ("Lendeborg (2026) joined Paolo Banchero (2022), George McGinnis (1975)…"); a dateless sentence about another team after last season's lines is last season's ("Charlotte went 42-35 when Bridges was available…", Phoenix); three bare records in a row are a table (Miami's "record when" box).
+- **A line under a section heading is confirmed by a game that clears its bars** ("…to reach 45 points, 15 rebounds, six assists, five steals and eight 3-pointers in a game", Dončić on 11/1).
+
+**Notes checked (src/notes/facts.js)**
+- **One stat, one number.** "Towns recorded his 16th double-double to start the season" is now read as a run of 16, so "a double-double in nine straight games to start the season" beside it is trimmed as the older count, and the 16 is told the box scores have 17.
+- "At least one triple in 17 straight games" (Atlanta's Aaron Wiggins) is checked against the box scores (17: "Active streak · 17", no longer "(notes)").
+- **Two ranks for one stat in one team's notes** are each told of the other: Brooklyn has Day'Ron Sharpe "seventh in APG (4.1)" among centers in one line and "4.1 assists per game, which ranks 6th among NBA centers" in another. Both stay as printed.
+- "In defeating Memphis… the Wolves have now won 34 consecutive games when holding opponents to 105 points or fewer, the longest active streak in the NBA" is a streak, not "Series".
+- Two career counts are two lines ("one steal and one block in 107 career games" and "three steals in 73 career games", both 4th in Pelicans history).
+
+**Streak lines**
+- **Three counts were one too high.** The page's runs were carried from last season by a file made from ESPN's game logs, which counts the NBA Cup's title game. NBA Live's cards and Basketball-Reference don't. Gilgeous-Alexander 235 straight with 10+ points (234), Wembanyama 77 (76), Lillard 66 with a made three (65): each played in a title game inside his run. The page now counts from the same box scores as the cards (`seasonCarry`, src/records/streakbars.js); the old file is the fallback for a player the history doesn't hold (Brandon Ingram). Two runs gain a game the old file left out, one at the end of last season (Bane's made three 17, Powell's 10+ points 14).
+- **"Going back to last season" was said of every carried run.** Dončić's 221 began on 1/30/23, Tatum's 143 on 1/13/24, Lillard's on 11/20/24. A run now names the season it began in: 7 lines on today's list ("…going back to 2022-23").
+- **A run is ranked against its kind's bar** (the user's sliding scale of 11/25, until now only in NBA Live). A run of 10+ points scored 4.0 of a possible 6 from 50 games on; the bar is 82. On 11/27 four of them (77, 67, 54 and 82 games) were among a game's three lines. Now 4.6 at the bar, toward 6 past it, falling away under it; nothing is removed. Alexander-Walker's 67 goes from 42nd to 173rd, Garland's 54 from 85th to 396th; Dončić's 221, Tatum's 143, Lillard's 65 and Siakam's 89 stay in the top 35. The curve's numbers are mine.
+
+**Other lines**
+- "ATL has won its last 2 games after trailing by 10+…; a third straight tonight would tie the season's longest (4)": three doesn't tie four. It now says "leave it short of".
+- **A pass says when the man being passed plays tonight**: "Dončić: 2 3-pointers from passing Damian Lillard (67) for the NBA Cup record; 1 ties him (52% tonight; Lillard plays tonight too)". The chance already counted his game.
+- **One stretch, said once**: Avdija's 18-for-28 from three and Mamukelashvili's misses were each on the page twice, from two finders. For one player, stat and direction the best-scored line stays (also the five-game hot hand beside a points shift).
+- Wording: "his scoring without his free throws" (was "…alone"); "(5-4 in his other 9)" (was "in the others"); bench and rookie ranks say "by totals" (New Orleans' notes had Derik Queen 6th among reserves in rebounds a game where this line had him tied for 2nd, in total); "the longest such run by a Spurs player since at least 1993-94" (the box scores on file start there; it read as if one had done it that season).
+- Tiles: "1 free throw" is the number of "1 free throw from passing…" (it showed the chance, "95%"); tonight's chance is never a tile's number; a percentage after two other figures in a notes line isn't either ("46.3%" over Herro's season averages).
+
+**On today's files** (both builds on the same notes): notes lines kept 217 to 232; 12 lines gone (garbled tellings, and the older Towns count), 27 read for the first time (Memphis' first eight road wins, Paul George's 38-5-5-7, Cooper Flagg's 29-6-11 with 5 steals, Julius Randle, Zion Williamson, Jeremiah Fears…). One real line goes: Luguentz Dort's "one of only three undrafted players in NBA history to start 400 games within their first seven seasons", a career note that had been kept only because a table's date sat beside it; by the rule for undated lines after an older one it is background. Milestones: 287 before and after, the same ones. NBA Live's pre-game lines change in 7 games, each a corrected line.
+
+**Checked:** tests 981 passed (17 new, 5 updated for the new wording). Old against new on 11/27's files, twice (the first comparison's baseline had been built before its notes step finished, and Toronto posted new notes between the two builds; redone from clean copies on the same files). Every page rendered at desktop and phone widths: all OK. Bridge rules up to date; no bridge change.
+
+**Self-audit:**
+- The column reader is the riskiest change here: it runs on every page of every team's notes. Checked on the 28 files on hand (24 teams): every sentence the old reader kept and the new one doesn't is listed above or is a garbled telling replaced by a clean one. Teams not playing today were not checked; the first bad split will show as a line that stops mid-sentence.
+- Three of my own rules were wrong on the first run and were caught by the comparison: the next-header rule cut "in 2008-09." to "in."; the text-beside-a-table rule split bullets from their notes; the other-team rule dropped Dallas's "The Suns have won five of their last six meetings in Dallas" (tonight's opponent is now excluded).
+- The stray-label rule removes "MINS", "ASTS", "TREB"… only between two lower-case words. A note written in shorthand ("had more BLKS than") would lose the word.
+- The ranking of streak lines is the user's scale applied to a page they did not ask about by name; said in the reply, with the numbers named as mine.
+- Not done, and said in the reply: "Jamal Murray's teams have won 8 straight against the Jazz with him playing" under a team streak of 10 (the history file doesn't say which team a player was on, so I can't tell a line the team's streak already covers from one that spans two teams); a feat line that would tie an active player who also plays tonight ("tying Devin Booker") doesn't say so yet; Aaron Wiggins's made-three run is 17 in Atlanta's notes and 19 in ours (two at the end of last season's regular season; the notes count this season).
+- Brooklyn's player pages carry a second layer of text under the visible one. The rules above drop what surfaced from it today; the layer itself is not detected.
+
 ## 0.169.0 (2026-11-26): a franchise pass gets a card to 5th place (bridge v38)
 
 The user, 11/26, 1:07 AM, asked whether franchise passes should stay at the top 3 or show lower places with the place on the card: "Top 5 for franchise should work".

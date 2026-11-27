@@ -108,7 +108,7 @@ export function bigGameLosses({ pg, names = {} }) {
     const rest = gs.filter((g) => g.pts < DETECT.bigGame), rw = rest.filter((g) => g.win).length, name = names[id] || id, team = gs[gs.length - 1].team;
     const avg = big.reduce((a, g) => a + g.pts, 0) / big.length;
     out.push({ kind: "paradox", team, player: name, key: `paradox|30|${id}`, rare: w === 0, score: 3.7 + Math.min(0.8, (big.length - w) * 0.15) + (w === 0 ? 0.3 : 0),
-      text: `${name} has ${big.length} games of ${DETECT.bigGame}+ points this season (${r1(avg)} a game in them), and ${team} is ${rec(w, big.length - w)} in those games${rest.length ? ` (${rec(rw, rest.length - rw)} in the others)` : ""}` });
+      text: `${name} has ${big.length} games of ${DETECT.bigGame}+ points this season (${r1(avg)} a game in them), and ${team} is ${rec(w, big.length - w)} in those games${rest.length ? ` (${rec(rw, rest.length - rw)} in his other ${rest.length})` : ""}` });
   }
   return out;
 }

@@ -527,12 +527,19 @@ let SPOT = { group: "", game: "", more: RANK_PAGE };
 function bigNum(t) {
   let m;
   if ((m = t.match(/(\d[\d,]*\+?)\s+(straight|consecutive)\s+(games?|wins?|losses|meetings|seasons)/i))) return [m[1], m[2] === "consecutive" ? "straight" : m[2]];
-  if ((m = t.match(/:\s*(\d[\d,]*)\s+((?:offensive |defensive )?[a-z0-9-]+)\s+(?:from|to|away)\b/i))) return [m[1], /^3-pointers?$/i.test(m[2]) ? (m[1] === "1" ? "three" : "threes") : m[2]];   // 0.163.0: "2 threes", not "2 3-pointers" (it read "23-pointers")
+  // 0.170.0: a two-word stat too ("1 free throw from passing…" fell through to its chance, "95%", as the tile's number)
+  if ((m = t.match(/:\s*(\d[\d,]*)\s+((?:offensive |defensive )?(?:free throws?|field goals?|[a-z0-9-]+))\s+(?:from|to|away)\b/i))) return [m[1], /^3-pointers?$/i.test(m[2]) ? (m[1] === "1" ? "three" : "threes") : m[2]];   // 0.163.0: "2 threes", not "2 3-pointers" (it read "23-pointers")
   // 0.163.0: an award line's number is the games he can still miss, not the market's price in its label ("99%" stood over
   // Anthony Edwards's "can miss 3 more games"); and a bar to clear isn't the line's number ("60%" stood over "…while
   // shooting 60% or better from the field")
   if ((m = t.match(/\bcan miss (\d+) more games?\b/))) return [m[1], +m[1] === 1 ? "more game" : "more games"];
-  if ((m = t.match(/(?<!\b(?:at least|least|above|over|under|below|than) )\b(\d{1,3}(?:\.\d)?%)(?!\+| on Kalshi| (?:shooting )?or (?:better|more|higher|worse|lower|less)| and (?:above|better|up))/))) return [m[1], ""];
+  // 0.170.0: nor is tonight's chance (the user, 11/24: the percentage chance shouldn't get its own card), nor a percentage
+  // that comes after two or more other figures in a notes line ("46.3%" stood over "…Herro is averaging a team-high 22.3
+  // points (21st in NBA), 4.6 assists… while shooting 46.3% from the field")
+  if ((m = t.match(/(?<!\b(?:at least|least|above|over|under|below|than) )\b(\d{1,3}(?:\.\d)?%)(?!\+| on Kalshi| tonight| (?:shooting )?or (?:better|more|higher|worse|lower|less)| and (?:above|better|up))/))) {
+    const body = t.slice(0, m.index).replace(/^[A-Z]{3} notes(?: — [^:]+)?: (?:[^·]{1,40} · )?/, "");
+    if ((body.match(/\d[\d,.]*/g) || []).length < 2) return [m[1], ""];
+  }
   // 0.154.0: a record ("9-4"), not a date range ("1/9-1/16/19" gave "9-1") or shooting ("4-7 FG", "2-4 3FG", "6-for-9")
   if ((m = t.match(/(?<![\d\/.-])(\d{1,2}-\d{1,2})(?![\d\/.-]|\s*(?:FG|3FG|3PT|FT|3P|from)\b)/))) return [m[1], ""];
   return null;

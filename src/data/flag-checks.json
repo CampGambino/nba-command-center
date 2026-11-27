@@ -363,7 +363,7 @@
       "morning": "2026-11-06",
       "claim": "Most PPG in 2026-27: Dončić 38.5; Dončić through three quarters (32.8) would be third; Dončić without free throws (29.1) sixth",
       "detector": "finder",
-      "match": "^Luka Doncic is the NBA's leading scorer at 38\\.5 a game\\. His scoring through three quarters alone .* without his free throws alone \\(29\\.1\\)",
+      "match": "^Luka Doncic is the NBA's leading scorer at 38\\.5 a game\\. His scoring through three quarters alone .* without his free throws \\(29\\.1\\)",
       "note": "Found by the finder (0.81), which cuts every player's scoring into pieces and ranks each piece against the league's full averages. Ours has 33.5 through three quarters, still ahead of everyone else; the post had 32.8 and third."
     },
     {

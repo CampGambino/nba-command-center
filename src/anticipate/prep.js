@@ -262,8 +262,11 @@ function franchiseClause({ runs, pg, names, id, team, k, test, n, nick }) {
   if (!ahead.length) {
     const at = best(n).filter((x) => x.id !== String(id));
     // someone who may have had n straight on a night we could not read: the claim stands, the list of names is left off
-    if ((ix.maybe.get(key) || []).some((x) => x.n >= n && !at.some((y) => y.id === x.id) && x.id !== String(id))) return { ahead: 0, text: `one more tonight would be the longest such run by a ${scope}` };
-    return { ahead: 0, text: `one more tonight would be the longest such run by a ${scope}${at.length ? ` (${n} straight: ${at.slice(0, 4).map(nm).join(", ")}${at.length > 4 ? ` and ${at.length - 4} more` : ""})` : ` (no one else has had ${n} straight)`}` };
+    // 0.170.0: "the longest such run by a Spurs player since 1993-94" read as if one had done it in 1993-94; that season
+    // is where the box scores on file begin
+    const floor = scope.replace(" since 1993-94", " since at least 1993-94");
+    if ((ix.maybe.get(key) || []).some((x) => x.n >= n && !at.some((y) => y.id === x.id) && x.id !== String(id))) return { ahead: 0, text: `one more tonight would be the longest such run by a ${floor}` };
+    return { ahead: 0, text: `one more tonight would be the longest such run by a ${floor}${at.length ? ` (${n} straight: ${at.slice(0, 4).map(nm).join(", ")}${at.length > 4 ? ` and ${at.length - 4} more` : ""})` : ` (no one else has had ${n} straight)`}` };
   }
   return { ahead: ahead.length, text: `one more tonight would make him the ${ORD[ahead.length + 1]} ${scope} to do it ${n + 1} straight (${ahead.map(nm).join(", ")})` };
 }

@@ -145,7 +145,8 @@ export function thresholdClaims(text) {
   const re = new RegExp(`(?:\\bat least\\s+)?${NUM}(\\+|-plus|\\s+or more)?\\s+(${STAT.map(([, w]) => w).join("|")})\\b`, "gi");
   let listOpen = false, prevEnd = -1;
   for (const m of text.matchAll(re)) {
-    const atLeast = /^at least/i.test(m[0]);
+    // 0.170.0: "to reach 45 points, 15 rebounds, six assists, five steals and eight 3-pointers in a game" names bars too
+    const atLeast = /^at least/i.test(m[0]) || /\breach(?:es|ed|ing)?\s+$/i.test(text.slice(Math.max(0, m.index - 12), m.index));
     const chained = listOpen && /^[\s,]*(?:and\s+|or\s+)?$/.test(text.slice(prevEnd, m.index));
     if (atLeast || m[2] || chained) {
       const stat = statOf(m[3]);
