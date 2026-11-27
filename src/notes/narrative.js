@@ -1,4 +1,4 @@
-import { checkLine, statClaims, thresholdClaims, meetsThresholds } from "./boxscore.js";
+import { checkLine, statClaims, thresholdClaims, meetsThresholds, seasonCounts, countInSeason } from "./boxscore.js";
 import { SEASON, SEASON_RE, SEASON_SHORT } from "../season.js";
 import { normStat, num } from "./stats.js";
 import { TEAMS } from "../teams.js";
@@ -41,7 +41,9 @@ export function blocks(doc) {
         // was inactive…", Dallas 11/27) were read as one line
         .replace(/([a-z]{3,}[.!?])(?=[A-Z][a-z]{2,}\b)/g, "$1 ").replace(/([a-z\d)])\.{2}(?=[A-Z][a-z]{2,}\b)/g, "$1. ")
         .replace(/\s+/g, " ");
-      for (const bullet of cleanSidebar(text).split(/\s*[•▪●\u0001]\s*/)) {
+      // 0.176.0: Indiana's bullets are "‣", which was not in the list, so this season's bullet and last season's recap
+      // under it were one block ("…against the Hawks, 11/2. ‣ Averaged career highs with 9.1 points… over 49 games.")
+      for (const bullet of cleanSidebar(text).split(/\s*[•▪●‣⁃◦▸►■□◆❖➢➤\u0001]\s*/)) {
         // A bullet is a full note even without a final stop ("Has started 97 consecutive regular season games").
         let t = bullet.trim();
         if (t.length >= 40 && /[\p{L}\d%)]$/u.test(t) && !/\b(?:to|the|a|an|of|and|at|in|with|as|by|for|or|his|their|from|on|was|were|who|that|is|are|which)$/i.test(t)) t += ".";
@@ -663,6 +665,14 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
     if (carry && carry.page === b.page && carry.bio) { bioWho = paraWho = sectionWho = carry.who; sinceWho = 0; paraHead = true; }
     else if (carry && carry.page === b.page && carry.dist <= 700) { paraWho = carry.who; sinceWho = carry.dist; paraHead = true; }
     const keep = () => { carry = paraWho && paraHead ? { who: paraWho, page: b.page, dist: sinceWho, bio: !!(bioWho && paraWho === bioWho) } : null; }; // lastWhen: "old" / "current" for the paragraph's last dated sentence // chars of text since paraWho was named // the player this paragraph is about, for its "He..." sentences
+    // 0.176.0: a bullet in a player's box that counts more games than the team has played ("in his 57 starts", "scored
+    // in double figures 47 times") is a recap of an earlier season, all of it: its other sentences have no date of their
+    // own and were each judged alone ("Recorded 10 or more assists 14 times with a career-high 13 double-doubles").
+    const gpNow = box && Array.isArray(box.games) ? box.games.length : 0;
+    // Only a real bullet: a short block of prose. A player's whole box read as one block (tables and all) proves nothing,
+    // and neither does a sentence that itself says "last season" beside this season's.
+    const oldBullet = gpNow > 0 && b.text.length <= 1200 && !TABLEY.test(b.text) && sentences(b.text).some((x) => /^\p{Lu}/u.test(x) && !/\blast (?:season|year)\b|\b(?:19|20)\d\d-\d\d\b/i.test(x)
+      && (tooBigForSeason(x, gpNow) || (!NOT_SEASON.test(x) && [...x.matchAll(/(?<![\d,\-–])\b(\d{2,3}) times\b/g)].some((m) => +m[1] > gpNow + 2))));
     for (let s of (sentences(b.text.replace(/\b(LAST|THIS|CURRENT) SEASON:/g, "$1\u2060SEASON:").replace(/\b((?:19|20)\d\d-\d\d)\s+(SEASON HIGHLIGHTS|SEASON|NOTABLES|Season Highlights|Season(?=:)|NOTES|Notes)(?=\b|:)/g, "$1\u2060$2").replace(/(^|\s)((?:19|20)\d\d-\d\d):(?=\s)/g, "$1$2\u2060:")).flatMap((x) => x.split(/\s+(?=(?:19|20)\d\d-\d\d\u2060)|\s+(?=(?:[\p{Lu}0-9\/’'&.\-]{2,}\s+)*[\p{Lu}0-9\/’'&.\-]{3,}:\s+\p{Lu}|#\s?\d{1,2}\s+\p{Lu})/u).flatMap((y) => y.split(/\s*(?:…|\.{3}|[▪●•\u0000-\u0008\u000b\u000c\u000e-\u001f]|\s[o◦▫+]\s(?=[A-Z]))\s*/u).map((z, k, all) => { let w = k > 0 && /^[a-z]/.test(z) ? z[0].toUpperCase() + z.slice(1) : z; if (k < all.length - 1 && /[\p{L}\d%)]$/u.test(w) && !/\b(?:to|the|a|an|of|and|at|in|with|as|by|for|or|his|their|from|on|was|were|who|that|is|are|which)$/i.test(w)) w += "."; return w; }))).map((x) => x.replace(/\s*\*{2,}.*$/, "").trim())).flatMap((x) => splitBullets(x, full))) {
       sinceWho += s.length + 1;
       // 0.170.0: Phoenix's player boxes head each season's bullets with the bare season on a line of its own, which reads as
@@ -899,6 +909,23 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       const teamHead = !!topic;
       const team = !who && (teamHead || (teamRe && teamRe.test(plain(s))) || ((ctxHit || trendHit || tableLine || hist) && teamMid && teamMid.test(plain(s))) || they || (matchup && SERIES.test(s)));
       if (!who && !team) { drop("no-who", s); continue; }
+      // 0.176.0 (the user, 11/27: "you have the game logs to check against such claims"): a count of his own games ("10
+      // or more assists 14 times", "13 double-doubles", "in his 57 starts") is set against his box scores this season.
+      // More than he has had: it is not this season's (dropped), unless the line itself says "this season" (kept and
+      // flagged). Fewer: the notes are behind (flagged). The same: it stands as checked.
+      let countCheck = null, saysNow = false;
+      if (who && box && !dates.some((d) => seasonStart && d >= seasonStart)) {
+        saysNow = /\b(?:this season|so far|on the season|this year|has (?:now )?(?:recorded|posted|scored|had|tallied|notched|registered|logged|reached|topped))\b/i.test(s);
+        let over = null, under = null;
+        for (const c of seasonCounts(s)) {
+          const got = countInSeason(box, who.id, c.test);
+          if (!got) continue;
+          if (c.said > got.have && !over) over = { ...c, have: got.have };
+          else if (c.said < got.have && !under) under = { ...c, have: got.have };
+        }
+        if (over && !saysNow) { drop("count-not-this-season", s); continue; }
+        if (over || under) { const c = over || under; countCheck = { said: c.said, have: c.have, what: c.what }; }
+      }
       const kind = fwd ? (PASSY.test(s) ? "pass" : "next") : hist ? "record" : ctxHit ? "context" : "trend";
       if (boxOld && !thisSeason && !CURRENT.test(s)) { drop("box-not-this-season", s); continue; }
       // "the first … to record at least 40 PTS and 15 REB in a game": if he had such a game this season, it's this season's.
@@ -922,6 +949,9 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       const teamNow = !who && !!team && kind === "record" && /\bthis (?:is|was|marks|marked) (?:just |only )?the (?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\d+(?:st|nd|rd|th)) time\b/i.test(core);
       const current = thisSeason || boxCurrent || standing || seriesRun || presentCtx || teamNow || CURRENT.test(s) || (kind !== "record" && kind !== "context");
       if (!current) { drop("not-current", s); continue; }
+      // 0.176.0: the rest of a bullet that recaps an earlier season (see oldBullet above), unless the sentence is plainly
+      // about now: dated this season, matched to a game of his this season, or said in the present tense
+      if (oldBullet && bioWho && who === bioWho && !thisSeason && !boxCurrent && !standing && !presentCtx && !seriesRun && !saysNow && !CURRENT.test(s)) { drop("old-bullet", s); continue; }
       // In the regular season before April, a postseason, an All-Star break or a games count past tonight's is last season's.
       if (today && !dayThisSeason && !thisSeason) {
         const mo = +today.slice(5, 7), gp = box && Array.isArray(box.games) ? box.games.length : null;
@@ -945,7 +975,7 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       if (chk.game?.d && !datesOf(s).length && !/\(\d{1,2}\/\d{1,2}\b/.test(s) && /^(?:[\p{Lu}][\p{L}.'’-]+\s+){1,3}(?:made|scored|recorded|grabbed|dished|tallied|poured in|finished with|knocked down|hit|posted|notched|went|shot|blocked|handed out|pulled down|sank|converted)\b/u.test(s))
         s = s.replace(/([.!…]?)$/, ` (${+chk.game.d.slice(5, 7)}/${+chk.game.d.slice(8, 10)}${chk.game.opp ? ` vs. ${chk.game.opp}` : ""})$1`);
       if (joinedFrom && out.length && out[out.length - 1].text === joinedFrom) out.pop();
-      out.push({ page: b.page, text: topic && !new RegExp(`^${esc(topic)}\\b`).test(s) ? `${topic}: ${s}` : s, topic: topic || undefined, kind, player: who?.name || null, playerId: who?.id || null, team: !!team, matchup, how: who ? how : matchup && !team ? "series" : "team", resolved: !subj && !!who, boxGame: chk.game || null, when: "season", score: Math.round(score * 100) / 100 });
+      out.push({ page: b.page, text: topic && !new RegExp(`^${esc(topic)}\\b`).test(s) ? `${topic}: ${s}` : s, topic: topic || undefined, kind, player: who?.name || null, playerId: who?.id || null, countCheck: countCheck || undefined, team: !!team, matchup, how: who ? how : matchup && !team ? "series" : "team", resolved: !subj && !!who, boxGame: chk.game || null, when: "season", score: Math.round(score * 100) / 100 });
     }
     // A player's box header printed at the end of the block before his notes ("…W115-108 Center #28 Alperen Sengun 6-11/255"):
     // his notes are the next block, after the header's "•" (Houston, 11/13).

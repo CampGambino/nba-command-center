@@ -23,6 +23,7 @@ const MENUS = [
     ["Most unusual records", "situations.html", "Situations"],
   ]],
   ["Players", [
+    ["One player: everything on him", "player.html", "Player"],
     ["Clutch: players", "clutch.html", "Clutch"],
     ["4th quarter · final two minutes", "clutch.html?mode=q4", "Clutch"],
     ["With / without · last N games", "players.html", "With / without"],

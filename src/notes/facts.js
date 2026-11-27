@@ -505,7 +505,7 @@ export function annotate(lines, { doc = null, tables = null, box = null, model =
     const hit = scoped.find((x) => x[1] === m[1] && x[3] === m[2] && [...words(x[4])].filter((w) => mine.has(w)).length >= 2);
     if (hit) { l.text = l.text.replace(new RegExp(`\\bone of ${m[1]} ${m[2]}\\b`), `one of ${m[1]} ${hit[2]} ${m[2]}`); l.facts = describe(l.text, l); }
   }
-  return checkRanksAgree(checkRecordSaid(checkDates(notCalledActive(checkStreaks(dedupe(lines).map((l) => {
+  return checkCounts(checkRanksAgree(checkRecordSaid(checkDates(notCalledActive(checkStreaks(dedupe(lines).map((l) => {
     const d = l.facts;
     const names = l.player ? [l.player, l.player.split(" ").slice(-1)[0]] : teamNames;
     l.facts = d;
@@ -515,7 +515,7 @@ export function annotate(lines, { doc = null, tables = null, box = null, model =
     const f = { ...d.features, live: hook?.live ? 1 : 0 };
     const p = model ? score(f, model) : null;
     return { ...l, features: f, type: d.type, tag: d.tag, why: d.why, race: race || undefined, stay: stay || undefined, hook: hook || undefined, model: p == null ? undefined : Math.round(p * 1000) / 1000 };
-  }), box)), box), box));
+  }), box)), box), box)));
 }
 // ---------- A game's date against the schedule (0.145.0) ----------
 // The Wizards' notes, 11/24: "25 points … on 11/16 vs. HOU" and, two lines on, "25 points … on 11/15 vs. Houston". The
@@ -757,6 +757,11 @@ export function statedStreak(text) {
   // 0.170.0: "at least one triple in 17 straight games" (Atlanta, 11/27): a made three every game, said without a number
   const one3 = t.match(new RegExp(`\\b(?:at least (?:one|1|a)|a|one) (?:made )?(?:three-pointer|3-pointer|three|triple|trey|(?:3|three)-point field goal)s? in ${SPAN}`, "i"));
   if (one3 && countOf(one3[1])) return { n: countOf(one3[1]), key: "fg3m1", label: "games with a made three", test: (row, k) => row[k.fg3m] >= 1 };
+  // 0.176.0: "Has knocked down consecutive triples in eight straight games" (Phoenix, 11/27, of Collin Gillespie, two
+  // days after an 0-for-4): more than one made three every game. It read as nothing to check, so it carried no tag and
+  // the user could not tell a checked line from a copied one. "Multiple", "two or more" and "2+" say the same.
+  const many3 = t.match(new RegExp(`\\b(?:multiple|consecutive|back-to-back|two or more|two-plus|at least two|2\\+|2 or more) (?:made )?(?:three-pointers|3-pointers|threes|triples|treys|(?:3|three)-point field goals|3s) in ${SPAN}`, "i"));
+  if (many3 && countOf(many3[1])) return { n: countOf(many3[1]), key: "fg3m2", label: "games with 2+ made threes", test: (row, k) => row[k.fg3m] >= 2 };
   // "30+ points in five straight games", "five straight games with at least 30 points", "five straight 30-point games"
   let m = t.match(new RegExp(`\\b(\\d{1,2})(?:\\+|-plus| or more) ${STREAK_STAT} in ${SPAN}`, "i"));
   let min = m && +m[1], word = m && m[2], n = m && countOf(m[3]);
@@ -784,6 +789,20 @@ export function streakInBox(box, playerId, stated) {
  * Lines whose streak the box scores count higher get a hook saying so; the line keeps the notes' words.
  * Mutates and returns the lines. Each checked line carries streakNow: { key, said, now }.
  */
+/**
+ * 0.176.0: a player's count of games that the reader set against his box scores and found different (l.countCheck, from
+ * src/notes/narrative.js). The line says "this season" and the box scores have fewer, or the notes are a game behind.
+ */
+export function checkCounts(lines) {
+  for (const l of lines || []) {
+    const c = l.countCheck;
+    if (!c || l.hook) continue;
+    const what = c.what.replace(/^games with /, "games with ").replace(/(\d+)\+ (\w+)$/, (m, n, st) => `${n}+ ${({ pts: "points", reb: "rebounds", ast: "assists", stl: "steals", blk: "blocks", fg3m: "threes", oreb: "offensive rebounds" })[st] || st}`);
+    if (c.said > c.have) { l.tag = "Count check"; l.hook = { text: `Count check: the notes say ${c.said} ${what}; the box scores have ${c.have} this season.`, live: false }; }
+    else l.hook = { text: `The notes are behind: the box scores have ${c.have} ${what} this season, not ${c.said}.`, live: false };
+  }
+  return lines;
+}
 export function checkStreaks(lines, box) {
   const md = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}`;
   for (const l of lines || []) {

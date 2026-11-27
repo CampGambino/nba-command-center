@@ -169,3 +169,56 @@ export function meetsThresholds(box, id, ths) {
   }
   return null;
 }
+
+// ---------- A player's count of games this season, against his box scores (0.176.0) ----------
+// The user, 11/27, of "Recorded 10 or more assists 14 times with a career-high 13 double-doubles" in Indiana's notes for
+// Andrew Nembhard, who had played 14 games and had three such games: "the second bullet is a recap of last season, so
+// this does not apply. you have the game logs to check against such claims".
+const TIMES = `(\\d{1,3}|once|twice|${Object.keys(WORDS).join("|")})`;
+const timesOf = (w) => ({ once: 1, twice: 2 })[w.toLowerCase()] ?? WORDS[w.toLowerCase()] ?? (parseInt(w, 10) || null);
+// A count that is not one season's: a career's, a franchise's, a stretch of games, a run, the playoffs.
+const NOT_A_SEASON_COUNT = /\b(?:in|of|over|during|for|throughout|across) (?:his|her) (?:\w+ )?career\b|\bcareer (?:totals?|games?|starts?)\b|\ball-time\b|\bin (?:franchise|team|club|NBA|league) history\b|\bsince (?:19|20)\d\d\b|\b(?:last|past|previous|first|final|next) (?:\w+ )?(?:games?|starts?|outings|contests|appearances|seasons?|months?|weeks?)\b|\bplayoffs?\b|\bpostseason\b|\bstraight\b|\bconsecutive\b|\bin a row\b|\bwith (?:the )?\p{Lu}\w+\b|\bas a (?:member|starter|reserve|\p{Lu})|\b(?:in|during) (?:October|November|December|January|February|March|April)\b/u;
+/**
+ * The counts of his own games a sentence states that a season's box scores can settle:
+ *   "10 or more assists 14 times", "topped 30+ points twice", "21 games of 20 or more points",
+ *   "scored in double figures 47 times", "13 double-doubles", "in his 57 starts"
+ * -> [{ said, what, test(row, k) }], k = { stat: its column in the row }. Nothing for a career's count, a stretch or a run.
+ */
+export function seasonCounts(text) {
+  const t = String(text || ""), out = [];
+  if (NOT_A_SEASON_COUNT.test(t)) return out;
+  const statOf = (w) => STAT.find(([, ws]) => new RegExp(`^(?:${ws})$`, "i").test(w))?.[0];
+  const words = STAT.map(([, w]) => w).join("|"), num = (w) => WORDS[w.toLowerCase()] ?? +w;
+  const add = (said, what, test) => { if (said >= 1 && !out.some((o) => o.what === what)) out.push({ said, what, test }); };
+  // "10 or more assists 14 times", "30+ points twice"
+  for (const m of t.matchAll(new RegExp(`(?<![\\d,.\\-/])${NUM}(?:\\+|-plus|\\s+or more)\\s+(${words})\\s+(?:on\\s+)?${TIMES}(?:\\s+times\\b|(?<=once|twice)\\b)`, "gi"))) {
+    const stat = statOf(m[2]), min = num(m[1]);
+    if (stat) add(timesOf(m[3]), `games with ${min}+ ${stat}`, (row, k) => row[k[stat]] >= min);
+  }
+  // "21 games of 20 or more points", "three games with at least 10 assists"
+  for (const m of t.matchAll(new RegExp(`(?<![\\d,.\\-/])${TIMES}\\s+games?\\s+(?:of|with|scoring|recording)\\s+(at least\\s+)?${NUM}(\\+|-plus|\\s+or more)?\\s+(${words})\\b`, "gi"))) {
+    const stat = statOf(m[5]), min = num(m[3]);
+    if (stat && (m[2] || m[4])) add(timesOf(m[1]), `games with ${min}+ ${stat}`, (row, k) => row[k[stat]] >= min);
+  }
+  // "scored in double figures 47 times", "in double figures in 13 games"
+  for (const m of t.matchAll(new RegExp(`\\bin double figures\\s+(?:in\\s+)?${TIMES}\\s+(?:times|games)\\b`, "gi"))) add(timesOf(m[1]), "games in double figures", (row, k) => row[k.pts] >= 10);
+  // "13 double-doubles", "a career-high 13 double-doubles", "two triple-doubles" (an ordinal, "his 13th", counts the same)
+  for (const m of t.matchAll(new RegExp(`(?<![\\d,.\\-/])(\\d{1,3}|${Object.keys(WORDS).join("|")})(?:st|nd|rd|th)?\\s+(double|triple)-doubles?\\b`, "gi"))) {
+    const need = /triple/i.test(m[2]) ? 3 : 2;
+    add(num(m[1]), need === 3 ? "triple-doubles" : "double-doubles", (row, k) => ["pts", "reb", "ast", "stl", "blk"].filter((x) => row[k[x]] >= 10).length >= need);
+  }
+  // "in his 57 starts", "over 45 appearances": games he started or played
+  for (const m of t.matchAll(/\b(?:in|over|across|through) (?:his |her |all )?(\d{1,3}) (starts|games|appearances|contests)\b/gi)) {
+    if (/starts/i.test(m[2])) add(+m[1], "starts", (row, k) => row[k.starter] === 1 && row[k.min] > 0);
+    else add(+m[1], "games played", (row, k) => row[k.min] > 0);
+  }
+  return out;
+}
+/** How many of his games this season pass `test`, and how many he has played. -> { have, played } or null without his rows. */
+export function countInSeason(box, id, test) {
+  const k = Object.fromEntries((box?.keys || []).map((x, i) => [x, i]));
+  if (k.min == null) return null;
+  let have = 0, played = 0;
+  for (const g of box.games || []) { const row = g.pl && g.pl[String(id)]; if (!row || !(row[k.min] > 0)) continue; played++; try { if (test(row, k)) have++; } catch { return null; } }
+  return { have, played };
+}

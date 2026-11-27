@@ -4930,7 +4930,7 @@ await bridgeChecks(ok, root);
       .replace('<a href="situations.html">Team situations</a><a class="on" href="standings.html">Standings</a>', '<a class="on" href="situations.html">Team situations</a><a href="standings.html">Standings</a>') === sit;
     const pagesH = fs.readdirSync(path.join(root, "docs")).filter((f) => f.endsWith(".html")), navOk = pagesH.every((f) => /href="standings\.html"[^>]*>Standings<\/a>/.test(fs.readFileSync(path.join(root, "docs", f), "utf8")));
     const tr2 = fs.readFileSync(path.join(root, "docs", "trends.html"), "utf8"), nat = fs.readFileSync(path.join(root, "docs", "national.html"), "utf8"), ldr = fs.readFileSync(path.join(root, "docs", "leaders.html"), "utf8"), idx = fs.readFileSync(path.join(root, "docs", "index.html"), "utf8");
-    ok(mB.v === 147 && mB.d === "2025-11-14" && mB.behind === 146 && mB.doubt.v === 155 && same && navOk && pagesH.length === 14
+    ok(mB.v === 147 && mB.d === "2025-11-14" && mB.behind === 146 && mB.doubt.v === 155 && same && navOk && pagesH.length === 15   /* 14 until 0.176.0 added player.html */
       && /body\[data-view="situations"\] \.v-standings, body\[data-view="standings"\] \.v-situations \{ display: none; \}/.test(sit) && sit.indexOf('<div class="v-standings">') < sit.indexOf("<h2>All teams</h2>") && sit.indexOf("Most unusual records") < sit.indexOf('<div class="v-standings">')
       && /id="sgroup"/.test(tr2) && /sgroup !== "off" && !cat/.test(tr2) && /data-g="player"/.test(tr2) && /const PER = 25/.test(nat) && /id="ppager"/.test(nat) && ldr.indexOf("<h2>50-40-90 watch</h2>") < ldr.indexOf('<details id="shootbox"') && !/<h2>Shooting lines/.test(ldr)
       && /"standings\.html#rest"/.test(idx) && /"standings\.html#standings"/.test(idx),
@@ -6673,6 +6673,45 @@ await bridgeChecks(ok, root);
     && Number(/var VERSION = (\d+);/.exec(br)[1]) >= 39 && JSON.parse(fs.readFileSync(path.join(root, "docs", "bridge", "version.json"), "utf8")).version === Number(/var VERSION = (\d+);/.exec(br)[1]),
     "NBA Live's pre-game cards (bridge v39; the user, 11/27: \"because these alerts only show pregame and are for the games tonight, no need to display the text for tonight's storyline and (pre-game)\"): the small print is \"Command Center\" and nothing more; the card's header already says PRE-GAME. The published bridge version matches the script's",
     pre.slice(pre.indexOf("sub:"), pre.indexOf("sub:") + 80));
+}
+
+// ---------- 0.176.0: a count of a player's games in the notes is set against his box scores; last season's bullet; a multi-three run ----------
+{
+  const B = await import("../src/notes/boxscore.js"), F = await import("../src/notes/facts.js"), N = await import("../src/notes/narrative.js");
+  const said = (t) => B.seasonCounts(t).map((c) => `${c.said} ${c.what}`).join("; ");
+  ok(said("Recorded 10 or more assists 14 times with a career-high 13 double-doubles.") === "14 games with 10+ ast; 13 double-doubles"
+    && said("Scored in double figures 47 times, finished with 21 games of 20 or more points and topped 30+ points twice.") === "2 games with 30+ pts; 21 games with 20+ pts; 47 games in double figures"
+    && said("Averaged career highs with 16.9 points and 7.7 assists per game in his 57 starts.") === "57 starts"
+    && said("Has 28 games with 10 or more assists in his career.") === "" && said("Has scored 20 or more points in five of his last six games.") === ""
+    && said("Recorded his first double-double of the season with 18 points and 14 assists against the 76ers, 10/28.") === "" && said("Has 10 or more assists in five straight games.") === "",
+    "a player's count of games in the notes (0.176.0; the user, 11/27, of Indiana's \"Recorded 10 or more assists 14 times with a career-high 13 double-doubles\" for a player with three such games: \"you have the game logs to check against such claims\"): \"N or more X M times\", \"M games of N or more X\", \"in double figures M times\", \"M double-doubles\" and \"in his M starts\" are read as counts; a career's count, a stretch of games, a run and \"his first double-double of the season\" are not",
+    said("Scored in double figures 47 times, finished with 21 games of 20 or more points and topped 30+ points twice."));
+  // his box scores: 4 games, 10+ assists in one of them, one double-double
+  const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
+  const row = (pts, ast, fg3m = 2) => [1, 30, pts, 6, 12, fg3m, 5, 2, 2, 3, ast, 2, 1, 0, 0, 3, 2, 4];
+  const box = { keys, names: { p1: "Andy Guard" }, games: [["2026-10-28", 18, 14], ["2026-11-01", 23, 6], ["2026-11-20", 12, 8], ["2026-11-23", 15, 6]].map(([d, pts, ast]) => ({ d, opp: "PHI", home: true, pf: 110, pa: 100, pl: { p1: row(pts, ast) } })) };
+  const c = B.seasonCounts("Recorded 10 or more assists 14 times with a career-high 13 double-doubles.");
+  const got = c.map((x) => B.countInSeason(box, "p1", x.test));
+  const st = F.statedStreak("Has knocked down consecutive triples in eight straight games, the longest streak by a Suns reserve since 2021-22.");
+  const st2 = F.statedStreak("Has made multiple three-pointers in six straight games."), st1 = F.statedStreak("Has hit at least one triple in 17 straight games.");
+  const flagged = F.checkCounts([{ text: "Has recorded three games with 10 or more assists this season.", countCheck: { said: 3, have: 1, what: "games with 10+ ast" } }, { text: "x", countCheck: { said: 2, have: 4, what: "double-doubles" } }]);
+  ok(got[0]?.have === 1 && got[0].played === 4 && got[1]?.have === 1
+    && st?.n === 8 && st.key === "fg3m2" && st.test([0, 0, 0, 0, 0, 2], { fg3m: 5 }) && !st.test([0, 0, 0, 0, 0, 1], { fg3m: 5 }) && st2?.key === "fg3m2" && st2.n === 6 && st1?.key === "fg3m1"
+    && flagged[0].tag === "Count check" && /the notes say 3 games with 10\+ assists; the box scores have 1 this season/.test(flagged[0].hook.text) && /notes are behind: the box scores have 4 double-doubles this season, not 2/.test(flagged[1].hook.text),
+    "the count against his games, and a run of games with more than one three (0.176.0; the user, 11/27, of Phoenix's \"Has knocked down consecutive triples in eight straight games\" two days after an 0-for-4: \"the game logs exists to verify these claims\"): his box scores give how many such games he has had; \"consecutive / multiple triples in N straight games\" is 2 or more made threes a game and is checked like any other run; a count the line calls this season's and the box scores don't have is flagged, and so is one the notes are behind on",
+    JSON.stringify({ got, st: st && [st.n, st.key], flagged: flagged.map((l) => l.hook?.text) }));
+  const bullets = N.blocks({ pages: [{ page: 1, lines: [] }] });
+  ok(Array.isArray(bullets) && /\[•▪●‣/.test(fs.readFileSync(path.join(root, "src", "notes", "narrative.js"), "utf8")) && /drop\("old-bullet"/.test(fs.readFileSync(path.join(root, "src", "notes", "narrative.js"), "utf8")),
+    "notes bullets (0.176.0): Indiana's \"‣\" is a bullet, so this season's bullet and last season's recap under it are two blocks; a bullet in a player's box that counts more games than the team has played is an earlier season's, all of it",
+    "");
+  // the Player page: in the menu, the Index and every page's own row of links
+  const pages = fs.readdirSync(path.join(root, "docs")).filter((f) => f.endsWith(".html") && f !== "player.html");
+  const pl = fs.readFileSync(path.join(root, "docs", "player.html"), "utf8");
+  ok(/"player\.html"/.test(fs.readFileSync(path.join(root, "docs", "site", "nav.js"), "utf8")) && /"player\.html"/.test(fs.readFileSync(path.join(root, "docs", "find.html"), "utf8"))
+    && pages.every((f) => fs.readFileSync(path.join(root, "docs", f), "utf8").includes('href="player.html"'))
+    && ["eligibility", "briefing", "notes-facts", "watch", "trends", "vsruns"].every((f) => pl.includes(`"${f}"`)) && !/stake|kalshi/i.test(pl) && /esc\(l\.text\)/.test(pl),
+    "the Player page (0.176.0; the user, 11/27: \"is there a central player's hub to search by player to see what information is linked to them specifically?\"): one page that takes a name and shows his lines from the ranked list, his team's notes with our checks, milestones, streaks, runs against one team and his award count, from the files the other pages read; it is in the menu, the Index and every page's links, shows no Kalshi price, and escapes the text it inserts",
+    "");
 }
 
 const snapDir = path.join(root, "tests", "expected");

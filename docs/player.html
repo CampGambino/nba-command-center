@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noai, noimageai">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NBA Command Center · Player</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a;
+    --text: #e8eaef; --muted: #9aa3b2; --faint: #6b7383;
+    --accent: #4f9cf7; --good: #3fbf7f; --warn: #e5a93b; --bad: #e5604f; --live: #ff4d6d;
+    --radius: 12px;
+  }
+  @media all {
+    :root { --bg: #f5f6f8; --panel: #fff; --panel2: #f0f2f5; --line: #e1e4ea; --text: #161a22; --muted: #5b6474; --faint: #8a93a3; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header, main, footer { max-width: 1180px; margin: 0 auto; }
+  header { padding: 18px 16px 8px; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  main { padding: 0 12px 40px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 22px 4px 8px; }
+  h2 a { font-size: 12px; text-transform: none; letter-spacing: 0; font-weight: 400; margin-left: 8px; color: var(--accent); text-decoration: none; }
+  nav { display: flex; flex-wrap: wrap; row-gap: 4px; gap: 14px; margin-top: 6px; font-size: 13.5px; }
+  nav a { color: var(--muted); text-decoration: none; padding-bottom: 2px; }
+  nav a.on { color: var(--text); border-bottom: 2px solid var(--accent); }
+  .find { position: relative; margin-top: 14px; max-width: 520px; }
+  .find input { width: 100%; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 16px; }
+  .hits { position: absolute; left: 0; right: 0; top: 100%; z-index: 5; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin-top: 4px; overflow: hidden; }
+  .hits button { display: flex; justify-content: space-between; gap: 10px; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); color: var(--text); padding: 8px 12px; font-size: 14.5px; cursor: pointer; }
+  .hits button:last-child { border-bottom: 0; } .hits button:hover, .hits button.at { background: var(--panel2); }
+  .hits small { color: var(--faint); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chips a { font-size: 12.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; text-decoration: none; background: var(--panel); }
+  .who { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin: 18px 4px 0; }
+  .who .name { font-size: 24px; font-weight: 700; }
+  .who .meta { color: var(--muted); font-size: 13.5px; }
+  .jump { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 4px 0; }
+  .jump a { font-size: 12.5px; color: var(--accent); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; text-decoration: none; background: var(--panel); }
+  .jump a b { color: var(--muted); font-weight: 600; margin-left: 4px; }
+  .list { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .row { display: grid; grid-template-columns: 96px 1fr; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .row:last-child { border-bottom: 0; }
+  .row .k { color: var(--faint); font-size: 12px; padding-top: 2px; }
+  .row .hook { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
+  .tag { display: inline-block; font-size: 11.5px; border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; margin-right: 6px; color: var(--muted); }
+  .tag.over { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
+  .wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--line); font-size: 13px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; background: var(--panel2); white-space: nowrap; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: 0; }
+  .none { color: var(--muted); font-size: 13.5px; margin: 14px 4px; }
+  .small { color: var(--faint); font-size: 12px; }
+  footer { color: var(--faint); font-size: 12px; padding: 0 16px 30px; }
+  @media (max-width: 560px) { .row { grid-template-columns: 1fr; gap: 2px; } }
+</style>
+<link rel="stylesheet" href="site/chrome.css">
+<script src="site/nav.js" defer></script>
+</head>
+<body>
+<header>
+  <h1>NBA Command Center</h1>
+  <nav><a href="./">Watch List</a><a href="situations.html">Team situations</a><a href="standings.html">Standings</a><a href="clutch.html">Clutch</a><a class="on" href="player.html">Player</a><a href="players.html">With / without</a><a href="lineups.html">Lineups</a><a href="trends.html">Streaks &amp; outliers</a><a href="leaders.html">Team leaders</a><a href="defenses.html">vs top teams</a><a href="national.html">National TV</a><a href="gameflow.html">Game Flow</a><a href="records.html">Records</a><a href="awards.html">Award eligibility</a><a href="find.html">Index</a></nav>
+  <div class="sub" id="sub">One player, everything the site has on him.</div>
+</header>
+<main>
+  <div class="find">
+    <input id="q" type="search" placeholder="Type a player's name" autocomplete="off" aria-label="Player">
+    <div class="hits" id="hits" hidden></div>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div id="out"><div class="none">Loading…</div></div>
+</main>
+<footer id="foot"></footer>
+<script>
+"use strict";
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fold = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+const md = (d) => (d ? `${+d.slice(5, 7)}/${+d.slice(8, 10)}/${d.slice(2, 4)}` : "");
+const pct = (p) => (p == null ? "" : p >= 0.995 ? "99%+" : p < 0.005 ? "under 1%" : `${Math.round(p * 100)}%`);
+// what each kind of line on the ranked list is called here
+const KIND = { record: "Record", milestone: "Milestone", streak: "Streak", pstreak: "Streak", feat: "Feat", history: "Notes", find: "Find", awards: "Awards", shift: "Shift", injury: "Injury", matchup: "Matchup", vsopp: "vs opponent",
+  season: "Season", month: "Month", monthp: "Month", form: "Form", role: "Role", rookie: "Rookie", club: "Club", shooting: "Shooting", fourth: "4th quarter", foul: "Fouls", span: "Stretch", era: "Era", cup: "NBA Cup", early: "Early", scarce: "Rare",
+  paradox: "Oddity", luck: "Luck", broken: "Streak ended", team: "Team", defpos: "Defense", pace: "Pace", turn: "Turnaround", qtr: "Quarter", lead: "Leads" };
+const D = {};   // the files, by name
+const FILES = ["eligibility", "briefing", "notes-facts", "watch", "trends", "vsruns"];
+let PLAYERS = [];   // { name, key, team, id }
+
+function gather() {
+  const by = new Map();
+  const add = (name, team, id) => { if (!name) return; const k = fold(name); const p = by.get(k) || { name, key: k, team: null, id: null }; if (team && !p.team) p.team = team; if (id && !p.id) p.id = String(id); by.set(k, p); };
+  for (const p of D.eligibility?.players || []) add(p.name, p.team, p.id);
+  for (const r of D.vsruns?.rows || []) add(r.name, r.team, r.id);
+  for (const s of D.trends?.streaks || []) add(s.name, s.team, s.id);
+  for (const t of D.watch?.teams || []) for (const i of t.items || []) add(i.player, t.team, i.espnId);
+  for (const [t, ls] of Object.entries(D["notes-facts"]?.teams || {})) for (const l of ls || []) add(l.player, t, l.playerId);
+  for (const l of D.briefing?.stream || []) add(l.player, l.team, null);
+  PLAYERS = [...by.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+const find = (name) => PLAYERS.find((p) => p.key === fold(name)) || null;
+
+function section(id, title, n, link, linkText, body) {
+  return `<h2 id="${id}">${esc(title)} <span class="small">${n}</span>${link ? `<a href="${esc(link)}">${esc(linkText)} →</a>` : ""}</h2>${body}`;
+}
+function show(p) {
+  const out = document.getElementById("out");
+  if (!p) { out.innerHTML = `<div class="none">Type a name above. Every player in this season's box scores is listed.</div>`; document.title = "NBA Command Center · Player"; return; }
+  document.title = `NBA Command Center · ${p.name}`;
+  const mine = (name) => fold(name) === p.key, hasId = (id) => p.id && String(id) === p.id;
+  const game = (D.watch?.games || []).find((g) => g.homeTri === p.team || g.awayTri === p.team);
+  const opp = game ? (game.homeTri === p.team ? `vs ${game.awayTri}` : `at ${game.homeTri}`) : null;
+  // 1. the ranked list's lines about him, and the lines that name him though they are about someone else
+  const stream = D.briefing?.stream || [];
+  const his = stream.filter((l) => mine(l.player)).sort((a, b) => b.rank - a.rank);
+  const named = stream.filter((l) => !mine(l.player) && fold(l.text).includes(p.key)).sort((a, b) => b.rank - a.rank);
+  const line = (l) => `<div class="row"><div class="k">${esc(KIND[l.kind] || l.kind)}${l.game ? `<br>${esc(l.game.replace("@", " @ "))}` : ""}</div><div>${esc(l.text)}</div></div>`;
+  // 2. his team's notes
+  const seen = new Set(his.map((l) => fold(l.text)));
+  const notes = Object.entries(D["notes-facts"]?.teams || {}).flatMap(([t, ls]) => (ls || []).filter((l) => (l.playerId ? hasId(l.playerId) : mine(l.player))).map((l) => ({ ...l, _t: t })))
+    .sort((a, b) => (b.score || 0) - (a.score || 0));
+  const note = (l) => `<div class="row"><div class="k">${esc(l._t)} notes${l.firstSeen ? `<br>first seen ${esc(md(l.firstSeen))}` : ""}</div><div>${l.tag ? `<span class="tag${/over|check/i.test(l.tag) ? " over" : ""}">${esc(l.tag)}</span>` : ""}${esc(l.text)}${l.hook?.text ? `<div class="hook">${esc(l.hook.text)}</div>` : ""}</div></div>`;
+  // 3. milestones
+  const items = (D.watch?.teams || []).flatMap((t) => (t.items || []).filter((i) => (i.espnId ? hasId(i.espnId) : mine(i.player))).map((i) => ({ ...i, team: t.team }))).filter((i) => !i.reached)
+    .sort((a, b) => (b.pTonight || 0) - (a.pTonight || 0) || (b.importance || 0) - (a.importance || 0));
+  const SCOPE = { career: "career", nba: "all-time", franchise: "franchise", "season-record": "season record", streak: "streak" };
+  const goal = (i) => (i.passing?.player ? `pass ${i.passing.player}${i.passing.rank ? ` (No. ${i.passing.rank})` : ""}` : i.target != null ? `${Number(i.target).toLocaleString("en-US")} ${i.label}` : i.label);
+  // 4. active streaks, 5. runs against one team, 6. award count
+  const streaks = (D.trends?.streaks || []).filter((s) => (s.id ? hasId(s.id) : mine(s.name))).sort((a, b) => (b.length / (b.bar || 1e9)) - (a.length / (a.bar || 1e9)) || b.length - a.length);
+  const runs = (D.vsruns?.rows || []).filter((r) => hasId(r.id) || mine(r.name)).sort((a, b) => (b.tonight ? 1 : 0) - (a.tonight ? 1 : 0) || b.n - a.n);
+  const el = (D.eligibility?.players || []).find((x) => hasId(x.id) || mine(x.name));
+
+  const parts = [], jump = [];
+  const put = (id, label, n, html) => { if (!n) return; parts.push(html); jump.push(`<a href="#${id}">${esc(label)}<b>${n}</b></a>`); };
+  put("tonight", "Tonight", his.length, section("tonight", game ? `Tonight (${p.team} ${opp})` : "On tonight's list", his.length, "./#stream", "the whole ranked list", `<div class="list">${his.map(line).join("")}</div>`));
+  put("notes", "Team notes", notes.length, section("notes", "From his team's game notes", notes.length, "./#history", "tonight's notes", `<div class="list">${notes.map(note).join("")}</div><div class="small" style="margin:6px 4px 0">As the team printed them; a tag or a grey line is our check against the box scores.</div>`));
+  put("milestones", "Milestones", items.length, section("milestones", "Milestones in reach", items.length, "./#likely", "all milestones",
+    `<div class="wrap"><table><thead><tr><th>To</th><th>List</th><th class="num">Has</th><th class="num">Needs</th><th class="num">Tonight</th><th>Likely by</th></tr></thead><tbody>${items.map((i) => `<tr><td>${esc(goal(i))}</td><td>${esc(SCOPE[i.scope] || "")}</td><td class="num">${i.current != null ? Number(i.current).toLocaleString("en-US") : ""}</td><td class="num">${i.need != null ? `${Number(i.need).toLocaleString("en-US")} ${esc(i.label)}` : ""}</td><td class="num">${game ? pct(i.pTonight) : ""}</td><td>${i.eta?.date ? esc(md(i.eta.date)) : ""}</td></tr>`).join("")}</tbody></table></div>`));
+  put("streaks", "Streaks", streaks.length, section("streaks", "Active streaks", streaks.length, "trends.html", "all streaks",
+    `<div class="wrap"><table><thead><tr><th>Every game with</th><th class="num">Straight</th><th>Since</th><th class="num">This season</th><th class="num">Bar</th></tr></thead><tbody>${streaks.map((s) => `<tr><td>${esc(s.label)}</td><td class="num"><b>${s.length}</b></td><td>${esc(md(s.since))}</td><td class="num">${s.thisSeason ?? ""}${s.ofGames ? ` of ${s.ofGames}` : ""}</td><td class="num">${s.bar ?? ""}</td></tr>`).join("")}</tbody></table></div><div class="small" style="margin:6px 4px 0">Bar: the length the 50th-longest run of that kind has reached since 2016-17.</div>`));
+  put("vs", "Against one team", runs.length, section("vs", "His teams against one opponent, with him playing", runs.length, "trends.html#vs", "every player",
+    `<div class="wrap"><table><thead><tr><th>Opponent</th><th>Run</th><th>Since</th><th>Last</th><th class="num">Career games</th></tr></thead><tbody>${runs.map((r) => `<tr><td>${esc(r.opp)}${r.tonight ? ` <span class="tag">tonight</span>` : ""}</td><td>${r.res === "W" ? "Won" : "Lost"} <b>${r.n}</b>${r.atLeast ? "+" : ""}${r.career ? " (every game)" : ""}</td><td>${esc(md(r.since))}</td><td>${esc(md(r.last))}</td><td class="num">${r.games}</td></tr>`).join("")}</tbody></table></div>`));
+  if (el) put("awards", "Award count", 1, section("awards", "The 65-game rule", "", "awards.html", "all players",
+    `<div class="list"><div class="row"><div class="k">${esc(el.status === "out" ? "Out of reach" : el.status === "alive" ? "Alive" : el.status || "")}</div><div>${el.q} of his team's ${el.teamGames} games count toward the 65. He needs ${Math.max(0, el.need)} of the ${el.left} left${el.canMiss >= 0 ? `, so he can miss ${el.canMiss} more` : ""}.</div></div></div>`));
+  put("named", "Named in", named.length, section("named", "Lines about others that name him", named.length, "", "", `<div class="list">${named.map(line).join("")}</div>`));
+
+  const a = encodeURIComponent(p.name);
+  out.innerHTML = `<div class="who"><span class="name">${esc(p.name)}</span><span class="meta">${esc(p.team || "")}${game ? ` · tonight ${esc(opp)}` : p.team ? " · no game tonight" : ""}</span></div>`
+    + `<div class="jump">${jump.join("")}<a href="players.html?a=${a}">With / without him</a><a href="clutch.html">Clutch</a><a href="lineups.html">Lineups</a><a href="gameflow.html">Game Flow</a><a href="records.html">Records</a></div>`
+    + (parts.length ? parts.join("") : `<div class="none">Nothing on today's lists for ${esc(p.name)}. The links above open the tables that cover every player.</div>`);
+}
+
+function pick(p, push = true) {
+  const q = document.getElementById("q"); q.value = p ? p.name : ""; document.getElementById("hits").hidden = true;
+  if (push) history.pushState({}, "", p ? `?p=${encodeURIComponent(p.name)}` : location.pathname);
+  show(p);
+}
+function fromUrl() { const n = new URLSearchParams(location.search).get("p"); show(n ? find(n) : null); if (n) document.getElementById("q").value = (find(n) || {}).name || n; }
+function suggest() {
+  const q = fold(document.getElementById("q").value), box = document.getElementById("hits");
+  if (q.length < 2) { box.hidden = true; return; }
+  const words = q.split(" ");
+  const hits = PLAYERS.filter((p) => words.every((w) => p.key.includes(w))).sort((a, b) => (a.key.startsWith(q) ? 0 : 1) - (b.key.startsWith(q) ? 0 : 1) || (a.key.split(" ").some((x) => x.startsWith(words[0])) ? 0 : 1) - (b.key.split(" ").some((x) => x.startsWith(words[0])) ? 0 : 1)).slice(0, 10);
+  box.innerHTML = hits.length ? hits.map((p, i) => `<button type="button" data-k="${esc(p.key)}" class="${i ? "" : "at"}">${esc(p.name)}<small>${esc(p.team || "")}</small></button>`).join("") : `<button type="button" disabled>No player by that name in this season's box scores</button>`;
+  box.hidden = false;
+}
+
+(async () => {
+  const got = await Promise.all(FILES.map((f) => fetch(`data/${f}.json`).then((r) => (r.ok ? r.json() : null)).catch(() => null)));
+  FILES.forEach((f, i) => { D[f] = got[i]; });
+  const missing = FILES.filter((f) => !D[f]);
+  gather();
+  const tonight = new Set((D.watch?.games || []).flatMap((g) => [g.homeTri, g.awayTri]));
+  // the players with the most on tonight's list, as a place to start
+  const count = new Map(); for (const l of D.briefing?.stream || []) if (l.player) count.set(fold(l.player), (count.get(fold(l.player)) || 0) + 1);
+  const top = [...count].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([k]) => PLAYERS.find((p) => p.key === k)).filter(Boolean);
+  document.getElementById("chips").innerHTML = top.map((p) => `<a href="?p=${encodeURIComponent(p.name)}">${esc(p.name)}</a>`).join("");
+  document.getElementById("sub").textContent = `One player, everything the site has on him today. ${PLAYERS.length} players; ${tonight.size / 2 || 0} games tonight.`;
+  document.getElementById("foot").textContent = `Built ${D.briefing?.generatedAt ? new Date(D.briefing.generatedAt).toLocaleString("en-US", { timeZone: "America/New_York", month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" }) + " ET" : ""}.${missing.length ? ` Not loaded: ${missing.join(", ")}.` : ""} Lines are the same ones the other pages show; nothing here is counted separately.`;
+  const q = document.getElementById("q"), box = document.getElementById("hits");
+  q.addEventListener("input", suggest);
+  q.addEventListener("keydown", (e) => { if (e.key === "Enter") { const b = box.querySelector("button[data-k]"); if (b && !box.hidden) pick(PLAYERS.find((p) => p.key === b.dataset.k)); else { const p = find(q.value); if (p) pick(p); } } else if (e.key === "Escape") box.hidden = true; });
+  box.addEventListener("click", (e) => { const b = e.target.closest("button[data-k]"); if (b) pick(PLAYERS.find((p) => p.key === b.dataset.k)); });
+  document.getElementById("chips").addEventListener("click", (e) => { const a = e.target.closest("a"); if (!a) return; e.preventDefault(); pick(find(new URLSearchParams(a.search).get("p"))); });
+  document.addEventListener("click", (e) => { if (!e.target.closest(".find")) box.hidden = true; });
+  window.addEventListener("popstate", fromUrl);
+  fromUrl();
+})();
+</script>
+</body>
+</html>
