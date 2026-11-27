@@ -46,3 +46,11 @@ position and starter flag from ESPN's zeroed box score of the same game, by name
 differently). pbpstats has no turnovers or fouls, so `TOV_PF` (in `src/situations/oddlines.js`) is not counted for these
 games, except for a player whose box score has been read: any `*.json` in `tools/outside/bref-screens` supplies his
 turnovers and fouls (78 lines today; the fifth box score, CHI at LAL 1/28/16, is a game ESPN has whole).
+
+## Every current player's career (0.172.0)
+
+`node tools/build-career-logs.mjs` (from the repo root; a few seconds) reads the same archive and writes
+`src/data/player-logs-career.json.gz`: each current player's regular-season games, his whole career through last season, in
+the ESPN logs' columns. The matchup lines and the Streaks page's "Against one team, with him playing" read it. It also
+prints how the archive compares with the ESPN player logs from 2016-17 on. Run it again once a season, and when the daily
+build warns "career logs: N players with past seasons and no games on file" (a veteran new to this season's box scores).

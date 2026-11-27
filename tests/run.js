@@ -6573,6 +6573,50 @@ await bridgeChecks(ok, root);
     JSON.stringify({ b4, f4, f5, moved, vet, it }));
 }
 
+// ---------- 0.172.0: a player's games against a team are his whole career (the user, 11/27: "I thought we had data goin back to 2003") ----------
+{
+  const M = await import("../src/records/matchup.js");
+  const zlib = await import("node:zlib");
+  const cols = ["date", "opp", "home", "result", "type", "min", "pts", "reb", "ast", "stl", "blk", "fg3m", "fgm", "fga", "fg3a", "ftm", "fta"];
+  const h = (d, opp, res, pts = 20) => [d, opp, 1, res, 2, 30, pts, 5, 4, 1, 0, 2, 7, 15, 5, 4, 4];
+  const keys = ["min", "pts", "reb", "ast", "stl", "blk", "fg3m"], line = [30, 10, 3, 2, 0, 0, 1];
+  // a veteran whose run began in 2012, and two games stamped with one date against two teams
+  const career = { seasons: "2003-04 to 2025-26", whole: true, columns: cols, players: {
+    v1: [h("2011-01-05", "DET", "L"), ...["2012-02-01", "2013-02-01", "2014-02-01", "2015-02-01", "2016-02-01", "2017-02-01", "2018-02-01", "2019-02-01", "2020-02-01"].map((d) => h(d, "DET", "W")), h("2020-03-01", "PHX", "W"), h("2020-03-01", "WAS", "L")] } };
+  const espnOnly = { seasons: "2016-17 to 2025-26", columns: cols, players: { v1: career.players.v1.filter((r) => r[0] >= "2016-10-01") } };
+  const tf = { EEE: { names: { v1: "Vet One", v2: "New Here" }, keys, games: [{ d: "2026-11-03", opp: "DET", home: true, pf: 101, pa: 99, pl: { v1: line, v2: line } }] } };
+  const first = (n) => ({ "Vet One": "2009-10", "New Here": "2014-15" })[n] || null;
+  const run = (logs) => M.teamRunsVs({ logs, teamFiles: tf, names: tf.EEE.names, today: "2026-11-27", firstSeason: first });
+  const w = run(career).find((r) => r.id === "v1" && r.opp === "DET"), e = run(espnOnly).find((r) => r.id === "v1" && r.opp === "DET");
+  const it = M.playerItems({ id: "v1", name: "Vet One", team: "EEE", opp: "DET", logs: career, teamFiles: tf, today: "2026-11-27", firstSeason: first }).map((i) => i.text);
+  const itNew = M.playerItems({ id: "v2", name: "New Here", team: "EEE", opp: "DET", logs: career, teamFiles: tf, today: "2026-11-27", firstSeason: first });
+  ok(w?.n === 10 && w.since === "2012-02-01" && w.games === 11 && !w.atLeast && !w.career
+    && e?.n === 5 && e.atLeast === true
+    && M.playerGames("v1", career, tf).filter((r) => r[0] === "2020-03-01").length === 2
+    && it.some((t) => /Vet One's teams have won 10 straight against the Pistons with him playing\.$/.test(t)) && it.some((t) => /10-1 against the Pistons in games he's played in his career/.test(t)) && !it.some((t) => /since 20/.test(t))
+    && M.careerMissing(career, "v2", "New Here", first) === true && itNew.length === 0 && M.careerMissing(career, "v1", "Vet One", first) === false,
+    "a player's games against a team are his whole career (0.172.0; the user, 11/27: \"I thought we had data goin back to 2003\"): with the career logs a run that began in 2012 is 10, not \"5+\" from 2016-17; nothing says \"since 2016-17\"; two games stamped with one date against two teams are two games; a veteran the career logs don't have yet gets no line said of his career",
+    JSON.stringify({ w, e, it, itNew }));
+  // the file itself: every current player's regular season, in the ESPN logs' columns, one row a game
+  const cf = path.join(root, "src", "data", "player-logs-career.json.gz");
+  if (fs.existsSync(cf)) {
+    const C = JSON.parse(zlib.gunzipSync(fs.readFileSync(cf)));
+    const so = (d) => (+d.slice(5, 7) >= 10 ? +d.slice(0, 4) : +d.slice(0, 4) - 1);   // the 2020 restart's August games are 2019-20's
+    let unsorted = 0, twice = 0, tooMany = 0, badRow = 0, n = 0, firstDate = "9999";
+    // LeBron James (ESPN id 1966), games a season from 2003-04 to 2024-25, as every record book has them
+    const lebron = []; for (const r of C.players["1966"] || []) { const i = so(r[0]) - 2003; if (i < 22) lebron[i] = (lebron[i] || 0) + 1; }
+    for (const rows of Object.values(C.players)) {
+      const perSeason = {}, seen = new Set();
+      rows.forEach((r, i) => { n++; if (i && rows[i - 1][0] > r[0]) unsorted++; if (seen.has(r[0])) twice++; seen.add(r[0]); perSeason[so(r[0])] = (perSeason[so(r[0])] || 0) + 1;
+        if (r.length !== 17 || r[4] !== 2 || !/^[WL]$/.test(r[3]) || !/^[A-Z]{3}$/.test(r[1])) badRow++; if (r[0] < firstDate) firstDate = r[0]; });
+      if (Object.values(perSeason).some((k) => k > 85)) tooMany++;
+    }
+    ok(C.whole === true && /^2003-04 to \d{4}-\d{2}$/.test(C.seasons) && C.columns.join() === cols.join() && n > 130000 && !unsorted && !twice && !tooMany && !badRow && firstDate === "2003-10-29" && lebron.join() === "79,80,79,78,75,81,76,79,62,76,77,69,76,74,82,55,67,45,56,55,71,70",
+      "the career logs (src/data/player-logs-career.json.gz, 0.172.0): regular-season rows in the ESPN logs' columns from the oldest current career (LeBron James, 10/29/03), in date order, no player with two games on one date or more than 85 in a season; LeBron James's games a season, 2003-04 to 2024-25, are the record book's (79, 80, 79 … 71, 70)",
+      JSON.stringify({ seasons: C.seasons, n, unsorted, twice, tooMany, badRow, firstDate, lebron }));
+  }
+}
+
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });
 const brief = (m) => [m.player, m.kind, m.stat, m.scope, m.current, m.target, m.need, m.status, m.passing?.player || ""].join(" | ");

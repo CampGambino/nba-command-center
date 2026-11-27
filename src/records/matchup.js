@@ -20,7 +20,6 @@ import { pairHistory, runsOf, bestMargins } from "./pairs.js";
 import { CUP_TITLE_DATES } from "../situations/results.js";
 
 const FIRST = "2016-17";
-const START = "2016-10-01";
 // The season a date belongs to; the 2020 bubble (July to October 2020) finished 2019-20.
 const seasonOf = (d) => { const y = Number(d.slice(0, 4)) + (Number(d.slice(5, 7)) >= 8 && !(d >= "2020-07-01" && d <= "2020-10-31") ? 1 : 0); return `${y - 1}-${String(y).slice(2)}`; };
 const nick = (t) => TEAMS[t]?.nick || t;
@@ -40,7 +39,20 @@ const wholeLine = (r) => r[SRC] !== "p";
  * failing that, whether his first game on file is in the first weeks of 2016-17. The date alone called Jrue Holiday
  * (first game 11/18/16) and Khris Middleton (2/8/17) players whose careers began on file: each missed the start of that season.
  */
-const beforeFiles = (name, games, firstSeason) => { const s = firstSeason?.(name); return s ? s < FIRST : games.length > 0 && games[0][C.date] <= "2016-11-15"; };
+const beforeFiles = (name, games, firstSeason, from = FIRST) => { const s = firstSeason?.(name); return s ? s < from : games.length > 0 && games[0][C.date] <= `${from.slice(0, 4)}-11-15`; };
+/**
+ * 0.172.0: where the player logs begin. The matchup step now reads every current player's whole career from the box-score
+ * archive (src/data/player-logs-career.json.gz, tools/build-career-logs.mjs: "2003-04 to 2025-26", `whole`), so nothing
+ * here says "since 2016-17" any more; with the ESPN logs alone ("2016-17 to 2025-26") everything is as it was.
+ */
+const logsFrom = (logs) => (/^(\d{4}-\d{2})\b/.exec(String(logs?.seasons || "")) || [])[1] || FIRST;
+const startOf = (from) => `${from.slice(0, 4)}-10-01`;
+/**
+ * A player the whole-career logs don't have though the Guide has seasons for him: he joined this season's files after
+ * the logs were built (tools/build-career-logs.mjs has to be run again). His past games are unknown, so nothing is said
+ * of his career until they are in: no matchup line, and a "+" on his rows in the list.
+ */
+export const careerMissing = (logs, id, name, firstSeason) => Boolean(logs?.whole && !logs.players?.[id] && firstSeason?.(name));
 const STAT = { pts: ["points", 5], reb: ["rebounds", 3], ast: ["assists", 3] };
 // 0.88: a series streak is placed in the series' history from 5 straight; "last won there" is added from 6 at one site.
 export const STREAK = { context: 5, there: 6 };
@@ -175,16 +187,16 @@ export function teamItems(history, teamFiles, away, home, today, past = null) {
 export function playerGames(id, logs, teamFiles) {
   const out = new Map();
   // 0.171.0: the Cup's title game is in no regular-season count (as in src/records/streakbars.js)
-  for (const r of logs?.players?.[id] || []) if (r[C.type] === 2 && !CUP_TITLE_DATES.has(r[C.date])) out.set(r[C.date], r);
+  for (const r of logs?.players?.[id] || []) if (r[C.type] === 2 && !CUP_TITLE_DATES.has(r[C.date])) out.set(`${r[C.date]}|${r[C.opp]}`, r);
   for (const [t, f] of Object.entries(teamFiles || {})) {
     const k = Object.fromEntries((f.keys || []).map((x, i) => [x, i]));
     for (const g of f.games || []) {
       const l = g.pl?.[id];
       if (!l || (!(l[k.min] > 0) && !(g.z || []).includes(id)) || CUP_TITLE_DATES.has(g.d)) continue;   // 0.145.0: z = in for a few seconds
-      out.set(g.d, [g.d, g.opp, g.home ? 1 : 0, g.pf > g.pa ? "W" : "L", 2, l[k.min], l[k.pts], l[k.reb], l[k.ast], l[k.stl], l[k.blk], l[k.fg3m], t]);
+      out.set(`${g.d}|${g.opp}`, [g.d, g.opp, g.home ? 1 : 0, g.pf > g.pa ? "W" : "L", 2, l[k.min], l[k.pts], l[k.reb], l[k.ast], l[k.stl], l[k.blk], l[k.fg3m], t]);
     }
   }
-  return [...out.values()].sort((a, b) => (a[0] < b[0] ? -1 : 1));
+  return [...out.values()].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
 }
 
 /**
@@ -206,6 +218,7 @@ export const TEAM_RUN = { min: 5 };
 export function teamRunsVs({ logs, teamFiles, names = {}, today, tonight = [], teamNow = null, firstSeason = null }) {
   const oppTonight = new Map();
   for (const g of tonight || []) { oppTonight.set(g.home, g.away); oppTonight.set(g.away, g.home); }
+  const from = logsFrom(logs), start = startOf(from);
   const ids = new Set(), listedOn = new Map(), listedAt = new Map();
   for (const [t, f] of Object.entries(teamFiles || {})) {
     for (const id of Object.keys(f.names || {})) { ids.add(id); if (!listedOn.has(id)) listedOn.set(id, t); }
@@ -213,14 +226,14 @@ export function teamRunsVs({ logs, teamFiles, names = {}, today, tonight = [], t
   }
   const rows = [];
   for (const id of ids) {
-    const games = playerGames(id, logs, teamFiles).filter((r) => (!today || r[C.date] < today) && r[C.date] >= START);
+    const games = playerGames(id, logs, teamFiles).filter((r) => (!today || r[C.date] < today) && r[C.date] >= start);
     if (!games.length) continue;
     // this season's rows carry the team he played for (a past row has a number there); with no game yet this season, the
     // team whose box scores last listed him
     // `teamNow(id, team)`: the roster's word when he has moved since (signed elsewhere, or "FA" when waived)
     const played = [...games].reverse().find((r) => typeof r[12] === "string")?.[12] || listedOn.get(id) || null;
     const team = teamNow ? teamNow(id, played) || played : played;
-    const before = beforeFiles(names[id], games, firstSeason);
+    const before = logs?.whole ? careerMissing(logs, id, names[id], firstSeason) : beforeFiles(names[id], games, firstSeason, from);
     const by = new Map();
     for (const r of games) (by.get(r[C.opp]) || by.set(r[C.opp], []).get(r[C.opp])).push(r);
     for (const [opp, rs] of by) {
@@ -238,13 +251,15 @@ export function teamRunsVs({ logs, teamFiles, names = {}, today, tonight = [], t
 
 export function playerItems({ id, name, team, opp, logs, teamFiles, today, minGames = 4, firstSeason = null }) {
   // every game he played (a win or a loss is known for each), and the ones with a whole stat line (the averages and stat runs)
-  const played = playerGames(id, logs, teamFiles).filter((r) => r[C.date] < today && r[C.date] >= START);
+  if (careerMissing(logs, id, name, firstSeason)) return [];
+  const from = logsFrom(logs);
+  const played = playerGames(id, logs, teamFiles).filter((r) => r[C.date] < today && r[C.date] >= startOf(from));
   const games = played.filter(wholeLine);
   const vs = games.filter((r) => r[C.opp] === opp), vsPlayed = played.filter((r) => r[C.opp] === opp);
   const items = [];
   if (vsPlayed.length < 2) return items;
-  const career = played.length > 0 && !beforeFiles(name, played, firstSeason);
-  const scope = career ? "in his career" : `since ${FIRST}`;
+  const career = played.length > 0 && (logs?.whole || !beforeFiles(name, played, firstSeason, from));
+  const scope = career ? "in his career" : `since ${from}`;
   const who = name;
   // Best or worst against any team.
   if (vs.length >= minGames) {

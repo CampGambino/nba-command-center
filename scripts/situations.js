@@ -932,12 +932,17 @@ try {
     const { matchups } = await import("../src/records/matchup.js");
     const zlib = await import("node:zlib");
     const history = fs.existsSync(histFile) ? JSON.parse(fs.readFileSync(histFile, "utf8")) : null;
-    const logsEspn = fs.existsSync(logFile) ? JSON.parse(zlib.gunzipSync(fs.readFileSync(logFile))) : null;
-    // 0.171.0: with the Bulls and Pelicans games of 2016-17 and 2017-18, which ESPN's logs lack for every player in them
-    // (src/situations/logfill.js). Without them Markkanen's first season was missing, Butler, Davis and Holiday read as
-    // "in his career" from 2017 or 2018, and no run against Chicago or New Orleans could reach back past 2018.
-    const fillF = path.join(root, "src", "data", "player-logs-fill.json.gz"), { withFill: fillIn } = await import("../src/situations/logfill.js");
-    const logs = logsEspn && fs.existsSync(fillF) ? fillIn(logsEspn, JSON.parse(zlib.gunzipSync(fs.readFileSync(fillF)))) : logsEspn;
+    // 0.172.0 (the user, 11/27: "I thought we had data goin back to 2003 and that nba.com covered the bulls and pelicans
+    // missing games"): every current player's whole career from the box-score archive (tools/build-career-logs.mjs), which
+    // has both. Failing that file, ESPN's player logs from 2016-17 with the Bulls and Pelicans games of 2016-18 put back
+    // (src/situations/logfill.js), as in 0.171.0.
+    const careerF = path.join(root, "src", "data", "player-logs-career.json.gz");
+    let logs = fs.existsSync(careerF) ? JSON.parse(zlib.gunzipSync(fs.readFileSync(careerF))) : null;
+    if (!logs) {
+      const logsEspn = fs.existsSync(logFile) ? JSON.parse(zlib.gunzipSync(fs.readFileSync(logFile))) : null;
+      const fillF = path.join(root, "src", "data", "player-logs-fill.json.gz"), { withFill: fillIn } = await import("../src/situations/logfill.js");
+      logs = logsEspn && fs.existsSync(fillF) ? fillIn(logsEspn, JSON.parse(zlib.gunzipSync(fs.readFileSync(fillF)))) : logsEspn;
+    }
     // 0.171.0: each player's first season, as the Guide's year-by-year pages have it, so "in his career" isn't read off the
     // date of his first game on file (a veteran who missed the start of 2016-17 looked like a rookie)
     let firstSeason = null;
@@ -994,9 +999,12 @@ try {
     console.log(`matchups: ${m.reduce((a, g) => a + g.items.length, 0)} items for ${m.length} games tonight${history ? "" : " (no results back-fill yet)"}${logs ? "" : " (no player logs back-fill yet)"}`);
     // 0.171.0: every current player's run of wins or losses against each team with him playing (the Streaks page's list)
     try {
-      const { teamRunsVs, TEAM_RUN } = await import("../src/records/matchup.js");
+      const { teamRunsVs, TEAM_RUN, careerMissing } = await import("../src/records/matchup.js");
+      // a veteran new to this season's files since the career logs were built: his past games aren't in them yet
+      const short = Object.entries(NAMES).filter(([id, n]) => careerMissing(logs, id, n, firstSeason)).map(([, n]) => n);
+      if (short.length) { warnings.push(`career logs: ${short.length} player${short.length === 1 ? "" : "s"} with past seasons and no games on file (run tools/build-career-logs.mjs): ${short.slice(0, 8).join(", ")}`); console.log(`career logs: ${short.length} players with past seasons and no games on file`); }
       const vs = logs ? teamRunsVs({ logs, teamFiles, names: NAMES, today, tonight, teamNow: (id, t) => (rosterChanges[id] ? rosterChanges[id].team || "FA" : t), firstSeason }) : [];
-      fs.writeFileSync(path.join(root, "docs", "data", "vsruns.json"), JSON.stringify({ generatedAt: out.generatedAt, today, from: "2016-17", min: TEAM_RUN.min, rows: vs }));
+      fs.writeFileSync(path.join(root, "docs", "data", "vsruns.json"), JSON.stringify({ generatedAt: out.generatedAt, today, from: (/^\d{4}-\d{2}/.exec(String(logs?.seasons || "")) || ["2016-17"])[0], whole: Boolean(logs?.whole), min: TEAM_RUN.min, rows: vs }));
       console.log(`runs against a team: ${vs.length} of ${TEAM_RUN.min}+ games (longest: ${vs[0] ? `${vs[0].name} ${vs[0].res}${vs[0].n} vs ${vs[0].opp}` : "none"})`);
     } catch (e) { console.error(`runs against a team not written: ${e.message}`); }
   } catch (e) { console.error(`matchups not written: ${e.message}`); }
