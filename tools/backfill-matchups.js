@@ -96,6 +96,13 @@ async function logs() {
     const j = JSON.parse(fs.readFileSync(path.join(root, "docs", "data", "teams", f), "utf8"));
     for (const id of Object.keys(j.names || {})) ids.add(id);
   }
+  // 0.173.0: --ids a,b,c reads only those players and puts them into the file already there (a player new to this
+  // season's box scores since the file was made, or one ESPN gave short the first time). A player's rows are replaced
+  // only by a longer list: a failed request never shrinks the file.
+  const ONLY = arg("--ids", "");
+  const outFile = path.join(root, "src", "data", "player-logs-history.json.gz");
+  const before = ONLY && fs.existsSync(outFile) ? JSON.parse(zlib.gunzipSync(fs.readFileSync(outFile))) : null;
+  if (ONLY) { const want = new Set(ONLY.split(",").map((x) => x.trim()).filter(Boolean)); for (const id of [...ids]) if (!want.has(id)) ids.delete(id); for (const id of want) ids.add(id); }
   const players = {};
   let n = 0, seasonsRead = 0, gamesRead = 0, noOpp = 0;
   for (const id of [...ids].slice(0, MAXP)) {
@@ -129,7 +136,13 @@ async function logs() {
     if (rows.length) players[id] = rows.sort((a, b) => (a[0] < b[0] ? -1 : 1));
     if (n % 50 === 0) console.log(`  ${n} players, ${seasonsRead} seasons, ${gamesRead} games`);
   }
-  const out = path.join(root, "src", "data", "player-logs-history.json.gz");
+  if (before) {
+    let longer = 0, kept = 0, added = 0;
+    for (const [id, rows] of Object.entries(players)) { const was = before.players[id]; if (!was) added++; else if (rows.length > was.length) longer++; else { kept++; players[id] = was; } }
+    console.log(`--ids: ${added} players new to the file, ${longer} with more games than before, ${kept} left as they were`);
+    for (const [id, rows] of Object.entries(before.players)) if (!players[id]) players[id] = rows;
+  }
+  const out = outFile;
   const body = JSON.stringify({ source: "ESPN player game logs", seasons: `${FROM - 1}-${String(FROM).slice(2)} to ${TO - 1}-${String(TO).slice(2)}`, columns: ["date", "opp", "home", "result", "type", "min", "pts", "reb", "ast", "stl", "blk", "fg3m", "fgm", "fga", "fg3a", "ftm", "fta"], players });
   fs.writeFileSync(out, zlib.gzipSync(body, { level: 9 }));
   console.log(`logs: ${Object.keys(players).length} of ${n} players with past games; ${seasonsRead} seasons, ${gamesRead} games, ${noOpp} without an opponent; ${(fs.statSync(out).size / 1e6).toFixed(1)} MB`);

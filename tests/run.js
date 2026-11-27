@@ -6353,7 +6353,7 @@ await bridgeChecks(ok, root);
   if (fs.existsSync(lf)) { const L = JSON.parse(zlib.gunzipSync(fs.readFileSync(lf))), ix = Object.fromEntries(L.columns.map((c, i) => [c, i])); left = 0; marked = 0;
     for (const rows of Object.values(L.players)) for (const r of rows) if (RS.PLAY_IN_DATES.has(r[ix.date])) { if (r[ix.type] === 2) left++; else if (r[ix.type] === 5) marked++; } }
   const bf = fs.readFileSync(path.join(root, "tools", "backfill-matchups.js"), "utf8");
-  ok(first.n === 2 && again.n === 0 && fx.players.a.map((r) => r[4]).join() === "2,5,3" && fx.players.b[0][4] === 5 && (left === -1 || (left === 0 && marked === 456))
+  ok(first.n === 2 && again.n === 0 && fx.players.a.map((r) => r[4]).join() === "2,5,3" && fx.players.b[0][4] === 5 && (left === -1 || (left === 0 && marked === 469))   // 456 until 0.173.0 refetched fourteen players, who had 13 more
     && /\/play\.\?in\/i\.test\(t\.name\) \? 5/.test(bf),
     "history (0.167.0): play-in games are their own type in the past-seasons player log, in neither the regular season nor the playoffs (ESPN's logs file them as regular season; 456 rows on 16 dates were counted in last season's averages, career marks and runs against one opponent); the back-fill tool reads them that way from now on; marking twice changes nothing",
     JSON.stringify({ first, again, left, marked }));
@@ -6614,6 +6614,45 @@ await bridgeChecks(ok, root);
     ok(C.whole === true && /^2003-04 to \d{4}-\d{2}$/.test(C.seasons) && C.columns.join() === cols.join() && n > 130000 && !unsorted && !twice && !tooMany && !badRow && firstDate === "2003-10-29" && lebron.join() === "79,80,79,78,75,81,76,79,62,76,77,69,76,74,82,55,67,45,56,55,71,70",
       "the career logs (src/data/player-logs-career.json.gz, 0.172.0): regular-season rows in the ESPN logs' columns from the oldest current career (LeBron James, 10/29/03), in date order, no player with two games on one date or more than 85 in a season; LeBron James's games a season, 2003-04 to 2024-25, are the record book's (79, 80, 79 … 71, 70)",
       JSON.stringify({ seasons: C.seasons, n, unsorted, twice, tooMany, badRow, firstDate, lebron }));
+  }
+}
+
+// ---------- 0.173.0: one set of past games for every reader, made whole from the archive (the user, 11/27: "go for archive") ----------
+{
+  const { wholeLogs } = await import("../src/situations/logsource.js");
+  const zlib = await import("node:zlib");
+  const cols = ["date", "opp", "home", "result", "type", "min", "pts", "reb", "ast", "stl", "blk", "fg3m", "fgm", "fga", "fg3a", "ftm", "fta"];
+  const h = (d, opp, type = 2, pts = 20) => [d, opp, 1, "W", type, 30, pts, 5, 4, 1, 0, 2, 7, 15, 5, 4, 4];
+  // ESPN: one regular-season game missing (a Bulls game), a playoff game and a play-in game; a player with no log; one the archive doesn't have
+  const espn = { source: "ESPN player game logs", seasons: "2016-17 to 2025-26", columns: cols, players: { a: [h("2017-01-05", "BOS"), h("2017-04-20", "BOS", 3), h("2018-04-11", "MIN", 5)], c: [h("2019-01-01", "LAL")] } };
+  const career = { source: "archive", seasons: "2003-04 to 2025-26", whole: true, columns: cols, players: { a: [h("2015-03-01", "BOS"), h("2016-12-10", "CHI"), h("2017-01-05", "BOS")], b: [h("2018-02-02", "NOP"), h("2019-02-02", "UTA")] } };
+  const W = wholeLogs(espn, career), dates = (id) => (W.players[id] || []).map((r) => `${r[0]}:${r[4]}`).join(" ");
+  ok(dates("a") === "2016-12-10:2 2017-01-05:2 2017-04-20:3 2018-04-11:5" && dates("b") === "2018-02-02:2 2019-02-02:2" && dates("c") === "2019-01-01:2"
+    && W.seasons === "2016-17 to 2025-26" && W.columns.join() === cols.join() && wholeLogs(espn, null) === espn && wholeLogs(espn, { players: { a: [] }, columns: ["date", "pts"] }) === espn,
+    "the past games every reader gets (0.173.0; the user, 11/27: \"If it corrects the mistakes, then go for archive\"): the archive's regular season inside ESPN's own seasons (a game from 2015 stays out: the readers say \"since 2016-17\"), with ESPN's playoff and play-in lines; the Bulls game ESPN lacks is in, a player ESPN has no log for is in, a player the archive doesn't have yet keeps ESPN's lines; without the career file, or with other columns, ESPN's logs are returned untouched",
+    JSON.stringify({ a: dates("a"), b: dates("b"), c: dates("c"), seasons: W.seasons }));
+  // the two files themselves: every regular-season line ESPN has is in the career logs, with the same number in every column
+  const ef = path.join(root, "src", "data", "player-logs-history.json.gz"), cf = path.join(root, "src", "data", "player-logs-career.json.gz");
+  if (fs.existsSync(ef) && fs.existsSync(cf)) {
+    const E = JSON.parse(zlib.gunzipSync(fs.readFileSync(ef))), C = JSON.parse(zlib.gunzipSync(fs.readFileSync(cf)));
+    const day = (d, k) => { const x = new Date(`${d}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + k); return x.toISOString().slice(0, 10); };
+    let same = 0, differ = 0, absent = 0, noCareer = 0, neutral = 0; const ex = [];
+    for (const [id, rows] of Object.entries(E.players)) {
+      if (!C.players[id]) { noCareer++; continue; }
+      const at = new Map(C.players[id].map((r) => [`${r[0]}|${r[1]}`, r]));
+      for (const r of rows) {
+        if (r[4] !== 2) continue;
+        // ESPN stamps one game a day late (Golden State at Phoenix, 2/29/20): the career logs have it on its day
+        const x = at.get(`${r[0]}|${r[1]}`) || at.get(`${day(r[0], -1)}|${r[1]}`);
+        if (!x) { absent++; if (ex.length < 5) ex.push(`${id} ${r[0]} ${r[1]} absent`); continue; }
+        // at a neutral site (London, Paris, Mexico City, the Cup's semifinals) ESPN's log says "vs" for both teams; the box score names one home team
+        if (r[2] !== x[2]) { if (r[2] === 1 && x[2] === 0) neutral++; else differ++; }
+        if (r.slice(3).some((v, i) => (v ?? 0) !== (x[i + 3] ?? 0))) { differ++; if (ex.length < 5) ex.push(`${id} ${r[0]} ${r[1]} ${r.slice(3)} | ${x.slice(3)}`); } else same++;
+      }
+    }
+    ok(same > 120000 && !differ && !absent && !noCareer && neutral < same / 500,
+      "ESPN's player logs against the career logs (0.173.0): every regular-season line ESPN has for a player is in the career logs with the same result, minutes and numbers in every column (home or away differs only for the visiting side at a neutral site, which ESPN's log calls home), and no player ESPN has is missing from them. If this fails after either file is rebuilt, the two sources disagree somewhere and nothing should be published until it is read",
+      JSON.stringify({ same, differ, absent, noCareer, neutral, ex }));
   }
 }
 

@@ -58,6 +58,19 @@ const latestData = (re) => { const f = fs.readdirSync(path.join(root, "src", "da
 const oldFile = path.join(root, "history", "results.json"); // single-file store before v0.14
 let store = loadStore(storeDir, fs) ?? (fs.existsSync(oldFile) ? JSON.parse(fs.readFileSync(oldFile, "utf8")) : null);
 const warnings = [];
+// 0.173.0: the players' past games, read once and made whole (src/situations/logsource.js): the career logs' regular
+// season with ESPN's playoff and play-in lines. Every reader below gets the same lines. Without the career file it is as
+// before: ESPN's logs, with the Bulls and Pelicans fill for the readers that could take it (`logs`), without for the rest (`plain`).
+let pastLogsOnce;
+async function pastLogs() {
+  if (pastLogsOnce) return pastLogsOnce;
+  const zlib = await import("node:zlib"), { wholeLogs } = await import("../src/situations/logsource.js"), { withFill } = await import("../src/situations/logfill.js");
+  const rd = (f) => { const p = path.join(root, "src", "data", f); return fs.existsSync(p) ? JSON.parse(zlib.gunzipSync(fs.readFileSync(p))) : null; };
+  const espn = rd("player-logs-history.json.gz"), career = rd("player-logs-career.json.gz");
+  if (career) { const logs = wholeLogs(espn, career); return (pastLogsOnce = { logs, plain: logs, career }); }
+  const fill = rd("player-logs-fill.json.gz");
+  return (pastLogsOnce = { logs: espn && fill ? withFill(espn, fill) : espn, plain: espn, career: null });
+}
 // 0.141.5: tonight's NBA injury report, the newest posted one, read once here and used by the record chances and the
 // injuries step below. Before, the record chances (which run first) used the copy the previous build saved: between
 // the 5:30 PM and 12:15 AM builds, hours old.
@@ -490,10 +503,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
       for (const x of files) { for (const [k, b] of Object.entries(x.boards || {})) file.boards[k] = { asOf: x.asOf, ...b }; Object.assign(file.streaks, x.streaks || {}); }
       // 0.166.0: the box scores back to 2016-17, for runs that reach past this season and for each kind of run's bar
       let featLogs = null;
-      try { const zlib = await import("node:zlib"), { withFill } = await import("../src/situations/logfill.js");
-        const lf = path.join(root, "src", "data", "player-logs-history.json.gz"), ff2 = path.join(root, "src", "data", "player-logs-fill.json.gz");
-        featLogs = fs.existsSync(lf) ? JSON.parse(zlib.gunzipSync(fs.readFileSync(lf))) : null;
-        if (featLogs && fs.existsSync(ff2)) featLogs = withFill(featLogs, JSON.parse(zlib.gunzipSync(fs.readFileSync(ff2)))); }
+      try { featLogs = (await pastLogs()).logs; }
       catch (e) { warnings.push(`feat boards: the history logs could not be read (${e.message}); no runs are followed live`); }
       const F = buildFeatLive({ file, pg: playerGames(rows.filter((g) => !g.cupFinal)), names: NAMES, logs: featLogs,
         tonightTeams: new Set((tonight || []).flatMap((g) => [g.home, g.away])), notesFacts,
@@ -519,12 +529,10 @@ for (const [tri, games] of Object.entries(perTeam)) {
     const ends = store.season || Number(today.slice(0, 4)) + (Number(today.slice(5, 7)) >= 8 ? 1 : 0);
     const tag = `${ends - 1}-${String(ends).slice(2)}`;
     seasonTag = tag;
-    const logFile = path.join(root, "src", "data", "player-logs-history.json.gz");
     const csFile = path.join(root, "src", "data", `nba-career-seasons-${tag}.json`);
-    logsData = fs.existsSync(logFile) ? JSON.parse(zlib.gunzipSync(fs.readFileSync(logFile))) : null;
-    // 0.110: the Bulls and Pelicans games of 2016-17 and 2017-18, which ESPN's logs lack, for the readers that may use them
-    const fillFile = path.join(root, "src", "data", "player-logs-fill.json.gz"), { withFill } = await import("../src/situations/logfill.js");
-    logsFull = logsData && fs.existsSync(fillFile) ? withFill(logsData, JSON.parse(zlib.gunzipSync(fs.readFileSync(fillFile)))) : logsData;
+    // 0.173.0: one set of past games for every reader (pastLogs above). 0.110 had given the Bulls and Pelicans games of
+    // 2016-18 only to the readers that could use a floor; every line is whole now.
+    ({ plain: logsData, logs: logsFull } = await pastLogs());
     seasonsData = fs.existsSync(csFile) ? JSON.parse(fs.readFileSync(csFile, "utf8")) : null;
     careers = careerHighs({ logs: logsFull, seasons: seasonsData, names: NAMES, ids: Object.keys(pg), season: tag, nameKey: strictKey });
   } catch (e) { console.error(`career highs not read: ${e.message}`); }
@@ -776,13 +784,9 @@ for (const [tri, games] of Object.entries(perTeam)) {
   const pgRuns = playerGames(rows.filter((g) => !g.cupFinal));
   let runCarry = latestData(/^streak-carry-\d{4}-\d\d\.json$/);
   try {
-    const zlib = await import("node:zlib"), { withFill } = await import("../src/situations/logfill.js"), { seasonCarry } = await import("../src/records/streakbars.js"), { STREAKS, STREAK_TESTS } = await import("../src/situations/trends.js");
-    const lf = path.join(root, "src", "data", "player-logs-history.json.gz"), ff2 = path.join(root, "src", "data", "player-logs-fill.json.gz");
-    if (fs.existsSync(lf)) {
-      let hl = JSON.parse(zlib.gunzipSync(fs.readFileSync(lf)));
-      if (fs.existsSync(ff2)) hl = withFill(hl, JSON.parse(zlib.gunzipSync(fs.readFileSync(ff2))));
-      runCarry = seasonCarry({ logs: hl, pg: pgRuns, streaks: STREAKS, tests: STREAK_TESTS, fallback: runCarry });
-    }
+    const { seasonCarry } = await import("../src/records/streakbars.js"), { STREAKS, STREAK_TESTS } = await import("../src/situations/trends.js");
+    const hl = (await pastLogs()).logs;
+    if (hl) runCarry = seasonCarry({ logs: hl, pg: pgRuns, streaks: STREAKS, tests: STREAK_TESTS, fallback: runCarry });
   } catch (e) { warnings.push(`streak carry: the history logs could not be read (${e.message}); the carry file is used`); }
   fs.writeFileSync(path.join(root, "docs", "data", "trends.json"), JSON.stringify({ generatedAt: out.generatedAt, through, streaks: activeStreaks(pgRuns, NAMES, { carry: runCarry, bars: runCarry?.bars || null, featlive: (() => { try { return JSON.parse(fs.readFileSync(path.join(root, "docs", "data", "featlive.json"), "utf8")); } catch { return null; } })() }).map(nowTeam), teams: teamStreaks(rows), watch: watchLines, highsAllowed: careers ? careerHighsAllowed(pg, careers, NAMES) : null, anomalies: byDate, odd: oddByDate }));
   // Hot hand (src/situations/form.js, moved from GameFlow in 0.56): each player's game lines for the form section.
@@ -862,10 +866,10 @@ const INJURY_LATE_MIN = 90; // a report in use this far behind the clock (aftern
       const { comboAbsences } = await import("../src/injuries/impact.js");
       const { pastSeason } = await import("../src/anticipate/replay.js");
       const zlib = await import("node:zlib");
-      const lf = path.join(root, "src", "data", "player-logs-history.json.gz"), hf = path.join(root, "src", "data", "nba-results-history.json");
+      const hf = path.join(root, "src", "data", "nba-results-history.json"), pastL = (await pastLogs()).plain;
       const y = Number(today.slice(0, 4)) - (Number(today.slice(5, 7)) < 8 ? 1 : 0);
       const last = `${y - 1}-${String(y % 100).padStart(2, "0")}`;
-      const prior = fs.existsSync(lf) && fs.existsSync(hf) ? pastSeason({ history: JSON.parse(fs.readFileSync(hf, "utf8")), logs: JSON.parse(zlib.gunzipSync(fs.readFileSync(lf))), season: last }).pg : null;
+      const prior = pastL && fs.existsSync(hf) ? pastSeason({ history: JSON.parse(fs.readFileSync(hf, "utf8")), logs: pastL, season: last }).pg : null;
       const combos = comboAbsences(impact, files, { prior });
       impact.push(...combos);
       impact.sort((p, q) => q.score - p.score);
@@ -936,13 +940,7 @@ try {
     // missing games"): every current player's whole career from the box-score archive (tools/build-career-logs.mjs), which
     // has both. Failing that file, ESPN's player logs from 2016-17 with the Bulls and Pelicans games of 2016-18 put back
     // (src/situations/logfill.js), as in 0.171.0.
-    const careerF = path.join(root, "src", "data", "player-logs-career.json.gz");
-    let logs = fs.existsSync(careerF) ? JSON.parse(zlib.gunzipSync(fs.readFileSync(careerF))) : null;
-    if (!logs) {
-      const logsEspn = fs.existsSync(logFile) ? JSON.parse(zlib.gunzipSync(fs.readFileSync(logFile))) : null;
-      const fillF = path.join(root, "src", "data", "player-logs-fill.json.gz"), { withFill: fillIn } = await import("../src/situations/logfill.js");
-      logs = logsEspn && fs.existsSync(fillF) ? fillIn(logsEspn, JSON.parse(zlib.gunzipSync(fs.readFileSync(fillF)))) : logsEspn;
-    }
+    const past = await pastLogs(), logs = past.career || past.logs;
     // 0.171.0: each player's first season, as the Guide's year-by-year pages have it, so "in his career" isn't read off the
     // date of his first game on file (a veteran who missed the start of 2016-17 looked like a rookie)
     let firstSeason = null;
