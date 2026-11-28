@@ -31,10 +31,11 @@ export const playedIn = (g, id, minIx = 2) => g?.pl?.[id]?.[minIx] > 0 || (g?.z 
  * rows: the results rows (pl, z), changed in place: a 0-minute game another source rules out leaves row.z.
  * names: { espnId: name }. nba: { "date|AWAY|HOME" or "date|TEAM": NBA.com game file ({ rot: { TRI: [[nbaId, name, in, out, …]] } }) }.
  * outByDate: { date: { TRI: Set(espnId) } } listed Out on that night's injury report.
- * → { dropped: [{ id, name, d, game, why }], warn: [text], checked: { games, nba, inj, zero } }
+ * → { dropped: [{ id, name, d, game, why }], added: [{ id, name, d, game, sec }], warn: [text], checked: { games, nba, inj, zero } }
+ * 0.184.0: a player ESPN has not playing whom NBA.com has on the floor (a stint, however short) is added to row.z.
  */
 export function auditPlayed({ rows, names = {}, nba = {}, outByDate = {} }) {
-  const dropped = [], warn = [], checked = { games: 0, nba: 0, inj: 0, zero: 0 };
+  const dropped = [], added = [], warn = [], checked = { games: 0, nba: 0, inj: 0, zero: 0 };
   for (const g of rows || []) {
     if (!g.pl) continue;
     checked.games++;
@@ -55,7 +56,12 @@ export function auditPlayed({ rows, names = {}, nba = {}, outByDate = {} }) {
         const name = names[id] || id, k = plain(names[id]), min = g.pl[id][2], counted = playedIn(g, id);
         const out = !!outs?.[tri]?.has(id), has = rot ? stint.has(k) : null;
         if (!counted) {
-          if (has) warn.push(`${game}: NBA.com has ${name} on the floor for ${Math.round(stint.get(k))} seconds, ESPN has him not playing: not counted (look at this one)`);
+          // 0.184.0 (the user, 11/28: "can you get around the zero-minute game by checking seconds played"): NBA.com's
+          // check-in and check-out times are seconds on the floor. A stint there is a game, even one that starts and ends on
+          // the same tick of the clock (Trey Lyles, 3/16/19: in and out with 27.9 seconds left, between free throws), unless
+          // the injury report had him Out, which is said instead.
+          if (has && !out) { (g.z ??= []).push(String(id)); added.push({ id: String(id), name, d: g.d, game, team: tri, sec: Math.round(stint.get(k) * 10) / 10 }); }
+          else if (has) warn.push(`${game}: NBA.com has ${name} on the floor for ${Math.round(stint.get(k))} seconds, and the injury report had him Out: not counted (look at this one)`);
           continue;
         }
         if (!(min > 0)) checked.zero++;
@@ -73,5 +79,5 @@ export function auditPlayed({ rows, names = {}, nba = {}, outByDate = {} }) {
       }
     }
   }
-  return { dropped, warn, checked };
+  return { dropped, added, warn, checked };
 }

@@ -6787,11 +6787,12 @@ await bridgeChecks(ok, root);
   const au = auditPlayed({ rows: [g1, g2], names, nba, outByDate: { "2026-11-27": { POR: new Set(["a", "d"]) } } });
   // 0.183.0: a file found by date and one team (its heading had no home team: IND 11/7/26)
   const g3 = { id: "3", d: "2026-11-07", h: "IND", a: "DEN", z: ["b"], pl: { b: [0, ...zero], c: [0, 1, 20, 9] } }, au3 = auditPlayed({ rows: [g3], names, nba: { "2026-11-07|IND": { rot: { IND: [["1", "Real Cameo", 0, 9000]] } } }, outByDate: {} });
-  ok(JSON.stringify(g1.z) === '["c"]' && au.dropped.length === 2 && /injury report/.test(au.dropped[0].why) && au.dropped[1].name === "No Stint" && /NBA\.com/.test(au.dropped[1].why)
-    && JSON.stringify(g2.z) === '["f"]' && au.warn.length === 3 && au.warn.some((w) => /Minutes But Out 30 minutes.*kept/.test(w)) && au.warn.some((w) => /Spelled Differently.*kept, not confirmed/.test(w)) && au.warn.some((w) => /NBA\.com has Sat on the floor for 30 seconds/.test(w))
-    && playedIn(g1, "c") && !playedIn(g1, "a") && playedIn(g1, "d") && !playedIn(g1, "u") && playedIn({ pl: { x: [1, 12] } }, "x", 1)
+  ok(JSON.stringify(g1.z) === '["c","u"]' && au.dropped.length === 2 && /injury report/.test(au.dropped[0].why) && au.dropped[1].name === "No Stint" && /NBA\.com/.test(au.dropped[1].why)
+    && JSON.stringify(g2.z) === '["f"]' && au.warn.length === 2 && au.warn.some((w) => /Minutes But Out 30 minutes.*kept/.test(w)) && au.warn.some((w) => /Spelled Differently.*kept, not confirmed/.test(w))
+    && au.added.length === 1 && au.added[0].name === "Sat" && au.added[0].sec === 30   // 0.184.0: NBA.com's seconds on the floor are a game
+    && playedIn(g1, "c") && !playedIn(g1, "a") && playedIn(g1, "d") && playedIn(g1, "u") && playedIn({ pl: { x: [1, 12] } }, "x", 1)
     && au3.checked.nba === 1 && au3.dropped.length === 1 && !g3.z,
-    "0.181.0: a 0-minute game is taken out when the injury report had him Out or NBA.com has no check-in; one with a stint stays; minutes in the box score are kept and said; a name NBA.com spells another way is never dropped for it; accents don't matter",
+    "0.181.0: a 0-minute game is taken out when the injury report had him Out or NBA.com has no check-in; one with a stint stays; minutes in the box score are kept and said; a name NBA.com spells another way is never dropped for it; accents don't matter; 0.184.0: a player ESPN has not playing whom NBA.com has on the floor is counted",
     JSON.stringify({ z1: g1.z, z2: g2.z, au }));
 
   // The readers that had their own test: the notes' box-score matcher and the career lines.
@@ -6896,10 +6897,43 @@ await bridgeChecks(ok, root);
       JSON.stringify({ players: Object.keys(C.players).length, nurkic, sameAsBook, waiting: Object.keys(waiting).map((id) => [(C.players[id] || []).length, (E.players[id] || []).length]) }));
   }
   const sit183 = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8");
-  ok(/const RECENT = 3, RECENT_FROM = /.test(tool) && /if \(g\.d >= RECENT_FROM\) for \(const t of g\.t\) for \(const p of t\.p\) if \(played\(p\)\) want\.add\(String\(p\[0\]\)\);/.test(tool) && /for \(const id of checked\) \{/.test(tool)
+  ok(/const RECENT = 3, RECENT_FROM = /.test(tool) && /if \(g\.d >= RECENT_FROM\) for \(const t of g\.t\) for \(const p of t\.p\) if \(played\(p, g\.d\)\) want\.add\(String\(p\[0\]\)\);/.test(tool) && /for \(const id of checked\) \{/.test(tool)
     && /const cur = new Set\(Object\.keys\(store\.names \|\| \{\}\)\);/.test(sit183) && /const espn = mine\(rd\("player-logs-history\.json\.gz"\)\), career = mine\(rd\("player-logs-career\.json\.gz"\)\);/.test(sit183)
     && /for \(const tri of Object\.keys\(j\.rot \|\| \{\}\)\) nba\[`\$\{j\.d\}\|\$\{tri\}`\] = j;/.test(sit183),
     "the career-logs tool (0.183.0) keeps every player with a game in the last three seasons, and still sets only the players the ESPN logs speak for against them; the build's one loader gives the readers only players in this season's box scores, so the wider files don't put former players among \"current players\"; the played check finds an NBA.com file by date and team");
+}
+
+// ---------- 0.184.0: a few-seconds game is a game, from the plus-minus, any number, the play-by-play or NBA.com ----------
+{
+  const zlib = await import("node:zlib"), { readPlayerBox: RPB, playersInPlays: PIP } = await import("../src/espn/parse.js");
+  // This season's reader: a substitution play is proof; a technical foul from the bench is not.
+  const keys = ["minutes", "points", "fieldGoalsMade-fieldGoalsAttempted", "fouls", "plusMinus"];
+  const A = (id, name, stats) => ({ athlete: { id, displayName: name }, starter: false, stats });
+  const box = { boxscore: { players: [{ team: { id: "1" }, statistics: [{ keys, athletes: [A("in", "Inbounder", ["0", "0", "0-0", "0", "0"]), A("tech", "Bench Tech", ["0", "0", "0-0", "0", "0"]), A("pf", "One Foul", ["0", "0", "0-0", "1", "0"]), A("pm", "Plus One", ["0", "0", "0-0", "0", "+1"])] }] }] },
+    plays: [{ type: { text: "Substitution" }, text: "Inbounder enters the game for Somebody", participants: [{ athlete: { id: "in" } }, { athlete: { id: "x" } }] },
+      { type: { text: "Technical Foul" }, text: "Bench Tech technical foul (1st technical foul)", participants: [{ athlete: { id: "tech" } }] }, { type: { text: "No Ejection" }, text: "Bench Tech ejected", participants: [{ athlete: { id: "tech" } }] }] };
+  const pb = RPB(box, "1");
+  ok(pb.in.zero && pb.tech.dnp && pb.tech.unproven && pb.pf.zero && pb.pm.zero && PIP(box).has("in") && !PIP(box).has("tech"),
+    "0.184.0 (the user, 11/28: \"can you get around the zero-minute game by checking seconds played or stats in a game like personal fouls? play-by-play data may also offer insight if a player checked into the game\"): this season, a 0-minute line is a game with a foul, a plus-minus or a substitution play naming him; a technical foul or an ejection from the bench is not",
+    JSON.stringify(pb));
+  // Past seasons: the career logs against the user's examples and the record book.
+  const cf = path.join(root, "src", "data", "player-logs-career.json.gz"), few = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "few-seconds-history.json"), "utf8")), gaps = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "career-games-nbacom.json"), "utf8"));
+  const tool = fs.readFileSync(path.join(root, "tools", "build-career-logs.mjs"), "utf8");
+  if (fs.existsSync(cf)) {
+    const C = JSON.parse(zlib.gunzipSync(fs.readFileSync(cf))), has = (id, d) => (C.players[id] || []).some((r) => r[0] === d);
+    const seasonOf = (d) => { const y = +d.slice(0, 4), s = +d.slice(5, 7) >= 10 ? y : y - 1; return `${s}-${String(s + 1).slice(2)}`; };
+    const per = (id) => { const o = {}; for (const r of C.players[id] || []) o[seasonOf(r[0])] = (o[seasonOf(r[0])] || 0) + 1; return o; };
+    const book = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-career-seasons-2026-27.json"), "utf8")).players;
+    const asBook = (id, name) => book[name].filter(([s]) => s < "2026").every(([s, gp]) => per(id)[s] === gp);
+    ok(has("2968436", "2024-11-15") && has("2968436", "2024-11-17") && has("2968436", "2025-01-06") && has("3934672", "2024-03-03")
+      && has("3136196", "2019-03-16") && has("5107156", "2025-12-01") && C.players["2779"]?.length > 1000 && !has("2779", "2007-01-19")
+      && asBook("2968436", "Joe Ingles") && asBook("3136196", "Trey Lyles") && asBook("5107156", "Lachlan Olbrich") && asBook("4278077", "Jarred Vanderbilt") && asBook("2596107", "Alex Len")
+      && few.rows.length === 345 && few.rows.every((r) => r[4] === "sub") && !few.rows.some((r) => r[3] === "Chris Paul" && r[1] === "2007-01-19") && gaps.rows.length === 18,
+      "0.184.0: the career logs count a few-seconds game: Joe Ingles 11/15/24 (in to inbound and out: a substitution play), 11/17/24 (an assist), 1/6/25 (+1); Jalen Brunson 3/3/24 (47 seconds, a shot); a game ESPN's box has no line for comes from NBA.com (Trey Lyles 3/16/19, Lachlan Olbrich's 15); every season of those five is the record book's; Chris Paul's technical and ejection from the bench (1/19/07) is not a game",
+      JSON.stringify({ ingles: per("2968436"), olbrich: per("5107156") }));
+  }
+  ok(/p\.slice\(5, 21\)\.some\(\(v\) => v != null && v !== 0\) \|\| FEW\.has/.test(tool) && /career-games-nbacom\.json/.test(tool) && fs.existsSync(path.join(root, "tools", "few-seconds-games.mjs")) && fs.existsSync(path.join(root, "tools", "career-gaps-nbacom.mjs")),
+    "0.184.0: the career-logs tool reads every number in the line (the plus-minus too), the substitution-play file and NBA.com's missing games; the two tools that make those files are in the repo");
 }
 
 const snapDir = path.join(root, "tests", "expected");

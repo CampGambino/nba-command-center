@@ -2,6 +2,29 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.184.0 (2026-11-28): a few-seconds game is a game, from the plus-minus, any number, the play-by-play or NBA.com
+
+The user, 11/28, 9:59 AM, with Basketball-Reference's box score of Jalen Brunson's 47 seconds (a field-goal attempt, -2) and Joe Ingles's 2024-25 game log (00:02 twice, 00:01 once): "can you get around the zero-minute game by checking seconds played or stats in a game like personal fouls? play-by-play data may also offer insight if a player checked into the game. and please check the other 23 veterans who have not played this season. … there are rare occasions in image 2 where joe ingles enters the game to inbound the ball at the end of the game then subs out. those games count as played"
+
+**Past seasons (the career logs, tools/build-career-logs.mjs).** A game is now minutes, or any number in the line, **the plus-minus included**, or **a substitution play that names him**, or **a game NBA.com counts that ESPN's box score has no line for**.
+- The plus-minus: 208 games (Joe Ingles 1/6/25: 0 minutes, +1). Fouls, turnovers and the rest were already read; the plus-minus was not.
+- The play-by-play (new tools/few-seconds-games.mjs, src/data/few-seconds-history.json): every current player's 0-minute line with nothing in it, 2,058 in 1,775 games, read against ESPN's plays. 345 have a substitution play naming him by his ESPN id, in or out: a game (Ingles 11/15/24, "Joe Ingles enters the game for Nickeil Alexander-Walker"; Danny Green, Robert Williams III, Maxi Kleber and others ESPN names differently in its plays). The other 1,713 have none: mostly 2006-12 box scores that list a player who sat out with a line of zeros. A technical foul or an ejection from the bench is not a game (Chris Paul 1/19/07).
+- NBA.com (new tools/career-gaps-nbacom.mjs, src/data/career-games-nbacom.json): after those two, four player-seasons were still short of the record book. NBA.com's game logs had the games: Trey Lyles 3/16/19 and Jarred Vanderbilt 3/18/19 (marked did-not-play at ESPN, though ESPN's own plays have Lyles in and out with 27.9 seconds left), Alex Len 1/21/23, and Lachlan Olbrich's 15 games of 2025-26, whose rows in ESPN's box scores have no player id at all (up to 12 minutes in a game). 18 games, with NBA.com's numbers.
+- **Against the record book** (the NBA Guide): 3,534 of 3,534 player-seasons the same, from 3,237; every one of the 677 players it covers. **Against NBA.com** for the 131 it doesn't cover (and the 24 veterans): 722 of 722 the same. 13 fringe players NBA.com gave no totals for, and 2 whose names it spells another way, were not compared.
+- Your examples: Brunson 3/3/24 (1 minute at ESPN, a shot) was already in; Ingles's 11/15/24, 11/17/24 (an assist) and 1/6/25 are now all in, and his seasons are the book's.
+
+**This season.** The reader already counted a 0-minute line with a foul, a plus-minus or a play naming him (0.181.0). Two changes:
+- **A play means a substitution play** (src/espn/parse.js `playersInPlays`), in or out. A bench technical or ejection no longer passes.
+- **NBA.com's check-in and check-out times add a game** (src/situations/played.js): a player ESPN has not playing whom NBA.com has on the floor is counted, however short the stint, unless the injury report had him Out (then it is said in the build log). The build log says each one. None so far this season.
+
+**The 24 veterans who have not played this season** (Nurkić has now). Each one's career file against NBA.com and the record book, season by season: all 24 the same in both. Jimmy Butler III gained 3 few-seconds games today, Jonathan Isaac 2, and seven others 1 each (Julian Phillips, Noah Penda, Johnny Furphy, Ariel Hukporti, Drew Timme, Tobias Harris, Jamir Watkins). Their playoff and play-in games are on file too.
+
+**What it changes on the site.** The runs against one team (the Streaks page): 24 runs change, 4 new, 5 gone, 1,310 rows from 1,311. A few-seconds game now counts in a run. Luke Kornet's 9 straight wins against Chicago are 5 (a few-seconds loss on 12/21/24 was not in the count before); Anthony Gill's 8 straight losses to Atlanta end at a few-seconds win; Day'Ron Sharpe's losses to Dallas go back to 11/7/22. No other line changed.
+
+**Checked.** tests/run.js: 1,012 passed, 0 failed (3 new; the 0.181.0 test's NBA.com case now counts the player instead of warning). Old and new builds on the same files, every differing output read: the runs list and the played check's new count; nothing else.
+
+**Self-audit.** (1) The play-by-play was read only for lines already in the archive. A game ESPN marked did-not-play whose plays name him is found only when its season is short of the record book or NBA.com (Lyles); every season is now equal to both, so none is left that either source counts. (2) 13 fringe players were not set against anything. (3) The tools need the box-score archive on this machine and the network; the files they write are in the repo, so the site's build needs neither. (4) A few-seconds game ends runs and streaks: the user's definition, and the record book's. NBA Live's cards read this season's box scores, which already counted these. (5) NBA.com's numbers for Olbrich's 15 games are NBA.com's, not ESPN's; ESPN's box had zeros for him.
+
 ## 0.183.0 (2026-11-28): a veteran's first game of the season finds his career already on file
 
 The user, 11/28, 9:18 AM, with the home page's "Build check: situations: career logs: 1 player with past seasons and no games on file (run tools/build-career-logs.mjs): Jusuf Nurkić": "nurkic played his first game of the season last night. does this happen with all players who play for the first time?"

@@ -404,13 +404,19 @@ export function readGameDetail(json) {
  * 12:49 AM as "in the game, 0 minutes", and shown as his first scoreless game in 598; ESPN marked him DNP later).
  * Two more had been counted the same way since October (Pacome Dadiet 10/23, Nique Clifford 11/25: minutes "--").
  * So a line with 0 minutes is a game played (zero) only with proof he was on the floor from the same summary: a
- * number in his line, or his name in a play (a substitution in or out, a shot, a foul). Without it he did not play
- * (dnp, with unproven set so the build can say so). Every real few-seconds game this season has that proof.
+ * number in his line (the plus-minus included), or his name in a substitution play (in or out). Without it he did not
+ * play (dnp, with unproven set so the build can say so). Every real few-seconds game this season has that proof.
+ * 0.184.0: a substitution, not any play. A player on the bench can be named in a technical foul or an ejection (Chris
+ * Paul, 1/19/07: 0 minutes, a technical and an ejection, no substitution) and that is not a game. Joe Ingles, 11/15/24, in
+ * to inbound the ball and out with nothing in his line, is one (the user, 11/28: "those games count as played").
  */
-/** The ids of every player named in a play: a substitution (in or out), a shot, a rebound, a foul. */
+/** The ids of every player named in a substitution play, coming in or going out. */
 export function playersInPlays(json) {
   const out = new Set();
-  for (const p of json?.plays || []) for (const x of p?.participants || []) { const id = String(x?.athlete?.id ?? ""); if (id) out.add(id); }
+  for (const p of json?.plays || []) {
+    if (!/substitution/i.test(p?.type?.text || "") && !/ enters the game for /.test(p?.text || "")) continue;
+    for (const x of p?.participants || []) { const id = String(x?.athlete?.id ?? ""); if (id) out.add(id); }
+  }
   return out;
 }
 export const PLAYER_BOX_KEYS = ["pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];

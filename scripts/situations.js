@@ -173,7 +173,8 @@ try {
   for (const [d, rep] of Object.entries(injByDate)) { const L = listedIds(rep, store.names || {}, teamIdsAll); outByDate[d] = Object.fromEntries(Object.entries(L).map(([tri, xs]) => [tri, new Set(xs.filter((x) => x.status === "Out").map((x) => x.id))])); }
   const a = auditPlayed({ rows, names: store.names || {}, nba, outByDate });
   notPlayed = a.dropped;
-  console.log(`played check: ${a.checked.games} games (${a.checked.inj} with that night's injury report, ${a.checked.nba} with NBA.com's check-in times), ${a.checked.zero} 0-minute games looked at; ${a.dropped.length} taken out${a.dropped.length ? `: ${a.dropped.map((x) => `${x.name} ${x.game} (${x.why})`).join("; ")}` : ""}`);
+  console.log(`played check: ${a.checked.games} games (${a.checked.inj} with that night's injury report, ${a.checked.nba} with NBA.com's check-in times), ${a.checked.zero} 0-minute games looked at; ${a.dropped.length} taken out${a.dropped.length ? `: ${a.dropped.map((x) => `${x.name} ${x.game} (${x.why})`).join("; ")}` : ""}; ${a.added.length} added from NBA.com's check-in times${a.added.length ? `: ${a.added.map((x) => `${x.name} ${x.game} (${x.sec} seconds)`).join("; ")}` : ""}`);
+  for (const x of a.added) warnings.push(`played check: ${x.name} is counted for ${x.game}: ESPN has him not playing, NBA.com has him on the floor for ${x.sec} seconds`);
   for (const x of a.dropped) warnings.push(`played check: ${x.name} is not counted for ${x.game}: 0 minutes and ${x.why}`);
   for (const w of a.warn) { warnings.push(`played check: ${w}`); console.log(`played check: ${w}`); }
 } catch (e) { warnings.push(`played check: ${e.message}`); console.error(`played check failed: ${e.message}`); }

@@ -14,7 +14,8 @@
 // season's games come from the daily box scores. Kept: players in this season's box scores or in the ESPN logs, and (0.183.0)
 // everyone who played in any of the last three seasons, so a veteran's first game of the season finds his career here.
 // A team is its franchise today (Seattle is Oklahoma City, New Jersey Brooklyn), as everywhere else on the site. The
-// Cup's title games are left out. A game counts when the player has minutes or any number in the box score.
+// Cup's title games are left out. A game counts when the player has minutes, any number in the box score (0.184.0: the
+// plus-minus too), or a substitution play naming him (0.184.0: src/data/few-seconds-history.json, tools/few-seconds-games.mjs).
 //
 // It also prints how the archive compares with the ESPN logs (and their Bulls and Pelicans fill) from 2016-17 on.
 // Run it once a season, after the archive has last season's games. (Until 0.183.0 also whenever a veteran new to the files
@@ -54,7 +55,14 @@ const RECENT = 3, RECENT_FROM = `${+NOW.slice(0, 4) - RECENT}-08-01`;
 const known = want.size, checked = new Set(want);   // the cross-check below is for the players the ESPN logs can speak for
 
 // archive row: [espnId, name, pos, starter, min, pts, fgm, fga, fg3m, fg3a, ftm, fta, oreb, dreb, reb, ast, stl, blk, to, pf, +/-]
-const played = (p) => p[4] > 0 || [5, 7, 11, 14, 15, 16, 17, 18, 19].some((i) => p[i] > 0);
+// 0.184.0 (the user, 11/28: "can you get around the zero-minute game by checking seconds played or stats in a game like
+// personal fouls? play-by-play data may also offer insight if a player checked into the game"): a game is minutes, or any
+// number in the line, the plus-minus included (Joe Ingles, 1/6/25: 0 minutes, +1), or a substitution play that names him
+// (src/data/few-seconds-history.json, tools/few-seconds-games.mjs: Ingles, 11/15/24, in to inbound the ball and out).
+// Until now the plus-minus and the play-by-play were not read, and 450 such games were missing against the record book.
+const fewFile = path.join(root, "src", "data", "few-seconds-history.json");
+const FEW = new Set(fs.existsSync(fewFile) ? JSON.parse(fs.readFileSync(fewFile, "utf8")).rows.map((r) => `${r[1]}|${r[2]}`) : []);
+const played = (p, d) => p[4] > 0 || p.slice(5, 21).some((v) => v != null && v !== 0) || FEW.has(`${d}|${p[0]}`);
 const early = {}, late = {}, seen = new Set(), unmapped = new Map();
 let games = 0;
 const all = [];
@@ -64,8 +72,9 @@ for (const f of fs.readdirSync(DIR).filter((x) => x.endsWith(".json")).sort()) {
   const codes = g.t.map((t) => tri(t.t));
   if (codes.some((c) => !c)) { for (const t of g.t) if (!tri(t.t)) unmapped.set(t.t, (unmapped.get(t.t) || 0) + 1); continue; }
   all.push({ g, codes, n: Number((/(\d+)\.json$/.exec(f) || [])[1]) || 0 });
-  if (g.d >= RECENT_FROM) for (const t of g.t) for (const p of t.p) if (played(p)) want.add(String(p[0]));
+  if (g.d >= RECENT_FROM) for (const t of g.t) for (const p of t.p) if (played(p, g.d)) want.add(String(p[0]));
 }
+console.log(`few-seconds games from the play-by-play: ${FEW.size}`);
 console.log(`players kept: ${known} in this season's box scores or the ESPN logs, and ${want.size - known} more who played from ${RECENT_FROM.slice(0, 4)}-${String(+RECENT_FROM.slice(0, 4) + 1).slice(2)} on and have not played this season`);
 // A team can't play twice in a day. ESPN stamps one game a day late (Golden State at Phoenix, 2/29/20, as 3/1, the day
 // Golden State hosted Washington): of two games for one team on one date, the one with the lower ESPN id was the day
@@ -87,12 +96,24 @@ for (const { g, codes } of all) {
     const o = g.t[1 - i], res = t.s > o.s ? "W" : "L";
     for (const p of t.p) {
       const id = String(p[0]);
-      if (!want.has(id) || !played(p)) continue;
+      if (!want.has(id) || !played(p, g.d)) continue;
       const row = [g.d, codes[1 - i], t.home ? 1 : 0, res, 2, p[4] ?? 0, p[5] ?? 0, p[14] ?? 0, p[15] ?? 0, p[16] ?? 0, p[17] ?? 0, p[8] ?? 0, p[6] ?? 0, p[7] ?? 0, p[9] ?? 0, p[10] ?? 0, p[11] ?? 0];
       ((g.d < SPLIT ? early : late)[id] ||= []).push(row);
     }
   });
 }
+// 0.184.0: games NBA.com counts that the archive has no line for (tools/career-gaps-nbacom.mjs: ESPN marked the player
+// did-not-play, or its row had no player id), with NBA.com's numbers. Only a date the player doesn't already have.
+const gapFile = path.join(root, "src", "data", "career-games-nbacom.json");
+let gapAdded = 0;
+if (fs.existsSync(gapFile)) for (const r of JSON.parse(fs.readFileSync(gapFile, "utf8")).rows) {
+  const [id, , , d, opp, home, res, ...s] = r, o = d < SPLIT ? early : late;
+  if (!want.has(String(id)) || d >= NOW || (early[id] || []).some((x) => x[0] === d) || (late[id] || []).some((x) => x[0] === d)) continue;
+  const [min, pts, reb, ast, stl, blk, fg3m, fgm, fga, fg3a, ftm, fta] = s;
+  (o[id] ||= []).push([d, tri(opp) || opp, home, res, 2, min, pts, reb, ast, stl, blk, fg3m, fgm, fga, fg3a, ftm, fta]);
+  gapAdded++;
+}
+console.log(`games from NBA.com the archive has no line for: ${gapAdded}`);
 for (const o of [early, late]) for (const id of Object.keys(o)) o[id].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
 const nEarly = Object.values(early).reduce((a, r) => a + r.length, 0), nLate = Object.values(late).reduce((a, r) => a + r.length, 0);
 const first = Object.values(early).map((r) => r[0][0]).sort()[0];
@@ -123,7 +144,7 @@ if (!process.argv.includes("--check-only")) {
   for (const id of new Set([...Object.keys(early), ...Object.keys(late)])) players[id] = [...(early[id] || []), ...(late[id] || [])];
   const body = JSON.stringify({ source: "ESPN box scores (site.api.espn.com summary), with NBA.com's box score for the games ESPN has no player numbers for; regular season; built by tools/build-career-logs.mjs from the archive of tools/odd-games",
     seasons: `${seasonOf(first)} to ${seasonOf(lastArchive)}`, whole: true,
-    note: "Every regular-season game of each current player's career through last season. whole: no current player's career began before the first season here. A game counts when the player has minutes or any number in the box score.",
+    note: "Every regular-season game of each current player's career through last season. whole: no current player's career began before the first season here. A game counts when the player has minutes, any number in the box score (the plus-minus included), or a substitution play naming him (src/data/few-seconds-history.json); and the games NBA.com counts that ESPN's box scores have no line for (src/data/career-games-nbacom.json).",
     columns: espn.columns.slice(0, 17), players });
   fs.writeFileSync(OUT, zlib.gzipSync(body, { level: 9 }));
   console.log(`wrote ${path.relative(root, OUT)}: ${Object.keys(players).length} players, ${nEarly + nLate} games, ${(fs.statSync(OUT).size / 1e6).toFixed(2)} MB`);
