@@ -7,8 +7,8 @@
   },
   "KXNBA4QTOTAL": {
    "title": "NBA 4th Quarter Total",
-   "events": 5,
-   "markets": 65
+   "events": 2,
+   "markets": 26
   },
   "KXNBANEXTTEAM": {
    "title": "Pro Basketball Next Team",
@@ -25,11 +25,6 @@
    "events": 1,
    "markets": 30
   },
-  "KXNBA3QTOTAL": {
-   "title": "NBA 3rd Quarter Total",
-   "events": 4,
-   "markets": 52
-  },
   "KXNBATEAMMATE": {
    "title": "NBA Teammate of the Year",
    "events": 1,
@@ -37,8 +32,8 @@
   },
   "KXNBAGAME": {
    "title": "NBA Game",
-   "events": 36,
-   "markets": 72
+   "events": 33,
+   "markets": 66
   },
   "KXNBATEAMSALE": {
    "title": "Pro Basketball Team to be Sold",
@@ -77,8 +72,8 @@
   },
   "KXNBAWINMARGIN": {
    "title": "NBA Win Margin",
-   "events": 10,
-   "markets": 80
+   "events": 7,
+   "markets": 56
   },
   "KXNBAWEST1SEED": {
    "title": "NBA Western Conference 1 Seed",
@@ -87,8 +82,8 @@
   },
   "KXNBA4QSPREAD": {
    "title": "NBA 4th Quarter Spread",
-   "events": 5,
-   "markets": 65
+   "events": 2,
+   "markets": 26
   },
   "KXNBAWFINMVP": {
    "title": "NBA Western Conference Finals MVP",
@@ -97,23 +92,18 @@
   },
   "KXNBASPREAD": {
    "title": "NBA Spread",
-   "events": 10,
-   "markets": 331
+   "events": 7,
+   "markets": 232
   },
   "KXNBACUPGROUP": {
    "title": "NBA Cup Group Winner",
-   "events": 6,
-   "markets": 30
-  },
-  "KXNBA2QSPREAD": {
-   "title": "NBA 2nd Quarter Spread",
-   "events": 2,
-   "markets": 26
+   "events": 1,
+   "markets": 5
   },
   "KXNBA2Q": {
    "title": "NBA 2nd Quarter Winner",
-   "events": 17,
-   "markets": 51
+   "events": 15,
+   "markets": 45
   },
   "KXNBAEAST": {
    "title": "Pro Basketball Eastern Conference Champion",
@@ -152,8 +142,8 @@
   },
   "KXNBAOT": {
    "title": "NBA Overtime",
-   "events": 20,
-   "markets": 20
+   "events": 17,
+   "markets": 17
   },
   "KXNBACUPMVP": {
    "title": "NBA Cup Tournament MVP",
@@ -165,11 +155,6 @@
    "events": 15,
    "markets": 30
   },
-  "KXNBA1HTEAMTOTAL": {
-   "title": "NBA 1st Half Team Total",
-   "events": 2,
-   "markets": 44
-  },
   "KXNBAONE3PT": {
    "title": "NBA Players to Make One Three",
    "events": 1,
@@ -177,8 +162,8 @@
   },
   "KXNBA2HSPREAD": {
    "title": "NBA 2nd Half Spread",
-   "events": 5,
-   "markets": 95
+   "events": 2,
+   "markets": 38
   },
   "KXNBACUP1STTEAM": {
    "title": "NBA Cup All-Tournament Team",
@@ -197,8 +182,8 @@
   },
   "KXNBA1H": {
    "title": "NBA 1st Half Winner",
-   "events": 17,
-   "markets": 51
+   "events": 15,
+   "markets": 45
   },
   "KXNBAFRANCHISECOST": {
    "title": "NBA Franchise Cost",
@@ -207,8 +192,8 @@
   },
   "KXNBATOTAL": {
    "title": "NBA Total",
-   "events": 10,
-   "markets": 294
+   "events": 7,
+   "markets": 213
   },
   "KXNBAGAMESPECIALS": {
    "title": "Pro Basketball Game Specials",
@@ -217,8 +202,8 @@
   },
   "KXNBA3Q": {
    "title": "NBA 3rd Quarter Winner",
-   "events": 19,
-   "markets": 57
+   "events": 15,
+   "markets": 45
   },
   "KXNBAPOTM": {
    "title": "NBA Player of the Month",
@@ -267,8 +252,8 @@
   },
   "KXNBA2H": {
    "title": "NBA 2nd Half Winner",
-   "events": 20,
-   "markets": 60
+   "events": 17,
+   "markets": 51
   },
   "KXNBAMATCHUP": {
    "title": "NBA Matchup",
@@ -285,11 +270,6 @@
    "events": 1,
    "markets": 87
   },
-  "KXNBA1HSPREAD": {
-   "title": "NBA 1st Half Spread",
-   "events": 2,
-   "markets": 38
-  },
   "KXCOACHOUTNBADATE": {
    "title": "NBA Coach Out Date",
    "events": 3,
@@ -299,11 +279,6 @@
    "title": "Pro Basketball Cup Champion",
    "events": 1,
    "markets": 30
-  },
-  "KXNBA2QTOTAL": {
-   "title": "NBA 2nd Quarter Total",
-   "events": 2,
-   "markets": 26
   },
   "KXNBAHUSTLE": {
    "title": "NBA Hustle Award",
@@ -442,8 +417,8 @@
   },
   "KXNBATEAMTOTAL": {
    "title": "NBA Team Total",
-   "events": 9,
-   "markets": 348
+   "events": 7,
+   "markets": 276
   },
   "KXNBAWEST": {
    "title": "Pro Basketball Western Conference Champion",
@@ -459,11 +434,6 @@
    "title": "Pro Basketball Player to Win MVP and DPOY",
    "events": 1,
    "markets": 1
-  },
-  "KXNBA1HTOTAL": {
-   "title": "NBA 1st Half Total",
-   "events": 2,
-   "markets": 38
   },
   "KXNBATEAMWINSTREAK": {
    "title": "NBA Team with the Longest Winning Streak",
@@ -505,11 +475,6 @@
    "events": 1,
    "markets": 19
   },
-  "KXNBA3QSPREAD": {
-   "title": "NBA 3rd Quarter Spread",
-   "events": 4,
-   "markets": 52
-  },
   "KXNBACUPQUAL": {
    "title": "Pro Basketball Cup Qualifiers",
    "events": 2,
@@ -547,8 +512,8 @@
   },
   "KXNBA4Q": {
    "title": "NBA 4th Quarter Winner",
-   "events": 20,
-   "markets": 60
+   "events": 17,
+   "markets": 51
   },
   "KXNBATRADE": {
    "title": "Pro Basketball Trade",
@@ -557,8 +522,8 @@
   },
   "KXNBA2HTOTAL": {
    "title": "NBA 2nd Half Total",
-   "events": 5,
-   "markets": 95
+   "events": 2,
+   "markets": 38
   },
   "KXNBA1Q": {
    "title": "NBA 1st Quarter Winner",
@@ -604,30 +569,30 @@
  "favorites": {
   "KXNBA-27": "San Antonio 23%",
   "KXNBACOY-27": "Micah Nori 19%",
-  "KXNBAPACIFIC-26": "Los Angeles L 82%",
   "KXNBARECORD-27BEST": "San Antonio 38%",
   "KXNBARECORD-27WORST": "Sacramento 38%",
-  "KXNBAWEST1SEED-26": "San Antonio 26%",
+  "KXNBAPACIFIC-26": "Los Angeles L 82%",
+  "KXNBAWEST1SEED-26": "San Antonio 47%",
   "KXNBAWFINMVP-27": "Shai Gilgeous-Alexander 20%",
-  "KXNBAEAST-27": "Boston 21%",
+  "KXNBAEAST-27": "Boston 22%",
   "KXNBASOUTHWEST-26": "San Antonio 75%",
   "KXNBACUPMVP-27": "Victor Wembanyama 14%",
-  "KXNBASIXTH-27": "Jrue Holiday 28%",
-  "KXNBACUP-26": "Philadelphia 17%",
   "KXNBAFINMVP-27": "Deni Avdija 19%",
+  "KXNBASIXTH-27": "Jrue Holiday 31%",
+  "KXNBACUP-26": "San Antonio 25%",
   "KXNBACONF-27": "Western Conference 61%",
-  "KXNBAMVP-27": "Victor Wembanyama 48%",
+  "KXNBAMVP-27": "Victor Wembanyama 52%",
   "KXNBAEAST1SEED-26": "Boston 27%",
-  "KXNBAATLANTIC-26": "Boston 41%",
+  "KXNBAATLANTIC-26": "Boston 40%",
   "KXNBANORTHWEST-26": "Minnesota 29%",
   "KXNBAWEST-27": "San Antonio 36%",
-  "KXNBADPOY-27": "Victor Wembanyama 79%",
   "KXNBASOUTHEAST-26": "Miami 52%",
+  "KXNBADPOY-27": "Victor Wembanyama 79%",
   "KXNBAROY-27": "Darius Acuff Jr. 31%",
   "KXNBACLUTCH-27": "Stephen Curry 10%",
   "KXNBAEFINMVP-27": "Tyrese Maxey 20%",
   "KXNBAEXEC-27": "Zach Kleiman 41%",
-  "KXNBAMIMP-27": "Ty Jerome 34%",
-  "KXNBACENTRAL-26": "Detroit 66%"
+  "KXNBACENTRAL-26": "Detroit 69%",
+  "KXNBAMIMP-27": "Ty Jerome 34%"
  }
 }
