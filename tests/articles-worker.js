@@ -6,6 +6,7 @@
 import fs from "node:fs";
 import { orderFive, parseLineups, diff as lineupDiff, lastStarters, lineupEmbed, lineupCheck, feedTime, espnStarters, feedDue, suspicion, timingEmbed, lineupContext, parseBoxStarters } from "../cloudflare/lineups.js";
 import { dueAt, dueNow, digestCheck } from "../cloudflare/digest.js";
+import { buzzPayloads, buzzCheck } from "../cloudflare/buzz.js";
 import { TEAM_FEEDS, teamFeedGroup, findLiveBlog, parseLiveBlog, LIVE_FEED } from "../cloudflare/articles-worker.js";
 import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey, voteKey, tagOf as articleTag, embedFor, titleKey } from "../cloudflare/articles-worker.js";
 
@@ -405,6 +406,30 @@ export async function articlesChecks(ok) {
       articlesWorker.scheduled({ cron: "*/5 * * * *", scheduledTime: T("09:00") }, env3, { waitUntil: (p) => wait.push(p) });
       await Promise.all(wait).catch(() => {});
       ok(lineupsOnly === "" && ran.includes("state") && !ran.includes("lineups"), "articles: the 5-minute schedule runs the articles check, the 1-minute one the lineups check", JSON.stringify([lineupsOnly, ran]));
+    } finally { globalThis.fetch = realFetch; }
+  }
+  // 0.186.0: the morning buzz check (cloudflare/buzz.js): a new report in docs/data/buzz.json goes to #alerts once.
+  {
+    const rep = { id: "2026-11-29", date: "2026-11-29", generatedAt: "2026-11-29T13:20:00Z", searched: ["NBA.com recap", "ESPN"], summary: "Two of four checked out.",
+      items: [{ claim: "Hart hasn't scored in double figures since 10/25", player: "Josh Hart", team: "NYK", source: "Flashscore", url: "https://www.flashscore.com/x", verdict: "out of date", ours: "n/a", note: "11, 10 and 15 on 11/19, 11/22, 11/25" },
+        { claim: "Tatum 6-25 in his last six 4th quarters", player: "Jayson Tatum", source: "Kalshi NBA", verdict: "true", ours: "found", note: "on the Streaks page since 0.185.0" },
+        { claim: "@everyone ten straight 30-5-5 games", player: "Luka Dončić", source: "NBA.com", url: "javascript:alert(1)", verdict: "true", ours: "missed", note: "our streak list has no 30-5-5", cut: "a streak of games with 30, 5 and 5" },
+        { claim: "a wrong one", source: "X", verdict: "wrong", ours: "n/a" }] };
+    const p = buzzPayloads(rep), c = p.map((x) => x.content).join("\n");
+    ok(p.length === 1 && c.startsWith("📰 **Buzz check · Sun, Nov 29** · 4 stats from the night's coverage: 2 true, 1 out of date, 1 wrong · **1 our checks didn't find**") && c.indexOf("🆕 **missed**") < c.indexOf("❌") && c.indexOf("❌") < c.indexOf("🕓")
+      && !/@everyone/.test(c) && !/javascript:/.test(c) && /<https:\/\/www\.flashscore\.com\/x>/.test(c) && p[0].allowed_mentions.parse.length === 0 && p.every((x) => x.content.length < 2000),
+      "buzz (0.186.0): the report as one #alerts message: the counts, then what our checks missed, the wrong, the out of date, the rest; no pings, no preview, only web links", c);
+    const big = buzzPayloads({ ...rep, items: Array.from({ length: 30 }, (_, i) => ({ claim: "x".repeat(250), source: "s", verdict: "true", ours: "found", note: "n".repeat(250) })) });
+    ok(big.length > 1 && big.every((x) => x.content.length < 2000), "buzz (0.186.0): a long report is split under Discord's 2,000 characters");
+    const kv = new Map(), posts = []; let served = rep;
+    const env = { ALERTS_WEBHOOK: "https://discord.com/api/webhooks/9/test-b", STATE: { get: async (k) => (kv.has(k) ? JSON.parse(kv.get(k)) : null), put: async (k, v) => kv.set(k, v) } };
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async (u, o = {}) => { u = String(u); if (u.includes("docs/data/buzz.json")) return new Response(JSON.stringify(served), { status: 200 }); if (u.startsWith("https://discord.com/")) { posts.push(JSON.parse(o.body)); return new Response("{}", { status: 200 }); } return new Response("", { status: 404 }); };
+    try {
+      const at = Date.parse("2026-11-29T13:37:00Z"), r0 = await buzzCheck(env, at - 60e3), r1 = await buzzCheck(env, at), r2 = await buzzCheck(env, at + 600e3);
+      served = { ...rep, id: "2026-11-27", generatedAt: "2026-11-27T13:00:00Z" }; const r3 = await buzzCheck(env, at + 1200e3);
+      ok(r0.skipped === "not this minute" && r1.posted === 1 && r2.skipped === "already sent" && r3.skipped === "too old" && posts.length === 1 && posts[0].username === "NBA Command Center · Buzz check",
+        "buzz (0.186.0): read every 10 minutes; a new report posts once; an old one (36+ hours) is marked and not posted", JSON.stringify([r0, r1, r2, r3]));
     } finally { globalThis.fetch = realFetch; }
   }
   // Storylines digest to #alerts (cloudflare/digest.js): early games 2 hours before tip, the rest at 2 PM ET, never after tip.

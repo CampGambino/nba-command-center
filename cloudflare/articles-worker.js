@@ -28,6 +28,7 @@
  */
 import { lineupCheck } from "./lineups.js";
 import { digestCheck } from "./digest.js";
+import { buzzCheck } from "./buzz.js";   // 0.186.0: the morning buzz check to #alerts
 import { handleVotes, SITE } from "./votes.js";
 import { handleHeadlines } from "./headlines.js";
 import { healthCheck } from "./health.js";
@@ -553,7 +554,7 @@ export default {
       if (teamFeedGroup(minute).length) await check(env, at, { feeds: teamFeedGroup(minute) });
       if (minute % 5 === 3) await check(env, at, { feeds: [LIVE_FEED] });
     };
-    ctx.waitUntil(event.cron === ARTICLES_CRON ? check(env) : Promise.allSettled([lineupCheck(env, at), digestCheck(env, at), articles(), healthCheck(env, at)]));
+    ctx.waitUntil(event.cron === ARTICLES_CRON ? check(env) : Promise.allSettled([lineupCheck(env, at), digestCheck(env, at), articles(), healthCheck(env, at), buzzCheck(env, at)]));
   },
   async fetch(req, env) {
     const url = new URL(req.url);

@@ -2,6 +2,19 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.186.0 (2026-11-28): the morning buzz check goes to #alerts
+
+The user, 11/28, 12:03 PM: "are you able to scan reddit/r/nba or nba twitter to locate possible trends worth tracking? … what can you find without my say so, or are you entirely dependant on what I ask you to search?" Answered (Reddit and X can't be reached from here, and X's API isn't free; web search reaches the coverage where those stats end up) and offered a daily scheduled task. 12:07 PM: "scheduled task can go to discord".
+
+**How it works**
+- **A scheduled task** (a Claude session that runs by itself each morning) searches the night's coverage, checks each stat in it against our data (true, out of date, wrong), says whether our checks had found it, and names the check that would have for the ones we missed. It writes a draft and runs **tools/buzz-report.mjs**, which checks the draft's shape and writes docs/data/buzz.json and history/buzz/<date>.json, committed with [data] like the rotations pull.
+- **The Worker posts it to #alerts** (new cloudflare/buzz.js, on its one-minute schedule, reading the report every 10 minutes): once a report, the ones we missed first, then the wrong, the out of date and the rest; no pings, no link previews, only web links; split under Discord's 2,000 characters; a report more than 36 hours old is not posted. The webhook stays in Cloudflare (ALERTS_WEBHOOK); the task never sees it.
+- The task changes no code. New checks for what it finds are built in a session with the user.
+
+**Checked.** tests/run.js: 1,020 passed, 0 failed (4 new: the message, a long report split, posting once and not an old report, the draft's checks and the wiring). tests/articles-only.js: 104 passed.
+
+**Self-audit.** (1) The report is public in the repo (docs/data, history): claims are in the task's own words, with links, nothing private. (2) Reddit threads come in only when a web search finds them. (3) Deployed at midday, not while a slate's lineups were coming in.
+
 ## 0.185.0 (2026-11-28): stars' recent 4th quarters and clutch time against their own (the splits scan)
 
 The user, 11/28, 11:08 AM, with Kalshi's post "Jayson Tatum in the 4th Quarter of his last 6 games: 3.7 PPG, 24.0 FG% (6-25 FG), 7.7 3PT% (1-13 3PT), 60.0 FT% (9-15 FT)": "were stats like this sliced up never checked? It's a good representation of the type of ways to cut up data that is noteable, relevant, and I may not have mentioned to find but we have all the data to be checking for this kind of dropoff for a star player. what do you need to make searches for stuff I didn't ask and present it because it resonates"

@@ -6962,6 +6962,17 @@ await bridgeChecks(ok, root);
     "splits (0.185.0): the build writes docs/data/splits.json and puts tonight's teams' lines in the briefing (one a game); the home page and the Streaks page show them");
 }
 
+// ---------- 0.186.0: the morning buzz check (tools/buzz-report.mjs; cloudflare/buzz.js posts it) ----------
+{
+  const { checkDraft } = await import("../tools/buzz-report.mjs");
+  const good = { date: "2026-11-28", searched: ["NBA.com recap"], items: [{ claim: "Tatum 6-25 in his last six 4th quarters", source: "Kalshi NBA", verdict: "true", ours: "found", note: "on the Streaks page" }, { claim: "Luka ten straight 30-5-5", source: "NBA.com", verdict: "true", ours: "missed", note: "not in our streaks", cut: "a 30-5-5 streak" }] };
+  const bad = checkDraft({ date: "11/28", items: [{ claim: "x", verdict: "maybe", ours: "yes", url: "ftp://x" }, { claim: "a long enough claim", source: "s", verdict: "true", ours: "missed", note: "n" }] });
+  const w = fs.readFileSync(path.join(root, "cloudflare", "articles-worker.js"), "utf8");
+  ok(checkDraft(good).length === 0 && bad.some((b) => /date/.test(b)) && bad.some((b) => /verdict/.test(b)) && bad.some((b) => /ours/.test(b)) && bad.some((b) => /url/.test(b)) && bad.some((b) => /needs cut/.test(b))
+    && /import \{ buzzCheck \} from "\.\/buzz\.js"/.test(w) && /healthCheck\(env, at\), buzzCheck\(env, at\)\]/.test(w),
+    "buzz (0.186.0; the user, 11/28: \"scheduled task can go to discord\"): the scheduled task's draft is checked before it is written (date, verdict, ours, a web link, the check a missed one needs); the Worker reads the report every 10 minutes and posts a new one to #alerts");
+}
+
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });
 const brief = (m) => [m.player, m.kind, m.stat, m.scope, m.current, m.target, m.need, m.status, m.passing?.player || ""].join(" | ");
