@@ -56,6 +56,10 @@
  *       Live's own QUARTER EXPLOSION card is up for a quarter, the season place and list are added to that card (its
  *       all-time list stays) and the separate season card is not fired; it shows only where NBA Live has no card.
  *       This is the one place the bridge adds to a card of NBA Live's: two fields, on its way through fireStory.
+ *     - (v41, 0.179.0; the user, 11/28, of "Nikola Jokic — 15 assists by a center · The 39th since 1993-94": "jokic is
+ *       the outlier for center assist odd line … recalibrate where to start the alert for jokic") an out-of-role odd line
+ *       a player makes a habit of starts at his own bar (oddlive.json `own`, from the build): Jokić's at 18 assists.
+ *       The small print is then his own count ("his 6th game of 18+ (career high 19)").
  *     - (v40, 0.178.0; the user, 11/27, of Trey Murphy III's 6 steals as "CUP LIST … tied for the 4th-most" and
  *       "1 FROM THE CUP RECORD": "these are the same thing") a game that is on the Cup's or the playoffs' single-game
  *       list AND inside the countdown to its record is one card, the countdown, with his place on the list in it and
@@ -170,7 +174,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 40;
+  var VERSION = 41;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -458,6 +462,7 @@ const sentence = (h, history) => `${h.say}. ${note(h, history)}`.trim();
 /** 0.142.4 (the user, 11/22: "the explanation has way too much text"): the card's few words; the rest is on its back.
  *  "about 23 a season" · "the 10th since 1993-94" · "the first since 1993-94" */
 function shortNote(h, from = "1993-94") {
+  if (h.own) return `his ${ord(h.own.times + 1)} game of ${h.own.start}+${h.own.high ? ` (career high ${h.own.high})` : ""}`;
   if (h.grade == null) return "";
   if (h.before === 0) return `the first since ${from}`;
   if (h.before <= ODD.nth) return `the ${ord(h.before + 1)} since ${from}`;
@@ -596,21 +601,58 @@ const LATE = ["noft", "ftshare", "nofg", "all3", "ofg", "o3", "brick", "perfg", 
 const LATE_SECS = 300;
 const liveKind = (id) => (GROW.includes(id) ? "grow" : "late");
 
+/* ---------------------------------------------------------------------------------------------------------------
+ * 0.179.0: a player's own bar on a line he makes a habit of (the user, 11/28, of "Nikola Jokic (DEN) — 15 assists by a
+ * center · The 39th since 1993-94": "jokic is the outlier for center assist odd line. i think the alerts start around
+ * 12 for a center. recalibrate where to start the alert for jokic"). He had 37 of the 38 before it, and 12 or more in
+ * 68 of his 214 games of the last three seasons: for him it is a normal night.
+ *
+ * For the four lines that are one number out of role for a position (OWN_BAR.by): a player who has reached the line's
+ * first level more than OWN_BAR.times times in the last OWN_BAR.seasons seasons and this one has made it a habit, and his card
+ * starts at the lowest number he has reached OWN_BAR.times times or fewer in that span. Everyone else starts where the
+ * line does. The two numbers are mine: "more than about twice a season".
+ *   games: { id: [{ d, reb, ast, blk, fg3m }] } every regular-season game of his career · pos: { id: ESPN's label }
+ *   since: the first day of the span ("2023-10-01" in 2026-27)
+ * -> { id: { cast: [start, times he has reached it in his career, his career high] } }, only for players with a habit
+ */
+const OWN_BAR = { seasons: 3, times: 6, by: { greb: "reb", cast: "ast", gblk: "blk", c3: "fg3m" } };
+function ownBars({ games = {}, pos = {}, since = "" } = {}) {
+  const out = {}, zero = { min: 30, pts: 0, fgm: 0, fga: 0, fg3m: 0, fg3a: 0, ftm: 0, fta: 0, oreb: 0, dreb: 0, reb: 0, ast: 0, stl: 0, blk: 0, tov: 0, pf: 0, starter: 1 };
+  for (const [id, gs] of Object.entries(games)) {
+    const grp = posGroup(pos[id]);
+    if (!grp || !Array.isArray(gs) || !gs.length) continue;
+    for (const t of TEMPLATES) {
+      const stat = OWN_BAR.by[t.id], base = stat ? Number(t.levels[0].k) : NaN;
+      if (!stat || !(base > 0) || !t.levels[0].test({ ...zero, [stat]: base }, { pos: grp, avg: null })) continue;   // not his position's line
+      const recent = gs.filter((g) => g.d >= since), at = (n, list) => list.filter((g) => g[stat] >= n).length;
+      if (at(base, recent) <= OWN_BAR.times) continue;
+      let start = base;
+      while (at(start, recent) > OWN_BAR.times) start++;
+      (out[id] ??= {})[t.id] = [start, at(start, gs), gs.reduce((a, g) => Math.max(a, g[stat] || 0), 0)];
+    }
+  }
+  return out;
+}
+
 /**
  * For one live line: one hit a template (the rarest level it passes), with how rare the class is.
  *   table: docs/data/oddlive.json's `t`: { "id.k": [times before today, per season lately, last name, last date] }
  * -> [{ id, key, f, live: "grow" | "late", what, say, grade, rate, before, last, note }], rarest first.
  */
-function liveHits(l, x, table, from = "1993-94") {
+function liveHits(l, x, table, from = "1993-94", own = null) {
   const best = {};
   for (const h of matchLine(l, x)) {
+    // 0.179.0: a line this player makes a habit of starts at his own bar (see ownBars)
+    const bar = own && own[h.id] && OWN_BAR.by[h.id] ? own[h.id] : null;
+    if (bar && !(l[OWN_BAR.by[h.id]] >= bar[0])) continue;
+    if (bar) h.own = { start: bar[0], times: bar[1], high: bar[2] };
     const e = table?.[h.key] || null, cand = { ...h, rate: e ? e[1] : 0, before: e ? e[0] : 0, grade: e ? gradeOf(e[1]) : null, last: e && e[2] ? [e[2], e[3]] : null, recent: e && Array.isArray(e[4]) ? e[4] : [] };
     if (!best[h.id] || rarer(cand, best[h.id])) best[h.id] = cand;
   }
   return Object.values(best).map((h) => ({ ...h, live: liveKind(h.id), note: note(h, { from }) }))
     .sort((a, b) => GRADES.indexOf(a.grade ?? "common") - GRADES.indexOf(b.grade ?? "common") || a.rate - b.rate || a.before - b.before);
 }
-    return { ODD, GRADES, FAMILY, TEMPLATES, TOV_PF, NO_TOV_PF, LATE_NAMES, posGroup, matchLine, rateOf, gradeOf, STARTERS, oddNights, note, sentence, shortNote, RUN_MIN, RUN_MAX, RUNS, runLengths, OWN, oddWatch, GROW, LATE, LATE_SECS, liveKind, liveHits };
+    return { ODD, GRADES, FAMILY, TEMPLATES, TOV_PF, NO_TOV_PF, LATE_NAMES, posGroup, matchLine, rateOf, gradeOf, STARTERS, oddNights, note, sentence, shortNote, RUN_MIN, RUN_MAX, RUNS, runLengths, OWN, oddWatch, GROW, LATE, LATE_SECS, liveKind, OWN_BAR, ownBars, liveHits };
   })();
   var RARE_RULES = (function () {
 /**
@@ -1901,7 +1943,7 @@ function teamStake(t, g) {
         var a = (O.avg || {})[String(p.id)], x = { pos: R.posGroup((O.pos || {})[String(p.id)]), avg: a ? { pts: a[0], reb: a[1], ast: a[2] } : null };
         // One card a player: his rarest line that may be said now is the headline, any others follow in the small print.
         var key = "cc-odd-" + game.id + "-" + p.id;
-        var hits = R.liveHits(l, x, O.t, O.from).filter(function (h) {
+        var hits = R.liveHits(l, x, O.t, O.from, (O.own || {})[String(p.id)] || null).filter(function (h) {
           if (ODD_SKIP[h.id]) return false;
           var own = ODD_OWN[h.id] && typeof ALERT_STORIES !== "undefined" && ALERT_STORIES.get(ODD_OWN[h.id] + game.id + "-" + p.id);
           return (h.live === "grow" || closing) && !(own && !own.ended);

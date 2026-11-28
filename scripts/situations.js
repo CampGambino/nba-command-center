@@ -732,7 +732,23 @@ for (const [tri, games] of Object.entries(perTeam)) {
         t[k] = [e.n + (mine?.n || 0), Math.round((e.l5 / ODD.recent) * 10) / 10, last ? last[0] : null, last ? last[1] : null, recent];
       }
       for (const [id, gs] of Object.entries(pgBefore)) { const n = gs.length; if (n >= ODD.games) avg[id] = [r2(gs.reduce((a, g) => a + g.pts, 0) / n), r2(gs.reduce((a, g) => a + g.reb, 0) / n), r2(gs.reduce((a, g) => a + g.ast, 0) / n), n]; }
-      if (history) fs.writeFileSync(path.join(root, "docs", "data", "oddlive.json"), JSON.stringify({ v: 1, generatedAt: out.generatedAt, before: today, from: history.from, games: history.games, t, avg, pos: rosterPos }));
+      // 0.179.0: a player's own bar on a line he makes a habit of (Jokić's assists as a center), from every regular-season
+      // game of his career (the career logs) and this season's games before today
+      let own = {};
+      try {
+        const { ownBars, OWN_BAR } = await import("../src/situations/oddlines.js"), career = (await pastLogs()).career;
+        if (career) {
+          const games = {};
+          for (const id of Object.keys(rosterPos)) {
+            const past = (career.players?.[id] || []).map((r) => ({ d: r[0], reb: r[7], ast: r[8], blk: r[10], fg3m: r[11] }));
+            const now = (pgBefore[id] || []).map((g) => ({ d: g.d, reb: g.reb, ast: g.ast, blk: g.blk, fg3m: g.fg3m }));
+            if (past.length + now.length) games[id] = [...past, ...now];
+          }
+          own = ownBars({ games, pos: rosterPos, since: `${Number(today.slice(0, 4)) - (Number(today.slice(5, 7)) >= 8 ? 0 : 1) - OWN_BAR.seasons}-10-01` });
+          console.log(`odd lines, own bars: ${Object.keys(own).length} players (${Object.entries(own).slice(0, 12).map(([id, o]) => `${NAMES[id] || id} ${Object.entries(o).map(([k, v]) => `${k} ${v[0]}`).join(" ")}`).join("; ")})`);
+        }
+      } catch (e) { console.error(`odd lines, own bars: ${e.message}`); }
+      if (history) fs.writeFileSync(path.join(root, "docs", "data", "oddlive.json"), JSON.stringify({ v: 1, generatedAt: out.generatedAt, before: today, from: history.from, games: history.games, t, avg, pos: rosterPos, own }));
       console.log(`odd lines, live file: ${Object.keys(t).length} levels, averages for ${Object.keys(avg).length} players`);
     } catch (e) { console.error(`odd lines, live file: ${e.message}`); }
     // 0.141.17: rare combinations for NBA Live (src/situations/linerare.js; the user, 11/21: "flagging this stuff in real time",

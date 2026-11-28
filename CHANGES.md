@@ -2,6 +2,20 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.179.0 (2026-11-28, bridge v41): an out-of-role odd line a player makes a habit of starts at his own bar
+
+The user, 11/28, 12:20 AM, with the NBA Live card "🧩 ODD LINE: Nikola Jokic (DEN) — 15 assists by a center · The 39th since 1993-94": "jokic is the outlier for center assist odd line. i think the alerts start around 12 for a center. recalibrate where to start the alert for jokic". Yes, 12 (then 15). And he is the list: 37 of the 38 games of 15+ before tonight were his, and he had 12 or more in 68 of his 214 games of the last three seasons (15+ in 24, 17+ in 8, 18+ in 4).
+
+- **A player's own bar** (src/situations/oddlines.js `ownBars`, `OWN_BAR`): for the four odd lines that are one number out of role for a position (a center's assists and threes, a guard's rebounds and blocks), a player who has reached the line's first level more than 6 times in the last three seasons and this one has made it a habit. His card starts at the lowest number he has reached 6 times or fewer in that span. Everyone else starts where the line does. **The 6 is mine** ("more than about twice a season").
+- **Jokić's card now starts at 18 assists** (5 such games in his career; high 22). Tonight's 15 would not have carded.
+- The same rule moves four others today: Josh Hart's rebounds as a guard start at 18 (was 15), Luka Dončić's and Josh Giddey's at 16, Naz Reid's threes as a center at 7 (was 6).
+- **When he gets there the small print is his own count**: "his 6th game of 18+ (career high 22)" in place of "the 39th since 1993-94". The back of the card still has the league's count and latest names.
+- The build writes the bars into oddlive.json (`own`), from every regular-season game of each player's career (the career logs) and this season's games before today; the bridge (v41) hands the player's to the rule. The site's copy of the rules (docs/lib) and the bridge's bundled copy are the same module.
+
+**Checked.** tests/run.js: 995 passed, 0 failed (two new: a made-up center with the habit, one without, a guard with the same nights; the wiring from the build to the bridge). The bars computed on the real files and read (above); Jokić's line tried at 15, 17, 18 and 20 assists: no card, no card, card, card. Old and new builds on the same files: one more line in the log (the five bars), and oddlive.json the only output that differs.
+
+**Self-audit.** (1) 18 is high: his career high is 22 and he has been there five times, so his card is now close to a career night. With 9 in place of 6 it would start at 17. One number to change. (2) The website's odd-lines list (Streaks page) is not changed: Jokić's 15 is still listed there, graded and counted, as every night's lines are. Only the live card moved. (3) Naz Reid and Josh Giddey are just over the line (9 and 7 games in the span); a rule with a cut has edges. (4) A player's position is ESPN's label today, applied to his whole career. (5) Not seen in NBA Live: the rule's own tests and the harness only. (6) 0.177.0 (the #lineups order) is still held for 12:45 AM.
+
 ## 0.178.0 (2026-11-27, bridge v40): on the Cup's list and one from its record is one card
 
 The user, 11/27, 11:43 PM, with two NBA Live cards for Trey Murphy III in NO @ LAC at 90-85, "🏆 CUP LIST: 6 steals: tied for the 4th-most in a game on the NBA Cup's list (6 games of 6+)" and "👀 1 FROM THE CUP RECORD: 6 steals, 1 from the NBA Cup single-game record (7, Jeremiah Fears, Nov. 14, 2025)": "these are the same thing".

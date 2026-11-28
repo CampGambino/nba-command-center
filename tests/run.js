@@ -6714,6 +6714,28 @@ await bridgeChecks(ok, root);
     "");
 }
 
+// ---------- 0.179.0 (bridge v41): an out-of-role odd line a player makes a habit of starts at his own bar ----------
+{
+  const O = await import("../src/situations/oddlines.js");
+  const g = (d, ast, reb = 5) => ({ d, ast, reb, blk: 0, fg3m: 0 });
+  // a center with 12+ assists in 9 of his last 20 games, 15+ in 7, 16+ in 5 (and an 18 in 2019); another with two such games; a guard who passes
+  const habit = [...Array(11).fill(0).map((_, i) => g(`2024-01-${String(i + 1).padStart(2, "0")}`, 6)), g("2024-02-01", 12), g("2024-02-02", 13), g("2024-02-03", 15), g("2024-02-04", 15), g("2024-02-05", 16), g("2024-02-06", 16), g("2024-02-07", 17), g("2024-02-08", 17), g("2024-02-09", 19)];
+  const own = O.ownBars({ games: { c1: [g("2019-03-01", 18), ...habit], c2: [g("2024-01-05", 12), g("2024-01-09", 14), g("2024-03-01", 4)], g1: habit }, pos: { c1: "C", c2: "C", g1: "PG" }, since: "2023-10-01" });
+  const line = (ast) => ({ min: 34, pts: 17, fgm: 6, fga: 12, fg3m: 1, fg3a: 3, ftm: 4, fta: 4, oreb: 2, dreb: 7, reb: 9, ast, stl: 1, blk: 0, tov: 3, pf: 2, starter: 1 });
+  const table = { "cast.12": [158, 19.6, "A", "2026-11-22", []], "cast.15": [38, 6.2, "B", "2026-03-25", []] };
+  const hit = (ast, bar) => O.liveHits(line(ast), { pos: "C", avg: null }, table, "1993-94", bar).find((h) => h.id === "cast");
+  const at15 = hit(15, own.c1), at16 = hit(16, own.c1), at17 = hit(17, own.c1), other = hit(15, null);
+  ok(JSON.stringify(own) === JSON.stringify({ c1: { cast: [16, 6, 19] } })
+    && !at15 && at16?.say === "16 assists by a center" && at17?.say === "17 assists by a center" && O.shortNote(at17, "1993-94") === "his 7th game of 16+ (career high 19)"
+    && other?.say === "15 assists by a center" && O.shortNote(other, "1993-94") === "the 39th since 1993-94" && O.OWN_BAR.times === 6 && O.OWN_BAR.seasons === 3,
+    "odd lines, a player's own bar (0.179.0; the user, 11/28, of \"Nikola Jokic (DEN) — 15 assists by a center · The 39th since 1993-94\": \"jokic is the outlier for center assist odd line. i think the alerts start around 12 for a center. recalibrate where to start the alert for jokic\"): a center who has had 12+ assists more than 6 times in the last three seasons starts at the lowest number he has reached 6 times or fewer in that span, and the card then counts his own games at it; a center with two such games, and a guard with the same nights, start where the line does; any other center's 15 is still the 39th since 1993-94",
+    JSON.stringify({ own, at15: !!at15, at16: !!at16, at17: at17 && O.shortNote(at17), other: other && O.shortNote(other) }));
+  const br = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");
+  ok(/R\.liveHits\(l, x, O\.t, O\.from, \(O\.own \|\| \{\}\)\[String\(p\.id\)\] \|\| null\)/.test(br) && /ownBars\(\{ games, pos: rosterPos, since:/.test(fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8")),
+    "odd lines, a player's own bar reaches NBA Live (bridge v41): the build writes each habit's bar into oddlive.json (`own`) and the bridge hands the player's to the rule",
+    "");
+}
+
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });
 const brief = (m) => [m.player, m.kind, m.stat, m.scope, m.current, m.target, m.need, m.status, m.passing?.player || ""].join(" | ");
