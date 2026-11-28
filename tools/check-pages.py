@@ -11,7 +11,7 @@ import asyncio, os, subprocess, sys, time
 from playwright.async_api import async_playwright
 
 DOCS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "docs")
-PAGES = ["index.html", "player.html", "player.html?p=Victor%20Wembanyama", "situations.html", "standings.html", "standings.html#rest", "clutch.html", "clutch.html?mode=q4", "clutch.html?mode=l2m", "players.html?team=SAS", "lineups.html", "lineups.html?team=BOS", "players.html?a=3936299&b=3112335",
+PAGES = ["index.html", "player.html", "player.html?p=Victor%20Wembanyama", "situations.html", "standings.html", "standings.html#rest", "clutch.html", "clutch.html?mode=q4", "clutch.html?mode=l2m", "players.html?team=SAS", "lineups.html", "lineups.html?team=BOS", "lineups.html?team=league", "players.html?a=3936299&b=3112335",
          "trends.html", "leaders.html", "defenses.html", "defenses.html?by=defense", "defenses.html?view=players", "defenses.html?view=thirty", "defenses.html?view=highs", "defenses.html?view=types", "national.html", "gameflow.html", "gameflow.html?view=range", "gameflow.html?game=401909979", "records.html",
          "find.html", "records.html#reach", "records.html#lists", "records.html#franchise", "records.html#season", "records.html#cup", "records.html#book", "records.html#checks"]
 CHROME = "/usr/bin/google-chrome"

@@ -49,7 +49,7 @@ for (const g of games) {
     const file = r.version ? versionPath(dataDir, team, r.version) : null;
     const buf = file && fs.existsSync(file) ? fs.readFileSync(file) : null;
     console.log(`  ${team.padEnd(3)} notes: ${r.status}${r.why ? ` (${r.why})` : ""}${r.error ? ` (${r.error})` : ""}`);
-    entries.push({ team, opp, home: team === g.homeTri, buf, notes: { status: r.status, why: r.why, error: r.error, ...(r.misprint ? { misprint: r.misprint } : {}) } });
+    entries.push({ team, opp, home: team === g.homeTri, buf, notes: { status: r.status, why: r.why, error: r.error, gameDate: r.meta?.gameDate || null, ...(r.misprint ? { misprint: r.misprint } : {}) } });
   }
 }
 // 0.140: the milestone chances' recalibration, fitted to every scored call on file (history/calls.jsonl).
@@ -72,7 +72,7 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
   const { readPdf } = await import("../src/notes/pdf-layout.js");
   const { whoseNotes } = await import("../src/notes/meta.js");
   const { readHistory } = await import("../src/notes/narrative.js");
-  const { annotate, trimLines, staleCount, checkGamesPlayed, closedEvent, agedShare, SHELF, reach, farShare } = await import("../src/notes/facts.js");
+  const { annotate, trimLines, staleCount, staleReach, checkGamesPlayed, closedEvent, agedShare, SHELF, reach, farShare } = await import("../src/notes/facts.js");
   // 0.146.0: every active games-played run, as the last build counted it (docs/data/featlive.json, through last night)
   let gpRuns = null;
   try { gpRuns = JSON.parse(fs.readFileSync(path.join(root, "docs", "data", "featlive.json"), "utf8")).gpRuns || null; } catch { /* first build: no check */ }
@@ -189,6 +189,8 @@ if (off.length) console.log(`round numbers off the spacing (dropped): ${off.leng
         seen[k] ??= today;
         const isNew = seen[k] === today;
         if (!isNew) staleCount(l, seen[k], box);   // 0.113: a streak count printed unchanged while games went by
+        // 0.182.0: a countdown in the notes of an earlier game, against what he has done in that game and since
+        if (e.notes.status === "stale" && e.notes.gameDate && e.notes.gameDate < today) staleReach(l, e.notes.gameDate, box);
         const named = l.player && !l.guessed;
         // The learned scorer (src/data/fact-model.json) weighs in: 0.5 is neutral; a live hook (a race, a club to stay in) adds.
         const stale = l.hook?.stale;

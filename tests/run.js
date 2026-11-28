@@ -6820,6 +6820,58 @@ await bridgeChecks(ok, root);
     "0.181.0: Pacome Dadiet (10/23, never on the floor) is out of the hand-read file; the build reads the injury reports, then runs the played check, before anything is counted or saved; a game read under the proof rule is not re-marked from the hand file");
 }
 
+// ---------- 0.182.0: the lineups page across the league; a notes line that says "he" keeps its player; a countdown from
+// last game's notes against the box scores since ----------
+{
+  const { readHistory: RH } = await import("../src/notes/narrative.js"), BX = await import("../src/notes/boxscore.js"), FX = await import("../src/notes/facts.js");
+  const Ln = (text) => ({ text, cells: [{ x0: 40, x1: 560, cx: 300, text }], charX: [] });
+  const keys = ["starter", "min", "pts", "reb", "ast", "fg3m"], row = (pts, fg3m = 1) => [0, 25, pts, 4, 1, fg3m];
+  const players = [{ id: "1", name: "Tari Eason" }, { id: "2", name: "Fred VanVleet" }];
+  const box = { keys, names: { 1: "Tari Eason", 2: "Fred VanVleet" }, games: [["2026-10-23", 12, 114, 110], ["2026-10-24", 19, 121, 114], ["2026-10-30", 11, 111, 116], ["2026-11-02", 5, 109, 93], ["2026-11-09", 12, 110, 100]].map(([d, pts, pf, pa]) => ({ d, opp: "PHX", home: true, pf, pa, pl: { 1: row(pts), 2: row(20) } })) };
+  // Houston's page 1, 11/28/26: Tari Eason's box, with a sentence that opens with the team and says "he".
+  const doc = (said) => ({ pages: [{ page: 1, width: 612, lines: [Ln("6th Man  #17 Tari Eason  6-8/217 • 5/10/01 • Louisiana State/USA • 5th season (5th w/HOU)"),
+    Ln(`Over the past 3 games, shooting 45.5% from 3-point range after shooting 23.3% the first 2 games… Rockets are ${said} when he scores 10+ points this season… has a total of 6 rebounds over the past 2 games after averaging 7.0 rpg the 3 games prior.`),
+    Ln("Houston is 4-1 when leading after three quarters of play this season and 0-2 when tied or trailing.")] }] });
+  const opts = { seasonStart: "2026-10-01", today: "2026-11-10", teamWords: ["Houston", "Rockets"], oppWords: ["Philadelphia", "76ers"], box };
+  const right = RH(doc("3-1"), players, opts), wrong = RH(doc("4-1"), players, opts), behind = RH(doc("2-1"), players, opts);
+  const his = (h) => h.find((x) => /when he scores/.test(x.text)), dropped = [];
+  const alone = RH({ pages: [{ page: 1, width: 612, lines: [Ln("Rockets are 9-1 when he scores 10+ points this season."), Ln("Houston is 9-1 when Ime Udoka plays his starters 30 minutes this season.")] }] }, players, { ...opts, dropped });
+  const flagged = FX.checkCounts([{ ...his(wrong) }, { ...his(behind) }]);
+  ok(his(right)?.player === "Tari Eason" && his(right).how === "bio" && !his(right).countCheck && right.find((x) => /^Houston is 4-1/.test(x.text))?.player === null
+    && his(wrong).countCheck?.said === "4-1" && his(wrong).countCheck.have === "3-1" && flagged[0].tag === "Count check" && /the notes say 4-1 when he has 10\+ points; the box scores have 3-1/.test(flagged[0].hook.text)
+    && /^The notes are behind: the box scores have the team 3-1 when he has 10\+ points this season, not 2-1\.$/.test(flagged[1].hook.text)
+    && !alone.some((x) => /when he scores/.test(x.text)) && dropped.some((d) => d.reason === "pronoun-no-player") && alone.some((x) => /Ime Udoka/.test(x.text)),
+    "notes (0.182.0; the user, 11/28, of \"HOU notes: Rockets are 9-1 when he scores 10+ points this season.\": \"this doesn't tell me who\"): a team-led sentence in a player's box that says \"he\" is his, and its record is set against his box scores (the same: it stands; different: flagged); the team's own line stays the team's; a \"he\" line with no player and nobody named is not shown; one that names someone is",
+    JSON.stringify({ right: right.map((x) => [x.player, x.how, x.text.slice(0, 40)]), wrong: his(wrong)?.countCheck, flagged: flagged.map((f) => f.hook?.text), alone: alone.map((x) => x.text), dropped: dropped.map((d) => d.reason) }));
+  const rw = (t) => { const r = BX.recordWhen(t); return r ? `${r.w}-${r.l} ${r.what}` : null; };
+  ok(rw("Rockets are 9-1 when he scores 10+ points this season") === "9-1 when he has 10+ points" && rw("Detroit is 5-0 when he records a double-double") === "5-0 when he has a double-double"
+    && rw("The Hawks are 7-2 when scoring in double figures") === "7-2 when he scores in double figures" && rw("4-1 when he has at least 8 assists") === "4-1 when he has 8+ assists"
+    && rw("Rockets were 30-5 when he scored 10+ points last season") === null && rw("Houston is 14-1 when leading by 10+ points this season") === null && rw("is 3-1 when he scores 10 points") === null
+    && rw("The team is 40-12 when he scores 20+ points in his career") === null && JSON.stringify(BX.recordInSeason(box, "1", (r, k) => r[k.pts] >= 10)) === '{"w":3,"l":1}' && BX.recordInSeason(box, "9", () => true) === null,
+    "notes (0.182.0): the team's record when he does something is read in the present tense with a bar (10+, at least 8, a double-double, double figures); a past-tense record, a career's, the team's own and a bare number are not read; the box scores count his games that clear the bar and who won them");
+
+  // Charlotte, 11/28/26: the notes for 11/25 say Brandon Miller is 3 threes from passing P.J. Washington Jr.; he made 4 that night.
+  const cha = { keys, names: { 7: "Brandon Miller" }, games: [["2026-11-23", 4, "MEM"], ["2026-11-25", 4, "CHI"]].map(([d, th, opp]) => ({ d, opp, home: true, pf: 100, pa: 110, pl: { 7: row(20, th) } })) };
+  const L = (text, o = {}) => ({ text, playerId: "7", player: "Brandon Miller", kind: "pass", tag: "7th in team history", ...o });
+  const done = FX.staleReach(L("Brandon Miller is 3 3-pointers made away from passing P.J. Washington Jr. for seventh-most in franchise history."), "2026-11-25", cha);
+  const part = FX.staleReach(L("Brandon Miller needs 30 points to pass Kemba Walker."), "2026-11-25", cha), far = FX.staleReach(L("Brandon Miller is 9 3-pointers away from 500."), "2026-11-23", cha);
+  const gp = FX.staleReach(L("Brandon Miller is 9 games away from 200 career games played."), "2026-11-25", cha);
+  const none = FX.staleReach(L("Brandon Miller is 3 3-pointers made away from passing P.J. Washington Jr."), "2026-11-26", cha), team = FX.staleReach({ text: "The Hornets need 2 wins to reach 1,500.", kind: "next" }, "2026-11-25", cha);
+  const tsrc = fs.readFileSync(path.join(root, "scripts", "tonight.js"), "utf8");
+  ok(done.tag === "Already done" && done.hook.stale === true && done.hook.text === "Out of date: these are the notes for 11/25. He needed 3, and he had 4 3-pointers on 11/25 (vs CHI): this is done." && done.text.startsWith("Brandon Miller is 3 3-pointers made away")
+    && part.hook.text === "The notes are behind: he had 20 points on 11/25 (vs CHI), so 10 to go." && !part.hook.stale && part.tag === "7th in team history"
+    && far.hook.text === "The notes are behind: he has had 8 3-pointers in 2 games since, so 1 to go." && gp.hook.text === "The notes are behind: he played on 11/25 (vs CHI), so 8 to go." && !none.hook && !team.hook
+    && /e\.notes\.status === "stale" && e\.notes\.gameDate && e\.notes\.gameDate < today\) staleReach\(l, e\.notes\.gameDate, box\)/.test(tsrc) && /gameDate: r\.meta\?\.gameDate \|\| null/.test(tsrc),
+    "notes (0.182.0; the user, 11/28, of \"Brandon Miller is 3 3-pointers made away from passing P.J. Washington Jr.\" from last game's notes: \"miller passed washington in the previous game\"): a countdown in the notes of a game since played is set against that game's box score and every one after: covered says done and is out of date, part of the way says what is left, the words stay the notes'; notes for a game not yet played and a team's line are left alone",
+    JSON.stringify({ done, part: part.hook, far: far.hook, none: none.hook }));
+
+  // The lineups page: every team's groups in one list.
+  const lu = fs.readFileSync(path.join(root, "docs", "lineups.html"), "utf8"), cp = fs.readFileSync(path.join(root, "tools", "check-pages.py"), "utf8");
+  ok(/<option value="\$\{LEAGUE\}">League \(every team\)<\/option>/.test(lu) && /\(!league && mine !== team\)/.test(lu) && /const key = `\$\{mine\}:\$\{ids\.join\("\|"\)\}`/.test(lu) && /team: mine/.test(lu)
+    && /<th class="num">#<\/th><th>Team<\/th>/.test(lu) && /across the league/.test(lu) && /i === 0 \? " selected" : ""/.test(lu) && /"lineups\.html\?team=league"/.test(cp),
+    "lineups page (0.182.0; the user, 11/28: \"can this page also have a league option to compare all lineups against each other?\"): League is in the team picker, counts each group under its own team, shows the place and the team, and the page still opens on the first team; the page check opens the league view");
+}
+
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });
 const brief = (m) => [m.player, m.kind, m.stat, m.scope, m.current, m.target, m.need, m.status, m.passing?.player || ""].join(" | ");

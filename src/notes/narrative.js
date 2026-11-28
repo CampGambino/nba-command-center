@@ -1,4 +1,4 @@
-import { checkLine, statClaims, thresholdClaims, meetsThresholds, seasonCounts, countInSeason } from "./boxscore.js";
+import { checkLine, statClaims, thresholdClaims, meetsThresholds, seasonCounts, countInSeason, recordWhen, recordInSeason } from "./boxscore.js";
 import { SEASON, SEASON_RE, SEASON_SHORT } from "../season.js";
 import { normStat, num } from "./stats.js";
 import { TEAMS } from "../teams.js";
@@ -555,6 +555,16 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
   });
   const lastCount = {};
   for (const p of full) lastCount[p.last.toLowerCase()] = (lastCount[p.last.toLowerCase()] || 0) + 1;
+  // 0.182.0: does the sentence name a person its "he" could be? A player of ours (full name, or a last name only one of
+  // them has), or any two capitalised words in a row once both teams' names are taken out (a coach, an opponent). Wide on
+  // purpose: when in doubt someone is named, and the line is left as it was.
+  const bothTeams = [...teamWords, ...oppWords].filter(Boolean).sort((a, b) => b.length - a.length).map(esc);
+  const someoneNamed = (t) => {
+    const x = plain(t);
+    if (full.some((p) => p.re.test(x) || (lastCount[p.last.toLowerCase()] === 1 && p.last.length >= 4 && new RegExp(`\\b${esc(p.last)}\\b`).test(x)))) return true;
+    const rest = bothTeams.length ? x.replace(new RegExp(`\\b(?:The\\s+)?(?:${bothTeams.join("|")})\\b`, "g"), " ") : x;
+    return /\p{Lu}[\p{Ll}'’]+\.?\s+\p{Lu}[\p{Ll}'’]+/u.test(rest);
+  };
   // The subject: the player's full name near the start (within 40 characters), or a sentence that opens
   // with his (unique) last name ("Mobley is...", "Jerome, who..."). A name later in the sentence is a
   // mention, not the subject ("...his teammates Matas Buzelis and Tyler Smith" is not about Tolu Smith).
@@ -851,7 +861,11 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       }
       // A sentence that opens with the team ("Cleveland is averaging…", "The Cavs 201 made triples…") is the team's,
       // even inside a player's box (0.65: two Cavs team stats were credited to Jarrett Allen).
-      if (!own && who && how !== "named" && teamRe && teamRe.test(plain(s))) { who = null; how = null; }
+      // 0.182.0 (the user, 11/28, of "HOU notes: Rockets are 9-1 when he scores 10+ points this season.", from Tari Eason's
+      // box on page 1: "this doesn't tell me who"): unless the sentence leans on him. A team-led sentence that says "he",
+      // "his" or "him" and names nobody is about the box's player, and stays his.
+      const leansOnHim = /\b(?:he|his|him)\b/.test(s) && !someoneNamed(s);
+      if (!own && who && how !== "named" && teamRe && teamRe.test(plain(s)) && !leansOnHim) { who = null; how = null; }
       // A coach's or front office's line on a player's page is not the player's.
       if (who && how !== "named" && how !== "heading" && /\b(?:coach\w*|his teams|under his|front office|general manager|GM|victories|wins (?:as|with)|\d+ wins\b)/i.test(s)) { drop("staff-line", s); continue; }
       // WHEN. Dates in the sentence decide; "since 1973-74" and "since 2015" are comparisons, not when.
@@ -909,6 +923,8 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
       const teamHead = !!topic;
       const team = !who && (teamHead || (teamRe && teamRe.test(plain(s))) || ((ctxHit || trendHit || tableLine || hist) && teamMid && teamMid.test(plain(s))) || they || (matchup && SERIES.test(s)));
       if (!who && !team) { drop("no-who", s); continue; }
+      // 0.182.0: and a line left with no player that still says "he" about nobody it names is not shown: it can't say who.
+      if (!who && /\b(?:he|his|him)\b/.test(s) && !someoneNamed(s)) { drop("pronoun-no-player", s); continue; }
       // 0.176.0 (the user, 11/27: "you have the game logs to check against such claims"): a count of his own games ("10
       // or more assists 14 times", "13 double-doubles", "in his 57 starts") is set against his box scores this season.
       // More than he has had: it is not this season's (dropped), unless the line itself says "this season" (kept and
@@ -925,6 +941,12 @@ export function readHistory(doc, players = [], { seasonStart = null, today = nul
         }
         if (over && !saysNow) { drop("count-not-this-season", s); continue; }
         if (over || under) { const c = over || under; countCheck = { said: c.said, have: c.have, what: c.what }; }
+      }
+      // 0.182.0: the team's record when he does something ("Rockets are 9-1 when he scores 10+ points this season") is a
+      // count of his games too, and the same box scores settle it. The same: it stands as checked. Different: flagged.
+      if (who && box && !countCheck) {
+        const rw = recordWhen(s), got = rw && recordInSeason(box, who.id, rw.test);
+        if (got && (got.w !== rw.w || got.l !== rw.l)) countCheck = { said: `${rw.w}-${rw.l}`, have: `${got.w}-${got.l}`, what: rw.what, record: true, behind: got.w + got.l > rw.w + rw.l };
       }
       const kind = fwd ? (PASSY.test(s) ? "pass" : "next") : hist ? "record" : ctxHit ? "context" : "trend";
       if (boxOld && !thisSeason && !CURRENT.test(s)) { drop("box-not-this-season", s); continue; }

@@ -797,6 +797,12 @@ export function checkCounts(lines) {
   for (const l of lines || []) {
     const c = l.countCheck;
     if (!c || l.hook) continue;
+    // 0.182.0: the team's record when he does something ("9-1 when he scores 10+ points")
+    if (c.record) {
+      if (c.behind) l.hook = { text: `The notes are behind: the box scores have the team ${c.have} ${c.what} this season, not ${c.said}.`, live: false };
+      else { l.tag = "Count check"; l.hook = { text: `Count check: the notes say ${c.said} ${c.what}; the box scores have ${c.have} this season.`, live: false }; }
+      continue;
+    }
     const what = c.what.replace(/^games with /, "games with ").replace(/(\d+)\+ (\w+)$/, (m, n, st) => `${n}+ ${({ pts: "points", reb: "rebounds", ast: "assists", stl: "steals", blk: "blocks", fg3m: "threes", oreb: "offensive rebounds" })[st] || st}`);
     if (c.said > c.have) { l.tag = "Count check"; l.hook = { text: `Count check: the notes say ${c.said} ${what}; the box scores have ${c.have} this season.`, live: false }; }
     else l.hook = { text: `The notes are behind: the box scores have ${c.have} ${what} this season, not ${c.said}.`, live: false };
@@ -1073,6 +1079,39 @@ const REACH_WORD = "((?:offensive |defensive |total |made |three-point |3-?pt )?
 const REACH_RE = [
   new RegExp(`\\b(\\d[\\d,]*) ${REACH_WORD} (?:short (?:of|from)|shy of|away from|from (?:tying|passing|reaching|becoming|moving|the\\b|his\\b|\\d))`, "i"),
   new RegExp(`\\bneeds? (?:just |only )?(\\d[\\d,]*) (?:more )?${REACH_WORD} (?:to|for)\\b`, "i")];
+/**
+ * 0.182.0 (the user, 11/28, of "Brandon Miller is 3 3-pointers made away from passing P.J. Washington Jr. for seventh-most
+ * in franchise history", from Charlotte's notes for 11/25, still up on 11/28: "miller passed washington in the previous
+ * game"; he made 4 that night). A countdown from notes printed for a game that has since been played is set against the
+ * box scores of that game and every one after it: what he needed, less what he has had. Covered: the line says it is
+ * done, and it is out of date (off the Watch List; it stays on the team's list with the flag). Part of the way: the line
+ * says what is left. The notes' words are not changed.
+ * notesDate: the game date printed on the notes; only for notes of an earlier game. Mutates and returns the line.
+ */
+export function staleReach(l, notesDate, box) {
+  if (!l || !notesDate || !box || !l.playerId || l.hook?.stale) return l;
+  const t = plain(l.text);
+  let m = null; for (const re of REACH_RE) { m = t.match(re); if (m) break; }
+  if (!m) return l;
+  const need = Number(m[1].replace(/,/g, "")), stat = REACH_STAT.find(([, re]) => re.test(m[2].trim()))?.[0];
+  if (!need || !stat || stat === "w") return l;
+  const k = Object.fromEntries((box.keys || []).map((x, i) => [x, i])), id = String(l.playerId);
+  if (stat !== "gp" && k[stat] == null) return l;
+  const since = (box.games || []).filter((g) => g.d >= notesDate && (g.pl?.[id]?.[k.min] > 0 || (g.z || []).includes(id)));
+  if (!since.length) return l;
+  const got = stat === "gp" ? since.length : since.reduce((a, g) => a + (g.pl[id][k[stat]] || 0), 0);
+  if (!got) return l;
+  const md = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}`, word = m[2].trim().replace(/\s+made$/i, ""), n = since.length;
+  const one = n === 1 ? `on ${md(since[0].d)} (${since[0].home ? "vs" : "at"} ${since[0].opp})` : null;
+  // what he has done since, in the notes' own word for it: "he had 4 3-pointers on 11/25 (vs CHI)", "he has played 2 games since"
+  const did = stat === "gp" ? (one ? `he played ${one}` : `he has played ${n} games since`) : one ? `he had ${got} ${got === 1 ? word.replace(/s$/, "") : word} ${one}` : `he has had ${got} ${got === 1 ? word.replace(/s$/, "") : word} in ${n} games since`;
+  l.reachNow = { need, got, left: Math.max(0, need - got), stat, since: n };
+  if (got >= need) {
+    l.tag = "Already done";
+    l.hook = { text: `Out of date: these are the notes for ${md(notesDate)}. He needed ${need}, and ${did}: this is done.`, live: false, stale: true };
+  } else if (!l.hook) l.hook = { text: `The notes are behind: ${did}, so ${need - got} to go.`, live: true };
+  return l;
+}
 /**
  * A countdown's distance: { need, stat, per (a game this season), games (need / per) }, or null when the line isn't one,
  * the stat isn't in the box scores, or he has played fewer than three games. A team's wins count against its record.

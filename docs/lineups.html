@@ -85,6 +85,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const md = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}`;
 const REG = 7200, OT = 3000, CLUTCH_FROM = 4 * REG - 3000;
 let D = null, K = 5, sortKey = "min", sortDir = -1, hSort = 2, hDir = -1;
+const LEAGUE = "*";                                                 // the team picker's value for every team
 const groups = (ids, k) => { const out = [], pick = (s, acc) => { if (acc.length === k) { out.push(acc); return; } for (let i = s; i < ids.length; i++) pick(i + 1, [...acc, ids[i]]); }; pick(0, []); return out; };
 const sg = (x) => (x > 0 ? "+" : "") + x;
 const f1 = (x) => (Number.isFinite(x) ? x.toFixed(1) : "–");
@@ -97,13 +98,15 @@ function cutOk(t0, t1, before, cut) {
 function rows() {
   const team = $("team").value, cut = $("cut").value, opp = $("opp").value, from = $("from").value, to = $("to").value;
   const who = $("who").value.trim().toLowerCase();
+  const league = team === LEAGUE;                                  // every team's groups in one list, each under its own team
   const U = new Map();
   for (const r of D.iv) {
     const g = D.games[r[0]], home = r[1] === 1, mine = home ? g[2] : g[3], them = home ? g[3] : g[2];
-    if (mine !== team || (opp && them !== opp) || (from && g[1] < from) || (to && g[1] > to) || !cutOk(r[2], r[3], r[11], cut)) continue;
+    if ((!league && mine !== team) || (opp && them !== opp) || (from && g[1] < from) || (to && g[1] > to) || !cutOk(r[2], r[3], r[11], cut)) continue;
     const on = r.slice(4, 9), sec = (r[3] - r[2]) / 10;
     for (const ids of K === 5 ? [on.slice().sort((a, b) => a - b)] : groups(on.slice().sort((a, b) => a - b), K)) {
-      const key = ids.join("|"), u = U.get(key) || { ids, sec: 0, pf: 0, pa: 0, g: new Set() };
+      // the team is part of the key: two players traded together are one pair with each team, not one pair across both
+      const key = `${mine}:${ids.join("|")}`, u = U.get(key) || { ids, team: mine, sec: 0, pf: 0, pa: 0, g: new Set() };
       u.sec += sec; u.pf += r[9]; u.pa += r[10]; u.g.add(r[0]); U.set(key, u);
     }
   }
@@ -111,18 +114,20 @@ function rows() {
   let list = [...U.values()].map((u) => ({ ...u, min: u.sec / 60, pm: u.pf - u.pa, gp: u.g.size })).filter((u) => u.min >= min);
   if (who) list = list.filter((u) => u.ids.some((i) => D.players[i][0].toLowerCase().includes(who)));
   for (const u of list) { u.net48 = u.min ? (u.pm * 48) / u.min : 0; u.off48 = u.min ? (u.pf * 48) / u.min : 0; u.def48 = u.min ? (u.pa * 48) / u.min : 0; }
-  list.sort((a, b) => sortDir * ((a[sortKey] ?? 0) - (b[sortKey] ?? 0)) || b.min - a.min);
+  list.sort((a, b) => sortDir * ((a[sortKey] ?? 0) - (b[sortKey] ?? 0)) || b.min - a.min || a.team.localeCompare(b.team));
   return list;
 }
 const COLS = [["gp", "Games"], ["min", "Min"], ["pf", "Pts for"], ["pa", "Pts against"], ["pm", "+/-"], ["off48", "For per 48"], ["def48", "Against per 48"], ["net48", "Net per 48"]];
 function render() {
-  const list = rows(), team = $("team").value;
+  const list = rows(), team = $("team").value, league = team === LEAGUE;
   const name = (i) => esc(D.players[i][0]);
-  $("t").innerHTML = `<tr><th>${K === 5 ? "Five on the floor" : `${K} together`}</th>${COLS.map(([k, l]) => `<th class="num sort${sortKey === k ? " on" : ""}" data-k="${k}">${l}${sortKey === k ? (sortDir < 0 ? " ▾" : " ▴") : ""}</th>`).join("")}</tr>`
-    + (list.length ? list.slice(0, 300).map((u) => `<tr><td class="who">${u.ids.map(name).join(" · ")}</td><td class="num">${u.gp}</td><td class="num">${f1(u.min)}</td><td class="num">${u.pf}</td><td class="num">${u.pa}</td>`
+  // The league view (the user, 11/28: "can this page also have a league option to compare all lineups against each other?
+  // currently, they are sortable only by team"): the same table over every team, with the place in the sort and the team.
+  $("t").innerHTML = `<tr>${league ? `<th class="num">#</th><th>Team</th>` : ""}<th>${K === 5 ? "Five on the floor" : `${K} together`}</th>${COLS.map(([k, l]) => `<th class="num sort${sortKey === k ? " on" : ""}" data-k="${k}">${l}${sortKey === k ? (sortDir < 0 ? " ▾" : " ▴") : ""}</th>`).join("")}</tr>`
+    + (list.length ? list.slice(0, 300).map((u, n) => `<tr>${league ? `<td class="num">${n + 1}</td><td>${esc(u.team)}</td>` : ""}<td class="who">${u.ids.map(name).join(" · ")}</td><td class="num">${u.gp}</td><td class="num">${f1(u.min)}</td><td class="num">${u.pf}</td><td class="num">${u.pa}</td>`
       + `<td class="num ${u.pm > 0 ? "hi" : u.pm < 0 ? "lo" : ""}">${sg(u.pm)}</td><td class="num">${f1(u.off48)}</td><td class="num">${f1(u.def48)}</td><td class="num ${u.net48 >= 10 ? "hi" : u.net48 <= -10 ? "lo" : ""}">${u.net48 > 0 ? "+" : ""}${f1(u.net48)}</td></tr>`).join("")
-      : `<tr><td colspan="9" class="empty">No ${K}-man group with that many minutes in this cut.</td></tr>`);
-  $("key").textContent = `${list.length} ${K}-man group${list.length === 1 ? "" : "s"} for ${team}${list.length > 300 ? " (the first 300 shown; raise the minutes to narrow)" : ""}. Click a column to sort.`;
+      : `<tr><td colspan="${league ? 11 : 9}" class="empty">No ${K}-man group with that many minutes in this cut.</td></tr>`);
+  $("key").textContent = `${list.length} ${K}-man group${list.length === 1 ? "" : "s"} ${league ? "across the league" : `for ${team}`}${list.length > 300 ? " (the first 300 shown; raise the minutes to narrow)" : ""}. Click a column to sort.`;
   document.querySelectorAll("#t th.sort").forEach((th) => th.onclick = () => { if (sortKey === th.dataset.k) sortDir = -sortDir; else { sortKey = th.dataset.k; sortDir = -1; } render(); });
 }
 const HC = ["Games", "Contested 2s", "Contested 3s", "Deflections", "Charges drawn", "Screen assists", "Screen-assist pts", "Loose balls", "Box-outs"];
@@ -139,13 +144,14 @@ function renderHustle() {
   try { D = await fetch("data/lineups.json", { cache: "no-store" }).then((r) => r.json()); }
   catch (e) { $("sub").textContent = "Couldn't load the lineups: " + e.message; return; }
   const teams = [...new Set(D.games.flatMap((g) => [g[2], g[3]]))].sort();
-  $("team").innerHTML = teams.map((t) => `<option>${t}</option>`).join("");
+  // The league first in the list; the page still opens on the first team, as before.
+  $("team").innerHTML = `<option value="${LEAGUE}">League (every team)</option>` + teams.map((t, i) => `<option${i === 0 ? " selected" : ""}>${t}</option>`).join("");
   $("hteam").innerHTML += teams.map((t) => `<option>${t}</option>`).join("");
   $("opp").innerHTML += teams.map((t) => `<option>${t}</option>`).join("");
   $("minMin").innerHTML = [0, 1, 5, 10, 20, 30, 50, 75, 100, 150, 200, 300].map((m) => `<option${m === 10 ? " selected" : ""}>${m}</option>`).join("");
   $("hgp").innerHTML = Array.from({ length: 20 }, (_, i) => i + 1).map((n) => `<option${n === 5 ? " selected" : ""}>${n}</option>`).join("");
   $("plist").innerHTML = [...new Set(Object.values(D.players).map((p) => p[0]))].sort().map((n) => `<option value="${esc(n)}">`).join("");
-  const q = new URLSearchParams(location.search); if (q.get("team") && teams.includes(q.get("team"))) $("team").value = q.get("team");
+  const q = new URLSearchParams(location.search); if (q.get("team") && teams.includes(q.get("team"))) $("team").value = q.get("team"); else if (/^(league|all|\*)$/i.test(q.get("team") || "")) $("team").value = LEAGUE;
   const last = D.games.reduce((a, g) => (g[1] > a ? g[1] : a), "");
   $("sub").textContent = `${D.games.length} games through ${md(last)} · ${D.season} · every stretch with the same five on the floor, from NBA.com's rotations`;
   const C = D.checks, pct = (a, b) => (b ? `${Math.round((1000 * a) / b) / 10}%` : "–");

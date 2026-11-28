@@ -216,6 +216,45 @@ export function seasonCounts(text) {
   }
   return out;
 }
+/**
+ * 0.182.0: the team's record when he does something, as a sentence in the present tense states it:
+ *   "Rockets are 9-1 when he scores 10+ points this season", "5-0 when he records a double-double",
+ *   "7-2 when scoring in double figures", "4-1 when he has at least 8 assists"
+ * -> { w, l, what, test(row, k) } or null. A bar is needed ("10+", "at least 10", "10 or more"); "when he scored" (past
+ * tense) is another season's or another stretch's and is left alone, as is a count NOT_A_SEASON_COUNT rules out.
+ */
+const WHEN_VERB = "(?:scores?|scoring|records?|recording|has|having|grabs?|grabbing|pulls? down|hands? out|handing out|dishes(?: out)?|dishing(?: out)?|makes?|making|hits?|hitting|tallies|tallying|posts?|posting|notches|notching|registers?|registering|collects?|collecting|blocks?|blocking)";
+const STAT_SAY = { pts: "points", reb: "rebounds", ast: "assists", stl: "steals", blk: "blocks", fg3m: "threes" };
+export function recordWhen(text) {
+  const t = String(text || "");
+  if (NOT_A_SEASON_COUNT.test(t)) return null;
+  const head = `(?<![\\d,.\\-/])(\\d{1,2})-(\\d{1,2})\\s+when\\s+(?:he\\s+|she\\s+)?${WHEN_VERB}\\s+`;
+  const words = STAT.map(([, w]) => w).join("|"), num = (w) => WORDS[w.toLowerCase()] ?? +w;
+  let m = t.match(new RegExp(`${head}(at least\\s+)?${NUM}(\\+|-plus|\\s+or more)?\\s+(${words})\\b`, "i"));
+  if (m && (m[3] || m[5])) {
+    const stat = STAT.find(([, ws]) => new RegExp(`^(?:${ws})$`, "i").test(m[6]))?.[0], min = num(m[4]);
+    if (stat && STAT_SAY[stat] && min >= 1) return { w: +m[1], l: +m[2], what: `when he has ${min}+ ${STAT_SAY[stat]}`, test: (row, k) => row[k[stat]] >= min };
+  }
+  m = t.match(new RegExp(`${head}in double figures\\b`, "i"));
+  if (m) return { w: +m[1], l: +m[2], what: "when he scores in double figures", test: (row, k) => row[k.pts] >= 10 };
+  m = t.match(new RegExp(`${head}an?\\s+(double|triple)-double\\b`, "i"));
+  if (m) { const need = /triple/i.test(m[3]) ? 3 : 2; return { w: +m[1], l: +m[2], what: `when he has a ${need === 3 ? "triple" : "double"}-double`, test: (row, k) => ["pts", "reb", "ast", "stl", "blk"].filter((x) => row[k[x]] >= 10).length >= need }; }
+  return null;
+}
+/** The team's record this season in his games that pass `test`. -> { w, l } or null without his rows or the scores. */
+export function recordInSeason(box, id, test) {
+  const k = Object.fromEntries((box?.keys || []).map((x, i) => [x, i]));
+  if (k.min == null) return null;
+  let w = 0, l = 0, rows = 0;
+  for (const g of box.games || []) {
+    const row = g.pl && g.pl[String(id)];
+    if (!row || !(row[k.min] > 0)) continue;
+    rows++;
+    if (g.pf == null || g.pa == null) return null;
+    try { if (test(row, k)) { if (g.pf > g.pa) w++; else l++; } } catch { return null; }
+  }
+  return rows ? { w, l } : null;
+}
 /** How many of his games this season pass `test`, and how many he has played. -> { have, played } or null without his rows. */
 export function countInSeason(box, id, test) {
   const k = Object.fromEntries((box?.keys || []).map((x, i) => [x, i]));
