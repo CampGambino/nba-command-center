@@ -4,7 +4,7 @@
  * deploy (tests/articles-only.js); tests/run.js runs them as part of the full suite.
  */
 import fs from "node:fs";
-import { parseLineups, diff as lineupDiff, lastStarters, lineupEmbed, lineupCheck, feedTime, espnStarters, feedDue, suspicion, timingEmbed, lineupContext, parseBoxStarters } from "../cloudflare/lineups.js";
+import { orderFive, parseLineups, diff as lineupDiff, lastStarters, lineupEmbed, lineupCheck, feedTime, espnStarters, feedDue, suspicion, timingEmbed, lineupContext, parseBoxStarters } from "../cloudflare/lineups.js";
 import { dueAt, dueNow, digestCheck } from "../cloudflare/digest.js";
 import { TEAM_FEEDS, teamFeedGroup, findLiveBlog, parseLiveBlog, LIVE_FEED } from "../cloudflare/articles-worker.js";
 import articlesWorker, { check as articlesCheck, decide as articleDecide, parseRss, parseEspn, adminKey, voteKey, tagOf as articleTag, embedFor, titleKey } from "../cloudflare/articles-worker.js";
@@ -225,6 +225,28 @@ export async function articlesChecks(ok) {
     const g = parseLineups(feed("Confirmed"))[0];
     ok(g.teams[0].tri === "NYK" && g.teams[0].opp === "IND" && g.teams[0].status === "Confirmed" && g.teams[1].status === "Expected" && g.teams[0].starters.map((p) => p.pos).join() === "PG,SG,SF,PF,C" && g.teams[0].inactive.join() === "Miles McBride",
       "lineups: starters are the players with a position, PG to C; a five is Confirmed only when all five are; inactives listed", JSON.stringify(g.teams[0]));
+    {
+      // 0.177.0: the box score file's G, F, C. NYK and MIA as they were posted on 11/27/26, with season lines like theirs.
+      const keys = ["starter", "min", "pts", "reb", "ast"], row = (reb, ast, min = 30) => [1, min, 12, reb, ast];
+      const file = (lines) => ({ keys, names: Object.fromEntries(Object.keys(lines).map((n, i) => [`p${i}`, n])), games: ["2026-11-20", "2026-11-25", "2026-11-27"].map((d) => ({ d, pl: Object.fromEntries(Object.values(lines).map((r, i) => [`p${i}`, r])) })) });
+      const nyk = file({ "Landry Shamet": row(2, 2), "Jalen Brunson": row(3, 7), "Mikal Bridges": row(4, 3), "Josh Hart": row(9, 5), "Karl-Anthony Towns": row(12, 3) });
+      const five = (names, pos) => names.map((name, i) => ({ name, pos: pos[i] }));
+      const box = ["G", "G", "F", "F", "C"];
+      const a = orderFive(five(["Landry Shamet", "Jalen Brunson", "Mikal Bridges", "Josh Hart", "Karl-Anthony Towns"], box), nyk, "2026-11-27").map((p) => p.name).join(", ");
+      const mia = file({ "Klay Thompson": row(3, 2), "Davion Mitchell": row(3, 6), "Giannis Antetokounmpo": row(11, 6), "Pelle Larsson": row(4, 3), "Bam Adebayo": row(10, 4) });
+      const b = orderFive(five(["Klay Thompson", "Davion Mitchell", "Giannis Antetokounmpo", "Pelle Larsson", "Bam Adebayo"], box), mia, "2026-11-27").map((p) => p.name).join(", ");
+      // labelled PG to C by the lineups file: left as NBA.com has it, whatever the averages; a player not in our file keeps his place; no file at all
+      const c = orderFive(five(["Landry Shamet", "Jalen Brunson", "Mikal Bridges", "Josh Hart", "Karl-Anthony Towns"], ["PG", "SG", "SF", "PF", "C"]), nyk, "2026-11-27").map((p) => p.name).join(", ");
+      const d = orderFive(five(["New Guard", "Jalen Brunson", "Mikal Bridges", "Josh Hart", "Karl-Anthony Towns"], box), nyk, "2026-11-27").map((p) => p.name).join(", ");
+      const e = orderFive(five(["Landry Shamet", "Jalen Brunson", "Mikal Bridges", "Josh Hart", "Karl-Anthony Towns"], box), null, "2026-11-27").map((p) => p.name).join(", ");
+      // tonight's own game, already in the file, is not counted (the averages are through last game)
+      const late = { ...nyk, games: [...nyk.games.slice(0, 2), { d: "2026-11-27", pl: { p0: row(2, 30), p1: row(3, 0) } }] };
+      const f = orderFive(five(["Landry Shamet", "Jalen Brunson"], ["G", "G"]), late, "2026-11-27").map((p) => p.name).join(", ");
+      ok(a === "Jalen Brunson, Landry Shamet, Mikal Bridges, Josh Hart, Karl-Anthony Towns" && b === "Davion Mitchell, Klay Thompson, Pelle Larsson, Giannis Antetokounmpo, Bam Adebayo"
+        && c === "Landry Shamet, Jalen Brunson, Mikal Bridges, Josh Hart, Karl-Anthony Towns" && d === "New Guard, Jalen Brunson, Mikal Bridges, Josh Hart, Karl-Anthony Towns" && e === c && f === "Jalen Brunson, Landry Shamet",
+        "lineups: two starters NBA.com gives the same label (its box score file says only G, F, C) are put in our order (0.177.0; the user, 11/27: \"Do you know why the players are out of position?\", then \"Yes\" to this rule): of two guards the one with more assists a game this season first, of two forwards the one with fewer rebounds; a five labelled PG to C is left alone, a player with no game in our file keeps his place, and tonight's game is not counted",
+        JSON.stringify({ a, b, c, d, e, f }));
+    }
     {
       // 11/12/26: NBA.com briefly had Justin Edwards (0 starts) in for Jaylen Brown (11 of 11, not on the injury report).
       const R = (st, min) => [st, min];

@@ -45,6 +45,18 @@ The user, 11/27, 11:43 PM, with two NBA Live cards for Trey Murphy III in NO @ L
 **Checked.** tests/run.js: 993 passed, 0 failed (the harness's Cup-night case now expects the one card and no "CUP LIST" card beside it; a version check that named 37 to 39 takes 40 on).
 
 **Self-audit.** (1) A game on the all-time list on a Cup night still gets its all-time card beside the Cup card: two lists, two facts. If that reads as the same thing too, it is the same change again. (2) In the regular season the list card is ours and the countdown to the record is NBA Live's own, so the pair can still appear there; I can't see NBA Live's cards from here. (3) The second card in the user's picture was stamped "Q1 1:55" at a score the first card had at "Q4 7:23". The stamp is NBA Live's (a card whose numbers change is re-stamped to the player's latest play); not looked into, and told to the user. (4) Not seen in NBA Live: the harness only. (5) 0.177.0 (the #lineups order) is still held for after the night's games; this went out ahead of it.
+## 0.177.0 (built 2026-11-27, published 11/28 after the night's games): #lineups puts two starters with one label in our order
+
+The user, 11/27, 6:54 PM, with the #lineups cards for NYK (Landry Shamet, Jalen Brunson, Mikal Bridges, Josh Hart, Karl-Anthony Towns) and MIA (Klay Thompson, Davion Mitchell, Giannis Antetokounmpo, Pelle Larsson, Bam Adebayo): "Do you know why the players are out of position?" The card sorts the five by NBA.com's position label and keeps NBA.com's order between two with the same label. NBA.com's lineups file labels a five PG, SG, SF, PF, C. Its live box score file, which usually has the five first (0.107), says only G, F or C, so both guards and both forwards came out as NBA.com listed them. ESPN's labels in our files are G, F, C too. Offered a rule of ours for those ties; 7:02 PM: "Yes".
+
+- **cloudflare/lineups.js `orderFive`:** between two starters with the same label, of two guards the one with more assists a game this season goes first, of two forwards the one with fewer rebounds a game. The averages come from the team's box-score file the watcher already reads for "same five as last game", through the team's last game. A five labelled PG to C is not touched. A player with no game in our file keeps the place NBA.com gave him.
+- Used for the confirmed card before tip and for the card after tip when a different five started.
+
+On the 11/27 fives with our files: NYK reads Brunson, Shamet, Bridges, Hart, Towns; MIA reads Mitchell, Thompson, Larsson, Antetokounmpo, Adebayo.
+
+**Checked.** tests/run.js: 994 passed, 0 failed (one new in tests/articles-worker.js: the two fives above, a labelled five left alone, a player not in the file, no file, tonight's game not counted). The rule run on all 30 teams' latest fives with ESPN's labels and read: the lead guard is first on each.
+
+**Self-audit.** (1) This is a rule of thumb for the order of five names, not a position: a shooting guard who passes more than his point guard goes first. (2) I could not see the watcher's state, so that the 11/27 cards came from the box score file is read off their order and time (both 6:35 PM for a 7:00 tip), not confirmed. (3) Held until the night's games were over so the watcher was not redeployed while lineups were coming in; the 11/27 late cards went out in NBA.com's order. (4) Not seen on a real card yet: the first is 11/28's. (5) Nothing else about the cards changed; no site page, NBA Live or bridge change.
 
 ## 0.176.0 (2026-11-27): a count in the notes is set against the game log; last season's bullet; a run of multi-three games; a page for one player
 

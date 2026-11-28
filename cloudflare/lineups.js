@@ -79,6 +79,37 @@ export function diff(before, after) {
   return { in: after.filter((n) => !b.has(nameKey(n))), out: before.filter((n) => !a.has(nameKey(n))) };
 }
 
+/**
+ * 0.177.0 (the user, 11/27, of NYK posted as Shamet, Brunson, Bridges, Hart, Towns and MIA as Thompson, Mitchell,
+ * Antetokounmpo, Larsson, Adebayo: "Do you know why the players are out of position?"; to a rule of ours: "Yes").
+ * NBA.com's lineups file labels a five PG, SG, SF, PF, C; its box score file, which usually has the five first, says only
+ * G, F or C, and two starters with one label came out in NBA.com's order. Between two with the SAME label the order is
+ * now ours, from the team's box scores this season: of two guards, the one with more assists a game first; of two
+ * forwards, the one with fewer rebounds a game first. A rule of thumb for the order of five names, not a position.
+ * A player with no game in the file keeps the place NBA.com gave him. Different labels are never reordered.
+ */
+export function orderFive(starters, file, beforeYmd) {
+  const k = Object.fromEntries((file?.keys || []).map((x, i) => [x, i]));
+  const ids = Object.fromEntries(Object.entries(file?.names || {}).map(([id, n]) => [nameKey(n), id]));
+  const avg = (name, col) => {
+    const id = ids[nameKey(name)];
+    if (!id || k[col] == null || k.min == null) return null;
+    let n = 0, sum = 0;
+    for (const g of file.games || []) { if (beforeYmd && g.d >= beforeYmd) continue; const r = g.pl?.[id]; if (r && r[k.min] > 0) { n++; sum += r[k[col]] || 0; } }
+    return n ? sum / n : null;
+  };
+  const rank = (p) => POS_ORDER[p.pos] ?? 9;
+  return (starters || []).map((p, i) => ({ p, i })).sort((a, b) => {
+    const d = rank(a.p) - rank(b.p);
+    if (d) return d;
+    if (a.p.pos === b.p.pos && (a.p.pos === "G" || a.p.pos === "F")) {
+      const col = a.p.pos === "G" ? "ast" : "reb", x = avg(a.p.name, col), y = avg(b.p.name, col);
+      if (x != null && y != null && x !== y) return a.p.pos === "G" ? y - x : x - y;
+    }
+    return a.i - b.i;
+  }).map((x) => x.p);
+}
+
 /** Starters in a team's last game, from our box-score file ({ names, games: [{ d, opp, pl: { id: [starter, …] } }] }). */
 export function lastStarters(file, beforeYmd) {
   const games = (file?.games || []).filter((g) => !beforeYmd || g.d < beforeYmd).sort((a, b) => a.d.localeCompare(b.d));
@@ -396,6 +427,7 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
         const warn = d ? suspicion(file, injuries, d.out, d.in, tm.tri, ymd, irep || null) : null;
         let context = null;
         try { context = lineupContext(file, names, ymd); } catch { /* context is an extra: the post goes out without it */ }
+        try { tm.starters = orderFive(tm.starters, file, ymd); } catch { /* the order is an extra too: NBA.com's stands */ }
         const embed = lineupEmbed({ ...g, statusText: g.statusText || etClock(sg.tip) + " ET" }, tm, { expected: again ? null : s.expected, last, previous: again ? s.posted : null, warn, context });
         const id = await postDiscord(env.LINEUPS_WEBHOOK, { embeds: [embed] });
         if (id) {
@@ -432,7 +464,7 @@ export async function lineupCheck(env, now = Date.now(), { dry = false, date = n
       if (!same) {
         if (dry) { (report.wouldPost ??= []).push(`${tri} tip`); continue; }
         let last = null;
-        if (!s.posted) { try { const r = await tfetch(TEAM_FILE(tri), {}, LIMIT_MS.site); if (r.ok) last = lastStarters(await r.json(), ymd); } catch {} }
+        try { const r = await tfetch(TEAM_FILE(tri), {}, LIMIT_MS.site); if (r.ok) { const file = await r.json(); if (!s.posted) last = lastStarters(file, ymd); starters = orderFive(starters, file, ymd); } } catch {}
         const home = g.teams[0] === tri; // ESPN lists home first
         const embed = lineupEmbed({ statusText: "" }, { tri, opp, home, starters, inactive: [] }, { previous: s.posted, last, kind: "tip" });
         const id = await postDiscord(env.LINEUPS_WEBHOOK, { embeds: [embed] });
