@@ -77,8 +77,8 @@
   },
   "KXNBA3DPROT": {
    "title": "NBA Player Triple Double Protected",
-   "events": 4,
-   "markets": 10
+   "events": 5,
+   "markets": 11
   },
   "KXNBADPOY": {
    "title": "NBA Defensive Player of the Year",
@@ -507,8 +507,8 @@
   },
   "KXNBA4QTOTAL": {
    "title": "NBA 4th Quarter Total",
-   "events": 4,
-   "markets": 52
+   "events": 5,
+   "markets": 65
   },
   "KXNBAWCFQUAL": {
    "title": "NBA Western Conference Finals Qualifiers",
@@ -588,7 +588,7 @@
   "KXNBAPRAPROT": {
    "title": "Pts + Reb + Ast Protected",
    "events": 5,
-   "markets": 157
+   "markets": 158
   },
   "KXNBAAWARDFIN": {
    "title": "NBA Award Finalists",
@@ -697,8 +697,8 @@
   },
   "KXNBA3D": {
    "title": "NBA Player Triple Double",
-   "events": 4,
-   "markets": 10
+   "events": 5,
+   "markets": 11
   },
   "KXNBACLUTCH": {
    "title": "NBA Clutch Player of the Year",
@@ -721,10 +721,10 @@
   "KXNBAWEST-27": "San Antonio 36%",
   "KXNBAWFINMVP-27": "Shai Gilgeous-Alexander 20%",
   "KXNBADPOY-27": "Victor Wembanyama 79%",
+  "KXNBACUPMVP-27": "Victor Wembanyama 28%",
   "KXNBAMIMP-27": "Ty Jerome 34%",
   "KXNBASOUTHWEST-26": "San Antonio 75%",
   "KXNBACONF-27": "Western Conference 61%",
-  "KXNBACUPMVP-27": "Victor Wembanyama 28%",
   "KXNBAEAST-27": "Boston 22%",
   "KXNBASOUTHEAST-26": "Miami 52%",
   "KXNBAEAST1SEED-26": "Boston 27%",
@@ -742,7 +742,7 @@
   "KXNBANORTHWEST-26": "Minnesota 32%",
   "KXNBA-27": "San Antonio 23%",
   "KXNBACLUTCH-27": "Stephen Curry 10%",
-  "KXNBAEXEC-27": "Zach Kleiman 41%",
-  "KXNBAPACIFIC-26": "Los Angeles L 82%"
+  "KXNBAPACIFIC-26": "Los Angeles L 82%",
+  "KXNBAEXEC-27": "Zach Kleiman 41%"
  }
 }
