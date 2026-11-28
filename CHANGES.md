@@ -14,7 +14,7 @@ The user, 11/28, 3:41 PM, a screenshot of the Index page searched for "franz wag
 
 **Checked**: opened in a browser with today's data: "franz wagner" (his page, one row of one table), "wagner", "doncic" (four tables, only his rows), "series" (all 435 rows), no page errors. The Player page opens on Franz Wagner from the link. `node tests/run.js`: 1,030 passed (one new).
 
-**Self-audit**: the box says "Search every page and table" and never searched players. That was a gap from the day the Player page was added (0.177.0): I added its page row and not its names. Team nicknames still don't match: "nets" finds nothing, because the tables use BKN. That's left as it is, so say if you want it.
+**Self-audit**: the box says "Search every page and table" and never searched players. That was a gap from the day the Player page was added (0.176.0): I added its page row and not its names. Team nicknames still don't match: "nets" finds nothing, because the tables use BKN. That's left as it is, so say if you want it.
 
 ## 0.188.0 (2026-11-28): the ranked list weighs what a line is about
 
