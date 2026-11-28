@@ -1,7 +1,7 @@
 {
  "id": "2026-11-28",
  "date": "2026-11-28",
- "generatedAt": "2026-11-28T17:12:45.452Z",
+ "generatedAt": "2026-11-28T17:14:39.159Z",
  "searched": [
   "NBA.com Starting 5 (Nov. 12-16)",
   "Flashscore NBA weekly",
@@ -38,7 +38,7 @@
    "url": "https://www.nba.com/news/starting-5-november-14-2026",
    "verdict": "true",
    "ours": "missed",
-   "note": "Our 11/13 box score: 10 Grizzlies with 10+ points in the 142-111 win. The franchise record part goes past our files' 1993-94 start for Vancouver/Memphis only in name; it fits what we hold.",
+   "note": "Our 11/13 box score: 10 Grizzlies with 10+ points in the 142-111 win. Every Grizzlies game since 1995-96 is in our archive, and the most before was 9 (three times, last on 12/2/21), so the franchise record checks out.",
    "cut": "players in double figures in one game, against the team's games on file"
   },
   {
