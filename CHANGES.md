@@ -2,6 +2,46 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.189.0 (2026-11-28): a whole-site audit; the search finds everything on a player
+
+The user, 11/28, 3:50 PM: "please run a full audit of the website for any dead links or missing information or information that is not considered or looked at for the home page when finding the notes. And I still don't see the information for wagner".
+
+**The audit (new tools/audit-site.py, kept for next time).** It opens every page of the published site with today's data in headless Chrome and follows every link it finds, query and anchor variants included: 54 pages. For each it checks script errors, failed loads, "undefined", "NaN", "Couldn't" messages, empty sections, tables with no rows, missing pages and missing anchors.
+- **Found and fixed:**
+  - The Player page's **"With / without him"** opened the pair view with the name box empty: it sent a name, and that page only took an ESPN id. Now it opens his team's view with him picked (ORL with Franz Wagner: 7-10, no games missed yet). The pair view also takes a name.
+  - Links into the **folded briefing** (the Index's "The briefing", "Did we see it coming?") now open the fold, in every browser.
+- **Checked and fine:**
+  - Every link to a page, anchor or tab lands. Records' tabs, the hustle view and the Player page's section chips are opened by script.
+  - No script errors, no failed data files.
+  - Every data file was built within six hours, and the build's steps all passed.
+- **Couldn't check from here:** Game Flow reads ESPN and NBA.com from your browser, and this workspace's browser can't reach them (14 "Failed to fetch" lines, all Game Flow).
+
+**What the home page never looked at**
+- **The Team situations page's unusual records** never reached the ranked list. Four were for teams playing today: PHI 12-0 in clutch games (a team that good would win about 8.4 of 12), MIL 0-11 in games decided by 10+, MIL 0-4 when leading at the half, ORL 1-6 at home. Now tonight's teams' unusual records join the list as team lines, ranked by how unlikely the record is. The home / road and over-.500 ones are left to the situational splits, which already say them.
+- **Today's team notes:** 170 lines kept, 24 not on the ranked list:
+  - 19 are about players listed Out today (Herro, LeBron James, Embiid, Banchero, Powell and others). By design, an Out player's other lines go.
+  - 1 is a streak the box scores say is over.
+  - 1 is the same claim as a line already listed.
+  - 3 start "He", "It" or "They" with no name for the reader.
+  - The reader also set aside 85 lines: 81 past one-offs, 2 last season's notes, 1 past event, 1 home stat on a road night.
+- **Not added, by choice:**
+  - Arena records: NBA Live's card, pre-game they say little.
+  - "The last time…" thresholds for tonight: an if-it-happens line.
+  - Franchise records set earlier this season: past, and last night's already lead "From last night".
+
+**The search (#65; "I still don't see the information for wagner").** A search on the Index now also reads every page's data files (23 of them) and lists each line that names what was typed, grouped by the page it's on, with a link. A list follows of the pages whose tables have it. "franz wagner": 19 lines on 6 pages (tonight's ranked list, his team's notes, matchups, the build's lines, recent-form shifts, Records), and 15 more pages that list him. A line on two pages shows once.
+
+**Checked**
+- `node tests/run.js`: 1,033 passed (three new).
+- The audit after the fixes: only Game Flow's outside-source lines are left.
+- In a browser: the search for "franz wagner", ORL's view with him picked, and the pair box filled from a name.
+
+**Self-audit**
+- The "With / without him" link was mine (0.176.0) and was never clicked through.
+- The unusual team records have been on their page since the situations work and were never wired into the ranking, which is exactly what you asked about.
+- My first audit run reported 61 false findings: the home page's "./" read as the current page, same-page anchors read without the query, and script-opened tabs. I fixed the audit before trusting its list.
+- Not seen live yet: tonight's ranked list with the team records in it. I'll read the build log line ("team situations: …") after this publish.
+
 ## 0.188.1 (2026-11-28): the Index search finds players
 
 The user, 11/28, 3:41 PM, a screenshot of the Index page searched for "franz wagner": "something is wrong with the player finder".

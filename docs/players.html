@@ -152,7 +152,10 @@ async function loadTeam() {
   const r = roster(file).filter((p) => p.gp > 0);
   $("out").innerHTML = r.map((p) => `<option value="${p.id}">${esc(p.name)} · ${p.mpg.toFixed(1)} mpg · missed ${p.missed}</option>`).join("");
   const firstMissed = r.find((p) => p.missed > 0 && p.mpg >= 15);
-  if (firstMissed) $("out").value = firstMissed.id;
+  // 0.189.0: the Player page's "With / without him" names him (?out= an ESPN id or a name), on his team
+  const want = new URLSearchParams(location.search).get("out"), fold = (x) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const asked = want ? r.find((p) => p.id === want || fold(p.name) === fold(want)) : null;
+  if (asked && t === (new URLSearchParams(location.search).get("team") || t)) $("out").value = asked.id; else if (firstMissed) $("out").value = firstMissed.id;
   render();
 }
 function render() {
@@ -204,7 +207,9 @@ async function loadAll() {
   PEOPLE = everyone(FILES);
   for (const p of PEOPLE) byLabel.set(labelOf(p), p);
   $("plist").innerHTML = PEOPLE.map((p) => `<option value="${esc(labelOf(p))}"></option>`).join("");
-  const q = new URLSearchParams(location.search), A = PEOPLE.find((p) => p.id === q.get("a")), B = PEOPLE.find((p) => p.id === q.get("b"));
+  // an ESPN id, or a name (0.189.0: the Player page's link gave a name and the box stayed empty)
+  const fold = (x) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const q = new URLSearchParams(location.search), who = (v) => (v ? PEOPLE.find((p) => p.id === v) || PEOPLE.find((p) => fold(p.name) === fold(v)) : null), A = who(q.get("a")), B = who(q.get("b"));
   if (A) $("pa").value = labelOf(A); if (B) $("pb").value = labelOf(B);
 }
 function renderPair() {

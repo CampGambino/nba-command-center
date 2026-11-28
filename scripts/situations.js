@@ -693,6 +693,19 @@ for (const [tri, games] of Object.entries(perTeam)) {
       fs.writeFileSync(path.join(root, "docs", "data", "standings.json"), JSON.stringify({ generatedAt: out.generatedAt, through, ...st }));
       const tonightTeams = new Set(slate.flatMap((g) => [g.away, g.home]));
       prep.lines.push(...clinchLines(st, tonightTeams));
+      // 0.189.0 (the user, 11/28: "information that is not considered or looked at for the home page when finding the
+      // notes"): the Team situations page's unusual records (PHI 12-0 in clutch games) never reached the ranked list.
+      // Tonight's teams' ones go in, ranked by how unlikely the record is for a team that good; a cut the situational
+      // splits already say (home / road, teams over .500) stays theirs.
+      try {
+        const said = new Set(prep.lines.filter((l) => l.kind === "sit" && !l.player).map((l) => `${l.team}|${l.cut}`));
+        const cutOf = { home: "home", road: "home", vsAbove: "above" };
+        const ul = (sit.unusual || []).filter((u) => tonightTeams.has(u.team) && !said.has(`${u.team}|${cutOf[u.key] || u.key}`)).map((u) => ({
+          kind: "team", team: u.team, player: null, key: `unusual|${u.team}|${u.key}`, rare: u.p <= 0.02,
+          text: `${u.team} is ${u.text}`, score: Math.round((3.2 + Math.min(1, Math.max(0, -Math.log10(u.p) - 1))) * 100) / 100 }));
+        prep.lines.push(...ul);
+        console.log(`team situations: ${ul.length} unusual record(s) for tonight's teams in the ranked list${ul.length ? ` (${ul.map((l) => l.text.slice(0, 40)).join("; ")})` : ""}`);
+      } catch (e) { prep.errors.push(`unusual situations: ${e.message}`); console.error(`unusual situations not added: ${e.message}`); }
       // 0.80: every franchise's season records since 1946-47 (the NBA Guide): record since a season, pace against its own history.
       const tsf = path.join(root, "src", "data", `nba-team-seasons-${seasonTag}.json`);
       if (fs.existsSync(tsf)) {

@@ -743,5 +743,9 @@ async function main() {
 }
 main();
 </script>
+<script>
+// 0.189.0: a link to the briefing (the Index's "The briefing", "Did we see it coming?") opens its fold
+{ const open = () => { const t = location.hash && document.getElementById(location.hash.slice(1)); const f = t && t.closest("details"); if (f) { f.open = true; t.scrollIntoView(); } }; addEventListener("hashchange", open); addEventListener("load", open); }
+</script>
 </body>
 </html>

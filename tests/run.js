@@ -7079,6 +7079,21 @@ await bridgeChecks(ok, root);
     "Index (0.188.1; the user, 11/28, a search for \"franz wagner\": \"something is wrong with the player finder\"): a name lists the player's own page first (accents ignored: \"doncic\" finds Dončić), and a table found by a row shows only the rows that match");
 }
 
+// ---------- 0.189.0: the site audit's fixes ----------
+{
+  const rdS = (...f) => fs.readFileSync(path.join(root, ...f), "utf8");
+  const fh = rdS("docs", "find.html"), ph = rdS("docs", "player.html"), ps = rdS("docs", "players.html"), ix = rdS("docs", "index.html"), sj = rdS("scripts", "situations.js");
+  const srcs = [...fh.matchAll(/\["([\w-]+\.json)", "[^"]+", "([^"]+)"\]/g)].map((m) => [m[1], m[2]]);
+  const pages = new Set(fs.readdirSync(path.join(root, "docs")).filter((f) => f.endsWith(".html")));
+  ok(/const SOURCES = \[/.test(fh) && srcs.length >= 20 && srcs.every(([, h]) => h.startsWith("./") || pages.has(h.split(/[?#]/)[0]))
+    && /const TEXT_KEYS = new Set\(\["text", "phrase", "short"\]\)/.test(fh) && /<h2>Every line on the site that names it<\/h2>/.test(fh),
+    "Index (0.189.0; the user, 11/28: \"I still don't see the information for wagner\"): a search reads every page's data files and lists each line naming it, grouped by page (every link a page that exists); internal keys are not shown", JSON.stringify(srcs));
+  ok(/players\.html\?team=\$\{encodeURIComponent\(p\.team \|\| ""\)\}&out=\$\{a\}/.test(ph) && /PEOPLE\.find\(\(p\) => fold\(p\.name\) === fold\(v\)\)/.test(ps) && /get\("out"\)/.test(ps),
+    "Player page (0.189.0, the site audit): \"With / without him\" opens his team's view with him picked; the pair view takes a name as well as an ESPN id (it was left empty)");
+  ok(/const f = t && t\.closest\("details"\); if \(f\) \{ f\.open = true;/.test(ix) && /key: `unusual\|\$\{u\.team\}\|\$\{u\.key\}`/.test(sj) && fs.existsSync(path.join(root, "tools", "audit-site.py")),
+    "audit (0.189.0; the user, 11/28: \"information that is not considered or looked at for the home page\"): the Team situations page's unusual records for tonight's teams join the ranked list; a link into the folded briefing opens it; tools/audit-site.py keeps the audit");
+}
+
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });
 const brief = (m) => [m.player, m.kind, m.stat, m.scope, m.current, m.target, m.need, m.status, m.passing?.player || ""].join(" | ");

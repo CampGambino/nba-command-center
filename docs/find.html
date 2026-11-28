@@ -33,6 +33,9 @@
   th { color: var(--muted); font-weight: 600; font-size: 12px; border-top: 0; } td.n { text-align: right; font-variant-numeric: tabular-nums; } td.w { white-space: normal; }
   .empty { color: var(--muted); padding: 10px 12px; font-size: 13.5px; }
   b.bad { color: var(--bad); } b.good { color: var(--good); }
+  .ev { background: var(--card, #fff); border: 1px solid var(--line, #e5e7eb); border-radius: 12px; margin: 8px 0; padding: 8px 12px; }
+  .ev h3 { font-size: 13.5px; margin: 4px 0 6px; } .ev h3 a { text-decoration: none; } .ev h3 span { color: var(--faint); font-weight: 400; font-size: 12px; margin-left: 6px; }
+  .ev li { font-size: 13px; margin: 3px 0; } .ev ul { margin: 0; padding-left: 18px; } .chips a { display: inline-block; margin: 2px 6px 2px 0; font-size: 12.5px; }
 </style>
 <link rel="stylesheet" href="site/chrome.css">
 <script src="site/nav.js" defer></script>
@@ -48,6 +51,7 @@
   <div class="key">Every view of the Command Center in one list. Each row says what its numbers run through and when they were last rebuilt; a row turns amber when its data is more than a day old. Nothing here is a copy: the tables at the bottom read the same files the alerts do.</div>
   <h2>Views</h2>
   <ul class="dir" id="dir"></ul>
+  <div id="every" hidden><h2>Every line on the site that names it</h2><div class="key" id="everyKey"></div><div id="everyOut"></div></div>
   <h2>Season tables with no page of their own</h2>
   <div class="key">Facts that so far showed up only as a Watch List line on the day a team played.</div>
   <div id="tables"></div>
@@ -116,6 +120,7 @@ function renderDir() {
   // players whose name holds every word (at least three letters typed), best first: whole-word matches, then shorter names
   const who = q.length && q.join("").length >= 3 ? PLAYERS.filter((p) => q.every((w) => p.key.includes(w)))
     .sort((a, b) => (q.every((w) => b.words.some((x) => x.startsWith(w))) - q.every((w) => a.words.some((x) => x.startsWith(w)))) || a.name.length - b.name.length).slice(0, 8) : [];
+  who1 = who[0]?.name || null;
   const pl = who.map((p) => `<li><a href="player.html?p=${encodeURIComponent(p.name)}">Player: ${esc(p.name)}</a><span class="d">${esc(p.team || "")} · everything the site has on him today: tonight's lines, his notes, milestones, streaks, award eligibility</span></li>`);
   $("dir").innerHTML = [...pl, ...rows.map((v) => { const f = FRESH[v[3]];
     const fr = f ? `<span class="f${f.old ? " old" : ""}" title="${esc(v[3])}">${f.through ? `through ${md(f.through)} · ` : ""}built ${esc(ago(f.at))}</span>` : `<span class="f">…</span>`;
@@ -212,10 +217,54 @@ const table = (id, title, words, note, head, rows) => `<details id="${id}" data-
   $("tables").innerHTML = out.join("") || `<div class="empty">The season files aren't built yet.</div>`;
   renderDir();
 })();
+// 0.189.0 (the user, 11/28: "I still don't see the information for wagner"): a search also reads every page's data
+// files and lists each line that names what was typed, grouped by the page it is on, with the pages whose tables list it.
+const SOURCES = [
+  ["briefing.json", "Home: tonight's ranked list", "./#stream"], ["notes-facts.json", "Home: tonight's team notes", "./#history"],
+  ["matchups.json", "Home: matchups tonight", "./#matchups"], ["edges.json", "Home: matchup edges", "./#matchups"], ["watch.json", "Home: milestones", "./#likely"],
+  ["prep.json", "Home: the build's lines", "./#stream"], ["splits.json", "Streaks: splits", "trends.html#splits"], ["shifts.json", "Streaks: recent-form shifts", "trends.html#shifts"],
+  ["trends.json", "Streaks", "trends.html"], ["form.json", "Streaks: hot and cold", "trends.html#form"], ["records.json", "Records", "records.html"],
+  ["leaders.json", "Leaders", "leaders.html"], ["eligibility.json", "Award eligibility", "awards.html"], ["clutch-players.json", "Clutch", "clutch.html"],
+  ["q4-players.json", "Clutch: 4th quarters", "clutch.html?mode=q4"], ["l2m-players.json", "Clutch: last two minutes", "clutch.html?mode=l2m"],
+  ["rest.json", "Rest and back-to-backs", "standings.html#rest"], ["national.json", "National TV", "national.html"], ["vsruns.json", "Against one team", "player.html"],
+  ["lineups.json", "Lineups", "lineups.html"], ["flowstats.json", "Game Flow", "gameflow.html"], ["lasttime.json", "The last time…", "find.html#t-lasttime"], ["situations.json", "Team situations", "situations.html"],
+];
+let EVERY = null;
+async function loadEvery() { if (!EVERY) EVERY = Promise.all(SOURCES.map(([f]) => get(f))); return EVERY; }
+const TEXT_KEYS = new Set(["text", "phrase", "short"]);
+async function renderEvery() {
+  const raw = $("q").value.trim(), q = fold(raw).split(/\s+/).filter(Boolean);
+  if (q.join("").length < 3) { $("every").hidden = true; return; }
+  const my = ++everyTok, files = await loadEvery();
+  if (my !== everyTok) return;   // typed on since
+  const has = (x) => { const f = fold(x); return q.every((w) => f.includes(w)); };
+  const seen = new Set(), groups = [], listed = [];
+  SOURCES.forEach(([f, label, href], i) => {
+    const j = files[i]; if (!j) return;
+    const lines = []; let named = false;
+    const walk = (o, k) => {
+      if (typeof o === "string") { if (has(o)) { if (TEXT_KEYS.has(k) && o.length > 25) { const key = fold(o).replace(/[^a-z0-9]+/g, " ").trim().slice(0, 120); if (![...seen].some((x) => x.includes(key.slice(0, 80)) || key.includes(x.slice(0, 80)))) { seen.add(key); lines.push(o); } } else named = true; } return; }
+      if (Array.isArray(o)) { for (const x of o) walk(x, k); return; }
+      if (o && typeof o === "object") for (const [kk, v] of Object.entries(o)) { if (kk === "generatedAt" || kk === "key") continue; walk(v, kk); }
+    };
+    walk(j, "");
+    const link = href === "player.html" && who1 ? `player.html?p=${encodeURIComponent(who1)}` : href;
+    if (lines.length) groups.push({ label, link, lines });
+    else if (named) listed.push({ label, link });
+  });
+  const total = groups.reduce((a, g) => a + g.lines.length, 0);
+  $("every").hidden = !total && !listed.length;
+  $("everyKey").textContent = total || listed.length ? `${total} line${total === 1 ? "" : "s"} on ${groups.length} page${groups.length === 1 ? "" : "s"} name “${raw}”${listed.length ? `; ${listed.length} more page${listed.length === 1 ? "" : "s"} list it in a table` : ""}. Today's files, the same ones the pages read.` : "";
+  $("everyOut").innerHTML = groups.map((g) => `<div class="ev"><h3><a href="${g.link}">${esc(g.label)} →</a><span>${g.lines.length}</span></h3><ul>${g.lines.slice(0, 12).map((t) => `<li>${esc(t)}</li>`).join("")}${g.lines.length > 12 ? `<li class="empty">${g.lines.length - 12} more on the page</li>` : ""}</ul></div>`).join("")
+    + (listed.length ? `<div class="ev chips"><h3>Also on</h3>${listed.map((x) => `<a href="${x.link}">${esc(x.label)} →</a>`).join("")}</div>` : "");
+}
+let who1 = null, everyT = null, everyTok = 0;
 $("q").addEventListener("input", renderDir);
+$("q").addEventListener("input", () => { clearTimeout(everyT); everyT = setTimeout(renderEvery, 250); });
 if (location.hash.length > 1) { $("q").value = decodeURIComponent(location.hash.slice(1)); }
 { const q0 = new URLSearchParams(location.search).get("q"); if (q0) $("q").value = q0; }   // 0.147.0: the menu bar's search box
 renderDir();
+renderEvery();
 </script>
 </body>
 </html>

@@ -150,7 +150,7 @@ function show(p) {
 
   const a = encodeURIComponent(p.name);
   out.innerHTML = `<div class="who"><span class="name">${esc(p.name)}</span><span class="meta">${esc(p.team || "")}${game ? ` · tonight ${esc(opp)}` : p.team ? " · no game tonight" : ""}</span></div>`
-    + `<div class="jump">${jump.join("")}<a href="players.html?a=${a}">With / without him</a><a href="clutch.html">Clutch</a><a href="lineups.html">Lineups</a><a href="gameflow.html">Game Flow</a><a href="records.html">Records</a></div>`
+    + `<div class="jump">${jump.join("")}<a href="players.html?team=${encodeURIComponent(p.team || "")}&out=${a}">With / without him</a><a href="clutch.html">Clutch</a><a href="lineups.html">Lineups</a><a href="gameflow.html">Game Flow</a><a href="records.html">Records</a></div>`
     + (parts.length ? parts.join("") : `<div class="none">Nothing on today's lists for ${esc(p.name)}. The links above open the tables that cover every player.</div>`);
 }
 
