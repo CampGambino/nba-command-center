@@ -39,7 +39,8 @@ The user, 11/28, 3:50 PM: "please run a full audit of the website for any dead l
 **Self-audit**
 - The "With / without him" link was mine (0.176.0) and was never clicked through.
 - The unusual team records have been on their page since the situations work and were never wired into the ranking, which is exactly what you asked about.
-- My first audit run reported 61 false findings: the home page's "./" read as the current page, same-page anchors read without the query, and script-opened tabs. I fixed the audit before trusting its list.
+- My first audit run had 49 false findings: the home page's "./" read as the current page, same-page anchors read without the query, and script-opened tabs. I fixed the audit before trusting its list.
+- The first publish put the four team records in the build's file, but the ranking only reads the kinds on its list, and "team" wasn't on it. The build log said 4 were added and the ranked list had none. Fixed in the same version (the kind added; the test checks it). From now on I read the ranked list itself, not the build's own count.
 - Not seen live yet: tonight's ranked list with the team records in it. I'll read the build log line ("team situations: …") after this publish.
 
 ## 0.188.1 (2026-11-28): the Index search finds players

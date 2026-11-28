@@ -2318,7 +2318,7 @@ await bridgeChecks(ok, root);
     const by = Object.fromEntries(L.map((l) => [l.player, l]));
     ok(L.length === 3 && by["P Two"]?.score === STORY.top && by["P Two"].chance === "under 1 in 200" && !/by chance/.test(by["P Two"].text) && by["P Three"] && !by["P Four"] && !by["Role Change"] && !by["Bench Guy"] && !by["Weak"] && !by["Other Team"]
       && by["P One"]?.key === "shift|p1|fg3" && by["P One"].text.endsWith("(29-for-68)") && by["P One"].chance === "1 in 67" && by["P One"].score > STORY.base + STORY.shootBonus && L.every((l) => l.kind === "shift" && l.team === "AAA")
-      && /"find", "shift"(?:, "split")?(?:, "sit")?\]\)/.test(fs.readFileSync(path.join(root, "src", "anticipate", "tonight.js"), "utf8")) && /shift: \["📊", "trends\.html#shifts"\]/.test(fs.readFileSync(path.join(root, "docs", "index.html"), "utf8"))
+      && /"find", "shift"(?:, "split")?(?:, "sit")?(?:, "team")?\]\)/.test(fs.readFileSync(path.join(root, "src", "anticipate", "tonight.js"), "utf8")) && /shift: \["📊", "trends\.html#shifts"\]/.test(fs.readFileSync(path.join(root, "docs", "index.html"), "utf8"))
       && /shiftStoryLines\(shiftAll/.test(fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8")),
       "0.121.0 (the user: \"are the most significant ones posted in the watch list?\"): the strongest shifts on tonight's teams become Watch List lines: one a player, a shooting line and two others a team at most, rotation players only, 1 in 20 or rarer, a stat that moved with his minutes left out",
       JSON.stringify(L.map((l) => [l.player, l.score, l.key])));
@@ -6958,7 +6958,7 @@ await bridgeChecks(ok, root);
   ok(!L.some((l) => /(?<![\d.])0\.0% 3PT \(clutch/.test(l.text)) && new Set(L.map((l) => `${l.id}|${l.dir}`)).size === L.length,
     "splits (0.185.0; 0.187.0: one a direction): a base 3-point rate from fewer than 10 attempts is not printed; one line a player a direction");
   const sit = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8"), tn = fs.readFileSync(path.join(root, "src", "anticipate", "tonight.js"), "utf8"), idx = fs.readFileSync(path.join(root, "docs", "index.html"), "utf8"), tr = fs.readFileSync(path.join(root, "docs", "trends.html"), "utf8");
-  ok(/splitLines\(\{ rows, names: NAMES, last, slate/.test(sit) && /"splits\.json"/.test(sit) && /"shift", "split"(?:, "sit")?\]\)/.test(tn) && /split: 1(?:, sit: 1)? \}/.test(tn) && /split: \["⏱️", "trends\.html#splits"\]/.test(idx) && /<h2 id="splits">(?:4th quarters and clutch time|Splits: [^<]+)<\/h2>/.test(tr) && /fetch\("data\/splits\.json"/.test(tr),
+  ok(/splitLines\(\{ rows, names: NAMES, last, slate/.test(sit) && /"splits\.json"/.test(sit) && /"shift", "split"(?:, "sit")?(?:, "team")?\]\)/.test(tn) && /split: 1(?:, sit: 1)? \}/.test(tn) && /split: \["⏱️", "trends\.html#splits"\]/.test(idx) && /<h2 id="splits">(?:4th quarters and clutch time|Splits: [^<]+)<\/h2>/.test(tr) && /fetch\("data\/splits\.json"/.test(tr),
     "splits (0.185.0): the build writes docs/data/splits.json and puts tonight's teams' lines in the briefing (one a game); the home page and the Streaks page show them");
 }
 
@@ -7090,7 +7090,7 @@ await bridgeChecks(ok, root);
     "Index (0.189.0; the user, 11/28: \"I still don't see the information for wagner\"): a search reads every page's data files and lists each line naming it, grouped by page (every link a page that exists); internal keys are not shown", JSON.stringify(srcs));
   ok(/players\.html\?team=\$\{encodeURIComponent\(p\.team \|\| ""\)\}&out=\$\{a\}/.test(ph) && /PEOPLE\.find\(\(p\) => fold\(p\.name\) === fold\(v\)\)/.test(ps) && /get\("out"\)/.test(ps),
     "Player page (0.189.0, the site audit): \"With / without him\" opens his team's view with him picked; the pair view takes a name as well as an ESPN id (it was left empty)");
-  ok(/const f = t && t\.closest\("details"\); if \(f\) \{ f\.open = true;/.test(ix) && /key: `unusual\|\$\{u\.team\}\|\$\{u\.key\}`/.test(sj) && fs.existsSync(path.join(root, "tools", "audit-site.py")),
+  ok(/const f = t && t\.closest\("details"\); if \(f\) \{ f\.open = true;/.test(ix) && /"split", "sit", "team"\]\);/.test(rdS("src", "anticipate", "tonight.js")) && /key: `unusual\|\$\{u\.team\}\|\$\{u\.key\}`/.test(sj) && fs.existsSync(path.join(root, "tools", "audit-site.py")),
     "audit (0.189.0; the user, 11/28: \"information that is not considered or looked at for the home page\"): the Team situations page's unusual records for tonight's teams join the ranked list; a link into the folded briefing opens it; tools/audit-site.py keeps the audit");
 }
 
