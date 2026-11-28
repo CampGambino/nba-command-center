@@ -1,0 +1,64 @@
+{
+ "id": "2026-11-28",
+ "date": "2026-11-28",
+ "generatedAt": "2026-11-28T17:12:45.452Z",
+ "searched": [
+  "NBA.com Starting 5 (Nov. 12-16)",
+  "Flashscore NBA weekly",
+  "Kalshi NBA on X (sent by you)"
+ ],
+ "summary": "First run, a test of the route: claims from this month's coverage instead of one night's. From tomorrow, each morning covers the night before.",
+ "items": [
+  {
+   "claim": "Dončić had nine straight games of 30+ points, 5+ rebounds and 5+ assists, tying the longest such run in NBA history",
+   "player": "Luka Dončić",
+   "team": "LAL",
+   "source": "NBA.com Starting 5, Nov. 12",
+   "url": "https://www.nba.com/news/starting-5-november-12-2026",
+   "verdict": "out of date",
+   "ours": "missed",
+   "note": "Our box scores agree: nine straight through 11/11 (32-5-5 that night). It ended 11/15 (43 points, 3 rebounds). Our streak list has no streak for a combined line like 30-5-5.",
+   "cut": "streaks of a combined line (30+ points with 5+ rebounds and 5+ assists, and the like), against the longest on file"
+  },
+  {
+   "claim": "Dončić's 468 points through 12 games were the most through a season's first 12 in the last 50 years, passing James Harden's 464",
+   "player": "Luka Dončić",
+   "team": "LAL",
+   "source": "NBA.com Starting 5, Nov. 16",
+   "url": "https://www.nba.com/news/starting-5-november-16-2026",
+   "verdict": "true",
+   "ours": "missed",
+   "note": "468 through his first 12 games, in our box scores. Our files go back to 1993-94, so the 50-year part is the league's to say; nothing on the site sets points through N games against past seasons.",
+   "cut": "points (and other totals) through a player's first N games of a season, against every season on file"
+  },
+  {
+   "claim": "Ten Grizzlies scored in double figures against the Pelicans, a franchise record",
+   "team": "MEM",
+   "source": "NBA.com Starting 5, Nov. 14",
+   "url": "https://www.nba.com/news/starting-5-november-14-2026",
+   "verdict": "true",
+   "ours": "missed",
+   "note": "Our 11/13 box score: 10 Grizzlies with 10+ points in the 142-111 win. The franchise record part goes past our files' 1993-94 start for Vancouver/Memphis only in name; it fits what we hold.",
+   "cut": "players in double figures in one game, against the team's games on file"
+  },
+  {
+   "claim": "Josh Hart hasn't scored in double figures since Oct. 25",
+   "player": "Josh Hart",
+   "team": "NYK",
+   "source": "Flashscore NBA weekly",
+   "url": "https://www.flashscore.com/news/basketball-nba-nba-weekly-wemby-s-spurs-win-12-in-a-row-as-knicks-face-reality-check/hhOZNMv9/",
+   "verdict": "out of date",
+   "ours": "n/a",
+   "note": "He has since scored 11 (11/19), 10 (11/22) and 15 (11/25). The site has his real slide: 28-for-92 from the field over 12 games."
+  },
+  {
+   "claim": "Jayson Tatum in the 4th quarter of his last six games: 3.7 points a game, 6-25 FG, 1-13 from three, 9-15 FT",
+   "player": "Jayson Tatum",
+   "team": "BOS",
+   "source": "Kalshi NBA on X",
+   "verdict": "true",
+   "ours": "found",
+   "note": "Our play-by-play gives the same numbers; the Streaks page's 4th-quarter scan has had it since this morning (his last 8: 7-27, 1-14)."
+  }
+ ]
+}
