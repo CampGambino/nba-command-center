@@ -388,6 +388,9 @@ export function readGameDetail(json) {
     // Player lines in clutch time (see pbp.js); only when the game had clutch time.
     clutchPlayers: usable && clutch ? clutchPlayers(json, { homeId, awayId }, { starts }) : null,
     q4Players: usable ? windowPlayers(json, { homeId, awayId }, WINDOWS.q4, { starts }) : null,
+    // 0.187.0 (the user, 11/28: "build it", of every quarter per player): the 1st, 2nd and 3rd quarters, only when every
+    // period's plays add up (a period short a basket would give someone's quarter wrong).
+    periodPlayers: scoreOk ? [1, 2, 3].map((k) => windowPlayers(json, { homeId, awayId }, { inPeriod: (per) => per === k, cap: () => 720, close: false }, { starts })) : null,
     players: readPlayerBox(json, homeId),
     // 0.95: scoring by type (misc.js): paint, fast break, off turnovers, second chance.
     misc: readGameMisc(json),

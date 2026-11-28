@@ -650,11 +650,33 @@ for (const [tri, games] of Object.entries(perTeam)) {
       const { splitLines } = await import("../src/situations/splits.js");
       const y0 = +SEASON.slice(0, 4) - 1, hf = path.join(root, "src", "data", `q4-history-${y0}-${String(y0 + 1).slice(2)}.json`);
       const last = fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null;
-      const sp = splitLines({ rows, names: NAMES, last, slate, teamOf: (id, t) => (rosterChanges[id] ? rosterChanges[id].team || "FA" : t) });
-      prep.lines.push(...sp);
-      fs.writeFileSync(path.join(root, "docs", "data", "splits.json"), JSON.stringify({ generatedAt: new Date().toISOString(), today, through, lastSeason: last ? last.season : null, playing: [...new Set(slate.flatMap((g) => [g.home, g.away]))], lines: sp }));
-      console.log(`splits: ${sp.length} scorers whose recent 4th quarters or clutch time are well off their own (${sp.filter((l) => l.dir === "down").length} down, ${sp.filter((l) => l.dir === "up").length} up)${last ? "" : "; no last-season file"}`);
+      const teamOf = (id, t) => (rosterChanges[id] ? rosterChanges[id].team || "FA" : t);
+      const sp = splitLines({ rows, names: NAMES, last, slate, teamOf });
+      // 0.187.0 (the user, 11/28: "same for teams", "build it"): every quarter, both halves and clutch time, players and
+      // teams; and home / road, back-to-backs, teams over .500 and without a teammate (src/situations/situational.js)
+      const { situationalLines } = await import("../src/situations/situational.js");
+      const si = situationalLines({ rows, names: NAMES, slate, teamOf });
+      prep.lines.push(...sp, ...si);
+      fs.writeFileSync(path.join(root, "docs", "data", "splits.json"), JSON.stringify({ generatedAt: new Date().toISOString(), today, through, lastSeason: last ? last.season : null, playing: [...new Set(slate.flatMap((g) => [g.home, g.away]))], lines: [...sp, ...si].sort((a, b) => b.score - a.score) }));
+      const by = (l, f) => l.filter(f).length;
+      console.log(`splits: ${by(sp, (l) => l.player)} lines for ${new Set(sp.filter((l) => l.player).map((l) => l.id)).size} scorers (one a direction) and ${by(sp, (l) => !l.player)} teams with recent quarters, halves or clutch time well off their own (${by(sp, (l) => l.dir === "down")} down, ${by(sp, (l) => l.dir === "up")} up; ${["q1", "q2", "q3", "q4", "h1", "h2", "clutch"].map((w) => `${w} ${by(sp, (l) => l.stretch === w)}`).join(", ")}; ${rows.filter((g) => g.qp).length} of ${rows.length} games with every quarter)${last ? "" : "; no last-season file"}; situations: ${by(si, (l) => l.player)} players and ${by(si, (l) => !l.player)} teams (${["home", "b2b", "above", "without"].map((c) => `${c} ${by(si, (l) => l.cut === c)}`).join(", ")})`);
     } catch (e) { prep.errors.push(`splits: ${e.message}`); console.error(`splits not written: ${e.message}`); }
+    // 0.187.0 (the first buzz report, 11/28: three claims we had the games for and never checked): combined-line runs
+    // (30-5-5), totals through a player's first N games and players in double figures in a game, each against every season
+    // on file (src/data/onfile-history-<last season>.json, tools/onfile-history.mjs). A start line takes the place of the
+    // same player's and stat's "pace" line (one number, one line).
+    try {
+      const { comboLines, startLines, depthLines } = await import("../src/situations/onfile.js");
+      const y0 = +SEASON.slice(0, 4) - 1, of = path.join(root, "src", "data", `onfile-history-${y0}-${String(y0 + 1).slice(2)}.json`);
+      const hist = fs.existsSync(of) ? JSON.parse(fs.readFileSync(of, "utf8")) : null;
+      if (!hist) throw new Error(`${path.basename(of)} is missing`);
+      const pgOn = playerGames(rows.filter((g) => !g.cupFinal));
+      const co = comboLines({ pg: pgOn, names: NAMES, hist, season: SEASON, slate }), st = startLines({ pg: pgOn, names: NAMES, hist, season: SEASON, slate }), de = depthLines({ rows, hist, today });
+      const startKeys = new Set(st.map((l) => `pace|${l.id}|${l.stat}`)), before = prep.lines.length;
+      prep.lines = prep.lines.filter((l) => !(l.kind === "pace" && startKeys.has(l.key)));
+      prep.lines.push(...co, ...st, ...de);
+      console.log(`on file (${hist.from} to ${hist.through}, ${hist.games} games): ${co.length} combined-line runs, ${st.length} starts through N games, ${de.length} games with the most players in double figures${before - (prep.lines.length - co.length - st.length - de.length) ? `; ${before - (prep.lines.length - co.length - st.length - de.length)} pace line(s) replaced` : ""}`);
+    } catch (e) { prep.errors.push(`on file: ${e.message}`); console.error(`on-file lines not written: ${e.message}`); }
     // 0.141 (audit step 5): luck (record vs point differential; shooting vs his career), paradox (30-point games his
     // team loses), scarcity ("one of 2 teams unbeaten on the road"), what a defense gives up to one position.
     try {

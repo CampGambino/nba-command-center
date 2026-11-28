@@ -27,13 +27,34 @@
 // statistician would call rare, so the size of the slide decides and the chance only keeps out plain noise: a slide in
 // points a stretch (a quarter or more down, and 1.5+), in his shooting (12+ points of percentage on 15+ shots) or from
 // three (15+ points on 10+ threes), with a chance of 1 in 10 or less for the strongest of them. Ranked, not cut further.
-export const SPLITS = { ppg: 15, windows: [5, 6, 7, 8, 10], minBase: 8, minBaseFga: 20, p: 0.1, drop: 0.75, dropPts: 1.5, rise: 1.4, risePts: 2.5, fgGap: 0.12, fgMin: 15, threeGap: 0.15, threeMin: 10 };
+export const SPLITS = { sdFloor: 3, ppg: 15, windows: [5, 6, 7, 8, 10], minBase: 8, minBaseFga: 20, p: 0.1, drop: 0.75, dropPts: 1.5, rise: 1.4, risePts: 2.5, fgGap: 0.12, fgMin: 15, threeGap: 0.15, threeMin: 10 };
+// 0.187.0 (the user, 11/28: "build it", of every quarter and each half per player; "same for teams"): every quarter, both
+// halves and clutch time. "Short" is the word in "he didn't play in the 4th".
+const Q = (n, ord) => ({ say: (k) => `in the ${ord} quarter of his last ${k} games`, base: `${ord} quarters`, minWinFga: 10, short: `the ${ord}`, has: `a ${ord} quarter`, quarter: true, n });
 const STRETCH = {
-  q4: { field: "q4", hist: "q4", say: (n) => `in the 4th quarter of his last ${n} games`, base: "4th quarters", minWinFga: 12 },
-  clutch: { field: "cp", hist: "clutch", say: (n) => `in clutch time in his last ${n} games with clutch time`, base: "clutch time", minWinFga: 10, note: "clutch time: the last five minutes of the 4th or overtime, within 5" },
+  q1: Q(1, "1st"), q2: Q(2, "2nd"), q3: Q(3, "3rd"),
+  q4: { ...Q(4, "4th"), minWinFga: 12 },
+  h1: { say: (k) => `in the first half of his last ${k} games`, base: "first halves", minWinFga: 20, short: "the first half", has: "a first half", half: true },
+  h2: { say: (k) => `in the second half of his last ${k} games`, base: "second halves", minWinFga: 20, short: "the second half", has: "a second half", half: true },
+  clutch: { say: (k) => `in clutch time in his last ${k} games with clutch time`, base: "clutch time", minWinFga: 10, note: "clutch time: the last five minutes of the 4th or overtime, within 5" },
 };
-// pbp.js line in the store, after the side: [sec, pts, fgm, fga, fg3m, fg3a, ftm, fta, reb, ast, tov, stl, blk, pm]
-const S = { sec: 1, pts: 2, fgm: 3, fga: 4, fg3m: 5, fg3a: 6, ftm: 7, fta: 8 };
+export const STRETCHES = Object.keys(STRETCH);
+export const STRETCH_WEIGHT = { q1: 0.3, q2: 0.3, q3: 0.3, h1: 0.15, h2: 0.15, q4: 0, clutch: 0 };
+// The 8-number line [sec, pts, fgm, fga, fg3m, fg3a, ftm, fta] of a player in one stretch of a game, or null when he had none;
+// undefined when that stretch of the game isn't on file (its plays didn't add up, or it was read before 0.187.0).
+const add8 = (a, b) => (a && b ? a.map((v, i) => v + b[i]) : a || b || null);
+export function stretchLine(g, id, w) {
+  const qp = g.qp?.p, q = (k) => (qp?.[id] ? qp[id].slice(1 + (k - 1) * 8, 1 + k * 8) : null), q4 = () => (g.q4?.p?.[id] ? g.q4.p[id].slice(1, 9) : null);
+  const on = (x) => (x && (x[0] > 0 || x.slice(1).some((v) => v)) ? x : null);
+  if (w === "q1" || w === "q2" || w === "q3") return g.qp ? on(q(+w[1])) : undefined;
+  if (w === "q4") return g.q4 ? on(q4()) : undefined;
+  if (w === "h1") return g.qp ? on(add8(on(q(1)), on(q(2)))) : undefined;
+  if (w === "h2") return g.qp && g.q4 ? on(add8(on(q(3)), on(q4()))) : undefined;
+  if (w === "clutch") return g.cp ? on(g.cp.p?.[id] ? g.cp.p[id].slice(1, 9) : null) : undefined;
+  return undefined;
+}
+// the 8-number line: [sec, pts, fgm, fga, fg3m, fg3a, ftm, fta]
+const S = { sec: 0, pts: 1, fgm: 2, fga: 3, fg3m: 4, fg3a: 5, ftm: 6, fta: 7 };
 
 // log of the binomial tail, P(X <= k) or P(X >= k), X ~ Bin(n, p)
 function lnChoose(n, k) { let s = 0; for (let i = 1; i <= k; i++) s += Math.log(n - k + i) - Math.log(i); return s; }
@@ -53,24 +74,26 @@ export function normTail(z) {
 const r1 = (x) => (Math.round(x * 10) / 10).toFixed(1);
 const pct = (m, a) => (a ? `${r1((100 * m) / a)}%` : "n/a");
 
-export function splitLines({ rows = [], names = {}, last = null, slate = [], teamOf = (id, t) => t } = {}) {
+/** Every player's best window in each stretch that passes (one a stretch), before one is picked a player. */
+export function splitCandidates({ rows = [], names = {}, last = null, slate = [], teamOf = (id, t) => t } = {}) {
   const playing = new Set((slate || []).flatMap((g) => [g.home, g.away]));
   const games = [...rows].filter((g) => g.pl).sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0));
-  // his games this season (minutes) and points, for who is a scorer
+  // his games this season (minutes, or the few-seconds mark) and points, for who is a scorer
   const seasonPts = {}, team = {}, played = {};
   for (const g of games) for (const [id, r] of Object.entries(g.pl)) {
     if (!(r[2] > 0) && !(g.z || []).includes(id)) continue;
-    (seasonPts[id] ??= []).push(r[3]); team[id] = r[0] === 0 ? g.h : g.a; if (g.q4) (played[id] ??= []).push(g.d);   // a game whose 4th quarter isn't on file is not one he sat
+    (seasonPts[id] ??= []).push(r[3]); team[id] = r[0] === 0 ? g.h : g.a; (played[id] ??= []).push(g);
   }
   const out = [];
   for (const [id, pts] of Object.entries(seasonPts)) {
     const ppg = pts.reduce((a, b) => a + b, 0) / pts.length;
     if (ppg < SPLITS.ppg || pts.length < SPLITS.windows[0] + 3) continue;
-    let best = null;
     for (const [sk, st] of Object.entries(STRETCH)) {
       const app = [];   // his appearances in the stretch this season, in date order
-      for (const g of games) { const x = g[st.field]?.p?.[id]; if (x && (x[S.sec] > 0 || x.slice(2, 9).some((v) => v))) app.push({ d: g.d, x }); }
-      const hist = last?.[st.hist]?.[id];   // [games, sec, pts, fgm, fga, fg3m, fg3a, ftm, fta]
+      for (const g of games) { const x = stretchLine(g, id, sk); if (x) app.push({ d: g.d, x }); }
+      const hist = last?.[sk]?.[id];   // [games, sec, pts, fgm, fga, fg3m, fg3a, ftm, fta]
+      const half = st.half ? 2 : 1;    // a half has twice a quarter's points and shots
+      let best = null;
       for (const n of SPLITS.windows) {
         if (app.length < n) continue;
         const win = app.slice(-n), before = app.slice(0, -n);
@@ -78,37 +101,111 @@ export function splitLines({ rows = [], names = {}, last = null, slate = [], tea
         const W = { g: n, pts: sum(win, S.pts), fgm: sum(win, S.fgm), fga: sum(win, S.fga), fg3m: sum(win, S.fg3m), fg3a: sum(win, S.fg3a), ftm: sum(win, S.ftm), fta: sum(win, S.fta) };
         const B = { g: before.length + (hist?.[0] || 0), pts: sum(before, S.pts) + (hist?.[2] || 0), fgm: sum(before, S.fgm) + (hist?.[3] || 0), fga: sum(before, S.fga) + (hist?.[4] || 0),
           fg3m: sum(before, S.fg3m) + (hist?.[5] || 0), fg3a: sum(before, S.fg3a) + (hist?.[6] || 0), now: before.length, lastSeason: hist?.[0] || 0 };
-        if (B.g < SPLITS.minBase || B.fga < SPLITS.minBaseFga || W.fga < st.minWinFga) continue;
+        if (B.g < SPLITS.minBase || B.fga < SPLITS.minBaseFga * half || W.fga < st.minWinFga) continue;
         const wp = W.pts / n, bp = B.pts / B.g, rate = B.fgm / B.fga, wr = W.fgm / W.fga, r3 = B.fg3a ? B.fg3m / B.fg3a : null, w3 = W.fg3a ? W.fg3m / W.fg3a : null;
-        const ptsDown = wp <= bp * SPLITS.drop && bp - wp >= SPLITS.dropPts, ptsUp = wp >= bp * SPLITS.rise && wp - bp >= SPLITS.risePts;
-        const fgDown = W.fga >= SPLITS.fgMin && wr <= rate - SPLITS.fgGap, fgUp = W.fga >= SPLITS.fgMin && wr >= rate + SPLITS.fgGap;
+        const ptsDown = wp <= bp * SPLITS.drop && bp - wp >= SPLITS.dropPts * half, ptsUp = wp >= bp * SPLITS.rise && wp - bp >= SPLITS.risePts * half;
+        const fgDown = W.fga >= SPLITS.fgMin * half && wr <= rate - SPLITS.fgGap, fgUp = W.fga >= SPLITS.fgMin * half && wr >= rate + SPLITS.fgGap;
         const thDown = r3 != null && B.fg3a >= 20 && W.fg3a >= SPLITS.threeMin && w3 <= r3 - SPLITS.threeGap, thUp = r3 != null && B.fg3a >= 20 && W.fg3a >= SPLITS.threeMin && w3 >= r3 + SPLITS.threeGap;
         // one direction: down needs his points down (or flat) and a shooting slide or the points slide itself; up the same
         const down = (ptsDown || ((fgDown || thDown) && wp <= bp)), up = (ptsUp || ((fgUp || thUp) && wp >= bp));
         if (down === up) continue;
-        // the spread of his points a stretch, from this season's earlier games (at least 3 points: few games read small)
+        // the spread of his points a stretch, from this season's earlier games (at least 3 a quarter: few games read small)
         const bpts = before.map((e) => e.x[S.pts]), mean = bpts.length ? bpts.reduce((a, b) => a + b, 0) / bpts.length : bp;
-        const sd = Math.max(3, bpts.length >= 4 ? Math.sqrt(bpts.reduce((a, b) => a + (b - mean) ** 2, 0) / (bpts.length - 1)) : 0);
+        const sd = Math.max(SPLITS.sdFloor * Math.sqrt(half), bpts.length >= 4 ? Math.sqrt(bpts.reduce((a, b) => a + (b - mean) ** 2, 0) / (bpts.length - 1)) : 0);
         const pPts = normTail(Math.abs(wp - bp) / (sd / Math.sqrt(n)));
         const pFg = (down && wr < rate) || (up && wr > rate) ? binomTail(W.fgm, W.fga, rate, up) : 1;
         const p3 = r3 != null && W.fg3a >= SPLITS.threeMin && ((down && w3 < r3) || (up && w3 > r3)) ? binomTail(W.fg3m, W.fg3a, r3, up) : 1;
-        const pAdj = Math.min(pPts, pFg, p3);   // the strongest of the three; the windows are a choice, said in the line
+        // the strongest of the three (the window and the stretch are choices, said in the line), graded as 0.185.0 graded the
+        // 4th quarter: leeway, then ranked (the user: resonance is the bar, not rarity alone)
+        const pAdj = Math.min(pPts, pFg, p3);
         if (pAdj > SPLITS.p) continue;
         if (!best || pAdj < best.pAdj) best = { sk, st, n, W, B, wp, bp, rate, r3, down, pAdj, since: win[0].d };
       }
+      if (!best) continue;
+      const { n, W, B, wp, bp, r3, down, pAdj } = best;
+      const tri = teamOf(id, team[id]) || team[id], name = names[id] || id;
+      const from = [B.now ? `${B.now} this season` : "", B.lastSeason ? `${B.lastSeason} last season` : ""].filter(Boolean).join(", ");
+      // games he played in that stretch of time with that stretch on file and none of his: said, so "his last 8 games" is true
+      const skipped = st.quarter || st.half ? (played[id] || []).filter((g) => g.d >= best.since && stretchLine(g, id, sk) === null).length : 0;
+      const text = `${name} ${st.say(n)}${skipped > 0 ? ` with ${st.has} (he didn't play in ${st.short} in ${skipped} other game${skipped === 1 ? "" : "s"} since ${+best.since.slice(5, 7)}/${+best.since.slice(8, 10)})` : ""}: `
+        + `${r1(wp)} points a game, ${W.fgm}-${W.fga} FG (${pct(W.fgm, W.fga)}), ${W.fg3m}-${W.fg3a} 3PT, ${W.ftm}-${W.fta} FT. `
+        + `In his ${st.base} before that (${from}): ${r1(bp)} points a game, ${pct(B.fgm, B.fga)} FG${r3 != null && B.fg3a >= 10 ? `, ${pct(B.fg3m, B.fg3a)} 3PT` : ""}`
+        + (st.note ? ` (${st.note})` : "");
+      // the 4th quarter and clutch time are the ones people talk about (Kalshi's Tatum post); the 1st to 3rd quarters a little
+      // less, the halves in between
+      const score = 2.8 + Math.min(0.8, -Math.log10(pAdj) / 3) + Math.min(0.6, (ppg - SPLITS.ppg) / 20) + (playing.has(tri) ? 0.2 : 0) - (STRETCH_WEIGHT[sk] || 0);
+      out.push({ kind: "split", team: tri, player: name, id, key: `split|${id}|${sk}|${down ? "down" : "up"}`, text, score: Math.round(score * 100) / 100,
+        stretch: sk, dir: down ? "down" : "up", n, chance: Number(pAdj.toPrecision(2)), since: best.since, window: W, before: { g: B.g, pts: B.pts, fgm: B.fgm, fga: B.fga, now: B.now, lastSeason: B.lastSeason }, rare: pAdj <= 0.001 });
+    }
+  }
+  return out;
+}
+
+/** One line a player a direction, his best-ranked stretch each way (Tatum's 1st quarters up and 4th quarters down are two
+ *  stories); then the teams (teamSplitLines). Ranked. */
+export function splitLines(args = {}) {
+  const best = new Map();
+  // the best-ranked stretch each way: the chance, how good he is, and the 4th quarter and clutch time ahead of the rest
+  for (const c of splitCandidates(args)) { const k = `${c.id}|${c.dir}`, b = best.get(k); if (!b || c.score > b.score || (c.score === b.score && c.chance < b.chance)) best.set(k, c); }
+  return [...best.values(), ...teamSplitLines(args)].sort((a, b) => b.score - a.score);
+}
+
+// ---------- teams (0.187.0; the user, 11/28: "same for teams") ----------
+// A team's recent quarters or halves against its own before: points scored a stretch (this season's earlier games and all of
+// last season's, from the play-by-play) and its margin a stretch (this season's earlier games). One line a team.
+export const TEAM_SPLITS = { windows: [5, 6, 7, 8, 10], minBase: 8, p: 0.01, ptsGap: 4, marginGap: 6 };
+const meanOf = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+const sdOf = (a) => { if (a.length < 2) return 0; const m = meanOf(a); return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / (a.length - 1)); };
+const gapZ = (a, b, floor) => normTail(Math.abs(meanOf(a) - meanOf(b)) / Math.sqrt(Math.max(floor, sdOf(a)) ** 2 / a.length + Math.max(floor, sdOf(b)) ** 2 / b.length));
+const TEAM_SAY = { q1: "1st quarter", q2: "2nd quarter", q3: "3rd quarter", q4: "4th quarter", h1: "first half", h2: "second half" };
+const TEAM_BASE = { q1: "1st quarters", q2: "2nd quarters", q3: "3rd quarters", q4: "4th quarters", h1: "first halves", h2: "second halves" };
+export function teamSplitLines({ rows = [], last = null, slate = [] } = {}) {
+  const playing = new Set((slate || []).flatMap((g) => [g.home, g.away]));
+  const games = [...rows].filter((g) => Array.isArray(g.hq) && Array.isArray(g.aq) && g.hq.length >= 4 && g.aq.length >= 4).sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0));
+  const per = {}, rec = {};
+  const span = (q, w) => (w === "h1" ? q[0] + q[1] : w === "h2" ? q[2] + q[3] : q[+w[1] - 1]);
+  for (const g of games) for (const [t, o, mine, theirs] of [[g.h, g.a, g.hq, g.aq], [g.a, g.h, g.aq, g.hq]]) {
+    (per[t] ??= []).push({ d: g.d, opp: o, s: Object.fromEntries(Object.keys(TEAM_SAY).map((w) => [w, [span(mine, w), span(theirs, w)]])) });
+    const r = (rec[t] ??= { w: 0, l: 0 }); if (g.hs != null) { const won = (t === g.h ? g.hs > g.as : g.as > g.hs); if (won) r.w++; else r.l++; }
+  }
+  const out = [];
+  for (const [t, list] of Object.entries(per)) {
+    const pctW = rec[t].w / Math.max(1, rec[t].w + rec[t].l);
+    let best = null;
+    for (const w of Object.keys(TEAM_SAY)) {
+      const half = w[0] === "h" ? 2 : 1, hist = last?.teams?.[w]?.[t];
+      for (const n of TEAM_SPLITS.windows) {
+        if (list.length < n + TEAM_SPLITS.minBase) continue;
+        const win = list.slice(-n), before = list.slice(0, -n);
+        const m = (l, f) => l.reduce((a, e) => a + f(e), 0) / l.length;
+        const wPf = m(win, (e) => e.s[w][0]), wPa = m(win, (e) => e.s[w][1]), wMg = wPf - wPa;
+        const bMg = m(before, (e) => e.s[w][0] - e.s[w][1]);
+        const bPf = (before.reduce((a, e) => a + e.s[w][0], 0) + (hist?.[2] || 0)) / (before.length + (hist?.[0] || 0));
+        const mgShift = Math.abs(wMg - bMg) >= TEAM_SPLITS.marginGap * half, pfShift = Math.abs(wPf - bPf) >= TEAM_SPLITS.ptsGap * half;
+        if (!mgShift && !pfShift) continue;
+        // margin: the window against this season's earlier games, both samples' spread (Welch); points: against this
+        // season's earlier games and last season's, with this season's spread
+        const pM = mgShift ? gapZ(win.map((e) => e.s[w][0] - e.s[w][1]), before.map((e) => e.s[w][0] - e.s[w][1]), 5 * Math.sqrt(half)) : 1;
+        const sdP = Math.max(4 * Math.sqrt(half), sdOf(before.map((e) => e.s[w][0])));
+        const pP = pfShift ? normTail(Math.abs(wPf - bPf) / Math.sqrt(Math.max(4 * Math.sqrt(half), sdOf(win.map((e) => e.s[w][0]))) ** 2 / n + sdP ** 2 / (before.length + (hist?.[0] || 0)))) : 1;
+        // six stretches looked at, so the chance is counted six times over (the windows overlap and are said in the line)
+        const chance = Math.min(1, Math.min(pM, pP) * 6);
+        if (chance > TEAM_SPLITS.p) continue;
+        const down = pM <= pP ? wMg < bMg : wPf < bPf;
+        if (!best || chance < best.chance) best = { w, n, wPf, wPa, wMg, bMg, bPf, pM, pP, before: before.length, lastSeason: hist?.[0] || 0, chance, down, since: win[0].d };
+      }
     }
     if (!best) continue;
-    const { st, n, W, B, wp, bp, r3, down, pAdj } = best;
-    const tri = teamOf(id, team[id]) || team[id], name = names[id] || id;
-    const from = [B.now ? `${B.now} this season` : "", B.lastSeason ? `${B.lastSeason} last season` : ""].filter(Boolean).join(", ");
-    // games he played in that stretch without a 4th quarter of his: said, so "his last 8 games" is true
-    const span = (played[id] || []).filter((d) => d >= best.since).length, skipped = best.sk === "q4" ? span - n : 0;
-    const text = `${name} ${st.say(n)}${skipped > 0 ? ` with a 4th quarter (he didn't play in the 4th in ${skipped} other game${skipped === 1 ? "" : "s"} since ${+best.since.slice(5, 7)}/${+best.since.slice(8, 10)})` : ""}: ${r1(wp)} points a game, ${W.fgm}-${W.fga} FG (${pct(W.fgm, W.fga)}), ${W.fg3m}-${W.fg3a} 3PT, ${W.ftm}-${W.fta} FT. `
-      + `In his ${st.base} before that (${from}): ${r1(bp)} points a game, ${pct(B.fgm, B.fga)} FG${r3 != null && B.fg3a >= 10 ? `, ${pct(B.fg3m, B.fg3a)} 3PT` : ""}`
-      + (st.note ? ` (${st.note})` : "");
-    const score = 2.8 + Math.min(0.8, -Math.log10(pAdj) / 3) + Math.min(0.6, (ppg - SPLITS.ppg) / 20) + (playing.has(tri) ? 0.2 : 0);
-    out.push({ kind: "split", team: tri, player: name, id, key: `split|${id}|${best.sk}|${down ? "down" : "up"}`, text, score: Math.round(score * 100) / 100,
-      stretch: best.sk, dir: down ? "down" : "up", n, chance: Number(pAdj.toPrecision(2)), since: best.since, window: W, before: { g: B.g, pts: B.pts, fgm: B.fgm, fga: B.fga, now: B.now, lastSeason: B.lastSeason }, rare: pAdj <= 0.001 });
+    const { w, n, wPf, wPa, wMg, bMg, bPf, chance, down } = best;
+    const sg = (x) => (x >= 0 ? `+${r1(x)}` : `−${r1(-x)}`);
+    const from = [`${best.before} this season`, best.lastSeason ? `${best.lastSeason} last season` : ""].filter(Boolean).join(", ");
+    const byPts = best.pP < best.pM;
+    const text = byPts
+      ? `${t} in the ${TEAM_SAY[w]} of its last ${n} games: ${r1(wPf)} points a game (${sg(wMg)} margin). Before that: ${r1(bPf)} points a game in ${TEAM_BASE[w]} (${from})`
+      : `${t} in the ${TEAM_SAY[w]} of its last ${n} games: ${sg(wMg)} a game (${r1(wPf)}-${r1(wPa)}). Before that: ${sg(bMg)} a game in ${TEAM_BASE[w]} this season (${best.before} games)`;
+    const score = 2.8 + Math.min(0.8, -Math.log10(chance) / 3) + Math.min(0.5, Math.max(0, pctW - 0.4)) + (playing.has(t) ? 0.2 : 0) - (STRETCH_WEIGHT[w] || 0);
+    out.push({ kind: "split", team: t, player: null, id: `team:${t}`, key: `split|${t}|${w}|${down ? "down" : "up"}`, text, score: Math.round(score * 100) / 100,
+      stretch: w, dir: down ? "down" : "up", n, chance: Number(chance.toPrecision(2)), since: best.since, teamLine: true, rare: chance <= 0.001 });
   }
-  return out.sort((a, b) => b.score - a.score);
+  return out;
 }

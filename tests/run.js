@@ -2318,7 +2318,7 @@ await bridgeChecks(ok, root);
     const by = Object.fromEntries(L.map((l) => [l.player, l]));
     ok(L.length === 3 && by["P Two"]?.score === STORY.top && by["P Two"].text.endsWith("(by chance: under 1 in 200)") && by["P Three"] && !by["P Four"] && !by["Role Change"] && !by["Bench Guy"] && !by["Weak"] && !by["Other Team"]
       && by["P One"]?.key === "shift|p1|fg3" && by["P One"].text.endsWith("(29-for-68) (by chance: 1 in 67)") && by["P One"].score > STORY.base + STORY.shootBonus && L.every((l) => l.kind === "shift" && l.team === "AAA")
-      && /"find", "shift"(?:, "split")?\]\)/.test(fs.readFileSync(path.join(root, "src", "anticipate", "tonight.js"), "utf8")) && /shift: \["📊", "trends\.html#shifts"\]/.test(fs.readFileSync(path.join(root, "docs", "index.html"), "utf8"))
+      && /"find", "shift"(?:, "split")?(?:, "sit")?\]\)/.test(fs.readFileSync(path.join(root, "src", "anticipate", "tonight.js"), "utf8")) && /shift: \["📊", "trends\.html#shifts"\]/.test(fs.readFileSync(path.join(root, "docs", "index.html"), "utf8"))
       && /shiftStoryLines\(shiftAll/.test(fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8")),
       "0.121.0 (the user: \"are the most significant ones posted in the watch list?\"): the strongest shifts on tonight's teams become Watch List lines: one a player, a shooting line and two others a team at most, rotation players only, 1 in 20 or rarer, a stat that moved with his minutes left out",
       JSON.stringify(L.map((l) => [l.player, l.score, l.key])));
@@ -6951,14 +6951,14 @@ await bridgeChecks(ok, root);
   const L = SPL.splitLines({ rows: upTo, names: meta.names, last, slate: [{ home: "BOS", away: "XXX" }] }), tat = L.find((l) => l.id === id);
   ok(six.length === 6 && sum(2) === 22 && `${sum(3)}-${sum(4)}` === "6-25" && `${sum(5)}-${sum(6)}` === "1-13" && `${sum(7)}-${sum(8)}` === "9-15"
     && tat && tat.dir === "down" && tat.stretch === "q4" && /^Jayson Tatum in the 4th quarter of his last \d+ games with a 4th quarter \(he didn't play in the 4th in 3 other games since/.test(tat.text) && / last season\): 5\.5 points a game|15 last season\)/.test(tat.text)
-    && L.every((l) => l.kind === "split" && l.chance <= SPL.SPLITS.p && l.team && l.player) && last.games >= 1200 && last.q4[id][0] === 15,
+    && L.every((l) => l.kind === "split" && l.chance <= SPL.SPLITS.p && l.team && (l.player || l.teamLine)) && last.games >= 1200 && last.q4[id][0] === 15,
     "splits (0.185.0; the user, 11/28, of Kalshi's \"Jayson Tatum in the 4th Quarter of his last 6 games: 3.7 PPG, 24.0 FG% (6-25 FG), 7.7 3PT% (1-13 3PT), 60.0 FT% (9-15 FT)\": \"were stats like this sliced up never checked?\"): our store gives the same six 4th quarters (22 points, 6-25, 1-13, 9-15); the scan finds Tatum's slide, says the 4th quarters he sat out, and sets it against his own before (this season and last season's 15)",
     JSON.stringify({ six, tat }));
   // a base 3-point rate from a few attempts is not printed; one direction a line
-  ok(!L.some((l) => /(?<![\d.])0\.0% 3PT \(clutch/.test(l.text)) && new Set(L.map((l) => l.id)).size === L.length,
-    "splits (0.185.0): a base 3-point rate from fewer than 10 attempts is not printed; one line a player");
+  ok(!L.some((l) => /(?<![\d.])0\.0% 3PT \(clutch/.test(l.text)) && new Set(L.map((l) => `${l.id}|${l.dir}`)).size === L.length,
+    "splits (0.185.0; 0.187.0: one a direction): a base 3-point rate from fewer than 10 attempts is not printed; one line a player a direction");
   const sit = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8"), tn = fs.readFileSync(path.join(root, "src", "anticipate", "tonight.js"), "utf8"), idx = fs.readFileSync(path.join(root, "docs", "index.html"), "utf8"), tr = fs.readFileSync(path.join(root, "docs", "trends.html"), "utf8");
-  ok(/splitLines\(\{ rows, names: NAMES, last, slate/.test(sit) && /"splits\.json"/.test(sit) && /"shift", "split"\]\)/.test(tn) && /split: 1 \}/.test(tn) && /split: \["⏱️", "trends\.html#splits"\]/.test(idx) && /<h2 id="splits">4th quarters and clutch time<\/h2>/.test(tr) && /fetch\("data\/splits\.json"/.test(tr),
+  ok(/splitLines\(\{ rows, names: NAMES, last, slate/.test(sit) && /"splits\.json"/.test(sit) && /"shift", "split"(?:, "sit")?\]\)/.test(tn) && /split: 1(?:, sit: 1)? \}/.test(tn) && /split: \["⏱️", "trends\.html#splits"\]/.test(idx) && /<h2 id="splits">(?:4th quarters and clutch time|Splits: [^<]+)<\/h2>/.test(tr) && /fetch\("data\/splits\.json"/.test(tr),
     "splits (0.185.0): the build writes docs/data/splits.json and puts tonight's teams' lines in the briefing (one a game); the home page and the Streaks page show them");
 }
 
@@ -6971,6 +6971,64 @@ await bridgeChecks(ok, root);
   ok(checkDraft(good).length === 0 && bad.some((b) => /date/.test(b)) && bad.some((b) => /verdict/.test(b)) && bad.some((b) => /ours/.test(b)) && bad.some((b) => /url/.test(b)) && bad.some((b) => /needs cut/.test(b))
     && /import \{ buzzCheck \} from "\.\/buzz\.js"/.test(w) && /healthCheck\(env, at\), buzzCheck\(env, at\)\]/.test(w),
     "buzz (0.186.0; the user, 11/28: \"scheduled task can go to discord\"): the scheduled task's draft is checked before it is written (date, verdict, ours, a web link, the check a missed one needs); the Worker reads the report every 10 minutes and posts a new one to #alerts");
+}
+
+// ---------- 0.187.0: every quarter and half, teams, situations, and three checks against every season on file ----------
+{
+  const P = await import("../src/espn/parse.js"), SPL = await import("../src/situations/splits.js"), SIT = await import("../src/situations/situational.js"), ON = await import("../src/situations/onfile.js");
+  // 1. every quarter per player: the fixture game's 1st-3rd quarter lines and its 4th add up to each player's box points
+  const sum = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(root, "tests", "fixtures", "espn-summary.json.gz"))));
+  const g = P.readGameDetail(sum), pts = {};
+  for (const t of sum.boxscore.players) for (const st of t.statistics) { const ki = st.keys.indexOf("points"); for (const a of st.athletes) if (a.stats?.length) pts[a.athlete.id] = +a.stats[ki]; }
+  const adds = Object.entries(pts).every(([id, v]) => [0, 1, 2].reduce((a, k) => a + (g.periodPlayers[k].players[id]?.s[1] || 0), 0) + (g.q4Players.players[id]?.s[1] || 0) === v);
+  const row = { qp: { p: { a: [0, 600, 8, 3, 6, 1, 2, 1, 1, 300, 4, 2, 4, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] } }, q4: { p: { a: [0, 500, 6, 2, 5, 1, 3, 1, 2] } }, cp: null };
+  const stl = (w) => JSON.stringify(SPL.stretchLine(row, "a", w));
+  ok(g.periodPlayers?.length === 3 && Object.keys(pts).length >= 15 && adds
+    && stl("q1") === "[600,8,3,6,1,2,1,1]" && stl("h1") === "[900,12,5,10,1,3,1,1]" && stl("q3") === "null" && stl("h2") === "[500,6,2,5,1,3,1,2]" && SPL.stretchLine(row, "a", "clutch") === undefined && SPL.stretchLine({}, "a", "q1") === undefined,
+    "splits (0.187.0; the user, 11/28: \"build it\", of every quarter and each half per player): ESPN's plays give each player's 1st, 2nd and 3rd quarters, and with the 4th they add up to his box points; a half is its two quarters, a quarter he sat is none, a game read before is not on file");
+  // 2. last season's file: every quarter, both halves, clutch time and the teams; a half is its two quarters for everyone
+  const last = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "q4-history-2025-26.json"), "utf8"));
+  // (a 4th quarter can be on file when the 3rd isn't: its plays add up on their own; such a game is in no second half)
+  const h2Short = Object.entries(last.h2).filter(([id, h]) => h[2] !== (last.q3[id]?.[2] || 0) + (last.q4[id]?.[2] || 0));
+  const halves = Object.entries(last.h1).every(([id, h]) => h[2] === (last.q1[id]?.[2] || 0) + (last.q2[id]?.[2] || 0))
+    && Object.entries(last.h2).every(([id, h]) => h[2] <= (last.q3[id]?.[2] || 0) + (last.q4[id]?.[2] || 0)) && h2Short.length <= Object.keys(last.h2).length / 10;
+  ok(last.games >= 1200 && ["q1", "q2", "q3", "q4", "h1", "h2", "clutch"].every((w) => Object.keys(last[w]).length >= 450 && Object.keys(last.teams[w]).length === 30) && halves
+    && last.teams.h1.BOS[2] === last.teams.q1.BOS[2] + last.teams.q2.BOS[2] && last.teams.q1.BOS[0] === 82,
+    "splits (0.187.0): last season's file holds every quarter, both halves and clutch time, for players and all 30 teams; a first half is its two quarters for every player, a second half only from games whose 3rd and 4th are both on file", String(h2Short.length));
+  // 3. teams: a team whose last 5 3rd quarters turned against it is found and said; a steady team is not
+  const mk = (i, t, o, q3) => ({ id: `g${t}${i}`, d: `2026-11-${String(i + 1).padStart(2, "0")}`, h: t, a: o, hs: 110, as: 105, hq: [28, 27, 28 + q3, 27], aq: [27, 28, 28, 22] });
+  const noise = [2, -3, 4, -1, 0, 3, -2, 1, -4, 2, 0, -1, 3, -3, 1];
+  const tRows = noise.map((x, i) => mk(i, "AAA", "ZZZ", i >= 10 ? -12 + x : 3 + x)).concat(noise.map((x, i) => mk(i, "BBB", "YYY", x)));
+  const T = SPL.teamSplitLines({ rows: tRows }), a = T.find((l) => l.team === "AAA");
+  ok(a && a.stretch === "q3" && a.dir === "down" && a.n === 5 && a.chance <= SPL.TEAM_SPLITS.p && /^AAA in the 3rd quarter of its last 5 games: /.test(a.text) && !T.some((l) => l.team === "BBB") && a.teamLine && a.player === null,
+    "splits (0.187.0; the user: \"same for teams\"): a team's recent quarters or halves against its own before; a steady team says nothing (six stretches looked at, counted in its chance)", JSON.stringify(T));
+  // 4. situations, on this season's games: every line is drastic and 1 in 20 or rarer, one a player or team; Golden State's
+  // home and road records are counted again here and match the line
+  const rows = [];
+  for (const f of fs.readdirSync(path.join(root, "history", "results")).filter((f) => /^\d{4}/.test(f)).sort()) rows.push(...JSON.parse(fs.readFileSync(path.join(root, "history", "results", f), "utf8")).games);
+  const meta = JSON.parse(fs.readFileSync(path.join(root, "history", "results", "meta.json"), "utf8"));
+  const upTo = rows.filter((x) => x.d <= "2026-11-27"), S = SIT.situationalLines({ rows: upTo, names: meta.names });
+  const gsw = (home) => { const l = upTo.filter((x) => x.hs != null && !x.n && (home ? x.h : x.a) === "GSW"); const w = l.filter((x) => (home ? x.hs > x.as : x.as > x.hs)).length; return `${w}-${l.length - w}`; };
+  const gl = S.find((l) => l.key === "sit|team:GSW|home" || l.key === "sit|GSW|home");
+  ok(S.length >= 10 && S.every((l) => l.kind === "sit" && l.chance <= SIT.SIT.p && l.team) && new Set(S.map((l) => l.id)).size === S.length
+    && gl && gl.text.startsWith(`GSW at home: ${gsw(true)},`) && gl.text.includes(`on the road: ${gsw(false)},`)
+    && S.filter((l) => l.cut === "without").every((l) => / without [A-Z]/.test(l.text) && / with him: /.test(l.text)),
+    "situations (0.187.0; the user, 11/28: \"it all matters if it is a drastic outlier or significant departure from the norm, especially for the top players in the league. same for teams\"): home and road, back-to-backs, teams over .500 and without a teammate, for players (15+ a game) and teams; drastic gaps only, 1 in 20 or rarer, one line each; Golden State's records counted again match",
+    JSON.stringify(S.slice(0, 5)));
+  // 5. on file: the three checks the first buzz report missed, from every regular-season game 1993-94 to 2025-26
+  const H = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "onfile-history-2025-26.json"), "utf8"));
+  const T2 = await import("../src/situations/trends.js"), pg = T2.playerGames(upTo.filter((x) => !x.cupFinal));
+  const co = ON.comboLines({ pg, names: meta.names, hist: H, season: "2026-27" }), stL = ON.startLines({ pg, names: meta.names, hist: H, season: "2026-27" }), de = ON.depthLines({ rows: upTo, hist: H, today: "2026-11-28" });
+  const luka = "3945274", c = co.find((l) => l.id === luka), st = stL.find((l) => l.id === luka), m = de.find((l) => l.team === "MEM");
+  const tool = fs.readFileSync(path.join(root, "tools", "onfile-history.mjs"), "utf8"), sit = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8");
+  ok(H.games === 38949 && H.from === "1993-94" && H.combos.p30r5a5.top.filter((r) => r[0] === 9 && r[1] === luka).length === 3 && JSON.stringify(H.double.teams.MEM.hist[9]) === '[3,"2021-12-02"]'
+    && H.start.pts[11][0][0] === 464 && H.start.pts[11][0][2] === "2019-20"
+    && c && /in 9 straight games \(10\/25 to 11\/11\): tied for the longest run on file \(since 1993-94\) with his own runs in 2023-24 \(twice\) and 2025-26$/.test(c.text) && c.kind === "pstreak"
+    && st && /his 468 through 12 games \(through 11\/15\) were the most through 12 of any season on file \(passing James Harden's 464, 2019-20\)/.test(st.text) && st.kind === "pace"
+    && m && m.text === "10 Grizzlies scored in double figures vs. NOP on 11/13/26: the most in a Grizzlies game on file (since 1995-96; before, 9, three times, last on 12/2/21)"
+    && /import \{ COMBOS, START_STATS, START_N \} from "\.\.\/src\/situations\/onfile\.js"/.test(tool) && /startKeys\.has\(l\.key\)/.test(sit),
+    "on file (0.187.0; the first buzz report, 11/28): Dončić's nine straight 30-5-5 games tie the longest run since 1993-94 (his own three); his 468 through 12 games passed Harden's 464 (2019-20); ten Grizzlies in double figures on 11/13 beat the franchise's 9 (three times, last 12/2/21); the tool and the lines share one list; a start line takes the place of the same pace line",
+    JSON.stringify({ c, st, m }));
 }
 
 const snapDir = path.join(root, "tests", "expected");

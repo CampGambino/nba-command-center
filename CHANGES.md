@@ -2,6 +2,41 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.187.0 (2026-11-28): every quarter and half, teams, situations, and three checks against every season on file
+
+The user, 11/28, 12:03 PM: "it all matters if it is a drastic outlier or significant departure from the norm, especially for the top players in the league. same for teams." Then, of the plan (teams in the 4th-quarter scan; home and road, back-to-backs, winning teams, with or without a teammate; every quarter and each half per player; the three checks the first buzz report said we were missing), 12:24 PM: "build it".
+
+**Every quarter and both halves, players and teams (Streaks page, Splits section)**
+- The results store now keeps each player's 1st, 2nd and 3rd quarters from ESPN's play-by-play (`qp`, beside the 4th and clutch time it already had), only for games where every period adds up. The first build re-reads every game this season once to fill them in (280 of 281; one game's 1st-quarter plays come up short and is left out).
+- Last season's file (src/data/q4-history-2025-26.json) was rebuilt with every quarter, both halves, clutch time and all 30 teams' totals (1,228 games).
+- The scan (src/situations/splits.js) now looks at the 1st, 2nd, 3rd and 4th quarters, the first and second half and clutch time, graded the way 0.185.0 graded the 4th quarter. One line a player a direction (Tatum's first halves up and 4th quarters down are two stories), ranked: the 4th quarter and clutch time ahead of the other quarters, the halves in between.
+- Teams (new): a team's last 5 to 10 quarters or halves against its own before, by its margin (this season) and its points scored (this season and last). Six stretches are looked at, so a team's chance is counted six times over; 1 in 100 or rarer after that. Ten teams today (Boston's last five second halves: 42.6 points a game, −11.6, against 55.4 before).
+
+**Situations (new, src/situations/situational.js)**
+- This season's games cut four ways, one side against the other: home and road; the second night of a back-to-back and every other game; teams over .500 (their record going in; a team with fewer than 5 games counts on neither side) and the rest; without a teammate who scores 15+ (only games while he was on the team) and with him.
+- Players with 15+ a game: a gap of 6+ points and a quarter of his average, or 10+ points of shooting on 50+ shots a side. Teams: 10+ points of margin a game. Both 1 in 20 or rarer; one line each, ranked by the chance and how good the player or team is; three games a side ranks a little lower. 22 players and 9 teams today (Golden State 8-1 at home, 2-8 on the road; Wembanyama 42.0 a game in the three without Dylan Harper).
+- The lines go to the Splits section (one table, a filter for each split, players or teams) and to tonight's game cards (one a game). Home page kind 🧭.
+
+**Three checks against every season on file (src/situations/onfile.js; the history from tools/onfile-history.mjs, every regular-season game 1993-94 to 2025-26, 38,949)**
+- Combined-line runs: 30-5-5, 25-5-5, 20-5-5, 30-10, 25-10, 20-10 (points and rebounds), 25-10 and 20-10 (points and assists). A current run of 3+ in the 10 longest on file, or one this season in the top 3: "Luka Doncic had 30+ points, 5+ rebounds and 5+ assists in 9 straight games (10/25 to 11/11): tied for the longest run on file (since 1993-94) with his own runs in 2023-24 (twice) and 2025-26".
+- Totals through a player's first N games (points, rebounds, assists, threes), against every player's seasons, not only current players since 2016-17 as the pace lines did: "… Earlier, his 468 through 12 games (through 11/15) were the most through 12 of any season on file (passing James Harden's 464, 2019-20)". Such a line takes the place of the same player's and stat's pace line.
+- Players in double figures in one game, against the team's games on file: "10 Grizzlies scored in double figures vs. NOP on 11/13/26: the most in a Grizzlies game on file (since 1995-96; before, 9, three times, last on 12/2/21)".
+
+**Found along the way: ESPN's stat corrections.** The one-time re-read found 17 games ESPN has corrected since we first read them (a minute, a rebound, a steal: Alvarado 16 to 17 minutes on 10/20, Tatum 19 to 18 shots on 11/8, Wembanyama 9 to 8 blocks on 11/9, and so on). Only last night's games were re-read until now; these are taken in, and they move two of the rare-combination counts by one.
+
+**Checked**
+- `node tests/run.js`: 1,025 passed (five new: the fixture game's quarters add up to each player's box points; last season's halves are their quarters; a team that turned in the 3rd quarter is found and a steady one isn't; Golden State's home and road records counted again match its line; the three on-file lines say what the buzz report's claims said). Three old tests updated: two read the kind list as text, and the 0.185.0 split test now allows team lines and one line a direction.
+- `node tests/articles-only.js`: 104 passed.
+- Before and after builds for 11/28 from the same data: only the splits, situations, on-file and pace lines change, plus the 17 corrected games (each listed and read) and what follows from them (Tatum 147-343 from the field, not 147-344; Missi 51 rebounds from passing Josh Hart, not 52); tonight's cards swap one line (Franz Wagner's 3rd quarters for his clutch time). `tools/check-pages.py`: every page OK; the Splits section opened in a browser with no errors (5 rows for "without a teammate", 20 for teams).
+- By hand: Boston's last five second halves from the line scores (40, 42, 45, 51, 35 = 42.6; margin −11.6); Dončić's first 12 games (468); the Grizzlies' 9s from the archive (three, last 12/2/21, as the buzz report said).
+
+**Self-audit**
+- What I got wrong first: the first cut looked at seven stretches and five windows and still used 0.185.0's 1-in-10 bar, so 64 scorers had a line; I tried counting all seven stretches into each chance and that dropped Tatum's 4th quarters, the user's own example, so I went back to 0.185.0's grading (leeway) and rank instead. 110 lines for 76 scorers is a lot to read; the table sorts by rank and the cards take one a game. Teams get the stricter count (six stretches, 1 in 100) because without it 28 of 30 had a line.
+- Picking each player's line by chance alone put a "second half" line where a 4th-quarter line was (Herro, Porter Jr.); now by rank.
+- The teammate cut counts from a teammate's first game for the team to his last, from box scores. A teammate who sat the opening games injured counts as "before he joined" there (the With / without page uses the injury report and would count them as "without"); that only shrinks the "without" side, never adds to it.
+- The on-file history is regular season only and counts a player's games (a missed game doesn't end a run, as the Streaks page counts). "Since 1993-94" is said in every line; the league's own record book can go further back.
+- Not yet seen live: the first real build's re-read of 281 games (about two minutes in the before/after build), and tonight's cards with the new kinds.
+
 ## 0.186.0 (2026-11-28): the morning buzz check goes to #alerts
 
 The user, 11/28, 12:03 PM: "are you able to scan reddit/r/nba or nba twitter to locate possible trends worth tracking? … what can you find without my say so, or are you entirely dependant on what I ask you to search?" Answered (Reddit and X can't be reached from here, and X's API isn't free; web search reaches the coverage where those stats end up) and offered a daily scheduled task. 12:07 PM: "scheduled task can go to discord".

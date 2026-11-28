@@ -29,6 +29,7 @@
  * least settled one).
  */
 export const RECHECK_DAYS = 3;
+export const QP_KEYS = 8;   // 0.187.0: sec, pts, fgm, fga, fg3m, fg3a, ftm, fta, for each of the 1st-3rd quarters (row.qp)
 /**
  * 0.142.7: row.z = players who got in but logged 0 minutes (ESPN gave them a stat line, not a DNP); none → no z.
  * 0.181.0: only with proof he was on the floor (src/espn/parse.js readPlayerBox); row.zp = 1 says the row was read under
@@ -121,7 +122,8 @@ export async function collectResults({ espn, store, through, warnings = [] }) {
       const fresh = !!row.x && row.d === through;
       const recheck = fresh || (row.x && row.d < through && Date.parse(through) - Date.parse(row.d) <= RECHECK_DAYS * 864e5 && row.xd !== through);
       // 0.181.0: a row whose few-seconds marks (z) were set before they needed proof is read once more.
-      const zsweep = !!(row.x && row.z && !row.zp);
+      // 0.187.0: and a row read before every quarter was kept (row.qpv) is read once more, to keep its 1st-3rd quarters.
+      const zsweep = !!(row.x && ((row.z && !row.zp) || !row.qpv));
       if (row.x && !recheck && !zsweep) continue;
       const before = recheck || zsweep ? JSON.stringify([row.hb, row.ab, row.pl, [...(row.z || [])].sort()]) : null;
       const r = await espn.detail(row.id);
@@ -157,6 +159,13 @@ export async function collectResults({ espn, store, through, warnings = [] }) {
       // 4th-quarter player lines (same shape as cp) and every player's box line:
       // pl = { espnId: [0 home | 1 away, starter 0/1, minutes, ...PLAYER_BOX_KEYS] }; minutes 0 = listed, didn't play,
       // except the ids in z (0.142.7): in the game for a few seconds, 0 minutes, ESPN didn't mark them DNP.
+      // 0.187.0: the 1st, 2nd and 3rd quarters: qp = { p: { espnId: [0 home | 1 away, ...Q1, ...Q2, ...Q3] } }, each quarter
+      // the first QP_KEYS of pbp.js's line (sec, pts, fgm, fga, fg3m, fg3a, ftm, fta). qpv = 1: read under this rule.
+      if (g.periodPlayers) {
+        row.qp = { p: {} };
+        g.periodPlayers.forEach((w, k) => { for (const [id, x] of Object.entries(w.players)) { const r = (row.qp.p[id] ??= [x.team === "home" ? 0 : 1, ...Array(QP_KEYS * 3).fill(0)]); x.s.slice(0, QP_KEYS).forEach((v, i) => { r[1 + k * QP_KEYS + i] = v; }); } });
+      } else delete row.qp;
+      row.qpv = 1;
       if (g.q4Players) {
         row.q4 = { ok: g.q4Players.lineupOk ? 1 : 0, p: {} };
         for (const [id, x] of Object.entries(g.q4Players.players)) {

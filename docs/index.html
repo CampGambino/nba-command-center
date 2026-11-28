@@ -398,7 +398,7 @@ async function poll() {
 
 // Tonight's storylines: the shared builder (also used for the Discord digest), with the
 // season data it needs. A failure here never stops the rest of the page.
-const KIND = { split: ["⏱️", "trends.html#splits"], broken: ["⛓️", "trends.html"], luck: ["🎲", "#brief"], paradox: ["🙃", "#brief"], scarce: ["💎", "standings.html"], defpos: ["🛡️", "defenses.html"], find: ["🔎", "#brief"], shift: ["📊", "trends.html#shifts"], matchup: ["🆚", "#matchups"], history: ["📜", "#history"], injury: ["🩹", "players.html"], milestone: ["🎯", "#all"], streak: ["🔥", "trends.html"], lead: ["👑", "leaders.html"], shooting: ["🏹", "leaders.html"], club: ["💯", "leaders.html#club"], tv: ["📺", "national.html"], rest: ["😴", "standings.html#rest"], form: ["♨️", "trends.html#form"], foul: ["⚠️", "gameflow.html"], early: ["🔄", "gameflow.html"], fourth: ["⏳", "clutch.html?mode=l2m"], qtr: ["🕒", "situations.html"], clinch: ["🔒", "standings.html#standings"], team: ["📈", "trends.html"], season: ["📊", "trends.html"], span: ["🧩", "players.html"], pstreak: ["🔥", "trends.html"], vsopp: ["🆚", "#matchups"], pace: ["⏱️", "records.html#season"], record: ["🏛️", "records.html#reach"], context: ["📊", "records.html"], trade: ["🔁", "players.html"], role: ["🪑", "players.html"], lineup: ["🖐️", "trends.html"], turn: ["↪️", "trends.html"], beaten: ["⚔️", "trends.html"], defense: ["🛡️", "defenses.html?view=thirty"], cup: ["🏆", "records.html#cup"], month: ["🗓️", "trends.html"], monthp: ["🗓️", "players.html"], rookie: ["🌱", "leaders.html"], era: ["📆", "leaders.html"], unique: ["🦄", "players.html"], awards: ["🏅", "awards.html"] };
+const KIND = { split: ["⏱️", "trends.html#splits"], sit: ["🧭", "trends.html#splits"], broken: ["⛓️", "trends.html"], luck: ["🎲", "#brief"], paradox: ["🙃", "#brief"], scarce: ["💎", "standings.html"], defpos: ["🛡️", "defenses.html"], find: ["🔎", "#brief"], shift: ["📊", "trends.html#shifts"], matchup: ["🆚", "#matchups"], history: ["📜", "#history"], injury: ["🩹", "players.html"], milestone: ["🎯", "#all"], streak: ["🔥", "trends.html"], lead: ["👑", "leaders.html"], shooting: ["🏹", "leaders.html"], club: ["💯", "leaders.html#club"], tv: ["📺", "national.html"], rest: ["😴", "standings.html#rest"], form: ["♨️", "trends.html#form"], foul: ["⚠️", "gameflow.html"], early: ["🔄", "gameflow.html"], fourth: ["⏳", "clutch.html?mode=l2m"], qtr: ["🕒", "situations.html"], clinch: ["🔒", "standings.html#standings"], team: ["📈", "trends.html"], season: ["📊", "trends.html"], span: ["🧩", "players.html"], pstreak: ["🔥", "trends.html"], vsopp: ["🆚", "#matchups"], pace: ["⏱️", "records.html#season"], record: ["🏛️", "records.html#reach"], context: ["📊", "records.html"], trade: ["🔁", "players.html"], role: ["🪑", "players.html"], lineup: ["🖐️", "trends.html"], turn: ["↪️", "trends.html"], beaten: ["⚔️", "trends.html"], defense: ["🛡️", "defenses.html?view=thirty"], cup: ["🏆", "records.html#cup"], month: ["🗓️", "trends.html"], monthp: ["🗓️", "players.html"], rookie: ["🌱", "leaders.html"], era: ["📆", "leaders.html"], unique: ["🦄", "players.html"], awards: ["🏅", "awards.html"] };
 let FACTS = null;
 let INJ = null;
 let STORY_TEXTS = [], STORY_CLAIMS = new Set(), CLAIMS = null;   // 0.137/0.138: tonight's storylines (words and claims), so other sections don't repeat them
@@ -509,7 +509,7 @@ const SPOT_BASE = 8, SPOT_MAX = 20;   // 0.155.0: tiles with no filter picked: 8
 const GROUPS = [
   ["Records & milestones", ["record", "milestone", "pace", "era", "feat", "cup", "club", "unique", "awards", "clinch"]],
   ["Streaks", ["streak", "pstreak", "broken", "team", "turn", "beaten", "lead"]],
-  ["Form & shifts", ["shift", "form", "shooting", "luck", "season", "span", "role", "fourth", "qtr", "split", "month", "monthp", "rookie", "foul", "early", "paradox", "scarce"]],
+  ["Form & shifts", ["shift", "form", "shooting", "luck", "season", "span", "role", "fourth", "qtr", "split", "sit", "month", "monthp", "rookie", "foul", "early", "paradox", "scarce"]],
   ["Matchups", ["matchup", "vsopp", "defense", "defpos", "tv", "rest", "lineup", "trade"]],
   ["From the notes", ["history", "context"]],
   ["Injuries", ["injury"]],
@@ -517,7 +517,7 @@ const GROUPS = [
 const WORD = { record: "Record", milestone: "Milestone", pace: "Pace", era: "Era", feat: "One of one", cup: "NBA Cup", club: "Club", unique: "Unique", awards: "Awards",
   clinch: "Clinch", streak: "Streak", pstreak: "Streak", broken: "Streak over", team: "Team", turn: "Turned", beaten: "Beat the best", lead: "Team leader",
   shift: "Shift", form: "Hot and cold", shooting: "Shooting", luck: "Luck", season: "Season", span: "Stretch", role: "Role", fourth: "Late game",
-  qtr: "Quarters", split: "4th quarters", month: "Month", monthp: "Month", rookie: "Rookie", foul: "Fouls", early: "Early", paradox: "Paradox", scarce: "Rare", matchup: "Matchup",
+  qtr: "Quarters", split: "Splits", sit: "Situation", month: "Month", monthp: "Month", rookie: "Rookie", foul: "Fouls", early: "Early", paradox: "Paradox", scarce: "Rare", matchup: "Matchup",
   vsopp: "Matchup", defense: "Defense", defpos: "Defense", tv: "National TV", rest: "Rest", lineup: "Lineup", trade: "Trade", history: "Notes",
   context: "Context", injury: "Injury", find: "Found", oddline: "Odd line" };
 // 0.155.0: the ranked list shows RANK_PAGE lines at a time ("Show 50 more", "Show all"); a filter starts it over

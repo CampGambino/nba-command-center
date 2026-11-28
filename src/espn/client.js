@@ -108,8 +108,9 @@ export function createEspn({ dataDir, fetchImpl = fetch, now = () => Date.now(),
     // A finished game reduced to team box totals and clutch-time scoring (a few
     // hundred bytes kept, not the ~450 KB summary). Ask only for final games.
     detail: async (eventId) => {
-      const r = await wrap(`detail-${eventId}`, `${BASE}/summary?event=${eventId}`, Infinity, (d) => d, readGameDetail);
-      if (r.ok && !r.data.final && r.fromCache) return wrap(`detail-${eventId}`, `${BASE}/summary?event=${eventId}`, 60e3, (d) => d, readGameDetail);
+      // 0.187.0: detail2- (the reduced copy now keeps the 1st-3rd quarters; an older copy has none)
+      const r = await wrap(`detail2-${eventId}`, `${BASE}/summary?event=${eventId}`, Infinity, (d) => d, readGameDetail);
+      if (r.ok && !r.data.final && r.fromCache) return wrap(`detail2-${eventId}`, `${BASE}/summary?event=${eventId}`, 60e3, (d) => d, readGameDetail);
       return r;
     },
     // 0.95: scoring by type for a game whose detail was kept before that was read (the same summary, its own cache

@@ -184,10 +184,11 @@
   <div class="key" id="vkey"></div>
   <div class="scroll"><table id="vtab"></table></div>
 
-  <h2 id="splits">4th quarters and clutch time</h2>
+  <h2 id="splits">Splits: quarters, halves, clutch time, situations</h2>
   <div class="controls">
+    <span class="toggle" id="spwho"><button data-w="all" class="on">Players and teams</button><button data-w="p">Players</button><button data-w="t">Teams</button></span>
+    <select id="spstr"><option value="all">Every split</option><optgroup label="Recent stretch vs. his or its own"><option value="q1">1st quarter</option><option value="q2">2nd quarter</option><option value="q3">3rd quarter</option><option value="q4">4th quarter</option><option value="h1">First half</option><option value="h2">Second half</option><option value="clutch">Clutch time</option></optgroup><optgroup label="This season, one side vs. the other"><option value="home">Home / road</option><option value="b2b">Back-to-backs</option><option value="above">Vs. teams over .500</option><option value="without">Without a teammate</option></optgroup></select>
     <span class="toggle" id="spdir"><button data-d="all" class="on">Both ways</button><button data-d="down">Down</button><button data-d="up">Up</button></span>
-    <span class="toggle" id="spstr"><button data-s="all" class="on">Both</button><button data-s="q4">4th quarter</button><button data-s="clutch">Clutch time</button></span>
     <select id="spteam"><option value="">All teams</option></select>
     <span class="toggle" id="spnight"><button data-n="all" class="on">Everyone</button><button data-n="tonight">Playing tonight</button></span>
   </div>
@@ -441,15 +442,17 @@ fetch("data/vsruns.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : 
 // 0.185.0 (the user, 11/28, of Kalshi's Tatum post: "we have all the data to be checking for this kind of dropoff for a star
 // player"): scorers whose last few 4th quarters or clutch stretches are well off their own (docs/data/splits.json,
 // src/situations/splits.js).
-let SP = null, spDir = "all", spStr = "all", spNight = "all";
+let SP = null, spDir = "all", spStr = "all", spNight = "all", spWho = "all";
+const SP_NAME = { q1: "1st quarter", q2: "2nd quarter", q3: "3rd quarter", q4: "4th quarter", h1: "First half", h2: "Second half", clutch: "Clutch", home: "Home / road", b2b: "Back-to-back", above: "Vs. over .500", without: "Without a teammate" };
 function renderSplits() {
   if (!SP) return;
-  const team = $("spteam").value, on = new Set(SP.playing || []);
-  const rows = SP.lines.filter((l) => (spDir === "all" || l.dir === spDir) && (spStr === "all" || l.stretch === spStr) && (!team || l.team === team) && (spNight === "all" || on.has(l.team)));
-  for (const [id, k, v] of [["spdir", "d", spDir], ["spstr", "s", spStr], ["spnight", "n", spNight]]) document.querySelectorAll(`#${id} button`).forEach((b) => b.classList.toggle("on", b.dataset[k] === v));
-  $("spkey").innerHTML = `Scorers (15+ points a game) whose last 5 to 10 4th quarters, or stretches of clutch time, are well off their own: points a stretch down a quarter or more, or shooting 12+ points of percentage off (15+ from three), against his earlier games this season and all of last season${SP.lastSeason ? ` (${esc(SP.lastSeason)})` : ""}. The window is the one where the change is least likely to be chance; the strongest of the three tests must be 1 in 10 or less. Clutch time: the last five minutes of the 4th or overtime, within 5.`;
-  $("sptab").innerHTML = `<tr><th>Player</th><th>Team</th><th>Stretch</th><th></th><th>What it is</th><th class="num">Chance</th></tr>` +
-    (rows.map((l) => `<tr><td><b>${esc(l.player)}</b></td><td>${esc(l.team)}</td><td>${l.stretch === "q4" ? "4th quarter" : "Clutch"}, last ${l.n}</td><td><b>${l.dir === "down" ? "▼" : "▲"}</b></td><td class="small">${esc(l.text)}${on.has(l.team) ? " · <b>plays tonight</b>" : ""}</td><td class="num">1 in ${Math.max(2, Math.round(1 / l.chance))}</td></tr>`).join("")
+  const team = $("spteam").value, on = new Set(SP.playing || []), what = (l) => l.stretch || l.cut;
+  const rows = SP.lines.filter((l) => (spDir === "all" || !l.dir || l.dir === spDir) && (spStr === "all" || what(l) === spStr) && (!team || l.team === team) && (spNight === "all" || on.has(l.team))
+    && (spWho === "all" || (spWho === "t") === !l.player));
+  for (const [id, k, v] of [["spdir", "d", spDir], ["spnight", "n", spNight], ["spwho", "w", spWho]]) document.querySelectorAll(`#${id} button`).forEach((b) => b.classList.toggle("on", b.dataset[k] === v));
+  $("spkey").innerHTML = `Recent stretch: a scorer's (15+ points a game) or a team's last 5 to 10 quarters, halves or stretches of clutch time against its own before (this season and last${SP.lastSeason ? `, ${esc(SP.lastSeason)}` : ""}). Situations: this season's games, one side against the other. Clutch time: the last five minutes of the 4th or overtime, within 5. Chance: how often luck alone would give a gap this big.`;
+  $("sptab").innerHTML = `<tr><th>Who</th><th>Team</th><th>Split</th><th></th><th>What it is</th><th class="num">Chance</th></tr>` +
+    (rows.map((l) => `<tr><td><b>${esc(l.player || l.team)}</b></td><td>${esc(l.team)}</td><td>${SP_NAME[what(l)] || esc(what(l))}${l.n ? `, last ${l.n}` : ""}</td><td><b>${l.dir === "down" ? "▼" : l.dir === "up" ? "▲" : ""}</b></td><td class="small">${esc(l.text)}${on.has(l.team) ? " · <b>plays tonight</b>" : ""}</td><td class="num">1 in ${Math.max(2, Math.round(1 / l.chance)).toLocaleString()}</td></tr>`).join("")
       || `<tr><td colspan="6" class="small" style="color:var(--muted)">Nothing fits these filters.</td></tr>`);
 }
 fetch("data/splits.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => {
@@ -457,9 +460,11 @@ fetch("data/splits.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : 
   SP = d;
   $("spteam").innerHTML += [...new Set(d.lines.map((l) => l.team))].sort().map((t) => `<option>${t}</option>`).join("");
   $("spteam").onchange = renderSplits;
+  $("spstr").onchange = () => { spStr = $("spstr").value; renderSplits(); };
   document.querySelectorAll("#spdir button").forEach((b) => b.onclick = () => { spDir = b.dataset.d; renderSplits(); });
-  document.querySelectorAll("#spstr button").forEach((b) => b.onclick = () => { spStr = b.dataset.s; renderSplits(); });
   document.querySelectorAll("#spnight button").forEach((b) => b.onclick = () => { spNight = b.dataset.n; renderSplits(); });
+  document.querySelectorAll("#spwho button").forEach((b) => b.onclick = () => { spWho = b.dataset.w; renderSplits(); });
+  const want = new URLSearchParams(location.search).get("split"); if (want && SP_NAME[want]) { spStr = want; $("spstr").value = want; }
   renderSplits();
 }).catch(() => { $("spkey").textContent = "Couldn't read the splits file."; });
 fetch("data/trends.json", { cache: "no-store" }).then((r) => r.json()).then((d) => {
