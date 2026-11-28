@@ -106,18 +106,40 @@ const VIEWS = [
 const NEEDS = [...new Set(VIEWS.map((v) => v[3]))];
 const FRESH = {};
 function ago(iso) { const m = (Date.now() - Date.parse(iso)) / 60000; return m < 90 ? `${Math.max(1, Math.round(m))} min ago` : m < 36 * 60 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`; }
+// 0.188.1 (the user, 11/28, a search for "franz wagner": "something is wrong with the player finder"): a name finds the
+// player (his Player page first), and a table shows only its rows that match, not every row because one does.
+const fold = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+let PLAYERS = [];
 function renderDir() {
-  const q = $("q").value.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  const rows = VIEWS.filter((v) => q.every((w) => `${v[0]} ${v[2]} ${v[4]}`.toLowerCase().includes(w)));
-  $("dir").innerHTML = rows.map((v) => { const f = FRESH[v[3]];
+  const q = fold($("q").value).trim().split(/\s+/).filter(Boolean);
+  const rows = VIEWS.filter((v) => q.every((w) => fold(`${v[0]} ${v[2]} ${v[4]}`).includes(w)));
+  // players whose name holds every word (at least three letters typed), best first: whole-word matches, then shorter names
+  const who = q.length && q.join("").length >= 3 ? PLAYERS.filter((p) => q.every((w) => p.key.includes(w)))
+    .sort((a, b) => (q.every((w) => b.words.some((x) => x.startsWith(w))) - q.every((w) => a.words.some((x) => x.startsWith(w)))) || a.name.length - b.name.length).slice(0, 8) : [];
+  const pl = who.map((p) => `<li><a href="player.html?p=${encodeURIComponent(p.name)}">Player: ${esc(p.name)}</a><span class="d">${esc(p.team || "")} · everything the site has on him today: tonight's lines, his notes, milestones, streaks, award eligibility</span></li>`);
+  $("dir").innerHTML = [...pl, ...rows.map((v) => { const f = FRESH[v[3]];
     const fr = f ? `<span class="f${f.old ? " old" : ""}" title="${esc(v[3])}">${f.through ? `through ${md(f.through)} · ` : ""}built ${esc(ago(f.at))}</span>` : `<span class="f">…</span>`;
-    return `<li><a href="${v[1]}">${esc(v[0])}</a><span class="d">${esc(v[2])}</span>${fr}</li>`; }).join("") || `<li class="empty">Nothing matches. The season tables below are searched too.</li>`;
-  document.querySelectorAll("#tables details").forEach((d) => { const hit = !q.length || q.every((w) => d.dataset.words.includes(w) || d.textContent.toLowerCase().includes(w)); d.style.display = hit ? "" : "none"; if (q.length && hit) d.open = true; });
+    return `<li><a href="${v[1]}">${esc(v[0])}</a><span class="d">${esc(v[2])}</span>${fr}</li>`; })].join("") || `<li class="empty">Nothing matches. The season tables below are searched too.</li>`;
+  document.querySelectorAll("#tables details").forEach((d) => {
+    const trs = [...d.querySelectorAll("tr")].slice(1);
+    if (!q.length) { d.style.display = ""; trs.forEach((tr) => { tr.style.display = ""; }); return; }
+    // a table found by its own name or subject keeps every row; otherwise it shows the rows that hold every word
+    const byName = q.every((w) => fold(d.dataset.words + " " + (d.querySelector("summary")?.textContent || "")).includes(w));
+    const hits = byName ? trs : trs.filter((tr) => q.every((w) => fold(tr.textContent).includes(w)));
+    trs.forEach((tr) => { tr.style.display = byName || hits.includes(tr) ? "" : "none"; });
+    const show = byName || hits.length > 0;
+    d.style.display = show ? "" : "none"; if (show) d.open = true;
+    const n = d.querySelector("summary .n"); if (n) n.remove();
+    if (show && !byName) d.querySelector("summary").insertAdjacentHTML("beforeend", `<span class="n">${hits.length} of ${trs.length} rows match</span>`);
+  });
 }
 const get = (f) => fetch(`data/${f}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 const table = (id, title, words, note, head, rows) => `<details id="${id}" data-words="${esc(words)}"><summary>${esc(title)}<span>${esc(note)}</span></summary><div class="tw">${rows.length ? `<table><tr>${head.map((h) => `<th>${esc(h)}</th>`).join("")}</tr>${rows.map((r) => `<tr>${r.map((c, i) => `<td class="${typeof c === "number" || /^\d+-\d+$/.test(String(c)) ? "n" : i === r.length - 1 ? "w" : ""}">${c === null || c === undefined ? "" : String(c).startsWith("<") ? c : esc(c)}</td>`).join("")}</tr>`).join("")}</table>` : `<div class="empty">None so far this season.</div>`}</div></details>`;
 (async () => {
-  const [health, flow, tonight, arenas, prep, series, lasttime] = await Promise.all([get("health.json"), get("flowstats.json"), get("tonight.json"), get("arenas.json"), get("prep.json"), get("series.json"), get("lasttime.json")]);
+  const [health, flow, tonight, arenas, prep, series, lasttime, elig] = await Promise.all([get("health.json"), get("flowstats.json"), get("tonight.json"), get("arenas.json"), get("prep.json"), get("series.json"), get("lasttime.json"), get("eligibility.json")]);
+  // every player this season (the Player page's own list)
+  PLAYERS = (elig?.players || []).map((p) => ({ name: p.name, team: p.team, key: fold(p.name), words: fold(p.name).split(/[^a-z0-9]+/).filter(Boolean) }));
+  renderDir();
   // Freshness: each file's own build time and "through" date.
   await Promise.all(NEEDS.map(async (f) => { const j = f === "flowstats.json" ? flow : f === "tonight.json" ? tonight : await get(f); if (!j) return;
     const at = j.generatedAt || j.at || (health && health.at); if (!at) return;

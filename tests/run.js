@@ -7072,6 +7072,13 @@ await bridgeChecks(ok, root);
     "notes (0.188.0): an ID string in the notes' text layer (Houston, 11/28: \"3-384ca74b-…-f4b8cb6404c1 pointers\") is taken out and the words close up", String(bt));
 }
 
+// ---------- 0.188.1: the Index search finds players and filters table rows ----------
+{
+  const fh = fs.readFileSync(path.join(root, "docs", "find.html"), "utf8");
+  ok(/get\("eligibility\.json"\)/.test(fh) && /href="player\.html\?p=\$\{encodeURIComponent\(p\.name\)\}">Player: /.test(fh) && /tr\.style\.display = byName \|\| hits\.includes\(tr\)/.test(fh) && /rows match<\/span>/.test(fh) && /\[\\u0300-\\u036f\]/.test(fh),
+    "Index (0.188.1; the user, 11/28, a search for \"franz wagner\": \"something is wrong with the player finder\"): a name lists the player's own page first (accents ignored: \"doncic\" finds Dončić), and a table found by a row shows only the rows that match");
+}
+
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });
 const brief = (m) => [m.player, m.kind, m.stat, m.scope, m.current, m.target, m.need, m.status, m.passing?.player || ""].join(" | ");

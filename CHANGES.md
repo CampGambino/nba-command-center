@@ -2,6 +2,20 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.188.1 (2026-11-28): the Index search finds players
+
+The user, 11/28, 3:41 PM, a screenshot of the Index page searched for "franz wagner": "something is wrong with the player finder".
+
+**What was wrong.** The search box (the one in the menu bar lands here) only matched page names and descriptions, so a player's name found no page. And a season table that held his name anywhere showed all of its rows. Searching "franz wagner" gave "Nothing matches" and the whole 40-row late-shots table, with him in row 11.
+
+**Now**
+- A name lists the player first: "Player: Franz Wagner, ORL", linked to his Player page. The names are the Player page's own list (every player this season). Accents are ignored, so "doncic" finds Dončić. "wagner" gives both Wagners.
+- A table found by one of its rows shows only the rows that match, with "1 of 40 rows match" beside its title. A table found by its own name or subject ("series") still shows every row.
+
+**Checked**: opened in a browser with today's data: "franz wagner" (his page, one row of one table), "wagner", "doncic" (four tables, only his rows), "series" (all 435 rows), no page errors. The Player page opens on Franz Wagner from the link. `node tests/run.js`: 1,030 passed (one new).
+
+**Self-audit**: the box says "Search every page and table" and never searched players. That was a gap from the day the Player page was added (0.176.0): I added its page row and not its names. Team nicknames still don't match: "nets" finds nothing, because the tables use BKN. That's left as it is, so say if you want it.
+
 ## 0.188.0 (2026-11-28): the ranked list weighs what a line is about
 
 The user, 11/28, 2:54 PM, going through "Everything else, ranked": "continue to assess and calibrate the importance of each and where they land in the pile … I thought these notes were listed with some mixture of importance, buzz, relevance, and forecasting", with lines named (#292 OKC's slide, #216 Diabate's 200 games, Durant and Kobe Bryant, #12, #25, #394, #381, #284, #201, #178, #171).
