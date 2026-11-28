@@ -33,7 +33,7 @@ The user, 11/28, 2:54 PM, going through "Everything else, ranked": "continue to 
 - Grant Williams' free throws stay near the bottom: 376 → 371 of 397 (the distance already counted, 13.7 games at his rate).
 - Haliburton's absence stays low (347 → 343). It's already marked down because the briefing counts an absence as two days old for each game he's missed (15 here).
 - Top 50: notes 41 → 27; the 4th-quarter and other split lines, situations, finds and shifts fill the rest.
-- The briefing's top ten swaps two lines: Franz Wagner's minutes and Julius Randle's team lead are out; Kyshawn George's 18-4-4-1 club and Şengün's triple-double are in.
+- The briefing's top ten swaps three lines. Out: Franz Wagner's T-3rd line, Julius Randle's team lead, Maxey's 4th quarters. In: Kyshawn George's 18-4-4-1 club, Şengün's triple-double, Franz Wagner's second halves. Live at 3:18 PM: Durant on Kobe 9th, OKC's slide 120th, the Houston line reads "3-pointers", no chance numbers in the lines.
 
 **Checked**
 - `node tests/run.js`: 1,029 passed. Two new tests: one runs the user's own lines through the rules; one is the Houston ID string.
