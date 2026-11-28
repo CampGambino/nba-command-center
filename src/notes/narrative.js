@@ -37,6 +37,9 @@ export function blocks(doc) {
       const text = col
         .replace(/([\p{L}\d]+)-\n([\p{L}\d]+)/gu, (m, l, r) => (keepsHyphen(l, r, vocab) ? `${l}-${r}` : `${l}${r}`)) // a line ending in a hyphen
         .replace(/\s*\n\s*/g, " ")
+        // 0.188.0: an ID string printed into the text layer ("Hit at least one 3-384ca74b-d0b7-42f4-b38e-f4b8cb6404c1 pointers",
+        // Houston 11/28) is taken out, and the words around it close up ("3-pointers")
+        .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\s*/gi, "")
         // 0.170.0: two sentences printed with no space between them ("…a career-high 5 steals and 2 blocks.Dereck Lively II
         // was inactive…", Dallas 11/27) were read as one line
         .replace(/([a-z]{3,}[.!?])(?=[A-Z][a-z]{2,}\b)/g, "$1 ").replace(/([a-z\d)])\.{2}(?=[A-Z][a-z]{2,}\b)/g, "$1. ")

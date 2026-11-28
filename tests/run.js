@@ -1199,7 +1199,7 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
         stack.push(path.posix.normalize(path.posix.join(path.posix.dirname(rel), spec)));
       }
     }
-    ok(!bad.length && seen.size === 4, "Discord step: scripts/notify.js loads only Node built-ins and our own files (no npm packages run with the secret)", [...seen, ...bad].join(", "));
+    ok(!bad.length && seen.size === 5, "Discord step: scripts/notify.js loads only Node built-ins and our own files (no npm packages run with the secret)", [...seen, ...bad].join(", "));
     // The PC copy has no .github/ (remote tools can't write it there); the check runs where it exists.
     const wfFile = path.join(root, ".github", "workflows", "daily.yml");
     const wf = fs.existsSync(wfFile) ? fs.readFileSync(wfFile, "utf8") : null;
@@ -2316,8 +2316,8 @@ await bridgeChecks(ok, root);
       S({ id: "p5", name: "Role Change", odds: 150, role: true }), S({ id: "p6", name: "Bench Guy", odds: 150, now: { min: 9 } }), S({ id: "p7", name: "Weak", odds: 12 }), S({ id: "p8", name: "Other Team", team: "ZZZ", odds: 201 }),
     ], new Set(["AAA"]));
     const by = Object.fromEntries(L.map((l) => [l.player, l]));
-    ok(L.length === 3 && by["P Two"]?.score === STORY.top && by["P Two"].text.endsWith("(by chance: under 1 in 200)") && by["P Three"] && !by["P Four"] && !by["Role Change"] && !by["Bench Guy"] && !by["Weak"] && !by["Other Team"]
-      && by["P One"]?.key === "shift|p1|fg3" && by["P One"].text.endsWith("(29-for-68) (by chance: 1 in 67)") && by["P One"].score > STORY.base + STORY.shootBonus && L.every((l) => l.kind === "shift" && l.team === "AAA")
+    ok(L.length === 3 && by["P Two"]?.score === STORY.top && by["P Two"].chance === "under 1 in 200" && !/by chance/.test(by["P Two"].text) && by["P Three"] && !by["P Four"] && !by["Role Change"] && !by["Bench Guy"] && !by["Weak"] && !by["Other Team"]
+      && by["P One"]?.key === "shift|p1|fg3" && by["P One"].text.endsWith("(29-for-68)") && by["P One"].chance === "1 in 67" && by["P One"].score > STORY.base + STORY.shootBonus && L.every((l) => l.kind === "shift" && l.team === "AAA")
       && /"find", "shift"(?:, "split")?(?:, "sit")?\]\)/.test(fs.readFileSync(path.join(root, "src", "anticipate", "tonight.js"), "utf8")) && /shift: \["📊", "trends\.html#shifts"\]/.test(fs.readFileSync(path.join(root, "docs", "index.html"), "utf8"))
       && /shiftStoryLines\(shiftAll/.test(fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8")),
       "0.121.0 (the user: \"are the most significant ones posted in the watch list?\"): the strongest shifts on tonight's teams become Watch List lines: one a player, a shooting line and two others a team at most, rotation players only, 1 in 20 or rarer, a stat that moved with his minutes left out",
@@ -2350,7 +2350,7 @@ await bridgeChecks(ok, root);
     add("Sixth Man", { pts: 20, ast: 6, fg3m: 4, pm: 8 }, { bench: true });       // leads the bench in points, assists, threes and plus/minus
     const F8 = f8({ pg: pgN, names: namesN }), of = (t) => F8.filter((x) => x.test === t).map((x) => x.text);
     ok(of("club").some((t) => /^Players this season with 300 points, 100 rebounds, 75 assists and 20 blocks: All Around\. Nobody else$/.test(t)) && !of("club").some((t) => /Scorer|Boarder|Passer|Blocker|Filler/.test(t))
-      && of("rate").some((t) => /^Quick Hands has the most steals in the NBA this season\. He ranks \d+(st|nd|rd|th) in minutes played$/.test(t))
+      && of("rate").some((t) => /^Quick Hands has the most steals in the NBA this season \(\d+\)\. He ranks \d+(st|nd|rd|th) in minutes played$/.test(t))
       && of("group").some((t) => /^Sixth Man off the bench this season \(10 games as a reserve\), by totals: 1st in points, .*1st in assists.*1st in threes, 1st in plus\/minus$/.test(t))
       && CLUB.most === 3 && RATE.ratio === 2.5 && GROUP.need === 3,
       "0.108.0: the finder searches every set of two to four season totals for a club of at most three (round bars taken from the candidate's own numbers, each cleared alone by several players, together by one), sets every total against minutes played (first in steals, near last in minutes), and ranks players inside a group (the bench: first in points, assists, threes and plus/minus); none of the names, stats or bars is given to it",
@@ -2784,7 +2784,7 @@ await bridgeChecks(ok, root);
   const src = (f) => fs.readFileSync(path.join(root, ...f), "utf8"), tn = src(["src", "anticipate", "tonight.js"]), tp = src(["docs", "trends.html"]), ci = src(["scripts", "ci.js"]), ix = src(["docs", "index.html"]);
   ok(B.top.length === 3 && !byP["Victor Wembanyama"] && !B.deep.some((l) => l.player === "Victor Wembanyama") && byP["Stephon Castle"].age === 0 && byP["Devin Vassell"].age === 9 && byP["Stephon Castle"].rank > byP["Devin Vassell"].rank
     && B.seen["history|SAS|Devin Vassell|sas notes: #nd in team history · vassell passed manu ginobili"] === "2026-11-10"
-    && /const ended = f\.tag === "Streak over";/.test(tn) && /score: Math\.min\(4\.8, f\.score\) - \(ended \? 1\.5 : 0\)/.test(tn) && tn === src(["docs", "lib", "anticipate", "tonight.js"]) && src(["src", "anticipate", "briefing.js"]) === src(["docs", "lib", "anticipate", "briefing.js"]),
+    && /const ended = f\.tag === "Streak over";/.test(tn) && /score: squash\(f\.score\) - \(ended \? 1\.5 : 0\)/.test(tn) && tn === src(["docs", "lib", "anticipate", "tonight.js"]) && src(["src", "anticipate", "briefing.js"]) === src(["docs", "lib", "anticipate", "briefing.js"]),
     "briefing (0.125; \"Streak over · Wembanyama…\" was #1 on 11/19): a notes streak the box scores say is over is never a top line or a deep cut and ranks 1.5 lower in its game; a notes line is as old as the notes' first printing of it, whatever tag is put in front",
     JSON.stringify([B.top.map((l) => [l.player || l.team, l.age, l.rank]), Object.keys(B.seen)]));
   ok(/const st = \(a\) => \(INJ && INJ\.date === W\.date \? INJSTATUS/.test(tp) && /id="oddwatchout"/.test(tp) && /fetch\("data\/injuries\.json"/.test(tp)
@@ -5266,7 +5266,7 @@ await bridgeChecks(ok, root);
     "award eligibility (0.144.0): on a crowded night a game's best award-eligibility line keeps a place among its eight (as club and TV lines do), as a site-only line; a file from another day gives none", JSON.stringify(SL.map((l) => l.kind)));
   const tn = fs.readFileSync(path.join(root, "src", "anticipate", "tonight.js"), "utf8"), kal = fs.readFileSync(path.join(root, "scripts", "kalshi.js"), "utf8"), sj = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8");
   const pages = fs.readdirSync(path.join(root, "docs")).filter((f) => f.endsWith(".html") && f !== "awards.html");
-  ok(/\.\.\.awardLines\(elig, teams, watch\.today\)\] \};/.test(tn) && /siteOnly: true \}\)\);/.test(tn.slice(tn.indexOf("function awardLines"), tn.indexOf("function awardLines") + 400)) && !/^import .*eligibility/m.test(tn)
+  ok(/\.\.\.awardLines\(elig, teams, watch\.today\)\]\.map\(/.test(tn) && /siteOnly: true \}\)\);/.test(tn.slice(tn.indexOf("function awardLines"), tn.indexOf("function awardLines") + 400)) && !/^import .*eligibility/m.test(tn)
     && /history", "kalshi", "awards\.json"/.test(sj) && /eligibility\.json/.test(sj) && /awards\.json/.test(kal) && /KALSHI_SERIES\[e\.series_ticker\]/.test(kal)
     && pages.every((f) => fs.readFileSync(path.join(root, "docs", f), "utf8").includes('href="awards.html"')),
     "award eligibility (0.144.0): the lines are site-only (Watch List and the Discord digest, never an NBA Live card) and survive an Out listing; Kalshi's award prices are saved by the hourly read; every page links the new tab", pages.filter((f) => !fs.readFileSync(path.join(root, "docs", f), "utf8").includes('href="awards.html"')).join(","));
@@ -6016,7 +6016,7 @@ await bridgeChecks(ok, root);
     && F.farShare({ games: 400 }) === 1.5 && F.farShare({ games: null }) === 1.5,
     "notes (0.159.0): a countdown's distance is its need over his rate this season (21 assists at 1.5 a game: 14 games); within two games' reach it loses nothing, then half a point per doubling, 1.5 at most; no rate, no change", JSON.stringify({ portis, giannis, wins }));
   const tnSrc = fs.readFileSync(path.join(root, "src", "anticipate", "tonight.js"), "utf8"), tjs = fs.readFileSync(path.join(root, "scripts", "tonight.js"), "utf8");
-  ok(/score: Math\.min\(4\.8, f\.score\)/.test(tnSrc) && /const rc = reach\(l, \{ box \}\), far = farShare\(rc\);/.test(tjs) && /const score = far > 0 && aged - far < 4\.8 \? aged - far : aged;/.test(tjs) && /reach: far > 0 \? \{ \.\.\.rc, far, /.test(tjs)
+  ok(/score: squash\(f\.score\)/.test(tnSrc) && /const rc = reach\(l, \{ box \}\), far = farShare\(rc\);/.test(tjs) && /const score = far > 0 && aged - far < 4\.8 \? aged - far : aged;/.test(tjs) && /reach: far > 0 \? \{ \.\.\.rc, far, /.test(tjs)
     && /const bare = \(x\) => x\.replace\(\/\\b\(\\d\+\)\(\?:st\|nd\|rd\|th\)\\b\/g, "\$1"\)/.test(tjs),
     "notes (0.159.0): the distance comes off the line's score unless it would still be at the storylines' 4.8 ceiling: a chase the scorer rates far above it (Durant on Kobe Bryant, 6.9) keeps its place, an ordinary round number far off doesn't; a line whose only change is a restored ordinal ending isn't new today");
   // the ranked list
@@ -7040,6 +7040,36 @@ await bridgeChecks(ok, root);
   ok(sum.length === 0 && late.length === 1 && /^buzz\.json is from .*: the morning buzz check \(the 8:13 AM scheduled task\) has not written a new one in 30 hours$/.test(late[0].text) && summer.length === 0,
     "build check (0.187.1; the user, 11/28, a screenshot of \"buzz.json was not rebuilt by this build\"): the buzz file is written by the morning task, so a build doesn't flag it; it is flagged only when the task hasn't written one in 30 hours, October to June",
     JSON.stringify({ sum, late }));
+}
+
+// ---------- 0.188.0: how much a line matters, beyond its detector's score ----------
+{
+  const W = await import("../src/anticipate/weigh.js");
+  const ped = W.pedigreeOf(JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-team-seasons-2026-27.json"), "utf8")).teams);
+  const w = (l) => W.weigh(l, { pedigree: ped });
+  const okc = w({ kind: "turn", team: "OKC", text: "OKC went 8-2 in its first 10 games; 2-7 since (11/10 on). Since then: 30th in assist rate (54% of its baskets)" });
+  const orl = w({ kind: "era", team: "ORL", text: "ORL has the NBA's 2nd-worst record since 2011-12 (486-726); CHA is last at 477-727" });
+  const kobe = w({ kind: "history", team: "HOU", text: "HOU notes: 4th all-time · Kevin Durant needs 638 points to pass Kobe Bryant for 4th on the all-time scoring list." });
+  const gp = w({ kind: "history", team: "CHA", player: "Moussa Diabate", reach: { stat: "gp", need: 8 }, text: "CHA notes: Moussa Diabate is 8 games away from 200 career games played." });
+  const tov = w({ kind: "history", team: "HOU", text: "HOU notes: Rockets Turnovers: Averaging 13.0 tpg over the past 2 games after averaging 15.3 the 4 games prior (14.5 per overall)." });
+  const tds = w({ kind: "shift", team: "ORL", player: "Tristan da Silva", text: "Tristan da Silva is averaging 0.9 turnovers over his last 7 games (since 11/7), down from 3.0 over the 3 games before" });
+  const edge = w({ kind: "matchup", team: "HOU", player: "Alperen Şengün", text: "Paint edge: Alperen Şengün scores 13.4 points in the paint a game (6th in the NBA); the 76ers allow 51.5 a game (4th most)." });
+  const edgeFar = w({ kind: "matchup", team: "AAA", text: "Paint edge: X scores 9.0 points in the paint a game (19th in the NBA); the Y allow 45.0 a game (14th most)." });
+  const offTo = w({ kind: "matchup", team: "BKN", text: "Off turnovers edge: Michael Porter Jr. scores 4.4 points off turnovers a game (8th in the NBA); the Hornets allow 21.9 a game (the most)." });
+  const deep = w({ kind: "history", team: "ORL", text: "ORL notes — Wendell Carter Jr.: T-16th in NBA · As of Nov. 28, tied for 16th in the NBA in field goal percentage." });
+  ok(ped.OKC > 0.7 && ped.ORL >= 0.5 && okc.adj >= 1.3 && orl.adj === -0.7 && kobe.adj === 1 && gp.adj === -0.8 && tov.adj === -1.5 && tds.adj === -0.7
+    && edge.adj > 1 && edgeFar.adj === 0 && !offTo.why.includes("small stat") && deep.adj === -0.6
+    && W.squash(6.88) > W.squash(5.52) && W.squash(5.0) === 3.9 && W.squash(9) === W.NOTES_CEIL,
+    "weigh (0.188.0; the user, 11/28: \"continue to assess and calibrate the importance of each and where they land in the pile\"): a top team's slide up (OKC, \"conference finals each of the last two seasons\"), a long-window worst-record line about a team that has been winning down (ORL), Durant on Kobe Bryant up (\"the names involved and the record book\"), a games-played countdown down (\"impossible to occur for 8 more games\"), a team's small turnover change down, a role player's turnovers down, matchup edges by how far out both ends are, a rank past 10th down; notes scores keep their order on the storylines' scale",
+    JSON.stringify({ okc, orl, kobe, gp, tov, tds, edge, edgeFar, offTo, deep }));
+  // the Houston line: an ID string printed into the notes' text layer is taken out
+  const NR = await import("../src/notes/narrative.js");
+  const T = "Hit at least one 3-384ca74b-d0b7-42f4-b38e-f4b8cb6404c1 pointers in each of the past 10 games.";
+  const doc = { pages: [{ width: 612, lines: [{ y: 400, text: T, charX: [], cells: [{ x0: 50, x1: 560, text: T }] }] }] };
+  let bt = null; try { bt = NR.blocks(doc).map((b) => b.text).join(" "); } catch { bt = null; }
+  const nsrc = fs.readFileSync(path.join(root, "src", "notes", "narrative.js"), "utf8");
+  ok(nsrc.includes(String.raw`.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\s*/gi, "")`) && /one 3-pointers in each/.test(bt || ""),
+    "notes (0.188.0): an ID string in the notes' text layer (Houston, 11/28: \"3-384ca74b-…-f4b8cb6404c1 pointers\") is taken out and the words close up", String(bt));
 }
 
 const snapDir = path.join(root, "tests", "expected");

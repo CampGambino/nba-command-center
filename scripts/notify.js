@@ -20,6 +20,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { tonightStorylines, discordDigest } from "../src/anticipate/tonight.js";
+import { pedigreeOf } from "../src/anticipate/weigh.js";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -70,7 +71,9 @@ async function main() {
     try { facts = read("notes-facts.json"); } catch { /* no history lines yet */ }
     let matchups = null;
     try { matchups = read("matchups.json"); } catch { /* no matchups yet */ }
-    const stories = tonightStorylines({ watch, trends: read("trends.json"), leaders: read("leaders.json"), injuries, facts, matchups, national: (() => { try { return read("national.json"); } catch { return null; } })(), rest: (() => { try { return read("rest.json"); } catch { return null; } })(), form: (() => { try { return read("form.json"); } catch { return null; } })(), fouls: (() => { try { return read("flowstats.json"); } catch { return null; } })(), prep: (() => { try { return read("prep.json"); } catch { return null; } })() });
+    const stories = tonightStorylines({ watch, trends: read("trends.json"), leaders: read("leaders.json"), injuries, facts, matchups, national: (() => { try { return read("national.json"); } catch { return null; } })(), rest: (() => { try { return read("rest.json"); } catch { return null; } })(), form: (() => { try { return read("form.json"); } catch { return null; } })(), fouls: (() => { try { return read("flowstats.json"); } catch { return null; } })(), prep: (() => { try { return read("prep.json"); } catch { return null; } })(),
+      // 0.188.0: each team's last three seasons, as the site reads team lines (src/anticipate/weigh.js)
+      pedigree: (() => { try { return pedigreeOf(JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-team-seasons-2026-27.json"), "utf8")).teams); } catch { return null; } })() });
     const date = new Date(`${today}T12:00:00Z`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
     const payloads = discordDigest(stories, { date });
     const lines = stories.reduce((a, g) => a + g.lines.length, 0);

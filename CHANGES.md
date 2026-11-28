@@ -2,6 +2,50 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.188.0 (2026-11-28): the ranked list weighs what a line is about
+
+The user, 11/28, 2:54 PM, going through "Everything else, ranked": "continue to assess and calibrate the importance of each and where they land in the pile … I thought these notes were listed with some mixture of importance, buzz, relevance, and forecasting", with lines named (#292 OKC's slide, #216 Diabate's 200 games, Durant and Kobe Bryant, #12, #25, #394, #381, #284, #201, #178, #171).
+
+**What was wrong.** A notes line's score was clipped at 4.8. 93 of today's 170 notes lines were above that, so they all tied at 4.8 and filled the top of the list (41 of the top 50), whatever they said. The ties also lost the notes' own order: Durant's chase of Kobe Bryant ranked 104th, under a team's turnovers.
+
+**Now (src/anticipate/weigh.js; the game cards, the ranked list, the briefing and the Discord digest all use it)**
+- **Notes on the same scale as the other lines**, their order kept: halved around 2, so the notes' middle (5.0) sits with the other kinds and the best (6.9) is still near the top.
+- **Small stat:** turnovers and fouls −0.7 (not points off turnovers). **Niche stats** (minutes played, second-chance, fast-break and bench points, tracking-data cuts, clutch 3-pointers): −0.5, my extension of the same reading.
+- **Small stretches:** a notes "over the past 2 or 3 games" −0.3; a change of under a fifth ("13.0 after 15.3") −0.5.
+- **Games-played countdowns** −0.8 on top of the distance already taken off.
+- **Deep ranks:** a notes rank past 10th in the NBA −0.6, past 20th −0.9 (mine).
+- **The record book:** a chase of a top-10 place on the NBA's all-time list +1.0 (top 25: +0.5).
+- **Team lines against each team's last three seasons:**
+  - a winning team's slide up to +1.5, its losing streak up to +1.0;
+  - a losing team's turn or winning streak up to +0.6, its slide −0.3;
+  - "worst record since …" about a team at .500 or better lately −0.7, and "best record since …" about a team under .450 the same.
+- **Matchup edges** by how far out both ends are, up to +1.6.
+- **No chance number in the line text** ("(by chance: 1 in 67)"); it stays beside the line in the data. The Splits table keeps its Chance column.
+- **A leader's total:** "Dyson Daniels has the most steals in the NBA this season (55)".
+- **#12:** Houston's notes had an ID string in the PDF's text layer ("3-384ca74b-…-f4b8cb6404c1 pointers"). The reader now takes such strings out, and the line reads "3-pointers".
+
+**Where the named lines land (before and after builds for 11/28, same data; 397 lines)**
+- OKC's 8-2 then 2-7: 325 → 136. OKC has lost 3 straight: 283 → 121.
+- Durant on Kobe Bryant: 104 → 9.
+- Şengün's paint edge: 254 → 85. Indiana's paint edge: 284 → 75.
+- Rockets turnovers: 27 → 203. Diabate's 200 games: 193 → 349. Orlando's 2nd-worst record since 2011-12: 269 → 324. Tristan da Silva's turnovers: 189 → 250.
+- Daniels' steals: 180 → 151.
+- Grant Williams' free throws stay near the bottom: 376 → 371 of 397 (the distance already counted, 13.7 games at his rate).
+- Haliburton's absence stays low (347 → 343). It's already marked down because the briefing counts an absence as two days old for each game he's missed (15 here).
+- Top 50: notes 41 → 27; the 4th-quarter and other split lines, situations, finds and shifts fill the rest.
+- The briefing's top ten swaps two lines: Franz Wagner's minutes and Julius Randle's team lead are out; Kyshawn George's 18-4-4-1 club and Şengün's triple-double are in.
+
+**Checked**
+- `node tests/run.js`: 1,029 passed. Two new tests: one runs the user's own lines through the rules; one is the Houston ID string.
+- Seven old tests updated to the new wording and scale: the chance moved out of the text, the leader's total, the notes scale, the import list for the Discord step, and the award lines' place.
+- `node tests/articles-only.js`: 104 passed. `tools/check-pages.py`: every page OK.
+
+**Self-audit**
+- The 4.8 clip was mine (0.159.0). I set a ceiling and never looked at how many lines sat on it.
+- Some numbers are mine, not the user's: the niche-stat list, the deep-rank cut, every size above (−0.7, +1.5 and so on), and three seasons for "lately". The list now has fewer notes near the top, and some good notes lines moved down with the rest: Franz Wagner's T-3rd line, which is mostly minutes, went from #6 to #20.
+- The pedigree rules read only the text patterns built here ("went 8-2 in its first 10 games; 2-7 since", "has lost N straight", "worst record since"). A notes line saying the same thing in other words isn't read that way.
+- Not seen live yet: tonight's cards with notes lines lower (each card still takes two notes lines at most).
+
 ## 0.187.1 (2026-11-28): the build check no longer flags the buzz file
 
 The user, 11/28, 2:15 PM: a screenshot of the home page's "Build check: buzz.json was not rebuilt by this build: it is from 11/28, 12:14 PM ET, so the part of the site that reads it is showing older data".

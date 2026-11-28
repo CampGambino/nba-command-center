@@ -239,7 +239,7 @@ export function shiftStoryLines(rows, teams) {
     const odds = r.odds > SHIFT.shuffles ? `under 1 in ${SHIFT.shuffles}` : `1 in ${Math.round(r.odds)}`;
     // the more unlikely by chance, the higher: 1 in 20 scores STORY.base, "none of the shuffles" STORY.top
     const score = Math.round((STORY.base + (r.kind === "rate" ? STORY.shootBonus : 0) + (STORY.top - STORY.base) * Math.min(1, Math.log(r.odds / STORY.odds) / Math.log((SHIFT.shuffles + 1) / STORY.odds))) * 100) / 100;
-    out.push({ kind: "shift", team: r.team, player: r.name, id: r.id, key: `shift|${r.id}|${r.k}`, text: `${r.text} (by chance: ${odds})`, score });
+    out.push({ kind: "shift", team: r.team, player: r.name, id: r.id, key: `shift|${r.id}|${r.k}`, text: r.text, chance: odds, score });   // 0.188.0 (the user, 11/28: "in most cases, I don't need to see the chance number"): kept beside the line, not in it
   }
   return out;
 }

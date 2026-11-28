@@ -36,6 +36,7 @@
  *              marks a Questionable player's lines.
  * Lines are ranked by `score` (rough newsworthiness) and capped per game.
  */
+import { weigh, squash } from "./weigh.js";
 import { cushion, needed } from "../situations/leaders.js";
 import { formRows } from "../situations/form.js";
 
@@ -596,7 +597,7 @@ function historyLines(facts, teams, today) {
       // in the notes list and ranks 1.5 lower here (it was #1 in the briefing on 11/19). firstSeen is the notes' own first
       // day for the sentence, so a new tag or check in front of an old sentence does not make it "new today".
       const ended = f.tag === "Streak over";
-      out.push({ team, player: f.player, kind: "history", text: `${team} notes${who} ${tag}${body}${f.hook?.text ? ` → ${f.hook.text}` : ""}`, score: Math.min(4.8, f.score) - (ended ? 1.5 : 0), isNew: f.isNew, ...(ended ? { ended: true } : {}), ...(f.firstSeen ? { firstSeen: f.firstSeen } : {}) });
+      out.push({ team, player: f.player, kind: "history", text: `${team} notes${who} ${tag}${body}${f.hook?.text ? ` → ${f.hook.text}` : ""}`, score: squash(f.score) - (ended ? 1.5 : 0), ...(f.reach ? { reach: f.reach } : {}), isNew: f.isNew, ...(ended ? { ended: true } : {}), ...(f.firstSeen ? { firstSeen: f.firstSeen } : {}) });
     }
   }
   return out;
@@ -755,7 +756,7 @@ function awardLines(elig, teams, today) {
 }
 
 /** Every candidate line for tonight, after the injury report (shared by the per-game storylines and the briefing). */
-export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries = null, facts = null, records = null, matchups = null, national = null, rest = null, form = null, fouls = null, prep = null, featlive = null, elig = null }) {
+export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries = null, facts = null, records = null, matchups = null, national = null, rest = null, form = null, fouls = null, prep = null, featlive = null, elig = null, pedigree = null }) {
   const games = (watch.games || []).map((g) => ({ id: g.id, away: g.awayTri, home: g.homeTri, start: g.start }));
   const teams = new Set(games.flatMap((g) => [g.away, g.home]));
   // The injury report overrules the rest: a player listed Out or Doubtful loses his other lines
@@ -775,7 +776,13 @@ export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries =
       if (st === "Out" || st === "Doubtful") return [];
       return [st === "Questionable" ? { ...l, text: `${l.text} · questionable tonight`, ...(l.was ? { was: `${l.was} · questionable tonight` } : {}), score: l.score * 0.8 } : l];
     });
-  return { games, all: [...injuryLines(injuries, teams, watch.today), ...others, ...awardLines(elig, teams, watch.today)] };
+  // 0.188.0 (the user, 11/28: "continue to assess and calibrate the importance of each and where they land in the pile"):
+  // each line weighed beyond its detector's score (src/anticipate/weigh.js); the game cards and the ranked list both read it
+  const all = [...injuryLines(injuries, teams, watch.today), ...others, ...awardLines(elig, teams, watch.today)].map((l) => {
+    const w = weigh(l, { pedigree });
+    return w.adj ? { ...l, score: Math.round(((l.score || 0) + w.adj) * 100) / 100, weighed: w.why } : l;
+  });
+  return { games, all };
 }
 
 // At most this many of a kind in one game's card.

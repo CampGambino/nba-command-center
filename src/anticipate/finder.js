@@ -231,11 +231,12 @@ export function findings({ pg, names = {}, qsum = {}, teamGp = {}, allStars = nu
     }
     // rate: far higher in a total than in minutes
     const rate = [];
-    for (const t of tot) { let best = null; for (const [k, w] of TOTALS) { const r = ranks[k].get(t), rm = ranks.min.get(t); if (r <= RATE.top && rm >= RATE.ratio * r && rm - r >= RATE.gap && (!best || rm / r > best.rm / best.r)) best = { r, rm, w, tied: [...ranks[k].values()].filter((v) => v === r).length > 1 }; } if (best) rate.push({ t, ...best }); }
+    for (const t of tot) { let best = null; for (const [k, w] of TOTALS) { const r = ranks[k].get(t), rm = ranks.min.get(t); if (r <= RATE.top && rm >= RATE.ratio * r && rm - r >= RATE.gap && (!best || rm / r > best.rm / best.r)) best = { r, rm, w, k, tied: [...ranks[k].values()].filter((v) => v === r).length > 1 }; } if (best) rate.push({ t, ...best }); }
     for (const x of rate.sort((a, b) => b.rm / b.r - a.rm / a.r).slice(0, RATE.lines))
       out.push({ kind: "find", test: "rate", team: x.t.p.team, player: x.t.p.name, key: `find|rate|${x.t.p.id}`, surprise: 3 + Math.min(1.2, (x.rm - x.r) / 60), rare: false,
         // 0.158.0: two players level say so (11/25: Myles Turner and Donovan Clingan each "has the 2nd most blocks")
-        text: `${x.t.p.name} ${x.tied ? "is tied for" : "has"} the ${x.r === 1 ? "" : `${ord(x.r)} `}most ${x.w} in the NBA this season. He ranks ${ord(x.rm)} in minutes played` });
+        // 0.188.0 (the user, 11/28, of "Dyson Daniels has the most steals in the NBA this season": "it would be nice to say how many steals he has")
+        text: `${x.t.p.name} ${x.tied ? "is tied for" : "has"} the ${x.r === 1 ? "" : `${ord(x.r)} `}most ${x.w} in the NBA this season (${x.t[x.k].toLocaleString("en-US")}). He ranks ${ord(x.rm)} in minutes played` });
     // group: ranks among bench players, and among rookies
     // 0.163.0: a bench rank counts what a player did off the bench, the way the league and the teams count it. It used to
     // be a player's whole season when he had started under half his games: on 11/25 Julian Champagnie (6 starts in 18)

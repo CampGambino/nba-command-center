@@ -1113,6 +1113,8 @@ try {
     const matchupData = fs.existsSync(path.join(root, "docs", "data", "matchups.json")) ? rd("matchups.json") : null;
     const opt = (f) => { try { return rd(f); } catch { return null; } };
     const args = { watch, trends: rd("trends.json"), leaders: rd("leaders.json"), injuries, facts, records, matchups: matchupData, national: opt("national.json"), rest: opt("rest.json"), form: opt("form.json"), fouls: opt("flowstats.json"), prep: opt("prep.json"), featlive: opt("featlive.json"), elig: opt("eligibility.json"), maxLines: 8 };
+    // 0.188.0: each team's last three seasons, for reading a team line against the team (src/anticipate/weigh.js)
+    try { const { pedigreeOf } = await import("../src/anticipate/weigh.js"); args.pedigree = pedigreeOf(JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-team-seasons-2026-27.json"), "utf8")).teams); } catch (e) { console.error(`team pedigree not read: ${e.message}`); }
     const games = tonightStorylines(args)
       .map((g) => ({ ...g, lines: g.lines.map(({ kind, team, text, score, standing, siteOnly }) => ({ kind, team, text, score: Math.round(score * 100) / 100, ...(standing ? { bg: 1 } : {}), ...(siteOnly ? { siteOnly: 1 } : {}) })) }));
     // 0.71: 30- and 40-point games each defense has allowed, for NBA Live's "first one allowed" card (the user, 11/15: the Celtics).
@@ -1231,7 +1233,7 @@ for (const f of ["ratings.js", "withwithout.js", "leaders.js", "oddlines.js", "l
 fs.mkdirSync(path.join(root, "docs", "ref"), { recursive: true });
 for (const f of fs.readdirSync(path.join(root, "src", "data")).filter((f) => /^nba-(record-book|single-game-bests|postseason-careers)-/.test(f))) fs.copyFileSync(path.join(root, "src", "data", f), path.join(root, "docs", "ref", f.replace(/-\d{4}-\d\d\.json$/, ".json")));
 fs.mkdirSync(path.join(root, "docs", "lib", "anticipate"), { recursive: true });
-for (const f of ["tonight.js", "briefing.js", "learn.js", "buzz.js", "ledger.js"]) fs.copyFileSync(path.join(root, "src", "anticipate", f), path.join(root, "docs", "lib", "anticipate", f));
+for (const f of ["tonight.js", "briefing.js", "learn.js", "buzz.js", "ledger.js", "weigh.js"]) fs.copyFileSync(path.join(root, "src", "anticipate", f), path.join(root, "docs", "lib", "anticipate", f));
 fs.mkdirSync(path.join(root, "docs", "lib", "site"), { recursive: true });
 for (const f of ["trim.js", "post.js"]) fs.copyFileSync(path.join(root, "src", "site", f), path.join(root, "docs", "lib", "site", f));   // 0.137/0.139: the Watch List's folding rules and post-ready wording
 fs.mkdirSync(path.join(root, "docs", "lib", "espn"), { recursive: true });
