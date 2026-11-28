@@ -73,7 +73,7 @@
   "KXNBAPRA": {
    "title": "NBA Player Points + Rebounds + Assists",
    "events": 5,
-   "markets": 158
+   "markets": 159
   },
   "KXNBA3DPROT": {
    "title": "NBA Player Triple Double Protected",
@@ -128,7 +128,7 @@
   "KXNBASTOCKPROT": {
    "title": "NBA Player Steals + Blocks Protected",
    "events": 4,
-   "markets": 18
+   "markets": 22
   },
   "KXNBASEEDCHAMP": {
    "title": "NBA Seed of Champion",
@@ -163,7 +163,7 @@
   "KXNBABLKPROT": {
    "title": "NBA Player Blocks Protected",
    "events": 5,
-   "markets": 35
+   "markets": 36
   },
   "KXNBAEAST": {
    "title": "Pro Basketball Eastern Conference Champion",
@@ -293,7 +293,7 @@
   "KXNBASTOCK": {
    "title": "NBA Player Steals + Blocks",
    "events": 4,
-   "markets": 18
+   "markets": 22
   },
   "KXNBAFIRSTTIMECHAMP": {
    "title": "NBA First Time Champion",
@@ -318,7 +318,7 @@
   "KXNBASTL": {
    "title": "NBA Player Steals",
    "events": 5,
-   "markets": 81
+   "markets": 96
   },
   "KXNBA3Q": {
    "title": "NBA 3rd Quarter Winner",
@@ -333,7 +333,7 @@
   "KXNBABLK": {
    "title": "NBA Player Blocks",
    "events": 5,
-   "markets": 35
+   "markets": 36
   },
   "KXNBAFINMVP": {
    "title": "NBA Finals MVP",
@@ -473,7 +473,7 @@
   "KXNBASTLPROT": {
    "title": "NBA Player Steals Protected",
    "events": 5,
-   "markets": 86
+   "markets": 96
   },
   "KXNBACOY": {
    "title": "NBA Coach of the Year",
@@ -522,8 +522,8 @@
   },
   "KXNBA4QSPREAD": {
    "title": "NBA 4th Quarter Spread",
-   "events": 4,
-   "markets": 52
+   "events": 5,
+   "markets": 65
   },
   "KXNBARELOCATION": {
    "title": "Pro Basketball Team Relocation",
@@ -643,7 +643,7 @@
   "KXNBAPTSPROT": {
    "title": "NBA Player Points Protected",
    "events": 5,
-   "markets": 211
+   "markets": 212
   },
   "KXNBAFRANCHISEOWNER": {
    "title": "NBA Franchise Owner",
@@ -721,13 +721,13 @@
   "KXNBAWEST-27": "San Antonio 36%",
   "KXNBAWFINMVP-27": "Shai Gilgeous-Alexander 20%",
   "KXNBADPOY-27": "Victor Wembanyama 79%",
-  "KXNBACUPMVP-27": "Victor Wembanyama 28%",
+  "KXNBACUPMVP-27": "Victor Wembanyama 27%",
+  "KXNBAMIMP-27": "Ty Jerome 34%",
   "KXNBASOUTHWEST-26": "San Antonio 75%",
   "KXNBACONF-27": "Western Conference 61%",
-  "KXNBAMIMP-27": "Ty Jerome 34%",
   "KXNBAEAST-27": "Boston 22%",
-  "KXNBAEAST1SEED-26": "Boston 27%",
   "KXNBASOUTHEAST-26": "Miami 52%",
+  "KXNBAEAST1SEED-26": "Boston 27%",
   "KXNBARECORD-27BEST": "San Antonio 38%",
   "KXNBARECORD-27WORST": "Sacramento 38%",
   "KXNBASIXTH-27": "Jrue Holiday 31%",
@@ -735,14 +735,14 @@
   "KXNBAFINMVP-27": "Victor Wembanyama 25%",
   "KXNBAATLANTIC-26": "Boston 40%",
   "KXNBACENTRAL-26": "Detroit 71%",
-  "KXNBAMVP-27": "Victor Wembanyama 52%",
+  "KXNBAMVP-27": "Victor Wembanyama 55%",
   "KXNBACOY-27": "Micah Nori 20%",
-  "KXNBAEFINMVP-27": "Tyrese Maxey 20%",
-  "KXNBANORTHWEST-26": "Minnesota 32%",
   "KXNBACUP-26": "San Antonio 33%",
+  "KXNBANORTHWEST-26": "Minnesota 32%",
+  "KXNBAEFINMVP-27": "Tyrese Maxey 20%",
   "KXNBA-27": "San Antonio 23%",
-  "KXNBACLUTCH-27": "Stephen Curry 10%",
   "KXNBAEXEC-27": "Zach Kleiman 41%",
+  "KXNBACLUTCH-27": "Stephen Curry 10%",
   "KXNBAPACIFIC-26": "Los Angeles L 82%"
  }
 }
