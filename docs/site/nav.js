@@ -20,6 +20,7 @@ const MENUS = [
     ["Team streaks", "trends.html", "Streaks"],
     ["Hot and cold", "trends.html#form", "Streaks"],
     ["Shifts: slumps and hot stretches", "trends.html#shifts", "Streaks"],
+    ["4th quarters and clutch time: stars off their own", "trends.html#splits", "Streaks"],
     ["Most unusual records", "situations.html", "Situations"],
   ]],
   ["Players", [

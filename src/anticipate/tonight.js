@@ -677,7 +677,7 @@ export function injuryStatus(injuries, today) {
  */
 // 0.70 (src/anticipate/seasonlong.js): trade and starter/bench splits, lineups, record turns and "since Christmas",
 // who has beaten the best teams, month ratings and totals, rookies.
-const PREP_KINDS = new Set(["broken", "luck", "paradox", "scarce", "defpos", "season", "span", "pstreak", "vsopp", "pace", "trade", "role", "lineup", "turn", "brothers", "beaten", "month", "monthp", "rookie", "defense", "cup", "era", "qtr", "clinch", "find", "shift"]);
+const PREP_KINDS = new Set(["broken", "luck", "paradox", "scarce", "defpos", "season", "span", "pstreak", "vsopp", "pace", "trade", "role", "lineup", "turn", "brothers", "beaten", "month", "monthp", "rookie", "defense", "cup", "era", "qtr", "clinch", "find", "shift", "split"]);
 function prepStoryLines(prep, teams, games, today) {
   if (!prep || !Array.isArray(prep.lines) || (prep.today && today && prep.today !== today)) return [];
   const opp = new Map();
@@ -779,7 +779,7 @@ export function tonightCandidates({ watch, trends = {}, leaders = {}, injuries =
 }
 
 // At most this many of a kind in one game's card.
-const PER_GAME = { awards: 2, feat: 2, broken: 1,  luck: 1, paradox: 1, scarce: 1, defpos: 1,  injury: 2, history: 2, context: 1, matchup: 2, tv: 2, rest: 2, form: 2, foul: 2, season: 2, span: 2, pstreak: 2, vsopp: 1, pace: 1, trade: 1, role: 1, lineup: 1, turn: 1, beaten: 1, month: 1, monthp: 1, rookie: 1, defense: 1, cup: 1, era: 1, fourth: 2, qtr: 1, clinch: 2, find: 1 };
+const PER_GAME = { awards: 2, feat: 2, broken: 1,  luck: 1, paradox: 1, scarce: 1, defpos: 1,  injury: 2, history: 2, context: 1, matchup: 2, tv: 2, rest: 2, form: 2, foul: 2, season: 2, span: 2, pstreak: 2, vsopp: 1, pace: 1, trade: 1, role: 1, lineup: 1, turn: 1, beaten: 1, month: 1, monthp: 1, rookie: 1, defense: 1, cup: 1, era: 1, fourth: 2, qtr: 1, clinch: 2, find: 1, split: 1 };
 const KEEP_KINDS = ["club", "tv", "awards"];
 export function tonightStorylines(args) {
   const maxLines = args.maxLines ?? MAX_LINES;

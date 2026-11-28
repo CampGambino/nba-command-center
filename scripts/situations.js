@@ -642,6 +642,19 @@ for (const [tri, games] of Object.entries(perTeam)) {
     } catch (e) { prep.errors.push(`season-long: ${e.message}`); }
     // 0.72.7: a quarter far out of line with a team's other three, and tonight's opponent in that quarter.
     try { const { quarterLines } = await import("../src/situations/quarters.js"); prep.lines.push(...quarterLines(rows, slate)); } catch (e) { prep.errors.push(`quarters: ${e.message}`); }
+    // 0.185.0 (the user, 11/28, of Kalshi's "Jayson Tatum in the 4th Quarter of his last 6 games: 3.7 PPG, 24.0 FG%…": "we have
+    // all the data to be checking for this kind of dropoff for a star player"): a scorer's recent 4th quarters and clutch
+    // time against his own before, this season's and last season's (src/data/q4-history-<last season>.json). Every line goes
+    // to docs/data/splits.json (the Streaks page); tonight's teams' to the briefing.
+    try {
+      const { splitLines } = await import("../src/situations/splits.js");
+      const y0 = +SEASON.slice(0, 4) - 1, hf = path.join(root, "src", "data", `q4-history-${y0}-${String(y0 + 1).slice(2)}.json`);
+      const last = fs.existsSync(hf) ? JSON.parse(fs.readFileSync(hf, "utf8")) : null;
+      const sp = splitLines({ rows, names: NAMES, last, slate, teamOf: (id, t) => (rosterChanges[id] ? rosterChanges[id].team || "FA" : t) });
+      prep.lines.push(...sp);
+      fs.writeFileSync(path.join(root, "docs", "data", "splits.json"), JSON.stringify({ generatedAt: new Date().toISOString(), today, through, lastSeason: last ? last.season : null, playing: [...new Set(slate.flatMap((g) => [g.home, g.away]))], lines: sp }));
+      console.log(`splits: ${sp.length} scorers whose recent 4th quarters or clutch time are well off their own (${sp.filter((l) => l.dir === "down").length} down, ${sp.filter((l) => l.dir === "up").length} up)${last ? "" : "; no last-season file"}`);
+    } catch (e) { prep.errors.push(`splits: ${e.message}`); console.error(`splits not written: ${e.message}`); }
     // 0.141 (audit step 5): luck (record vs point differential; shooting vs his career), paradox (30-point games his
     // team loses), scarcity ("one of 2 teams unbeaten on the road"), what a defense gives up to one position.
     try {

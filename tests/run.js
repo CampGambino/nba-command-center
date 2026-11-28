@@ -2318,7 +2318,7 @@ await bridgeChecks(ok, root);
     const by = Object.fromEntries(L.map((l) => [l.player, l]));
     ok(L.length === 3 && by["P Two"]?.score === STORY.top && by["P Two"].text.endsWith("(by chance: under 1 in 200)") && by["P Three"] && !by["P Four"] && !by["Role Change"] && !by["Bench Guy"] && !by["Weak"] && !by["Other Team"]
       && by["P One"]?.key === "shift|p1|fg3" && by["P One"].text.endsWith("(29-for-68) (by chance: 1 in 67)") && by["P One"].score > STORY.base + STORY.shootBonus && L.every((l) => l.kind === "shift" && l.team === "AAA")
-      && /"find", "shift"\]\)/.test(fs.readFileSync(path.join(root, "src", "anticipate", "tonight.js"), "utf8")) && /shift: \["📊", "trends\.html#shifts"\]/.test(fs.readFileSync(path.join(root, "docs", "index.html"), "utf8"))
+      && /"find", "shift"(?:, "split")?\]\)/.test(fs.readFileSync(path.join(root, "src", "anticipate", "tonight.js"), "utf8")) && /shift: \["📊", "trends\.html#shifts"\]/.test(fs.readFileSync(path.join(root, "docs", "index.html"), "utf8"))
       && /shiftStoryLines\(shiftAll/.test(fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8")),
       "0.121.0 (the user: \"are the most significant ones posted in the watch list?\"): the strongest shifts on tonight's teams become Watch List lines: one a player, a shooting line and two others a team at most, rotation players only, 1 in 20 or rarer, a stat that moved with his minutes left out",
       JSON.stringify(L.map((l) => [l.player, l.score, l.key])));
@@ -6934,6 +6934,32 @@ await bridgeChecks(ok, root);
   }
   ok(/p\.slice\(5, 21\)\.some\(\(v\) => v != null && v !== 0\) \|\| FEW\.has/.test(tool) && /career-games-nbacom\.json/.test(tool) && fs.existsSync(path.join(root, "tools", "few-seconds-games.mjs")) && fs.existsSync(path.join(root, "tools", "career-gaps-nbacom.mjs")),
     "0.184.0: the career-logs tool reads every number in the line (the plus-minus too), the substitution-play file and NBA.com's missing games; the two tools that make those files are in the repo");
+}
+
+// ---------- 0.185.0: a star's recent 4th quarters and clutch time against his own (the splits scan) ----------
+{
+  const SPL = await import("../src/situations/splits.js");
+  // the binomial and normal tails
+  ok(Math.abs(SPL.binomTail(6, 25, 0.4, false) - 0.0736) < 0.002 && Math.abs(SPL.binomTail(16, 23, 0.43, true) - 0.0096) < 0.002 && Math.abs(SPL.normTail(1.645) - 0.05) < 0.001 && Math.abs(SPL.normTail(0) - 0.5) < 0.001,
+    "splits (0.185.0): the chance figures: 6 or fewer made of 25 at 40% is about 1 in 14; the normal tail at 1.645 is 5%");
+  // Kalshi's post, from our own store: Tatum's last six 4th quarters through 11/27
+  const rows = [];
+  for (const f of fs.readdirSync(path.join(root, "history", "results")).filter((f) => /^\d{4}/.test(f)).sort()) rows.push(...JSON.parse(fs.readFileSync(path.join(root, "history", "results", f), "utf8")).games);
+  const upTo = rows.filter((g) => g.d <= "2026-11-27"), id = "4065648";
+  const six = upTo.filter((g) => g.q4?.p?.[id]).slice(-6).map((g) => g.q4.p[id]), sum = (k) => six.reduce((a, x) => a + x[k], 0);
+  const meta = JSON.parse(fs.readFileSync(path.join(root, "history", "results", "meta.json"), "utf8")), last = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "q4-history-2025-26.json"), "utf8"));
+  const L = SPL.splitLines({ rows: upTo, names: meta.names, last, slate: [{ home: "BOS", away: "XXX" }] }), tat = L.find((l) => l.id === id);
+  ok(six.length === 6 && sum(2) === 22 && `${sum(3)}-${sum(4)}` === "6-25" && `${sum(5)}-${sum(6)}` === "1-13" && `${sum(7)}-${sum(8)}` === "9-15"
+    && tat && tat.dir === "down" && tat.stretch === "q4" && /^Jayson Tatum in the 4th quarter of his last \d+ games with a 4th quarter \(he didn't play in the 4th in 3 other games since/.test(tat.text) && / last season\): 5\.5 points a game|15 last season\)/.test(tat.text)
+    && L.every((l) => l.kind === "split" && l.chance <= SPL.SPLITS.p && l.team && l.player) && last.games >= 1200 && last.q4[id][0] === 15,
+    "splits (0.185.0; the user, 11/28, of Kalshi's \"Jayson Tatum in the 4th Quarter of his last 6 games: 3.7 PPG, 24.0 FG% (6-25 FG), 7.7 3PT% (1-13 3PT), 60.0 FT% (9-15 FT)\": \"were stats like this sliced up never checked?\"): our store gives the same six 4th quarters (22 points, 6-25, 1-13, 9-15); the scan finds Tatum's slide, says the 4th quarters he sat out, and sets it against his own before (this season and last season's 15)",
+    JSON.stringify({ six, tat }));
+  // a base 3-point rate from a few attempts is not printed; one direction a line
+  ok(!L.some((l) => /(?<![\d.])0\.0% 3PT \(clutch/.test(l.text)) && new Set(L.map((l) => l.id)).size === L.length,
+    "splits (0.185.0): a base 3-point rate from fewer than 10 attempts is not printed; one line a player");
+  const sit = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8"), tn = fs.readFileSync(path.join(root, "src", "anticipate", "tonight.js"), "utf8"), idx = fs.readFileSync(path.join(root, "docs", "index.html"), "utf8"), tr = fs.readFileSync(path.join(root, "docs", "trends.html"), "utf8");
+  ok(/splitLines\(\{ rows, names: NAMES, last, slate/.test(sit) && /"splits\.json"/.test(sit) && /"shift", "split"\]\)/.test(tn) && /split: 1 \}/.test(tn) && /split: \["⏱️", "trends\.html#splits"\]/.test(idx) && /<h2 id="splits">4th quarters and clutch time<\/h2>/.test(tr) && /fetch\("data\/splits\.json"/.test(tr),
+    "splits (0.185.0): the build writes docs/data/splits.json and puts tonight's teams' lines in the briefing (one a game); the home page and the Streaks page show them");
 }
 
 const snapDir = path.join(root, "tests", "expected");

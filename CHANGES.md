@@ -2,6 +2,24 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.185.0 (2026-11-28): stars' recent 4th quarters and clutch time against their own (the splits scan)
+
+The user, 11/28, 11:08 AM, with Kalshi's post "Jayson Tatum in the 4th Quarter of his last 6 games: 3.7 PPG, 24.0 FG% (6-25 FG), 7.7 3PT% (1-13 3PT), 60.0 FT% (9-15 FT)": "were stats like this sliced up never checked? It's a good representation of the type of ways to cut up data that is noteable, relevant, and I may not have mentioned to find but we have all the data to be checking for this kind of dropoff for a star player. what do you need to make searches for stuff I didn't ask and present it because it resonates"
+
+**What we had.** Every game's 4th-quarter and clutch-time line for every player, from the play-by-play, since opening night (row.q4, row.cp in the results store), summed on a page as season totals. Nothing looked for a change in them. From the store, Tatum's last six 4th quarters are Kalshi's numbers exactly: 22 points, 6-25, 1-13, 9-15.
+
+**New**
+- **Last season's 4th-quarter and clutch totals** for every player (tools/q4-history.mjs, src/data/q4-history-2025-26.json): all 1,229 games from ESPN's play-by-play, with the same reader as this season's. Tatum's 15 games after his return: 5.5 points a 4th quarter, 26-66.
+- **The scan** (src/situations/splits.js): every scorer (15+ points a game), the 4th quarter and clutch time, his last 5, 6, 7, 8 and 10 appearances in it against his own before (this season's earlier ones and all of last season's). A slide or a surge in points a stretch (a quarter or more, and 1.5+), in shooting (12+ points of percentage on 15+ shots) or from three (15+ on 10+). The strongest of three chance figures (points; made shots; made threes) must be 1 in 10 or less. One line a player, the window least likely to be chance; ranked by that and how much he scores. The line says the 4th quarters he sat out in the stretch.
+- **Where it shows:** tonight's teams' lines in the briefing (kind "split", one a game; two were in today's top 10); every line on the Streaks page's new "4th quarters and clutch time" section, with the chance (trends.html#splits; in the menu and the Index).
+- **Today:** 42 lines, 21 down and 21 up. Tatum's 8 games: 3.0 a game, 7-27, 1-14 from three, against 5.5 and 41.6%. Others: Jalen Brunson 8-34 in his last 8 4th quarters; Nikola Jokić 3.2 points in his last 10 against 5.9; Shai Gilgeous-Alexander 10-28 in clutch time in his last 8; Tyler Herro 16-23 and 14-14 at the line in his last 5.
+
+**What the bar is.** A first cut asked for 1-in-50 rarity after counting every window looked at: two lines, and not Tatum's, whose run is about a 1-in-14 chance for a 40% shooter. The user's bar is what resonates, so the size of the slide decides and the chance only keeps out plain noise, as with the other finders ("rank, don't cut").
+
+**Checked.** tests/run.js: 1,016 passed, 0 failed (4 new: the chance figures; Kalshi's numbers from our store and the scan's Tatum line; no base rate from a handful of threes, one line a player; the wiring). Old and new builds on the same files: the 42 split lines, the briefing and ledger with them, splits.json; nothing else. tools/check-pages.py: all pages OK (it caught my first version of the Streaks page section reusing two of the page's names, which stopped the page; renamed).
+
+**Self-audit.** (1) Picking the best of five windows is a choice, and the chance is for that window; the line says the window. (2) Last season's totals are one number per player: the spread of his points a stretch comes from this season's earlier games only (at least 3). (3) A traded player's earlier stretches are counted whatever team he was on. (4) Clutch samples are small; the section says what clutch time is. (5) Up and down are shown the same; the user's example was a drop-off. (6) This covers the 4th quarter and clutch time only: the stretches we keep per player.
+
 ## 0.184.0 (2026-11-28): a few-seconds game is a game, from the plus-minus, any number, the play-by-play or NBA.com
 
 The user, 11/28, 9:59 AM, with Basketball-Reference's box score of Jalen Brunson's 47 seconds (a field-goal attempt, -2) and Joe Ingles's 2024-25 game log (00:02 twice, 00:01 once): "can you get around the zero-minute game by checking seconds played or stats in a game like personal fouls? play-by-play data may also offer insight if a player checked into the game. and please check the other 23 veterans who have not played this season. … there are rare occasions in image 2 where joe ingles enters the game to inbound the ball at the end of the game then subs out. those games count as played"
