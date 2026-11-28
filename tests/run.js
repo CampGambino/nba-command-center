@@ -7031,6 +7031,17 @@ await bridgeChecks(ok, root);
     JSON.stringify({ c, st, m }));
 }
 
+// ---------- 0.187.1: the buzz file is the morning task's, not the build's ----------
+{
+  const { selfCheck } = await import("../src/site/selfcheck.js");
+  const T0 = Date.parse("2026-11-28T18:41:00Z"), at = (h) => new Date(T0 - h * 36e5).toISOString();
+  const chk = (h, t = T0) => selfCheck({ data: { buzz: { generatedAt: at(h) } }, buildStart: t });
+  const sum = chk(0.45), late = chk(31), summer = selfCheck({ data: { buzz: { generatedAt: new Date(Date.parse("2026-08-01T12:00:00Z") - 40 * 36e5).toISOString() } }, buildStart: Date.parse("2026-08-01T12:00:00Z") });
+  ok(sum.length === 0 && late.length === 1 && /^buzz\.json is from .*: the morning buzz check \(the 8:13 AM scheduled task\) has not written a new one in 30 hours$/.test(late[0].text) && summer.length === 0,
+    "build check (0.187.1; the user, 11/28, a screenshot of \"buzz.json was not rebuilt by this build\"): the buzz file is written by the morning task, so a build doesn't flag it; it is flagged only when the task hasn't written one in 30 hours, October to June",
+    JSON.stringify({ sum, late }));
+}
+
 const snapDir = path.join(root, "tests", "expected");
 fs.mkdirSync(snapDir, { recursive: true });
 const brief = (m) => [m.player, m.kind, m.stat, m.scope, m.current, m.target, m.need, m.status, m.passing?.player || ""].join(" | ");

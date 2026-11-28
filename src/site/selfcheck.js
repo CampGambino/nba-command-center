@@ -28,6 +28,9 @@
  * No imports: scripts/ci.js runs in a bare folder in the tests.
  */
 export const CHECK_NAMES = ["stale", "day", "out", "ended", "junk", "empty", "conflict", "copies", "bridge", "said", "agree"];
+// 0.187.1 (the user, 11/28, a screenshot of "buzz.json was not rebuilt by this build"): docs/data files the build doesn't
+// write. The morning buzz check (a scheduled task, 8:13 AM ET, October to June) writes buzz.json once a day.
+export const OTHER_WRITERS = { buzz: { who: "the morning buzz check (the 8:13 AM scheduled task)", hours: 30, season: (d) => ![7, 8, 9].includes(d.getUTCMonth() + 1) } };
 const SAME_DAY = ["briefing", "tonight", "notes-facts", "prep", "shifts", "matchups", "edges"];
 const JUNK = /\bundefined\b|\bNaN\b|\[object Object\]/;
 const nkey = (x) => String(x || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\b(jr|sr|ii|iii|iv)\.?$/, "").replace(/[^a-z]/g, "");
@@ -48,9 +51,15 @@ export function selfCheck({ data = {}, buildStart = null, keptFiles = [], copies
   const watch = data.watch || null, today = watch?.today || null;
 
   if (buildStart) for (const [name, j] of Object.entries(data)) {
-    if (!j || !j.generatedAt || keptFiles.includes(name) || name === "health") continue;
+    if (!j || !j.generatedAt || keptFiles.includes(name) || name === "health" || OTHER_WRITERS[name]) continue;
     const at = Date.parse(j.generatedAt);
     if (Number.isFinite(at) && at < buildStart - 60e3) add("stale", `${name}.json was not rebuilt by this build: it is from ${clockET(j.generatedAt)}, so the part of the site that reads it is showing older data`);
+  }
+
+  // a file another job writes is checked against that job's own schedule, not against the build
+  for (const [name, w] of Object.entries(OTHER_WRITERS)) {
+    const j = data[name], at = Date.parse(j?.generatedAt || "");
+    if (buildStart && Number.isFinite(at) && buildStart - at > w.hours * 36e5 && w.season(new Date(buildStart))) add("stale", `${name}.json is from ${clockET(j.generatedAt)}: ${w.who} has not written a new one in ${w.hours} hours`);
   }
 
   if (today) {

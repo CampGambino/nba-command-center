@@ -2,6 +2,17 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.187.1 (2026-11-28): the build check no longer flags the buzz file
+
+The user, 11/28, 2:15 PM: a screenshot of the home page's "Build check: buzz.json was not rebuilt by this build: it is from 11/28, 12:14 PM ET, so the part of the site that reads it is showing older data".
+
+- That check flags any data file older than the build that just ran. buzz.json isn't the build's: the morning buzz check (a scheduled task, 8:13 AM ET) writes it once a day, so every build after the morning would flag it. My miss in 0.186.0: I added a data file without telling the check who writes it.
+- Now a list of files other jobs write (src/site/selfcheck.js, `OTHER_WRITERS`, just buzz.json) is left out of that check, and each is checked against its own job instead: buzz.json is flagged only if the morning task hasn't written one in 30 hours, October to June.
+
+**Checked**: `node tests/run.js` passes, with one new test: a report from this morning says nothing; one 31 hours old is flagged as the task not running; one in August isn't flagged. I looked at the other data files the check reads; buzz.json is the only one another job writes.
+
+**Self-audit**: the warning was true (the file was older) but blamed the wrong job and would have shown after every build. A new data file has to be registered with the build check, which writes the warnings. I'll check that whenever a file is added.
+
 ## 0.187.0 (2026-11-28): every quarter and half, teams, situations, and three checks against every season on file
 
 The user, 11/28, 12:03 PM: "it all matters if it is a drastic outlier or significant departure from the norm, especially for the top players in the league. same for teams." Then, of the plan (teams in the 4th-quarter scan; home and road, back-to-backs, winning teams, with or without a teammate; every quarter and each half per player; the three checks the first buzz report said we were missing), 12:24 PM: "build it".
