@@ -29,7 +29,7 @@ export const playedIn = (g, id, minIx = 2) => g?.pl?.[id]?.[minIx] > 0 || (g?.z 
 
 /**
  * rows: the results rows (pl, z), changed in place: a 0-minute game another source rules out leaves row.z.
- * names: { espnId: name }. nba: { "date|AWAY|HOME": NBA.com game file ({ rot: { TRI: [[nbaId, name, in, out, …]] } }) }.
+ * names: { espnId: name }. nba: { "date|AWAY|HOME" or "date|TEAM": NBA.com game file ({ rot: { TRI: [[nbaId, name, in, out, …]] } }) }.
  * outByDate: { date: { TRI: Set(espnId) } } listed Out on that night's injury report.
  * → { dropped: [{ id, name, d, game, why }], warn: [text], checked: { games, nba, inj, zero } }
  */
@@ -38,7 +38,10 @@ export function auditPlayed({ rows, names = {}, nba = {}, outByDate = {} }) {
   for (const g of rows || []) {
     if (!g.pl) continue;
     checked.games++;
-    const game = `${g.d} ${g.a} @ ${g.h}`, file = nba[`${g.d}|${g.a}|${g.h}`], outs = outByDate[g.d];
+    const game = `${g.d} ${g.a} @ ${g.h}`, outs = outByDate[g.d];
+    // by date and teams, or (0.183.0) by date and either team: one NBA.com file's heading has no home team (IND 11/7/26)
+    // and its check-in times are all there. A team plays once a day.
+    const file = nba[`${g.d}|${g.a}|${g.h}`] || nba[`${g.d}|${g.h}`] || nba[`${g.d}|${g.a}`];
     if (file) checked.nba++;
     if (outs) checked.inj++;
     for (const side of [0, 1]) {

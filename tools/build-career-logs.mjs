@@ -11,12 +11,14 @@
 //                                          min, pts, reb, ast, stl, blk, fg3m, fgm, fga, fg3a, ftm, fta], …] } }
 //
 // The same columns as the ESPN logs (src/data/player-logs-history.json.gz), regular season only, through last season; this
-// season's games come from the daily box scores. Only players in this season's box scores or in the ESPN logs are kept.
+// season's games come from the daily box scores. Kept: players in this season's box scores or in the ESPN logs, and (0.183.0)
+// everyone who played in any of the last three seasons, so a veteran's first game of the season finds his career here.
 // A team is its franchise today (Seattle is Oklahoma City, New Jersey Brooklyn), as everywhere else on the site. The
 // Cup's title games are left out. A game counts when the player has minutes or any number in the box score.
 //
 // It also prints how the archive compares with the ESPN logs (and their Bulls and Pelicans fill) from 2016-17 on.
-// Run it once a season, after the archive has last season's games, and whenever a veteran new to the files turns up.
+// Run it once a season, after the archive has last season's games. (Until 0.183.0 also whenever a veteran new to the files
+// turned up; now only for one who last played more than three seasons ago, and the build still says so.)
 //
 //   node tools/build-career-logs.mjs [--dir /home/claude/work/full] [--out src/data/player-logs-career.json.gz] [--check-only]
 import fs from "node:fs";
@@ -43,6 +45,13 @@ const espn = gz(path.join(root, "src", "data", "player-logs-history.json.gz"));
 const fillF = path.join(root, "src", "data", "player-logs-fill.json.gz");
 const logs = fs.existsSync(fillF) ? withFill(espn, gz(fillF)) : espn;
 const want = new Set([...Object.keys(names), ...Object.keys(espn.players)]);
+// 0.183.0 (the user, 11/28, of the home page's "career logs: 1 player with past seasons and no games on file … Jusuf
+// Nurkić": "nurkic played his first game of the season last night. does this happen with all players who play for the
+// first time?"). It did, for every veteran whose first game of the season came after this file was built: he was in
+// neither list above. So the file also keeps everyone who played in any of the last RECENT seasons, whether or not he
+// has played this season yet: a veteran's first game back finds his career already here.
+const RECENT = 3, RECENT_FROM = `${+NOW.slice(0, 4) - RECENT}-08-01`;
+const known = want.size, checked = new Set(want);   // the cross-check below is for the players the ESPN logs can speak for
 
 // archive row: [espnId, name, pos, starter, min, pts, fgm, fga, fg3m, fg3a, ftm, fta, oreb, dreb, reb, ast, stl, blk, to, pf, +/-]
 const played = (p) => p[4] > 0 || [5, 7, 11, 14, 15, 16, 17, 18, 19].some((i) => p[i] > 0);
@@ -55,7 +64,9 @@ for (const f of fs.readdirSync(DIR).filter((x) => x.endsWith(".json")).sort()) {
   const codes = g.t.map((t) => tri(t.t));
   if (codes.some((c) => !c)) { for (const t of g.t) if (!tri(t.t)) unmapped.set(t.t, (unmapped.get(t.t) || 0) + 1); continue; }
   all.push({ g, codes, n: Number((/(\d+)\.json$/.exec(f) || [])[1]) || 0 });
+  if (g.d >= RECENT_FROM) for (const t of g.t) for (const p of t.p) if (played(p)) want.add(String(p[0]));
 }
+console.log(`players kept: ${known} in this season's box scores or the ESPN logs, and ${want.size - known} more who played from ${RECENT_FROM.slice(0, 4)}-${String(+RECENT_FROM.slice(0, 4) + 1).slice(2)} on and have not played this season`);
 // A team can't play twice in a day. ESPN stamps one game a day late (Golden State at Phoenix, 2/29/20, as 3/1, the day
 // Golden State hosted Washington): of two games for one team on one date, the one with the lower ESPN id was the day
 // before, when neither of its teams has a game there already. Anything else is left and said.
@@ -91,7 +102,7 @@ console.log(`archive: ${games} regular-season games read; ${Object.keys(early).l
 const C = { date: 0, opp: 1, res: 3, type: 4 };
 let both = 0, onlyArchive = 0, onlyLogs = 0, differ = 0; const sample = { onlyArchive: [], onlyLogs: [], differ: [] };
 const lastArchive = Object.values(late).flat().map((r) => r[0]).sort().pop();
-for (const id of want) {
+for (const id of checked) {
   const a = new Map((late[id] || []).map((r) => [r[0], r]));
   const l = new Map((logs.players[id] || []).filter((r) => r[C.type] === 2 && !CUP_TITLE_DATES.has(r[C.date]) && r[C.date] >= SPLIT && r[C.date] <= lastArchive).map((r) => [r[C.date], r]));
   for (const [d, r] of a) {

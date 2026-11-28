@@ -6354,7 +6354,7 @@ await bridgeChecks(ok, root);
   if (fs.existsSync(lf)) { const L = JSON.parse(zlib.gunzipSync(fs.readFileSync(lf))), ix = Object.fromEntries(L.columns.map((c, i) => [c, i])); left = 0; marked = 0;
     for (const rows of Object.values(L.players)) for (const r of rows) if (RS.PLAY_IN_DATES.has(r[ix.date])) { if (r[ix.type] === 2) left++; else if (r[ix.type] === 5) marked++; } }
   const bf = fs.readFileSync(path.join(root, "tools", "backfill-matchups.js"), "utf8");
-  ok(first.n === 2 && again.n === 0 && fx.players.a.map((r) => r[4]).join() === "2,5,3" && fx.players.b[0][4] === 5 && (left === -1 || (left === 0 && marked === 469))   // 456 until 0.173.0 refetched fourteen players, who had 13 more
+  ok(first.n === 2 && again.n === 0 && fx.players.a.map((r) => r[4]).join() === "2,5,3" && fx.players.b[0][4] === 5 && (left === -1 || (left === 0 && marked === 490))   // 456 until 0.173.0 refetched fourteen players, who had 13 more; 469 until 0.183.0 added 24 (Nurkić and the 23 veterans yet to play this season), who had 21
     && /\/play\.\?in\/i\.test\(t\.name\) \? 5/.test(bf),
     "history (0.167.0): play-in games are their own type in the past-seasons player log, in neither the regular season nor the playoffs (ESPN's logs file them as regular season; 456 rows on 16 dates were counted in last season's averages, career marks and runs against one opponent); the back-fill tool reads them that way from now on; marking twice changes nothing",
     JSON.stringify({ first, again, left, marked }));
@@ -6785,9 +6785,12 @@ await bridgeChecks(ok, root);
   const nba = { "2026-11-27|GSW|POR": { rot: { POR: [["1", "Real Cameo", 28700, 28800], ["2", "Minutes But Out", 0, 18000]], GSW: [["3", "Nikola Jokić", 0, 20000], ["4", "Sat", 100, 400]] } },
     "2026-11-27|UTA|DEN": { rot: { DEN: [["3", "Nikola Jokić", 0, 18000], ["9", "S. Differently", 28700, 28800]] } } };
   const au = auditPlayed({ rows: [g1, g2], names, nba, outByDate: { "2026-11-27": { POR: new Set(["a", "d"]) } } });
+  // 0.183.0: a file found by date and one team (its heading had no home team: IND 11/7/26)
+  const g3 = { id: "3", d: "2026-11-07", h: "IND", a: "DEN", z: ["b"], pl: { b: [0, ...zero], c: [0, 1, 20, 9] } }, au3 = auditPlayed({ rows: [g3], names, nba: { "2026-11-07|IND": { rot: { IND: [["1", "Real Cameo", 0, 9000]] } } }, outByDate: {} });
   ok(JSON.stringify(g1.z) === '["c"]' && au.dropped.length === 2 && /injury report/.test(au.dropped[0].why) && au.dropped[1].name === "No Stint" && /NBA\.com/.test(au.dropped[1].why)
     && JSON.stringify(g2.z) === '["f"]' && au.warn.length === 3 && au.warn.some((w) => /Minutes But Out 30 minutes.*kept/.test(w)) && au.warn.some((w) => /Spelled Differently.*kept, not confirmed/.test(w)) && au.warn.some((w) => /NBA\.com has Sat on the floor for 30 seconds/.test(w))
-    && playedIn(g1, "c") && !playedIn(g1, "a") && playedIn(g1, "d") && !playedIn(g1, "u") && playedIn({ pl: { x: [1, 12] } }, "x", 1),
+    && playedIn(g1, "c") && !playedIn(g1, "a") && playedIn(g1, "d") && !playedIn(g1, "u") && playedIn({ pl: { x: [1, 12] } }, "x", 1)
+    && au3.checked.nba === 1 && au3.dropped.length === 1 && !g3.z,
     "0.181.0: a 0-minute game is taken out when the injury report had him Out or NBA.com has no check-in; one with a stint stays; minutes in the box score are kept and said; a name NBA.com spells another way is never dropped for it; accents don't matter",
     JSON.stringify({ z1: g1.z, z2: g2.z, au }));
 
@@ -6870,6 +6873,33 @@ await bridgeChecks(ok, root);
   ok(/<option value="\$\{LEAGUE\}">League \(every team\)<\/option>/.test(lu) && /\(!league && mine !== team\)/.test(lu) && /const key = `\$\{mine\}:\$\{ids\.join\("\|"\)\}`/.test(lu) && /team: mine/.test(lu)
     && /<th class="num">#<\/th><th>Team<\/th>/.test(lu) && /across the league/.test(lu) && /i === 0 \? " selected" : ""/.test(lu) && /"lineups\.html\?team=league"/.test(cp),
     "lineups page (0.182.0; the user, 11/28: \"can this page also have a league option to compare all lineups against each other?\"): League is in the team picker, counts each group under its own team, shows the place and the team, and the page still opens on the first team; the page check opens the league view");
+}
+
+// ---------- 0.183.0: a veteran's first game of the season finds his career already on file ----------
+{
+  const zlib = await import("node:zlib");
+  const cf = path.join(root, "src", "data", "player-logs-career.json.gz"), ef = path.join(root, "src", "data", "player-logs-history.json.gz"), tool = fs.readFileSync(path.join(root, "tools", "build-career-logs.mjs"), "utf8");
+  if (fs.existsSync(cf) && fs.existsSync(ef)) {
+    const C = JSON.parse(zlib.gunzipSync(fs.readFileSync(cf))), E = JSON.parse(zlib.gunzipSync(fs.readFileSync(ef))), ix = Object.fromEntries(C.columns.map((c, i) => [c, i]));
+    const per = (id) => { const o = {}; for (const r of C.players[id] || []) { const y = +r[ix.date].slice(0, 4), s = +r[ix.date].slice(5, 7) >= 10 ? y : y - 1; o[s] = (o[s] || 0) + 1; } return o; };
+    const nurkic = per("3102530"), book = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "nba-career-seasons-2026-27.json"), "utf8")).players["Jusuf Nurkic"];
+    // the record book's games for each of his seasons (the user's file) against the archive's
+    const sameAsBook = book.filter(([s]) => s < "2026").every(([s, gp]) => nurkic[+s.slice(0, 4)] === gp);
+    // on a roster on 11/28/26 with no game yet this season: each would have had no past games on his first night back
+    const waiting = { 6430: "Jimmy Butler III", 3102531: "Kristaps Porzingis", 6580: "Bradley Beal", 4683688: "Dereck Lively II", 3934673: "Donte DiVincenzo", 6440: "Tobias Harris", 3907387: "Ben Simmons", 4065654: "Jonathan Isaac" };
+    const { careerMissing } = await import("../src/records/matchup.js");
+    const firstSeason = { 3102530: "2014-15", 6430: "2011-12" };
+    ok(Object.keys(C.players).length >= 800 && (C.players["3102530"] || []).length === 631 && C.players["3102530"][0][ix.date] === "2014-10-29" && sameAsBook && book.length >= 12
+      && Object.keys(waiting).every((id) => (C.players[id] || []).length > 90 && (E.players[id] || []).length > 90) && E.players["3102530"].filter((r) => r[4] === 3).length === 16
+      && !careerMissing(C, "3102530", "Jusuf Nurkić", firstSeason) && !careerMissing(C, "6430", "Jimmy Butler III", firstSeason) && C.whole === true && /^2003-04 to /.test(C.seasons),
+      "the career logs (0.183.0; the user, 11/28, of the home page's \"career logs: 1 player with past seasons and no games on file … Jusuf Nurkić\": \"does this happen with all players who play for the first time?\"): everyone who played in any of the last three seasons is kept, so a veteran's first game back finds his career here: Nurkić's 631 games, season by season the record book's, and the veterans on a roster who have not played yet (Butler, Porziņģis, Beal, Lively, DiVincenzo, Harris, Simmons, Isaac); each also has his ESPN log (playoffs and play-in)",
+      JSON.stringify({ players: Object.keys(C.players).length, nurkic, sameAsBook, waiting: Object.keys(waiting).map((id) => [(C.players[id] || []).length, (E.players[id] || []).length]) }));
+  }
+  const sit183 = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8");
+  ok(/const RECENT = 3, RECENT_FROM = /.test(tool) && /if \(g\.d >= RECENT_FROM\) for \(const t of g\.t\) for \(const p of t\.p\) if \(played\(p\)\) want\.add\(String\(p\[0\]\)\);/.test(tool) && /for \(const id of checked\) \{/.test(tool)
+    && /const cur = new Set\(Object\.keys\(store\.names \|\| \{\}\)\);/.test(sit183) && /const espn = mine\(rd\("player-logs-history\.json\.gz"\)\), career = mine\(rd\("player-logs-career\.json\.gz"\)\);/.test(sit183)
+    && /for \(const tri of Object\.keys\(j\.rot \|\| \{\}\)\) nba\[`\$\{j\.d\}\|\$\{tri\}`\] = j;/.test(sit183),
+    "the career-logs tool (0.183.0) keeps every player with a game in the last three seasons, and still sets only the players the ESPN logs speak for against them; the build's one loader gives the readers only players in this season's box scores, so the wider files don't put former players among \"current players\"; the played check finds an NBA.com file by date and team");
 }
 
 const snapDir = path.join(root, "tests", "expected");

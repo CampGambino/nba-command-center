@@ -66,7 +66,14 @@ async function pastLogs() {
   if (pastLogsOnce) return pastLogsOnce;
   const zlib = await import("node:zlib"), { wholeLogs } = await import("../src/situations/logsource.js"), { withFill } = await import("../src/situations/logfill.js");
   const rd = (f) => { const p = path.join(root, "src", "data", f); return fs.existsSync(p) ? JSON.parse(zlib.gunzipSync(fs.readFileSync(p))) : null; };
-  const espn = rd("player-logs-history.json.gz"), career = rd("player-logs-career.json.gz");
+  // 0.183.0: both files now also hold players who have not played this season (everyone from the last three seasons in
+  // the career file; the veterans on a roster in ESPN's logs), so that a veteran's first game finds his past games here
+  // (Jusuf Nurkić's did not, 11/27/26). The readers' "current players" are still the players in this season's box
+  // scores, as they have been: the others are left out here, in the one place every reader loads from, and come in the
+  // day they play.
+  const cur = new Set(Object.keys(store.names || {}));
+  const mine = (f) => (f?.players ? { ...f, players: Object.fromEntries(Object.entries(f.players).filter(([id]) => cur.has(id))) } : f);
+  const espn = mine(rd("player-logs-history.json.gz")), career = mine(rd("player-logs-career.json.gz"));
   if (career) { const logs = wholeLogs(espn, career); return (pastLogsOnce = { logs, plain: logs, career }); }
   const fill = rd("player-logs-fill.json.gz");
   return (pastLogsOnce = { logs: espn && fill ? withFill(espn, fill) : espn, plain: espn, career: null });
@@ -159,7 +166,7 @@ let notPlayed = [];
 try {
   const { auditPlayed } = await import("../src/situations/played.js"), { listedIds } = await import("../src/injuries/history.js");
   const nba = {}, nbaDir = path.join(root, "history", "nbacom", SEASON);
-  if (fs.existsSync(nbaDir)) for (const f of fs.readdirSync(nbaDir).filter((x) => /^g-\d+\.json$/.test(x))) { try { const j = JSON.parse(fs.readFileSync(path.join(nbaDir, f), "utf8")); if (j.d && j.away && j.home) nba[`${j.d}|${j.away}|${j.home}`] = j; } catch {} }
+  if (fs.existsSync(nbaDir)) for (const f of fs.readdirSync(nbaDir).filter((x) => /^g-\d+\.json$/.test(x))) { try { const j = JSON.parse(fs.readFileSync(path.join(nbaDir, f), "utf8")); if (j.d) for (const tri of Object.keys(j.rot || {})) nba[`${j.d}|${tri}`] = j; } catch {} }   // 0.183.0: by the teams its check-in times are for, not its heading (one file's heading has no home team)
   const teamIdsAll = {};
   for (const g of rows) for (const [id, v] of Object.entries(g.pl || {})) (teamIdsAll[v[0] === 0 ? g.h : g.a] ??= new Set()).add(id);
   const outByDate = {};
