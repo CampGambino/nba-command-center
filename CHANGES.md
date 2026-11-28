@@ -9,7 +9,9 @@ The user, 11/28, 2:15 PM: a screenshot of the home page's "Build check: buzz.jso
 - That check flags any data file older than the build that just ran. buzz.json isn't the build's: the morning buzz check (a scheduled task, 8:13 AM ET) writes it once a day, so every build after the morning would flag it. My miss in 0.186.0: I added a data file without telling the check who writes it.
 - Now a list of files other jobs write (src/site/selfcheck.js, `OTHER_WRITERS`, just buzz.json) is left out of that check, and each is checked against its own job instead: buzz.json is flagged only if the morning task hasn't written one in 30 hours, October to June.
 
-**Checked**: `node tests/run.js` passes, with one new test: a report from this morning says nothing; one 31 hours old is flagged as the task not running; one in August isn't flagged. I looked at the other data files the check reads; buzz.json is the only one another job writes.
+**Also fixed: a test 0.187.0 left wrong.** The 0.185.0 Tatum test took his first line. Before 0.187.0's build stored every quarter, that was his 4th-quarter slide; now it's his first halves going up, so the test failed and stopped this publish once. The test now takes his down line, and the slide is still found as before. I should have run the tests on the data as rebuilt, not only on the data before it.
+
+**Checked**: `node tests/run.js`: 1,026 passed, with one new test: a report from this morning says nothing; one 31 hours old is flagged as the task not running; one in August isn't flagged. I looked at the other data files the check reads; buzz.json is the only one another job writes.
 
 **Self-audit**: the warning was true (the file was older) but blamed the wrong job and would have shown after every build. A new data file has to be registered with the build check, which writes the warnings. I'll check that whenever a file is added.
 

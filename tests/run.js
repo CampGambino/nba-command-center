@@ -6948,7 +6948,7 @@ await bridgeChecks(ok, root);
   const upTo = rows.filter((g) => g.d <= "2026-11-27"), id = "4065648";
   const six = upTo.filter((g) => g.q4?.p?.[id]).slice(-6).map((g) => g.q4.p[id]), sum = (k) => six.reduce((a, x) => a + x[k], 0);
   const meta = JSON.parse(fs.readFileSync(path.join(root, "history", "results", "meta.json"), "utf8")), last = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "q4-history-2025-26.json"), "utf8"));
-  const L = SPL.splitLines({ rows: upTo, names: meta.names, last, slate: [{ home: "BOS", away: "XXX" }] }), tat = L.find((l) => l.id === id);
+  const L = SPL.splitLines({ rows: upTo, names: meta.names, last, slate: [{ home: "BOS", away: "XXX" }] }), tat = L.find((l) => l.id === id && l.dir === "down");   // 0.187.0: a player has a line each way; his slide is the down one
   ok(six.length === 6 && sum(2) === 22 && `${sum(3)}-${sum(4)}` === "6-25" && `${sum(5)}-${sum(6)}` === "1-13" && `${sum(7)}-${sum(8)}` === "9-15"
     && tat && tat.dir === "down" && tat.stretch === "q4" && /^Jayson Tatum in the 4th quarter of his last \d+ games with a 4th quarter \(he didn't play in the 4th in 3 other games since/.test(tat.text) && / last season\): 5\.5 points a game|15 last season\)/.test(tat.text)
     && L.every((l) => l.kind === "split" && l.chance <= SPL.SPLITS.p && l.team && (l.player || l.teamLine)) && last.games >= 1200 && last.q4[id][0] === 15,
