@@ -56,6 +56,10 @@
  *       Live's own QUARTER EXPLOSION card is up for a quarter, the season place and list are added to that card (its
  *       all-time list stays) and the separate season card is not fired; it shows only where NBA Live has no card.
  *       This is the one place the bridge adds to a card of NBA Live's: two fields, on its way through fireStory.
+ *     - (v40, 0.178.0; the user, 11/27, of Trey Murphy III's 6 steals as "CUP LIST … tied for the 4th-most" and
+ *       "1 FROM THE CUP RECORD": "these are the same thing") a game that is on the Cup's or the playoffs' single-game
+ *       list AND inside the countdown to its record is one card, the countdown, with his place on the list in it and
+ *       the list on its back. The list card comes alone only when he is not that close, or once he ties or passes.
  *     - (v39, 0.175.0; the user, 11/27: "because these alerts only show pregame and are for the games tonight, no need
  *       to display the text for tonight's storyline and (pre-game)") a pre-game card's small print is "Command Center" only.
  *     - (v38, 0.169.0; the user, 11/26: "Top 5 for franchise should work") a pass on a franchise list gets a card to
@@ -166,7 +170,7 @@
  */
 (function () {
   "use strict";
-  var VERSION = 39;
+  var VERSION = 40;
   var DEFAULT_URL = "https://campgambino.github.io/nba-command-center/data/watch.json";
   var REFRESH_MS = 15 * 60 * 1000;
   // Editorial gate, in NBA Live's spirit ("a rung nobody celebrates produces a card nobody wants"):
@@ -1469,24 +1473,27 @@ function teamStake(t, g) {
             var tied = L.games.filter(function (g) { return g.value === v; }).length;
             var top = L.games.reduce(function (a, g) { return Math.max(a, g.value); }, 0);
             var recHolder = L.games.slice().sort(function (a, b) { return b.value - a.value; })[0] || {};
-            if (nearRecord) {
-              var togo = top0 - v;
-              fire("cc-list-" + (bk[0] === "NBA Cup" ? "cup-" : "po-") + p.id + "-" + stat + "-record", {
-                type: "milestone", icon: "👀 " + togo + " FROM THE " + (bk[0] === "NBA Cup" ? "CUP" : "PLAYOFF") + " RECORD",
-                text: name + " (" + team + ") — " + v + " " + LIST_WORD[stat] + ", " + togo + " from the " + bk[1].replace(/'s$/, "") + " single-game record (" + top0 + ", " + escH(recHolder.player || "") + (recHolder.date ? ", " + recHolder.date : "") + ")",
-                statLine: typeof fmtAlertStatLine === "function" ? fmtAlertStatLine([[v, LIST_WORD[stat].toUpperCase()], [togo, "TO TIE"]]) : "",
-                sub: "Command Center · the NBA Guide's single-game lists (through 2025-26)",
-                live: true, gameId: game.id, gameTag: tag, gameScore: scr,
-              });
-              if (!made) return;
-            }
-            var text = made
-              ? name + " (" + team + ") — " + v + " " + LIST_WORD[stat] + ": " + (v > top ? "the most in a game in " + bk[1].replace(/'s$/, "") + " history" : (tied ? "tied for " : "") + "the " + ord(better + 1) + "-most in a game on the " + bk[1] + " list") + " (" + L.games.length + " games of " + L.floor + "+)"
-              : name + " (" + team + ") — " + v + " " + LIST_WORD[stat] + ", " + (L.floor - v) + " from the " + bk[1] + " single-game list (" + L.floor + "+, " + L.games.length + " games)";
             var top5 = L.games.slice().sort(function (a, b) { return b.value - a.value; }).slice(0, 5);
             var back = '<div class="alert-back-title">' + escH(bk[1].replace(/'s$/, "")) + " single-game list · " + LIST_WORD[stat] + " (" + L.floor + "+, " + L.games.length + " games)</div>"
               + top5.map(function (g) { return '<div class="alert-back-play"><span class="abp-time">' + g.value + "</span> · <strong>" + escH(g.player) + "</strong> · " + escH(g.team) + (g.opp ? " vs " + escH(g.opp) : "") + (g.date ? ", " + escH(g.date) : "") + "</div>"; }).join("")
               + '<div class="alert-back-play" style="font-weight:700"><span class="abp-time">' + v + "</span> · " + escH(name) + " tonight" + (made ? "" : " · " + (L.floor - v) + " to make it") + "</div>";
+            if (nearRecord) {
+              // v40 (the user, 11/27: "these are the same thing"): on the list and counting down to its record is ONE card.
+              // The countdown carries his place on the list and the list on its back; no separate list card beside it.
+              var togo = top0 - v;
+              fire("cc-list-" + (bk[0] === "NBA Cup" ? "cup-" : "po-") + p.id + "-" + stat + "-record", {
+                type: "milestone", icon: "👀 " + togo + " FROM THE " + (bk[0] === "NBA Cup" ? "CUP" : "PLAYOFF") + " RECORD", backHtml: made ? back : undefined,
+                text: name + " (" + team + ") — " + v + " " + LIST_WORD[stat] + ", " + togo + " from the " + bk[1].replace(/'s$/, "") + " single-game record (" + top0 + (recHolder.player ? ", " + escH(recHolder.player) : "") + (recHolder.date ? ", " + recHolder.date : "") + ")"
+                  + (made ? "; " + (tied ? "tied for " : "") + "the " + ord(better + 1) + "-most on the " + bk[1] + " list" : ""),
+                statLine: typeof fmtAlertStatLine === "function" ? fmtAlertStatLine([[v, LIST_WORD[stat].toUpperCase()], [togo, "TO TIE"]]) : "",
+                sub: "Command Center · the NBA Guide's single-game lists (through 2025-26)",
+                live: true, gameId: game.id, gameTag: tag, gameScore: scr,
+              });
+              return;
+            }
+            var text = made
+              ? name + " (" + team + ") — " + v + " " + LIST_WORD[stat] + ": " + (v > top ? "the most in a game in " + bk[1].replace(/'s$/, "") + " history" : (tied ? "tied for " : "") + "the " + ord(better + 1) + "-most in a game on the " + bk[1] + " list") + " (" + L.games.length + " games of " + L.floor + "+)"
+              : name + " (" + team + ") — " + v + " " + LIST_WORD[stat] + ", " + (L.floor - v) + " from the " + bk[1] + " single-game list (" + L.floor + "+, " + L.games.length + " games)";
             fire("cc-list-" + (bk[0] === "NBA Cup" ? "cup-" : bk[0] === "Playoffs" ? "po-" : "") + p.id + "-" + stat + (made ? "-made" : "-near"), {
               type: "milestone", backHtml: back, icon: made ? (bk[0] !== "Regular season" && v >= top ? "🏆 " + (v > top ? "" : "TIES THE ") + (bk[0] === "NBA Cup" ? "NBA CUP" : "PLAYOFF") + " RECORD" : bk[0] === "NBA Cup" ? "🏆 CUP LIST" : "📜 ALL-TIME LIST") : "👀 " + (L.floor - v) + " FROM THE LIST",
               text: text,

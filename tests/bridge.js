@@ -209,11 +209,13 @@ export async function bridgeChecks(ok, root, deps = {}) {
     watch.teams[0].items.splice(-2, 2);
   }
   ok(!has("cc-rec-32-") && !has("cc-rec-1-"), "bridge v3: a long shot not reached, and a milestone the notes already carry: no record card", keys.filter((k) => k.startsWith("cc-rec")).join(" "));
-  if (!t.cards.get("cc-list-cup-40-pts-made")) console.log("DEBUG keys", [...t.cards.keys()].filter((k) => k.includes("list")).join(" "), JSON.stringify(t.ctx.CC_BRIDGE.state.listError));
+  if (!t.cards.get("cc-list-cup-40-pts-record")) console.log("DEBUG keys", [...t.cards.keys()].filter((k) => k.includes("list")).join(" "), JSON.stringify(t.ctx.CC_BRIDGE.state.listError));
   const made = t.cards.get("cc-list-40-pts-made"), near = t.cards.get("cc-list-41-pts-near"), cupMade = t.cards.get("cc-list-cup-40-pts-made");
-  ok(made && made.text === "Big Night (LAL) — 58 points: tied for the 4th-most in a game on the NBA's all-time list (6 games of 57+)" && !near && cupMade && /CUP/.test(cupMade.icon)
-    && /^Big Night \(LAL\) — 58 points, 2 from the NBA Cup single-game record \(60/.test((t.cards.get("cc-list-cup-40-pts-record") || {}).text || "") && !t.cards.get("cc-list-40-pts-record"),
-    "bridge v3/0.63: making the all-time single-game list (with his place) and the Cup's list on a Cup night; no 'nearing the list' card; a countdown to the Cup record (the regular season's is NBA Live's own)", [made && made.text, near && near.text, (t.cards.get("cc-list-cup-40-pts-record") || {}).text].join(" | "));
+  const cupRec = t.cards.get("cc-list-cup-40-pts-record") || {};
+  ok(made && made.text === "Big Night (LAL) — 58 points: tied for the 4th-most in a game on the NBA's all-time list (6 games of 57+)" && !near
+    && /^Big Night \(LAL\) — 58 points, 2 from the NBA Cup single-game record \(60[^)]*\); (?:tied for )?the \d+(?:st|nd|rd|th)-most on the NBA Cup's list$/.test(cupRec.text || "") && /FROM THE CUP RECORD/.test(cupRec.icon || "") && /single-game list/.test(cupRec.backHtml || "")
+    && !cupMade && !t.cards.get("cc-list-40-pts-record"),
+    "bridge v3/0.63, v40: making the all-time single-game list (with his place); no 'nearing the list' card; on a Cup night a game that is on the Cup's list and inside the countdown to its record is ONE card (the user, 11/27, of Trey Murphy III's 6 steals as \"CUP LIST\" and \"1 FROM THE CUP RECORD\": \"these are the same thing\"): the countdown, with his place on the list and the list on its back; the regular season's record countdown is NBA Live's own", [made && made.text, near && near.text, cupRec.text, cupMade && cupMade.text].join(" | "));
   ok(!has("cc-list-40-fg3m-near") && !has("cc-list-1-fg3m"), "bridge 0.63: no card for nearing a single-game list");
   {
     // v24 (0.109.0): each team's single-game team marks, an NBA record first, and what backs the number in the small print.
@@ -716,7 +718,7 @@ export async function bridgeChecks(ok, root, deps = {}) {
         "bridge v36: once he is past 15 the warning moves to the run still short (30+ points), and at the final that run ends with his line; the 15+ and 10+ runs, extended but not at a round mark, say nothing", JSON.stringify([mid, fin6]));
       const safe = await go6(g6({ period: 4, clock: "4:30" }, { shai: { pts: 9 } }));
       const s9 = safe.ctx.GAMES[0].boxscore.away.find((p) => p.id === "k6"); const before9 = pick(safe, "cc-run-")["k6-rz1"]?.icon; s9.pts = 36; safe.ctx.runAlertChecks(); await flush();
-      ok(before9 === "⚠️ STREAK IN DANGER" && pick(safe, "cc-run-")["k6-rz1"]?.icon === "🔥 STREAK EXTENDED" && /30\+ points in 7 straight/.test(pick(safe, "cc-run-")["k6-rz1"].text) && /var VERSION = 3[7-9];/.test(code),
+      ok(before9 === "⚠️ STREAK IN DANGER" && pick(safe, "cc-run-")["k6-rz1"]?.icon === "🔥 STREAK EXTENDED" && /30\+ points in 7 straight/.test(pick(safe, "cc-run-")["k6-rz1"].text) && /var VERSION = (?:3[7-9]|[4-9]\d);/.test(code),
         "bridge v36: a warning he answers is replaced by the mark he reaches (or taken down when there is none)", JSON.stringify(pick(safe, "cc-run-")["k6-rz1"]));
       // v37 (0.168.0): the league leader in 10+ and 20+ points every game; NBA Live's own card up: only a leader's card or a long run's round mark is added
       featData = { v: 1, today: "2026-11-09", asOf: "2026-11-07", through: "2026-11-08", boards: {}, teamStreaks: [], streaks: [

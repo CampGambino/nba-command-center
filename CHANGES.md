@@ -2,6 +2,19 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.178.0 (2026-11-27, bridge v40): on the Cup's list and one from its record is one card
+
+The user, 11/27, 11:43 PM, with two NBA Live cards for Trey Murphy III in NO @ LAC at 90-85, "🏆 CUP LIST: 6 steals: tied for the 4th-most in a game on the NBA Cup's list (6 games of 6+)" and "👀 1 FROM THE CUP RECORD: 6 steals, 1 from the NBA Cup single-game record (7, Jeremiah Fears, Nov. 14, 2025)": "these are the same thing".
+
+- **docs/bridge/cc-bridge.js (v40), `listChecks`:** a game that is on the Cup's (or the playoffs') single-game list and inside the countdown to that list's record made two cards from the one number. It is one now, the countdown, with his place on the list added and the list's top five on its back: "Trey Murphy III (NOP) — 6 steals, 1 from the NBA Cup single-game record (7, Jeremiah Fears, Nov. 14, 2025); tied for the 4th-most on the NBA Cup's list".
+- The list card still comes alone when he is on the list and not that close to the record, and the record card ("TIES THE NBA CUP RECORD", "NBA CUP RECORD") when he gets there.
+- A record with no holder's name in the file no longer prints "(60, )".
+- bridge/version.json is 40.
+
+**Checked.** tests/run.js: 993 passed, 0 failed (the harness's Cup-night case now expects the one card and no "CUP LIST" card beside it; a version check that named 37 to 39 takes 40 on).
+
+**Self-audit.** (1) A game on the all-time list on a Cup night still gets its all-time card beside the Cup card: two lists, two facts. If that reads as the same thing too, it is the same change again. (2) In the regular season the list card is ours and the countdown to the record is NBA Live's own, so the pair can still appear there; I can't see NBA Live's cards from here. (3) The second card in the user's picture was stamped "Q1 1:55" at a score the first card had at "Q4 7:23". The stamp is NBA Live's (a card whose numbers change is re-stamped to the player's latest play); not looked into, and told to the user. (4) Not seen in NBA Live: the harness only. (5) 0.177.0 (the #lineups order) is still held for after the night's games; this went out ahead of it.
+
 ## 0.176.0 (2026-11-27): a count in the notes is set against the game log; last season's bullet; a run of multi-three games; a page for one player
 
 The user, 11/27, 5:12 PM, with Indiana's notes page for Andrew Nembhard and the line "IND notes — Andrew Nembhard: Recorded 10 or more assists 14 times with a career-high 13 double-doubles": "need to be extra cautious with Pacers game notes. the first bullet is for this season but the second bullet is a recap of last season, so this does not apply. you have the game logs to check against such claims". With Collin Gillespie's game log and "PHX notes — Collin Gillespie: Has knocked down consecutive triples in eight straight games, the longest streak by a Suns reserve since 2021-22": "the game logs confirmed this streak is no longer active, but I don't know if the command center is telling me because it's copy/paste from game notes or it thinks it is interesting enough… either way, the game logs exists to verify these claims". And: "is there a central player's hub to search by player to see what information is linked to them specifically? … the whole site should be easy to navigate and easy to digest".
