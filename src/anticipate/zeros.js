@@ -15,6 +15,12 @@
  *
  * A stat counts for a player only if it is his: ZERO.avg a game for his career (15 points, 7 rebounds, 5 assists),
  * with ZERO.games career games behind him. Regular season only.
+ *
+ * 0.181.0: "a game he played in" is the played check's answer (src/situations/played.js), never a line of zeros alone.
+ * On 11/28/26 this module said Damian Lillard "was held scoreless for the first time since at least 2016-17 (598
+ * games): 0-for-0 … in 0 minutes" for a game he sat out injured: the 0-minute mark it trusted (cameo) had been set from
+ * one early reading of ESPN's box score. The mark now needs proof he was on the floor, and the injury report and
+ * NBA.com's check-in times are asked on every build. A real few-seconds game reads "in under a minute".
  */
 export const ZERO = { avg: { pts: 15, reb: 7, ast: 5 }, games: 150, live: { pts: 1, reb: 1, ast: 1 } };
 const WORD = { pts: ["scoreless", "points", "a point"], reb: ["without a rebound", "rebounds", "a rebound"], ast: ["without an assist", "assists", "an assist"] };
@@ -69,7 +75,7 @@ export function zeroLines({ pg, careersBefore, since, allStar = null, plainName 
         const n = (p.full ? p.games : p.logGames) + 1, sel = allStar ? allStar[plainName(p.name)] || 0 : 0;
         const rest = k === "pts" ? `${g.fgm}-for-${g.fga} with ${g.ast} assist${g.ast === 1 ? "" : "s"} and ${g.reb} rebound${g.reb === 1 ? "" : "s"}` : `${g.pts} points${k === "reb" ? `, ${g.ast} assists` : `, ${g.reb} rebounds`}`;
         out.push({ kind: "unique", team: g.team, player: p.name, date: g.d, key: `zero|${id}|${k}|${g.d}`, rare: true, score: 3.9 + Math.min(0.6, n / 1500) + (sel ? 0.3 : 0),
-          text: `${p.name}${sel ? ` (${sel}-time All-Star)` : ""} ${k === "pts" ? "was held scoreless" : `finished ${WORD[k][0]}`} for the first time ${p.full ? "in his career" : "since at least 2016-17"} (${n.toLocaleString("en-US")} games): ${rest} in ${Math.round(g.min)} minutes vs ${g.opp}` });
+          text: `${p.name}${sel ? ` (${sel}-time All-Star)` : ""} ${k === "pts" ? "was held scoreless" : `finished ${WORD[k][0]}`} for the first time ${p.full ? "in his career" : "since at least 2016-17"} (${n.toLocaleString("en-US")} games): ${rest} in ${Math.round(g.min) >= 1 ? `${Math.round(g.min)} minute${Math.round(g.min) === 1 ? "" : "s"}` : "under a minute"} vs ${g.opp}` });
       }
     }
   }

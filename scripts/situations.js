@@ -108,16 +108,68 @@ if (!rows.length) { console.error(`no results collected${warnings.length ? `: ${
 const { accentMap, withAccents } = await import("../src/site/accents.js");
 const ACCENTS = accentMap(fs.readdirSync(path.join(root, "src", "data")).filter((f) => f.endsWith(".json")).map((f) => fs.readFileSync(path.join(root, "src", "data", f), "utf8")));
 const NAMES = withAccents(store.names || {}, ACCENTS);
+// 0.181.0: read here, before anything counts a game, so the played check below can ask who was listed Out that night.
+// Each game date's final injury report (history/injuries/<date>.json), fetched once: who was on each team's
+// report that night. ESPN's box scores leave inactive players out, so this is how we know a player who
+// hadn't debuted yet (or sat injured) was on the team for those games.
+const injDir = path.join(root, "history", "injuries");
+fs.mkdirSync(injDir, { recursive: true });
+const injByDate = {};
+{
+  const { finalReportFor } = await import("../src/injuries/history.js");
+  let pdfjs = null;
+  const fetchPdf = async (url) => {
+    const res = await fetch(url, { signal: AbortSignal.timeout(20000) }).catch(() => null);
+    if (!res || !res.ok) return null;
+    pdfjs ??= await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const doc = await pdfjs.getDocument({ data: new Uint8Array(await res.arrayBuffer()), verbosity: 0 }).promise;
+    const pages = [];
+    for (let p = 1; p <= doc.numPages; p++) pages.push((await (await doc.getPage(p)).getTextContent()).items.map((it) => ({ x: it.transform[4], y: it.transform[5], str: it.str })));
+    return pages;
+  };
+  const dates = [...new Set(rows.filter((g) => g.pl).map((g) => g.d))].sort();
+  let fetched = 0, missing = 0;
+  for (const d of dates) {
+    const f = path.join(injDir, `${d}.json`);
+    if (fs.existsSync(f)) { injByDate[d] = JSON.parse(fs.readFileSync(f, "utf8")); continue; }
+    if (fetched >= 40) { missing++; continue; } // the rest on the next run
+    try {
+      const r = await finalReportFor(d, fetchPdf);
+      fetched++;
+      if (r) { fs.writeFileSync(f, JSON.stringify(r)); injByDate[d] = r; } else missing++;
+    } catch (e) { missing++; warnings.push(`injury report ${d}: ${e.message}`); }
+  }
+  console.log(`injury reports by game date: ${Object.keys(injByDate).length} of ${dates.length} dates (${fetched} fetched now${missing ? `, ${missing} still missing` : ""})`);
+}
 // 0.145.0: the few-seconds appearances (0 minutes, not a DNP) of games read before the store kept them (row.z, 0.142.7) come
 // from the file read by hand then (src/data/zero-minute-games-*.json), so every page counts them as games played. Until now
 // only the games-played streaks read that file: AJ Green had 17 games on the award page and 16 everywhere else.
 {
   const zf = latestData(/^zero-minute-games-\d{4}-\d\d\.json$/), byId = new Map(rows.map((g) => [String(g.id), g]));
   let added = 0;
-  for (const [gid, , , pid] of zf?.rows || []) { const g = byId.get(String(gid)); if (g?.pl?.[pid] && !(g.pl[pid][2] > 0) && !(g.z || []).includes(String(pid))) { (g.z ??= []).push(String(pid)); added++; } }
+  // 0.181.0: only for a game not yet read under the proof rule (row.zp, src/situations/results.js); a game read under it has its own answer.
+  for (const [gid, , , pid] of zf?.rows || []) { const g = byId.get(String(gid)); if (g?.pl?.[pid] && !g.zp && !(g.pl[pid][2] > 0) && !(g.z || []).includes(String(pid))) { (g.z ??= []).push(String(pid)); added++; } }
   const total = rows.reduce((n, g) => n + (g.z?.length || 0), 0);
   console.log(`few-seconds appearances: ${total} this season (${added} from ${zf ? "the hand-read file" : "no file"})`);
 }
+// 0.181.0: a game counts for a player only if he played in it (src/situations/played.js). Every game of the season, on every
+// build, against the league's injury report for that night and NBA.com's check-in times: a 0-minute game either one rules
+// out is not a game, on any page. Said in the build log and on the status line.
+let notPlayed = [];
+try {
+  const { auditPlayed } = await import("../src/situations/played.js"), { listedIds } = await import("../src/injuries/history.js");
+  const nba = {}, nbaDir = path.join(root, "history", "nbacom", SEASON);
+  if (fs.existsSync(nbaDir)) for (const f of fs.readdirSync(nbaDir).filter((x) => /^g-\d+\.json$/.test(x))) { try { const j = JSON.parse(fs.readFileSync(path.join(nbaDir, f), "utf8")); if (j.d && j.away && j.home) nba[`${j.d}|${j.away}|${j.home}`] = j; } catch {} }
+  const teamIdsAll = {};
+  for (const g of rows) for (const [id, v] of Object.entries(g.pl || {})) (teamIdsAll[v[0] === 0 ? g.h : g.a] ??= new Set()).add(id);
+  const outByDate = {};
+  for (const [d, rep] of Object.entries(injByDate)) { const L = listedIds(rep, store.names || {}, teamIdsAll); outByDate[d] = Object.fromEntries(Object.entries(L).map(([tri, xs]) => [tri, new Set(xs.filter((x) => x.status === "Out").map((x) => x.id))])); }
+  const a = auditPlayed({ rows, names: store.names || {}, nba, outByDate });
+  notPlayed = a.dropped;
+  console.log(`played check: ${a.checked.games} games (${a.checked.inj} with that night's injury report, ${a.checked.nba} with NBA.com's check-in times), ${a.checked.zero} 0-minute games looked at; ${a.dropped.length} taken out${a.dropped.length ? `: ${a.dropped.map((x) => `${x.name} ${x.game} (${x.why})`).join("; ")}` : ""}`);
+  for (const x of a.dropped) warnings.push(`played check: ${x.name} is not counted for ${x.game}: 0 minutes and ${x.why}`);
+  for (const w of a.warn) { warnings.push(`played check: ${w}`); console.log(`played check: ${w}`); }
+} catch (e) { warnings.push(`played check: ${e.message}`); console.error(`played check failed: ${e.message}`); }
 
 const sit = computeSituations(rows, { through });
 const sb = await espn.scoreboard(today);
@@ -179,38 +231,6 @@ fs.writeFileSync(path.join(root, "docs", "data", "q4-players.json"), JSON.string
 // (computed in the browser). A file is rewritten only when that team has played.
 const teamDir = path.join(root, "docs", "data", "teams");
 fs.mkdirSync(teamDir, { recursive: true });
-// Each game date's final injury report (history/injuries/<date>.json), fetched once: who was on each team's
-// report that night. ESPN's box scores leave inactive players out, so this is how we know a player who
-// hadn't debuted yet (or sat injured) was on the team for those games.
-const injDir = path.join(root, "history", "injuries");
-fs.mkdirSync(injDir, { recursive: true });
-const injByDate = {};
-{
-  const { finalReportFor } = await import("../src/injuries/history.js");
-  let pdfjs = null;
-  const fetchPdf = async (url) => {
-    const res = await fetch(url, { signal: AbortSignal.timeout(20000) }).catch(() => null);
-    if (!res || !res.ok) return null;
-    pdfjs ??= await import("pdfjs-dist/legacy/build/pdf.mjs");
-    const doc = await pdfjs.getDocument({ data: new Uint8Array(await res.arrayBuffer()), verbosity: 0 }).promise;
-    const pages = [];
-    for (let p = 1; p <= doc.numPages; p++) pages.push((await (await doc.getPage(p)).getTextContent()).items.map((it) => ({ x: it.transform[4], y: it.transform[5], str: it.str })));
-    return pages;
-  };
-  const dates = [...new Set(rows.filter((g) => g.pl).map((g) => g.d))].sort();
-  let fetched = 0, missing = 0;
-  for (const d of dates) {
-    const f = path.join(injDir, `${d}.json`);
-    if (fs.existsSync(f)) { injByDate[d] = JSON.parse(fs.readFileSync(f, "utf8")); continue; }
-    if (fetched >= 40) { missing++; continue; } // the rest on the next run
-    try {
-      const r = await finalReportFor(d, fetchPdf);
-      fetched++;
-      if (r) { fs.writeFileSync(f, JSON.stringify(r)); injByDate[d] = r; } else missing++;
-    } catch (e) { missing++; warnings.push(`injury report ${d}: ${e.message}`); }
-  }
-  console.log(`injury reports by game date: ${Object.keys(injByDate).length} of ${dates.length} dates (${fetched} fetched now${missing ? `, ${missing} still missing` : ""})`);
-}
 const perTeam = {};
 for (const g of rows) {
   if (!g.pl) continue;
@@ -508,7 +528,7 @@ for (const [tri, games] of Object.entries(perTeam)) {
       const F = buildFeatLive({ file, pg: playerGames(rows.filter((g) => !g.cupFinal)), names: NAMES, logs: featLogs,
         tonightTeams: new Set((tonight || []).flatMap((g) => [g.home, g.away])), notesFacts,
         // 0.142.6: consecutive games played, last season's runs carried through this season's games (DNPs included)
-        games: rows, gpBase: latestData(/^games-played-streaks-\d{4}-\d\d\.json$/), gpZero: latestData(/^zero-minute-games-\d{4}-\d\d\.json$/) });
+        games: rows, gpBase: latestData(/^games-played-streaks-\d{4}-\d\d\.json$/), gpZero: (() => { const zf = latestData(/^zero-minute-games-\d{4}-\d\d\.json$/), byId = new Map(rows.map((g) => [String(g.id), g])); return zf ? { ...zf, rows: (zf.rows || []).filter((r) => (byId.get(String(r[0]))?.z || []).includes(String(r[3]))) } : zf; })() });   // 0.181.0: only the hand-read rows the played check kept
       fs.writeFileSync(path.join(root, "docs", "data", "featlive.json"), JSON.stringify({ generatedAt: out.generatedAt, today, ...F }));
       for (const p of F.problems) warnings.push(`feat boards: ${p}`);
       console.log(`feat boards: ${Object.keys(F.boards).length} boards from ${ff} (through ${F.asOf}, plus our games to ${F.through}); ${F.pre.length} lines for tonight; streaks live: ${F.streaks.map((x) => `${x.name} ${x.n} (${x.label})`).join(", ") || "none"}; team: ${F.teamStreaks.map((x) => `${x.team} ${x.n} ${x.label}`).join(", ") || "none"}; games played: ${F.ironman.slice(0, 5).map((x) => `${x.name} ${x.n}`).join(", ")}${F.teamEnded.length ? ` (over since the notes: ${F.teamEnded.map((x) => `${x.team} ${x.label} at ${x.n}, ${x.d}`).join("; ")})` : ""}${F.problems.length ? `; ${F.problems.length} problems` : ""}`);

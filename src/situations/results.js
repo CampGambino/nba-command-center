@@ -25,13 +25,23 @@
  * Stat corrections (the user, 11/13: the league posts them within a day or two): a game's summary is read
  * again once a day for RECHECK_DAYS days after it was played (row.xd = the day it was last read). A failed
  * re-read keeps what we had. Changed games are listed in store.corrected (this run only).
+ * 0.181.0: and on every build of the day after it was played (the first reading, minutes after the final, is the
+ * least settled one).
  */
 export const RECHECK_DAYS = 3;
-/** 0.142.7: row.z = players who got in but logged 0 minutes (ESPN gave them a stat line, not a DNP); none → no z. */
+/**
+ * 0.142.7: row.z = players who got in but logged 0 minutes (ESPN gave them a stat line, not a DNP); none → no z.
+ * 0.181.0: only with proof he was on the floor (src/espn/parse.js readPlayerBox); row.zp = 1 says the row was read under
+ * that rule. A row with a z and no zp was read before it and is read once more (collectResults). Returns the names of
+ * the players ESPN listed with a line of zeros and nothing to show they played, for the build log.
+ */
 export function setZero(row, players) {
   const z = Object.entries(players || {}).filter(([, x]) => x.zero).map(([id]) => id);
   if (z.length) row.z = z; else delete row.z;
+  row.zp = 1;
+  return Object.entries(players || {}).filter(([, x]) => x.unproven).map(([id, x]) => x.name || id);
 }
+const notProven = (row, names, warnings) => { if (names.length) warnings.push(`game ${row.id} (${row.d} ${row.a} @ ${row.h}): ESPN lists ${names.join(", ")} with a line of zeros and no did-not-play mark, and nothing shows him on the floor (no number in his line, no play with his name): not counted as a game played`); };
 export const QUARTER_DAYS = 10;
 // 0.111: the NBA Cup's title game counts in no record or statistic. ESPN files it under the regular season; the reader
 // (src/espn/parse.js isCupFinal) recognises it by ESPN's own label and gives it another season type, so it never gets
@@ -104,9 +114,16 @@ export async function collectResults({ espn, store, through, warnings = [] }) {
   // Fill in box totals and clutch scoring for games that don't have them yet, and re-read recent ones.
   for (const d of Object.keys(out.dates).sort()) {
     for (const row of out.dates[d].games) {
-      const recheck = row.x && row.d < through && Date.parse(through) - Date.parse(row.d) <= RECHECK_DAYS * 864e5 && row.xd !== through;
-      if (row.x && !recheck) continue;
-      const before = recheck ? JSON.stringify([row.hb, row.ab, row.pl]) : null;
+      // 0.181.0: last night's games (row.d === through) are read again on every build of the day, not left as first read
+      // until tomorrow. ESPN's box score minutes after a final is not settled: on 11/27/26 it had Damian Lillard (out
+      // injured) in GSW @ POR with a line of zeros, and a three in MIL @ DET on the wrong player, both put right within
+      // the hour and both on the site as first read.
+      const fresh = !!row.x && row.d === through;
+      const recheck = fresh || (row.x && row.d < through && Date.parse(through) - Date.parse(row.d) <= RECHECK_DAYS * 864e5 && row.xd !== through);
+      // 0.181.0: a row whose few-seconds marks (z) were set before they needed proof is read once more.
+      const zsweep = !!(row.x && row.z && !row.zp);
+      if (row.x && !recheck && !zsweep) continue;
+      const before = recheck || zsweep ? JSON.stringify([row.hb, row.ab, row.pl, [...(row.z || [])].sort()]) : null;
       const r = await espn.detail(row.id);
       if (!r.ok) { warnings.push(r.error); continue; }
       const g = r.data;
@@ -119,7 +136,7 @@ export async function collectResults({ espn, store, through, warnings = [] }) {
       if (!g.scoreOk && !g.tailOk) {
         warnings.push(`game ${row.id}: play-by-play doesn't add up to the final score; box score kept, clutch and 4th-quarter lines not counted yet`);
         row.hb = g.home; row.ab = g.away;
-        if (g.players) { row.pl = {}; for (const [id, x] of Object.entries(g.players)) { row.pl[id] = [x.side === "home" ? 0 : 1, x.starter ? 1 : 0, x.min, ...x.s]; if (x.name) (out.names ??= {})[id] = x.name; } setZero(row, g.players); }
+        if (g.players) { row.pl = {}; for (const [id, x] of Object.entries(g.players)) { row.pl[id] = [x.side === "home" ? 0 : 1, x.starter ? 1 : 0, x.min, ...x.s]; if (x.name) (out.names ??= {})[id] = x.name; } notProven(row, setZero(row, g.players), warnings); }
         if (g.misc) setMisc(row, g.misc);
         continue;
       }
@@ -153,11 +170,11 @@ export async function collectResults({ espn, store, through, warnings = [] }) {
           row.pl[id] = [x.side === "home" ? 0 : 1, x.starter ? 1 : 0, x.min, ...x.s];
           if (x.name) (out.names ??= {})[id] = x.name;
         }
-        setZero(row, g.players);
+        notProven(row, setZero(row, g.players), warnings);
       }
       if (g.misc) setMisc(row, g.misc);
       row.x = 1;
-      if (recheck) { row.xd = through; if (JSON.stringify([row.hb, row.ab, row.pl]) !== before) out.corrected.push(row.id); }
+      if (recheck || zsweep) { if (recheck) row.xd = through; if (JSON.stringify([row.hb, row.ab, row.pl, [...(row.z || [])].sort()]) !== before) out.corrected.push(row.id); }
       else row.xd = through;
     }
   }

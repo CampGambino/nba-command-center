@@ -398,7 +398,21 @@ export function readGameDetail(json) {
  * Every player listed in the box score: { id: { side, name, starter, min, dnp, s } }
  * s = [pts, fgm, fga, fg3m, fg3a, ftm, fta, reb, ast, tov, stl, blk, oreb, dreb, pf, pm]
  * (PLAYER_BOX_KEYS). A player listed but not used (DNP) has min 0 and dnp true.
+ *
+ * 0.181.0, a game counts only if he played in it. ESPN's box score right after a final can list a player who sat out
+ * with a line of zeros and no did-not-play mark (Damian Lillard, GSW @ POR 11/27/26: out with a calf injury, read at
+ * 12:49 AM as "in the game, 0 minutes", and shown as his first scoreless game in 598; ESPN marked him DNP later).
+ * Two more had been counted the same way since October (Pacome Dadiet 10/23, Nique Clifford 11/25: minutes "--").
+ * So a line with 0 minutes is a game played (zero) only with proof he was on the floor from the same summary: a
+ * number in his line, or his name in a play (a substitution in or out, a shot, a foul). Without it he did not play
+ * (dnp, with unproven set so the build can say so). Every real few-seconds game this season has that proof.
  */
+/** The ids of every player named in a play: a substitution (in or out), a shot, a rebound, a foul. */
+export function playersInPlays(json) {
+  const out = new Set();
+  for (const p of json?.plays || []) for (const x of p?.participants || []) { const id = String(x?.athlete?.id ?? ""); if (id) out.add(id); }
+  return out;
+}
 export const PLAYER_BOX_KEYS = ["pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
 const PLAYER_STAT = {
   points: ["pts"], "fieldGoalsMade-fieldGoalsAttempted": ["fgm", "fga"], "threePointFieldGoalsMade-threePointFieldGoalsAttempted": ["fg3m", "fg3a"],
@@ -406,7 +420,7 @@ const PLAYER_STAT = {
   offensiveRebounds: ["oreb"], defensiveRebounds: ["dreb"], fouls: ["pf"], plusMinus: ["pm"],
 };
 export function readPlayerBox(json, homeId) {
-  const out = {};
+  const out = {}, inPlays = playersInPlays(json);
   for (const side of json?.boxscore?.players || []) {
     const home = String(side?.team?.id ?? "") === String(homeId);
     for (const st of side?.statistics || []) {
@@ -426,11 +440,14 @@ export function readPlayerBox(json, homeId) {
           });
           if (k === "plusMinus") v.pm = Number(String(raw).replace(/^\+/, ""));
         });
-        const dnp = a.didNotPlay === true || !(a.stats || []).length;
+        const listed = !(a.didNotPlay === true || !(a.stats || []).length);          // ESPN gives him a line
+        const proof = min > 0 ? "minutes" : PLAYER_BOX_KEYS.some((k) => Number.isFinite(v[k]) && v[k] !== 0) ? "line" : inPlays.has(id) ? "plays" : null;
+        const dnp = !listed || !proof;
         out[id] = {
           side: home ? "home" : "away", name: a?.athlete?.displayName || null, starter: a.starter === true,
           min: dnp ? 0 : min, dnp, zero: !dnp && !(min > 0), s: PLAYER_BOX_KEYS.map((k) => (dnp ? 0 : Number.isFinite(v[k]) ? v[k] : 0)),
         };
+        if (listed && !proof) out[id].unproven = true;                                // a line of zeros, nothing shows him on the floor
       }
     }
   }

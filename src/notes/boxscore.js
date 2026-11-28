@@ -10,6 +10,7 @@
  * "6,000 career points") are not claims about one game and are skipped.
  */
 import { TEAMS } from "../teams.js";
+import { playedIn } from "../situations/played.js";
 
 const WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20 };
 const NUM = `(\\d{1,2}|${Object.keys(WORDS).join("|")})`;
@@ -97,6 +98,7 @@ export function matchGames(box, claims, { ids = null, dates = null, opps = null 
     if (opps && opps.length && !opps.includes(g.opp)) continue;
     for (const [id, row] of Object.entries(g.pl || {})) {
       if (ids && !ids.includes(id)) continue;
+      if (!playedIn(g, id, idx.min)) continue;                            // 0.181.0: a player who sat out has a line of zeros, and it is not a game
       if (claims.every((c) => row[idx[c.stat]] === c.n)) out.push({ id, d: g.d, opp: g.opp });
     }
   }

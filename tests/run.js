@@ -827,7 +827,7 @@ if (HAVE_SAMPLES) { // needs the notes PDFs (samples/): skipped where they are n
     let st = await collectResults({ espn: det, store: null, through: "2026-10-20" });
     const r0 = st.dates["2026-10-20"].games[0];
     const once = reads; st = await collectResults({ espn: det, store: st, through: "2026-10-20" });
-    const same = reads === once;
+    const same = reads === once + 1 && !st.corrected.length;   // 0.181.0: last night's game is read again on every build of the day (nothing changed: nothing noted)
     pts = 22; st = await collectResults({ espn: det, store: st, through: "2026-10-21" });
     const fixed = st.corrected.join() === "2026-10-20" && r0.pl[7][3] === 22;
     const again = reads; st = await collectResults({ espn: det, store: st, through: "2026-10-21" });
@@ -836,7 +836,7 @@ if (HAVE_SAMPLES) { // needs the notes PDFs (samples/): skipped where they are n
     const kept = r0.pl[7][3] === 22 && !st.corrected.length;
     fail = false; const r4 = reads; await collectResults({ espn: det, store: st, through: "2026-10-24" });
     ok(r0.x && same && fixed && oncePerDay && kept && reads === r4,
-      "results (0.60): stat corrections: a recent game is re-read once a day (changes noted, a failed read keeps the old line), not past 3 days", JSON.stringify({ same, fixed, oncePerDay, kept, reads, r4 }));
+      "results (0.60, 0.181.0): stat corrections: last night's game is re-read on every build, then a recent game once a day (changes noted, a failed read keeps the old line), not past 3 days", JSON.stringify({ same, fixed, oncePerDay, kept, reads, r4 }));
   }
   // 0.132.0: plays that don't add up hold back clutch only; the box score that matches the final is kept (NYK@MIN 11/19).
   {
@@ -1280,7 +1280,7 @@ function wl(r) { return r ? `${r.w}-${r.l}` : "0-0"; }
   const { injuryStatus } = await import("../src/anticipate/tonight.js");
   const L = (text) => ({ text, cells: [{ x0: 40, x1: 560, cx: 300, text }], charX: [] });
   const keys = ["starter", "min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"];
-  const row = (o) => keys.map((k) => o[k] ?? 0);
+  const row = (o) => keys.map((k) => o[k] ?? (k === "min" ? 30 : 0));   // 0.181.0: a line is matched only for a player who played, so these have minutes
   const box = { keys, names: { 10: "Day'Ron Sharpe", 11: "Michael Porter Jr.", 12: "Giannis Antetokounmpo", 13: "Bam Adebayo", 14: "Caleb Wilson" }, games: [
     { d: "2026-11-07", opp: "ATL", pl: { 10: row({ pts: 12, ast: 13, reb: 11 }), 11: row({ pts: 25, ast: 3, reb: 8 }) } },
     { d: "2026-10-26", opp: "DAL", pl: { 12: row({ pts: 29, reb: 14, ast: 11 }), 13: row({ pts: 18, reb: 9, ast: 4 }), 14: row({ pts: 24, stl: 4, fg3m: 4 }) } },
@@ -4385,7 +4385,7 @@ await bridgeChecks(ok, root);
     const { readHistory, splitBullets } = await import("../src/notes/narrative.js");
     const { statClaims: SC } = await import("../src/notes/boxscore.js");
     const Ln = (text) => ({ text, cells: [{ x0: 40, x1: 560, cx: 300, text }], charX: [] });
-    const keysN = ["min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"], rowN = (o) => keysN.map((k) => o[k] || 0);
+    const keysN = ["min", "pts", "fgm", "fga", "fg3m", "fg3a", "ftm", "fta", "reb", "ast", "tov", "stl", "blk", "oreb", "dreb", "pf", "pm"], rowN = (o) => keysN.map((k) => o[k] || (k === "min" ? 30 : 0));   // 0.181.0: they played
     const playersN = [{ id: "1", name: "Cade Cunningham" }, { id: "2", name: "Duncan Robinson" }, { id: "3", name: "Jalen Duren" }];
     const boxN = { keys: keysN, names: { 1: "Cade Cunningham", 2: "Duncan Robinson" }, games: [{ d: "2026-11-15", opp: "PHI", pl: { 1: rowN({ pts: 30, ftm: 14, fta: 14 }), 2: rowN({ pts: 8, fg3m: 2 }) } }, { d: "2026-11-13", opp: "CHI", pl: { 1: rowN({ pts: 22, ftm: 5, fta: 7 }) } }] };
     const docN = { pages: [{ page: 1, width: 612, lines: [Ln("• Cade Cunningham made all 14 of his free throws, the most he has made without a miss in his career Duncan Robinson knocked down two three-point field goals and his 47 treys are tied for the fourth most in the league this season.")] }] };
@@ -5175,16 +5175,17 @@ await bridgeChecks(ok, root);
   const { setZero } = await import("../src/situations/results.js"), { readPlayerBox } = await import("../src/espn/parse.js");
   const pb = readPlayerBox({ boxscore: { players: [{ team: { id: "1" }, statistics: [{ keys: ["minutes", "points", "plusMinus"], athletes: [
     { athlete: { id: "z1", displayName: "Zero" }, starter: false, stats: ["0", "0", "0"] }, { athlete: { id: "d1", displayName: "Dnp" }, didNotPlay: true, stats: [] },
-    { athlete: { id: "p1", displayName: "Played" }, stats: ["12", "4", "+2"] }] }] }] } }, "1");
+    { athlete: { id: "p1", displayName: "Played" }, stats: ["12", "4", "+2"] }] }] }] },
+    plays: [{ text: "Zero enters the game for Played", participants: [{ athlete: { id: "z1" } }, { athlete: { id: "p1" } }] }] }, "1");   // 0.181.0: the play is the proof he was on the floor
   const row = {}; setZero(row, pb);
   const late = [{ id: "g3", d: "2026-10-25", h: "NYK", a: "ORL", hs: 100, as: 90, pl: { "3147657": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] } }];
   const noZ = gamesPlayedRuns([...games, ...late], base, "2026-27"), withZ = gamesPlayedRuns([...games, { ...late[0], z: ["3147657"] }], base, "2026-27"),
     fromFile = gamesPlayedRuns([...games, ...late], base, "2026-27", { rows: [["g3", "2026-10-25", "NYK", "3147657", "Mikal Bridges"]] });
   ok(pb.z1.zero && !pb.d1.zero && !pb.p1.zero && JSON.stringify(row.z) === '["z1"]' && appeared(0, 0, [0, 0, -1]) && appeared(0, 0, [], true)
     && !noZ.some((r) => r.id === "3147657") && withZ[0].n === 641 && fromFile[0].n === 641,
-    "games played (0.142.7): a 0-minute line that isn't a DNP is kept in the store (z) and counts, from the store or the backfill file; a minus plus-minus is a stat");
+    "games played (0.142.7, 0.181.0): a 0-minute line that isn't a DNP, with a play that shows him on the floor, is kept in the store (z) and counts, from the store or the backfill file; a minus plus-minus is a stat");
   const zf = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "zero-minute-games-2026-27.json"), "utf8"));
-  ok(zf.rows.length === 17 && zf.rows.some((r) => r[4] === "Josh Minott" && r[1] === "2026-11-02"), "games played (0.142.7): this season's 0-minute games through 11/22, read from ESPN's summaries");
+  ok(zf.rows.length === 16 && zf.rows.some((r) => r[4] === "Josh Minott" && r[1] === "2026-11-02"), "games played (0.142.7): this season's 0-minute games through 11/22, read from ESPN's summaries (16 since 0.181.0: Pacome Dadiet's 10/23 was never a game)");
   // 0.145.0 (the consistency audit, 11/24: AJ Green 17 games on the award page, 16 everywhere else): the few-seconds game counts
   // on every page: the per-player games (streaks, form, finds), the team files' readers (with/without, national TV, rest).
   {
@@ -6745,6 +6746,78 @@ await bridgeChecks(ok, root);
     && /ownBars\(\{ games \}\)/.test(fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8")),
     "odd lines reach NBA Live whole (bridge v42): the build writes the user's bars (`own`) and every 4+-in-all-five line (`x5`: the history keeps all of them, as many as its count) into oddlive.json and the bridge hands both to the rule; the numbers under an odd line add STL, BLK and 3PM when the line names them",
     JSON.stringify({ x5: hist.x5?.length, n: hist.t["x5.4"].n }));
+}
+
+// 0.181.0: a game counts for a player only if he played in it (the user, 11/28/26, on Damian Lillard "held scoreless … in 0
+// minutes" for a game he sat out: "it's imperative to count players only for games they have played").
+{
+  const { readPlayerBox, playersInPlays } = await import("../src/espn/parse.js"), { setZero, collectResults: CR } = await import("../src/situations/results.js");
+  const { auditPlayed, playedIn } = await import("../src/situations/played.js"), { zeroCareers: ZC2, zeroLines: ZL2 } = await import("../src/anticipate/zeros.js");
+  const keys = ["minutes", "points", "fieldGoalsMade-fieldGoalsAttempted", "plusMinus"];
+  const A = (id, name, stats, o = {}) => ({ athlete: { id, displayName: name }, starter: false, stats, ...o });
+  // The box score as ESPN had it minutes after GSW @ POR, 11/27/26: Lillard (out, left calf) with a line of zeros and no DNP mark.
+  const early = { boxscore: { players: [{ team: { id: "22" }, statistics: [{ keys, athletes: [
+    A("6606", "Damian Lillard", ["0", "0", "0-0", "0"], { didNotPlay: false }), A("4593043", "John Tonje", ["1", "0", "0-0", "-2"]),
+    A("m1", "Dashes", ["--", "0", "0-0", "0"]), A("c1", "Came In", ["0", "0", "0-0", "0"]), A("l1", "Took A Shot", ["0", "0", "0-1", "0"]), A("pm", "On For A Basket", ["0", "0", "0-0", "+2"]),
+    A("d1", "Marked Dnp", [], { didNotPlay: true })] }] }] },
+    plays: [{ type: { text: "Substitution" }, text: "Came In enters the game for John Tonje", participants: [{ athlete: { id: "c1" } }, { athlete: { id: "4593043" } }] }] };
+  const pb = readPlayerBox(early, "22"), row = { id: "401909336", d: "2026-11-27", h: "POR", a: "GSW" }, said = setZero(row, pb);
+  ok(pb["6606"].dnp && !pb["6606"].zero && pb["6606"].unproven && pb.m1.dnp && pb.m1.unproven && pb.c1.zero && pb.l1.zero && pb.pm.zero && !pb.c1.unproven
+    && pb.d1.dnp && !pb.d1.unproven && !pb["4593043"].zero && pb["4593043"].min === 1 && playersInPlays(early).has("c1")
+    && JSON.stringify(row.z) === '["c1","l1","pm"]' && row.zp === 1 && said.join() === "Damian Lillard,Dashes",
+    "0.181.0: a line of zeros with no did-not-play mark is not a game (Lillard 11/27, minutes \"--\" too); a 0-minute game needs a number in the line or a play with his name; the build is told who was left out",
+    JSON.stringify({ pb, z: row.z, said }));
+
+  // The whole way through: that box score gives him no game on 11/27, so no "first scoreless game" line.
+  const storeRow = (players, z) => ({ id: "g", d: "2026-11-27", h: "POR", a: "GSW", hs: 116, as: 104, pl: Object.fromEntries(Object.entries(players).map(([id, x]) => [id, [0, 0, x.min, ...x.s]])), ...(z?.length ? { z } : {}) });
+  const full = readPlayerBox({ boxscore: { players: [{ team: { id: "22" }, statistics: [{ keys: ["minutes", "points", "fieldGoalsMade-fieldGoalsAttempted", "rebounds", "assists"], athletes: [A("6606", "Damian Lillard", ["0", "0", "0-0", "0", "0"])] }] }] }, plays: [] }, "22");
+  const r1 = {}; setZero(r1, full);
+  const careers = { 6606: { name: "Damian Lillard", full: false, games: 900, logGames: 597, stats: { pts: { zeros: 0 } } } };
+  const pgOut = playerGames([storeRow(full, r1.z)]), pgIn = playerGames([storeRow(full, ["6606"])]);
+  const none = ZL2({ pg: pgOut, careersBefore: careers, since: "2026-11-27" }), cameo = ZL2({ pg: pgIn, careersBefore: careers, since: "2026-11-27" });
+  ok(!pgOut["6606"] && none.length === 0 && cameo.length === 1 && / in under a minute vs GSW$/.test(cameo[0].text) && !/ 0 minutes/.test(cameo[0].text),
+    "0.181.0: the box score that listed Lillard with zeros gives him no game that night and no line; a real few-seconds game is worded 'in under a minute', never '0 minutes'", JSON.stringify({ none, cameo, pg: pgOut }));
+
+  // The second and third locks: the injury report and NBA.com's check-in times, over the store's rows.
+  const names = { a: "Listed Out", b: "No Stint", c: "Real Cameo", d: "Minutes But Out", e: "Nikola Jokic", f: "Spelled Differently", u: "Sat" };
+  const zero = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], g1 = { id: "1", d: "2026-11-27", h: "POR", a: "GSW", z: ["a", "b", "c"], pl: { a: [0, ...zero], b: [0, ...zero], c: [0, ...zero], d: [0, 1, 30, 20], e: [1, 1, 34, 25], u: [1, ...zero] } };
+  const g2 = { id: "2", d: "2026-11-27", h: "DEN", a: "UTA", z: ["f"], pl: { f: [0, ...zero], e: [0, 1, 30, 20] } };
+  const nba = { "2026-11-27|GSW|POR": { rot: { POR: [["1", "Real Cameo", 28700, 28800], ["2", "Minutes But Out", 0, 18000]], GSW: [["3", "Nikola Jokić", 0, 20000], ["4", "Sat", 100, 400]] } },
+    "2026-11-27|UTA|DEN": { rot: { DEN: [["3", "Nikola Jokić", 0, 18000], ["9", "S. Differently", 28700, 28800]] } } };
+  const au = auditPlayed({ rows: [g1, g2], names, nba, outByDate: { "2026-11-27": { POR: new Set(["a", "d"]) } } });
+  ok(JSON.stringify(g1.z) === '["c"]' && au.dropped.length === 2 && /injury report/.test(au.dropped[0].why) && au.dropped[1].name === "No Stint" && /NBA\.com/.test(au.dropped[1].why)
+    && JSON.stringify(g2.z) === '["f"]' && au.warn.length === 3 && au.warn.some((w) => /Minutes But Out 30 minutes.*kept/.test(w)) && au.warn.some((w) => /Spelled Differently.*kept, not confirmed/.test(w)) && au.warn.some((w) => /NBA\.com has Sat on the floor for 30 seconds/.test(w))
+    && playedIn(g1, "c") && !playedIn(g1, "a") && playedIn(g1, "d") && !playedIn(g1, "u") && playedIn({ pl: { x: [1, 12] } }, "x", 1),
+    "0.181.0: a 0-minute game is taken out when the injury report had him Out or NBA.com has no check-in; one with a stint stays; minutes in the box score are kept and said; a name NBA.com spells another way is never dropped for it; accents don't matter",
+    JSON.stringify({ z1: g1.z, z2: g2.z, au }));
+
+  // The readers that had their own test: the notes' box-score matcher and the career lines.
+  const { matchGames } = await import("../src/notes/boxscore.js"), { seasonLines: SL2 } = await import("../src/records/guide.js");
+  const tf = { keys: ["starter", "min", "pts", "reb"], names: { p: "Sat Out", q: "Few Seconds", r: "Played" }, games: [{ d: "2026-11-27", opp: "GSW", pf: 116, pa: 104, z: ["q"], pl: { p: [0, 0, 0, 0], q: [0, 0, 0, 0], r: [1, 30, 0, 4] } }] };
+  const mg = matchGames(tf, [{ stat: "pts", n: 0 }]).map((x) => x.id).sort().join(), sl = SL2({ POR: tf });
+  ok(mg === "q,r" && sl.p.lines.length === 0 && sl.q.lines.length === 1 && sl.q.lines[0].stats.gp === 1 && sl.r.lines.length === 1,
+    "0.181.0: a player who sat out matches no notes claim and has no career game; a few-seconds game (z) is one in both, as on every other page", JSON.stringify({ mg, p: sl.p.lines, q: sl.q.lines }));
+
+  // A row marked before the rule (z, no zp) is read once more, whatever its age; then it carries zp and is left alone.
+  {
+    const dayZ = (d) => ({ ok: true, warnings: [], data: { season: 2027, calendar: ["2026-10-20"], games: [{ id: d, date: d, seasonType: 2, final: true, homeTri: "BOS", awayTri: "NYK", homeScore: 100, awayScore: 99, homeQ: [25, 25, 25, 25], awayQ: [25, 25, 25, 24], periods: 4 }] } });
+    let reads = 0;
+    const det = { scoreboard: async (d) => dayZ(d), detail: async () => { reads++; return { ok: true, data: { final: true, plays: [1], scoreOk: true, home: [40, 80, 10, 30, 10, 12, 0], away: [40, 80, 9, 30, 10, 12, 0],
+      players: { 7: { side: "home", starter: true, min: 30, s: [20], name: "P7" }, 8: { side: "home", starter: false, min: 0, dnp: true, zero: false, unproven: true, s: [0], name: "Sat Out" } } } }; } };
+    const old = { season: 2027, qsweep: 1, dates: { "2026-10-20": { complete: true, games: [{ id: "2026-10-20", d: "2026-10-20", h: "BOS", a: "NYK", hs: 100, as: 99, hq: [25, 25, 25, 25], aq: [25, 25, 25, 24], ot: 0, x: 1, xd: "2026-10-21", hb: [40, 80, 10, 30, 10, 12, 0], ab: [40, 80, 9, 30, 10, 12, 0], pl: { 7: [0, 1, 30, 20], 8: [0, 0, 0, 0] }, z: ["8"] }] } } };
+    const w = [], st = await CR({ espn: det, store: old, through: "2026-11-27", warnings: w }), r = st.dates["2026-10-20"].games[0], first = reads, noted = st.corrected.join();
+    await CR({ espn: det, store: st, through: "2026-11-27", warnings: [] });
+    ok(first === 1 && reads === 1 && !r.z && r.zp === 1 && noted === "2026-10-20" && r.xd === "2026-10-21" && w.some((x) => /Sat Out with a line of zeros.*not counted as a game played/.test(x)),
+      "0.181.0: a game whose few-seconds marks were set before they needed proof is read once more, five weeks later too; the unproven mark goes, the build log says who, and it is not read again",
+      JSON.stringify({ first, reads, r, w, noted }));
+  }
+
+  // The hand-read file and the build's wiring.
+  const zf2 = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "zero-minute-games-2026-27.json"), "utf8")), sitSrc = fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8");
+  const at = (s) => sitSrc.indexOf(s);
+  ok(!zf2.rows.some((r) => r[4] === "Pacome Dadiet") && zf2.rows.length === 16 && at("finalReportFor(d, fetchPdf)") > 0 && at("finalReportFor(d, fetchPdf)") < at("auditPlayed({ rows") && at("auditPlayed({ rows") < at("const sit = computeSituations(rows")
+    && at("auditPlayed({ rows") < at("saveStore(storeDir, store, fs)") && /!g\.zp && !\(g\.pl\[pid\]\[2\] > 0\)/.test(sitSrc),
+    "0.181.0: Pacome Dadiet (10/23, never on the floor) is out of the hand-read file; the build reads the injury reports, then runs the played check, before anything is counted or saved; a game read under the proof rule is not re-marked from the hand file");
 }
 
 const snapDir = path.join(root, "tests", "expected");

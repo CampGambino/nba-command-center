@@ -25,6 +25,7 @@ import { roundStep, CADENCE_STATS } from "../anticipate/cadence.js";
 import { nameKey } from "../notes/names.js";
 import { TEAMS } from "../teams.js";
 import { isMinorPass, isSiteOnlyPass, tierEntered } from "./notable.js";
+import { playedIn } from "../situations/played.js";
 
 /** Name match that keeps suffixes: the guide's Gary Payton is not this season's Gary Payton II. */
 export const strictKey = (n) => {
@@ -56,7 +57,10 @@ export function seasonLines(teamFiles) {
     for (const g of f.games || []) {
       for (const [id, row] of Object.entries(g.pl || {})) {
         const v = (k) => row[ix[k]] || 0;
-        const played = v("min") > 0 || ["pts", "reb", "ast", "stl", "blk", "fga", "fta", "tov", "pf"].some((k) => v(k) > 0);
+        // 0.181.0: the one test every page uses (src/situations/played.js): minutes, or the few-seconds mark (z). Until now
+        // this read "minutes or any number", so a few-seconds game with an empty line (AJ Green, 11/23) was a game on the
+        // award page and not in his career games here.
+        const played = playedIn(g, id, ix.min);
         const p = (out[id] ??= { id, name: (f.names || {})[id] || id, team: tri, last: "", lines: [], teamGames: {} });
         (p.teamGames[tri] ??= []).push({ d: g.d, played, out: !played && g.inj?.[id] === "Out" });
         if (!played) continue;
