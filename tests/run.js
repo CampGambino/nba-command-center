@@ -6714,26 +6714,37 @@ await bridgeChecks(ok, root);
     "");
 }
 
-// ---------- 0.179.0 (bridge v41): an out-of-role odd line a player makes a habit of starts at his own bar ----------
+// ---------- 0.179.0, 0.180.0 (bridge v41, v42): a player's own bar; an odd line counted as his line ----------
 {
   const O = await import("../src/situations/oddlines.js");
-  const g = (d, ast, reb = 5) => ({ d, ast, reb, blk: 0, fg3m: 0 });
-  // a center with 12+ assists in 9 of his last 20 games, 15+ in 7, 16+ in 5 (and an 18 in 2019); another with two such games; a guard who passes
-  const habit = [...Array(11).fill(0).map((_, i) => g(`2024-01-${String(i + 1).padStart(2, "0")}`, 6)), g("2024-02-01", 12), g("2024-02-02", 13), g("2024-02-03", 15), g("2024-02-04", 15), g("2024-02-05", 16), g("2024-02-06", 16), g("2024-02-07", 17), g("2024-02-08", 17), g("2024-02-09", 19)];
-  const own = O.ownBars({ games: { c1: [g("2019-03-01", 18), ...habit], c2: [g("2024-01-05", 12), g("2024-01-09", 14), g("2024-03-01", 4)], g1: habit }, pos: { c1: "C", c2: "C", g1: "PG" }, since: "2023-10-01" });
-  const line = (ast) => ({ min: 34, pts: 17, fgm: 6, fga: 12, fg3m: 1, fg3a: 3, ftm: 4, fta: 4, oreb: 2, dreb: 7, reb: 9, ast, stl: 1, blk: 0, tov: 3, pf: 2, starter: 1 });
-  const table = { "cast.12": [158, 19.6, "A", "2026-11-22", []], "cast.15": [38, 6.2, "B", "2026-03-25", []] };
-  const hit = (ast, bar) => O.liveHits(line(ast), { pos: "C", avg: null }, table, "1993-94", bar).find((h) => h.id === "cast");
-  const at15 = hit(15, own.c1), at16 = hit(16, own.c1), at17 = hit(17, own.c1), other = hit(15, null);
-  ok(JSON.stringify(own) === JSON.stringify({ c1: { cast: [16, 6, 19] } })
-    && !at15 && at16?.say === "16 assists by a center" && at17?.say === "17 assists by a center" && O.shortNote(at17, "1993-94") === "his 7th game of 16+ (career high 19)"
-    && other?.say === "15 assists by a center" && O.shortNote(other, "1993-94") === "the 39th since 1993-94" && O.OWN_BAR.times === 6 && O.OWN_BAR.seasons === 3,
-    "odd lines, a player's own bar (0.179.0; the user, 11/28, of \"Nikola Jokic (DEN) — 15 assists by a center · The 39th since 1993-94\": \"jokic is the outlier for center assist odd line. i think the alerts start around 12 for a center. recalibrate where to start the alert for jokic\"): a center who has had 12+ assists more than 6 times in the last three seasons starts at the lowest number he has reached 6 times or fewer in that span, and the card then counts his own games at it; a center with two such games, and a guard with the same nights, start where the line does; any other center's 15 is still the 39th since 1993-94",
-    JSON.stringify({ own, at15: !!at15, at16: !!at16, at17: at17 && O.shortNote(at17), other: other && O.shortNote(other) }));
-  const br = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8");
-  ok(/R\.liveHits\(l, x, O\.t, O\.from, \(O\.own \|\| \{\}\)\[String\(p\.id\)\] \|\| null\)/.test(br) && /ownBars\(\{ games, pos: rosterPos, since:/.test(fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8")),
-    "odd lines, a player's own bar reaches NBA Live (bridge v41): the build writes each habit's bar into oddlive.json (`own`) and the bridge hands the player's to the rule",
-    "");
+  const g = (d, ast) => ({ d, ast, reb: 5, blk: 0, fg3m: 0 });
+  const JOKIC = "3112335";
+  const own = O.ownBars({ games: { [JOKIC]: [g("2019-03-01", 18), g("2024-02-01", 12), g("2024-02-03", 15), g("2024-02-05", 16), g("2024-02-07", 17), g("2025-03-07", 22)], c2: [g("2024-01-05", 12), g("2024-01-09", 14)] } });
+  const line = (o) => ({ min: 34, pts: 17, fgm: 6, fga: 12, fg3m: 1, fg3a: 3, ftm: 4, fta: 4, oreb: 2, dreb: 7, reb: 9, ast: 15, stl: 1, blk: 0, tov: 3, pf: 2, starter: 1, ...o });
+  const table = { "cast.12": [158, 19.6, "A", "2026-11-22", []], "cast.15": [38, 6.2, "B", "2026-03-25", []], "x5.4": [119, 1.6, "V", "2025-02-08", []], "x5.5": [14, 0.4, "V", "2024-10-31", []] };
+  const hit = (ast, bar) => O.liveHits(line({ ast }), { pos: "C", avg: null }, table, "1993-94", bar).find((h) => h.id === "cast");
+  const at15 = hit(15, own[JOKIC]), at16 = hit(16, own[JOKIC]), other = hit(15, null);
+  ok(JSON.stringify(own) === JSON.stringify({ [JOKIC]: { cast: [16, 4, 22] } }) && JSON.stringify(O.OWN_BAR.set) === JSON.stringify({ [JOKIC]: { cast: 16 } })
+    && !at15 && at16?.say === "16 assists by a center" && O.shortNote(at16, "1993-94") === "his 5th game of 16+ (career high 22)"
+    && other?.say === "15 assists by a center" && O.shortNote(other, "1993-94") === "the 39th since 1993-94",
+    "odd lines, a player's own bar (0.179.0, 0.180.0; the user, 11/28, of \"Nikola Jokic (DEN) — 15 assists by a center · The 39th since 1993-94\": \"jokic is the outlier for center assist odd line … recalibrate where to start the alert for jokic\"; then, of the rule I made from it: \"i think scale back a little bit on the changes. start Jokic alert at 16. keep hart, giddey and doncic at 15\"): the bars are the user's, by name, and only those. Jokić's assists as a center card from 16 with his own count; no other player has a bar, whatever his habits; any other center's 15 is still the 39th since 1993-94",
+    JSON.stringify({ own, at15: !!at15, at16: at16 && O.shortNote(at16), other: other && O.shortNote(other) }));
+  // 4+ in all five columns: the count is of HIS five numbers, from the list of every such line
+  const list = [[34, 10, 9, 4, 4, "David Robinson", "1994-02-15"], [50, 15, 5, 5, 4, "Anthony Davis", "2016-10-26"], [27, 10, 8, 5, 5, "Victor Wembanyama", "2024-02-23"], [25, 9, 7, 5, 5, "Victor Wembanyama", "2024-10-31"], [18, 9, 4, 4, 4, "Victor Wembanyama", "2025-02-08"]];
+  const x5 = (o, l5) => O.liveHits(line({ pts: 34, reb: 7, ast: 8, stl: 5, blk: 4, ...o }), { pos: "F", avg: null }, table, "1993-94", null, l5).find((h) => h.id === "x5");
+  const flagg = x5({}, list), low = x5({ pts: 20, reb: 7, ast: 7, stl: 4, blk: 4 }, list), noList = x5({}, null);
+  ok(flagg?.say === "34 points, 7 rebounds, 8 assists, 5 steals and 4 blocks" && O.shortNote(flagg, "1993-94") === "no one else has matched all five since 1993-94" && flagg.before === 0 && flagg.grade === "rare"
+    && flagg.what === "at least 34 points, 7 rebounds, 8 assists, 5 steals and 4 blocks"
+    && O.shortNote(low, "1993-94") === "the 4th game matching all five since 1993-94" && low.recent.map((r) => r[0]).join() === "Victor Wembanyama,Victor Wembanyama,David Robinson"
+    && O.shortNote(noList, "1993-94") === "about 1.6 a season",
+    "odd lines, 4 or more in all five columns (0.180.0; the user, 11/28, of Cooper Flagg's \"34 points, 7 rebounds, 8 assists, 5 steals and 4 blocks · About 1.6 a season\": \"why werent steals and blocks considered when determining odd lines\"): the count on the card is of the games with at least HIS five numbers (no one else, for 34-7-8-5-4), not of every 4-4-4-4-4; the latest such games are the ones on the back; without the list the rule's own rate is said, as before",
+    JSON.stringify({ flagg: flagg && [O.shortNote(flagg), flagg.before], low: low && [O.shortNote(low), low.recent] }));
+  const br = fs.readFileSync(path.join(root, "docs", "bridge", "cc-bridge.js"), "utf8"), hist = JSON.parse(fs.readFileSync(path.join(root, "src", "data", "odd-lines-history.json"), "utf8"));
+  ok(/R\.liveHits\(l, x, O\.t, O\.from, \(O\.own \|\| \{\}\)\[String\(p\.id\)\] \|\| null, O\.x5 \|\| null\)/.test(br) && /fmtAlertStatLine\(oddCols\(l, h\.say\)\)/.test(br) && /cols\.push\(\[l\.stl, "STL"\]\)/.test(br) && /cols\.push\(\[l\.blk, "BLK"\]\)/.test(br) && /cols\.push\(\[l\.fg3m, "3PM"\]\)/.test(br)
+    && Array.isArray(hist.x5) && hist.x5.length === hist.t["x5.4"].n && hist.x5.every((r) => r.slice(0, 5).every((v) => v >= 4))
+    && /ownBars\(\{ games \}\)/.test(fs.readFileSync(path.join(root, "scripts", "situations.js"), "utf8")),
+    "odd lines reach NBA Live whole (bridge v42): the build writes the user's bars (`own`) and every 4+-in-all-five line (`x5`: the history keeps all of them, as many as its count) into oddlive.json and the bridge hands both to the rule; the numbers under an odd line add STL, BLK and 3PM when the line names them",
+    JSON.stringify({ x5: hist.x5?.length, n: hist.t["x5.4"].n }));
 }
 
 const snapDir = path.join(root, "tests", "expected");

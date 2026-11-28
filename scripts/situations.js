@@ -739,16 +739,20 @@ for (const [tri, games] of Object.entries(perTeam)) {
         const { ownBars, OWN_BAR } = await import("../src/situations/oddlines.js"), career = (await pastLogs()).career;
         if (career) {
           const games = {};
-          for (const id of Object.keys(rosterPos)) {
+          for (const id of Object.keys(OWN_BAR.set)) {   // 0.180.0: the user's bars, by name; no rule
             const past = (career.players?.[id] || []).map((r) => ({ d: r[0], reb: r[7], ast: r[8], blk: r[10], fg3m: r[11] }));
             const now = (pgBefore[id] || []).map((g) => ({ d: g.d, reb: g.reb, ast: g.ast, blk: g.blk, fg3m: g.fg3m }));
             if (past.length + now.length) games[id] = [...past, ...now];
           }
-          own = ownBars({ games, pos: rosterPos, since: `${Number(today.slice(0, 4)) - (Number(today.slice(5, 7)) >= 8 ? 0 : 1) - OWN_BAR.seasons}-10-01` });
+          own = ownBars({ games });
           console.log(`odd lines, own bars: ${Object.keys(own).length} players (${Object.entries(own).slice(0, 12).map(([id, o]) => `${NAMES[id] || id} ${Object.entries(o).map(([k, v]) => `${k} ${v[0]}`).join(" ")}`).join("; ")})`);
         }
       } catch (e) { console.error(`odd lines, own bars: ${e.message}`); }
-      if (history) fs.writeFileSync(path.join(root, "docs", "data", "oddlive.json"), JSON.stringify({ v: 1, generatedAt: out.generatedAt, before: today, from: history.from, games: history.games, t, avg, pos: rosterPos, own }));
+      // 0.180.0: every line with 4+ in all five columns, the history's and this season's before today, so the card counts
+      // the games that match tonight's five numbers: [pts, reb, ast, stl, blk, name, date]
+      const x5 = [...(history?.x5 || []).map((r) => r.slice(0, 7))];
+      for (const [id, gs] of Object.entries(pgBefore)) for (const g of gs) if ([g.pts, g.reb, g.ast, g.stl, g.blk].every((v) => v >= 4)) x5.push([g.pts, g.reb, g.ast, g.stl, g.blk, NAMES[id] || id, g.d]);
+      if (history) fs.writeFileSync(path.join(root, "docs", "data", "oddlive.json"), JSON.stringify({ v: 1, generatedAt: out.generatedAt, before: today, from: history.from, games: history.games, t, avg, pos: rosterPos, own, x5: history.x5 ? x5 : undefined }));
       console.log(`odd lines, live file: ${Object.keys(t).length} levels, averages for ${Object.keys(avg).length} players`);
     } catch (e) { console.error(`odd lines, live file: ${e.message}`); }
     // 0.141.17: rare combinations for NBA Live (src/situations/linerare.js; the user, 11/21: "flagging this stuff in real time",

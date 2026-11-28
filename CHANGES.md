@@ -2,6 +2,23 @@
 
 Each entry: what changed, how it was tested, and what is still unproven.
 
+## 0.180.0 (2026-11-28, bridge v42): the own bars are the user's; an odd line with 4+ in all five is counted as his line
+
+The user, 11/28, 12:38 AM: "i think scale back a little bit on the changes. start Jokic alert at 16. keep hart, giddey and doncic at 15." And, with "🧩 ODD LINE: Cooper Flagg (DAL) — 34 points, 7 rebounds, 8 assists, 5 steals and 4 blocks", "34 PTS · 7 REB · 8 AST" under it and "About 1.6 a season": "why werent steals and blocks considered when determining odd lines. or even three-pointers? i know steals and blocks werent measured until the 70s, but we work with what we have, and we dont even have lines before the 1993 season".
+
+**Scaled back**
+- **The own bars are the user's, by name, and nothing else** (src/situations/oddlines.js `OWN_BAR.set`): Nikola Jokić's assists as a center card from **16** (he has 23 such games; high 22). The rule I made in 0.179.0 from each player's last three seasons is gone: Josh Hart, Josh Giddey and Luka Dončić are at 15 rebounds again, and Naz Reid's threes as a center at 6 (he was not named; with the rule gone he is where the line starts).
+
+**Steals and blocks**
+- They were what made the card: it fired because he had 4 or more in all five columns. Two things hid that. The row of numbers under every odd line was points, rebounds and assists, whatever the line was about. And "about 1.6 a season" was the count of the rule's floor (any 4-4-4-4-4 line: 119 since 1993-94), not of his line.
+- **The numbers under an odd line** now add STL, BLK and 3PM when the line names them (bridge `oddCols`): Flagg's reads 34 PTS · 7 REB · 8 AST · 5 STL · 4 BLK.
+- **A line with 4+ in all five is counted as his line** (`wholeLine`): the games since 1993-94 with at least his number in each of the five columns. For 34-7-8-5-4: **no one else** (the nearest: David Robinson's 34-10-9 with 4 steals and 4 blocks, 2/15/94; Anthony Davis's 50-15-5 with 5 and 4, 10/26/16). The card's small print says "no one else has matched all five since 1993-94" or "the Nth game matching all five", and its back lists the latest games that did.
+- For that the odd-lines history keeps every such line whole (tools/odd-games/build-history.mjs, rebuilt from the archive: 119 rows, the rest of the file unchanged), and the build adds this season's and writes them into oddlive.json (`x5`). Flagg's is now on it, so the next such line is measured against his too.
+
+**Checked.** tests/run.js: 996 passed, 0 failed (the own-bar test rewritten for the user's bars; two new: the whole-line count on Flagg's numbers and on a lesser line; the wiring and the history's list). Old and new builds on the same files: the log's own-bars line is "1 players (Nikola Jokić cast 16)", and oddlive.json is the only output that differs. The rebuilt history file is the same as before apart from the new list.
+
+**Self-audit.** (1) 0.179.0 made a rule out of a request about one player and moved four others nobody had asked about; the user pulled it back within the half hour. A bar for a player is now something the user sets. (2) Threes: the whole-line count is of the five columns the line is made of. A line's threes are still measured only by the rare-line card, which looks at three columns at a time (points-threes-assists, and four other triples); a line that is rare only when four or more columns are taken together, and is not 4+ in all five, is still not caught. Told to the user; not built. (3) "No one else" is since 1993-94, regular season, as the card says. (4) Not seen in NBA Live: the rule's tests and the harness only. (5) 0.177.0 (the #lineups order) goes out after this.
+
 ## 0.179.0 (2026-11-28, bridge v41): an out-of-role odd line a player makes a habit of starts at his own bar
 
 The user, 11/28, 12:20 AM, with the NBA Live card "🧩 ODD LINE: Nikola Jokic (DEN) — 15 assists by a center · The 39th since 1993-94": "jokic is the outlier for center assist odd line. i think the alerts start around 12 for a center. recalibrate where to start the alert for jokic". Yes, 12 (then 15). And he is the list: 37 of the 38 games of 15+ before tonight were his, and he had 12 or more in 68 of his 214 games of the last three seasons (15+ in 24, 17+ in 8, 18+ in 4).

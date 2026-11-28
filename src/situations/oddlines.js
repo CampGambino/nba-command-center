@@ -260,6 +260,7 @@ export const sentence = (h, history) => `${h.say}. ${note(h, history)}`.trim();
  *  "about 23 a season" · "the 10th since 1993-94" · "the first since 1993-94" */
 export function shortNote(h, from = "1993-94") {
   if (h.own) return `his ${ord(h.own.times + 1)} game of ${h.own.start}+${h.own.high ? ` (career high ${h.own.high})` : ""}`;
+  if (h.whole) return h.whole.n === 0 ? `no one else has matched all five since ${from}` : `the ${ord(h.whole.n + 1)} game matching all five since ${from}`;
   if (h.grade == null) return "";
   if (h.before === 0) return `the first since ${from}`;
   if (h.before <= ODD.nth) return `the ${ord(h.before + 1)} since ${from}`;
@@ -399,36 +400,47 @@ export const LATE_SECS = 300;
 export const liveKind = (id) => (GROW.includes(id) ? "grow" : "late");
 
 /* ---------------------------------------------------------------------------------------------------------------
- * 0.179.0: a player's own bar on a line he makes a habit of (the user, 11/28, of "Nikola Jokic (DEN) — 15 assists by a
- * center · The 39th since 1993-94": "jokic is the outlier for center assist odd line. i think the alerts start around
- * 12 for a center. recalibrate where to start the alert for jokic"). He had 37 of the 38 before it, and 12 or more in
- * 68 of his 214 games of the last three seasons: for him it is a normal night.
+ * A player's own bar on an out-of-role line he makes a habit of.
  *
- * For the four lines that are one number out of role for a position (OWN_BAR.by): a player who has reached the line's
- * first level more than OWN_BAR.times times in the last OWN_BAR.seasons seasons and this one has made it a habit, and his card
- * starts at the lowest number he has reached OWN_BAR.times times or fewer in that span. Everyone else starts where the
- * line does. The two numbers are mine: "more than about twice a season".
- *   games: { id: [{ d, reb, ast, blk, fg3m }] } every regular-season game of his career · pos: { id: ESPN's label }
- *   since: the first day of the span ("2023-10-01" in 2026-27)
- * -> { id: { cast: [start, times he has reached it in his career, his career high] } }, only for players with a habit
+ * 0.179.0 (the user, 11/28, of "Nikola Jokic (DEN) — 15 assists by a center · The 39th since 1993-94": "jokic is the
+ * outlier for center assist odd line. i think the alerts start around 12 for a center. recalibrate where to start the
+ * alert for jokic"): he had 37 of the 38 before it. I made it a rule from each player's last three seasons (a line
+ * reached more than 6 times starts where he has been 6 times or fewer), which put Jokić at 18 and also moved Josh
+ * Hart, Luka Dončić, Josh Giddey and Naz Reid.
+ * 0.180.0 (the user, 12:38 AM: "i think scale back a little bit on the changes. start Jokic alert at 16. keep hart,
+ * giddey and doncic at 15"): no rule. The bars are the user's, by name, and only those: OWN_BAR.set. Everyone else
+ * starts where the line does (Naz Reid's threes as a center are back at 6).
+ *   games: { id: [{ d, reb, ast, blk, fg3m }] } every regular-season game of his career
+ * -> { id: { cast: [start, times he has reached it in his career, his career high] } } for the players in OWN_BAR.set
  */
-export const OWN_BAR = { seasons: 3, times: 6, by: { greb: "reb", cast: "ast", gblk: "blk", c3: "fg3m" } };
-export function ownBars({ games = {}, pos = {}, since = "" } = {}) {
-  const out = {}, zero = { min: 30, pts: 0, fgm: 0, fga: 0, fg3m: 0, fg3a: 0, ftm: 0, fta: 0, oreb: 0, dreb: 0, reb: 0, ast: 0, stl: 0, blk: 0, tov: 0, pf: 0, starter: 1 };
-  for (const [id, gs] of Object.entries(games)) {
-    const grp = posGroup(pos[id]);
-    if (!grp || !Array.isArray(gs) || !gs.length) continue;
-    for (const t of TEMPLATES) {
-      const stat = OWN_BAR.by[t.id], base = stat ? Number(t.levels[0].k) : NaN;
-      if (!stat || !(base > 0) || !t.levels[0].test({ ...zero, [stat]: base }, { pos: grp, avg: null })) continue;   // not his position's line
-      const recent = gs.filter((g) => g.d >= since), at = (n, list) => list.filter((g) => g[stat] >= n).length;
-      if (at(base, recent) <= OWN_BAR.times) continue;
-      let start = base;
-      while (at(start, recent) > OWN_BAR.times) start++;
-      (out[id] ??= {})[t.id] = [start, at(start, gs), gs.reduce((a, g) => Math.max(a, g[stat] || 0), 0)];
+export const OWN_BAR = { by: { greb: "reb", cast: "ast", gblk: "blk", c3: "fg3m" },
+  set: { "3112335": { cast: 16 } } };   // Nikola Jokić, a center's assists: 16 (the user, 11/28)
+export function ownBars({ games = {} } = {}) {
+  const out = {};
+  for (const [id, bars] of Object.entries(OWN_BAR.set)) {
+    const gs = Array.isArray(games[id]) ? games[id] : [];
+    for (const [tid, start] of Object.entries(bars)) {
+      const stat = OWN_BAR.by[tid];
+      if (!stat || !(start > 0)) continue;
+      (out[id] ??= {})[tid] = [start, gs.filter((g) => g[stat] >= start).length, gs.reduce((a, g) => Math.max(a, g[stat] || 0), 0)];
     }
   }
   return out;
+}
+
+/**
+ * 0.180.0 (the user, 11/28, of "Cooper Flagg (DAL) — 34 points, 7 rebounds, 8 assists, 5 steals and 4 blocks · About 1.6 a
+ * season" with only PTS, REB and AST printed under it: "why werent steals and blocks considered when determining odd
+ * lines. or even three-pointers?"). They were: the line carded because he had 4 or more in all five columns. But the
+ * count on the card was the rule's floor (anyone with 4, 4, 4, 4 and 4: 119 since 1993-94), not his line.
+ * This counts HIS line: the games on the list of every such line that have at least his number in each of the five.
+ *   list: [[pts, reb, ast, stl, blk, name, date], …] (oddlive.json's `x5`: the history's and this season's before today)
+ * -> { n, names: [[name, date, "34 points, 7 rebounds, …"], … newest first, 5 at most] }
+ */
+export function wholeLine(l, list) {
+  const mine = [l.pts, l.reb, l.ast, l.stl, l.blk], hit = (list || []).filter((g) => mine.every((v, i) => (g[i] || 0) >= v));
+  hit.sort((a, b) => String(b[6]).localeCompare(String(a[6])));
+  return { n: hit.length, names: hit.slice(0, 5).map((g) => [g[5], g[6], `${g[0]} points, ${g[1]} rebounds, ${g[2]} assists, ${g[3]} steals and ${g[4]} blocks`]) };
 }
 
 /**
@@ -436,7 +448,7 @@ export function ownBars({ games = {}, pos = {}, since = "" } = {}) {
  *   table: docs/data/oddlive.json's `t`: { "id.k": [times before today, per season lately, last name, last date] }
  * -> [{ id, key, f, live: "grow" | "late", what, say, grade, rate, before, last, note }], rarest first.
  */
-export function liveHits(l, x, table, from = "1993-94", own = null) {
+export function liveHits(l, x, table, from = "1993-94", own = null, x5 = null) {
   const best = {};
   for (const h of matchLine(l, x)) {
     // 0.179.0: a line this player makes a habit of starts at his own bar (see ownBars)
@@ -446,6 +458,9 @@ export function liveHits(l, x, table, from = "1993-94", own = null) {
     const e = table?.[h.key] || null, cand = { ...h, rate: e ? e[1] : 0, before: e ? e[0] : 0, grade: e ? gradeOf(e[1]) : null, last: e && e[2] ? [e[2], e[3]] : null, recent: e && Array.isArray(e[4]) ? e[4] : [] };
     if (!best[h.id] || rarer(cand, best[h.id])) best[h.id] = cand;
   }
+  // 0.180.0: a line with 4+ in all five columns is counted as HIS line (wholeLine), and ranked by that count
+  if (best.x5 && Array.isArray(x5)) { const w = wholeLine(l, x5); const per = Math.round((w.n / 33) * 10) / 10;   // a season, over the 33 on file
+    best.x5 = { ...best.x5, whole: w, what: `at least ${l.pts} points, ${l.reb} rebounds, ${l.ast} assists, ${l.stl} steals and ${l.blk} blocks`, before: w.n, rate: per, grade: gradeOf(per), recent: w.names, last: w.names[0] ? [w.names[0][0], w.names[0][1]] : null }; }
   return Object.values(best).map((h) => ({ ...h, live: liveKind(h.id), note: note(h, { from }) }))
     .sort((a, b) => GRADES.indexOf(a.grade ?? "common") - GRADES.indexOf(b.grade ?? "common") || a.rate - b.rate || a.before - b.before);
 }

@@ -110,7 +110,10 @@ const ERAS = [[1993, 1999], [2000, 2006], [2007, 2013], [2014, 2020], [2021, THR
 const T = {};
 for (const t of TEMPLATES) for (const lv of t.levels) T[`${t.id}.${lv.k}`] = { what: lv.what, f: t.f, n: 0, l5: 0, era: ERAS.map(() => 0), last: [] };
 const bySeason = new Map();   // pid|season -> his lines in date order, each with its context
-const count = (h, x) => { const e = T[h.key]; e.n++; if (x.season >= last5) e.l5++; const ei = ERAS.findIndex(([a, b]) => x.season >= a && x.season <= b); if (ei >= 0) e.era[ei]++; e.last.unshift([x.name, x.d, x.team, h.say]); if (e.last.length > ODD.list) e.last.pop(); };
+// 0.180.0: every line with 4 or more in all five columns is kept whole (119 of them), so a card can count the games that
+// match tonight's five numbers and not only the rule's floor of 4: [pts, reb, ast, stl, blk, name, date, team]
+const X5 = [];
+const count = (h, x) => { if (h.key === "x5.4") X5.push([x.l.pts, x.l.reb, x.l.ast, x.l.stl, x.l.blk, x.name, x.d, x.team]); const e = T[h.key]; e.n++; if (x.season >= last5) e.l5++; const ei = ERAS.findIndex(([a, b]) => x.season >= a && x.season <= b); if (ei >= 0) e.era[ei]++; e.last.unshift([x.name, x.d, x.team, h.say]); if (e.last.length > ODD.list) e.last.pop(); };
 for (const x of lines) {
   const s = sum.get(x.pk), mine = x.l.min > 0 ? 1 : 0, n = (s?.n || 0) - mine;
   const avg = n >= ODD.games ? { pts: (s.pts - mine * x.l.pts) / n, reb: (s.reb - mine * x.l.reb) / n, ast: (s.ast - mine * x.l.ast) / n } : null;
@@ -144,7 +147,7 @@ const out = { v: 1, from: tag(from), through: tag(THROUGH), seasons: seasons.len
         checked: "pbpstats for 972 of them (20,113 of 20,117 player lines the same) and the user's five Basketball Reference box scores; every ESPN team total against NBA.com's, turnovers aside (team turnovers), 99.9% the same" },
   allStar,
   source: "ESPN box scores (site.api.espn.com summary), regular season; only games where the players' points add up to the score. Averages: his other games that season, 10 or more. Position: ESPN's label for the player.",
-  t: T, runMin: 20, runs: runsT, again: againT };
+  t: T, x5: X5, runMin: 20, runs: runsT, again: againT };
 fs.writeFileSync(OUT, JSON.stringify(out));
 fs.writeFileSync(POUT, JSON.stringify({ v: 1, since: tag(firstP), through: tag(THROUGH), seasons: WINDOW, note: "Each player's count of every odd-line level over these seasons (ESPN ids): p[id] = { g: games played, k: { level: [times, last date] } }; league[level] = everyone's.", league: leagueP, p: P }));
 console.log({ games, zeroed, bad, allStar, later, noStarters, fill, unnamed: Object.entries(unnamed).sort((a, b) => b[1] - a[1]).slice(0, 12), lines: lines.length, seasons: seasons.length, levels: Object.keys(T).length, bytes: fs.statSync(OUT).size, players: Object.keys(P).length, playersBytes: fs.statSync(POUT).size });
